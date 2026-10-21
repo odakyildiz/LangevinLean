@@ -81,8 +81,9 @@ def load_inputs():
                 if key[0] not in parsed or key[1] not in parsed[key[0]]:
                     raise ValueError(f"Unknown Lean declaration: {key}")
                 represented.add(key)
+    prefix = LSI.relative_to(ROOT).as_posix() + "/"
     expected = {(path, name) for path, declarations in parsed.items()
-                if path.startswith("UnadjustedLangevin/LSI/") for name in declarations}
+                if path.startswith(prefix) for name in declarations}
     if missing := expected - represented:
         raise ValueError(f"LSI declarations without an explanation: {sorted(missing)}")
     return content, audit, sources, parsed, represented
@@ -129,7 +130,8 @@ def declaration_card(declaration, step_id, index, sources, parsed, shown):
 
 def audit_section(audit, math):
     source = audit["source"]
-    references = f'<a href="{html.escape(source["url"])}">Reference paper</a>'
+    references = (f'<a href="{html.escape(source["url"])}">'
+                  f'{html.escape(source.get("link_label", "Reference paper"))}</a>')
     if source.get("supplement_url"):
         label = 'Official supplement (ZIP)' if source['supplement_url'].endswith('.zip') else 'Supplementary proof'
         references += (f' · <a href="{html.escape(source["supplement_url"])}">'
@@ -150,16 +152,38 @@ def audit_section(audit, math):
                     f'<td><span class="badge" data-status="{slug(check["status"])}">{status}</span><p>{note}</p>' +
                     ' · '.join(links) + '</td></tr>')
     return ('<section class="chapter reference-audit" id="reference-audit">'
-            '<h2><span class="chapter-number">Reference audit</span>'
-            'What matches the paper</h2><div class="chapter-intro"><p>' + references +
+            '<h2><span class="chapter-number">' + html.escape(audit.get("label", "Reference audit")) +
+            '</span>' + html.escape(audit.get("title", "What matches the paper")) +
+            '</h2><div class="chapter-intro"><p>' + references +
             '</p><p>' + math(html.escape(audit["verdict"])) + '</p></div>'
             '<div class="table-wrap"><table><thead><tr><th scope="col">Claim</th>'
-            '<th scope="col">Paper location</th><th scope="col">Lean comparison</th>'
+            '<th scope="col">' + html.escape(audit.get("location_label", "Paper location")) +
+            '</th><th scope="col">Lean comparison</th>'
             '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div></section>')
 
 
 def build():
     content, audit, sources, parsed, represented = load_inputs()
+    metadata = content.get("page", {})
+    style_path = ROOT / metadata["style"] if "style" in metadata else HERE / "page.css"
+    script_path = ROOT / metadata["script"] if "script" in metadata else HERE / "page.js"
+    commands = metadata.get("build_commands", "lake build UnadjustedLangevin IPLA "
+                            "+UnadjustedLangevin.LSI.Check\nlake env lean UnadjustedLangevin/LSI/Check.lean")
+    title = metadata.get("title", "ULA under LSI — proof and reference comparison")
+    heading = metadata.get("heading", "ULA under the log-Sobolev inequality")
+    description = metadata.get("description", "A detailed entropy proof for ULA under LSI, "
+                               "paired with exact Lean source and an explicit audit against "
+                               "Vempala–Wibisono (2019).")
+    subtitle = metadata.get("subtitle", "The entropy argument, its Lean proof, and the comparison "
+                            "with the reference paper.")
+    status = metadata.get("status", "The displayed bound matches the paper. The current Lean endpoints "
+                          "require additional analytic interpolation hypotheses. The page identifies "
+                          "exactly which steps are proved and which remain open.")
+    audit_title = audit.get("title", "What matches the paper")
+    related = metadata.get("related_links", [{"path": "UnadjustedLangevin/exposition/dist/index.html",
+                                              "label": "Strongly convex ULA proof"}])
+    related_links = ''.join(f' · <a href="{relative(link["path"])}">'
+                            f'{html.escape(link["label"])}</a>' for link in related)
     prose = [content["intro"], content["closing"], audit["verdict"]]
     prose.extend(html.escape(check[key]) for check in audit["checks"] for key in ["claim", "note"])
     for section in content["sections"]:
@@ -184,7 +208,8 @@ def build():
                         f'{html.escape(section["title"])}</h2><div class="chapter-intro">' +
                         math(section["intro"]) + '</div>' + ''.join(steps) + '</section>')
     modules = []
-    for path in sorted(sources, key=lambda p: (not p.startswith("UnadjustedLangevin/LSI/"), p)):
+    prefix = LSI.relative_to(ROOT).as_posix() + "/"
+    for path in sorted(sources, key=lambda p: (not p.startswith(prefix), p)):
         modules.append(f'<details class="source-module" id="module-{slug(path)}" data-module="{path}">'
                        f'<summary>{path}</summary><div class="module-actions">'
                        f'<button type="button" class="copy-source" data-source="{path}">Copy file</button>'
@@ -196,8 +221,7 @@ def build():
                 '<div class="chapter-intro"><p>Every LSI module and its local Lean dependencies are embedded '
                 'below, together with the pinned build configuration. Excerpts above are read directly '
                 'from these files. The audit module checks the logical axioms used by the results.</p>'
-                '<pre><code>lake build UnadjustedLangevin IPLA +UnadjustedLangevin.LSI.Check\n'
-                'lake env lean UnadjustedLangevin/LSI/Check.lean</code></pre></div>'
+                '<pre><code>' + html.escape(commands) + '</code></pre></div>'
                 '<div class="source-toolbar"><label for="source-search">Find a source file</label> '
                 '<input id="source-search" type="search" placeholder="e.g. LSI/OneStep" '
                 'aria-controls="source-files"><span id="source-count" aria-live="polite"></span>'
@@ -210,15 +234,16 @@ def build():
         "explained_declarations": len(represented),
         "sources": {path: hashlib.sha256(source.encode()).hexdigest() for path, source in sources.items()},
         "inputs": {name: hashlib.sha256((HERE / name).read_bytes()).hexdigest()
-                   for name in ["chapters.json", "reference_audit.json", "page.css", "page.js"]},
+                   for name in ["chapters.json", "reference_audit.json",
+                                Path(os.path.relpath(style_path, HERE)).as_posix(),
+                                Path(os.path.relpath(script_path, HERE)).as_posix()]},
     }
     embedded = json.dumps(sources, ensure_ascii=False).replace('<', '\\u003c').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
     page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            '<title>ULA under LSI — proof and reference comparison</title>'
-            '<meta name="description" content="A detailed entropy proof for ULA under LSI, '
-            'paired with exact Lean source and an explicit audit against Vempala–Wibisono (2019).">'
-            '<style>' + SHARED.katex_css() + '\n' + (HERE / 'page.css').read_text() + '</style></head>'
+            '<title>' + html.escape(title) + '</title>'
+            '<meta name="description" content="' + html.escape(description, quote=True) + '">'
+            '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() + '</style></head>'
             '<body data-mode="paired"><header class="running-head"><a href="../../../index.html">'
             'LangevinLean</a><div class="controls"><label for="reading-mode">Read </label>'
             '<select id="reading-mode"><option value="paired">Mathematics + Lean</option>'
@@ -226,24 +251,23 @@ def build():
             '<button type="button" id="toggle-proofs" aria-expanded="true">Fold Lean proofs</button>'
             '<button type="button" id="print-document">Print</button></div></header><main>'
             '<header class="hero"><div class="eyebrow">Sampling algorithms · Entropy analysis</div>'
-            '<h1>ULA under the log-Sobolev inequality</h1>'
-            '<p class="subtitle">The entropy argument, its Lean proof, and the comparison with the reference paper.</p>'
-            '<div class="status-note"><strong>Conditional Lean formalization.</strong> The displayed bound '
-            'matches the paper. The current Lean endpoints require additional analytic interpolation '
-            'hypotheses. The page identifies exactly which steps are proved and which remain open.</div>' +
+            '<h1>' + html.escape(heading) + '</h1>'
+            '<p class="subtitle">' + html.escape(subtitle) + '</p>'
+            '<div class="status-note"><strong>Conditional Lean formalization.</strong> ' +
+            html.escape(status) + '</div>' +
             math(content["intro"]) +
-            '<p class="hero-actions"><a href="#reference-audit">Reference comparison</a> · '
+            '<p class="hero-actions"><a href="#reference-audit">' + html.escape(audit_title) + '</a> · '
             '<a href="#sources">Complete sources</a> · <a href="../README.md">Module guide</a> · '
-            '<a href="../../exposition/dist/index.html">Strongly convex ULA proof</a></p>'
+            + related_links.lstrip(' · ') + '</p>'
             '<nav class="toc" aria-label="Contents"><h2>Contents</h2><ol>' + ''.join(toc) +
-            '<li><a href="#reference-audit">What matches the paper</a></li>'
+            '<li><a href="#reference-audit">' + html.escape(audit_title) + '</a></li>'
             '<li><a href="#sources">Complete sources</a></li></ol></nav></header>' +
             ''.join(chapters) + audit_section(audit, math) +
             '<div class="closing">' + math(content["closing"]) + '</div>' + appendix +
             '</main><div id="action-status" role="status" aria-live="polite"></div>'
             '<script type="application/json" id="lean-sources">' + embedded + '</script>'
             '<script type="application/json" id="source-manifest">' + json.dumps(manifest) + '</script>'
-            '<script>' + (HERE / 'page.js').read_text() + '</script></body></html>\n')
+            '<script>' + script_path.read_text() + '</script></body></html>\n')
     OUT.write_text(page)
     (HERE / "source_manifest.json").write_text(json.dumps(manifest, indent=2) + '\n')
     print(f"Built {OUT.relative_to(ROOT)}: {manifest['sections']} chapters, "

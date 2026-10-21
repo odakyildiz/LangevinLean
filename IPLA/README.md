@@ -1,6 +1,14 @@
-# Strongly convex interacting particle Langevin algorithm
+# Interacting particle Langevin algorithm
 
-The main result is `IPLA.theorem1` in [Theorem.lean](Theorem.lean). It proves
+The library has a strongly convex transport theorem and a separate
+[LSI entropy extension](LSI/exposition/index.html). The latter states a general
+bound using the actual lifted target's LSI constant and derives the
+per-particle specialization. It retains the shared ULA interpolation
+conditions explicitly; its [module guide](LSI/README.md) records the assumptions.
+
+## Strongly convex theorem
+
+The strongly convex result is `IPLA.theorem1` in [Theorem.lean](Theorem.lean). It proves
 the general-dimension extension of equation (34) of
 [arXiv:2409.07101v2](https://arxiv.org/html/2409.07101v2), using its Appendix B
 proof with independent parameter dimension `dθ` and latent dimension `dx`.

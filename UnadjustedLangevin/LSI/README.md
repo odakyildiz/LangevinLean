@@ -76,6 +76,7 @@ then gives the coefficient $8$ in the displayed theorem.
 | [DiscreteEntropy.lean](DiscreteEntropy.lean) | Exact recurrence iteration and the coefficient-$8$ envelope. |
 | [Theorem.lean](Theorem.lean) | Conditional one-step and iterated KL bounds for the actual ULA laws. |
 | [RegularizedTheorem.lean](RegularizedTheorem.lean) | The same conditional KL bound, deriving entropy regularity and production from local density data and an admissible weak equation. |
+| [InterpolationData.lean](InterpolationData.lean) | Explicit analytic data reused by particle algorithms; derives finite KL, one-step and iterated estimates without assuming an entropy recurrence. |
 | [Check.lean](Check.lean) | Kernel axiom-dependency audit of the conditional development. |
 
 ## Remaining analytic obligations

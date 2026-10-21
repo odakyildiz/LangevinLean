@@ -61,3 +61,4 @@ import UnadjustedLangevin.LSI.Theorem
 import UnadjustedLangevin.LSI.Regularity
 import UnadjustedLangevin.LSI.RegularizedTheorem
 import UnadjustedLangevin.LSI.GaussianDrift
+import UnadjustedLangevin.LSI.InterpolationData

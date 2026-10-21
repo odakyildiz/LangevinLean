@@ -2,6 +2,7 @@ import UnadjustedLangevin.LSI.Theorem
 import UnadjustedLangevin.LSI.Regularity
 import UnadjustedLangevin.LSI.RegularizedTheorem
 import UnadjustedLangevin.LSI.GaussianDrift
+import UnadjustedLangevin.LSI.InterpolationData
 
 /-! Kernel dependency audit for the conditional LSI development.
 The analytic assumptions are visible in the theorem statements; none is
@@ -23,3 +24,6 @@ logical axioms, with no `sorryAx` or added mathematical axiom. -/
 #print axioms ULA.LSI.ula_kl_bound_of_regular_interpolation
 #print axioms ULA.LSI.frozen_displacement_second_moment
 #print axioms ULA.LSI.frozen_gradient_error_energy
+#print axioms ULA.LSI.RegularInterpolationData.kl_finite
+#print axioms ULA.LSI.RegularInterpolationData.kl_bound
+#print axioms ULA.LSI.RegularInterpolationData.one_step

@@ -1,0 +1,442 @@
+{
+  "page": {
+    "title": "IPLA under LSI — entropy proof and exact Lean sources",
+    "heading": "IPLA under a log-Sobolev inequality",
+    "subtitle": "An entropy bound for the actual particle algorithm, derived through its scaled ULA representation.",
+    "description": "A detailed conditional entropy theorem for IPLA under an LSI of its actual lifted Gibbs target, with exact Lean proofs and an assumption audit.",
+    "status": "The particle scaling, entropy bounds, Gaussian-law identification, and parameter data processing are proved. The theorem assumes an LSI on the actual lifted target and explicit regular interpolation data from the shared ULA argument.",
+    "style": "UnadjustedLangevin/LSI/exposition/page.css",
+    "script": "UnadjustedLangevin/LSI/exposition/page.js",
+    "build_commands": "lake build IPLA +IPLA.LSI.Check\nlake env lean IPLA/LSI/Check.lean\npython3 IPLA/LSI/exposition/build_document.py\npython3 IPLA/LSI/exposition/verify_document.py",
+    "related_links": [
+      {
+        "path": "UnadjustedLangevin/LSI/exposition/index.html",
+        "label": "Shared ULA entropy proof"
+      },
+      {
+        "path": "IPLA/exposition/index.html",
+        "label": "Strongly convex IPLA proof"
+      }
+    ]
+  },
+  "intro": "<p>IPLA evolves one common parameter and a collection of latent particles. After rescaling the latent coordinates, the entire system is exactly an unadjusted Langevin algorithm on a larger Euclidean space. This page develops the resulting relative-entropy estimate under a log-Sobolev inequality (LSI) for that system's actual Gibbs target. The argument is assembled here from the repository's particle geometry and its <a href=\"../../../UnadjustedLangevin/LSI/exposition/index.html\">shared ULA entropy proof</a>; this page makes no claim that a separate published IPLA theorem has been reproduced.</p>\n<p>The theorem is stated with all of its mathematical inputs. In particular, the LSI concerns the lifted target, and regular interpolation data supply the remaining density, weak-equation, and moment obligations of the ULA argument. The Lean development proves the entropy calculation and particle scaling from those inputs. Its conclusion measures convergence of the joint law to the Gibbs target in relative entropy.</p>",
+  "sections": [
+    {
+      "id": "general-theorem",
+      "title": "The general theorem and its assumptions",
+      "intro": "<p>Keep the LSI constant of the actual lifted target explicit. Its dependence on the particle count determines both the contraction rate and the allowable step.</p>",
+      "steps": [
+        {
+          "id": "full-joint-statement",
+          "title": "A bound for full joint relative entropy",
+          "body": "<p>Let \\(N>0\\), let \\(d_\\theta,d_x\\) be natural dimensions, and let \\(U:\\mathbb R^{d_\\theta+d_x}\\to\\mathbb R\\) be differentiable with \\(L\\)-Lipschitz gradient. Set \\(D=d_\\theta+Nd_x\\). Below, \\(\\Pi_N\\) is the Gibbs probability measure of the scaled potential \\(V_N\\), \\(\\mu_k\\) is the scaled IPLA state law, and</p>\n\\[\nH_k=\\operatorname{KL}(\\mu_k\\Vert\\Pi_N).\n\\]\n<p>Assume an initial probability law \\(\\mu_0\\), an LSI on \\(\\Pi_N\\) with constant \\(\\beta>0\\), and</p>\n\\[\n\\beta\\le NL,\\qquad 0<\\gamma\\le\\frac{\\beta}{4NL^2}.\n\\]\n<p>Also supply <code>RegularInterpolationData</code> for potential \\(V_N\\), LSI constant \\(\\beta\\), ULA step \\(\\gamma/N\\), smoothness \\(NL\\), and initialization \\(\\mu_0\\). These analytic data are spelled out in Chapter 4. Then \\(H_k\\) is finite for every \\(k\\), and the proved estimate is</p>\n\\[\nH_k\\le e^{-\\beta\\gamma k/N}H_0\n       +\\frac{8\\gamma ND L^2}{\\beta}.\n\\]\n<p>The positivity of \\(L\\) follows from \\(\\beta>0\\) and \\(\\beta\\le NL\\); it is not a missing division guard. The compatibility condition \\(\\beta\\le NL\\) is an explicit input of the shared entropy argument. No strong-convexity assumption is used by this endpoint.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particle_kl_bound"
+            }
+          ]
+        },
+        {
+          "id": "normalized-joint-statement",
+          "title": "Normalize the joint entropy by the number of particles",
+          "body": "<p>Dividing the whole estimate by the positive particle number gives the intensive quantity \\(\\overline H_k=H_k/N\\):</p>\n\\[\n\\overline H_k\\le e^{-\\beta\\gamma k/N}\\overline H_0\n       +\\frac{8\\gamma D L^2}{\\beta}.\n\\]\n<p>Both the initial contribution and the bias are divided by \\(N\\). The theorem <code>particle_kl_bound_normalized</code> obtains this inequality from the full joint estimate; <code>normalize_entropy_bound</code> performs the scalar division and cancellation. Its use of a positive divisor preserves the inequality direction.</p>\n<p>The normalization does not make this the parameter-marginal divergence. It remains the divergence of the entire state, divided by \\(N\\). Chapter 7 gives the precise projection consequence and the factor needed to bound unscaled parameter KL. For fixed nonzero step, the displayed additive term allows persistent discretization error; the theorem does not assert that the Euler transition leaves \\(\\Pi_N\\) invariant.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particle_kl_bound_normalized"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "normalize_entropy_bound"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scaled-geometry",
+      "title": "The scaled state, target, and particle update",
+      "intro": "<p>The reduction to ULA is an identity of potentials and Gaussian transitions. It is useful to work through the coordinates before substituting any entropy theorem.</p>",
+      "steps": [
+        {
+          "id": "state-and-potential",
+          "title": "One parameter block and rescaled latent blocks",
+          "body": "<p>Write the scaled state as \\(z=(\\theta,z^1,\\ldots,z^N)\\), with physical latent particles \\(x^i=\\sqrt N\\,z^i\\). The Euclidean norm is the ordinary norm of these scaled coordinates. Define</p>\n\\[\nV_N(z)=\\sum_{i=1}^N U(\\theta,\\sqrt N\\,z^i),\\qquad\n\\Pi_N(dz)=Z_N^{-1}e^{-V_N(z)}\\,dz.\n\\]\n<p><code>IPLA.potential</code> is exactly this \\(V_N\\), and <code>IPLA.gibbsTarget</code> is exactly its normalized Gibbs expression. The parameter coordinate is unchanged by the rescaling. <code>finrank_state</code> proves that its real dimension is \\(D=d_\\theta+Nd_x\\), allowing the shared ULA theorem's dimension parameter to be substituted without treating \\(d_\\theta\\) and \\(d_x\\) as equal.</p>\n<p>Normalization is supplied in this theorem through <code>IsLogSobolev</code>, which includes that the target is a probability measure. The Gibbs expression alone would not prove that its partition function is positive and finite. No pair-target LSI is used to establish normalization or the lifted functional inequality.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "potential"
+            },
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "finrank_state"
+            },
+            {
+              "file": "IPLA/Model.lean",
+              "name": "gibbsTarget"
+            }
+          ]
+        },
+        {
+          "id": "coordinate-update",
+          "title": "The Gaussian algorithm in original coordinates",
+          "body": "<p>A ULA step for \\(V_N\\) with \\(h=\\gamma/N\\) is</p>\n\\[\nz_{k+1}=z_k-\\frac\\gamma N\\nabla V_N(z_k)\n               +\\sqrt{\\frac{2\\gamma}{N}}\\,\\xi_k,\n\\qquad\\xi_k\\sim\\mathcal N(0,I_D).\n\\]\n<p>The parameter derivative of \\(V_N\\) is the sum of the pair parameter derivatives. Its \\(i\\)th scaled latent derivative is \\(\\sqrt N\\,\\nabla_x U(\\theta,\\sqrt N z^i)\\). Thus the same step, after unscaling each latent block, reads</p>\n\\[\n\\theta_{k+1}=\\theta_k-\\frac\\gamma N\\sum_{i=1}^N\n \\nabla_\\theta U(\\theta_k,x_k^i)\n +\\sqrt{\\frac{2\\gamma}{N}}\\,\\xi_k^\\theta,\n\\]\n\\[\nx_{k+1}^i=x_k^i-\\gamma\\nabla_x U(\\theta_k,x_k^i)\n                  +\\sqrt{2\\gamma}\\,\\xi_k^i.\n\\]\n<p><code>scaledUpdate_parameter</code> and <code>scaledUpdate_particle</code> prove these coordinate formulas, including the two different noise scales. The Gaussian coordinates and times are independent, and the entire noise sequence is independent of initialization. Those distributional assumptions appear explicitly in the noise-driven endpoint.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "scaledUpdate_parameter"
+            },
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "scaledUpdate_particle"
+            },
+            {
+              "file": "IPLA/Model.lean",
+              "name": "GaussianInnovations"
+            }
+          ]
+        },
+        {
+          "id": "lifted-smoothness",
+          "title": "Why the lifted smoothness is NL",
+          "body": "<p>Let \\(J_i z=(\\theta,\\sqrt N z^i)\\). The replicated pair maps satisfy the exact quadratic identity</p>\n\\[\n\\sum_{i=1}^N\\|J_i v\\|^2=N\\|v\\|^2.\n\\]\n<p>Differentiating the finite sum gives \\(\n\\langle\\nabla V_N(z),v\\rangle\n=\\sum_i\\langle\\nabla U(J_i z),J_i v\\rangle\n\\). Apply the base gradient's \\(L\\)-Lipschitz bound to a difference of two such expressions, then apply Cauchy–Schwarz to the particle sum. The quadratic identity on both arguments gives</p>\n\\[\n\\|\\nabla V_N(z)-\\nabla V_N(w)\\|\n \\le NL\\,\\|z-w\\|.\n\\]\n<p>The repository proves differentiability of \\(V_N\\) and this Lipschitz statement from the corresponding assumptions on \\(U\\). The smoothness is therefore derived; the LSI constant \\(\\beta\\) is supplied separately. Keeping those roles distinct is essential because sharing the parameter across all pair terms prevents a direct independent-product tensorization argument.</p><p>For clarity, the quadratic identity follows directly from the coordinates: each pair norm contributes the same \\(\\|v_\\theta\\|^2\\), while its latent block contributes \\(N\\|v_i\\|^2\\). Summing gives \\(N\\|v_\\theta\\|^2+N\\sum_i\\|v_i\\|^2=N\\|v\\|^2\\). In the gradient comparison the particle sum is bounded by</p>\n\\[\nL\\Big(\\sum_i\\|J_i(z-w)\\|^2\\Big)^{1/2}\n \\Big(\\sum_i\\|J_i v\\|^2\\Big)^{1/2}\n =NL\\|z-w\\|\\,\\|v\\|.\n\\]\n<p>Taking the supremum over unit test vectors gives the asserted Lipschitz constant. This also explains why using the unscaled particle coordinates would change the ambient metric and obscure the direct isotropic ULA representation.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "joint_norm_sq_sum"
+            },
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "potential_differentiable"
+            },
+            {
+              "file": "IPLA/Geometry.lean",
+              "name": "potential_gradient_lipschitz"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "algorithm-laws",
+      "title": "The theorem concerns the actual Gaussian laws",
+      "intro": "<p>There are two equivalent presentations of the algorithm: iteration of its measure transition, and a noise-driven recursion on a probability space. The development proves their law identity.</p>",
+      "steps": [
+        {
+          "id": "markov-laws",
+          "title": "Canonical particle laws and probability preservation",
+          "body": "<p><code>particleLaws U γ μ k</code> is the \\(k\\)-fold iteration of the actual Gaussian ULA law step for \\(V_N\\) at time \\(\\gamma/N\\), beginning with \\(\\mu\\). At \\(k=0\\) it is exactly \\(\\mu\\). Each transition pushes the independent product of the current law and the standard \\(D\\)-dimensional Gaussian through the displayed Euler update.</p>\n<p>Gradient Lipschitzness gives the measurability needed for pushforward probability preservation. Consequently all of the particle laws are probability measures whenever initialization is a probability measure. This construction takes an initial measure directly and does not require choosing a particular probability space or Gaussian sequence to state the canonical entropy theorem.</p>\n<p>The law identity also keeps the interpolation endpoint precise: a frozen-drift Gaussian interpolation started at \\(\\mu_k\\) has law \\(\\mu_k\\) at time zero and \\(\\mu_{k+1}\\) at time \\(h=\\gamma/N\\). These endpoint identities are used when a continuous-time entropy comparison becomes a discrete one-step recurrence.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particleLaws"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particleLaws_zero"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particleLaws_isProbability"
+            }
+          ]
+        },
+        {
+          "id": "noise-driven-laws",
+          "title": "Identify the existing IPLA implementation",
+          "body": "<p>The original <code>IPLA.laws</code> follows an \\(L^2\\) random initialization and an \\(L^2\\) noise sequence. <code>GaussianInnovations</code> states that each scalar noise coordinate has law \\(\\mathcal N(0,1)\\), that all coordinates across all times are independent, and that the noise sequence is independent of initialization. It does not silently replace arbitrary noise by Gaussian noise.</p>\n<p><code>particleLaws_eq_laws</code> proves that the canonical law at every step is the law of this recursion. Substitution into the canonical entropy estimates gives <code>gaussian_ipla_kl_bound_normalized</code> and its linear-LSI specialization. These corollaries retain the exact distributional assumptions and the same interpolation data, now initialized with the pushforward law of the random initial state.</p>\n<p>This distinction lets a theorem about arbitrary initial probability measures coexist with the implementation's \\(L^2\\) interface. Neither version assumes a Gaussian initial state. The regular density requirements of the interpolation data do, however, restrict which initial laws currently satisfy the conditional theorem.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particleLaws_eq_laws"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "gaussian_ipla_kl_bound_normalized"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "gaussian_ipla_kl_bound_of_linear_lsi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "analytic-interface",
+      "title": "The analytic assumptions behind the shared entropy argument",
+      "intro": "<p>The new particle proof reuses a single explicit interface. Packaging its fields shortens the endpoint signature while keeping every remaining analytic obligation inspectable.</p>",
+      "steps": [
+        {
+          "id": "lsi-and-data",
+          "title": "Relative-density LSI and regular interpolation data",
+          "body": "<p>Write \\(\\nu=\\Pi_N\\), \\(\\ell=NL\\), and \\(h=\\gamma/N\\). The LSI normalization is</p>\n\\[\n2\\beta\\operatorname{KL}(r\\nu\\Vert\\nu)\n \\le \\int\\|\\nabla\\log r\\|^2\\,d(r\\nu).\n\\]\n<p><code>IsLogSobolev</code> applies this inequality to strictly positive \\(C^1\\) relative densities defining probability measures. Its convention agrees with the shared ULA entropy calculation. Extension to every density by approximation is not asserted by this definition.</p>\n<p><code>RegularInterpolationData V_N β h ℓ μ</code> supplies functions \\(r_k(t,z)\\), time derivatives \\(\\dot r_k(t,z)\\), and error fields \\(e_k(t,z)\\). On \\(0\\le t\\le h\\), it identifies \\(r_k(t)\\nu\\) with the actual frozen-drift Gaussian law begun at step \\(k\\), requires strict positivity and spatial \\(C^1\\) regularity, and supplies <code>LocalEntropyRegularity</code>. That local condition contains integrable domination for differentiating \\(r\\log r\\), pointwise time derivatives, and measurability.</p>\n<p>The structure additionally requires integrability of the squared relative score and error energy, and measurability of their cross term. It also supplies the admissible weak equation for \\(0\\le t<h\\), the error-energy bound, and a squared-gradient moment bound at the start of every step. Integrability of the cross term is then derived from those energy assumptions by Young’s inequality. The structure contains no entropy recurrence or convergence conclusion. Its local regularity currently uses full time neighborhoods, including at zero.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
+              "name": "IsLogSobolev"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationData.lean",
+              "name": "RegularInterpolationData"
+            }
+          ]
+        },
+        {
+          "id": "weak-equation",
+          "title": "From the weak equation to entropy production",
+          "body": "<p>The weak equation is an identity for every \\(C^1\\) test function \\(\\psi\\) whose three displayed integrands are integrable:</p>\n\\[\n\\int\\dot r\\,\\psi\\,d\\nu\n=-\\int\\langle\\nabla r,\\nabla\\psi\\rangle\\,d\\nu\n +\\int r\\langle e,\\nabla\\psi\\rangle\\,d\\nu.\n\\]\n<p>The positive sign in its last term fixes the convention for \\(e\\). For a frozen drift, the intended field is \\(e(z)=\\nabla V_N(z)-\\mathbb E[\\nabla V_N(X_0)\\mid X_t=z]\\). Constructing such a field and proving this admissible identity is an input to the current interface.</p>\n<p>Local domination justifies differentiation under the entropy integral. Test the weak identity with \\(1+\\log r\\), use \\(\\nabla r=r\\nabla\\log r\\), and apply Young's inequality \\(\\langle e,s\\rangle\\le\\|s\\|^2/4+\\|e\\|^2\\). With \\(J(t)=\\int\\|\\nabla\\log r\\|^2d(r\\nu)\\), the formalized calculus gives</p>\n\\[\nH'(t)\\le-\\tfrac34 J(t)+\\int r(t,z)\\|e(t,z)\\|^2\\,\\nu(dz).\n\\]\n<p>This derivative estimate is proved from the structure's analytic fields. The entropy derivative itself is not a field of the structure.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "densityEntropy_derivative_bound_of_regular_weak_equation"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationData.lean",
+              "name": "RegularInterpolationData.path_probability"
+            }
+          ]
+        },
+        {
+          "id": "moment-obligations",
+          "title": "The two energy estimates and finite entropy",
+          "body": "<p>Let \\(G_k=\\int\\lVert\\nabla V_N\\rVert^2d\\mu_k\\), with its integrability required explicitly. The remaining quantitative fields are</p>\n\\[\n\\int r_k(t)\\lVert e_k(t)\\rVert^2d\\nu\n \\le t^2\\ell^2G_k+2tD\\ell^2,\n\\qquad\nG_k\\le\\frac{4\\ell^2}{\\beta}H_k+2D\\ell.\n\\]\n<p>The first is the drift-error energy estimate suggested by Gaussian displacement moments and Lipschitzness. The shared ULA files prove the joint Gaussian displacement formula. Connecting that joint bound to an error field in the weak equation remains part of constructing the supplied data. The second gradient-moment comparison is also an explicit field; the endpoint does not derive it solely from the stated LSI.</p>\n<p>The data's integrable entropy density proves finite extended KL. <code>kl_finite</code> and <code>particle_kl_finite</code> establish this fact before any real-valued bound is used. This matters because <code>ENNReal.toReal</code> sends infinity to zero. Here each displayed \\(H_k\\) really represents a finite KL divergence. <code>kl_bound</code> then assembles the proved calculus, LSI, scalar comparison, and iteration.</p><p>The Gaussian calculation uses the independent joint law of \\(X_0\\) and standard \\(Z\\), with \\(X_t=X_0-t\\nabla V_N(X_0)+\\sqrt{2t}Z\\). Vanishing Gaussian mean cancels its cross term, giving</p>\n\\[\n\\mathbb E\\|X_t-X_0\\|^2=t^2G_k+2tD.\n\\]\n<p>Lipschitzness bounds the joint squared drift difference by \\(\\ell^2\\mathbb E\\|X_t-X_0\\|^2\\). To obtain the stated field-energy bound, a conditional drift representation must also connect this joint law to the weak equation; the density interface requests that resulting bound explicitly. This prevents an unproved passage between a joint expectation and a conditional vector field from being hidden inside notation.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationData.lean",
+              "name": "RegularInterpolationData.kl_finite"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationData.lean",
+              "name": "RegularInterpolationData.kl_bound"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particle_kl_finite"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "one-step-and-iteration",
+      "title": "Derive the recurrence, then substitute particle scales",
+      "intro": "<p>The analytic proof is performed once for ULA. The particle argument changes the potential, time scale, smoothness constant, and dimension, then rewrites the resulting constants exactly.</p>",
+      "steps": [
+        {
+          "id": "shared-one-step",
+          "title": "LSI absorbs the frozen-drift error",
+          "body": "<p>Combine the production estimate with \\(2\\beta H(t)\\le J(t)\\). For \\(0\\le t<h\\), this gives</p>\n\\[\nH'(t)\\le-\\tfrac32\\beta H(t)+t^2\\ell^2G_k+2tD\\ell^2.\n\\]\n<p>The numerical assumptions \\(h\\le\\beta/(4\\ell^2)\\) and \\(\\beta\\le\\ell\\) imply \\(h\\ell\\le1/4\\) and \\(\\beta h\\le1/4\\). The shared proof bounds the forcing uniformly using \\(G_k\\le A\\), where \\(A=(4\\ell^2/\\beta)H_k+2D\\ell\\). It obtains</p>\n\\[\nH'(t)\\le-\\tfrac32\\beta H(t)+b,\n\\qquad b=\\tfrac\\beta4 H_k+\\tfrac52 hD\\ell^2.\n\\]\n<p>An affine differential comparison bounds its forcing contribution by \\(bh\\). The elementary estimate \\(e^{-3x/2}+x/4\\le e^{-x}\\), valid for \\(0\\le x\\le1/4\\), absorbs the \\(H_k\\) contribution at \\(x=\\beta h\\). Relaxing the remaining coefficient \\(5/2\\le6\\) yields</p>\n\\[\nH_{k+1}\\le e^{-\\beta h}H_k+6h^2D\\ell^2.\n\\]\n<p><code>RegularInterpolationData.one_step</code> derives this recurrence from the data; it does not take the recurrence as an assumption.</p><p>The uniform-forcing bound has two parts. First, \\(h^2\\ell^2(4\\ell^2/\\beta)\\le\\beta/4\\), since \\(h\\ell^2\\le\\beta/4\\). Second, \\(2h^2D\\ell^3\\le hD\\ell^2/2\\), since \\(h\\ell\\le1/4\\). Add the original noise term \\(2hD\\ell^2\\) to obtain the coefficient \\(5/2\\) in \\(b\\). Nonnegativity of \\(H_k\\) and the dimension justifies these multiplications. Integrating the affine comparison then controls the forcing by \\(bh\\), and the exponential-gap inequality absorbs its initial-entropy contribution with the correct sign. These are quantitative deductions from the step regime, rather than additional assumptions on the entropy path.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationData.lean",
+              "name": "RegularInterpolationData.one_step"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/OneStep.lean",
+              "name": "exp_three_halves_gap"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/OneStep.lean",
+              "name": "one_step_entropy_of_interpolation"
+            }
+          ]
+        },
+        {
+          "id": "step-and-recurrence-scaling",
+          "title": "The IPLA step restriction and forcing constant",
+          "body": "<p>The ULA step restriction is transformed by positive-denominator algebra:</p>\n\\[\n\\frac\\gamma N\\le\\frac\\beta{4(NL)^2}\n\\quad\\Longleftrightarrow\\quad\n\\gamma\\le\\frac\\beta{4NL^2}.\n\\]\n<p>The one-step forcing transforms as</p>\n\\[\n6\\left(\\frac\\gamma N\\right)^2D(NL)^2\n =6\\gamma^2DL^2.\n\\]\n<p>Thus the actual joint laws obey \\(H_{k+1}\\le e^{-\\beta\\gamma/N}H_k+6\\gamma^2DL^2\\). Dividing by \\(N\\) gives</p>\n\\[\n\\overline H_{k+1}\\le e^{-\\beta\\gamma/N}\\overline H_k\n               +\\frac{6\\gamma^2DL^2}{N}.\n\\]\n<p>The main one-step theorems derive both statements from the interpolation data. The separate scalar helper <code>normalize_lifted_entropy_recurrence</code> expresses only the algebra of normalization and accordingly takes a recurrence as its explicit premise. Keeping that helper distinct from the main theorem makes clear where the analytic recurrence is proved.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "lifted_lsi_step_iff"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "lifted_entropy_forcing_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "normalize_lifted_entropy_recurrence"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particle_kl_one_step"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particle_kl_one_step_normalized"
+            }
+          ]
+        },
+        {
+          "id": "geometric-iteration",
+          "title": "The constants 6 and 8 after iteration",
+          "body": "<p>For \\(q=e^{-\\beta h}\\), repeated substitution gives the finite-horizon estimate</p>\n\\[\nH_k\\le q^kH_0+6h^2D\\ell^2\\sum_{j=0}^{k-1}q^j.\n\\]\n<p>The shared discrete proof retains this geometric-sum version. Since \\(0<\\beta h\\le1/4\\), the bound \\(1-e^{-\\beta h}\\ge3\\beta h/4\\) controls the sum by \\(4/(3\\beta h)\\), producing \\(8hD\\ell^2/\\beta\\). The substitution into the resulting envelope is exact:</p>\n\\[\ne^{-\\beta hk}=e^{-\\beta\\gamma k/N},\\qquad\n\\frac{8hD\\ell^2}{\\beta}=\\frac{8\\gamma ND L^2}{\\beta}.\n\\]\n<p><code>lifted_entropy_rate_eq</code> and <code>lifted_entropy_bias_eq</code> record those identities. <code>normalized_entropy_bias_eq</code> cancels the remaining divisor \\(N\\) when full joint entropy is normalized. The term \\(8\\) is therefore the shared ULA envelope constant, while the powers of \\(N\\) come entirely from the proved particle scaling.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/DiscreteEntropy.lean",
+              "name": "discrete_entropy_recurrence_exact"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DiscreteEntropy.lean",
+              "name": "discrete_entropy_recurrence_bound"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "lifted_entropy_rate_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "lifted_entropy_bias_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "normalized_entropy_bias_eq"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "linear-lsi-specialization",
+      "title": "The additional regime β = Nα",
+      "intro": "<p>This useful specialization assumes an LSI of strength \\(N\\alpha\\) for the actual lifted target. It is a conditional regime of the theorem, not an inference from an LSI for one parameter/latent pair.</p>",
+      "steps": [
+        {
+          "id": "linear-lsi-assumptions",
+          "title": "Compatibility, step size, and contraction rate",
+          "body": "<p>Suppose \\(\\alpha>0\\), \\(\\alpha\\le L\\), and the supplied LSI for \\(\\Pi_N\\) has constant \\(\\beta=N\\alpha\\). Then</p>\n\\[\nN\\alpha\\le NL\\ \\Longleftrightarrow\\ \\alpha\\le L,\n\\qquad\n\\gamma\\le\\frac{N\\alpha}{4NL^2}\n\\ \\Longleftrightarrow\\\n\\gamma\\le\\frac\\alpha{4L^2}.\n\\]\n<p>The exponent also simplifies: \\(e^{-(N\\alpha)\\gamma k/N}=e^{-\\alpha\\gamma k}\\). The scaling module proves both the comparison equivalence and its forward implication, the step equivalence, and two rate identities matching the general and original ULA forms. These helpers require \\(N>0\\) where cancellation occurs.</p>\n<p>The effective rate per algorithmic step is now independent of \\(N\\). This observation depends on the actual lifted LSI scaling linearly with \\(N\\); if only a fixed lower bound on \\(\\beta\\) is available, the general theorem retains rate \\(\\beta\\gamma/N\\) and its more restrictive step regime. The general result is therefore the primary statement.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_lsi_compatibility_iff"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_lsi_compatibility"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_lsi_step_iff"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_entropy_rate_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_ula_entropy_rate_eq"
+            }
+          ]
+        },
+        {
+          "id": "linear-lsi-bias",
+          "title": "The intensive dimension and specialized entropy estimate",
+          "body": "<p>The same substitution rewrites the normalized bias using</p>\n\\[\n\\frac DN=d_x+\\frac{d_\\theta}{N},\\qquad\n\\frac{8\\gamma DL^2}{N\\alpha}\n =\\frac{8\\gamma L^2}{\\alpha}\n     \\left(d_x+\\frac{d_\\theta}{N}\\right).\n\\]\n<p>The resulting theorem is</p>\n\\[\n\\overline H_k\\le e^{-\\alpha\\gamma k}\\overline H_0\n +\\frac{8\\gamma L^2}{\\alpha}\n      \\left(d_x+\\frac{d_\\theta}{N}\\right).\n\\]\n<p>For the one-step version, dividing the forcing by \\(N\\) similarly gives \\(6\\gamma^2L^2(d_x+d_\\theta/N)\\). The scaling module records this identity and the corresponding normalized recurrence. <code>particle_kl_bound_of_linear_lsi</code> proves the displayed final bound by specializing the general theorem; the Gaussian implementation corollary follows through the law identity shown earlier.</p>\n<p>At fixed latent dimension, the latent contribution in this bound persists as \\(N\\) grows. The decreasing parameter-dimension contribution \\(d_\\theta/N\\) is a feature of normalized joint entropy. It is not itself a bound on unscaled parameter entropy or distance to an optimizer.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "normalized_dimension_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_normalized_entropy_bias_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "normalized_entropy_forcing_eq"
+            },
+            {
+              "file": "IPLA/LSI/Scaling.lean",
+              "name": "linear_normalized_entropy_recurrence"
+            },
+            {
+              "file": "IPLA/LSI/Theorem.lean",
+              "name": "particle_kl_bound_of_linear_lsi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "parameter-projection",
+      "title": "What follows for the parameter marginal",
+      "intro": "<p>Projection gives an immediate entropy consequence about a genuine parameter distribution. Its reference measure is the parameter projection of the same lifted Gibbs target.</p>",
+      "steps": [
+        {
+          "id": "parameter-target",
+          "title": "Define the target and use extended KL data processing",
+          "body": "<p>Let \\(p_\\theta(z)=\\theta\\), let \\(\\mu_k^\\theta=(p_\\theta)_\\#\\mu_k\\), and define \\(\\Pi_N^\\theta=(p_\\theta)_\\#\\Pi_N\\). The definition <code>parameterTarget</code> uses this exact pushforward, with no need to prove a formula for a marginal density.</p>\n<p>The projection is continuous and measurable, so pushing forward any probability law preserves its mass. The module proves this for arbitrary state laws and for the actual Gibbs target. Mathlib's KL data-processing inequality then yields the extended-valued estimate</p>\n\\[\n\\operatorname{KL}(\\mu_k^\\theta\\Vert\\Pi_N^\\theta)\n \\le\\operatorname{KL}(\\mu_k\\Vert\\Pi_N).\n\\]\n<p><code>parameter_kl_le_joint</code> is generic in both state measures, while <code>parameter_kl_le_gibbs_joint</code> specializes its target. No concentration assumption is needed for this measure-theoretic inequality. It compares the sampled parameter law to a probability distribution rather than to a selected point.</p><p>At an informal density level, data processing is Jensen's inequality for the convex function \\(u\\mapsto u\\log u\\): averaging a joint relative density over coordinates that are then forgotten cannot increase its entropy. The formal proof invokes the measure-theoretic theorem directly, so it also applies when no convenient conditional or marginal density formula has been constructed. Only measurability of the projection and the probability hypotheses are needed for the extended-valued comparison; finiteness enters when a real-valued inequality is requested in the next step.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameterTarget"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameterLaw_isProbability"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameterTarget_isProbability"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_le_joint"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_le_gibbs_joint"
+            }
+          ]
+        },
+        {
+          "id": "finite-parameter-entropy",
+          "title": "Transfer finite bounds with the correct factor",
+          "body": "<p>The finite joint KL proved earlier implies finite parameter KL. The module establishes this in the extended nonnegative reals before converting either quantity to a real number. Its generic and Gibbs-specific finiteness lemmas support the real data-processing inequality and bound-transfer lemmas.</p>\n<p>In particular, a full joint bound \\(H_k\\le B\\) gives parameter KL at most \\(B\\). A normalized bound \\(H_k/N\\le\\overline B\\) instead gives</p>\n\\[\n\\operatorname{KL}(\\mu_k^\\theta\\Vert\\Pi_N^\\theta)\n \\le N\\overline B.\n\\]\n<p><code>parameter_kl_bound_of_per_particle_bound</code> proves exactly this multiplication by the positive particle count. Omitting it would incorrectly identify normalized joint entropy with marginal entropy.</p>\n<p>These conclusions do not bound error around a marginal-likelihood maximizer. Such a statement would additionally need a suitable concentration or optimization argument for \\(\\Pi_N^\\theta\\), and a way to connect the chosen discrepancy to that goal. Those further hypotheses and conclusions belong to a different theorem from the LSI entropy extension presented here.</p><p>The combined particle-law corollaries perform these transfers directly. In the general regime they prove</p>\n\\[\n\\operatorname{KL}(\\mu_k^\\theta\\Vert\\Pi_N^\\theta)\n\\le e^{-\\beta\\gamma k/N}H_0+\\frac{8\\gamma ND L^2}{\\beta}.\n\\]\n<p>Under the supplied lifted LSI of strength \\(N\\alpha\\), they prove the specialized bound</p>\n\\[\n\\operatorname{KL}(\\mu_k^\\theta\\Vert\\Pi_N^\\theta)\n\\le N\\left[e^{-\\alpha\\gamma k}\\frac{H_0}{N}\n+\\frac{8\\gamma L^2}{\\alpha}\\left(d_x+\\frac{d_\\theta}{N}\\right)\\right].\n\\]\n<p>The initialization on these right-hand sides remains the full joint divergence \\(H_0=\\operatorname{KL}(\\mu_0\\Vert\\Pi_N)\\). Data processing cannot replace it by the smaller initial parameter divergence in this argument. The finite-parameter theorem separately makes explicit that this is a finite divergence of the actual parameter law.</p>",
+          "declarations": [
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_ne_top_of_joint"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_ne_top_of_gibbs_joint"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_klReal_le_joint"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_bound_of_joint_bound"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_bound_of_per_particle_bound"
+            },
+            {
+              "file": "IPLA/LSI/Marginal.lean",
+              "name": "parameter_kl_bound_of_gibbs_joint_bound"
+            },
+            {
+              "file": "IPLA/LSI/Corollaries.lean",
+              "name": "parameter_kl_finite"
+            },
+            {
+              "file": "IPLA/LSI/Corollaries.lean",
+              "name": "parameter_kl_bound"
+            },
+            {
+              "file": "IPLA/LSI/Corollaries.lean",
+              "name": "parameter_kl_bound_of_linear_lsi"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "closing": "<p>The derivation separates three inputs cleanly: base smoothness produces the lifted constant \\(NL\\); the actual lifted Gibbs target supplies its own LSI constant \\(\\beta\\); regular interpolation data justify the shared entropy proof. From those inputs, the development proves the actual particle-law recurrence, its finite KL bound, the exact particle-number scaling, and the parameter data-processing consequence. The complete declarations and local dependencies below make the assumptions and algebra independently inspectable.</p>"
+}

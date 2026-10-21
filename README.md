@@ -81,12 +81,21 @@ offline proof page explains every LSI declaration beside its exact Lean source
 and compares the argument with the paper; the [module guide](UnadjustedLangevin/LSI/README.md)
 lists the remaining obligations and build instructions.
 
+The [IPLA entropy extension](IPLA/LSI/exposition/index.html) derives a general
+particle bound from the actual lifted Gibbs target's LSI constant $\beta_N$.
+When that target has the admissible constant $N\alpha$, the per-particle KL
+bias is $(8\gamma L^2/\alpha)(d_x+d_\theta/N)$ and the contraction factor is
+$e^{-\alpha\gamma k}$. This conclusion retains the shared interpolation
+assumptions. A pair-target LSI is not substituted for the lifted-target
+hypothesis, and parameter KL is controlled by the full joint entropy.
+
 | Location | Purpose |
 | --- | --- |
 | [`UnadjustedLangevin/`](UnadjustedLangevin/README.md) | Reusable analysis, Gaussian and Brownian constructions, Gibbs measures and stationarity, transport estimates, and the ULA convergence theorem. |
 | [`UnadjustedLangevin/Analysis/`](UnadjustedLangevin/Analysis/) | Shared smoothness estimates; convexity support is in [`StrongConvexity.lean`](UnadjustedLangevin/StrongConvexity.lean). |
 | [`UnadjustedLangevin/LSI/`](UnadjustedLangevin/LSI/README.md) | KL/Fisher calculus, Gaussian interpolation laws, and conditional ULA entropy bounds under LSI. |
 | [`IPLA/`](IPLA/exposition/README.md) | Lifted particle geometry, identification of IPLA with ULA, the parameter marginal and its log-concavity and concentration, and the final IPLA theorem. |
+| [`IPLA/LSI/`](IPLA/LSI/README.md) | Conditional particle entropy bounds, exact normalization and parameter KL projection under a lifted-target LSI. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/dist/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html) | Offline exposition, source viewers, and verification reports. |
 
