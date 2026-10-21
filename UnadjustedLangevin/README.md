@@ -110,7 +110,7 @@ concentration radius from the same joint-potential assumptions.
 
 ## Reference and constant
 
-The separate [ULA analysis under LSI](LSI/README.md) follows
+The separate [ULA proof under LSI](LSI/exposition/index.html) follows
 [Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf).
 For $0<h\le\alpha/(4L^2)$, its published KL bound is
 
@@ -126,8 +126,10 @@ displacement/error moments, one-step scalar estimate, and iteration. A second
 wrapper derives KL regularity and production
 from local density data and an admissible weak equation. Deriving every
 interpolation and moment obligation
-from LSI and smoothness alone remains unfinished; see the guide's precise
-status and module map. The strongly convex transport endpoints above remain
+from LSI and smoothness alone remains unfinished. The detailed proof page
+explains the calculations, displays every LSI declaration, and audits the
+correspondence with the paper. See the [module guide](LSI/README.md) for the
+precise status and module map. The strongly convex transport endpoints above remain
 the complete results under their stated potential assumptions.
 
 The coupling estimate follows Section 6 of

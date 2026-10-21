@@ -69,14 +69,17 @@ HTML includes the offline fonts, formula rendering, and source viewers.
 
 ## Repository structure and reuse
 
-The [ULA analysis under LSI](UnadjustedLangevin/LSI/README.md) follows
+The [ULA proof under LSI](UnadjustedLangevin/LSI/exposition/index.html) follows
 [Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf):
 for $0<h\le\alpha/(4L^2)$, the KL bound is
 $H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+8hnL^2/\alpha$.
 The Lean endpoint `ULA.LSI.ula_kl_bound_of_interpolation` is **conditional** on
 explicit density, interpolation, and moment hypotheses, including
 $\alpha\le L$. The guide identifies the remaining analytic work needed for a
-complete proof from only the published LSI and smoothness assumptions.
+complete proof from only the published LSI and smoothness assumptions. The
+offline proof page explains every LSI declaration beside its exact Lean source
+and compares the argument with the paper; the [module guide](UnadjustedLangevin/LSI/README.md)
+lists the remaining obligations and build instructions.
 
 | Location | Purpose |
 | --- | --- |

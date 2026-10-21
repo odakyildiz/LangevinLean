@@ -1,0 +1,506 @@
+{
+  "intro": "<p>This page develops the entropy argument for the unadjusted Langevin algorithm (ULA) under a log-Sobolev inequality. It follows Vempala and Wibisono, <a href=\"https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf\"><em>Rapid Convergence of the Unadjusted Langevin Algorithm: Isoperimetry Suffices</em> (2019)</a>, Theorem 2 and Lemma 3. The mathematical argument is explained beside the corresponding Lean declarations, including their hypotheses and proofs.</p>\n<p><strong>The formal endpoint is conditional.</strong> The repository proves the Gaussian law calculations, entropy calculus under explicit regularity and weak-equation hypotheses, the scalar one-step estimate, and its iteration. It also assembles these results into a theorem about the actual Gaussian ULA laws. Constructing all of the required interpolation data from the paper's LSI and smoothness assumptions remains unfinished. In particular, neither the existence of the Lean theorem nor its kernel axiom audit removes the hypotheses displayed in that theorem.</p>\n<p>The central mechanism is that LSI turns Fisher-information dissipation into entropy contraction. Freezing the drift for one numerical step introduces an error. Gaussian displacement moments control the joint error, Young's inequality reserves three quarters of the Fisher information, and a small-step scalar calculation yields the constants \\(6\\) and \\(8\\). The distinction between this proved mechanism and the remaining analytic bridges is maintained throughout.</p>",
+  "sections": [
+    {
+      "id": "statement-and-notation",
+      "title": "The theorem, its quantities, and its scope",
+      "intro": "<p>Let \\(E\\) be a finite-dimensional real Hilbert space, let \\(n=\\dim E\\), and let \\(\\nu\\) be the Gibbs probability measure associated with a differentiable potential \\(U\\). The potential has an \\(L\\)-Lipschitz gradient. Strong convexity is not the hypothesis used here: the functional inequality is supplied directly as an LSI property of \\(\\nu\\).</p>",
+      "steps": [
+        {
+          "id": "published-bound",
+          "title": "The target estimate and the conditional Lean statement",
+          "body": "<p>For the independent-Gaussian update</p>\n\\[\nX_{k+1}=X_k-h\\nabla U(X_k)+\\sqrt{2h}\\,Z_k,\n\\qquad Z_k\\sim\\mathcal N(0,I),\n\\]\n<p>write \\(\\rho_k=\\operatorname{Law}(X_k)\\). The published Theorem 2 has the form</p>\n\\[\n0<h\\leq\\frac{\\alpha}{4L^2}\n\\quad\\Longrightarrow\\quad\nH_\\nu(\\rho_k)\\leq e^{-\\alpha hk}H_\\nu(\\rho_0)\n+\\frac{8hnL^2}{\\alpha}.\n\\]\n<p>The first term is the decaying contribution of initialization; the second is a step-size-dependent upper bound on persistent discretization error. The Lean theorem proves this same numerical bound for <code>ulaLaws</code>, using the target <code>ULA.gibbsMeasure U</code>, once its interpolation hypotheses are supplied. Its assumptions explicitly include \\(\\alpha>0\\), \\(L>0\\), \\(\\alpha\\leq L\\), the step restriction, and the analytic data examined below. This is a theorem about the actual transition, with additional premises; it is not yet a derivation of all premises from LSI and Lipschitzness.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/Theorem.lean",
+              "name": "ula_kl_bound_of_interpolation"
+            }
+          ]
+        },
+        {
+          "id": "relative-density-lsi",
+          "title": "Relative density, relative score, and LSI normalization",
+          "body": "<p>Use a density relative to the target, rather than to Lebesgue measure: \\(\\rho=r\\nu\\). When \\(\\nu(dx)=Z^{-1}e^{-U(x)}dx\\) and \\(\\rho(dx)=p(x)dx\\), this means \\(r=Zpe^U\\), so the relative score is \\(s=\\nabla\\log r=\\nabla\\log p+\\nabla U\\). The basic quantities are</p>\n\\[\nH_\\nu(\\rho)=\\int r\\log r\\,d\\nu,\n\\qquad\nJ_\\nu(\\rho)=\\int\\|\\nabla\\log r\\|^2\\,d\\rho.\n\\]\n<p>The normalization is \\(2\\alpha H_\\nu(\\rho)\\leq J_\\nu(\\rho)\\). A factor of two in the LSI convention would change every stated rate, so this normalization is part of the comparison with the paper. Lean's <code>tiltedMeasure</code> is the actual measure with relative density \\(r\\), and <code>relativeFisher</code> is its extended nonnegative score integral. <code>IsLogSobolev</code> asserts that the target is a probability measure and tests the inequality on strictly positive, continuously differentiable relative densities that define probability measures. An extension from that test class to arbitrary densities is not asserted here.</p>\n<p>To compare conventions, for a positive smooth function \\(g\\) with \\(\\int g^2d\\nu=1\\), put \\(r=g^2\\). Then \\(\\int r\\|\\nabla\\log r\\|^2d\\nu=4\\int\\|\\nabla g\\|^2d\\nu\\). This explains the familiar LSI convention \\(\\operatorname{Ent}_\\nu(g^2)\\leq(2/\\alpha)\\int\\|\\nabla g\\|^2d\\nu\\). This equivalence describes the normalization; the declared property itself is the explicit relative-density formulation shown in Lean.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
+              "name": "tiltedMeasure"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
+              "name": "relativeFisher"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
+              "name": "IsLogSobolev"
+            }
+          ]
+        },
+        {
+          "id": "finite-kl-guards",
+          "title": "Why finite KL and Fisher information are separate obligations",
+          "body": "<p>The entropy is Mathlib's <code>InformationTheory.klDiv</code>, not a function chosen solely to satisfy a recurrence. This divergence and the Fisher information take values in \\([0,\\infty]\\). Lean's real-valued comparisons use <code>ENNReal.toReal</code>; that operation sends infinity to zero, so a real inequality alone would not establish a meaningful finite-entropy estimate.</p>\n<p><code>IsLogSobolev.entropy_le_fisher</code> therefore retains proofs that both extended quantities are finite before giving \\(2\\alpha H\\leq J\\) over the reals. The endpoint also retains finite KL along every identified interpolation path. <code>ula_kl_finite_of_interpolation</code> uses its zero-time identification to prove finite KL for the corresponding ULA law, including initialization. These are the guards that make <code>densityEntropy</code> and <code>ulaEntropy</code> faithful real representations of entropy in their applications.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
+              "name": "IsLogSobolev.entropy_le_fisher"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/EntropyFlow.lean",
+              "name": "densityEntropy"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Theorem.lean",
+              "name": "ula_kl_finite_of_interpolation"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "ulaEntropy"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "ulaEntropy_zero"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gaussian-law-and-energy",
+      "title": "The actual Gaussian interpolation and its exact moments",
+      "intro": "<p>Fix a step index \\(k\\) and start an interpolation from \\(X\\sim\\rho_k\\). Take an independent \\(Z\\sim\\mathcal N(0,I)\\) and set \\(Y_t=X-t\\nabla U(X)+\\sqrt{2t}\\,Z\\) for \\(0\\leq t\\leq h\\). The drift is frozen at the initial point. This interpolation has the correct endpoint laws even before density regularity or a differential equation has been established.</p>",
+      "steps": [
+        {
+          "id": "law-identification",
+          "title": "Pushforward laws and their endpoints",
+          "body": "<p><code>interpolationLaw U μ t</code> is defined using the same pushforward transition as ULA: apply \\((x,z)\\mapsto x-t\\nabla U(x)+\\sqrt{2t}\\,z\\) to \\(\\mu\\otimes\\mathcal N(0,I)\\). The product measure expresses the required independence. <code>ulaLaws U h μ k</code> iterates this transition on measures, starting from \\(\\mu\\).</p>\n\\[\n\\operatorname{Law}(Y_0)=\\rho_k,\n\\qquad\n\\operatorname{Law}(Y_h)=\\rho_{k+1}.\n\\]\n<p>The zero-time identity needs no regularity of \\(U\\). Lipschitz continuity of \\(\\nabla U\\) supplies measurability of the update and proves probability preservation; iteration proves that all \\(\\rho_k\\) are probability laws. These statements identify the algorithm that the final entropy bound concerns. They do not provide a smooth density for the pushforward or differentiate its entropy. Although the law definition accepts a real time parameter, its frozen-drift Gaussian interpretation in this argument is for \\(t\\geq0\\).</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "interpolationLaw"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "ulaLaws"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "interpolationLaw_endpoint"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "ulaLaws_isProbability"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "interpolationLaw_zero"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "ulaLaws_zero"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "ulaLaws_succ"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ULALaw.lean",
+              "name": "interpolationLaw_isProbability"
+            }
+          ]
+        },
+        {
+          "id": "gaussian-second-moment",
+          "title": "The Gaussian dimension factor and the vanishing cross term",
+          "body": "<p>The noise contribution is exactly dimension dependent: \\(\\mathbb E\\|Z\\|^2=n\\). Lean proves this by expanding the squared norm in an orthonormal basis and using unit variance of each standard Gaussian coordinate. This works in every finite dimension, including zero.</p>\n<p>More generally, if \\(g\\) is square integrable under a probability law \\(\\mu\\), independence and the zero Gaussian mean give</p>\n\\[\n\\mathbb E_{\\mu\\otimes\\mathcal N(0,I)}\n\\|a\\,g(X)+bZ\\|^2\n=a^2\\mathbb E_\\mu\\|g(X)\\|^2+b^2n.\n\\]\n<p>The proof first establishes integrability of the squared terms and the inner-product cross term. The latter integral is \\(\\langle\\mathbb Eg(X),\\mathbb EZ\\rangle=0\\). Thus cancellation is an equality on the independent product law, rather than an estimate that hides a factor of two. This exact calculation is the source of the sharp \\(2tn\\) noise term below.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "integral_norm_sq_stdGaussian"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "integral_norm_sq_affine_stdGaussian"
+            }
+          ]
+        },
+        {
+          "id": "displacement-energy",
+          "title": "Exact displacement, followed by a Lipschitz gradient-error bound",
+          "body": "<p>The initial position cancels from the displacement: \\(Y_t-X=-t\\nabla U(X)+\\sqrt{2t}\\,Z\\). Let \\(G_k=\\mathbb E_{\\rho_k}\\|\\nabla U(X)\\|^2\\). Provided the gradient is square integrable, the affine Gaussian identity gives</p>\n\\[\n\\mathbb E\\|Y_t-X\\|^2=t^2G_k+2tn.\n\\]\n<p>No second moment of \\(X\\) itself is needed for this identity. The separate integrability proof concerns the displacement and the gradient. Applying the \\(L\\)-Lipschitz gradient bound pointwise, squaring, and integrating yields</p>\n\\[\n\\mathbb E\\|\\nabla U(Y_t)-\\nabla U(X)\\|^2\n\\leq L^2(t^2G_k+2tn).\n\\]\n<p><code>frozen_gradient_error_energy</code> proves both integrability of the joint gradient discrepancy and this bound for the actual product-law interpolation. It does not yet identify a density-level drift field or transfer the bound through conditional expectation; that bridge is a distinct remaining task.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "malaProposal_sub_initial"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "frozen_displacement_second_moment"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "frozen_gradient_error_energy"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "frozen_displacement_memLp"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "entropy-and-score-calculus",
+      "title": "From actual KL to the entropy-production calculation",
+      "intro": "<p>The next calculations use a positive relative density \\(r_t\\), its pointwise time derivative \\(\\dot r_t\\), and its relative score \\(s_t=\\nabla\\log r_t\\). They explain how entropy is differentiated and how the weak equation is tested. Connecting this density path to the actual Gaussian law is still an explicit premise at the endpoint.</p>",
+      "steps": [
+        {
+          "id": "actual-kl-density-formula",
+          "title": "Identify the chosen density with the likelihood ratio",
+          "body": "<p>For a measurable nonnegative \\(r\\), change of measure gives \\(\\int g\\,d(r\\nu)=\\int rg\\,d\\nu\\). The Radon–Nikodym derivative of the tilted measure with respect to \\(\\nu\\) is the specified density, almost everywhere. Consequently its log-likelihood ratio is \\(\\log r\\), almost everywhere for the tilted measure.</p>\n<p>When \\(r\\nu\\) and \\(\\nu\\) are probability measures and \\(r\\log r\\) is integrable, the actual KL divergence is finite and its real value is precisely</p>\n\\[\nH_\\nu(r\\nu)=\\int r\\log r\\,d\\nu.\n\\]\n<p>These measure-theoretic identifications justify using the familiar density formula in the subsequent calculus. The analogous Fisher formula is \\(J_\\nu(r\\nu)=\\int r\\|\\nabla\\log r\\|^2d\\nu\\), with squared-score integrability retained. Positivity and smoothness will make the score well defined pointwise; the measure-change identities themselves need less regularity.</p>\n<p>The integrability equivalence <code>integrable_log_tiltedMeasure_iff</code> is useful here: integrability of \\(\\log r\\) under \\(r\\nu\\) is exactly integrability of \\(r\\log r\\) under \\(\\nu\\). Thus the finite-KL proof supplies the absolute-continuity and likelihood-integrability requirements of Mathlib's divergence, rather than assuming that a formally written integral is automatically finite. Similarly, <code>relativeFisher_ne_top</code> derives finite extended Fisher information from integrability of the squared score.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "llr_tiltedMeasure_ae_eq_log"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "klDiv_tiltedMeasure_ne_top"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "densityEntropy_eq_integral"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "relativeFisher_toReal_eq_integral"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "integral_tiltedMeasure"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "integrable_log_tiltedMeasure_iff"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/KLOfDensity.lean",
+              "name": "relativeFisher_ne_top"
+            }
+          ]
+        },
+        {
+          "id": "differentiate-entropy",
+          "title": "Differentiate the entropy integral under a common local bound",
+          "body": "<p>At a positive density value, ordinary calculus gives \\(\\partial_t(r_t\\log r_t)=\\dot r_t(\\log r_t+1)\\). Passing this derivative through an integral requires more than the pointwise chain rule. The formal theorem assumes local measurability, integrability at the time under consideration, and an integrable function \\(B(x)\\) dominating \\(|\\dot r_u(x)(\\log r_u(x)+1)|\\) on a common time neighborhood. Pointwise differentiability and positivity hold there for almost every spatial point.</p>\n\\[\n\\frac{d}{dt}\\int r_t\\log r_t\\,d\\nu\n=\\int\\dot r_t(\\log r_t+1)\\,d\\nu.\n\\]\n<p><code>hasDerivAt_integral_mul_log_of_dominated</code> proves both integrability of the differentiated integrand and this derivative. <code>LocalEntropyRegularity</code> packages the sufficient local data; it does not contain the entropy derivative as an assumed field. The common neighborhood and integrable bound are substantive analytic requirements for an application, particularly at the initial interpolation time.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/EntropyDerivative.lean",
+              "name": "hasDerivAt_mul_log"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/EntropyDerivative.lean",
+              "name": "hasDerivAt_integral_mul_log_of_dominated"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "LocalEntropyRegularity"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "LocalEntropyRegularity.hasDerivAt_entropy"
+            }
+          ]
+        },
+        {
+          "id": "score-identities",
+          "title": "The entropy test turns the Dirichlet term into Fisher information",
+          "body": "<p>Positivity gives the pointwise identities</p>\n\\[\n\\nabla\\log r=\\frac{\\nabla r}{r},\\qquad\n\\nabla(\\log r+1)=\\nabla\\log r,\\qquad\n\\langle\\nabla r,\\nabla(\\log r+1)\\rangle\n=r\\|\\nabla\\log r\\|^2.\n\\]\n<p>The first identity is the gradient chain rule. The second explains why the normalization term \\(+1\\), introduced by differentiating \\(r\\log r\\), contributes no spatial derivative. The third is the algebraic source of Fisher dissipation. Each is proved directly in Lean; no stochastic equation or integration by parts is needed for these pointwise statements.</p>\n<p>For an exact Langevin density with an admissible unforced weak equation, this calculation would give \\(H'=-J\\). The conditional continuous-time theorem combines that identity with LSI to obtain \\(H(t)\\leq e^{-2\\alpha t}H(0)\\). The ULA interpolation has an additional frozen-drift error, so its argument continues with a forced equation.</p>\n<p>The unforced weak-identity theorem makes this reference calculation precise: take the same admissible entropy test with the error field absent, and the production integral is exactly minus the weighted squared-score integral. The generic scalar theorem <code>entropy_decay_of_dissipation</code> then proves the rate \\(2\\alpha\\), while <code>relative_entropy_decay_of_dissipation</code> identifies its quantities with actual finite KL and Fisher information. Neither theorem constructs a Langevin density path satisfying the supplied dissipation identity. This separation is also useful for ULA: the same dissipation calculation survives, and only the explicitly displayed error contribution changes.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ScoreCalculus.lean",
+              "name": "gradient_log_of_pos"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ScoreCalculus.lean",
+              "name": "gradient_log_add_one_of_pos"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ScoreCalculus.lean",
+              "name": "inner_gradient_entropy_test"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/EntropyFlow.lean",
+              "name": "relative_entropy_decay_of_dissipation"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ScoreCalculus.lean",
+              "name": "entropy_production_of_weak_identity"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/EntropyDecay.lean",
+              "name": "entropy_decay_of_dissipation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "weak-equation-and-error",
+      "title": "The forced weak equation and the Fisher-information budget",
+      "intro": "<p>The spatial equation is recorded in weak relative-density form. Its sign convention fixes the error field used in the cross term. The source modules prove the entropy consequence of this equation under admissibility and integrability assumptions; they do not derive the equation for the Gaussian interpolation merely from the law definition.</p>",
+      "steps": [
+        {
+          "id": "forced-weak-equation",
+          "title": "Test the weak equation with a noncompact function",
+          "body": "<p>Suppose the relative density satisfies, for each admissible continuously differentiable test \\(\\psi\\),</p>\n\\[\n\\int\\dot r_t\\psi\\,d\\nu\n=-\\int\\langle\\nabla r_t,\\nabla\\psi\\rangle\\,d\\nu\n+\\int r_t\\langle e_t,\\nabla\\psi\\rangle\\,d\\nu.\n\\]\n<p>For frozen drift, the intended error is \\(e_t(y)=\\nabla U(y)-\\mathbb E[\\nabla U(X)\\mid Y_t=y]\\). This formula explains the sign convention; constructing that conditional field and proving this weak equation remain separate obligations. The abstract weak-identity theorem itself accepts a supplied field \\(e_t\\).</p>\n<p>Choose \\(\\psi=\\log r_t+1\\). The score identities then give</p>\n\\[\nH'(t)=-J(t)+\\int r_t\\langle e_t,s_t\\rangle\\,d\\nu.\n\\]\n<p>The hypothesis permits the test whenever its three integrands are integrable. Since \\(\\log r_t+1\\) generally has noncompact support, a generator identity proved only for compactly supported tests does not automatically establish this hypothesis. The passage to this entropy test needs its own analytic justification.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ScoreCalculus.lean",
+              "name": "entropy_production_of_forced_weak_identity"
+            }
+          ]
+        },
+        {
+          "id": "young-quarter",
+          "title": "Use one quarter of Fisher information to control the error",
+          "body": "<p>The pointwise Young inequality used here is</p>\n\\[\n\\langle e,s\\rangle\\leq\\frac14\\|s\\|^2+\\|e\\|^2.\n\\]\n<p>It follows from Cauchy–Schwarz and \\((\\|e\\|-\\|s\\|/2)^2\\geq0\\). Multiplication by \\(r\\geq0\\) and integration yield</p>\n\\[\nH'(t)\\leq-\\frac34J(t)+\\mathcal E(t),\n\\qquad\n\\mathcal E(t)=\\int r_t\\|e_t\\|^2\\,d\\nu.\n\\]\n<p>The coefficient \\(3/4\\) is deliberate: one quarter of the negative Fisher term pays for the drift-score interaction, leaving enough dissipation for the scalar contraction estimate. Lean also proves an absolute-inner-product version. With measurability and finite score and error energies, that version establishes integrability of the cross term; cross-term integrability is not silently inferred from a formal expression.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/DriftError.lean",
+              "name": "inner_le_quarter_norm_sq_add_norm_sq"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DriftError.lean",
+              "name": "integrable_weighted_inner_of_energy"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DriftError.lean",
+              "name": "entropy_production_le_of_forced_weak_identity"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DriftError.lean",
+              "name": "abs_inner_le_quarter_norm_sq_add_norm_sq"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DriftError.lean",
+              "name": "integral_weighted_inner_le_quarter_fisher_add_energy"
+            }
+          ]
+        },
+        {
+          "id": "regularity-to-production",
+          "title": "Assemble an actual KL derivative from the regular density data",
+          "body": "<p><code>densityEntropy_derivative_bound_of_regular_weak_equation</code> combines the dominated time derivative, the KL density formula, the entropy test, and Young's inequality. Its result concerns actual KL, with a right derivative on the interpolation interval, and the bound \\(-3J/4+\\mathcal E\\). Its inputs include positive spatially \\(C^1\\) densities, normalization, local entropy regularity, integrability of the squared score, the error energy, and the admissible forced weak equation.</p>\n<p>The accompanying continuity theorem derives continuity of actual KL on the closed interval from the same density data. This discharges the entropy-continuity and entropy-differentiation portion of the conditional argument. It leaves the quantitative estimate on \\(\\mathcal E(t)\\) to be supplied. In the intended Gaussian application that estimate is</p>\n\\[\n\\mathcal E(t)\\leq t^2L^2G_k+2tnL^2.\n\\]\n<p>The joint Gaussian estimate established earlier has exactly the required right-hand side. Connecting it to this density-level energy requires conditional Jensen and identification of the error field.</p>\n<p>The two derivative theorems operate at different levels. <code>entropy_derivative_bound_of_regular_weak_equation</code> concerns the ordinary integral \\(\\int r_t\\log r_t\\,d\\nu\\). The <code>densityEntropy</code> version first converts between that integral and actual KL, using normalization and finite entropy, then supplies the right derivative needed on \\([0,h]\\). Keeping these interfaces distinct shows where measure identification enters an argument that would otherwise look like formal differentiation alone.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "densityEntropy_continuousOn_of_regular"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "densityEntropy_derivative_bound_of_regular_weak_equation"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "entropy_derivative_bound_of_regular_weak_equation"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "klDiv_finite_of_localRegularity"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "one-step-calculation",
+      "title": "The complete scalar one-step calculation",
+      "intro": "<p>Fix one interpolation interval and abbreviate its entropy by \\(H(t)\\), its real Fisher information by \\(I(t)\\), and its initial squared-gradient moment by \\(G_0\\). At this stage the argument is scalar. The theorem below derives the one-step recurrence from explicit primitives; it does not assume the recurrence as a hypothesis.</p>",
+      "steps": [
+        {
+          "id": "scalar-inputs",
+          "title": "Combine production, LSI, and the initial gradient moment",
+          "body": "<p>The required estimates on \\(0\\leq t<h\\) are</p>\n\\[\n2\\alpha H(t)\\leq I(t),\\qquad\nH'(t)\\leq-\\frac34I(t)+t^2L^2G_0+2tnL^2,\n\\]\n\\[\nG_0\\leq\\frac{4L^2}{\\alpha}H(0)+2nL.\n\\]\n<p>Also assume \\(H(0)\\geq0\\), entropy continuity on \\([0,h]\\), the indicated right derivatives, \\(n\\geq0\\), and the numerical regime \\(0<\\alpha\\leq L\\), \\(0<h\\leq\\alpha/(4L^2)\\). The gradient-moment estimate is an explicit input in the present endpoint, for every step's current law. It is not proved by naming an integral <code>ulaGradientMoment</code>.</p>\n<p>Substituting LSI into production leaves \\(-3\\alpha H(t)/2\\), plus positive forcing. Because that forcing includes the initial entropy through \\(G_0\\), it is not enough simply to invoke exponential decay at rate \\(3\\alpha/2\\). The next calculation bounds and then absorbs this initial-entropy contribution.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/Theorem.lean",
+              "name": "ulaGradientMoment"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/OneStep.lean",
+              "name": "one_step_entropy_of_interpolation"
+            }
+          ]
+        },
+        {
+          "id": "uniform-forcing",
+          "title": "Make the forcing uniform using A and b",
+          "body": "<p>The step restriction and \\(\\alpha\\leq L\\) imply \\(hL\\leq1/4\\) and \\(\\alpha h\\leq1/4\\). Define</p>\n\\[\nA=\\frac{4L^2}{\\alpha}H(0)+2nL.\n\\]\n<p>Then \\(G_0\\leq A\\) and \\(A\\geq0\\). Squaring \\(hL^2\\leq\\alpha/4\\) gives</p>\n\\[\nh^2L^2\\frac{4L^2}{\\alpha}\\leq\\frac\\alpha4.\n\\]\n<p>The other part uses \\(hL\\leq1/4\\): \\(h^2L^2(2nL)\\leq hnL^2/2\\). Therefore</p>\n\\[\nh^2L^2A\\leq\\frac\\alpha4H(0)+\\frac12hnL^2.\n\\]\n<p>For \\(0\\leq t<h\\), bound \\(t^2\\leq h^2\\) and \\(2tnL^2\\leq2hnL^2\\). The entire forcing is at most</p>\n\\[\nb=\\frac\\alpha4H(0)+\\frac52hnL^2,\n\\qquad H'(t)\\leq-\\frac32\\alpha H(t)+b.\n\\]\n<p>These are the local quantities named <code>A</code> and <code>b</code> in <code>one_step_entropy_of_interpolation</code>. The inequalities are proved there by real algebra and sign checks; neither uniform forcing nor the recurrence is an added assumption.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/OneStep.lean",
+              "name": "one_step_entropy_of_interpolation"
+            }
+          ]
+        },
+        {
+          "id": "affine-comparison",
+          "title": "Integrate the scalar inequality with constant forcing",
+          "body": "<p>For \\(a>0\\), continuity and right derivatives satisfying \\(H'\\leq-aH+b\\) imply the exact affine comparison</p>\n\\[\nH(t)\\leq e^{-at}H(0)+\\frac ba(1-e^{-at}).\n\\]\n<p>The proof uses a right-derivative Grönwall comparison; the scalar lemma needs no sign assumption on \\(H\\) or \\(b\\). Apply it with \\(a=3\\alpha/2\\). In this application \\(b\\geq0\\), and the elementary tangent bound for the exponential gives \\((1-e^{-ah})/a\\leq h\\). Consequently</p>\n\\[\nH(h)\\leq\n\\left(e^{-3\\alpha h/2}+\\frac{\\alpha h}{4}\\right)H(0)\n+\\frac52h^2nL^2.\n\\]\n<p>This expression keeps the extra initial-entropy coefficient visible. The remaining exponential-gap estimate is what restores the desired contraction factor, rather than leaving an additive multiple of \\(H(0)\\) at each step.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/EntropyDecay.lean",
+              "name": "affine_decay_of_deriv_right_le"
+            }
+          ]
+        },
+        {
+          "id": "exponential-absorption",
+          "title": "Absorb the initial-entropy forcing and obtain coefficient 6",
+          "body": "<p>Put \\(x=\\alpha h\\in[0,1/4]\\). Lean proves</p>\n\\[\ne^{-3x/2}+\\frac x4\\leq e^{-x}.\n\\]\n<p>Indeed, \\(e^{x/2}\\geq1+x/2\\), so \\(e^{-x}-e^{-3x/2}\\geq e^{-3x/2}x/2\\). On this interval the tangent bound gives \\(e^{-3x/2}\\geq1/2\\), making the gap at least \\(x/4\\). Multiplication by nonnegative \\(H(0)\\) absorbs the extra term from the uniform forcing.</p>\n<p>The resulting noise coefficient \\(5/2\\) can be enlarged to the paper's coefficient \\(6\\). Thus the formal scalar conclusion is</p>\n\\[\nH(h)\\leq e^{-\\alpha h}H(0)+6h^2nL^2.\n\\]\n<p>This is a valid variant of the scalar closing argument, with slack in its final constant. The paper uses a different integrating-factor and exponential estimate. The Lean proof preserves the stated hypotheses, contraction factor, and coefficient \\(6\\); it does not claim to reproduce every intermediate scalar line of the appendix.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/OneStep.lean",
+              "name": "exp_three_halves_gap"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "discrete-iteration",
+      "title": "From the one-step estimate to the coefficient 8",
+      "intro": "<p>After identifying the two endpoint densities with the ULA laws, the previous result becomes \\(H_{k+1}\\leq qH_k+c\\), with \\(q=e^{-\\alpha h}\\in(0,1)\\) and \\(c=6h^2nL^2\\). The last step is an exact scalar recurrence calculation followed by a small-step denominator bound.</p>",
+      "steps": [
+        {
+          "id": "finite-horizon-envelope",
+          "title": "Keep the exact geometric sum before simplifying it",
+          "body": "<p>Iterating the affine recurrence gives</p>\n\\[\nH_k\\leq q^kH_0+c\\frac{1-q^k}{1-q}\n=e^{-\\alpha hk}H_0+\n6h^2nL^2\\frac{1-e^{-\\alpha hk}}{1-e^{-\\alpha h}}.\n\\]\n<p><code>discrete_entropy_recurrence_exact</code> proves this finite-horizon envelope using the shared affine-recurrence lemma. No sign assumption on \\(H_0\\) is needed for the exact recurrence statement, although actual finite KL is nonnegative. The expression exhibits both accumulation of discretization error and its bounded geometric saturation.</p>\n<p>The asymptotic-looking term in the published bound is obtained by replacing \\(1-q^k\\) by at most one and controlling \\(1-q\\) from below. Neither this recurrence theorem nor its generic sequence \\(H_k\\) identifies an algorithm by itself; that identification is supplied by the endpoint theorem.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/DiscreteEntropy.lean",
+              "name": "discrete_entropy_recurrence_exact"
+            }
+          ]
+        },
+        {
+          "id": "denominator-eight",
+          "title": "A denominator estimate turns 6 into 8",
+          "body": "<p>For \\(0\\leq x\\leq1/4\\), the formal estimate is</p>\n\\[\n1-e^{-x}\\geq\\frac34x.\n\\]\n<p>The exponential tangent inequality gives \\(e^{-x}\\leq1/(1+x)\\), hence \\(1-e^{-x}\\geq x/(1+x)\\geq3x/4\\) on this interval. Substitute \\(x=\\alpha h\\) and use positivity of the denominator:</p>\n\\[\n\\frac{6h^2nL^2}{1-e^{-\\alpha h}}\n\\leq\\frac{6h^2nL^2}{(3/4)\\alpha h}\n=\\frac{8hnL^2}{\\alpha}.\n\\]\n<p>This explains the final coefficient \\(8\\). The step restriction together with \\(\\alpha\\leq L\\) provides \\(\\alpha h\\leq1/4\\); the numerical compatibility is therefore used by the current proof and is not a decorative hypothesis.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/DiscreteEntropy.lean",
+              "name": "three_quarters_mul_le_one_sub_exp_neg"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DiscreteEntropy.lean",
+              "name": "discrete_entropy_recurrence_bound"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assembling-the-endpoint",
+      "title": "How the analytic inputs are assembled into an actual ULA theorem",
+      "intro": "<p>There are two useful entry points. The first accepts the analytic interpolation estimates directly. The regularized wrapper derives the entropy calculus from local density data and a weak equation. Both concern the actual Gaussian transition, and both retain obligations beyond the published LSI and smoothness assumptions.</p>",
+      "steps": [
+        {
+          "id": "direct-conditional-endpoint",
+          "title": "The direct endpoint constructs the recurrence from the path hypotheses",
+          "body": "<p>Supply a family \\(r_{k,t}\\) with \\(r_{k,t}\\nu=\\operatorname{Law}(Y_t)\\) for every \\(k\\) and \\(t\\in[0,h]\\). Positivity and spatial \\(C^1\\) regularity make each density admissible for the LSI test class. Probability follows from the Gaussian law identification. Finite KL and Fisher information make the real LSI inequality legitimate. Continuity, right derivatives, the production bound, and the per-step gradient-moment bound supply the scalar theorem's remaining inputs.</p>\n<p>The zero-time and endpoint law identities turn \\(H(0)\\) and \\(H(h)\\) into the actual \\(H_k\\) and \\(H_{k+1}\\). <code>ula_kl_one_step_of_interpolation</code> derives the coefficient-\\(6\\) estimate. <code>ula_kl_bound_of_interpolation</code> then applies the proved recurrence bound and rewrites the zero-step entropy as \\(H_\\nu(\\mu)\\). No discrete entropy recurrence is among the endpoint's assumptions.</p>\n<p>The potential differentiability and squared-gradient integrability premises remain explicit in this interface, alongside the quantified gradient-moment estimate. Their presence should not be read as a proof of that estimate.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/Theorem.lean",
+              "name": "ula_kl_one_step_of_interpolation"
+            }
+          ]
+        },
+        {
+          "id": "regularized-wrapper",
+          "title": "The regularized wrapper derives entropy calculus, rather than assuming it",
+          "body": "<p>The wrapper takes density derivatives \\(\\dot r_{k,t}\\), error fields \\(e_{k,t}\\), and local entropy regularity data. It also requires spatial positivity and smoothness, squared-score integrability, integrable drift energy, measurability of the drift-score term, and the forced weak equation for all admissible continuously differentiable tests.</p>\n<p>From these inputs it derives finite actual KL, finite Fisher information, entropy continuity, the actual KL right derivative, and \\(H'\\leq-3J/4+\\mathcal E\\). The separately supplied drift-energy bound then gives the required production estimate. The wrapper invokes the direct endpoint, so neither entropy derivatives, the production inequality, nor the discrete recurrence need be assumed at this level.</p>\n<p>The remaining explicit inputs are essential: identification with the frozen-drift law, construction of the regular density data, the admissible weak equation, the error-energy estimate, the per-step gradient-moment bound and its integrability, and \\(\\alpha\\leq L\\). Replacing the direct hypotheses with sufficient analytic data is useful progress; it does not complete their construction from LSI and Lipschitzness.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/RegularizedTheorem.lean",
+              "name": "ula_kl_bound_of_regular_interpolation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reference-comparison-and-obligations",
+      "title": "Comparison with the paper and the remaining analytic bridges",
+      "intro": "<p>The published theorem and the current Lean endpoint agree on the update, LSI normalization, step restriction, entropy rate, and constants \\(6\\) and \\(8\\). Their assumption lists differ. The paper's proof supplies analytic bridges that the current formal endpoint still takes as inputs. The following comparison records that boundary explicitly.</p>",
+      "steps": [
+        {
+          "id": "paper-route",
+          "title": "Where the corresponding arguments appear in the reference",
+          "body": "<p>The <a href=\"https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf\">main paper</a>, Section 3.1, states Lemma 3's one-step estimate and Theorem 2's iterated result. The complete appendix is available in the <a href=\"https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Supplemental.zip\">official supplementary archive</a> and in the <a href=\"https://www.cs.yale.edu/homes/wibisono/VW19.pdf\">author's full PDF</a>. Appendix B.2.1, pages 16–19 of the full paper, develops the one-step proof; B.2.2 gives the final iteration.</p>\n<p>Within B.2.1, Lemma 9 bounds the target squared-gradient moment by \\(nL\\), and Lemma 10 obtains \\(G_\\rho\\leq(4L^2/\\alpha)H_\\nu(\\rho)+2nL\\). Equations (28)–(29) introduce the frozen-drift interpolation; (31) is its conditional-drift Fokker–Planck equation. Equation (32) writes the entropy cross term as a joint expectation of the initial and interpolated points, and (33) applies Young's inequality and Lipschitzness. The Lean density-field route displayed here requires a conditional-mean/Jensen bridge, or an alternative bridge that directly uses this joint weak formulation. The paper does not explicitly take the conditional-Jensen route at that point.</p>\n<p>The scalar closing argument also differs. The paper uses an integrating factor and an exponential upper bound after estimating its forcing. Lean uses the uniform \\(A,b\\) estimates and the exponential-gap lemma explained above, reaching the same coefficient-\\(6\\) conclusion with slack. Appendix B.2.2 and <code>DiscreteEntropy</code> both convert the one-step recurrence into the coefficient-\\(8\\) bound. The comparison is therefore at the level of proved mathematical statements and their premises: some formulas match directly, some have a different valid scalar proof, and the analytic construction links remain open.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "frozen_gradient_error_energy"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/OneStep.lean",
+              "name": "one_step_entropy_of_interpolation"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/DiscreteEntropy.lean",
+              "name": "discrete_entropy_recurrence_bound"
+            }
+          ]
+        },
+        {
+          "id": "density-and-endpoint-bridge",
+          "title": "Construct the density path, including its initial endpoint",
+          "body": "<p>A complete application must construct a positive smooth relative density for each actual frozen-drift law and prove the local domination and pointwise derivative conditions. Gaussian convolution suggests a route at strictly positive times, but a definition of the law is not a proof of these properties. At \\(t=0\\), the interpolation returns the current ULA law exactly, so smooth positive density and finite-Fisher requirements at that endpoint are additional demands on the current interface.</p>\n<p>There is a further time-domain issue. <code>LocalEntropyRegularity</code> uses an ordinary two-sided neighborhood of every time, including \\(0\\) and \\(h\\), and pointwise <code>HasDerivAt</code> data there. The natural Gaussian interpolation begins at time zero. The constructor therefore needs a suitable extension of the density data, or the regularity lemmas need an appropriate one-sided endpoint version. The wrapper requires normalization only on \\([0,h]\\), but that does not remove its two-sided local differentiation requirements.</p>\n<p>These are explicit construction obligations, rather than consequences already supplied by the scalar right-derivative comparison.</p>\n<p>The paper's Section 2.1 works under a convention of smooth densities with full support; its theorem does not require Gaussian initialization. The formal issue recorded here is consequently not that the reference assumes no density regularity. It is that the current Lean theorem explicitly requests precise finite-information, domination, and endpoint regularity data, and those data have not been constructed for the stated class of initial laws and Gaussian interpolations.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "LocalEntropyRegularity"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Regularity.lean",
+              "name": "densityEntropy_hasDerivWithinAt_of_regular"
+            }
+          ]
+        },
+        {
+          "id": "conditional-drift-bridge",
+          "title": "Transfer the joint Gaussian bound to the weak equation’s error field",
+          "body": "<p>The intended conditional field is</p>\n\\[\ne_t(y)=\\mathbb E[\\nabla U(Y_t)-\\nabla U(X)\\mid Y_t=y].\n\\]\n<p>Once this field is constructed and identified in the weak equation, conditional Jensen should give</p>\n\\[\n\\int\\|e_t\\|^2\\,d\\operatorname{Law}(Y_t)\n\\leq\\mathbb E\\|\\nabla U(Y_t)-\\nabla U(X)\\|^2\n\\leq t^2L^2G_k+2tnL^2.\n\\]\n<p>The final inequality is proved in <code>GaussianDrift</code>; the conditional-mean identification and Jensen transfer are not yet connected to the density-level field used by the endpoint. A complete construction must also prove the forced weak equation with enough integrability and approximation control to admit \\(\\log r_t+1\\). Compact-test generator identities alone do not discharge this noncompact-test requirement.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
+              "name": "frozen_gradient_error_energy"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/ScoreCalculus.lean",
+              "name": "entropy_production_of_forced_weak_identity"
+            }
+          ]
+        },
+        {
+          "id": "gradient-and-lsi-bridge",
+          "title": "Prove the gradient-moment estimate and compatibility from the intended assumptions",
+          "body": "<p>The endpoint retains, for each step, squared-gradient integrability and</p>\n\\[\n\\mathbb E_{\\rho_k}\\|\\nabla U\\|^2\n\\leq\\frac{4L^2}{\\alpha}H_\\nu(\\rho_k)+2nL.\n\\]\n<p>In the paper this estimate is obtained through a transport comparison with the target, using the LSI-to-Talagrand implication together with a target gradient-moment bound. That route has not been formalized in the LSI development. Likewise, the comparison \\(\\alpha\\leq L\\) is supplied as a hypothesis in the current Lean endpoint. It is not derived there from the declared LSI and smoothness assumptions.</p>\n<p>Finally, the declared LSI test class is smooth and strictly positive; any extension or approximation needed to cover broader initial laws must be justified. These remaining tasks concern the scope and derivation of the hypotheses. The proved scalar calculations already show exactly how the desired theorem follows once those hypotheses have been established.</p>\n<p>More explicitly, for any finite-cost coupling of \\(X\\sim\\rho\\) and \\(Y\\sim\\nu\\), splitting \\(\\nabla U(X)\\) into its difference from \\(\\nabla U(Y)\\) and its target value gives</p>\n\\[\n\\mathbb E_\\rho\\|\\nabla U\\|^2\n\\leq2L^2\\mathbb E\\|X-Y\\|^2\n+2\\mathbb E_\\nu\\|\\nabla U\\|^2.\n\\]\n<p>Taking the infimum over coupling costs yields</p>\n\\[\n\\mathbb E_\\rho\\|\\nabla U\\|^2\n\\leq2L^2W_2(\\rho,\\nu)^2+2\\mathbb E_\\nu\\|\\nabla U\\|^2.\n\\]\n<p>The target estimate \\(\\mathbb E_\\nu\\|\\nabla U\\|^2\\leq nL\\) is already available in the shared library: <a href=\"../../GibbsScore.lean\"><code>ULA.integral_norm_sq_gradient_gibbs_le</code></a> proves it from differentiability of \\(U\\), Lipschitz continuity of its gradient, and finiteness of the Gibbs partition function. Thus this target moment is not a missing result throughout the repository. What remains in the LSI development is to connect the available target estimate, with the required normalization and integrability facts, to the LSI-to-Talagrand implication and the coupling argument, thereby deriving the endpoint's per-step gradient-moment input.</p>\n<p>Talagrand's consequence \\(W_2(\\rho,\\nu)^2\\leq2H_\\nu(\\rho)/\\alpha\\) then produces the required coefficient \\(4L^2/\\alpha\\). These formulas explain the paper's route; the current LSI endpoint assumes the resulting moment estimate and does not formalize that complete route. The appendix also uses \\(\\alpha\\leq L\\) in its scalar bounds. Its use there does not discharge the corresponding explicit compatibility premise in Lean.</p>\n",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
+              "name": "IsLogSobolev"
+            },
+            {
+              "file": "UnadjustedLangevin/LSI/Theorem.lean",
+              "name": "ula_kl_bound_of_interpolation"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "closing": "<p>The completed formal chain is: actual Gaussian transition and joint energy calculations; actual KL and Fisher density identities; entropy differentiation and weak-equation testing under stated analytic data; Young's inequality; the scalar one-step estimate; and geometric iteration. The conditional endpoint joins these pieces and yields the published numerical bound for the actual ULA laws.</p>\n<p>The outstanding work is to construct the regular interpolation densities and admissible weak equation, transfer the Gaussian energy through the conditional drift field, and derive the gradient-moment and compatibility inputs from the intended assumptions. The embedded Lean declarations make that boundary inspectable: proved conclusions appear with their complete premises and proof bodies.</p>"
+}

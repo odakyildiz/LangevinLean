@@ -1,5 +1,11 @@
 # ULA under the log-Sobolev inequality
 
+Open the [detailed proof page](exposition/index.html) for the mathematical
+argument beside every LSI declaration, complete source files, and a comparison
+with the reference paper. The page works offline and offers mathematics-only
+reading, foldable Lean proofs, and source search. Its
+[build guide](exposition/README.md) explains how to regenerate and verify it.
+
 This development follows [Vempala–Wibisono (2019), *Rapid Convergence of the
 Unadjusted Langevin Algorithm: Isoperimetry Suffices*, Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf).
 For a target $\nu\propto e^{-U}$ satisfying LSI with constant $\alpha>0$
