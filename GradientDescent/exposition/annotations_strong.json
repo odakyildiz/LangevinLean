@@ -1,0 +1,235 @@
+{
+  "sections": [
+    {
+      "title": "A convex function lies above its tangent plane",
+      "intro": "This first lemma needs a real inner-product space but does not yet need completeness. Its derivative is the continuous linear map \\lean{fderiv}; a gradient will be introduced later. We reduce the vector-space inequality to the familiar secant-slope inequality for a convex real function.",
+      "blocks": [
+        {
+          "file": "StrongConvexity.lean",
+          "start": 21,
+          "end": 24,
+          "title": "Read the statement and identify the goal",
+          "explanation": "The implicit parameter \\lean{f} is a function $H\\to\\R$. The named hypothesis \\lean{hf} states convexity on the universal set, and \\lean{hdiff} states differentiability at every point. The explicit points are \\lean{x} and \\lean{y}. The expression \\lean{fderiv} applied to $y-x$ means $Df(x)[y-x]$; it is a real number. After \\lean{:= by}, Lean asks us to prove\\[ f(x)+Df(x)[y-x]\\le f(y). \\] The notation \\lean{lemma} introduces a proved result, and braces mark parameters that Lean can infer when the result is used."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 25,
+          "end": 27,
+          "title": "Restrict to an affine line",
+          "explanation": "The local definition \\lean{line} is the affine map $\\ell(t)=t(y-x)+x$. Its type records that it is affine over $\\R$. The new hypothesis \\lean{hc} states that $f\\circ\\ell$ is convex on all of $\\R$. The library method \\lean{hf.comp_affineMap line} gives exactly the preservation of convexity under an affine restriction. The tactic \\lean{simpa [line] using} simplifies the library statement, including the universal-set preimage, and unfolds the local definition enough to match the stated type. The original vector-space goal stays open; \\lean{have} adds this scalar convexity fact to the context."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 28,
+          "end": 31,
+          "title": "Differentiate the affine line",
+          "explanation": "The hypothesis \\lean{hl} will express $\\ell'(0)=y-x$. The tactic \\lean{change} replaces the affine-map notation by its definition, so its subgoal becomes a derivative statement for $t\\mapsto t\\mathbin{\\cdot}(y-x)+x$. The library fact \\lean{hasDerivAt_id} differentiates $t\\mapsto t$ with derivative $1$. The method \\lean{smul_const} multiplies that derivative by the fixed vector $y-x$, and \\lean{add_const} adds $x$ without changing the derivative. The final \\lean{simpa} removes $1\\mathbin{\\cdot}(y-x)$ and other definitional notation. We now have\\[ \\lean{hl}:\\quad \\ell'(0)=y-x. \\] Here a scalar derivative may take values in $H$, so \\lean{HasDerivAt} applies to this vector-valued line."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 32,
+          "end": 35,
+          "title": "Use the chain rule and the convex secant inequality",
+          "explanation": "From \\lean{hdiff x}, the method \\lean{hasFDerivAt} produces the derivative of $f$ at $x$. The method \\lean{comp_hasDerivAt_of_eq} composes it with \\lean{hl}; its final equality subgoal is $x=\\ell(0)$, discharged by \\lean{simp [line]}. Thus \\lean{hd} states\\[ (f\\circ\\ell)'(0)=Df(x)[y-x]. \\] The next \\lean{have} applies \\lean{hc.le_slope_of_hasDerivAt}. The two \\lean{Set.mem_univ} arguments certify that $0$ and $1$ belong to the convexity domain; \\lean{zero_lt_one} supplies $0<1$; and \\lean{hd} supplies the derivative. The resulting \\lean{hs} is\\[ Df(x)[y-x]\\le \\frac{(f\\circ\\ell)(1)-(f\\circ\\ell)(0)}{1-0}. \\]"
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 36,
+          "end": 38,
+          "title": "Simplify the slope and finish the linear rearrangement",
+          "explanation": "The phrase \\lean{simp only} uses just the listed rewrite facts. The modifier \\lean{at hs} changes the hypothesis rather than the goal. The rules expand the slope and composition, evaluate $\\ell(1)=y$ and $\\ell(0)=x$, and simplify $1-0$ and division by $1$. Afterward,\\[ \\lean{hs}:\\quad Df(x)[y-x]\\le f(y)-f(x). \\] Adding $f(x)$ to both sides is the remaining argument. The tactic \\lean{linarith} checks this linear combination of inequalities and proves the original goal. No approximation or additional mathematical hypothesis is introduced by the tactic."
+        }
+      ]
+    },
+    {
+      "title": "Strong convexity gives the quadratic tangent model",
+      "intro": "The strong-convexity convention is the one used by Mathlib: subtracting $(m/2)\\norm{x}^{2}$ produces a convex function. This lemma is valid for every real $m$; positivity of $m$ is imposed only in later conclusions. Completeness is now required to represent the derivative by the actual Mathlib gradient.",
+      "blocks": [
+        {
+          "file": "StrongConvexity.lean",
+          "start": 40,
+          "end": 43,
+          "title": "State the strong first-order inequality",
+          "explanation": "The additional typeclass \\lean{CompleteSpace H} makes $H$ a real Hilbert space. The named hypothesis \\lean{hsc} is \\lean{StrongConvexOn Set.univ m f}. The gradient in the goal is the Riesz representative of $Df(x)$, so\\[ Df(x)[v]=\\ip{\\nabla f(x)}{v}. \\] The goal is\\[ f(x)+\\ip{\\nabla f(x)}{y-x}+\\frac m2\\norm{y-x}^{2}\\le f(y). \\] This is stronger than the ordinary tangent-plane inequality when $m>0$. Lean has not assumed this first-order statement: it must be obtained from the given strong-convexity hypothesis."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 44,
+          "end": 49,
+          "title": "Adjust the function and compute its derivative",
+          "explanation": "The definition \\lean{g} sets $g(v)=f(v)-(m/2)\\norm{v}^{2}$. The library equivalence \\lean{strongConvexOn_iff_convex} has strong convexity on its left and convexity of this adjusted function on its right. Its \\lean{.mp} method uses the forward implication, sending \\lean{hsc} to the new convexity hypothesis \\lean{hc}. The family \\lean{hg} gives a derivative at each $v$. The map \\lean{innerSL} sends a direction $w$ to $\\ip{v}{w}$, and \\lean{hasStrictFDerivAt_norm_sq} gives the derivative $w\\mapsto2\\ip{v}{w}$ of the squared norm. The method \\lean{const_mul} multiplies by $m/2$, while \\lean{.sub} subtracts that derivative from the derivative of $f$. Hence\\[ Dg(v)[w]=Df(v)[w]-\\frac m2\\bigl(2\\ip{v}{w}\\bigr). \\] The coercions and scalar multiplications in the Lean expression are operations on continuous linear maps."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 50,
+          "end": 55,
+          "title": "Apply the convex tangent lemma and expand its derivative",
+          "explanation": "The method \\lean{(hg v).differentiableAt} forgets the particular derivative while retaining differentiability, so \\lean{hgd} makes \\lean{convex_first_order} applicable to $g$. The resulting \\lean{hxy} initially says $g(x)+Dg(x)[y-x]\\le g(y)$. The rewrite \\lean{rw [(hg x).fderiv] at hxy} replaces the automatically defined derivative of $g$ by the explicit derivative certified by \\lean{hg x}. The listed simplifications unfold $g$, evaluate sums and scalar multiples of linear maps, and use \\lean{inner_gradient_left} backwards to turn $Df(x)[\\cdot]$ into an inner product. They also expand inner products of differences. In ordinary notation the resulting hypothesis is\\[\\begin{aligned} f(x)-\\frac m2\\norm{x}^{2}&+\\ip{\\nabla f(x)}{y}-\\ip{\\nabla f(x)}{x}\\\\ &-\\frac m2\\Bigl((\\ip{x}{y}-\\norm{x}^{2})+(\\ip{x}{y}-\\norm{x}^{2})\\Bigr) \\le f(y)-\\frac m2\\norm{y}^{2}. \\end{aligned}\\] The \\lean{two_smul} and \\lean{add_apply} rules explain why the doubled inner-product term appears as a sum in this normalization."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 56,
+          "end": 58,
+          "title": "Compare the expanded hypothesis with the expanded goal",
+          "explanation": "The rewrite \\lean{norm_sub_sq_real} acts on the goal and expands\\[ \\norm{y-x}^{2}=\\norm{y}^{2}-2\\ip{y}{x}+\\norm{x}^{2}. \\] The modifier \\lean{at hxy} followed by the goal marker applies the following simplification both to the hypothesis and to the goal. The facts \\lean{inner_sub_right} and \\lean{real_inner_comm} expand the remaining difference and use symmetry of the real inner product. Up to that harmless symmetry, the normalized goal is\\[\\begin{aligned} f(x)+\\ip{\\nabla f(x)}{y}-\\ip{\\nabla f(x)}{x}\\\\ {}+\\frac m2\\Bigl(\\norm{y}^{2}-2\\ip{x}{y}+\\norm{x}^{2}\\Bigr)\\le f(y). \\end{aligned}\\] To see the exact algebra, the previous hypothesis has the left side $f(x)+\\ip{\\nabla f(x)}{y}-\\ip{\\nabla f(x)}{x}-m\\ip{x}{y}+(m/2)\\norm{x}^{2}$ and right side $f(y)-(m/2)\\norm{y}^{2}$. Add $(m/2)\\norm{y}^{2}$ to both sides and collect terms: the displayed goal results. The tactic \\lean{nlinarith} verifies these polynomial identities and the resulting inequality. It does not need a sign condition on $m$."
+        }
+      ]
+    },
+    {
+      "title": "Strong monotonicity and the lower objective gap",
+      "intro": "The next two consequences use the strong first-order inequality directly. Strong monotonicity will construct a stationary point using a small auxiliary step. The lower objective gap will later convert decay of function values into decay of distance.",
+      "blocks": [
+        {
+          "file": "StrongConvexity.lean",
+          "start": 60,
+          "end": 63,
+          "title": "The strong-monotonicity goal",
+          "explanation": "The hypotheses \\lean{hdiff} and \\lean{hsc} have the same meaning as before, and the points $x,y$ are explicit. The goal is\\[ m\\norm{x-y}^{2}\\le\\ip{\\nabla f(x)-\\nabla f(y)}{x-y}. \\] This compares the difference of gradients with the displacement. It is a lower bound on the inner product, rather than a bound on the gradient norm."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 64,
+          "end": 69,
+          "title": "Write the tangent bounds in both directions",
+          "explanation": "The facts \\lean{hxy} and \\lean{hyx} apply \\lean{strong_first_order} to $(x,y)$ and $(y,x)$ respectively. The norm rewrite in \\lean{hxy} uses $\\norm{y-x}=\\norm{x-y}$. The separate equality \\lean{hi} reverses the direction in the linear term:\\[ \\ip{\\nabla f(x)}{y-x}=-\\ip{\\nabla f(x)}{x-y}. \\] The left-pointing rewrite using \\lean{neg_sub} rewrites $y-x$ as $-(x-y)$; \\lean{inner_neg_right} then pulls that minus sign out of the inner product. This equality will align both first-order inequalities with the same displacement $d=x-y$."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 70,
+          "end": 72,
+          "title": "Add the two inequalities and cancel the function values",
+          "explanation": "The rewrite \\lean{rw [hi] at hxy} changes only the first inequality. The rewrite \\lean{inner_sub_left} changes the goal to a difference of two inner products. With $d=x-y$, the context now contains\\[\\begin{aligned} f(x)-\\ip{\\nabla f(x)}{d}+\\frac m2\\norm{d}^{2}&\\le f(y),\\\\ f(y)+\\ip{\\nabla f(y)}{d}+\\frac m2\\norm{d}^{2}&\\le f(x). \\end{aligned}\\] Adding them cancels $f(x)$ and $f(y)$ and yields $m\\norm{d}^{2}\\le\\ip{\\nabla f(x)}{d}-\\ip{\\nabla f(y)}{d}$. This is exactly the rewritten goal, and \\lean{linarith} verifies that linear addition and rearrangement."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 74,
+          "end": 81,
+          "title": "A stationary point gives the quadratic lower gap",
+          "explanation": "The implicit reference point \\lean{z} comes with \\lean{hz}, the equation $\\nabla f(z)=0$. Apply \\lean{strong_first_order} with base point $z$ and target point $x$, obtaining\\[ f(z)+\\ip{\\nabla f(z)}{x-z}+\\frac m2\\norm{x-z}^{2}\\le f(x). \\] The rewrite \\lean{rw [hz, inner_zero_left, add_zero] at h} replaces the gradient by zero, evaluates its inner product, and removes the zero summand. The remaining hypothesis is $f(z)+(m/2)\\norm{x-z}^{2}\\le f(x)$. The tactic \\lean{linarith} subtracts $f(z)$ and proves\\[ \\frac m2\\norm{x-z}^{2}\\le f(x)-f(z). \\] The lemma itself does not assume $m>0$; when positivity is available, its left side is nonnegative and proves that $z$ minimizes $f$ globally."
+        }
+      ]
+    },
+    {
+      "title": "The gradient controls the objective gap",
+      "intro": "This upper gap bound is the completed-square form of strong convexity. It requires $m>0$ but accepts any reference point $z$. At a minimizer it becomes the Polyak--\\L{}ojasiewicz inequality used in the descent proof.",
+      "blocks": [
+        {
+          "file": "StrongConvexity.lean",
+          "start": 83,
+          "end": 88,
+          "title": "Read the upper-gap statement",
+          "explanation": "The new hypothesis \\lean{hm} is $0<m$. The goal is\\[ f(x)-f(z)\\le\\frac{\\norm{\\nabla f(x)}^{2}}{2m}. \\] There is no \\lean{hz} hypothesis and no assertion that $z$ minimizes $f$. This greater generality is intentional: the strong tangent model at $x$ is enough to bound its difference from any value $f(z)$. Later the actual minimizer supplies a nonnegative gap as well."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 89,
+          "end": 93,
+          "title": "Use the signed Cauchy--Schwarz bound",
+          "explanation": "The fact \\lean{hfirst} is the strong first-order inequality with base $x$ and target $z$. Let $I=\\ip{\\nabla f(x)}{z-x}$, $a=\\norm{\\nabla f(x)}$, and $s=\\norm{z-x}$. Then\\[ \\lean{hfirst}:\\quad f(x)+I+\\frac m2s^{2}\\le f(z). \\] The fact \\lean{abs_real_inner_le_norm} gives $|I|\\le as$. Its use through \\lean{neg_le_of_abs_le} produces the lower bound $-as\\le I$, not an upper bound on $I$. Thus $-I\\le as$. Combining these two inequalities gives\\[ f(x)-f(z)\\le -I-\\frac m2s^{2}\\le as-\\frac m2s^{2}. \\] This is the declared \\lean{hgap}. The nested \\lean{linarith} verifies that the signs and subtraction of the quadratic term have exactly this direction."
+        },
+        {
+          "file": "StrongConvexity.lean",
+          "start": 94,
+          "end": 96,
+          "title": "Complete the square and discharge the division goal",
+          "explanation": "The method \\lean{hgap.trans} is transitivity with the established intermediate upper bound $B=as-(m/2)s^{2}$. Applying it replaces the original goal by $B\\le a^{2}/(2m)$. The tactic \\lean{positivity} proves $2m>0$ from \\lean{hm}. For a positive denominator, \\lean{le_div_iff} (with the subscript-$0$ suffix shown in the listing) is the equivalence $B\\le a^{2}/(2m)\\ \\Longleftrightarrow\\ B(2m)\\le a^{2}$. The code uses its \\lean{.2}, the implication from the multiplied inequality to the desired divided inequality, leaving\\[ 2m\\left(as-\\frac m2s^{2}\\right)\\le a^{2}. \\] Finally \\lean{sq_nonneg} supplies\\[ (ms-a)^{2}=m^{2}s^{2}-2mas+a^{2}\\ge0. \\] Rearranging gives $2mas-m^{2}s^{2}\\le a^{2}$, exactly the remaining goal. The final \\lean{nlinarith} expands the square and performs this rearrangement. Equivalently, the resulting bound can be multiplied by $2m>0$ to obtain $2m(f(x)-f(z))\\le\\norm{\\nabla f(x)}^{2}$."
+        }
+      ]
+    },
+    {
+      "title": "Construct a stationary point with an auxiliary contraction",
+      "intro": "The file \\lean{Minimizer.lean} imports the first-order lemmas and the step estimates. Existence does not assume a minimizer or finite dimensionality. It chooses a small gradient step and invokes the Banach fixed-point theorem on the complete space. The local Lean variable is printed as $\\alpha$ in the listing; we denote it by $\\beta$ here to distinguish this auxiliary choice from the user-selected step $\\alpha$ in the convergence theorem.",
+      "blocks": [
+        {
+          "file": "Minimizer.lean",
+          "start": 19,
+          "end": 23,
+          "title": "Existence is a conclusion",
+          "explanation": "The hypotheses \\lean{hdiff}, \\lean{hsc}, and \\lean{hLip} give global differentiability, $m$-strong convexity, and an actual $L$-Lipschitz gradient. The constant $L$ has nonnegative-real type; \\lean{hm} says $m>0$. Unlike the eventual convergence theorem, this existence result needs neither a prescribed step nor $L>0$. Its goal is an existential statement:\\[ \\exists z\\in H,\\qquad \\nabla f(z)=0. \\] The proof must supply both a point and a proof of its stationarity. Completeness is already present in the file's variable assumptions."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 24,
+          "end": 26,
+          "title": "Choose the auxiliary step and prove it is positive",
+          "explanation": "The local definition in the listing sets the auxiliary number\\[ \\beta=\\frac{m}{L^{2}+m^{2}}. \\] Although its Lean name is the same Greek letter used for the iteration step elsewhere, it is local to this theorem. It does not constrain the step chosen in \\lean{gradient_descent_converges}. The fact \\lean{hden} states $L^{2}+m^{2}>0$: squares are nonnegative and $m^{2}>0$ follows from \\lean{hm}. The tactic \\lean{positivity} assembles these facts. The library theorem \\lean{div_pos hm hden} then proves the named positivity fact $\\beta>0$. Thus both the numerator and denominator are certified positive before division is used."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 27,
+          "end": 30,
+          "title": "Verify the contraction step restriction by explicit algebra",
+          "explanation": "The subgoal \\lean{hsmall} is $\\beta L^{2}<2m$. The tactic \\lean{dsimp} unfolds the local step definition. The first rewrite puts $(m/(L^{2}+m^{2}))L^{2}$ into the form $mL^{2}/(L^{2}+m^{2})$; the second uses the certified positive denominator \\lean{hden} to turn the strict division inequality into\\[ mL^{2}<2m(L^{2}+m^{2}). \\] The difference between right and left is $mL^{2}+2m^{3}$. We have $L^{2}\\ge0$ from \\lean{sq_nonneg}, $m>0$ from \\lean{hm}, and $m^{3}=m\\cdot m^{2}>0$ from \\lean{mul_pos hm (sq_pos_of_pos hm)}. Hence the difference is positive. The final \\lean{nlinarith} verifies this polynomial argument. These rewrites use positivity explicitly, so the strict inequality direction is preserved."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 31,
+          "end": 34,
+          "title": "Obtain a Banach fixed point",
+          "explanation": "The theorem \\lean{contracting_gradient_step} is applied to the vector field $g=\\nabla f$, the parameters $m,\\beta,L$, the two step facts, strong monotonicity, and \\lean{hLip}. Thus \\lean{hc} says that\\[ T_\\beta(x)=x-\\beta\\nabla f(x) \\] is a contraction with coefficient $q=\\sqrt{1-2\\beta m+\\beta^{2}L^{2}}<1$, using the total real square-root convention proved in the step file. The expression \\lean{strong_gradient_monotone hdiff hsc} supplies the required inequality for all pairs of points without naming those points again. The command \\lean{obtain} destructures the existential conclusion of \\lean{hc.exists_fixedPoint}. The start is $0\\in H$; \\lean{edist_ne_top} certifies finite extended distance in a normed space. We retain the fixed point \\lean{z} and its fixed-point fact \\lean{hz}, discarding the library's additional conclusions with the underscore. The next \\lean{have} presents that fact explicitly as\\[ \\lean{hz'}:\\quad z-\\beta\\nabla f(z)=z. \\]"
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 35,
+          "end": 37,
+          "title": "Turn the fixed-point equation into stationarity",
+          "explanation": "The equivalence \\lean{sub_eq_self} says that $z-v=z$ is equivalent to $v=0$. Its \\lean{.mp} uses the forward direction on \\lean{hz'}, proving the new fact\\[ \\lean{hzero}:\\quad \\beta\\nabla f(z)=0. \\] The equivalence \\lean{smul_eq_zero} turns this scalar-product equation into the disjunction $\\beta=0$ or $\\nabla f(z)=0$; again \\lean{.mp} is the forward direction. The proof \\lean{ne_of_gt} obtained from positivity of $\\beta$ rules out the left disjunct. The method \\lean{resolve_left} therefore returns $\\nabla f(z)=0$. Finally \\lean{exact} supplies the existential pair consisting of $z$ and that proof. This completes attainment through the fixed-point theorem, rather than assuming that a minimum already exists."
+        }
+      ]
+    },
+    {
+      "title": "Stationarity implies global minimality and uniqueness",
+      "intro": "The lower gap lemma alone proves both properties. No converse theorem asserting that every minimizer is stationary is needed: any second global minimizer must coincide with the stationary point by the positive quadratic lower bound.",
+      "blocks": [
+        {
+          "file": "Minimizer.lean",
+          "start": 39,
+          "end": 44,
+          "title": "Split the conjunction into two proof goals",
+          "explanation": "The hypothesis \\lean{hz} says $\\nabla f(z)=0$ and \\lean{hm} says $m>0$. The conclusion has two parts:\\[ (\\forall x\\in H,\\ f(z)\\le f(x))\\quad\\text{and}\\quad (\\forall y\\in H,\\ (\\forall x\\in H,\\ f(y)\\le f(x))\\Rightarrow y=z). \\] The first is global minimality; the second is uniqueness among all global minimizers. The tactic \\lean{constructor} applies the introduction rule for a conjunction and creates two goals. The two indented bullet branches in the remaining proof solve them separately."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 45,
+          "end": 48,
+          "title": "Prove global minimality from a nonnegative lower gap",
+          "explanation": "The command \\lean{intro x} fixes an arbitrary point for the universal quantifier in the first goal. The fact \\lean{h} is\\[ \\frac m2\\norm{x-z}^{2}\\le f(x)-f(z). \\] The new fact \\lean{hn}, established by \\lean{positivity}, says its left side is nonnegative, using $m>0$ and the nonnegative square. Combining the two inequalities gives $0\\le f(x)-f(z)$, equivalently $f(z)\\le f(x)$. The tactic \\lean{linarith} checks that rearrangement and closes the first branch. The proof has made no special choice of $x$, so global minimality follows."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 49,
+          "end": 54,
+          "title": "Force any other minimizer to have zero squared distance",
+          "explanation": "In the second branch, \\lean{intro y hy} fixes another point $y$ and assumes its global minimality \\lean{hy}. The lower gap gives \\lean{h}, and specializing \\lean{hy} at $z$ gives \\lean{hmin}: $f(y)\\le f(z)$. Let $S=\\norm{y-z}^{2}$. Inside the nested proof of \\lean{hsq}, \\lean{sq_nonneg} supplies \\lean{hnonneg}: $S\\ge0$. The inequalities now read\\[ 0\\le S,\\qquad \\frac m2S\\le f(y)-f(z)\\le0,\\qquad m>0. \\] If $S$ were positive, then $(m/2)S$ would be positive and could not be bounded above by zero. Therefore $S=0$. The tactic \\lean{nlinarith} verifies this consequence using the positive parameter $m$ and the polynomial inequalities. This is why strict positivity of the strong-convexity constant is needed for uniqueness."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 55,
+          "end": 56,
+          "title": "Convert zero norm into equality of points",
+          "explanation": "The equivalence \\lean{sq_eq_zero_iff} sends \\lean{hsq}, the equation $\\norm{y-z}^{2}=0$, to \\lean{hn}: $\\norm{y-z}=0$ through its forward \\lean{.mp} direction. The inner application \\lean{norm_eq_zero.mp hn} then proves $y-z=0$. The outer application \\lean{sub_eq_zero.mp} turns that equation into $y=z$. Thus the final \\lean{exact} gives the required equality, closes the uniqueness branch, and completes the conjunction."
+        }
+      ]
+    },
+    {
+      "title": "Package the unique-minimizer theorem",
+      "intro": "This final result combines the construction of a stationary point with the two preceding consequences. The notation for unique existence records a witness, its property, and uniqueness of every other witness satisfying the same property.",
+      "blocks": [
+        {
+          "file": "Minimizer.lean",
+          "start": 58,
+          "end": 62,
+          "title": "Understand the unique-existence goal",
+          "explanation": "The function assumptions are the same as those of \\lean{exists_stationary}: differentiability, $m$-strong convexity with $m>0$, and a globally $L$-Lipschitz gradient. The conclusion\\[ \\exists! z\\in H,\\qquad \\forall x\\in H,\\ f(z)\\le f(x) \\] uses Lean's unique-existence notation. Expanding that notation, we must provide one $z$, prove global minimality at $z$, and prove that any point with global minimality equals $z$. It does not require a preselected candidate minimizer."
+        },
+        {
+          "file": "Minimizer.lean",
+          "start": 63,
+          "end": 65,
+          "title": "Assemble the witness and its two properties",
+          "explanation": "The first \\lean{obtain} applies \\lean{exists_stationary} and names both the resulting witness \\lean{z} and its stationarity proof \\lean{hz}. The second applies \\lean{stationary_unique_minimizer}; destructuring its conjunction names the two proofs \\lean{hmin} and \\lean{huniq}. They have exactly the minimality and uniqueness types required by the expanded unique-existence goal. The final triple supplied by \\lean{exact} consists of the witness, the proof of its property, and the proof of uniqueness. This assembly changes no assumptions and introduces no new analytic argument."
+        }
+      ]
+    }
+  ]
+}

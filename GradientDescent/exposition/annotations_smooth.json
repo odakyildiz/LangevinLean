@@ -1,0 +1,191 @@
+{
+  "sections": [
+    {
+      "title": "Smoothness from a Lipschitz gradient: Smooth.lean",
+      "intro": "This file proves the quadratic upper model from differentiability and a Lipschitz gradient. Its proof studies a scalar function on the segment from $x$ to $y$, proves that its derivative is nonpositive, and compares its endpoint values. No Hessian or line-integral hypothesis is introduced.",
+      "blocks": [
+        {
+          "file": "Smooth.lean",
+          "start": 19,
+          "end": 23,
+          "title": "Ambient space and namespace",
+          "explanation": "The scoped opening enables notation for nonnegative real numbers. The namespace prefixes each exported theorem with \\lean{GradientDescent}. The typeclass variables describe a complete real inner-product space $H$. Completeness is needed here for Mathlib's gradient, the Riesz representative of the Fr\\'echet derivative:\n\\[Df(x)[v]=\\ip{\\nabla f(x)}{v}.\\]"
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 26,
+          "end": 28,
+          "title": "The precise smoothness goal",
+          "explanation": "The hypotheses supply differentiability at every point and a globally $L$-Lipschitz gradient. The type of $L$ already includes $L\\ge0$; its coercion is used in real arithmetic. Neither strong convexity nor a positive step size is required. The proof must establish, for arbitrary $x,y\\in H$,\n\\[f(y)\\le f(x)+\\ip{\\nabla f(x)}{y-x}+\\frac L2\\norm{y-x}^{2}.\\]\nThe keyword \\lean{by} begins the tactic proof of this inequality."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 29,
+          "end": 32,
+          "title": "Define the corrected segment restriction",
+          "explanation": "The four \\lean{let} declarations introduce local definitions, not new assumptions. Write $d=y-x$, $a=\\ip{\\nabla f(x)}{d}$, and $b=\\norm d^2$. The scalar function is\n\\[q(t)=f(x+td)-f(x)-ta-\\frac L2t^2b.\\]\nSubtracting the affine model and the quadratic correction makes the desired result equivalent to $q(1)\\le q(0)=0$. Later \\lean{dsimp} can unfold these definitions."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 33,
+          "end": 34,
+          "title": "Differentiate the affine path",
+          "explanation": "The parameterized \\lean{have hline} proves a derivative statement for every real $t$. Start with the identity derivative $1$, multiply by the fixed vector $d$ using \\lean{smul_const}, and add the constant vector $x$ using \\lean{const_add}. This gives\n\\[\\frac{d}{ds}(x+sd)\\big|_{s=t}=1\\mathbin{\\cdot}d=d.\\]\nThe final \\lean{simpa using} simplifies the derivative vector $1\\mathbin{\\cdot}d$ and transfers the chained proof to the displayed goal."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 35,
+          "end": 38,
+          "title": "Apply the chain rule and identify the gradient",
+          "explanation": "At $x+td$, \\lean{hf} gives differentiability and \\lean{hasFDerivAt} supplies its Fr\\'echet derivative. The method \\lean{comp_hasDerivAt} composes that derivative with \\lean{hline t}. Its resulting scalar derivative is $Df(x+td)[d]$. The simplifier unfolds function composition and rewrites the gradient inner product in the goal to $Df(x+td)[d]$ using \\lean{inner_gradient_left}, so the goal matches the chain-rule proof. This establishes\n\\[\\frac{d}{ds}f(x+sd)\\big|_{s=t}=\\ip{\\nabla f(x+td)}{d}.\\]\nThis is the reusable local fact \\lean{hcomp t}."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 39,
+          "end": 42,
+          "title": "Build a derivative proof for q",
+          "explanation": "The chained derivative lemmas differentiate the expression defining $q$: \\lean{sub_const} subtracts $f(x)$; the first \\lean{sub} subtracts $ta$; and the second subtracts $(L/2)t^2b$. The identity derivative followed by \\lean{pow 2}, \\lean{const_mul}, and \\lean{mul_const} proves the quadratic term's derivative. The pipe \\lean{|>} passes that proof to the following method call. The claimed simplified derivative is\n\\[q'(t)=\\ip{\\nabla f(x+td)}{d}-a-Ltb.\\]\nThe tactic \\lean{convert ... using 1} uses the constructed derivative proof while leaving equality obligations for its function and derivative expressions."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 43,
+          "end": 46,
+          "title": "Resolve the two conversion equalities",
+          "explanation": "The first bullet resolves equality of functions. The tactic \\lean{ext s} applies function extensionality, reducing it to equality at an arbitrary argument $s$. The listed simplifications unfold $q$, pointwise function subtraction and powers, and the identity function. The second bullet resolves equality of derivative values. After simplifying the identity function, \\lean{ring} checks the polynomial identity\n\\[\\frac L2(2t)b=Ltb.\\]\nThus \\lean{hq} is an actual derivative proof, not merely a proposed formula."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 47,
+          "end": 49,
+          "title": "Set up the nonpositive-derivative goal",
+          "explanation": "The next local lemma takes $t$ in the interior of $[0,1]$ and aims to prove\n\\[\\ip{\\nabla f(x+td)}{d}-a-Ltb\\le0.\\]\nThe library fact \\lean{interior_subset} places $t$ in the closed interval. Membership there is a pair of inequalities; projecting its first component with \\lean{.1} gives $0\\le t$. This sign is essential when simplifying $\\norm{td}=|t|\\norm d$ to $t\\norm d$."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 50,
+          "end": 52,
+          "title": "Apply gradient Lipschitzness along the segment",
+          "explanation": "The method \\lean{hLip.dist_le_mul} applies the global Lipschitz bound at $x+td$ and $x$. The simplifier converts distances to norms, simplifies $(x+td)-x$, expands the norm of a scalar multiple, and removes $|t|$ using $t\\ge0$. Associativity puts the product into the desired form:\n\\[\\norm{\\nabla f(x+td)-\\nabla f(x)}\\le Lt\\norm d.\\]\nNo sign of an inner product is assumed in this step."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 53,
+          "end": 57,
+          "title": "Cauchy--Schwarz proves the derivative sign",
+          "explanation": "The fact \\lean{hinner} is the signed Cauchy--Schwarz bound, and \\lean{hprod} multiplies the Lipschitz bound by $\\norm d\\ge0$. Rewriting with \\lean{inner_sub_left} expands the gradient difference in the first inner-product argument. The tactic \\lean{dsimp} unfolds $a,b$ in the goal. The two bounds then read\n\\[\\ip{\\nabla f(x+td)}{d}-a\n \\le\\norm{\\nabla f(x+td)-\\nabla f(x)}\\norm d\n \\le Lt\\norm d^2=Ltb.\\]\nThe tactic \\lean{nlinarith} combines these real inequalities and moves $Ltb$ to the left."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 58,
+          "end": 64,
+          "title": "Prove antitonicity through three obligations",
+          "explanation": "Applying \\lean{antitoneOn_of_deriv_nonpos} to the convex interval $[0,1]$ leaves three goals, discharged by the three bullets:\n\\begin{itemize}\n\\item Continuity on the closed interval: each \\lean{hq t} implies continuity at $t$; the equivalence for pointwise continuity gives global continuity, which is restricted using \\lean{continuousOn}.\n\\item Differentiability on its interior: each \\lean{hq t} gives differentiability at $t$; the explicitly typed \\lean{show} assembles a global differentiability proof, then restricts it.\n\\item Nonpositive derivative at each interior point: \\lean{intro} introduces $t$ and its membership proof, \\lean{rw [(hq t).deriv]} replaces the actual derivative by the proved formula, and \\lean{hq_nonpos} supplies its sign.\n\\end{itemize}\nThe resulting \\lean{AntitoneOn} statement means $s\\le t$ implies $q(t)\\le q(s)$ for $s,t\\in[0,1]$."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 65,
+          "end": 69,
+          "title": "Evaluate the decreasing function at zero and one",
+          "explanation": "Applying \\lean{hanti} to $0\\le1$ gives $q(1)\\le q(0)$. The inline \\lean{by simp} proofs certify endpoint membership, while \\lean{norm_num} certifies the numerical order. Unfolding the four local definitions and simplifying scalar multiplication, powers, and zero terms gives\n\\[f\\bigl(x+(y-x)\\bigr)-f(x)-\\ip{\\nabla f(x)}{y-x}\n       -\\frac L2\\norm{y-x}^2\\le0.\\]\nThe side proof $2\\ne0$ is passed to the simplification rule for $0^2$."
+        },
+        {
+          "file": "Smooth.lean",
+          "start": 70,
+          "end": 72,
+          "title": "Finish by additive algebra and rearrangement",
+          "explanation": "The tactic \\lean{abel} proves $x+(y-x)=y$ using only the additive commutative-group laws. The rewrite replaces the endpoint in \\lean{hfinal}. The remaining inequality is linear in the displayed real expressions:\n\\[f(y)-f(x)-\\ip{\\nabla f(x)}{y-x}-\\frac L2\\norm{y-x}^2\\le0.\\]\nThe tactic \\lean{linarith} rearranges this into the theorem's upper-bound goal. The proof is now complete."
+        }
+      ]
+    },
+    {
+      "title": "Auxiliary Euler-step estimates: Step.lean",
+      "intro": "These estimates are deliberately stated for arbitrary vector values $g_x,g_y$, or for an arbitrary map $g$. Their inputs are strong monotonicity and Lipschitzness, rather than calculus. They are later applied to the gradient with a small auxiliary step to construct a minimizer. The contraction condition here does not replace the convergence theorem's full condition $0<\\alpha<2/L$.",
+      "blocks": [
+        {
+          "file": "Step.lean",
+          "start": 11,
+          "end": 15,
+          "title": "An inner-product space is enough for the estimates",
+          "explanation": "The namespace and scoped notation are the same as in the smoothness file. These variables assume a real inner-product space, but do not assume completeness: norm expansions and the Lipschitz estimate need no limit argument. A later application of Banach's theorem adds completeness. The underlying identities are\n\\[\\norm{u-v}^{2}=\\norm u^2-2\\ip{u}{v}+\\norm v^2,\n \\qquad \\norm{hu}=|h|\\norm u.\\]"
+        },
+        {
+          "file": "Step.lean",
+          "start": 18,
+          "end": 23,
+          "title": "State the squared-step estimate for arbitrary values",
+          "explanation": "The vectors \\lean{gx} and \\lean{gy} stand for $g_x,g_y$; there is no function or gradient assumption hidden in the statement. The supplied inequalities are strong monotonicity and a Lipschitz bound at the selected pair. For $h\\ge0$ the goal is\n\\[\\norm{(x-hg_x)-(y-hg_y)}^2\n \\le (1-2hm+h^2L^2)\\norm{x-y}^2.\\]\nThe constant $m$ need not be positive for this elementary lemma. The sign $h\\ge0$ controls the scaling of its monotonicity input."
+        },
+        {
+          "file": "Step.lean",
+          "start": 24,
+          "end": 25,
+          "title": "Square the Lipschitz inequality legally",
+          "explanation": "Let $A=\\norm{g_x-g_y}$ and $D=\\norm{x-y}$. The assumption is $A\\le LD$, and all three numbers $A,D,L$ are nonnegative. Therefore\n\\[A^2\\le L^2D^2.\\]\nThe tactic \\lean{nlinarith} proves this polynomial consequence using the explicit norm-nonnegativity facts and the nonnegativity built into $L$. Supplying those facts makes the squaring step valid; an arbitrary signed inequality could not simply be squared."
+        },
+        {
+          "file": "Step.lean",
+          "start": 26,
+          "end": 27,
+          "title": "Scale the two bounds with nonnegative factors",
+          "explanation": "The lemma \\lean{mul_le_mul_of_nonneg_left} preserves an inequality when multiplied by a nonnegative number. The tactic \\lean{positivity} proves $0\\le2h$ from $h\\ge0$, and \\lean{sq_nonneg h} proves $0\\le h^2$. With $d=x-y$ and $v=g_x-g_y$, the saved inequalities are\n\\[2hm\\norm d^2\\le2h\\ip{v}{d},\\qquad\n h^2\\norm v^2\\le h^2L^2\\norm d^2.\\]\nThe first will be subtracted, and the second added, in the norm expansion."
+        },
+        {
+          "file": "Step.lean",
+          "start": 28,
+          "end": 31,
+          "title": "Expand the squared norm and combine the inequalities",
+          "explanation": "Inside \\lean{rw}, the embedded \\lean{show ... by module} proves the vector identity $(x-hg_x)-(y-hg_y)=d-hv$ by module algebra. The listed rewrites expand its squared norm, pull $h$ out of the inner product and norm, replace the real norm by absolute value, use $|h|=h$, and swap inner-product arguments. The goal becomes the real inequality\n\\[\\norm d^2-2h\\ip{v}{d}+h^2\\norm v^2\n       \\le(1-2hm+h^2L^2)\\norm d^2.\\]\nSubtracting the first scaled bound and adding the second proves it; \\lean{nlinarith} carries out exactly that polynomial combination."
+        },
+        {
+          "file": "Step.lean",
+          "start": 35,
+          "end": 40,
+          "title": "State the corresponding norm bound",
+          "explanation": "This theorem has the same pairwise assumptions and aims to remove the square:\n\\[\\norm{(x-hg_x)-(y-hg_y)}\n       \\le\\sqrt{1-2hm+h^2L^2}\\,\\norm{x-y}.\\]\nHere and below the square root has Mathlib's total real convention: it is zero on negative inputs. A separate hypothesis that the coefficient is nonnegative is therefore unnecessary; the squared-step bound already rules out a negative right-hand side when the relevant distance is nonzero."
+        },
+        {
+          "file": "Step.lean",
+          "start": 41,
+          "end": 43,
+          "title": "Take the square root and simplify its product",
+          "explanation": "The local \\lean{hsq} applies the preceding theorem. Writing $Q=1-2hm+h^2L^2$ and $D=\\norm{x-y}$, \\lean{Real.le_sqrt_of_sq_le} turns its conclusion into\n\\[\\norm{(x-hg_x)-(y-hg_y)}\\le\\sqrt{QD^2}.\\]\nThe rewrite \\lean{Real.sqrt_mul'} factors this as $\\sqrt Q\\sqrt{D^2}$ because $D^2\\ge0$; \\lean{Real.sqrt_sq} then uses $D\\ge0$ to give $\\sqrt{D^2}=D$. The tactic \\lean{rwa ... at hbound} both performs these rewrites in the saved inequality and uses it to close the goal."
+        },
+        {
+          "file": "Step.lean",
+          "start": 47,
+          "end": 52,
+          "title": "Package a globally contracting step",
+          "explanation": "Now the input is an actual map $g:H\\to H$. Strong monotonicity holds at every pair, and \\lean{LipschitzWith L g} supplies the global Lipschitz bound. The conditions are $\\alpha>0$ and $\\alpha L^2<2m$. Define\n\\[T(x)=x-\\alpha g(x),\\quad Q=1-2\\alpha m+\\alpha^2L^2,\n       \\quad q=\\sqrt Q.\\]\nThe pair notation packages $q$ as a nonnegative real, with \\lean{Real.sqrt_nonneg} proving its sign. The conclusion \\lean{ContractingWith} requires both $q<1$ and that $T$ is $q$-Lipschitz."
+        },
+        {
+          "file": "Step.lean",
+          "start": 53,
+          "end": 56,
+          "title": "Split contraction and show its squared coefficient is below one",
+          "explanation": "The tactic \\lean{constructor} splits the contraction conclusion into its two components. The first bullet concerns $q<1$; \\lean{change} displays it as a real square-root inequality by unfolding the nonnegative-real packaging. The hypothesis \\lean{hsmall} gives $2m-\\alpha L^2>0$, and \\lean{mul_pos} multiplies it by $\\alpha>0$. Thus\n\\[1-Q=\\alpha(2m-\\alpha L^2)>0,\\qquad Q<1.\\]\nThe tactic \\lean{nlinarith} expands this product and establishes the saved fact \\lean{hq}."
+        },
+        {
+          "file": "Step.lean",
+          "start": 57,
+          "end": 58,
+          "title": "Turn Q below one into a square-root contraction factor",
+          "explanation": "Since the comparison value $1$ is positive, the library equivalence \\lean{Real.sqrt_lt_sqrt_iff_of_pos} turns $Q<1$ into $\\sqrt Q<\\sqrt1$. Its projection \\lean{.2} selects the implication from the ordinary inequality to the square-root inequality. The proof \\lean{by norm_num} certifies $0<1$, and \\lean{simpa only [Real.sqrt_one]} simplifies the result to\n\\[q=\\sqrt Q<1.\\]\nThis equivalence also handles $Q<0$ under the total square-root convention."
+        },
+        {
+          "file": "Step.lean",
+          "start": 59,
+          "end": 62,
+          "title": "Reduce the second component to a distance estimate",
+          "explanation": "The second main bullet proves that $T$ is $q$-Lipschitz. Applying \\lean{LipschitzWith.of_dist_le_mul} reduces it to an inequality at arbitrary points, introduced by \\lean{intro x y}. Applying the original Lipschitz hypothesis at that pair and rewriting distances as norms produces the saved input\n\\[\\norm{g(x)-g(y)}\\le L\\norm{x-y}.\\]\nThis is the pairwise Lipschitz assumption needed by \\lean{gradient_step_contract}."
+        },
+        {
+          "file": "Step.lean",
+          "start": 63,
+          "end": 66,
+          "title": "Apply the norm estimate and complete the contraction proof",
+          "explanation": "The simplifier changes the target distances into norms. The tactic \\lean{change} exposes the coercion of $q$ and the definition of the step map, leaving\n\\[\\norm{(x-\\alpha g(x))-(y-\\alpha g(y))}\n       \\le\\sqrt Q\\,\\norm{x-y}.\\]\nThe final \\lean{exact} supplies the already-proved pairwise norm theorem with $g_x=g(x)$, $g_y=g(y)$, the nonnegative step obtained by the order projection \\lean{.le}, strong monotonicity at $x,y$, and the saved bound \\lean{hb}. Both contraction components are now proved."
+        }
+      ]
+    }
+  ]
+}

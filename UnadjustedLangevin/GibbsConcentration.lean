@@ -1,0 +1,233 @@
+import UnadjustedLangevin.Gibbs
+import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
+import Mathlib.Analysis.Calculus.Deriv.Pow
+import Mathlib.Tactic
+
+set_option linter.style.header false
+
+/-! # Gibbs concentration around a minimizer from continuous strong convexity
+
+A dilation of Lebesgue measure and the tangent limit at dilation factor one prove
+the dimension-sharp `2 * dim / m` second-moment bound. The potential need only be
+continuous and strongly convex: no gradient, Hessian, or second derivative is
+assumed. Gaussian integrability and the second moment are derived in this file.
+-/
+
+noncomputable section
+set_option backward.isDefEq.respectTransparency false
+set_option backward.isDefEq.respectTransparency.types false
+open MeasureTheory Filter Set
+open scoped ENNReal Topology
+namespace ULA
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+  [FiniteDimensional ℝ H] [MeasurableSpace H] [BorelSpace H]
+
+omit [FiniteDimensional ℝ H] [MeasurableSpace H] [BorelSpace H] in
+/-- Midpoint strong convexity and minimality already give Gaussian tails. -/
+theorem strongConvex_mode_quadratic_bound (F : H → ℝ) (q : ℝ)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x) (x : H) :
+    F z + q / 4 * ‖x - z‖ ^ 2 ≤ F x := by
+  have hs := hsc.2 (Set.mem_univ z) (Set.mem_univ x)
+    (by norm_num : (0 : ℝ) ≤ 1 / 2) (by norm_num : (0 : ℝ) ≤ 1 / 2)
+    (by norm_num : (1 / 2 : ℝ) + 1 / 2 = 1)
+  have hmin := hz ((1 / 2 : ℝ) • z + (1 / 2 : ℝ) • x)
+  dsimp only at hs
+  simp only [smul_eq_mul] at hs
+  rw [norm_sub_rev z x] at hs
+  nlinarith
+
+theorem integrable_exp_neg_of_continuous_strongConvex_mode
+    (F : H → ℝ) (q : ℝ) (hq : 0 < q) (hc : Continuous F)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x) :
+    Integrable (fun x ↦ Real.exp (-F x)) volume := by
+  have hg := (measurePreserving_sub_right (volume : Measure H) z).integrable_comp_of_integrable
+    (integrable_exp_neg_mul_norm_sq (H := H) (q / 4) (by positivity))
+  have hi := hg.const_mul (Real.exp (-F z))
+  apply hi.mono' (Real.continuous_exp.comp hc.neg).aestronglyMeasurable
+  apply ae_of_all
+  intro x
+  change ‖Real.exp (-F x)‖ ≤ Real.exp (-F z) * Real.exp (-(q / 4) * ‖x - z‖ ^ 2)
+  rw [Real.norm_eq_abs, abs_of_pos (Real.exp_pos _)]
+  rw [← Real.exp_add]
+  apply Real.exp_le_exp.mpr
+  have h := strongConvex_mode_quadratic_bound F q hsc z hz x
+  linarith
+
+theorem integrable_sq_dist_mul_exp_neg_of_continuous_strongConvex_mode
+    (F : H → ℝ) (q : ℝ) (hq : 0 < q) (hc : Continuous F)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x) :
+    Integrable (fun x ↦ ‖x - z‖ ^ 2 * Real.exp (-F x)) volume := by
+  have hg := (measurePreserving_sub_right (volume : Measure H) z).integrable_comp_of_integrable
+      (integrable_norm_sq_mul_exp_neg_mul_norm_sq (H := H) (q / 4) (by positivity))
+  have hi := hg.const_mul (Real.exp (-F z))
+  apply hi.mono' (by fun_prop)
+  apply ae_of_all
+  intro x
+  rw [Real.norm_eq_abs, abs_of_nonneg (by positivity)]
+  change ‖x - z‖ ^ 2 * Real.exp (-F x) ≤
+    Real.exp (-F z) * (‖x - z‖ ^ 2 * Real.exp (-(q / 4) * ‖x - z‖ ^ 2))
+  have he : Real.exp (-F x) ≤ Real.exp (-F z) * Real.exp (-(q / 4) * ‖x - z‖ ^ 2) := by
+    rw [← Real.exp_add]
+    apply Real.exp_le_exp.mpr
+    have h := strongConvex_mode_quadratic_bound F q hsc z hz x
+    linarith
+  nlinarith [mul_le_mul_of_nonneg_left he (sq_nonneg ‖x - z‖)]
+
+/-- The dilation inequality before taking the tangent limit. -/
+theorem gibbs_mode_dilation_inequality
+    (F : H → ℝ) (q : ℝ) (hq : 0 < q) (hc : Continuous F)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x)
+    (r : ℝ) (hr : 0 < r) (hr1 : r < 1) :
+    (∫ x, Real.exp (-F x) ∂volume) + q / 2 * r * (1 - r) *
+      (∫ x, ‖x - z‖ ^ 2 * Real.exp (-F x) ∂volume) ≤
+    (r ^ Module.finrank ℝ H)⁻¹ * ∫ x, Real.exp (-F x) ∂volume := by
+  let w := fun x ↦ Real.exp (-F x)
+  let C := q / 2 * r * (1 - r)
+  have hi := integrable_exp_neg_of_continuous_strongConvex_mode F q hq hc hsc z hz
+  have hmi := integrable_sq_dist_mul_exp_neg_of_continuous_strongConvex_mode F q hq hc hsc z hz
+  have haff (x : H) : z + r • (x - z) = r • x + (1 - r) • z := by module
+  have hip : Integrable (fun x ↦ w (z + r • (x - z))) volume := by
+    have ht := (measurePreserving_add_right (volume : Measure H)
+      ((1 - r) • z)).integrable_comp_of_integrable hi
+    have hs := ht.comp_smul hr.ne'
+    convert hs using 1
+    funext x
+    exact congrArg w (haff x)
+  have htrans : (∫ x, w (z + r • (x - z)) ∂volume) =
+      (r ^ Module.finrank ℝ H)⁻¹ * ∫ x, w x ∂volume := by
+    have hs := Measure.integral_comp_smul_of_nonneg (volume : Measure H)
+      (fun x ↦ w (x + (1 - r) • z)) r (hR := hr.le)
+    rw [integral_add_right_eq_self] at hs
+    convert hs using 1
+    · apply integral_congr_ae
+      exact ae_of_all _ fun x ↦ congrArg w (haff x)
+  have hpoint (x : H) : w x + C * (‖x - z‖ ^ 2 * w x) ≤ w (z + r • (x - z)) := by
+    have hs := hsc.2 (Set.mem_univ z) (Set.mem_univ x)
+      (by linarith : 0 ≤ 1 - r) hr.le (by ring : 1 - r + r = 1)
+    dsimp only at hs
+    simp only [smul_eq_mul] at hs
+    rw [norm_sub_rev z x] at hs
+    have heq : (1 - r) • z + r • x = z + r • (x - z) := by module
+    rw [heq] at hs
+    have hb : F (z + r • (x - z)) ≤ F x - C * ‖x - z‖ ^ 2 := by
+      have hmin := mul_le_mul_of_nonneg_left (hz x) (show 0 ≤ 1 - r by linarith)
+      dsimp [C]
+      nlinarith
+    have he := Real.exp_le_exp.mpr (show -F x + C * ‖x - z‖ ^ 2 ≤
+      -F (z + r • (x - z)) by linarith)
+    rw [Real.exp_add] at he
+    have hp := mul_le_mul_of_nonneg_left (Real.add_one_le_exp (C * ‖x - z‖ ^ 2))
+      (Real.exp_nonneg (-F x))
+    dsimp [w] at *
+    nlinarith
+  calc
+    _ = ∫ x, (w x + C * (‖x - z‖ ^ 2 * w x)) ∂volume := by
+      rw [integral_add hi (hmi.const_mul C), integral_const_mul]
+    _ ≤ ∫ x, w (z + r • (x - z)) ∂volume := integral_mono (hi.add (hmi.const_mul C)) hip hpoint
+    _ = _ := htrans
+
+/-- Taking the tangent limit of the dilation inequality gives the exact
+dimension dependence, without differentiating the potential. -/
+theorem integral_sq_dist_mul_exp_neg_le_of_continuous_strongConvex_mode
+    (F : H → ℝ) (q : ℝ) (hq : 0 < q) (hc : Continuous F)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x) :
+    (∫ x, ‖x - z‖ ^ 2 * Real.exp (-F x) ∂volume) ≤
+      (2 * (Module.finrank ℝ H : ℝ) / q) * ∫ x, Real.exp (-F x) ∂volume := by
+  let d := Module.finrank ℝ H
+  let Z := ∫ x, Real.exp (-F x) ∂volume
+  let M := ∫ x, ‖x - z‖ ^ 2 * Real.exp (-F x) ∂volume
+  let C := q / 2
+  let Φ : ℝ → ℝ := fun r ↦ r ^ d * (Z + C * r * (1 - r) * M)
+  have hΦ1 : Φ 1 = Z := by simp [Φ]
+  have hΦ (r : ℝ) (hr : 0 < r) (hr1 : r < 1) : Φ r ≤ Z := by
+    have h := gibbs_mode_dilation_inequality F q hq hc hsc z hz r hr hr1
+    have hp : 0 < r ^ d := pow_pos hr d
+    have hm := mul_le_mul_of_nonneg_left h hp.le
+    change Φ r ≤ r ^ d * ((r ^ d)⁻¹ * Z) at hm
+    rw [← mul_assoc, mul_inv_cancel₀ hp.ne', one_mul] at hm
+    exact hm
+  have hinner : HasDerivAt (fun r : ℝ ↦ Z + C * r * (1 - r) * M) (-C * M) 1 := by
+    convert (hasDerivAt_const (1 : ℝ) Z).add
+      ((((hasDerivAt_id (1 : ℝ)).const_mul C).mul
+        ((hasDerivAt_const (1 : ℝ) 1).sub (hasDerivAt_id (1 : ℝ)))).mul_const M) using 1
+    · rfl
+    · simp only [Pi.sub_apply, id_eq]
+      ring
+  have hder : HasDerivAt Φ ((d : ℝ) * Z - C * M) 1 := by
+    convert ((hasDerivAt_id (1 : ℝ)).pow d).mul hinner using 1
+    · rfl
+    · simp only [Pi.pow_apply, id_eq, one_pow, mul_one, sub_self, mul_zero, zero_mul, add_zero]
+      ring
+  have hnonneg : ∀ᶠ u : ℝ in 𝓝[<] 0,
+      0 ≤ u⁻¹ * (Φ (1 + u) - Φ 1) := by
+    have hnear : ∀ᶠ u : ℝ in 𝓝[<] 0, -1 < u :=
+      mem_nhdsWithin_of_mem_nhds (Ioi_mem_nhds (by norm_num : (-1 : ℝ) < 0))
+    filter_upwards [self_mem_nhdsWithin, hnear] with u hu hnear
+    have hp := hΦ (1 + u) (by linarith) (by change u < 0 at hu; linarith)
+    rw [← hΦ1] at hp
+    exact mul_nonneg_of_nonpos_of_nonpos (inv_nonpos.mpr hu.le) (sub_nonpos.mpr hp)
+  have hbound : 0 ≤ (d : ℝ) * Z - C * M := by
+    have hs := hder.tendsto_slope_zero_left
+    simp only [smul_eq_mul] at hs
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds hs hnonneg
+  change M ≤ (2 * (d : ℝ) / q) * Z
+  have hb : M ≤ 2 * (d : ℝ) * Z / q := by
+    apply (le_div_iff₀ hq).mpr
+    dsimp [C] at hbound
+    nlinarith
+  convert hb using 1
+  ring
+
+/-- The squared distance is integrable under the normalized Gibbs law, derived
+from continuous strong convexity and the identified mode. -/
+theorem integrable_sq_dist_gibbs_of_continuous_strongConvex_mode
+    (F : H → ℝ) (q : ℝ) (hq : 0 < q) (hc : Continuous F)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x) :
+    Integrable (fun x ↦ ‖x - z‖ ^ 2) (gibbsMeasure F) := by
+  have hi := integrable_exp_neg_of_continuous_strongConvex_mode F q hq hc hsc z hz
+  have hm := integrable_sq_dist_mul_exp_neg_of_continuous_strongConvex_mode F q hq hc hsc z hz
+  have hw : Measurable (gibbsWeight F) :=
+    (Real.continuous_exp.comp hc.neg).measurable.ennreal_ofReal
+  have hZ : 0 < gibbsPartition F := by
+    rw [show gibbsPartition F = ENNReal.ofReal (∫ x, Real.exp (-F x)) from
+      (ofReal_integral_eq_lintegral_ofReal hi (ae_of_all _ fun _ ↦ Real.exp_nonneg _)).symm]
+    exact ENNReal.ofReal_pos.mpr (integral_exp_pos hi)
+  have hwd : Integrable (fun x ↦ ‖x - z‖ ^ 2) (volume.withDensity (gibbsWeight F)) := by
+    apply (integrable_withDensity_iff_integrable_smul' hw
+      (ae_of_all _ fun x ↦ ENNReal.ofReal_lt_top)).mpr
+    simpa only [gibbsWeight, smul_eq_mul, ENNReal.toReal_ofReal (Real.exp_nonneg _),
+      mul_comm] using hm
+  exact hwd.smul_measure (ENNReal.inv_ne_top.mpr hZ.ne')
+
+/-- A continuous `q`-strongly convex Gibbs potential concentrates around its
+minimizer with second moment at most `2 * dim / q`. Every normalization and
+integrability fact used in the conclusion is proved from the stated inputs. -/
+theorem integral_sq_dist_gibbs_le_of_continuous_strongConvex_mode
+    (F : H → ℝ) (q : ℝ) (hq : 0 < q) (hc : Continuous F)
+    (hsc : StrongConvexOn Set.univ q F) (z : H) (hz : ∀ x, F z ≤ F x) :
+    (∫ x, ‖x - z‖ ^ 2 ∂gibbsMeasure F) ≤ 2 * (Module.finrank ℝ H : ℝ) / q := by
+  let Z := ∫ x, Real.exp (-F x) ∂volume
+  have hi := integrable_exp_neg_of_continuous_strongConvex_mode F q hq hc hsc z hz
+  have hZ : 0 < Z := integral_exp_pos hi
+  have hpart : gibbsPartition F = ENNReal.ofReal Z :=
+    (ofReal_integral_eq_lintegral_ofReal hi (ae_of_all _ fun _ ↦ Real.exp_nonneg _)).symm
+  have hw : Measurable (gibbsWeight F) :=
+    (Real.continuous_exp.comp hc.neg).measurable.ennreal_ofReal
+  have heq : (∫ x, ‖x - z‖ ^ 2 ∂gibbsMeasure F) =
+      Z⁻¹ * ∫ x, ‖x - z‖ ^ 2 * Real.exp (-F x) ∂volume := by
+    rw [gibbsMeasure, hpart, integral_smul_measure,
+      integral_withDensity_eq_integral_toReal_smul hw
+        (ae_of_all _ fun _ ↦ ENNReal.ofReal_lt_top)]
+    simp only [ENNReal.toReal_inv, ENNReal.toReal_ofReal hZ.le, smul_eq_mul,
+      gibbsWeight, ENNReal.toReal_ofReal (Real.exp_nonneg _)]
+    congr 1
+    apply integral_congr_ae
+    exact ae_of_all _ fun x ↦ mul_comm _ _
+  rw [heq]
+  have hb := integral_sq_dist_mul_exp_neg_le_of_continuous_strongConvex_mode F q hq hc hsc z hz
+  calc
+    _ ≤ Z⁻¹ * ((2 * (Module.finrank ℝ H : ℝ) / q) * Z) :=
+      mul_le_mul_of_nonneg_left hb (inv_nonneg.mpr hZ.le)
+    _ = _ := by rw [mul_left_comm, inv_mul_cancel₀ hZ.ne', mul_one]
+
+end ULA

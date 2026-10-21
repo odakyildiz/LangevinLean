@@ -1,0 +1,2518 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=23mm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{microtype}
+\usepackage{booktabs,longtable,array}
+\usepackage[obeyspaces,spaces]{url}
+\usepackage{xcolor,listings,needspace}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 1pt}
+\setlength{\emergencystretch}{3em}
+\setcounter{tocdepth}{1}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\ip}[2]{\langle #1,#2\rangle}
+\newcommand{\norm}[1]{\lVert #1\rVert}
+\newcommand{\lean}[1]{\ifmmode\text{\nolinkurl{#1}}\else\nolinkurl{#1}\fi}
+\newcommand{\grad}{\nabla f}
+\newsavebox{\proofstepbox}
+\newenvironment{proofstep}{%
+ \begin{lrbox}{\proofstepbox}\begin{minipage}{\linewidth}%
+}{%
+ \end{minipage}\end{lrbox}%
+ \par\Needspace{\dimexpr\ht\proofstepbox+\dp\proofstepbox+8pt\relax}%
+ \noindent\usebox{\proofstepbox}\par\medskip%
+}
+\definecolor{codebg}{RGB}{247,249,252}
+\definecolor{coderule}{RGB}{205,214,224}
+\definecolor{codeblue}{RGB}{25,65,110}
+\lstdefinelanguage{Lean}{
+ morekeywords={theorem,lemma,def,variable,namespace,end,noncomputable,section,
+ open,scoped,by,have,let,fun,show,exact,apply,intro,constructor,obtain,
+ refine,change,calc,induction,with,zero,succ,omit,in,using},
+ sensitive=true,morecomment=[l]{--},morecomment=[s]{/-}{-/}}
+\lstdefinestyle{leanproof}{
+ language=Lean,basicstyle=\ttfamily\fontsize{9}{11}\selectfont,
+ keywordstyle=\color{codeblue}\bfseries,commentstyle=\color{gray},
+ columns=fullflexible,keepspaces=true,showstringspaces=false,
+ numbers=left,numberstyle=\ttfamily\scriptsize\color{gray},numbersep=8pt,
+ xleftmargin=18pt,frame=single,framesep=5pt,rulecolor=\color{coderule},
+ backgroundcolor=\color{codebg},breaklines=true,breakatwhitespace=false,
+ postbreak=\mbox{\textcolor{gray}{\(\hookrightarrow\)}\space},
+ aboveskip=6pt,belowskip=7pt,
+ literate=
+ {ℝ}{{\ensuremath{\mathbb{R}}}}1 {ℕ}{{\ensuremath{\mathbb{N}}}}1
+ {α}{{\ensuremath{\alpha}}}1 {ρ}{{\ensuremath{\rho}}}1
+ {‖}{{\ensuremath{\Vert}}}1 {•}{{\ensuremath{\bullet}}}1
+ {·}{{\ensuremath{\cdot}}}1 {ᵃ}{{\ensuremath{{}^{a}}}}1
+ {₀}{{\ensuremath{{}_{0}}}}1 {₁}{{\ensuremath{{}_{1}}}}1
+ {←}{{\ensuremath{\leftarrow}}}1 {→}{{\ensuremath{\to}}}1
+ {↦}{{\ensuremath{\mapsto}}}1 {∀}{{\ensuremath{\forall}}}1
+ {∃}{{\ensuremath{\exists}}}1 {∈}{{\ensuremath{\in}}}1
+ {∘}{{\ensuremath{\circ}}}1 {∧}{{\ensuremath{\wedge}}}1
+ {≠}{{\ensuremath{\ne}}}1 {≤}{{\ensuremath{\le}}}1
+ {≥}{{\ensuremath{\ge}}}1 {⊢}{{\ensuremath{\vdash}}}1
+ {⟨}{{\ensuremath{\langle}}}1 {⟩}{{\ensuremath{\rangle}}}1
+ {𝓝}{{\ensuremath{\mathcal{N}}}}1 {¬}{{\ensuremath{\neg}}}1
+ {²}{{\ensuremath{{}^{2}}}}1 {Ł}{{\L}}1}
+\hypersetup{pdftitle={Gradient descent: reading the Lean proof step by step},
+ pdfauthor={A guide to the verified GradientDescent source}}
+\title{Gradient descent\\Reading the Lean proof step by step}
+\author{Code, mathematical derivations, and proof-state explanations}
+\date{6 October 2026}
+\begin{document}
+\maketitle
+This guide is intended to be read with the Lean editor open. Every numbered
+code block reproduces an exact range of lines from the current source file.
+Immediately below it, the mathematical calculation and the role of each tactic
+explain what that block adds to the proof. Line numbers refer to the original
+\lean{.lean} files, rather than the numbering of this document. A gray hooked
+arrow marks a display-only line wrap.
+
+The logical order is: supporting planes, strong convexity, an auxiliary
+contraction and minimizer existence, smoothness, geometric sequences, the
+actual gradient-descent proof, and the endpoint examples. The code uses
+Mathlib's gradient and derives its required properties from the stated
+function assumptions.
+\tableofcontents
+\clearpage
+
+
+\section{A small dictionary for reading the proof}
+
+A Lean theorem states a proposition and supplies a term proving that
+proposition. A declaration ending in \lean{:= by} starts a tactic proof.
+The \emph{goal} is the proposition currently being proved; local hypotheses
+are already established facts available to that proof. In this guide,
+``after this block'' describes the mathematical content of those facts or
+the remaining goal. It is an explanation of the proof state, not an invented
+transcript from an interactive session.
+
+The following expressions recur throughout the source:
+\begin{longtable}{@{}p{0.38\linewidth}p{0.58\linewidth}@{}}
+\toprule
+Lean expression & Mathematical reading\\
+\midrule
+\endhead
+\lean{f x} & The value $f(x)$. Application is written without parentheses.\\
+\lean{gradient f x} & $\nabla f(x)$, the Riesz representative of the derivative.\\
+\lean{fderiv} & The Fr\'echet derivative. The expression \lean{fderiv} applied to
+the real scalar field, $f$, $x$, and $v$ means $Df(x)[v]$.\\
+\lean{inner} & The real inner product $\ip{u}{v}$.\\
+\lean{innerSL} & The continuous linear functional $v\mapsto\ip{x}{v}$ associated
+with a fixed vector $x$. It lets derivative formulas be written as linear maps.\\
+\lean{Differentiable} & A derivative exists at every point; the real scalar field
+is passed as its first argument.\\
+\lean{HasFDerivAt}, \lean{HasDerivAt} & The stated linear map or vector is the
+Fr\'echet derivative, or the derivative of a scalar-parameter function, at a point.\\
+\lean{StrongConvexOn Set.univ m f} & $f$ is $m$-strongly convex on its entire domain,
+with quadratic normalization $m/2$.\\
+\lean{LipschitzWith L} & The Lipschitz inequality with nonnegative constant $L$.\\
+\lean{Tendsto}, \lean{atTop} & Convergence of a sequence as its natural-number
+index tends to infinity. The neighborhood notation in the code specifies the limit.\\
+\bottomrule
+\end{longtable}
+
+The proof commands have the following roles. The later blocks explain their
+specific use at each point.
+\begin{longtable}{@{}p{0.29\linewidth}p{0.67\linewidth}@{}}
+\toprule
+Command or notation & What it does\\
+\midrule
+\endhead
+\lean{let} & Introduces a local definition.\\
+\lean{have h : P := by} & Proves $P$ in a subproof and stores the resulting fact as $h$.\\
+\lean{exact h} & Supplies a proof whose type is already the current goal.\\
+\lean{apply h} & Uses the conclusion of a lemma to match the goal; its unproved
+premises become new goals.\\
+\lean{rw [lemma] at h} & Rewrites the named hypothesis using an equality.
+Without \lean{at h}, it rewrites the goal. A left arrow reverses the equality.\\
+\lean{simp only [lemmas]} & Simplifies using exactly the listed identities,
+along with Lean's basic reduction rules.\\
+\lean{simpa using h} & Simplifies the goal and the type of $h$ so that $h$ proves the goal.\\
+\lean{change P} & Presents the goal in a definitionally equal form: the underlying
+proposition has not changed.\\
+\lean{dsimp [definitions]} & Unfolds definitions and performs definitional reduction.\\
+\lean{constructor} & Splits a conjunction or structured proposition into its components.\\
+\lean{intro} & Introduces a universally quantified variable or the premise of an implication.\\
+\lean{obtain} & Extracts witnesses and components from an existential or structured fact.\\
+\lean{refine} & Supplies part of a proof, with placeholders marking the remaining goals.\\
+\lean{.mp}, \lean{.mpr} & For $P\leftrightarrow Q$, use $P\Rightarrow Q$ or $Q\Rightarrow P$.\\
+\lean{.1}, \lean{.2} & Project a component of a pair, or use a direction of an equivalence
+when Lean elaborates an equivalence as implications.\\
+\lean{linarith} & Combines real linear inequalities after normalization.\\
+\lean{nlinarith} & Normalizes polynomial expressions and combines arithmetic facts;
+the explicit nonnegative squares supplied to it are important.\\
+\lean{ring} & Proves a polynomial identity by normalization.\\
+\lean{positivity} & Proves signs using known signs of factors, squares, norms, and constants.\\
+\lean{rfl} & Proves an equality by definitional reduction.\\
+\bottomrule
+\end{longtable}
+
+An underscore in code asks Lean to infer an argument from context. A question-mark
+placeholder in a \lean{refine} expression instead opens a proof goal. Bullets
+separate the resulting goals. Curly-braced parameters are implicit parameters,
+and square-bracketed parameters are typeclass assumptions that Lean finds by
+instance search. The local \lean{have} names are labels for mathematical facts;
+they do not change the statement of the theorem.
+
+\section{The theorem and the proof's common setting}
+
+Let $H$ be a complete real inner-product space and $f:H\to\R$ be everywhere
+Fr\'echet differentiable. Suppose $m>0$, $L>0$, $f$ is $m$-strongly convex,
+and $\norm{\nabla f(x)-\nabla f(y)}\le L\norm{x-y}$ for every $x,y$.
+For a fixed $0<\alpha<2/L$, define
+\[
+x_0\in H,\qquad x_{n+1}=x_n-\alpha\nabla f(x_n),\qquad
+\rho=\max\{0,1-m\alpha(2-L\alpha)\}.
+\]
+The code proves the existence of a unique global minimizer $z$, stationarity
+$\nabla f(z)=0$, $x_n\to z$ in norm, $f(x_n)\to f(z)$, and
+\[
+0\le f(x_n)-f(z)\le\rho^n(f(x_0)-f(z)),\qquad
+\norm{x_n-z}^2\le\frac2m\rho^n(f(x_0)-f(z)).
+\]
+The auxiliary lemmas \lean{rate_nonneg} and \lean{rate_lt_one} establish
+$0\le\rho<1$. The maximization makes this statement valid even for a one-point
+Hilbert space. With the additional hypothesis $m\le L$, \lean{rate_eq} proves
+$\rho=1-m\alpha(2-L\alpha)$.
+
+\begin{proofstep}
+Here is the actual context used by the main convergence file:
+\textit{Source: \lean{Convergence.lean}, lines 15--24.}
+\begin{lstlisting}[style=leanproof,firstnumber=15]
+open scoped NNReal
+
+noncomputable section
+
+namespace GradientDescent
+
+open Filter
+open scoped Topology
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
+\end{lstlisting}
+
+\textbf{Mathematics and Lean.} The namespace puts all project names under
+\lean{GradientDescent}. The filter and topology scopes enable the convergence
+notation. The three typeclasses give the real Hilbert-space setting. The
+\lean{noncomputable} command permits definitions such as the Riesz gradient
+that use classical constructions. It is not a proof admission. In the proofs
+below, $Df(x)[v]=\ip{\nabla f(x)}{v}$ is supplied by Mathlib's
+\lean{inner_gradient_left}.
+
+The strong-convexity normalization is
+\[
+f((1-t)x+ty)\le(1-t)f(x)+tf(y)-\frac m2t(1-t)\norm{x-y}^2
+\quad(0\le t\le1).
+\]
+In a real inner-product space, Mathlib's \lean{strongConvexOn_iff_convex}
+identifies it with convexity of $v\mapsto f(v)-(m/2)\norm v^2$.
+The next section starts with the ordinary convex tangent inequality needed
+for this adjusted function.
+\end{proofstep}
+
+
+\clearpage
+
+\begin{proofstep}
+
+\section{A convex function lies above its tangent plane}
+
+This first lemma needs a real inner-product space but does not yet need completeness. Its derivative is the continuous linear map \lean{fderiv}; a gradient will be introduced later. We reduce the vector-space inequality to the familiar secant-slope inequality for a convex real function.
+
+\subsection*{Step 1: Read the statement and identify the goal}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 21--24.}
+\begin{lstlisting}[style=leanproof,firstnumber=21]
+/-- A differentiable convex function lies above each of its tangent planes. -/
+lemma convex_first_order {f : H → ℝ} (hf : ConvexOn ℝ Set.univ f)
+    (hdiff : Differentiable ℝ f) (x y : H) :
+    f x + fderiv ℝ f x (y - x) ≤ f y := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The implicit parameter \lean{f} is a function $H\to\R$. The named hypothesis \lean{hf} states convexity on the universal set, and \lean{hdiff} states differentiability at every point. The explicit points are \lean{x} and \lean{y}. The expression \lean{fderiv} applied to $y-x$ means $Df(x)[y-x]$; it is a real number. After \lean{:= by}, Lean asks us to prove\[ f(x)+Df(x)[y-x]\le f(y). \] The notation \lean{lemma} introduces a proved result, and braces mark parameters that Lean can infer when the result is used.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Restrict to an affine line}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 25--27.}
+\begin{lstlisting}[style=leanproof,firstnumber=25]
+  let line : ℝ →ᵃ[ℝ] H := AffineMap.lineMap x y
+  have hc : ConvexOn ℝ Set.univ (f ∘ line) := by
+    simpa [line] using hf.comp_affineMap line
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The local definition \lean{line} is the affine map $\ell(t)=t(y-x)+x$. Its type records that it is affine over $\R$. The new hypothesis \lean{hc} states that $f\circ\ell$ is convex on all of $\R$. The library method \lean{hf.comp_affineMap line} gives exactly the preservation of convexity under an affine restriction. The tactic \lean{simpa [line] using} simplifies the library statement, including the universal-set preimage, and unfolds the local definition enough to match the stated type. The original vector-space goal stays open; \lean{have} adds this scalar convexity fact to the context.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Differentiate the affine line}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 28--31.}
+\begin{lstlisting}[style=leanproof,firstnumber=28]
+  have hl : HasDerivAt line (y - x) 0 := by
+    change HasDerivAt (fun t : ℝ ↦ t • (y - x) + x) (y - x) 0
+    simpa using
+      ((hasDerivAt_id (0 : ℝ)).smul_const (y - x)).add_const x
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The hypothesis \lean{hl} will express $\ell'(0)=y-x$. The tactic \lean{change} replaces the affine-map notation by its definition, so its subgoal becomes a derivative statement for $t\mapsto t\mathbin{\cdot}(y-x)+x$. The library fact \lean{hasDerivAt_id} differentiates $t\mapsto t$ with derivative $1$. The method \lean{smul_const} multiplies that derivative by the fixed vector $y-x$, and \lean{add_const} adds $x$ without changing the derivative. The final \lean{simpa} removes $1\mathbin{\cdot}(y-x)$ and other definitional notation. We now have\[ \lean{hl}:\quad \ell'(0)=y-x. \] Here a scalar derivative may take values in $H$, so \lean{HasDerivAt} applies to this vector-valued line.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Use the chain rule and the convex secant inequality}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 32--35.}
+\begin{lstlisting}[style=leanproof,firstnumber=32]
+  have hd : HasDerivAt (f ∘ line) (fderiv ℝ f x (y - x)) 0 := by
+    exact (hdiff x).hasFDerivAt.comp_hasDerivAt_of_eq 0 hl (by simp [line])
+  have hs := hc.le_slope_of_hasDerivAt (Set.mem_univ 0) (Set.mem_univ 1)
+    (zero_lt_one : (0 : ℝ) < 1) hd
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} From \lean{hdiff x}, the method \lean{hasFDerivAt} produces the derivative of $f$ at $x$. The method \lean{comp_hasDerivAt_of_eq} composes it with \lean{hl}; its final equality subgoal is $x=\ell(0)$, discharged by \lean{simp [line]}. Thus \lean{hd} states\[ (f\circ\ell)'(0)=Df(x)[y-x]. \] The next \lean{have} applies \lean{hc.le_slope_of_hasDerivAt}. The two \lean{Set.mem_univ} arguments certify that $0$ and $1$ belong to the convexity domain; \lean{zero_lt_one} supplies $0<1$; and \lean{hd} supplies the derivative. The resulting \lean{hs} is\[ Df(x)[y-x]\le \frac{(f\circ\ell)(1)-(f\circ\ell)(0)}{1-0}. \]
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Simplify the slope and finish the linear rearrangement}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 36--38.}
+\begin{lstlisting}[style=leanproof,firstnumber=36]
+  simp only [slope_def_field, Function.comp_apply, line, AffineMap.lineMap_apply_one,
+    AffineMap.lineMap_apply_zero, sub_zero, div_one] at hs
+  linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The phrase \lean{simp only} uses just the listed rewrite facts. The modifier \lean{at hs} changes the hypothesis rather than the goal. The rules expand the slope and composition, evaluate $\ell(1)=y$ and $\ell(0)=x$, and simplify $1-0$ and division by $1$. Afterward,\[ \lean{hs}:\quad Df(x)[y-x]\le f(y)-f(x). \] Adding $f(x)$ to both sides is the remaining argument. The tactic \lean{linarith} checks this linear combination of inequalities and proves the original goal. No approximation or additional mathematical hypothesis is introduced by the tactic.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Strong convexity gives the quadratic tangent model}
+
+The strong-convexity convention is the one used by Mathlib: subtracting $(m/2)\norm{x}^{2}$ produces a convex function. This lemma is valid for every real $m$; positivity of $m$ is imposed only in later conclusions. Completeness is now required to represent the derivative by the actual Mathlib gradient.
+
+\subsection*{Step 1: State the strong first-order inequality}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 40--43.}
+\begin{lstlisting}[style=leanproof,firstnumber=40]
+/-- The first-order inequality associated with `m`-strong convexity. -/
+lemma strong_first_order [CompleteSpace H] {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (x y : H) :
+    f x + inner ℝ (gradient f x) (y - x) + m / 2 * ‖y - x‖ ^ 2 ≤ f y := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The additional typeclass \lean{CompleteSpace H} makes $H$ a real Hilbert space. The named hypothesis \lean{hsc} is \lean{StrongConvexOn Set.univ m f}. The gradient in the goal is the Riesz representative of $Df(x)$, so\[ Df(x)[v]=\ip{\nabla f(x)}{v}. \] The goal is\[ f(x)+\ip{\nabla f(x)}{y-x}+\frac m2\norm{y-x}^{2}\le f(y). \] This is stronger than the ordinary tangent-plane inequality when $m>0$. Lean has not assumed this first-order statement: it must be obtained from the given strong-convexity hypothesis.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Adjust the function and compute its derivative}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 44--49.}
+\begin{lstlisting}[style=leanproof,firstnumber=44]
+  let g : H → ℝ := fun v ↦ f v - m / 2 * ‖v‖ ^ 2
+  have hc : ConvexOn ℝ Set.univ g := strongConvexOn_iff_convex.mp hsc
+  have hg (v : H) : HasFDerivAt g
+      (fderiv ℝ f v - (m / 2) • (2 • innerSL ℝ v)) v := by
+    exact (hdiff v).hasFDerivAt.sub
+      ((hasStrictFDerivAt_norm_sq v).hasFDerivAt.const_mul (m / 2))
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The definition \lean{g} sets $g(v)=f(v)-(m/2)\norm{v}^{2}$. The library equivalence \lean{strongConvexOn_iff_convex} has strong convexity on its left and convexity of this adjusted function on its right. Its \lean{.mp} method uses the forward implication, sending \lean{hsc} to the new convexity hypothesis \lean{hc}. The family \lean{hg} gives a derivative at each $v$. The map \lean{innerSL} sends a direction $w$ to $\ip{v}{w}$, and \lean{hasStrictFDerivAt_norm_sq} gives the derivative $w\mapsto2\ip{v}{w}$ of the squared norm. The method \lean{const_mul} multiplies by $m/2$, while \lean{.sub} subtracts that derivative from the derivative of $f$. Hence\[ Dg(v)[w]=Df(v)[w]-\frac m2\bigl(2\ip{v}{w}\bigr). \] The coercions and scalar multiplications in the Lean expression are operations on continuous linear maps.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Apply the convex tangent lemma and expand its derivative}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 50--55.}
+\begin{lstlisting}[style=leanproof,firstnumber=50]
+  have hgd : Differentiable ℝ g := fun v ↦ (hg v).differentiableAt
+  have hxy := convex_first_order hc hgd x y
+  rw [(hg x).fderiv] at hxy
+  simp only [g, sub_apply, smul_apply, smul_eq_mul, innerSL_apply_apply,
+    ← inner_gradient_left, inner_sub_right, real_inner_self_eq_norm_sq,
+    two_smul, add_apply] at hxy
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The method \lean{(hg v).differentiableAt} forgets the particular derivative while retaining differentiability, so \lean{hgd} makes \lean{convex_first_order} applicable to $g$. The resulting \lean{hxy} initially says $g(x)+Dg(x)[y-x]\le g(y)$. The rewrite \lean{rw [(hg x).fderiv] at hxy} replaces the automatically defined derivative of $g$ by the explicit derivative certified by \lean{hg x}. The listed simplifications unfold $g$, evaluate sums and scalar multiples of linear maps, and use \lean{inner_gradient_left} backwards to turn $Df(x)[\cdot]$ into an inner product. They also expand inner products of differences. In ordinary notation the resulting hypothesis is\[\begin{aligned} f(x)-\frac m2\norm{x}^{2}&+\ip{\nabla f(x)}{y}-\ip{\nabla f(x)}{x}\\ &-\frac m2\Bigl((\ip{x}{y}-\norm{x}^{2})+(\ip{x}{y}-\norm{x}^{2})\Bigr) \le f(y)-\frac m2\norm{y}^{2}. \end{aligned}\] The \lean{two_smul} and \lean{add_apply} rules explain why the doubled inner-product term appears as a sum in this normalization.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Compare the expanded hypothesis with the expanded goal}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 56--58.}
+\begin{lstlisting}[style=leanproof,firstnumber=56]
+  rw [norm_sub_sq_real]
+  simp only [inner_sub_right, real_inner_comm] at hxy ⊢
+  nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The rewrite \lean{norm_sub_sq_real} acts on the goal and expands\[ \norm{y-x}^{2}=\norm{y}^{2}-2\ip{y}{x}+\norm{x}^{2}. \] The modifier \lean{at hxy} followed by the goal marker applies the following simplification both to the hypothesis and to the goal. The facts \lean{inner_sub_right} and \lean{real_inner_comm} expand the remaining difference and use symmetry of the real inner product. Up to that harmless symmetry, the normalized goal is\[\begin{aligned} f(x)+\ip{\nabla f(x)}{y}-\ip{\nabla f(x)}{x}\\ {}+\frac m2\Bigl(\norm{y}^{2}-2\ip{x}{y}+\norm{x}^{2}\Bigr)\le f(y). \end{aligned}\] To see the exact algebra, the previous hypothesis has the left side $f(x)+\ip{\nabla f(x)}{y}-\ip{\nabla f(x)}{x}-m\ip{x}{y}+(m/2)\norm{x}^{2}$ and right side $f(y)-(m/2)\norm{y}^{2}$. Add $(m/2)\norm{y}^{2}$ to both sides and collect terms: the displayed goal results. The tactic \lean{nlinarith} verifies these polynomial identities and the resulting inequality. It does not need a sign condition on $m$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Strong monotonicity and the lower objective gap}
+
+The next two consequences use the strong first-order inequality directly. Strong monotonicity will construct a stationary point using a small auxiliary step. The lower objective gap will later convert decay of function values into decay of distance.
+
+\subsection*{Step 1: The strong-monotonicity goal}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 60--63.}
+\begin{lstlisting}[style=leanproof,firstnumber=60]
+/-- Strong convexity makes the gradient strongly monotone. -/
+lemma strong_gradient_monotone [CompleteSpace H] {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (x y : H) :
+    m * ‖x - y‖ ^ 2 ≤ inner ℝ (gradient f x - gradient f y) (x - y) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The hypotheses \lean{hdiff} and \lean{hsc} have the same meaning as before, and the points $x,y$ are explicit. The goal is\[ m\norm{x-y}^{2}\le\ip{\nabla f(x)-\nabla f(y)}{x-y}. \] This compares the difference of gradients with the displacement. It is a lower bound on the inner product, rather than a bound on the gradient norm.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Write the tangent bounds in both directions}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 64--69.}
+\begin{lstlisting}[style=leanproof,firstnumber=64]
+  have hxy := strong_first_order hdiff hsc x y
+  have hyx := strong_first_order hdiff hsc y x
+  rw [norm_sub_rev y x] at hxy
+  have hi : inner ℝ (gradient f x) (y - x) =
+      -inner ℝ (gradient f x) (x - y) := by
+    rw [← neg_sub, inner_neg_right]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The facts \lean{hxy} and \lean{hyx} apply \lean{strong_first_order} to $(x,y)$ and $(y,x)$ respectively. The norm rewrite in \lean{hxy} uses $\norm{y-x}=\norm{x-y}$. The separate equality \lean{hi} reverses the direction in the linear term:\[ \ip{\nabla f(x)}{y-x}=-\ip{\nabla f(x)}{x-y}. \] The left-pointing rewrite using \lean{neg_sub} rewrites $y-x$ as $-(x-y)$; \lean{inner_neg_right} then pulls that minus sign out of the inner product. This equality will align both first-order inequalities with the same displacement $d=x-y$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Add the two inequalities and cancel the function values}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 70--72.}
+\begin{lstlisting}[style=leanproof,firstnumber=70]
+  rw [hi] at hxy
+  rw [inner_sub_left]
+  linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The rewrite \lean{rw [hi] at hxy} changes only the first inequality. The rewrite \lean{inner_sub_left} changes the goal to a difference of two inner products. With $d=x-y$, the context now contains\[\begin{aligned} f(x)-\ip{\nabla f(x)}{d}+\frac m2\norm{d}^{2}&\le f(y),\\ f(y)+\ip{\nabla f(y)}{d}+\frac m2\norm{d}^{2}&\le f(x). \end{aligned}\] Adding them cancels $f(x)$ and $f(y)$ and yields $m\norm{d}^{2}\le\ip{\nabla f(x)}{d}-\ip{\nabla f(y)}{d}$. This is exactly the rewritten goal, and \lean{linarith} verifies that linear addition and rearrangement.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: A stationary point gives the quadratic lower gap}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 74--81.}
+\begin{lstlisting}[style=leanproof,firstnumber=74]
+/-- A stationary point has a quadratic lower bound on the objective gap. -/
+lemma strong_lower_gap [CompleteSpace H] {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
+    {z : H} (hz : gradient f z = 0) (x : H) :
+    m / 2 * ‖x - z‖ ^ 2 ≤ f x - f z := by
+  have h := strong_first_order hdiff hsc z x
+  rw [hz, inner_zero_left, add_zero] at h
+  linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The implicit reference point \lean{z} comes with \lean{hz}, the equation $\nabla f(z)=0$. Apply \lean{strong_first_order} with base point $z$ and target point $x$, obtaining\[ f(z)+\ip{\nabla f(z)}{x-z}+\frac m2\norm{x-z}^{2}\le f(x). \] The rewrite \lean{rw [hz, inner_zero_left, add_zero] at h} replaces the gradient by zero, evaluates its inner product, and removes the zero summand. The remaining hypothesis is $f(z)+(m/2)\norm{x-z}^{2}\le f(x)$. The tactic \lean{linarith} subtracts $f(z)$ and proves\[ \frac m2\norm{x-z}^{2}\le f(x)-f(z). \] The lemma itself does not assume $m>0$; when positivity is available, its left side is nonnegative and proves that $z$ minimizes $f$ globally.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{The gradient controls the objective gap}
+
+This upper gap bound is the completed-square form of strong convexity. It requires $m>0$ but accepts any reference point $z$. At a minimizer it becomes the Polyak--\L{}ojasiewicz inequality used in the descent proof.
+
+\subsection*{Step 1: Read the upper-gap statement}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 83--88.}
+\begin{lstlisting}[style=leanproof,firstnumber=83]
+/-- Strong convexity gives the Polyak--Łojasiewicz upper bound on an objective gap.
+The reference point can be arbitrary; no stationarity hypothesis is required. -/
+lemma strong_upper_gap [CompleteSpace H] {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
+    (hm : 0 < m) (x z : H) :
+    f x - f z ≤ ‖gradient f x‖ ^ 2 / (2 * m) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The new hypothesis \lean{hm} is $0<m$. The goal is\[ f(x)-f(z)\le\frac{\norm{\nabla f(x)}^{2}}{2m}. \] There is no \lean{hz} hypothesis and no assertion that $z$ minimizes $f$. This greater generality is intentional: the strong tangent model at $x$ is enough to bound its difference from any value $f(z)$. Later the actual minimizer supplies a nonnegative gap as well.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Use the signed Cauchy--Schwarz bound}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 89--93.}
+\begin{lstlisting}[style=leanproof,firstnumber=89]
+  have hfirst := strong_first_order hdiff hsc x z
+  have hinner := neg_le_of_abs_le (abs_real_inner_le_norm (gradient f x) (z - x))
+  have hgap : f x - f z ≤
+      ‖gradient f x‖ * ‖z - x‖ - m / 2 * ‖z - x‖ ^ 2 := by
+    linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The fact \lean{hfirst} is the strong first-order inequality with base $x$ and target $z$. Let $I=\ip{\nabla f(x)}{z-x}$, $a=\norm{\nabla f(x)}$, and $s=\norm{z-x}$. Then\[ \lean{hfirst}:\quad f(x)+I+\frac m2s^{2}\le f(z). \] The fact \lean{abs_real_inner_le_norm} gives $|I|\le as$. Its use through \lean{neg_le_of_abs_le} produces the lower bound $-as\le I$, not an upper bound on $I$. Thus $-I\le as$. Combining these two inequalities gives\[ f(x)-f(z)\le -I-\frac m2s^{2}\le as-\frac m2s^{2}. \] This is the declared \lean{hgap}. The nested \lean{linarith} verifies that the signs and subtraction of the quadratic term have exactly this direction.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Complete the square and discharge the division goal}
+
+\textit{Source: \lean{StrongConvexity.lean}, lines 94--96.}
+\begin{lstlisting}[style=leanproof,firstnumber=94]
+  apply hgap.trans
+  apply (le_div_iff₀ (by positivity : (0 : ℝ) < 2 * m)).2
+  nlinarith [sq_nonneg (m * ‖z - x‖ - ‖gradient f x‖)]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The method \lean{hgap.trans} is transitivity with the established intermediate upper bound $B=as-(m/2)s^{2}$. Applying it replaces the original goal by $B\le a^{2}/(2m)$. The tactic \lean{positivity} proves $2m>0$ from \lean{hm}. For a positive denominator, \lean{le_div_iff} (with the subscript-$0$ suffix shown in the listing) is the equivalence $B\le a^{2}/(2m)\ \Longleftrightarrow\ B(2m)\le a^{2}$. The code uses its \lean{.2}, the implication from the multiplied inequality to the desired divided inequality, leaving\[ 2m\left(as-\frac m2s^{2}\right)\le a^{2}. \] Finally \lean{sq_nonneg} supplies\[ (ms-a)^{2}=m^{2}s^{2}-2mas+a^{2}\ge0. \] Rearranging gives $2mas-m^{2}s^{2}\le a^{2}$, exactly the remaining goal. The final \lean{nlinarith} expands the square and performs this rearrangement. Equivalently, the resulting bound can be multiplied by $2m>0$ to obtain $2m(f(x)-f(z))\le\norm{\nabla f(x)}^{2}$.
+
+\end{proofstep}
+
+\clearpage
+
+\begin{proofstep}
+
+\section{Auxiliary Euler-step estimates: Step.lean}
+
+These estimates are deliberately stated for arbitrary vector values $g_x,g_y$, or for an arbitrary map $g$. Their inputs are strong monotonicity and Lipschitzness, rather than calculus. They are later applied to the gradient with a small auxiliary step to construct a minimizer. The contraction condition here does not replace the convergence theorem's full condition $0<\alpha<2/L$.
+
+\subsection*{Step 1: An inner-product space is enough for the estimates}
+
+\textit{Source: \lean{Step.lean}, lines 11--15.}
+\begin{lstlisting}[style=leanproof,firstnumber=11]
+open scoped NNReal
+
+namespace GradientDescent
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The namespace and scoped notation are the same as in the smoothness file. These variables assume a real inner-product space, but do not assume completeness: norm expansions and the Lipschitz estimate need no limit argument. A later application of Banach's theorem adds completeness. The underlying identities are
+\[\norm{u-v}^{2}=\norm u^2-2\ip{u}{v}+\norm v^2,
+ \qquad \norm{hu}=|h|\norm u.\]
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: State the squared-step estimate for arbitrary values}
+
+\textit{Source: \lean{Step.lean}, lines 18--23.}
+\begin{lstlisting}[style=leanproof,firstnumber=18]
+theorem gradient_step_sq_bound
+    (x y gx gy : H) (m h : ℝ) (L : ℝ≥0) (hh : 0 ≤ h)
+    (hmono : m * ‖x - y‖ ^ 2 ≤ inner ℝ (gx - gy) (x - y))
+    (hLip : ‖gx - gy‖ ≤ (L : ℝ) * ‖x - y‖) :
+    ‖(x - h • gx) - (y - h • gy)‖ ^ 2 ≤
+      (1 - 2 * h * m + h ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖ ^ 2 := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The vectors \lean{gx} and \lean{gy} stand for $g_x,g_y$; there is no function or gradient assumption hidden in the statement. The supplied inequalities are strong monotonicity and a Lipschitz bound at the selected pair. For $h\ge0$ the goal is
+\[\norm{(x-hg_x)-(y-hg_y)}^2
+ \le (1-2hm+h^2L^2)\norm{x-y}^2.\]
+The constant $m$ need not be positive for this elementary lemma. The sign $h\ge0$ controls the scaling of its monotonicity input.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Square the Lipschitz inequality legally}
+
+\textit{Source: \lean{Step.lean}, lines 24--25.}
+\begin{lstlisting}[style=leanproof,firstnumber=24]
+  have hLipSq : ‖gx - gy‖ ^ 2 ≤ (L : ℝ) ^ 2 * ‖x - y‖ ^ 2 := by
+    nlinarith [norm_nonneg (gx - gy), norm_nonneg (x - y), L.coe_nonneg]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Let $A=\norm{g_x-g_y}$ and $D=\norm{x-y}$. The assumption is $A\le LD$, and all three numbers $A,D,L$ are nonnegative. Therefore
+\[A^2\le L^2D^2.\]
+The tactic \lean{nlinarith} proves this polynomial consequence using the explicit norm-nonnegativity facts and the nonnegativity built into $L$. Supplying those facts makes the squaring step valid; an arbitrary signed inequality could not simply be squared.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Scale the two bounds with nonnegative factors}
+
+\textit{Source: \lean{Step.lean}, lines 26--27.}
+\begin{lstlisting}[style=leanproof,firstnumber=26]
+  have hmonoScaled := mul_le_mul_of_nonneg_left hmono (show 0 ≤ 2 * h by positivity)
+  have hLipScaled := mul_le_mul_of_nonneg_left hLipSq (sq_nonneg h)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The lemma \lean{mul_le_mul_of_nonneg_left} preserves an inequality when multiplied by a nonnegative number. The tactic \lean{positivity} proves $0\le2h$ from $h\ge0$, and \lean{sq_nonneg h} proves $0\le h^2$. With $d=x-y$ and $v=g_x-g_y$, the saved inequalities are
+\[2hm\norm d^2\le2h\ip{v}{d},\qquad
+ h^2\norm v^2\le h^2L^2\norm d^2.\]
+The first will be subtracted, and the second added, in the norm expansion.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Expand the squared norm and combine the inequalities}
+
+\textit{Source: \lean{Step.lean}, lines 28--31.}
+\begin{lstlisting}[style=leanproof,firstnumber=28]
+  rw [show (x - h • gx) - (y - h • gy) = (x - y) - h • (gx - gy) by module,
+    norm_sub_sq_real, real_inner_smul_right, norm_smul, Real.norm_eq_abs,
+    abs_of_nonneg hh, ← real_inner_comm (x - y) (gx - gy)]
+  nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Inside \lean{rw}, the embedded \lean{show ... by module} proves the vector identity $(x-hg_x)-(y-hg_y)=d-hv$ by module algebra. The listed rewrites expand its squared norm, pull $h$ out of the inner product and norm, replace the real norm by absolute value, use $|h|=h$, and swap inner-product arguments. The goal becomes the real inequality
+\[\norm d^2-2h\ip{v}{d}+h^2\norm v^2
+       \le(1-2hm+h^2L^2)\norm d^2.\]
+Subtracting the first scaled bound and adding the second proves it; \lean{nlinarith} carries out exactly that polynomial combination.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 6: State the corresponding norm bound}
+
+\textit{Source: \lean{Step.lean}, lines 35--40.}
+\begin{lstlisting}[style=leanproof,firstnumber=35]
+theorem gradient_step_contract
+    (x y gx gy : H) (m h : ℝ) (L : ℝ≥0) (hh : 0 ≤ h)
+    (hmono : m * ‖x - y‖ ^ 2 ≤ inner ℝ (gx - gy) (x - y))
+    (hLip : ‖gx - gy‖ ≤ (L : ℝ) * ‖x - y‖) :
+    ‖(x - h • gx) - (y - h • gy)‖ ≤
+      Real.sqrt (1 - 2 * h * m + h ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖ := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} This theorem has the same pairwise assumptions and aims to remove the square:
+\[\norm{(x-hg_x)-(y-hg_y)}
+       \le\sqrt{1-2hm+h^2L^2}\,\norm{x-y}.\]
+Here and below the square root has Mathlib's total real convention: it is zero on negative inputs. A separate hypothesis that the coefficient is nonnegative is therefore unnecessary; the squared-step bound already rules out a negative right-hand side when the relevant distance is nonzero.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 7: Take the square root and simplify its product}
+
+\textit{Source: \lean{Step.lean}, lines 41--43.}
+\begin{lstlisting}[style=leanproof,firstnumber=41]
+  have hsq := gradient_step_sq_bound x y gx gy m h L hh hmono hLip
+  have hbound := Real.le_sqrt_of_sq_le hsq
+  rwa [Real.sqrt_mul' _ (sq_nonneg _), Real.sqrt_sq (norm_nonneg _)] at hbound
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The local \lean{hsq} applies the preceding theorem. Writing $Q=1-2hm+h^2L^2$ and $D=\norm{x-y}$, \lean{Real.le_sqrt_of_sq_le} turns its conclusion into
+\[\norm{(x-hg_x)-(y-hg_y)}\le\sqrt{QD^2}.\]
+The rewrite \lean{Real.sqrt_mul'} factors this as $\sqrt Q\sqrt{D^2}$ because $D^2\ge0$; \lean{Real.sqrt_sq} then uses $D\ge0$ to give $\sqrt{D^2}=D$. The tactic \lean{rwa ... at hbound} both performs these rewrites in the saved inequality and uses it to close the goal.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 8: Package a globally contracting step}
+
+\textit{Source: \lean{Step.lean}, lines 47--52.}
+\begin{lstlisting}[style=leanproof,firstnumber=47]
+theorem contracting_gradient_step (g : H → H) (m α : ℝ) (L : ℝ≥0)
+    (hα : 0 < α) (hsmall : α * (L : ℝ) ^ 2 < 2 * m)
+    (hmono : ∀ x y, m * ‖x - y‖ ^ 2 ≤ inner ℝ (g x - g y) (x - y))
+    (hLip : LipschitzWith L g) :
+    ContractingWith (⟨Real.sqrt (1 - 2 * α * m + α ^ 2 * (L : ℝ) ^ 2),
+      Real.sqrt_nonneg _⟩ : ℝ≥0) (fun x ↦ x - α • g x) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Now the input is an actual map $g:H\to H$. Strong monotonicity holds at every pair, and \lean{LipschitzWith L g} supplies the global Lipschitz bound. The conditions are $\alpha>0$ and $\alpha L^2<2m$. Define
+\[T(x)=x-\alpha g(x),\quad Q=1-2\alpha m+\alpha^2L^2,
+       \quad q=\sqrt Q.\]
+The pair notation packages $q$ as a nonnegative real, with \lean{Real.sqrt_nonneg} proving its sign. The conclusion \lean{ContractingWith} requires both $q<1$ and that $T$ is $q$-Lipschitz.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 9: Split contraction and show its squared coefficient is below one}
+
+\textit{Source: \lean{Step.lean}, lines 53--56.}
+\begin{lstlisting}[style=leanproof,firstnumber=53]
+  constructor
+  · change Real.sqrt (1 - 2 * α * m + α ^ 2 * (L : ℝ) ^ 2) < 1
+    have hq : 1 - 2 * α * m + α ^ 2 * (L : ℝ) ^ 2 < 1 := by
+      nlinarith [mul_pos hα (sub_pos.mpr hsmall)]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The tactic \lean{constructor} splits the contraction conclusion into its two components. The first bullet concerns $q<1$; \lean{change} displays it as a real square-root inequality by unfolding the nonnegative-real packaging. The hypothesis \lean{hsmall} gives $2m-\alpha L^2>0$, and \lean{mul_pos} multiplies it by $\alpha>0$. Thus
+\[1-Q=\alpha(2m-\alpha L^2)>0,\qquad Q<1.\]
+The tactic \lean{nlinarith} expands this product and establishes the saved fact \lean{hq}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 10: Turn Q below one into a square-root contraction factor}
+
+\textit{Source: \lean{Step.lean}, lines 57--58.}
+\begin{lstlisting}[style=leanproof,firstnumber=57]
+    simpa only [Real.sqrt_one] using
+      (Real.sqrt_lt_sqrt_iff_of_pos (show (0:ℝ) < 1 by norm_num)).2 hq
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Since the comparison value $1$ is positive, the library equivalence \lean{Real.sqrt_lt_sqrt_iff_of_pos} turns $Q<1$ into $\sqrt Q<\sqrt1$. Its projection \lean{.2} selects the implication from the ordinary inequality to the square-root inequality. The proof \lean{by norm_num} certifies $0<1$, and \lean{simpa only [Real.sqrt_one]} simplifies the result to
+\[q=\sqrt Q<1.\]
+This equivalence also handles $Q<0$ under the total square-root convention.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 11: Reduce the second component to a distance estimate}
+
+\textit{Source: \lean{Step.lean}, lines 59--62.}
+\begin{lstlisting}[style=leanproof,firstnumber=59]
+  · apply LipschitzWith.of_dist_le_mul
+    intro x y
+    have hb : ‖g x - g y‖ ≤ (L : ℝ) * ‖x - y‖ := by
+      simpa only [dist_eq_norm] using hLip.dist_le_mul x y
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The second main bullet proves that $T$ is $q$-Lipschitz. Applying \lean{LipschitzWith.of_dist_le_mul} reduces it to an inequality at arbitrary points, introduced by \lean{intro x y}. Applying the original Lipschitz hypothesis at that pair and rewriting distances as norms produces the saved input
+\[\norm{g(x)-g(y)}\le L\norm{x-y}.\]
+This is the pairwise Lipschitz assumption needed by \lean{gradient_step_contract}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 12: Apply the norm estimate and complete the contraction proof}
+
+\textit{Source: \lean{Step.lean}, lines 63--66.}
+\begin{lstlisting}[style=leanproof,firstnumber=63]
+    simp only [dist_eq_norm]
+    change ‖(x - α • g x) - (y - α • g y)‖ ≤
+      Real.sqrt (1 - 2 * α * m + α ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖
+    exact gradient_step_contract x y (g x) (g y) m α L hα.le (hmono x y) hb
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The simplifier changes the target distances into norms. The tactic \lean{change} exposes the coercion of $q$ and the definition of the step map, leaving
+\[\norm{(x-\alpha g(x))-(y-\alpha g(y))}
+       \le\sqrt Q\,\norm{x-y}.\]
+The final \lean{exact} supplies the already-proved pairwise norm theorem with $g_x=g(x)$, $g_y=g(y)$, the nonnegative step obtained by the order projection \lean{.le}, strong monotonicity at $x,y$, and the saved bound \lean{hb}. Both contraction components are now proved.
+
+\end{proofstep}
+
+\clearpage
+
+\begin{proofstep}
+
+\section{Construct a stationary point with an auxiliary contraction}
+
+The file \lean{Minimizer.lean} imports the first-order lemmas and the step estimates. Existence does not assume a minimizer or finite dimensionality. It chooses a small gradient step and invokes the Banach fixed-point theorem on the complete space. The local Lean variable is printed as $\alpha$ in the listing; we denote it by $\beta$ here to distinguish this auxiliary choice from the user-selected step $\alpha$ in the convergence theorem.
+
+\subsection*{Step 1: Existence is a conclusion}
+
+\textit{Source: \lean{Minimizer.lean}, lines 19--23.}
+\begin{lstlisting}[style=leanproof,firstnumber=19]
+/-- Strong convexity and a globally Lipschitz gradient imply existence of a stationary point. -/
+theorem exists_stationary {f : H → ℝ} {m : ℝ} {L : ℝ≥0}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
+    (hm : 0 < m) (hLip : LipschitzWith L (gradient f)) :
+    ∃ z : H, gradient f z = 0 := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The hypotheses \lean{hdiff}, \lean{hsc}, and \lean{hLip} give global differentiability, $m$-strong convexity, and an actual $L$-Lipschitz gradient. The constant $L$ has nonnegative-real type; \lean{hm} says $m>0$. Unlike the eventual convergence theorem, this existence result needs neither a prescribed step nor $L>0$. Its goal is an existential statement:\[ \exists z\in H,\qquad \nabla f(z)=0. \] The proof must supply both a point and a proof of its stationarity. Completeness is already present in the file's variable assumptions.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Choose the auxiliary step and prove it is positive}
+
+\textit{Source: \lean{Minimizer.lean}, lines 24--26.}
+\begin{lstlisting}[style=leanproof,firstnumber=24]
+  let α : ℝ := m / ((L : ℝ) ^ 2 + m ^ 2)
+  have hden : 0 < (L : ℝ) ^ 2 + m ^ 2 := by positivity
+  have hα : 0 < α := div_pos hm hden
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The local definition in the listing sets the auxiliary number\[ \beta=\frac{m}{L^{2}+m^{2}}. \] Although its Lean name is the same Greek letter used for the iteration step elsewhere, it is local to this theorem. It does not constrain the step chosen in \lean{gradient_descent_converges}. The fact \lean{hden} states $L^{2}+m^{2}>0$: squares are nonnegative and $m^{2}>0$ follows from \lean{hm}. The tactic \lean{positivity} assembles these facts. The library theorem \lean{div_pos hm hden} then proves the named positivity fact $\beta>0$. Thus both the numerator and denominator are certified positive before division is used.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Verify the contraction step restriction by explicit algebra}
+
+\textit{Source: \lean{Minimizer.lean}, lines 27--30.}
+\begin{lstlisting}[style=leanproof,firstnumber=27]
+  have hsmall : α * (L : ℝ) ^ 2 < 2 * m := by
+    dsimp [α]
+    rw [div_mul_eq_mul_div, div_lt_iff₀ hden]
+    nlinarith [sq_nonneg (L : ℝ), mul_pos hm (sq_pos_of_pos hm)]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The subgoal \lean{hsmall} is $\beta L^{2}<2m$. The tactic \lean{dsimp} unfolds the local step definition. The first rewrite puts $(m/(L^{2}+m^{2}))L^{2}$ into the form $mL^{2}/(L^{2}+m^{2})$; the second uses the certified positive denominator \lean{hden} to turn the strict division inequality into\[ mL^{2}<2m(L^{2}+m^{2}). \] The difference between right and left is $mL^{2}+2m^{3}$. We have $L^{2}\ge0$ from \lean{sq_nonneg}, $m>0$ from \lean{hm}, and $m^{3}=m\cdot m^{2}>0$ from \lean{mul_pos hm (sq_pos_of_pos hm)}. Hence the difference is positive. The final \lean{nlinarith} verifies this polynomial argument. These rewrites use positivity explicitly, so the strict inequality direction is preserved.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Obtain a Banach fixed point}
+
+\textit{Source: \lean{Minimizer.lean}, lines 31--34.}
+\begin{lstlisting}[style=leanproof,firstnumber=31]
+  have hc := contracting_gradient_step (gradient f) m α L hα hsmall
+    (strong_gradient_monotone hdiff hsc) hLip
+  obtain ⟨z, hz, _⟩ := hc.exists_fixedPoint (0 : H) (edist_ne_top _ _)
+  have hz' : z - α • gradient f z = z := hz
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The theorem \lean{contracting_gradient_step} is applied to the vector field $g=\nabla f$, the parameters $m,\beta,L$, the two step facts, strong monotonicity, and \lean{hLip}. Thus \lean{hc} says that\[ T_\beta(x)=x-\beta\nabla f(x) \] is a contraction with coefficient $q=\sqrt{1-2\beta m+\beta^{2}L^{2}}<1$, using the total real square-root convention proved in the step file. The expression \lean{strong_gradient_monotone hdiff hsc} supplies the required inequality for all pairs of points without naming those points again. The command \lean{obtain} destructures the existential conclusion of \lean{hc.exists_fixedPoint}. The start is $0\in H$; \lean{edist_ne_top} certifies finite extended distance in a normed space. We retain the fixed point \lean{z} and its fixed-point fact \lean{hz}, discarding the library's additional conclusions with the underscore. The next \lean{have} presents that fact explicitly as\[ \lean{hz'}:\quad z-\beta\nabla f(z)=z. \]
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Turn the fixed-point equation into stationarity}
+
+\textit{Source: \lean{Minimizer.lean}, lines 35--37.}
+\begin{lstlisting}[style=leanproof,firstnumber=35]
+  have hzero : α • gradient f z = 0 := by
+    apply (sub_eq_self.mp hz')
+  exact ⟨z, (smul_eq_zero.mp hzero).resolve_left (ne_of_gt hα)⟩
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The equivalence \lean{sub_eq_self} says that $z-v=z$ is equivalent to $v=0$. Its \lean{.mp} uses the forward direction on \lean{hz'}, proving the new fact\[ \lean{hzero}:\quad \beta\nabla f(z)=0. \] The equivalence \lean{smul_eq_zero} turns this scalar-product equation into the disjunction $\beta=0$ or $\nabla f(z)=0$; again \lean{.mp} is the forward direction. The proof \lean{ne_of_gt} obtained from positivity of $\beta$ rules out the left disjunct. The method \lean{resolve_left} therefore returns $\nabla f(z)=0$. Finally \lean{exact} supplies the existential pair consisting of $z$ and that proof. This completes attainment through the fixed-point theorem, rather than assuming that a minimum already exists.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Stationarity implies global minimality and uniqueness}
+
+The lower gap lemma alone proves both properties. No converse theorem asserting that every minimizer is stationary is needed: any second global minimizer must coincide with the stationary point by the positive quadratic lower bound.
+
+\subsection*{Step 1: Split the conjunction into two proof goals}
+
+\textit{Source: \lean{Minimizer.lean}, lines 39--44.}
+\begin{lstlisting}[style=leanproof,firstnumber=39]
+/-- A stationary point of a strongly convex function is its unique global minimizer. -/
+theorem stationary_unique_minimizer {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (hm : 0 < m)
+    {z : H} (hz : gradient f z = 0) :
+    (∀ x, f z ≤ f x) ∧ (∀ y, (∀ x, f y ≤ f x) → y = z) := by
+  constructor
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The hypothesis \lean{hz} says $\nabla f(z)=0$ and \lean{hm} says $m>0$. The conclusion has two parts:\[ (\forall x\in H,\ f(z)\le f(x))\quad\text{and}\quad (\forall y\in H,\ (\forall x\in H,\ f(y)\le f(x))\Rightarrow y=z). \] The first is global minimality; the second is uniqueness among all global minimizers. The tactic \lean{constructor} applies the introduction rule for a conjunction and creates two goals. The two indented bullet branches in the remaining proof solve them separately.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Prove global minimality from a nonnegative lower gap}
+
+\textit{Source: \lean{Minimizer.lean}, lines 45--48.}
+\begin{lstlisting}[style=leanproof,firstnumber=45]
+  · intro x
+    have h := strong_lower_gap hdiff hsc hz x
+    have hn : 0 ≤ m / 2 * ‖x - z‖ ^ 2 := by positivity
+    linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The command \lean{intro x} fixes an arbitrary point for the universal quantifier in the first goal. The fact \lean{h} is\[ \frac m2\norm{x-z}^{2}\le f(x)-f(z). \] The new fact \lean{hn}, established by \lean{positivity}, says its left side is nonnegative, using $m>0$ and the nonnegative square. Combining the two inequalities gives $0\le f(x)-f(z)$, equivalently $f(z)\le f(x)$. The tactic \lean{linarith} checks that rearrangement and closes the first branch. The proof has made no special choice of $x$, so global minimality follows.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Force any other minimizer to have zero squared distance}
+
+\textit{Source: \lean{Minimizer.lean}, lines 49--54.}
+\begin{lstlisting}[style=leanproof,firstnumber=49]
+  · intro y hy
+    have h := strong_lower_gap hdiff hsc hz y
+    have hsq : ‖y - z‖ ^ 2 = 0 := by
+      have hnonneg := sq_nonneg ‖y - z‖
+      have hmin := hy z
+      nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} In the second branch, \lean{intro y hy} fixes another point $y$ and assumes its global minimality \lean{hy}. The lower gap gives \lean{h}, and specializing \lean{hy} at $z$ gives \lean{hmin}: $f(y)\le f(z)$. Let $S=\norm{y-z}^{2}$. Inside the nested proof of \lean{hsq}, \lean{sq_nonneg} supplies \lean{hnonneg}: $S\ge0$. The inequalities now read\[ 0\le S,\qquad \frac m2S\le f(y)-f(z)\le0,\qquad m>0. \] If $S$ were positive, then $(m/2)S$ would be positive and could not be bounded above by zero. Therefore $S=0$. The tactic \lean{nlinarith} verifies this consequence using the positive parameter $m$ and the polynomial inequalities. This is why strict positivity of the strong-convexity constant is needed for uniqueness.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Convert zero norm into equality of points}
+
+\textit{Source: \lean{Minimizer.lean}, lines 55--56.}
+\begin{lstlisting}[style=leanproof,firstnumber=55]
+    have hn : ‖y - z‖ = 0 := (sq_eq_zero_iff).mp hsq
+    exact sub_eq_zero.mp (norm_eq_zero.mp hn)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The equivalence \lean{sq_eq_zero_iff} sends \lean{hsq}, the equation $\norm{y-z}^{2}=0$, to \lean{hn}: $\norm{y-z}=0$ through its forward \lean{.mp} direction. The inner application \lean{norm_eq_zero.mp hn} then proves $y-z=0$. The outer application \lean{sub_eq_zero.mp} turns that equation into $y=z$. Thus the final \lean{exact} gives the required equality, closes the uniqueness branch, and completes the conjunction.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Package the unique-minimizer theorem}
+
+This final result combines the construction of a stationary point with the two preceding consequences. The notation for unique existence records a witness, its property, and uniqueness of every other witness satisfying the same property.
+
+\subsection*{Step 1: Understand the unique-existence goal}
+
+\textit{Source: \lean{Minimizer.lean}, lines 58--62.}
+\begin{lstlisting}[style=leanproof,firstnumber=58]
+/-- The assumptions imply a unique global minimizer, without assuming attainment. -/
+theorem exists_unique_minimizer {f : H → ℝ} {m : ℝ} {L : ℝ≥0}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
+    (hm : 0 < m) (hLip : LipschitzWith L (gradient f)) :
+    ∃! z : H, ∀ x : H, f z ≤ f x := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The function assumptions are the same as those of \lean{exists_stationary}: differentiability, $m$-strong convexity with $m>0$, and a globally $L$-Lipschitz gradient. The conclusion\[ \exists! z\in H,\qquad \forall x\in H,\ f(z)\le f(x) \] uses Lean's unique-existence notation. Expanding that notation, we must provide one $z$, prove global minimality at $z$, and prove that any point with global minimality equals $z$. It does not require a preselected candidate minimizer.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Assemble the witness and its two properties}
+
+\textit{Source: \lean{Minimizer.lean}, lines 63--65.}
+\begin{lstlisting}[style=leanproof,firstnumber=63]
+  obtain ⟨z, hz⟩ := exists_stationary hdiff hsc hm hLip
+  obtain ⟨hmin, huniq⟩ := stationary_unique_minimizer hdiff hsc hm hz
+  exact ⟨z, hmin, huniq⟩
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The first \lean{obtain} applies \lean{exists_stationary} and names both the resulting witness \lean{z} and its stationarity proof \lean{hz}. The second applies \lean{stationary_unique_minimizer}; destructuring its conjunction names the two proofs \lean{hmin} and \lean{huniq}. They have exactly the minimality and uniqueness types required by the expanded unique-existence goal. The final triple supplied by \lean{exact} consists of the witness, the proof of its property, and the proof of uniqueness. This assembly changes no assumptions and introduces no new analytic argument.
+
+\end{proofstep}
+
+\clearpage
+
+\begin{proofstep}
+
+\section{Smoothness from a Lipschitz gradient: Smooth.lean}
+
+This file proves the quadratic upper model from differentiability and a Lipschitz gradient. Its proof studies a scalar function on the segment from $x$ to $y$, proves that its derivative is nonpositive, and compares its endpoint values. No Hessian or line-integral hypothesis is introduced.
+
+\subsection*{Step 1: Ambient space and namespace}
+
+\textit{Source: \lean{Smooth.lean}, lines 19--23.}
+\begin{lstlisting}[style=leanproof,firstnumber=19]
+open scoped NNReal
+
+namespace GradientDescent
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The scoped opening enables notation for nonnegative real numbers. The namespace prefixes each exported theorem with \lean{GradientDescent}. The typeclass variables describe a complete real inner-product space $H$. Completeness is needed here for Mathlib's gradient, the Riesz representative of the Fr\'echet derivative:
+\[Df(x)[v]=\ip{\nabla f(x)}{v}.\]
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: The precise smoothness goal}
+
+\textit{Source: \lean{Smooth.lean}, lines 26--28.}
+\begin{lstlisting}[style=leanproof,firstnumber=26]
+theorem smooth_upper_bound (f : H → ℝ) (L : ℝ≥0)
+    (hf : Differentiable ℝ f) (hLip : LipschitzWith L (gradient f)) (x y : H) :
+    f y ≤ f x + inner ℝ (gradient f x) (y - x) + (L : ℝ) / 2 * ‖y - x‖ ^ 2 := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The hypotheses supply differentiability at every point and a globally $L$-Lipschitz gradient. The type of $L$ already includes $L\ge0$; its coercion is used in real arithmetic. Neither strong convexity nor a positive step size is required. The proof must establish, for arbitrary $x,y\in H$,
+\[f(y)\le f(x)+\ip{\nabla f(x)}{y-x}+\frac L2\norm{y-x}^{2}.\]
+The keyword \lean{by} begins the tactic proof of this inequality.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Define the corrected segment restriction}
+
+\textit{Source: \lean{Smooth.lean}, lines 29--32.}
+\begin{lstlisting}[style=leanproof,firstnumber=29]
+  let d := y - x
+  let a := inner ℝ (gradient f x) d
+  let b := ‖d‖ ^ 2
+  let q : ℝ → ℝ := fun t => f (x + t • d) - f x - t * a - (L : ℝ) / 2 * t ^ 2 * b
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The four \lean{let} declarations introduce local definitions, not new assumptions. Write $d=y-x$, $a=\ip{\nabla f(x)}{d}$, and $b=\norm d^2$. The scalar function is
+\[q(t)=f(x+td)-f(x)-ta-\frac L2t^2b.\]
+Subtracting the affine model and the quadratic correction makes the desired result equivalent to $q(1)\le q(0)=0$. Later \lean{dsimp} can unfold these definitions.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Differentiate the affine path}
+
+\textit{Source: \lean{Smooth.lean}, lines 33--34.}
+\begin{lstlisting}[style=leanproof,firstnumber=33]
+  have hline (t : ℝ) : HasDerivAt (fun s : ℝ => x + s • d) d t := by
+    simpa using ((hasDerivAt_id t).smul_const d).const_add x
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The parameterized \lean{have hline} proves a derivative statement for every real $t$. Start with the identity derivative $1$, multiply by the fixed vector $d$ using \lean{smul_const}, and add the constant vector $x$ using \lean{const_add}. This gives
+\[\frac{d}{ds}(x+sd)\big|_{s=t}=1\mathbin{\cdot}d=d.\]
+The final \lean{simpa using} simplifies the derivative vector $1\mathbin{\cdot}d$ and transfers the chained proof to the displayed goal.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Apply the chain rule and identify the gradient}
+
+\textit{Source: \lean{Smooth.lean}, lines 35--38.}
+\begin{lstlisting}[style=leanproof,firstnumber=35]
+  have hcomp (t : ℝ) :
+      HasDerivAt (fun s : ℝ => f (x + s • d)) (inner ℝ (gradient f (x + t • d)) d) t := by
+    simpa [Function.comp_def, inner_gradient_left] using
+      (hf (x + t • d)).hasFDerivAt.comp_hasDerivAt t (hline t)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} At $x+td$, \lean{hf} gives differentiability and \lean{hasFDerivAt} supplies its Fr\'echet derivative. The method \lean{comp_hasDerivAt} composes that derivative with \lean{hline t}. Its resulting scalar derivative is $Df(x+td)[d]$. The simplifier unfolds function composition and rewrites the gradient inner product in the goal to $Df(x+td)[d]$ using \lean{inner_gradient_left}, so the goal matches the chain-rule proof. This establishes
+\[\frac{d}{ds}f(x+sd)\big|_{s=t}=\ip{\nabla f(x+td)}{d}.\]
+This is the reusable local fact \lean{hcomp t}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 6: Build a derivative proof for q}
+
+\textit{Source: \lean{Smooth.lean}, lines 39--42.}
+\begin{lstlisting}[style=leanproof,firstnumber=39]
+  have hq (t : ℝ) :
+      HasDerivAt q (inner ℝ (gradient f (x + t • d)) d - a - (L : ℝ) * t * b) t := by
+    convert (((hcomp t).sub_const (f x)).sub ((hasDerivAt_id t).mul_const a)).sub
+      (((hasDerivAt_id t).pow 2).const_mul ((L : ℝ) / 2) |>.mul_const b) using 1
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The chained derivative lemmas differentiate the expression defining $q$: \lean{sub_const} subtracts $f(x)$; the first \lean{sub} subtracts $ta$; and the second subtracts $(L/2)t^2b$. The identity derivative followed by \lean{pow 2}, \lean{const_mul}, and \lean{mul_const} proves the quadratic term's derivative. The pipe \lean{|>} passes that proof to the following method call. The claimed simplified derivative is
+\[q'(t)=\ip{\nabla f(x+td)}{d}-a-Ltb.\]
+The tactic \lean{convert ... using 1} uses the constructed derivative proof while leaving equality obligations for its function and derivative expressions.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 7: Resolve the two conversion equalities}
+
+\textit{Source: \lean{Smooth.lean}, lines 43--46.}
+\begin{lstlisting}[style=leanproof,firstnumber=43]
+    · ext s
+      simp only [q, Pi.sub_apply, Pi.pow_apply, id_eq]
+    · simp only [id_eq]
+      ring
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The first bullet resolves equality of functions. The tactic \lean{ext s} applies function extensionality, reducing it to equality at an arbitrary argument $s$. The listed simplifications unfold $q$, pointwise function subtraction and powers, and the identity function. The second bullet resolves equality of derivative values. After simplifying the identity function, \lean{ring} checks the polynomial identity
+\[\frac L2(2t)b=Ltb.\]
+Thus \lean{hq} is an actual derivative proof, not merely a proposed formula.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 8: Set up the nonpositive-derivative goal}
+
+\textit{Source: \lean{Smooth.lean}, lines 47--49.}
+\begin{lstlisting}[style=leanproof,firstnumber=47]
+  have hq_nonpos (t : ℝ) (ht : t ∈ interior (Set.Icc (0 : ℝ) 1)) :
+      inner ℝ (gradient f (x + t • d)) d - a - (L : ℝ) * t * b ≤ 0 := by
+    have ht0 : 0 ≤ t := (interior_subset ht).1
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The next local lemma takes $t$ in the interior of $[0,1]$ and aims to prove
+\[\ip{\nabla f(x+td)}{d}-a-Ltb\le0.\]
+The library fact \lean{interior_subset} places $t$ in the closed interval. Membership there is a pair of inequalities; projecting its first component with \lean{.1} gives $0\le t$. This sign is essential when simplifying $\norm{td}=|t|\norm d$ to $t\norm d$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 9: Apply gradient Lipschitzness along the segment}
+
+\textit{Source: \lean{Smooth.lean}, lines 50--52.}
+\begin{lstlisting}[style=leanproof,firstnumber=50]
+    have hnorm : ‖gradient f (x + t • d) - gradient f x‖ ≤ (L : ℝ) * t * ‖d‖ := by
+      simpa [dist_eq_norm, norm_smul, Real.norm_eq_abs, abs_of_nonneg ht0, mul_assoc] using
+        hLip.dist_le_mul (x + t • d) x
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The method \lean{hLip.dist_le_mul} applies the global Lipschitz bound at $x+td$ and $x$. The simplifier converts distances to norms, simplifies $(x+td)-x$, expands the norm of a scalar multiple, and removes $|t|$ using $t\ge0$. Associativity puts the product into the desired form:
+\[\norm{\nabla f(x+td)-\nabla f(x)}\le Lt\norm d.\]
+No sign of an inner product is assumed in this step.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 10: Cauchy--Schwarz proves the derivative sign}
+
+\textit{Source: \lean{Smooth.lean}, lines 53--57.}
+\begin{lstlisting}[style=leanproof,firstnumber=53]
+    have hinner := real_inner_le_norm (gradient f (x + t • d) - gradient f x) d
+    have hprod := mul_le_mul_of_nonneg_right hnorm (norm_nonneg d)
+    rw [inner_sub_left] at hinner
+    dsimp [a, b]
+    nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The fact \lean{hinner} is the signed Cauchy--Schwarz bound, and \lean{hprod} multiplies the Lipschitz bound by $\norm d\ge0$. Rewriting with \lean{inner_sub_left} expands the gradient difference in the first inner-product argument. The tactic \lean{dsimp} unfolds $a,b$ in the goal. The two bounds then read
+\[\ip{\nabla f(x+td)}{d}-a
+ \le\norm{\nabla f(x+td)-\nabla f(x)}\norm d
+ \le Lt\norm d^2=Ltb.\]
+The tactic \lean{nlinarith} combines these real inequalities and moves $Ltb$ to the left.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 11: Prove antitonicity through three obligations}
+
+\textit{Source: \lean{Smooth.lean}, lines 58--64.}
+\begin{lstlisting}[style=leanproof,firstnumber=58]
+  have hanti : AntitoneOn q (Set.Icc (0 : ℝ) 1) := by
+    apply antitoneOn_of_deriv_nonpos (convex_Icc 0 1)
+    · exact (continuous_iff_continuousAt.mpr (fun t => (hq t).continuousAt)).continuousOn
+    · exact (show Differentiable ℝ q from fun t => (hq t).differentiableAt).differentiableOn
+    · intro t ht
+      rw [(hq t).deriv]
+      exact hq_nonpos t ht
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Applying \lean{antitoneOn_of_deriv_nonpos} to the convex interval $[0,1]$ leaves three goals, discharged by the three bullets:
+\begin{itemize}
+\item Continuity on the closed interval: each \lean{hq t} implies continuity at $t$; the equivalence for pointwise continuity gives global continuity, which is restricted using \lean{continuousOn}.
+\item Differentiability on its interior: each \lean{hq t} gives differentiability at $t$; the explicitly typed \lean{show} assembles a global differentiability proof, then restricts it.
+\item Nonpositive derivative at each interior point: \lean{intro} introduces $t$ and its membership proof, \lean{rw [(hq t).deriv]} replaces the actual derivative by the proved formula, and \lean{hq_nonpos} supplies its sign.
+\end{itemize}
+The resulting \lean{AntitoneOn} statement means $s\le t$ implies $q(t)\le q(s)$ for $s,t\in[0,1]$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 12: Evaluate the decreasing function at zero and one}
+
+\textit{Source: \lean{Smooth.lean}, lines 65--69.}
+\begin{lstlisting}[style=leanproof,firstnumber=65]
+  have hfinal := hanti (by simp : (0 : ℝ) ∈ Set.Icc 0 1)
+    (by simp : (1 : ℝ) ∈ Set.Icc 0 1) (by norm_num : (0 : ℝ) ≤ 1)
+  dsimp [q, a, b, d] at hfinal
+  simp only [one_smul, zero_smul, add_zero, zero_mul, one_mul, one_pow, zero_pow
+      (by norm_num : 2 ≠ 0), mul_zero, sub_self] at hfinal
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Applying \lean{hanti} to $0\le1$ gives $q(1)\le q(0)$. The inline \lean{by simp} proofs certify endpoint membership, while \lean{norm_num} certifies the numerical order. Unfolding the four local definitions and simplifying scalar multiplication, powers, and zero terms gives
+\[f\bigl(x+(y-x)\bigr)-f(x)-\ip{\nabla f(x)}{y-x}
+       -\frac L2\norm{y-x}^2\le0.\]
+The side proof $2\ne0$ is passed to the simplification rule for $0^2$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 13: Finish by additive algebra and rearrangement}
+
+\textit{Source: \lean{Smooth.lean}, lines 70--72.}
+\begin{lstlisting}[style=leanproof,firstnumber=70]
+  have hxy : x + (y - x) = y := by abel
+  rw [hxy] at hfinal
+  linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The tactic \lean{abel} proves $x+(y-x)=y$ using only the additive commutative-group laws. The rewrite replaces the endpoint in \lean{hfinal}. The remaining inequality is linear in the displayed real expressions:
+\[f(y)-f(x)-\ip{\nabla f(x)}{y-x}-\frac L2\norm{y-x}^2\le0.\]
+The tactic \lean{linarith} rearranges this into the theorem's upper-bound goal. The proof is now complete.
+
+\end{proofstep}
+
+\clearpage
+
+\begin{proofstep}
+
+\section{The recursive gradient descent sequence}
+
+The convergence argument is first proved for an arbitrary scalar gap sequence. This keeps the finite induction, scalar limits, and norm-limit argument separate from strong convexity and smoothness. Write $x_n=\lean{iterate}\,g\,\alpha\,x_0\,n$.
+
+\subsection*{Step 1: Imports used by the rate argument}
+
+\textit{Source: \lean{Rates.lean}, lines 1--6.}
+\begin{lstlisting}[style=leanproof,firstnumber=1]
+import Mathlib.Analysis.Normed.Module.Basic
+import Mathlib.Analysis.Real.Sqrt
+import Mathlib.Analysis.SpecificLimits.Basic
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Ring
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The first import provides real normed spaces and their subtraction and scalar multiplication. The next two provide continuous square roots and the limit $\rho^n\to0$ for $0\le\rho<1$. The final three import tactics for clearing denominators, proving positivity, and checking polynomial identities. Imports provide proved library lemmas and tactic implementations; they do not add hypotheses to the theorems below.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Namespace, filters, and normed-space hypotheses}
+
+\textit{Source: \lean{Rates.lean}, lines 17--22.}
+\begin{lstlisting}[style=leanproof,firstnumber=17]
+namespace GradientDescent
+
+open Filter
+open scoped Topology
+
+variable {H : Type*} [NormedAddCommGroup H] [NormedSpace ℝ H]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{namespace GradientDescent} puts the declarations under a common prefix. \lean{open Filter} makes filter terminology such as \lean{atTop} available, while the topology scope enables neighborhood notation. The braces around $H$ declare an implicit type parameter. Square brackets request instances of a normed additive commutative group and a real normed vector space. These supply $x-y$, $\norm{x}$, and $\alpha\mathbin{\bullet}x$. No completeness or inner product is needed for this file.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Definition by recursion on the natural number}
+
+\textit{Source: \lean{Rates.lean}, lines 25--27.}
+\begin{lstlisting}[style=leanproof,firstnumber=25]
+def iterate (g : H → H) (α : ℝ) (x₀ : H) : ℕ → H
+  | 0 => x₀
+  | n + 1 => iterate g α x₀ n - α • g (iterate g α x₀ n)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The result type $\N\to H$ says that the definition returns a sequence. The two pattern-matching clauses implement exactly
+\[
+x_0=x_0,\qquad x_{n+1}=x_n-\alpha g(x_n).
+\]
+Here the $x_0$ on the right is the supplied starting point; the left denotes the zeroth sequence term. In Lean, \lean{*} is real multiplication and the bullet in the code is scalar multiplication of a vector. The recursive calls use $n$ rather than $n+1$, so Lean accepts the definition as terminating structural recursion.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: The zeroth term is a simplification rule}
+
+\textit{Source: \lean{Rates.lean}, lines 29--30.}
+\begin{lstlisting}[style=leanproof,firstnumber=29]
+@[simp]
+theorem iterate_zero (g : H → H) (α : ℝ) (x₀ : H) : iterate g α x₀ 0 = x₀ := rfl
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{rfl} proves equality by definitional reduction: unfolding the zero clause of \lean{iterate} makes both sides the same expression. The attribute \lean{@[simp]} registers this identity with the simplifier. Later, \lean{simpa only [iterate_zero]} replaces the initial iterate by the supplied $x_0$ in a rate bound.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: The successor term is a simplification rule}
+
+\textit{Source: \lean{Rates.lean}, lines 32--34.}
+\begin{lstlisting}[style=leanproof,firstnumber=32]
+@[simp]
+theorem iterate_succ (g : H → H) (α : ℝ) (x₀ : H) (n : ℕ) :
+    iterate g α x₀ (n + 1) = iterate g α x₀ n - α • g (iterate g α x₀ n) := rfl
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} This is the successor clause of the definition, again proved by \lean{rfl}. For every $n$,
+\[
+\lean{iterate}\,g\,\alpha\,x_0\,(n+1)=x_n-\alpha g(x_n).
+\]
+Its simplification attribute makes the recursion available to proofs. In the main convergence theorem, \lean{rw [iterate_succ]} rewrites the left side of a one-step gap statement into precisely the gradient-step expression already controlled by the descent theorem.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Induction gives the geometric scalar bound}
+
+For the finite estimate, the only sign assumption is $\rho\ge0$. The terms $a_n$ themselves need not be nonnegative. Assume $a_{n+1}\le\rho a_n$; induction proves $a_n\le\rho^n a_0$.
+
+\subsection*{Step 1: State the induction problem}
+
+\textit{Source: \lean{Rates.lean}, lines 37--39.}
+\begin{lstlisting}[style=leanproof,firstnumber=37]
+theorem geometric_bound {a : ℕ → ℝ} {ρ : ℝ} (hρ : 0 ≤ ρ)
+    (hstep : ∀ n, a (n + 1) ≤ ρ * a n) (n : ℕ) :
+    a n ≤ ρ ^ n * a 0 := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The implicit parameter \lean{a} is a real sequence. The hypothesis \lean{hstep} has type $\forall n,\ a_{n+1}\le\rho a_n$, and the explicit argument $n$ selects the desired term. The goal following the colon is
+\[
+a_n\le\rho^n a_0.
+\]
+The statement deliberately does not require $\rho<1$: that restriction is needed only when taking a limit.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Base case and induction hypothesis}
+
+\textit{Source: \lean{Rates.lean}, lines 40--42.}
+\begin{lstlisting}[style=leanproof,firstnumber=40]
+  induction n with
+  | zero => simp
+  | succ n ih =>
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{induction n with} splits the proof into zero and successor cases. At zero, \lean{simp} evaluates $\rho^0=1$ and $1a_0=a_0$, leaving the reflexive inequality $a_0\le a_0$. In the successor branch, \lean{ih} is the induction hypothesis $a_n\le\rho^n a_0$; the remaining goal is $a_{n+1}\le\rho^{n+1}a_0$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Three links of the induction calculation}
+
+\textit{Source: \lean{Rates.lean}, lines 43--46.}
+\begin{lstlisting}[style=leanproof,firstnumber=43]
+      calc
+        a (n + 1) ≤ ρ * a n := hstep n
+        _ ≤ ρ * (ρ ^ n * a 0) := mul_le_mul_of_nonneg_left ih hρ
+        _ = ρ ^ (n + 1) * a 0 := by rw [pow_succ]; ring
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The \lean{calc} block proves a chain whose intermediate inequalities compose by transitivity:
+\[
+a_{n+1}\le\rho a_n\le\rho(\rho^n a_0)=\rho^{n+1}a_0.
+\]
+The first link is \lean{hstep n}. The second uses \lean{mul_le_mul_of_nonneg_left}: multiplying the induction hypothesis on the left preserves order because the supplied hypothesis proves $\rho\ge0$. No assumption about the sign of $a_0$ is needed. The last link is an equality: \lean{rw [pow_succ]} expands $\rho^{n+1}=\rho^n\rho$, and \lean{ring} checks associativity and commutativity of real multiplication.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{The objective gap is an instance of the scalar bound}
+
+Let $\Delta_n=f(x_n)-f(z)$. The previous theorem applies directly to this real sequence. In this statement, $H$ can be any type, because evaluating $f$ does not require vector operations.
+
+\subsection*{Step 1: Omit unused typeclasses and specialize the sequence}
+
+\textit{Source: \lean{Rates.lean}, lines 48--54.}
+\begin{lstlisting}[style=leanproof,firstnumber=48]
+omit [NormedAddCommGroup H] [NormedSpace ℝ H] in
+/-- The objective gap inherits the geometric bound from its one-step inequality. -/
+theorem geometric_gap_bound (f : H → ℝ) (x : ℕ → H) (z : H) {ρ : ℝ}
+    (hρ : 0 ≤ ρ)
+    (hstep : ∀ n, f (x (n + 1)) - f z ≤ ρ * (f (x n) - f z)) (n : ℕ) :
+    f (x n) - f z ≤ ρ ^ n * (f (x 0) - f z) :=
+  geometric_bound (a := fun n => f (x n) - f z) hρ hstep n
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{omit} removes both previously declared normed-space instances from this theorem's context. Its assumptions are just $\rho\ge0$ and $\Delta_{n+1}\le\rho\Delta_n$; its conclusion is
+\[
+\Delta_n\le\rho^n\Delta_0.
+\]
+The proof is a direct theorem application. The named argument \lean{a := fun n => f (x n) - f z} explicitly chooses the sequence $a_n=\Delta_n$; \lean{fun} constructs a function. The remaining arguments provide the sign proof, the step proof, and the term index. Lean checks that the specialized conclusion is exactly the displayed goal. There is no omitted proof obligation.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{The geometrically bounded gap tends to zero}
+
+Now impose $0\le\rho<1$ and $\Delta_n\ge0$. The geometric upper envelope tends to zero, and the squeeze theorem transfers that limit to the gap.
+
+\subsection*{Step 1: State the filter limit and its sign hypotheses}
+
+\textit{Source: \lean{Rates.lean}, lines 56--62.}
+\begin{lstlisting}[style=leanproof,firstnumber=56]
+omit [NormedAddCommGroup H] [NormedSpace ℝ H] in
+/-- A nonnegative geometrically decreasing objective gap tends to zero. -/
+theorem gap_tendsto_zero (f : H → ℝ) (x : ℕ → H) (z : H) {ρ : ℝ}
+    (hρ₀ : 0 ≤ ρ) (hρ₁ : ρ < 1)
+    (hgap : ∀ n, 0 ≤ f (x n) - f z)
+    (hstep : ∀ n, f (x (n + 1)) - f z ≤ ρ * (f (x n) - f z)) :
+    Tendsto (fun n => f (x n) - f z) atTop (𝓝 0) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Both normed-space instances are again omitted: this is a scalar argument on values of $f$. Besides the step inequality, the theorem has separate hypotheses $0\le\rho$, $\rho<1$, and $0\le\Delta_n$ for every $n$. The expression \lean{Tendsto} with \lean{atTop} as source and the neighborhood filter of zero as target states the usual limit
+\[
+\Delta_n\longrightarrow0\quad(n\to\infty).
+\]
+The lower sign condition is now essential for the squeeze argument, even though it was unnecessary for the finite induction bound.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Prove that the geometric upper envelope tends to zero}
+
+\textit{Source: \lean{Rates.lean}, lines 63--65.}
+\begin{lstlisting}[style=leanproof,firstnumber=63]
+  have hpow : Tendsto (fun n : ℕ => ρ ^ n * (f (x 0) - f z)) atTop (𝓝 0) := by
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hρ₀ hρ₁).mul_const
+      (f (x 0) - f z)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{have hpow : ... := by} creates a named local proof with the displayed limit as its goal. The library theorem \lean{tendsto_pow_atTop_nhds_zero_of_lt_one} gives $\rho^n\to0$ from the two supplied sign and strict-bound hypotheses. Dot notation \lean{.mul_const} multiplies that convergent sequence by the fixed real number $\Delta_0$, so
+\[
+\rho^n\Delta_0\longrightarrow0\cdot\Delta_0=0.
+\]
+\lean{simpa} simplifies the limiting product to zero and checks that the resulting statement matches \lean{hpow}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Close the limit by squeezing between zero and the envelope}
+
+\textit{Source: \lean{Rates.lean}, lines 66--66.}
+\begin{lstlisting}[style=leanproof,firstnumber=66]
+  exact squeeze_zero hgap (geometric_gap_bound f x z hρ₀ hstep) hpow
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{squeeze_zero} receives three proofs, in order: the lower inequality $0\le\Delta_n$, the upper inequality $\Delta_n\le\rho^n\Delta_0$, and the upper envelope's limit. The second argument is the geometric-gap theorem with its index left as a function argument. Thus the exact mathematical sandwich is
+\[
+0\le\Delta_n\le\rho^n\Delta_0\longrightarrow0.
+\]
+\lean{exact} supplies the resulting proof of the target limit without further simplification.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Convert the gap rate into a squared-distance rate}
+
+Suppose $m>0$ and $\frac m2\norm{x_n-z}^2\le\Delta_n$. Combine that lower bound with the geometric upper bound and divide by the positive number $m/2$.
+
+\subsection*{Step 1: State the lower bound and the requested distance bound}
+
+\textit{Source: \lean{Rates.lean}, lines 68--74.}
+\begin{lstlisting}[style=leanproof,firstnumber=68]
+omit [NormedSpace ℝ H] in
+/-- A quadratic gap lower bound gives an explicit squared-distance rate. -/
+theorem squared_distance_bound (f : H → ℝ) (x : ℕ → H) (z : H) {m ρ : ℝ}
+    (hm : 0 < m) (hρ : 0 ≤ ρ)
+    (hlower : ∀ n, m / 2 * ‖x n - z‖ ^ 2 ≤ f (x n) - f z)
+    (hstep : ∀ n, f (x (n + 1)) - f z ≤ ρ * (f (x n) - f z)) (n : ℕ) :
+    ‖x n - z‖ ^ 2 ≤ (2 / m) * (ρ ^ n * (f (x 0) - f z)) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Here \lean{omit} drops the real vector-space instance but keeps the normed additive group instance: subtraction and norm are used, whereas scalar multiplication of vectors is not. The real parameters have proofs $m>0$ and $\rho\ge0$. The hypotheses \lean{hlower} and \lean{hstep} hold for every $n$. The goal is the explicit estimate
+\[
+\norm{x_n-z}^2\le\frac2m\bigl(\rho^n\Delta_0\bigr).
+\]
+Only a finite estimate is claimed, so no hypothesis $\rho<1$ is present.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Chain the bounds and divide without reversing order}
+
+\textit{Source: \lean{Rates.lean}, lines 75--77.}
+\begin{lstlisting}[style=leanproof,firstnumber=75]
+  have h := (hlower n).trans (geometric_gap_bound f x z hρ hstep n)
+  have hdiv : ‖x n - z‖ ^ 2 ≤ (ρ ^ n * (f (x 0) - f z)) / (m / 2) :=
+    (le_div_iff₀ (by positivity : 0 < m / 2)).2 (by simpa [mul_comm] using h)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The method \lean{.trans} combines two inequalities sharing their middle expression, producing
+\[
+\frac m2\norm{x_n-z}^2\le\Delta_n\le\rho^n\Delta_0.
+\]
+The local proof \lean{hdiv} then has goal $\norm{x_n-z}^2\le(\rho^n\Delta_0)/(m/2)$. The theorem \lean{le_div_iff}${}_0$ for a positive denominator says $A\le B/c$ if and only if $Ac\le B$ when $c>0$. Its \lean{.2} direction transforms the product inequality into the quotient inequality. \lean{positivity} derives $m/2>0$ from $m>0$, and \lean{simpa [mul_comm]} rearranges $(m/2)A$ into $A(m/2)$. Because the divisor is positive, the inequality direction is preserved.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Identify the quotient with the stated prefactor}
+
+\textit{Source: \lean{Rates.lean}, lines 78--79.}
+\begin{lstlisting}[style=leanproof,firstnumber=78]
+  convert hdiv using 1
+  field_simp
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{convert hdiv using 1} uses the proved quotient inequality while leaving equality of the two right-hand expressions as the remaining goal. \lean{field_simp} clears their denominators and verifies
+\[
+\frac{\rho^n\Delta_0}{m/2}=\frac2m\bigl(\rho^n\Delta_0\bigr).
+\]
+This step changes only the algebraic presentation of the bound; the order argument has already been completed using $m/2>0$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Squared-distance decay implies convergence of the iterates}
+
+The generic sequence theorem uses only a normed additive group. It squeezes the squared norms to zero, uses continuity of square root, and then applies the distance characterization of convergence.
+
+\subsection*{Step 1: The norm-convergence theorem and its assumptions}
+
+\textit{Source: \lean{Rates.lean}, lines 81--87.}
+\begin{lstlisting}[style=leanproof,firstnumber=81]
+omit [NormedSpace ℝ H] in
+/-- Geometric decay plus a positive quadratic lower bound implies norm convergence. -/
+theorem tendsto_of_geometric_gap (f : H → ℝ) (x : ℕ → H) (z : H) {m ρ : ℝ}
+    (hm : 0 < m) (hρ₀ : 0 ≤ ρ) (hρ₁ : ρ < 1)
+    (hlower : ∀ n, m / 2 * ‖x n - z‖ ^ 2 ≤ f (x n) - f z)
+    (hstep : ∀ n, f (x (n + 1)) - f z ≤ ρ * (f (x n) - f z)) :
+    Tendsto x atTop (𝓝 z) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The vector-space instance is omitted as above. The target \lean{Tendsto x atTop} to the neighborhood filter of $z$ means $x_n\to z$ in the norm topology. The proof assumes $m>0$, $0\le\rho<1$, the quadratic gap lower bound, and the gap step inequality. It does not separately assume nonnegative gaps: their lower bound already implies that sign. No completeness of $H$ is required because a candidate limit $z$ is supplied.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: The full distance envelope tends to zero}
+
+\textit{Source: \lean{Rates.lean}, lines 88--91.}
+\begin{lstlisting}[style=leanproof,firstnumber=88]
+  have hbound : Tendsto (fun n : ℕ => (2 / m) *
+      (ρ ^ n * (f (x 0) - f z))) atTop (𝓝 0) := by
+    simpa using ((tendsto_pow_atTop_nhds_zero_of_lt_one hρ₀ hρ₁).mul_const
+      (f (x 0) - f z)).const_mul (2 / m)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The geometric power theorem first yields $\rho^n\to0$. The method \lean{.mul_const} multiplies on the right by $\Delta_0$, then \lean{.const_mul} multiplies on the left by the fixed number $2/m$. Consequently
+\[
+\frac2m\bigl(\rho^n\Delta_0\bigr)\longrightarrow\frac2m(0\cdot\Delta_0)=0.
+\]
+The final \lean{simpa} simplifies this limiting scalar expression and produces the local proof \lean{hbound}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Squeeze the squared norm itself}
+
+\textit{Source: \lean{Rates.lean}, lines 92--94.}
+\begin{lstlisting}[style=leanproof,firstnumber=92]
+  have hsq : Tendsto (fun n => ‖x n - z‖ ^ 2) atTop (𝓝 0) :=
+    squeeze_zero (fun _ => sq_nonneg _) (squared_distance_bound f x z hm hρ₀ hlower hstep)
+      hbound
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The new local goal is $\norm{x_n-z}^2\to0$. For each $n$, \lean{sq_nonneg} proves the lower inequality; underscores let Lean infer the squared real number. The previously established distance theorem supplies the upper inequality, while \lean{hbound} supplies its limit:
+\[
+0\le\norm{x_n-z}^2\le\frac2m\bigl(\rho^n\Delta_0\bigr)\longrightarrow0.
+\]
+These are exactly the three inputs to \lean{squeeze_zero}, yielding \lean{hsq}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Take square roots and recover convergence in the space}
+
+\textit{Source: \lean{Rates.lean}, lines 95--97.}
+\begin{lstlisting}[style=leanproof,firstnumber=95]
+  have hnorm : Tendsto (fun n => ‖x n - z‖) atTop (𝓝 0) := by
+    simpa only [Real.sqrt_sq (norm_nonneg _), Real.sqrt_zero] using hsq.sqrt
+  exact tendsto_iff_dist_tendsto_zero.2 (by simpa only [dist_eq_norm] using hnorm)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The method \lean{hsq.sqrt} uses continuity of the real square-root function, including at zero. It initially proves $\sqrt{\norm{x_n-z}^2}\to\sqrt0$. The norm is nonnegative, so \lean{Real.sqrt_sq (norm_nonneg _)} rewrites the left side to $\norm{x_n-z}$; \lean{Real.sqrt_zero} rewrites the limit to zero. Thus
+\[
+\norm{x_n-z}\longrightarrow0.
+\]
+Finally, \lean{dist_eq_norm} identifies $\operatorname{dist}(x_n,z)$ with this norm. The \lean{.2} direction of \lean{tendsto_iff_dist_tendsto_zero} converts distance tending to zero into $x_n\to z$, closing the theorem.
+
+\end{proofstep}
+
+\clearpage
+
+\begin{proofstep}
+
+\section{The rate and the admissible step-size interval}
+
+Return to the complete real Hilbert space and put
+\[
+q=1-m\alpha(2-L\alpha),\qquad\rho=\max\{0,q\}.
+\]
+The maximum ensures a nonnegative scalar rate even in a one-point space, where the hypotheses need not force $m\le L$. The step restriction $0<\alpha<2/L$ ensures $\rho<1$.
+
+\subsection*{Step 1: Dependencies of the final convergence theorem}
+
+\textit{Source: \lean{Convergence.lean}, lines 1--6.}
+\begin{lstlisting}[style=leanproof,firstnumber=1]
+import GradientDescent.Minimizer
+import GradientDescent.Smooth
+import GradientDescent.Rates
+
+-- This project does not prescribe Mathlib copyright headers.
+set_option linter.style.header false
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The three imports provide the minimizer theorem, the smooth quadratic upper bound, and the generic iteration and rate results just proved. The local linter option only disables a source-file copyright-header style check; it has no mathematical effect and supplies no theorem or hypothesis.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: The complete real Hilbert-space setting}
+
+\textit{Source: \lean{Convergence.lean}, lines 15--24.}
+\begin{lstlisting}[style=leanproof,firstnumber=15]
+open scoped NNReal
+
+noncomputable section
+
+namespace GradientDescent
+
+open Filter
+open scoped Topology
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The nonnegative-real scope enables the type $\R_{\ge0}$ for $L$; coercion of $L$ to $\R$ is explicit in the source. The \lean{noncomputable section} permits the classical definitions involved in the gradient and minimizer argument. The namespace and filter scopes supply the familiar declaration and limit notation. The three typeclasses state that $H$ is a normed additive group with a real inner product and is complete. Thus this theorem works in arbitrary complete real Hilbert spaces, without a finite-dimensional assumption.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Define the clamped rate and prove its lower sign}
+
+\textit{Source: \lean{Convergence.lean}, lines 26--30.}
+\begin{lstlisting}[style=leanproof,firstnumber=26]
+/-- The geometric objective-gap factor. The maximum covers the degenerate
+one-point space without requiring the redundant usual assumption `m ≤ L`. -/
+def rate (m α : ℝ) (L : ℝ≥0) : ℝ := max 0 (1 - m * α * (2 - (L : ℝ) * α))
+
+theorem rate_nonneg (m α : ℝ) (L : ℝ≥0) : 0 ≤ rate m α L := le_max_left _ _
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The function \lean{rate} returns the real scalar $\rho=\max\{0,1-m\alpha(2-L\alpha)\}$. The theorem \lean{rate_nonneg} applies \lean{le_max_left}, the elementary inequality $a\le\max(a,b)$, with $a=0$. This proves $0\le\rho$ for every choice of parameters. The statement uses no positivity assumptions, because taking the maximum itself establishes the sign. In a one-point Hilbert space every gap and distance is zero, so allowing such parameters causes no difficulty for later rate bounds.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: State the strict upper bound on the rate}
+
+\textit{Source: \lean{Convergence.lean}, lines 32--34.}
+\begin{lstlisting}[style=leanproof,firstnumber=32]
+theorem rate_lt_one {m α : ℝ} {L : ℝ≥0}
+    (hm : 0 < m) (hL : 0 < (L : ℝ)) (hα : 0 < α) (hαL : α < 2 / (L : ℝ)) :
+    rate m α L < 1 := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The parameters are implicit, while the four explicit proofs assert $m>0$, $L>0$, $\alpha>0$, and $\alpha<2/L$. The goal is $\rho<1$. The separate proof of $L>0$ matters when converting the quotient step-size condition into a product condition.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Use positivity to show both entries of the maximum are below one}
+
+\textit{Source: \lean{Convergence.lean}, lines 35--39.}
+\begin{lstlisting}[style=leanproof,firstnumber=35]
+  have hαL' : α * (L : ℝ) < 2 := (lt_div_iff₀ hL).mp hαL
+  have hp : 0 < m * α * (2 - (L : ℝ) * α) := by
+    apply mul_pos (mul_pos hm hα)
+    nlinarith
+  exact max_lt (by norm_num) (by linarith)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The \lean{.mp} direction of the positive-denominator theorem \lean{lt_div_iff}${}_0$ gives $\alpha L<2$ from $\alpha<2/L$. Hence $2-L\alpha>0$. The first \lean{mul_pos} proves $m\alpha>0$ using $m>0$ and $\alpha>0$; its outer application reduces the remaining local goal to positivity of $2-L\alpha$, which \lean{nlinarith} obtains from $\alpha L<2$. Therefore
+\[
+m\alpha(2-L\alpha)>0,\qquad q=1-m\alpha(2-L\alpha)<1.
+\]
+\lean{max_lt} asks for both $0<1$ and $q<1$. \lean{norm_num} proves the numeric inequality; \lean{linarith} derives the second from the positive product. The result is $\rho<1$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{When the clamping disappears}
+
+If $m\le L$, the raw scalar factor $q$ is already nonnegative. The following auxiliary theorem proves the familiar formula $\rho=q$ directly. This auxiliary comparison assumption is not required by the main convergence theorem.
+
+\subsection*{Step 1: The equality to be proved}
+
+\textit{Source: \lean{Convergence.lean}, lines 42--45.}
+\begin{lstlisting}[style=leanproof,firstnumber=42]
+theorem rate_eq {m α : ℝ} {L : ℝ≥0}
+    (hmL : m ≤ (L : ℝ)) (hL : 0 < (L : ℝ)) (hα : 0 < α)
+    (hαL : α < 2 / (L : ℝ)) :
+    rate m α L = 1 - m * α * (2 - (L : ℝ) * α) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The hypotheses are $m\le L$, $L>0$, $\alpha>0$, and $\alpha<2/L$. The target identifies the defined maximum with its second argument:
+\[
+\max\{0,1-m\alpha(2-L\alpha)\}=1-m\alpha(2-L\alpha).
+\]
+To apply the corresponding maximum identity it suffices to prove $0\le1-m\alpha(2-L\alpha)$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Find a nonnegative common multiplier}
+
+\textit{Source: \lean{Convergence.lean}, lines 46--49.}
+\begin{lstlisting}[style=leanproof,firstnumber=46]
+  have hαL' : α * (L : ℝ) < 2 := (lt_div_iff₀ hL).mp hαL
+  have hnonneg : 0 ≤ α * (2 - (L : ℝ) * α) := by
+    apply mul_nonneg hα.le
+    nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} As before, division by the positive $L$ gives $\alpha L<2$. Consequently $2-L\alpha>0$, and \lean{mul_nonneg}, supplied with the weak sign $\alpha\ge0$, reduces the local product-sign goal to that second factor. \lean{nlinarith} closes it from the product step-size inequality. Thus
+\[
+0\le\alpha(2-L\alpha).
+\]
+The conversion from a strict sign to a weak sign is encoded by the proof method \lean{.le}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Bound the raw product by one using a square}
+
+\textit{Source: \lean{Convergence.lean}, lines 50--52.}
+\begin{lstlisting}[style=leanproof,firstnumber=50]
+  have hmul := mul_le_mul_of_nonneg_right hmL hnonneg
+  have hbound : (L : ℝ) * α * (2 - (L : ℝ) * α) ≤ 1 := by
+    nlinarith [sq_nonneg ((L : ℝ) * α - 1)]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Multiplying $m\le L$ on the right by the nonnegative common factor preserves order:
+\[
+m\alpha(2-L\alpha)\le L\alpha(2-L\alpha).
+\]
+The explicit \lean{sq_nonneg} input gives $(L\alpha-1)^2\ge0$. Expanding it yields
+\[
+L\alpha(2-L\alpha)=1-(L\alpha-1)^2\le1.
+\]
+\lean{nlinarith} verifies this polynomial consequence, recording it as \lean{hbound}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Finish the maximum identity}
+
+\textit{Source: \lean{Convergence.lean}, lines 53--54.}
+\begin{lstlisting}[style=leanproof,firstnumber=53]
+  apply max_eq_right
+  nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{apply max_eq_right} changes the target equality into the remaining inequality $0\le q$. The two product bounds just obtained imply $m\alpha(2-L\alpha)\le1$, hence $0\le1-m\alpha(2-L\alpha)$. \lean{nlinarith} closes this goal by rearranging those inequalities. Therefore the clamp is unnecessary whenever $m\le L$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Smoothness gives the descent estimate}
+
+Set $G=\nabla f(x)$ and $x^+=x-\alpha G$. Substituting this step into the quadratic upper bound gives
+\[
+f(x^+)\le f(x)-\alpha\left(1-\frac{L\alpha}{2}\right)\norm{G}^2.
+\]
+This inequality is algebraically valid for every real $\alpha$; its coefficient becomes positive when the admissible step-size assumptions are later used.
+
+\subsection*{Step 1: The one-step objective decrease statement}
+
+\textit{Source: \lean{Convergence.lean}, lines 57--61.}
+\begin{lstlisting}[style=leanproof,firstnumber=57]
+theorem gradient_descent_decrease {f : H → ℝ} {L : ℝ≥0}
+    (hdiff : Differentiable ℝ f) (hLip : LipschitzWith L (gradient f))
+    (α : ℝ) (x : H) :
+    f (x - α • gradient f x) ≤
+      f x - α * (1 - (L : ℝ) * α / 2) * ‖gradient f x‖ ^ 2 := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The two function hypotheses are real differentiability and the Lipschitz bound on \lean{gradient f}. The point $x$ and real scalar $\alpha$ are arbitrary. The displayed target is the descent inequality above. No sign or upper bound on $\alpha$ appears in this lemma, so it proves the substitution identity and upper estimate independently of step-size admissibility.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Substitute the step and simplify the inner product and norm}
+
+\textit{Source: \lean{Convergence.lean}, lines 62--64.}
+\begin{lstlisting}[style=leanproof,firstnumber=62]
+  have h := smooth_upper_bound f L hdiff hLip x (x - α • gradient f x)
+  rw [sub_sub_cancel_left, inner_neg_right, real_inner_smul_right,
+    real_inner_self_eq_norm_sq, norm_neg, norm_smul, Real.norm_eq_abs] at h
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The smoothness theorem is applied with $y=x-\alpha G$, producing
+\[
+f(x^+)\le f(x)+\ip{G}{x^+-x}+\frac L2\norm{x^+-x}^2.
+\]
+\lean{rw ... at h} rewrites the local inequality rather than the main goal. The first rewrite gives $x^+-x=-\alpha G$. Inner-product linearity then gives $\ip{G}{-\alpha G}=-\alpha\ip{G}{G}=-\alpha\norm{G}^2$. The norm rewrites remove the negation and use $\norm{\alpha G}=|\alpha|\norm{G}$. At this stage the remaining quadratic term is $\frac L2(|\alpha|\norm{G})^2$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Expand the squared norm and collect the coefficient}
+
+\textit{Source: \lean{Convergence.lean}, lines 65--66.}
+\begin{lstlisting}[style=leanproof,firstnumber=65]
+  rw [mul_pow, sq_abs] at h
+  nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{mul_pow} expands $(|\alpha|\norm{G})^2$ as $|\alpha|^2\norm{G}^2$, and \lean{sq_abs} replaces $|\alpha|^2$ by $\alpha^2$. Thus the local inequality becomes
+\[
+f(x^+)\le f(x)-\alpha\norm{G}^2+\frac L2\alpha^2\norm{G}^2.
+\]
+\lean{nlinarith} checks that this right-hand side equals $f(x)-\alpha(1-L\alpha/2)\norm{G}^2$ and concludes the requested inequality. The tactic supplies polynomial rearrangement here, rather than a new analytic estimate.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Combine descent and the gradient lower bound to contract the gap}
+
+Let $z$ be stationary and set $\Delta=f(x)-f(z)$. Strong convexity gives $2m\Delta\le\norm{\nabla f(x)}^2$ and $\Delta\ge0$. With the positive descent coefficient $c=\alpha(1-L\alpha/2)$, this yields the raw gap factor $q$; nonnegativity of $\Delta$ then allows replacement of $q$ by $\rho=\max\{0,q\}$.
+
+\subsection*{Step 1: All hypotheses for a single contracted step}
+
+\textit{Source: \lean{Convergence.lean}, lines 69--74.}
+\begin{lstlisting}[style=leanproof,firstnumber=69]
+theorem gradient_descent_gap_step {f : H → ℝ} {m α : ℝ} {L : ℝ≥0}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
+    (hLip : LipschitzWith L (gradient f)) (hm : 0 < m)
+    (hL : 0 < (L : ℝ)) (hα : 0 < α) (hαL : α < 2 / (L : ℝ))
+    {z : H} (hz : gradient f z = 0) (x : H) :
+    f (x - α • gradient f x) - f z ≤ rate m α L * (f x - f z) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The function is differentiable, $m$-strongly convex on the whole space, and has an $L$-Lipschitz gradient. The signs are $m>0$, $L>0$, $\alpha>0$, and $\alpha<2/L$. The reference point $z$ is implicit, and \lean{hz} supplies stationarity $\nabla f(z)=0$. The goal is
+\[
+f(x-\alpha\nabla f(x))-f(z)\le\rho\bigl(f(x)-f(z)\bigr).
+\]
+This lemma assumes a stationary point; the main theorem later constructs one, rather than adding its existence to the user-facing hypotheses.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Prove the descent coefficient is nonnegative}
+
+\textit{Source: \lean{Convergence.lean}, lines 75--78.}
+\begin{lstlisting}[style=leanproof,firstnumber=75]
+  have hαL' : α * (L : ℝ) < 2 := (lt_div_iff₀ hL).mp hαL
+  have hc : 0 ≤ α * (1 - (L : ℝ) * α / 2) := by
+    apply mul_nonneg hα.le
+    nlinarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Since $L>0$, the step condition gives $\alpha L<2$. It follows that $1-L\alpha/2>0$. \lean{mul_nonneg} uses $\alpha\ge0$ and reduces the local goal to nonnegativity of the second factor; \lean{nlinarith} derives that factor's sign. The resulting proof \lean{hc} states
+\[
+0\le c=\alpha(1-L\alpha/2).
+\]
+This sign must be established before multiplying the gradient lower bound by $c$, because multiplication by a negative number would reverse order.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Turn the upper-gap inequality into a lower bound for gradient norm}
+
+\textit{Source: \lean{Convergence.lean}, lines 79--83.}
+\begin{lstlisting}[style=leanproof,firstnumber=79]
+  have hpl : 2 * m * (f x - f z) ≤ ‖gradient f x‖ ^ 2 := by
+    simpa only [mul_comm] using
+      (le_div_iff₀ (by positivity : 0 < 2 * m)).mp (strong_upper_gap hdiff hsc hm x z)
+  have hscaled := mul_le_mul_of_nonneg_left hpl hc
+  have hdesc := gradient_descent_decrease hdiff hLip α x
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The theorem \lean{strong_upper_gap} gives
+\[
+\Delta\le\frac{\norm{\nabla f(x)}^2}{2m}.
+\]
+\lean{positivity} proves $2m>0$. The \lean{.mp} direction of \lean{le_div_iff}${}_0$ therefore yields $\Delta(2m)\le\norm{\nabla f(x)}^2$ without reversing order, and \lean{simpa only [mul_comm]} writes it as $2m\Delta\le\norm{\nabla f(x)}^2$. Multiplication by the previously proved $c\ge0$ then gives
+\[
+2mc\Delta\le c\norm{\nabla f(x)}^2.
+\]
+The next line also records the descent inequality $f(x^+)\le f(x)-c\norm{\nabla f(x)}^2$ as \lean{hdesc}, so both inequalities are available for the final polynomial combination.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Prove nonnegative gap before changing the rate}
+
+\textit{Source: \lean{Convergence.lean}, lines 84--87.}
+\begin{lstlisting}[style=leanproof,firstnumber=84]
+  have hgap : 0 ≤ f x - f z := by
+    have h := strong_lower_gap hdiff hsc hz x
+    have hn : 0 ≤ m / 2 * ‖x - z‖ ^ 2 := by positivity
+    linarith
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Stationarity allows \lean{strong_lower_gap} to give
+\[
+\frac m2\norm{x-z}^2\le\Delta.
+\]
+\lean{positivity} proves that its left side is nonnegative using $m>0$ and nonnegativity of a square. \lean{linarith} combines these two inequalities to get $0\le\Delta$. This separate fact is used in the last line when replacing the raw factor $q$ by its nonnegative clamp.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Derive the raw factor, then use the maximum safely}
+
+\textit{Source: \lean{Convergence.lean}, lines 88--91.}
+\begin{lstlisting}[style=leanproof,firstnumber=88]
+  have hraw : f (x - α • gradient f x) - f z ≤
+      (1 - m * α * (2 - (L : ℝ) * α)) * (f x - f z) := by
+    nlinarith
+  exact hraw.trans (mul_le_mul_of_nonneg_right (le_max_right _ _) hgap)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The inequalities recorded as \lean{hscaled} and \lean{hdesc} give
+\[
+\begin{aligned}
+f(x^+)-f(z)&\le\Delta-c\norm{\nabla f(x)}^2\\
+&\le\Delta-2mc\Delta\\
+&=\bigl(1-m\alpha(2-L\alpha)\bigr)\Delta=q\Delta.
+\end{aligned}
+\]
+\lean{nlinarith} verifies this combination and the identity $2mc=m\alpha(2-L\alpha)$. The theorem \lean{le_max_right} proves $q\le\max(0,q)=\rho$. Multiplying this inequality on the right by the proven $\Delta\ge0$ preserves order, so $q\Delta\le\rho\Delta$. Finally \lean{hraw.trans} composes the two bounds. If $q<0$, the raw inequality and nonnegativity of both the current and next gaps force the compatible zero-gap behavior (the next gap is nonnegative by \lean{strong_lower_gap} at $x^+$); the clamp still yields a valid estimate.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\section{Assemble existence, uniqueness, limits, and quantitative bounds}
+
+This final theorem supplies a single point $z$ satisfying all conclusions. Its proof first obtains the stationary minimizer, then applies the generic rate lemmas to the concrete recursive gradient descent sequence. Write $x_n=\lean{iterate}\,(\lean{gradient}\,f)\,\alpha\,x_0\,n$ and $\Delta_n=f(x_n)-f(z)$.
+
+\subsection*{Step 1: The full list of input hypotheses}
+
+\textit{Source: \lean{Convergence.lean}, lines 95--98.}
+\begin{lstlisting}[style=leanproof,firstnumber=95]
+theorem gradient_descent_converges {f : H → ℝ} {m α : ℝ} {L : ℝ≥0}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
+    (hLip : LipschitzWith L (gradient f)) (hm : 0 < m)
+    (hL : 0 < (L : ℝ)) (hα : 0 < α) (hαL : α < 2 / (L : ℝ)) (x₀ : H) :
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The implicit function $f:H\to\R$, scalars $m,\alpha\in\R$, and $L\in\R_{\ge0}$ are followed by explicit proof arguments. \lean{hdiff} supplies differentiability; \lean{hsc} supplies $\lean{StrongConvexOn}$ on the whole space with parameter $m$; \lean{hLip} supplies $L$-Lipschitz continuity of the gradient. The remaining proof arguments assert
+\[
+m>0,\quad L>0,\quad\alpha>0,\quad\alpha<2/L.
+\]
+The starting point $x_0:H$ is unrestricted. There is no minimizer or stationary-point hypothesis here. The complete Hilbert-space typeclasses declared earlier are implicit assumptions on $H$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Existential minimizer and both limits}
+
+\textit{Source: \lean{Convergence.lean}, lines 99--103.}
+\begin{lstlisting}[style=leanproof,firstnumber=99]
+    ∃ z : H, gradient f z = 0 ∧
+      (∀ x : H, f z ≤ f x) ∧
+      (∀ y : H, (∀ x : H, f y ≤ f x) → y = z) ∧
+      Tendsto (iterate (gradient f) α x₀) atTop (𝓝 z) ∧
+      Tendsto (fun n ↦ f (iterate (gradient f) α x₀ n)) atTop (𝓝 (f z)) ∧
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The existential quantifier requests one $z:H$ with a chain of conjunctions. Their first five components state: $\nabla f(z)=0$; $f(z)\le f(x)$ for every $x$; every other global minimizer $y$ equals $z$; $x_n\to z$; and $f(x_n)\to f(z)$. The conjunctions are right-associated, so a tuple can later supply these proofs in this exact order. The \lean{Tendsto} statements encode limits as $n$ tends to infinity through the natural numbers. All components refer to the same existential witness.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: The per-iteration quantitative conclusions}
+
+\textit{Source: \lean{Convergence.lean}, lines 104--108.}
+\begin{lstlisting}[style=leanproof,firstnumber=104]
+      ∀ n : ℕ,
+        0 ≤ f (iterate (gradient f) α x₀ n) - f z ∧
+        f (iterate (gradient f) α x₀ n) - f z ≤ rate m α L ^ n * (f x₀ - f z) ∧
+        ‖iterate (gradient f) α x₀ n - z‖ ^ 2 ≤
+          (2 / m) * (rate m α L ^ n * (f x₀ - f z)) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The final component universally quantifies over $n\in\N$ and asks for three more conjuncts:
+\[
+\begin{gathered}
+0\le\Delta_n,\qquad\Delta_n\le\rho^n\Delta_0,\\
+\norm{x_n-z}^2\le\frac2m\bigl(\rho^n\Delta_0\bigr),\qquad
+\Delta_0=f(x_0)-f(z),\quad\rho=\lean{rate}\,m\,\alpha\,L.
+\end{gathered}
+\]
+The exponent is a natural-number power. The displayed prefactor $2/m$ is meaningful because $m>0$. The terminating \lean{:= by} begins the proof of the entire existential statement, not just the final bound.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Choose the stationary minimizer and prepare the generic hypotheses}
+
+\textit{Source: \lean{Convergence.lean}, lines 109--113.}
+\begin{lstlisting}[style=leanproof,firstnumber=109]
+  obtain ⟨z, hz⟩ := exists_stationary hdiff hsc hm hLip
+  obtain ⟨hmin, huniq⟩ := stationary_unique_minimizer hdiff hsc hm hz
+  have hρ₀ := rate_nonneg m α L
+  have hρ₁ := rate_lt_one hm hL hα hαL
+  have hlower (n : ℕ) := strong_lower_gap hdiff hsc hz (iterate (gradient f) α x₀ n)
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{obtain} destructures an existential or conjunction into named local values and proofs. The first use obtains $z$ and $\nabla f(z)=0$ from \lean{exists_stationary}; the second obtains global minimality and uniqueness at that point. The next two lines record $0\le\rho$ and $\rho<1$ from the rate lemmas. Finally \lean{have hlower (n : ...)} creates a family of proofs
+\[
+\frac m2\norm{x_n-z}^2\le\Delta_n\quad\text{for every }n.
+\]
+The application of \lean{strong_lower_gap} uses the newly obtained stationarity proof. Thus all of the objects and signs required by the abstract rate theorems are now available.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Connect the recursive sequence to the one-step gap lemma}
+
+\textit{Source: \lean{Convergence.lean}, lines 114--118.}
+\begin{lstlisting}[style=leanproof,firstnumber=114]
+  have hstep (n : ℕ) :
+      f (iterate (gradient f) α x₀ (n + 1)) - f z ≤
+        rate m α L * (f (iterate (gradient f) α x₀ n) - f z) := by
+    rw [iterate_succ]
+    exact gradient_descent_gap_step hdiff hsc hLip hm hL hα hαL hz _
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The local goal is the family of inequalities $\Delta_{n+1}\le\rho\Delta_n$. \lean{rw [iterate_succ]} replaces $x_{n+1}$ by $x_n-\alpha\nabla f(x_n)$, leaving
+\[
+f(x_n-\alpha\nabla f(x_n))-f(z)\le\rho\bigl(f(x_n)-f(z)\bigr).
+\]
+This is precisely \lean{gradient_descent_gap_step} at $x=x_n$. \lean{exact} passes the differentiability, strong-convexity, Lipschitz, sign, step-size, and stationarity proofs in their declared order. The last underscore lets Lean infer the point $x_n$ from the current goal.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 6: Obtain gap nonnegativity and the two generic limits}
+
+\textit{Source: \lean{Convergence.lean}, lines 119--121.}
+\begin{lstlisting}[style=leanproof,firstnumber=119]
+  have hgap (n : ℕ) : 0 ≤ f (iterate (gradient f) α x₀ n) - f z := sub_nonneg.mpr (hmin _)
+  have hx := tendsto_of_geometric_gap f (iterate (gradient f) α x₀) z hm hρ₀ hρ₁ hlower hstep
+  have hf := gap_tendsto_zero f (iterate (gradient f) α x₀) z hρ₀ hρ₁ hgap hstep
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Global minimality gives $f(z)\le f(x_n)$; \lean{sub_nonneg.mpr} converts this into $0\le\Delta_n$. The underscore in \lean{hmin _} is inferred as $x_n$. The generic norm-convergence theorem applied to the concrete sequence then yields \lean{hx}, the proof $x_n\to z$. The scalar gap theorem yields \lean{hf}, the proof $\Delta_n\to0$. Their hypotheses are the lower bound and one-step inequality just proved, together with $m>0$ and $0\le\rho<1$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 7: Recover objective-value convergence and fill the existential tuple}
+
+\textit{Source: \lean{Convergence.lean}, lines 122--124.}
+\begin{lstlisting}[style=leanproof,firstnumber=122]
+  have hf' : Tendsto (fun n ↦ f (iterate (gradient f) α x₀ n)) atTop (𝓝 (f z)) := by
+    simpa only [sub_add_cancel, zero_add] using hf.add_const (f z)
+  refine ⟨z, hz, hmin, huniq, hx, hf', fun n ↦ ⟨hgap n, ?_, ?_⟩⟩
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Adding the constant $f(z)$ to \lean{hf} proves $\Delta_n+f(z)\to0+f(z)$. The restricted simplifier rewrites the source using \lean{sub_add_cancel} and the target using \lean{zero_add}, yielding $f(x_n)\to f(z)$. The \lean{refine} tuple then supplies, in order, the witness $z$, stationarity, minimality, uniqueness, norm convergence, and objective convergence. Its final function \lean{fun n} supplies the universally quantified triple. The first entry of that triple is the already proved $0\le\Delta_n$; the two question-mark holes create only the remaining bound goals
+\[
+\Delta_n\le\rho^n\Delta_0,
+\qquad\norm{x_n-z}^2\le\frac2m\bigl(\rho^n\Delta_0\bigr).
+\]
+These are ordinary intermediate proof goals, both discharged immediately below.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 8: Close the objective-gap rate subgoal}
+
+\textit{Source: \lean{Convergence.lean}, lines 125--126.}
+\begin{lstlisting}[style=leanproof,firstnumber=125]
+  · simpa only [iterate_zero] using
+      geometric_gap_bound f (iterate (gradient f) α x₀) z hρ₀ hstep n
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The first bullet focuses the first remaining goal from \lean{refine}. The generic \lean{geometric_gap_bound} gives $\Delta_n\le\rho^n(f(x_{\mathrm{sequence},0})-f(z))$ for the chosen sequence. \lean{simpa only [iterate_zero]} evaluates that sequence's zeroth term as the supplied $x_0$. Hence its initial gap becomes exactly $f(x_0)-f(z)$ and the theorem matches the first target without any additional hypothesis.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 9: Close the squared-distance rate subgoal}
+
+\textit{Source: \lean{Convergence.lean}, lines 127--128.}
+\begin{lstlisting}[style=leanproof,firstnumber=127]
+  · simpa only [iterate_zero] using
+      squared_distance_bound f (iterate (gradient f) α x₀) z hm hρ₀ hlower hstep n
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The second bullet focuses the final remaining goal. The generic \lean{squared_distance_bound} uses $m>0$, $\rho\ge0$, \lean{hlower}, and \lean{hstep} to prove
+\[
+\norm{x_n-z}^2\le\frac2m\rho^n\bigl(f(x_{\mathrm{sequence},0})-f(z)\bigr).
+\]
+Again \lean{iterate_zero} turns the initial sequence value into $x_0$. \lean{simpa only} checks that this is the stated squared-distance bound. With both holes filled, every component of the existential result has a complete proof.
+
+\end{proofstep}
+
+\clearpage
+
+\begin{proofstep}
+
+\section{Checking the step-size endpoints in Lean}
+
+These final proofs check the assumptions of a concrete quadratic and then show why the two strict step-size endpoints cannot be included. They also provide short examples of differentiating, rewriting, induction, and contradiction. All snippets below come from \lean{Sharpness.lean}.
+
+\subsection*{Step 1: Define the model objective}
+
+\textit{Source: \lean{Sharpness.lean}, lines 26--26.}
+\begin{lstlisting}[style=leanproof,firstnumber=26]
+def quadratic (x : ℝ) : ℝ := x ^ 2 / 2
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The definition is $F(x)=x^2/2$ on the real line. We use $F$ for this objective here so that it is distinguished from the arbitrary $f$ in the main theorem.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 2: Compute the scalar derivative}
+
+\textit{Source: \lean{Sharpness.lean}, lines 28--32.}
+\begin{lstlisting}[style=leanproof,firstnumber=28]
+lemma quadratic_hasDerivAt (x : ℝ) : HasDerivAt quadratic x x := by
+  have h := ((hasDerivAt_id x).pow 2).div_const 2
+  convert h using 1
+  · rfl
+  · simp
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{hasDerivAt_id x} states that the identity map has derivative $1$ at $x$. The method \lean{.pow 2} differentiates its square, and \lean{.div_const 2} divides the derivative by $2$. Thus the stored fact \lean{h} has derivative $(2x)/2$, while the goal requests derivative $x$. \lean{convert h using 1} leaves two matching obligations. The function equality is definitional and is closed by \lean{rfl}; \lean{simp} reduces $(2x)/2$ to $x$. After this block,
+\[
+\operatorname{HasDerivAt}(F,x,x),\qquad F'(x)=x.
+\]
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 3: Obtain differentiability everywhere}
+
+\textit{Source: \lean{Sharpness.lean}, lines 34--35.}
+\begin{lstlisting}[style=leanproof,firstnumber=34]
+lemma quadratic_differentiable : Differentiable ℝ quadratic :=
+  fun x => (quadratic_hasDerivAt x).differentiableAt
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} For each real $x$, the derivative fact just proved supplies differentiability at $x$ through \lean{.differentiableAt}. The function \lean{fun x => ...} supplies this fact for every point, which is the meaning of \lean{Differentiable}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 4: Identify the real gradient}
+
+\textit{Source: \lean{Sharpness.lean}, lines 37--39.}
+\begin{lstlisting}[style=leanproof,firstnumber=37]
+@[simp]
+lemma gradient_quadratic (x : ℝ) : gradient quadratic x = x := by
+  rw [gradient_eq_deriv', (quadratic_hasDerivAt x).deriv]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} For a real-valued function on the real line, \lean{gradient_eq_deriv'} identifies its gradient with its scalar derivative. The second rewrite uses \lean{(quadratic_hasDerivAt x).deriv} to conclude
+\[
+\nabla F(x)=\operatorname{deriv}F(x)=x.
+\]
+The \lean{@[simp]} attribute registers this equality as a simplification rule for later proofs.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 5: Reduce strong convexity to convexity of the adjusted function}
+
+\textit{Source: \lean{Sharpness.lean}, lines 41--44.}
+\begin{lstlisting}[style=leanproof,firstnumber=41]
+lemma quadratic_strongConvex : StrongConvexOn Set.univ 1 quadratic := by
+  apply strongConvexOn_iff_convex.mpr
+  have hzero : (fun x : ℝ => quadratic x - (1 : ℝ) / 2 * ‖x‖ ^ 2) =
+      (fun _ : ℝ => (0 : ℝ)) := by
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The goal is $1$-strong convexity. The reverse implication \lean{.mpr} of the equivalence changes the task to convexity of
+\[
+x\longmapsto F(x)-\frac12\norm x^2.
+\]
+The local equality \lean{hzero} will identify this entire function with the constant zero function.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 6: Prove that the adjusted function vanishes}
+
+\textit{Source: \lean{Sharpness.lean}, lines 45--47.}
+\begin{lstlisting}[style=leanproof,firstnumber=45]
+    funext x
+    simp [quadratic, Real.norm_eq_abs, sq_abs]
+    ring
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} \lean{funext x} reduces equality of the two functions to equality of their values at an arbitrary $x$. The simplifications unfold $F$, replace the real norm by $|x|$, and use $|x|^2=x^2$. The remaining scalar identity is
+\[
+\frac{x^2}{2}-\frac12x^2=0,
+\]
+which \lean{ring} proves by polynomial normalization. This establishes \lean{hzero}.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 7: Finish strong convexity}
+
+\textit{Source: \lean{Sharpness.lean}, lines 48--49.}
+\begin{lstlisting}[style=leanproof,firstnumber=48]
+  rw [hzero]
+  exact convexOn_const 0 (convex_univ : Convex ℝ (Set.univ : Set ℝ))
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Rewriting by \lean{hzero} makes the convexity goal a statement about the constant zero function. \lean{convexOn_const} supplies its convexity on the convex domain \lean{Set.univ}. Together with the previous equivalence, this proves that $F$ is $1$-strongly convex.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 8: Check the gradient Lipschitz constant}
+
+\textit{Source: \lean{Sharpness.lean}, lines 51--53.}
+\begin{lstlisting}[style=leanproof,firstnumber=51]
+lemma quadratic_gradient_lipschitz : LipschitzWith 1 (gradient quadratic) := by
+  simpa only [show gradient quadratic = id by funext x; exact gradient_quadratic x] using
+    (LipschitzWith.id : LipschitzWith 1 (id : ℝ → ℝ))
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The embedded \lean{show} proves the equality of vector fields $\nabla F=\operatorname{id}$ by function extensionality and \lean{gradient_quadratic}. The library fact \lean{LipschitzWith.id} is the inequality
+\[
+|\operatorname{id}(x)-\operatorname{id}(y)|\le1\,|x-y|.
+\]
+\lean{simpa only} substitutes the field equality into this fact. Thus all function assumptions of the convergence theorem hold with $m=L=1$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 9: State the exact iterates and prove the base case}
+
+\textit{Source: \lean{Sharpness.lean}, lines 56--59.}
+\begin{lstlisting}[style=leanproof,firstnumber=56]
+lemma quadratic_iterate (α : ℝ) (n : ℕ) :
+    iterate (gradient quadratic) α (1 : ℝ) n = (1 - α) ^ n := by
+  induction n with
+  | zero => simp
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The claim is $x_n=(1-\alpha)^n$ for the initial point $x_0=1$. \lean{induction n with} gives a base goal and an induction step. In the zero case, the defining equation of \lean{iterate} and the rule $a^0=1$ reduce both sides to $1$, so \lean{simp} closes that goal.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 10: Perform the induction step}
+
+\textit{Source: \lean{Sharpness.lean}, lines 60--62.}
+\begin{lstlisting}[style=leanproof,firstnumber=60]
+  | succ n ih =>
+      rw [iterate_succ, ih, gradient_quadratic, smul_eq_mul, pow_succ]
+      ring
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The induction hypothesis is $x_n=(1-\alpha)^n$. The rewrites unfold the successor iteration, substitute this hypothesis, replace the gradient by the identity, express real scalar multiplication as multiplication, and expand the successor power. The resulting identity is
+\[
+(1-\alpha)^n-\alpha(1-\alpha)^n=(1-\alpha)^n(1-\alpha),
+\]
+which \lean{ring} proves. Therefore the exact formula holds for every real step $\alpha$ and every $n$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 11: Evaluate the two boundary sequences}
+
+\textit{Source: \lean{Sharpness.lean}, lines 64--70.}
+\begin{lstlisting}[style=leanproof,firstnumber=64]
+lemma quadratic_iterate_zero (n : ℕ) :
+    iterate (gradient quadratic) 0 (1 : ℝ) n = 1 := by
+  simp [quadratic_iterate]
+
+lemma quadratic_iterate_two (n : ℕ) :
+    iterate (gradient quadratic) 2 (1 : ℝ) n = (-1 : ℝ) ^ n := by
+  norm_num [quadratic_iterate]
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} With $\alpha=0$, the formula is $(1-0)^n=1$; \lean{simp} proves the first lemma. With $\alpha=2$, it is $(1-2)^n=(-1)^n$; \lean{norm_num} evaluates the constant subtraction. These establish
+\[
+x_n=1\quad(\alpha=0),\qquad x_n=(-1)^n\quad(\alpha=2).
+\]
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 12: Assume convergence at zero step and identify the constant sequence}
+
+\textit{Source: \lean{Sharpness.lean}, lines 73--79.}
+\begin{lstlisting}[style=leanproof,firstnumber=73]
+theorem quadratic_zero_step_not_tendsto :
+    ¬ Tendsto (iterate (gradient quadratic) 0 (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
+  intro h
+  have hn : Tendsto (fun _ : ℕ => (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
+    change Tendsto (fun n => iterate (gradient quadratic) 0 (1 : ℝ) n) atTop
+      (𝓝 (0 : ℝ)) at h
+    simpa only [quadratic_iterate_zero] using h
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The theorem states the negation of convergence to $0$. \lean{intro h} assumes that convergence in order to derive a contradiction. The \lean{change ... at h} command presents the sequence explicitly as a function of $n$. The exact formula \lean{quadratic_iterate_zero} then turns \lean{h} into the named limit fact
+\[
+\texttt{hn}:\quad (n\mapsto1)\longrightarrow0.
+\]
+Here $0$ is the minimizer because $F(0)=0\le F(x)$, with equality only at $x=0$.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 13: Use uniqueness of limits to obtain a contradiction}
+
+\textit{Source: \lean{Sharpness.lean}, lines 80--81.}
+\begin{lstlisting}[style=leanproof,firstnumber=80]
+  have heq : (1 : ℝ) = 0 := tendsto_nhds_unique tendsto_const_nhds hn
+  norm_num at heq
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The constant sequence $1$ tends to $1$, by \lean{tendsto_const_nhds}. Together with \lean{hn}, uniqueness of limits in the real line gives $1=0$, stored as \lean{heq}. \lean{norm_num at heq} evaluates that impossible equality and closes the contradiction. Thus the lower endpoint cannot be part of the universal convergence guarantee.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 14: Assume convergence at the upper endpoint and take norms}
+
+\textit{Source: \lean{Sharpness.lean}, lines 84--89.}
+\begin{lstlisting}[style=leanproof,firstnumber=84]
+theorem quadratic_two_step_not_tendsto :
+    ¬ Tendsto (iterate (gradient quadratic) 2 (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
+  intro h
+  have hn : Tendsto (fun _ : ℕ => (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
+    simpa only [quadratic_iterate_two, norm_pow, norm_neg, norm_one, one_pow,
+      norm_zero] using h.norm
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} Again \lean{intro h} assumes convergence to zero. Applying \lean{h.norm} gives $|x_n|\to|0|$. The simplifications use $x_n=(-1)^n$, $|a^n|=|a|^n$, $|-1|=1$, and $1^n=1$, yielding
+\[
+\texttt{hn}:\quad(n\mapsto1)\longrightarrow0.
+\]
+This is the exact reason an oscillating sequence cannot converge to zero.
+
+\end{proofstep}
+
+\begin{proofstep}
+
+\subsection*{Step 15: Contradict uniqueness of limits again}
+
+\textit{Source: \lean{Sharpness.lean}, lines 90--91.}
+\begin{lstlisting}[style=leanproof,firstnumber=90]
+  have heq : (1 : ℝ) = 0 := tendsto_nhds_unique tendsto_const_nhds hn
+  norm_num at heq
+\end{lstlisting}
+
+
+\textbf{Mathematics and Lean.} The constant norm sequence also tends to $1$, so \lean{tendsto_nhds_unique} produces $1=0$ and \lean{norm_num} eliminates it. This proves failure at $\alpha=2=2/L$ for a function satisfying all the hypotheses with $m=L=1$.
+
+\end{proofstep}
+
+\clearpage
+\section{Rebuilding and checking this walkthrough}
+
+From the Research folder, run
+\begin{verbatim}
+lake build GradientDescent
+lake env lean GradientDescent/Check.lean
+\end{verbatim}
+The first command checks the umbrella module and its dependencies. The second
+prints the logical axioms used by the main theorem, the unique-minimizer theorem,
+and the two endpoint counterexamples. The existing audit reports only
+\lean{propext}, \lean{Classical.choice}, and \lean{Quot.sound}, the standard
+logical foundations used here.
+
+The snippets in this document are extracted automatically from the Lean files
+by \lean{build_exposition.py}. The annotation data contain the source-file name,
+the inclusive line range, and the accompanying mathematical explanation.
+The generator embeds the code into the standalone \lean{GradientDescent.tex};
+compiling that file needs no external code include. The file
+\lean{source_manifest.json} records the source hashes and the exact ranges
+used, so the code-to-document correspondence can be checked mechanically.
+
+To regenerate the walkthrough after a source or annotation change:
+\begin{verbatim}
+python3 GradientDescent/exposition/build_exposition.py
+pdflatex -interaction=nonstopmode -halt-on-error \
+  -output-directory=GradientDescent/exposition \
+  GradientDescent/exposition/GradientDescent.tex
+\end{verbatim}
+Run the LaTeX command again to resolve the contents and references. If Lean
+source lines move, update the affected annotation ranges before generating.
+
+For a first pass, read the supporting-plane proof, the upper-gap proof,
+\lean{gradient_descent_decrease}, and \lean{gradient_descent_gap_step}.
+They show the key link between familiar inequalities and Lean commands.
+Then read the geometric induction and final assembly to see how those local
+inequalities produce the complete convergence theorem. The remaining sections
+explain every supporting proof, including minimizer existence and the strict
+step-size endpoints.
+
+
+\end{document}

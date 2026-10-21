@@ -1,0 +1,3958 @@
+{
+  "title": "Convexity in Lean: short proofs with every step visible",
+  "scope": "<p>Real functions, explicit Jensen inequalities, closure properties, and optimization certificates. No calculus, measure theory, or Langevin machinery is required.</p>",
+  "notation": {
+    "functionApplication": "f x",
+    "anonymousFunction": "fun x : ℝ ↦ …",
+    "proofState": "context followed by ⊢ goal"
+  },
+  "setup": [
+    {
+      "id": "files",
+      "title": "Files and names",
+      "explanation": "<p>Each import loads checked declarations from another module. The namespace gives the project declarations a shared prefix. Comments describe the code and are not proof commands.</p>",
+      "tokens": [
+        {
+          "token": "import ConvexityTutorial.Definitions",
+          "explanation": "Load Definitions.lean and its imported declarations. Dots in a project module name correspond to folders."
+        },
+        {
+          "token": "namespace ConvexityTutorial",
+          "explanation": "Prefix declared names with ConvexityTutorial.; end ConvexityTutorial closes this naming scope."
+        },
+        {
+          "token": "/-! … -/ and /-- … -/",
+          "explanation": "Module and declaration documentation comments. Ordinary -- begins a comment extending to the end of its line."
+        },
+        {
+          "token": "set_option linter.style.header false",
+          "explanation": "Disable one copyright-header style check for the remainder of the current file. It appears in Definitions.lean, Basic.lean, and Minimizers.lean, and changes no mathematical definitions or proof checking."
+        }
+      ]
+    },
+    {
+      "id": "types",
+      "title": "Read the types before reading the proof",
+      "explanation": "<p>A type specifies what an input is. Propositions are also types: a proof of a proposition is an expression whose type is that proposition. Therefore hypotheses can be passed to lemmas just like numerical inputs.</p>",
+      "tokens": [
+        {
+          "token": "ℝ",
+          "explanation": "The real numbers. The symbols and operations come from mathlib."
+        },
+        {
+          "token": "f : ℝ → ℝ",
+          "explanation": "f is a function taking a real input to a real output."
+        },
+        {
+          "token": "f x",
+          "explanation": "Function application, written with a space. It means f(x). Function application binds more tightly than arithmetic."
+        },
+        {
+          "token": "(f : ℝ → ℝ)",
+          "explanation": "An explicit argument binder: the name precedes its type after the colon."
+        },
+        {
+          "token": "(x y a b : ℝ)",
+          "explanation": "Four explicit real arguments, all with the displayed common type."
+        },
+        {
+          "token": "(hf : IsConvex f)",
+          "explanation": "An explicit proof argument. The name hf is conventional; its declared type is what makes it a convexity proof."
+        },
+        {
+          "token": "Prop",
+          "explanation": "The type of mathematical propositions."
+        },
+        {
+          "token": "∀ and →",
+          "explanation": "∀ introduces arbitrary inputs. Between propositions, → introduces a premise that must be supplied as a proof."
+        }
+      ]
+    },
+    {
+      "id": "definitions",
+      "title": "Definitions and anonymous functions",
+      "explanation": "<p>A definition supplies an expression for a new name. An anonymous function supplies an input-to-output rule without introducing a separate named function.</p>",
+      "tokens": [
+        {
+          "token": "def IsConvex (f : ℝ → ℝ) : Prop := …",
+          "explanation": "Define the proposition IsConvex f by the quantified expression after :=."
+        },
+        {
+          "token": "fun x : ℝ ↦ s * x + c",
+          "explanation": "The function sending x to s*x+c. The x after fun is bound only within this function expression."
+        },
+        {
+          "token": "(1 / 2 : ℝ)",
+          "explanation": "A type annotation: one half is a real number. Lean can usually infer the types of other numerals from the expected real expressions."
+        }
+      ]
+    },
+    {
+      "id": "proofs",
+      "title": "Theorem statements and goals",
+      "explanation": "<p>A theorem names a proposition and provides its proof. A by block constructs that proof through tactics. Each displayed state lists the current context followed by ⊢ and the remaining proposition to prove.</p>",
+      "tokens": [
+        {
+          "token": "theorem name (inputs) : conclusion := by",
+          "explanation": "Name the theorem, declare its data and proof inputs, state its conclusion, then begin constructing the proof."
+        },
+        {
+          "token": "⊢",
+          "explanation": "The goal marker in the state display. It is not part of the theorem source."
+        },
+        {
+          "token": "have h : P := proof",
+          "explanation": "Add a proved local fact with name h and proposition P. A nested by block proves P before returning to the surrounding goal."
+        },
+        {
+          "token": "have h := proof",
+          "explanation": "The same construction, with the proposition inferred from the proof term."
+        },
+        {
+          "token": "indentation",
+          "explanation": "More-indented tactics belong to a nested local proof. Dedenting returns to the surrounding proof."
+        },
+        {
+          "token": "a b ha hb hab",
+          "explanation": "Arguments separated by spaces are supplied from left to right, in the order of the lemma’s explicit binders. Some are real data and some are proofs."
+        },
+        {
+          "token": "False and ¬",
+          "explanation": "False is the proposition with no proof; deriving it closes a contradiction. ¬ P means that a proof of P would imply False."
+        }
+      ]
+    },
+    {
+      "id": "order-and-algebra",
+      "title": "Order steps and algebraic steps",
+      "explanation": "<p>The proofs keep their mathematical reasons visible: convexity supplies inequalities; order lemmas combine them; rewriting uses equalities; arithmetic tactics check the remaining algebra. Every result is still checked by Lean’s kernel.</p>",
+      "tokens": [
+        {
+          "token": "rw [h₁, h₂]",
+          "explanation": "Rewrite with the named equalities in order. The equalities are used left to right in this tutorial."
+        },
+        {
+          "token": "rw […] at h",
+          "explanation": "Rewrite inside the named fact h instead of the current goal."
+        },
+        {
+          "token": "calc",
+          "explanation": "Link equalities and inequalities using their transitivity rules; every link has its own proof after :=."
+        },
+        {
+          "token": "ring",
+          "explanation": "Prove a polynomial identity by checked commutative-ring normalization."
+        },
+        {
+          "token": "norm_num",
+          "explanation": "Prove an exact numerical rational equality or inequality."
+        },
+        {
+          "token": "linarith",
+          "explanation": "Prove the linear consequence or contradiction supplied by the current real equalities and inequalities."
+        }
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "reading-convexity",
+      "title": "Read a mathematical definition in Lean",
+      "file": "ConvexityTutorial/Definitions.lean",
+      "theorem": "IsConvex",
+      "why": "<p>The definition exposes every assumption of the chord inequality. Reading its binders correctly is enough to understand every convexity proof that follows.</p>",
+      "statementMath": "\\operatorname{IsConvex}(f)\\iff\\forall x,y,a,b\\in\\mathbb R,\\quad a\\ge0,\\ b\\ge0,\\ a+b=1\\Longrightarrow f(ax+by)\\le af(x)+bf(y)",
+      "proofMath": "\\text{inputs: }x,y,a,b,\\quad\\text{hypotheses: }0\\le a,\\ 0\\le b,\\ a+b=1,\\quad\\text{conclusion: }f(ax+by)\\le af(x)+bf(y)",
+      "prerequisites": [],
+      "steps": [
+        {
+          "id": "read-convex-definition",
+          "title": "Define a predicate of real functions",
+          "math": "\\operatorname{IsConvex}:(\\mathbb R\\to\\mathbb R)\\to\\mathrm{Prop}",
+          "explanation": "<p>The new name IsConvex takes a function f as input and returns a proposition. Its definition will be the expression after := on the following lines. This is a declaration, so there is no tactic goal.</p>",
+          "start": 17,
+          "end": 17,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "f",
+              "type": "ℝ → ℝ",
+              "meaning": "The real-valued function supplied to the predicate."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "def",
+              "explanation": "Introduce a definition: the name is an abbreviation for the expression after :=."
+            },
+            {
+              "token": "IsConvex",
+              "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": "→",
+              "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "Prop",
+              "explanation": "The type of propositions. A proof of a proposition is a term having that proposition as its type."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            }
+          ],
+          "codeNotes": [
+            "<code>(f : ℝ → ℝ)</code> is an explicit input binder. The colon gives its type.",
+            "<code>ℝ → ℝ</code> means real input to real output; <code>Prop</code> means the result of IsConvex is a mathematical proposition."
+          ],
+          "kind": "declaration"
+        },
+        {
+          "id": "read-convex-inputs",
+          "title": "Quantify the points and weights",
+          "math": "\\forall x,y,a,b\\in\\mathbb R",
+          "explanation": "<p>The inequality must hold for every choice of two points x,y and two real weights a,b. The comma ends this binder list. Conditions restricting those weights appear on the next line.</p>",
+          "start": 18,
+          "end": 18,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "x y",
+              "type": "ℝ",
+              "meaning": "Arbitrary real points."
+            },
+            {
+              "name": "a b",
+              "type": "ℝ",
+              "meaning": "Arbitrary real weights, to be restricted by the following premises."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "∀",
+              "explanation": "For every: introduce universally quantified inputs."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ",",
+              "explanation": "End the binder list after ∀, or separate entries in a rewrite list."
+            }
+          ],
+          "codeNotes": [
+            "<code>∀ x y a b : ℝ,</code> gives four inputs with one common type annotation."
+          ],
+          "kind": "declaration"
+        },
+        {
+          "id": "read-convex-premises",
+          "title": "Read the three weight premises",
+          "math": "a\\ge0,\\qquad b\\ge0,\\qquad a+b=1",
+          "explanation": "<p>Each implication arrow means: given a proof of this premise, continue to the remaining proposition. The three required proofs certify nonnegative weights whose sum is one. These are proof inputs rather than additional real numbers.</p>",
+          "start": 19,
+          "end": 19,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "first premise",
+              "type": "0 ≤ a",
+              "meaning": "The first weight is nonnegative."
+            },
+            {
+              "name": "second premise",
+              "type": "0 ≤ b",
+              "meaning": "The second weight is nonnegative."
+            },
+            {
+              "name": "third premise",
+              "type": "a + b = 1",
+              "meaning": "The weights sum to one."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "0",
+              "explanation": "The real zero in these arithmetic expressions."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "→",
+              "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            }
+          ],
+          "codeNotes": [
+            "The same arrow <code>→</code> that formed a function type now connects propositions. A proof of an implication takes a proof of its premise as input."
+          ],
+          "kind": "declaration"
+        },
+        {
+          "id": "read-convex-conclusion",
+          "title": "Read the chord inequality",
+          "math": "f(ax+by)\\le af(x)+bf(y)",
+          "explanation": "<p>The left side evaluates f at the weighted point. The right side weights the two endpoint values. A proof of IsConvex must produce this inequality after receiving the four real inputs and the three premise proofs.</p>",
+          "start": 20,
+          "end": 20,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            }
+          ],
+          "codeNotes": [
+            "<code>f x</code> means f(x). A compound input needs grouping: <code>f (a * x + b * y)</code>.",
+            "<code>a * f x</code> means <code>a * (f x)</code>: function application binds more tightly than multiplication.",
+            "The definition is later identified with mathlib’s whole-real-line convexity predicate; no new mathematical meaning is being assumed."
+          ],
+          "kind": "declaration"
+        }
+      ],
+      "declaration": {
+        "start": 17,
+        "end": 17
+      }
+    },
+    {
+      "id": "affine",
+      "title": "Affine functions: the first complete proof",
+      "file": "ConvexityTutorial/Basic.lean",
+      "theorem": "convex_affine",
+      "why": "<p>An affine function preserves weighted averages exactly. This proof introduces goals, local hypotheses, rewriting, and a calculation chain while requiring only real algebra.</p>",
+      "statementMath": "f(t)=st+c\\quad\\Longrightarrow\\quad f\\text{ is convex}",
+      "proofMath": "\\begin{aligned}s(ax+by)+c&=s(ax+by)+(a+b)c\\\\&=a(sx+c)+b(sy+c).\\end{aligned}",
+      "prerequisites": [
+        "reading-convexity"
+      ],
+      "steps": [
+        {
+          "id": "affine-unfold",
+          "title": "Expose the definition of the target",
+          "math": "\\text{Prove Jensen’s inequality for }f(t)=st+c.",
+          "explanation": "<p>The target is the named predicate <code>IsConvex</code>. Unfolding replaces it with its universally quantified chord inequality. No mathematical hypothesis has been added.</p>",
+          "start": 25,
+          "end": 25,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "s c",
+              "type": "ℝ",
+              "meaning": "The arbitrary affine slope and offset."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "unfold",
+              "explanation": "Replace the listed definition by its defining expression in the current goal."
+            },
+            {
+              "token": "IsConvex",
+              "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+            }
+          ],
+          "codeNotes": [
+            "In the theorem statement, <code>fun x : ℝ ↦ s * x + c</code> is the function taking an input to its affine value.",
+            "<code>theorem convex_affine (s c : ℝ) : … := by</code> declares two real inputs, states the proposition after the colon, and begins its proof."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "affine-intro",
+          "title": "Fix arbitrary points and admissible weights",
+          "math": "x,y,a,b\\in\\mathbb R,\\qquad0\\le a,\\quad0\\le b,\\quad a+b=1.",
+          "explanation": "<p>Introduce the four arbitrary real inputs and then the three proofs required by the implication arrows. The order matches the definition exactly. The proof must now establish the chord inequality for these fixed but arbitrary inputs.</p>",
+          "start": 26,
+          "end": 26,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "x y a b",
+              "type": "ℝ",
+              "meaning": "Arbitrary real points and the two weights."
+            },
+            {
+              "name": "ha",
+              "type": "0 ≤ a",
+              "meaning": "First weight is nonnegative."
+            },
+            {
+              "name": "hb",
+              "type": "0 ≤ b",
+              "meaning": "Second weight is nonnegative."
+            },
+            {
+              "name": "hab",
+              "type": "a + b = 1",
+              "meaning": "The weights sum to one."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "intro",
+              "explanation": "Introduce the next universally quantified inputs or implication hypotheses into the context."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            }
+          ],
+          "codeNotes": [
+            "Names beginning with <code>h</code> conventionally denote proofs; Lean assigns no special meaning to that letter.",
+            "The nonnegativity hypotheses will not be used: affine functions satisfy the identity even for negative weights, provided their sum is one."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "affine-change",
+          "title": "Evaluate the anonymous function",
+          "math": "s(ax+by)+c\\le a(sx+c)+b(sy+c)",
+          "explanation": "<p>Replace applications of the anonymous function by its defining formula. This is computation of a function body, so <code>change</code> checks definitional equality instead of requesting a new algebraic theorem.</p>",
+          "start": 27,
+          "end": 27,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "change",
+              "explanation": "Replace the goal with a definitionally equal expression; no new mathematical assertion is assumed."
+            },
+            {
+              "token": "s",
+              "explanation": "The real slope of the affine function."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "c",
+              "explanation": "The real constant parameter: an affine offset or a scaling factor as specified by the theorem."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "affine-equality",
+          "title": "It suffices to prove equality",
+          "math": "A=B\\Longrightarrow A\\le B",
+          "explanation": "<p>Apply the order lemma backwards. The original non-strict inequality will follow from equality, so the new goal has the same two sides with an equals sign.</p>",
+          "start": 28,
+          "end": 28,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "apply",
+              "explanation": "Use a theorem backwards: its conclusion matches the goal and its missing premises become proof obligations."
+            },
+            {
+              "token": "le_of_eq",
+              "explanation": "The order lemma turning a proof of equality into a proof of ≤."
+            }
+          ],
+          "codeNotes": [
+            "<code>apply le_of_eq</code> does not assert equality. It changes the remaining proof obligation to equality."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "affine-calc",
+          "title": "Insert the weight sum and distribute",
+          "math": "\\begin{aligned}s(ax+by)+c&=s(ax+by)+(a+b)c\\\\&=a(sx+c)+b(sy+c).\\end{aligned}",
+          "explanation": "<p>The first calculation link uses the weight-sum proof to insert a factor of one in front of the offset. The second link is a polynomial identity. Lean checks both links and composes their equalities, completing the equality goal and hence the original inequality.</p>",
+          "start": 29,
+          "end": 32,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "calc",
+              "explanation": "Construct a chain of equalities or inequalities; Lean checks each link and composes them."
+            },
+            {
+              "token": "s",
+              "explanation": "The real slope of the affine function."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "c",
+              "explanation": "The real constant parameter: an affine offset or a scaling factor as specified by the theorem."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "rw",
+              "explanation": "Rewrite using the listed proved equalities, from left to right unless an arrow requests the opposite direction."
+            },
+            {
+              "token": "[",
+              "explanation": "Open the explicit list of equality lemmas used by rw or simp only."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            },
+            {
+              "token": ",",
+              "explanation": "End the binder list after ∀, or separate entries in a rewrite list."
+            },
+            {
+              "token": "one_mul",
+              "explanation": "The equality 1 * t = t."
+            },
+            {
+              "token": "]",
+              "explanation": "Close that list of equality lemmas."
+            },
+            {
+              "token": "_",
+              "explanation": "In a calc continuation, repeat the preceding right-hand side. This is not an extra variable."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>rw [hab, one_mul]</code> rewrites a + b to 1, then 1 * c to c; the first link becomes reflexive.",
+            "<code>_</code> on the next line repeats the preceding right-hand side. It is a calculation placeholder, not a new unknown real number.",
+            "<code>:= by ring</code> supplies a proof of that link by checked polynomial normalization. The nested indentation limits this proof to that link."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "declaration": {
+        "start": 24,
+        "end": 24
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "convex_affine",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "s",
+          "explanation": "The real slope of the affine function."
+        },
+        {
+          "token": "c",
+          "explanation": "The real constant parameter: an affine offset or a scaling factor as specified by the theorem."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "IsConvex",
+          "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+        },
+        {
+          "token": "fun",
+          "explanation": "Introduce an anonymous function, giving its bound input before ↦."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "↦",
+          "explanation": "Separate an anonymous function’s bound input from its output expression."
+        },
+        {
+          "token": "*",
+          "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+        },
+        {
+          "token": "+",
+          "explanation": "Real addition."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "midpoint",
+      "title": "Specialize convexity to a midpoint",
+      "file": "ConvexityTutorial/Basic.lean",
+      "theorem": "convex_midpoint",
+      "why": "<p>A convexity proof is a reusable theorem with explicit inputs. Applying it at two half-weights yields the midpoint inequality; numerical side conditions and algebraic normalization are separate proof tasks.</p>",
+      "statementMath": "f\\text{ convex}\\quad\\Longrightarrow\\quad f\\!\\left(\\frac{x+y}{2}\\right)\\le\\frac{f(x)+f(y)}2",
+      "proofMath": "f\\!\\left(\\tfrac12x+\\tfrac12y\\right)\\le\\tfrac12f(x)+\\tfrac12f(y)=\\frac{f(x)+f(y)}2",
+      "prerequisites": [
+        "reading-convexity",
+        "affine"
+      ],
+      "steps": [
+        {
+          "id": "midpoint-half",
+          "title": "Prove the half-weight is admissible",
+          "math": "0\\le\\tfrac12",
+          "explanation": "<p>Introduce a named proof of a concrete rational inequality. The type annotation selects the real number one half. The local numerical proof finishes without changing the main midpoint goal.</p>",
+          "start": 37,
+          "end": 37,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hhalf",
+              "type": "0 ≤ (1 / 2 : ℝ)",
+              "meaning": "The nonnegativity proof reused for both weights."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hhalf",
+              "explanation": "The proved nonnegativity, or strict positivity where stated, of the real number 1 / 2."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "0",
+              "explanation": "The real zero in these arithmetic expressions."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "norm_num",
+              "explanation": "Check a concrete rational numerical equality or inequality and construct its proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>have hhalf : … := by norm_num</code> declares a proposition, proves it locally, then makes the proof available by its name.",
+            "<code>(1 / 2 : ℝ)</code> is a real rational. A bare natural-number division would have a different meaning."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "midpoint-sum",
+          "title": "Prove the two weights sum to one",
+          "math": "\\tfrac12+\\tfrac12=1",
+          "explanation": "<p>A second concrete rational calculation supplies the remaining numerical input required by the convexity definition.</p>",
+          "start": 38,
+          "end": 38,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hsum",
+              "type": "(1 / 2 : ℝ) + 1 / 2 = 1",
+              "meaning": "The required weight-sum equality."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hsum",
+              "explanation": "The locally proved weight-sum equality, or the supporting-line sum inequality in the slope theorem."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "norm_num",
+              "explanation": "Check a concrete rational numerical equality or inequality and construct its proof."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "midpoint-apply",
+          "title": "Apply the supplied convexity proof",
+          "math": "f\\!\\left(\\tfrac12x+\\tfrac12y\\right)\\le\\tfrac12 f(x)+\\tfrac12 f(y)",
+          "explanation": "<p>Supply four real inputs and then three proof inputs to <code>hf</code>. The same nonnegativity proof is used twice because both weights are one half. The resulting inequality is named <code>h</code>.</p>",
+          "start": 39,
+          "end": 39,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hf",
+              "type": "IsConvex f",
+              "meaning": "The supplied proof of the quantified convexity definition."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hf",
+              "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "hhalf",
+              "explanation": "The proved nonnegativity, or strict positivity where stated, of the real number 1 / 2."
+            },
+            {
+              "token": "hsum",
+              "explanation": "The locally proved weight-sum equality, or the supporting-line sum inequality in the slope theorem."
+            }
+          ],
+          "codeNotes": [
+            "Function application is left associative: <code>hf x y (1 / 2) (1 / 2) hhalf hhalf hsum</code> supplies the inputs in the binder order of <code>IsConvex</code>.",
+            "<code>have h := …</code> omits a type annotation; Lean infers the proposition proved by the expression."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "midpoint-point",
+          "title": "Normalize the point argument",
+          "math": "\\tfrac12x+\\tfrac12y=\\frac{x+y}{2}",
+          "explanation": "<p>Name a polynomial identity for the point inside the function. The algebra tactic treats x and y as arbitrary reals and checks the equality exactly.</p>",
+          "start": 40,
+          "end": 40,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hpoint",
+              "type": "(1 / 2 : ℝ) * x + (1 / 2 : ℝ) * y = (x + y) / 2",
+              "meaning": "The point-normalization equality."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hpoint",
+              "explanation": "The algebraic identity converting the weighted point to (x + y) / 2."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "midpoint-value",
+          "title": "Normalize the weighted values",
+          "math": "\\tfrac12 f(x)+\\tfrac12 f(y)=\\frac{f(x)+f(y)}2",
+          "explanation": "<p>Prove the analogous identity for the real function values. No property of f is used in this algebraic step; its two values can be treated as real expressions.</p>",
+          "start": 41,
+          "end": 41,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hvalue",
+              "type": "(1 / 2 : ℝ) * f x + (1 / 2 : ℝ) * f y = (f x + f y) / 2",
+              "meaning": "The value-normalization equality."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hvalue",
+              "explanation": "The analogous identity for the weighted function values."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "midpoint-rewrite",
+          "title": "Rewrite the known inequality",
+          "math": "h:\\quad f\\!\\left(\\frac{x+y}{2}\\right)\\le\\frac{f(x)+f(y)}2",
+          "explanation": "<p>Use the two equalities inside the named inequality. The current main goal stays the same; it is the type of the known proof h that changes to match that goal.</p>",
+          "start": 42,
+          "end": 42,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "rw",
+              "explanation": "Rewrite using the listed proved equalities, from left to right unless an arrow requests the opposite direction."
+            },
+            {
+              "token": "[",
+              "explanation": "Open the explicit list of equality lemmas used by rw or simp only."
+            },
+            {
+              "token": "hpoint",
+              "explanation": "The algebraic identity converting the weighted point to (x + y) / 2."
+            },
+            {
+              "token": ",",
+              "explanation": "End the binder list after ∀, or separate entries in a rewrite list."
+            },
+            {
+              "token": "hvalue",
+              "explanation": "The analogous identity for the weighted function values."
+            },
+            {
+              "token": "]",
+              "explanation": "Close that list of equality lemmas."
+            },
+            {
+              "token": "at",
+              "explanation": "Direct a rewrite to the named hypothesis rather than to the current goal."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>at h</code> directs the rewrites to the named hypothesis. Without it, the rewrites would act on the goal."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "midpoint-exact",
+          "title": "Supply the proof of the exact goal",
+          "math": "f\\!\\left(\\frac{x+y}{2}\\right)\\le\\frac{f(x)+f(y)}2",
+          "explanation": "<p>The rewritten h has exactly the target proposition as its type. Providing this proof finishes the theorem.</p>",
+          "start": 43,
+          "end": 43,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "exact",
+              "explanation": "Finish a goal by providing a proof term whose type is that exact goal."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>exact h</code> needs a proof with a matching type. It performs no further mathematical argument."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "declaration": {
+        "start": 35,
+        "end": 36
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "convex_midpoint",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "hf",
+          "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+        },
+        {
+          "token": "IsConvex",
+          "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "y",
+          "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+        },
+        {
+          "token": "+",
+          "explanation": "Real addition."
+        },
+        {
+          "token": "/",
+          "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+        },
+        {
+          "token": "2",
+          "explanation": "The real numeral two in these arithmetic expressions."
+        },
+        {
+          "token": "≤",
+          "explanation": "The non-strict order relation on real numbers."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "sum",
+      "title": "Add two convex functions",
+      "file": "ConvexityTutorial/Basic.lean",
+      "theorem": "convex_add",
+      "why": "<p>Closure under addition is proved by adding the two Jensen inequalities at the same points and weights. The proof separates an order argument from a final algebraic rearrangement.</p>",
+      "statementMath": "f,g\\text{ convex}\\quad\\Longrightarrow\\quad t\\mapsto f(t)+g(t)\\text{ is convex}",
+      "proofMath": "\\begin{aligned}f(ax+by)+g(ax+by)&\\le af(x)+bf(y)+ag(x)+bg(y)\\\\&=a(f(x)+g(x))+b(f(y)+g(y)).\\end{aligned}",
+      "prerequisites": [
+        "midpoint"
+      ],
+      "steps": [
+        {
+          "id": "sum-unfold",
+          "title": "Expose the convexity target",
+          "math": "\\text{Prove the chord inequality for }t\\mapsto f(t)+g(t).",
+          "explanation": "<p>Expand the definition of convexity for the sum function. The existing convexity proofs for f and g remain available in the context.</p>",
+          "start": 48,
+          "end": 48,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "f g",
+              "type": "ℝ → ℝ",
+              "meaning": "The two real functions."
+            },
+            {
+              "name": "hf",
+              "type": "IsConvex f",
+              "meaning": "Convexity proof for f."
+            },
+            {
+              "name": "hg",
+              "type": "IsConvex g",
+              "meaning": "Convexity proof for g."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "unfold",
+              "explanation": "Replace the listed definition by its defining expression in the current goal."
+            },
+            {
+              "token": "IsConvex",
+              "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "sum-intro",
+          "title": "Use common points and weights",
+          "math": "x,y,a,b\\in\\mathbb R,\\qquad a,b\\ge0,\\quad a+b=1.",
+          "explanation": "<p>Fix the four arbitrary real inputs and their weight proofs. Both component inequalities must use this same data so that they can be added.</p>",
+          "start": 49,
+          "end": 49,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "x y a b",
+              "type": "ℝ",
+              "meaning": "Arbitrary real points and the two weights."
+            },
+            {
+              "name": "ha",
+              "type": "0 ≤ a",
+              "meaning": "First weight is nonnegative."
+            },
+            {
+              "name": "hb",
+              "type": "0 ≤ b",
+              "meaning": "Second weight is nonnegative."
+            },
+            {
+              "name": "hab",
+              "type": "a + b = 1",
+              "meaning": "The weights sum to one."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "intro",
+              "explanation": "Introduce the next universally quantified inputs or implication hypotheses into the context."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "sum-first",
+          "title": "Obtain Jensen’s inequality for f",
+          "math": "f(ax+by)\\le af(x)+bf(y)",
+          "explanation": "<p>Apply the supplied proof hf to the fixed points, weights, and three weight-condition proofs. Name the resulting inequality h_f.</p>",
+          "start": 50,
+          "end": 50,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "h_f",
+              "explanation": "The Jensen inequality for f at the chosen points and weights."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hf",
+              "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "sum-second",
+          "title": "Obtain Jensen’s inequality for g",
+          "math": "g(ax+by)\\le ag(x)+bg(y)",
+          "explanation": "<p>Apply hg to exactly the same inputs. The two inequalities now have aligned coefficients and arguments.</p>",
+          "start": 51,
+          "end": 51,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "h_g",
+              "explanation": "The Jensen inequality for g at the same points and weights."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hg",
+              "explanation": "The supplied convexity proof for g."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "sum-change",
+          "title": "Evaluate the sum function",
+          "math": "f(ax+by)+g(ax+by)\\le a(f(x)+g(x))+b(f(y)+g(y))",
+          "explanation": "<p>Compute the anonymous function at the weighted point and at the endpoints. The target is restated using the two functions separately.</p>",
+          "start": 52,
+          "end": 53,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "change",
+              "explanation": "Replace the goal with a definitionally equal expression; no new mathematical assertion is assumed."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "g",
+              "explanation": "The second real-valued function in the addition lemma."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "sum-calc",
+          "title": "Add the inequalities and collect coefficients",
+          "math": "\\begin{aligned}f(ax+by)+g(ax+by)&\\le(af(x)+bf(y))+(ag(x)+bg(y))\\\\&=a(f(x)+g(x))+b(f(y)+g(y)).\\end{aligned}",
+          "explanation": "<p>The first link is the order lemma for adding inequalities. The second is distributivity and rearrangement in the reals. The calculation chain proves the target.</p>",
+          "start": 54,
+          "end": 57,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "calc",
+              "explanation": "Construct a chain of equalities or inequalities; Lean checks each link and composes them."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "g",
+              "explanation": "The second real-valued function in the addition lemma."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "add_le_add",
+              "explanation": "Add two inequalities: from A ≤ B and C ≤ D obtain A + C ≤ B + D."
+            },
+            {
+              "token": "h_f",
+              "explanation": "The Jensen inequality for f at the chosen points and weights."
+            },
+            {
+              "token": "h_g",
+              "explanation": "The Jensen inequality for g at the same points and weights."
+            },
+            {
+              "token": "_",
+              "explanation": "In a calc continuation, repeat the preceding right-hand side. This is not an extra variable."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>add_le_add h_f h_g</code> is a proof term for the first link: it receives the two inequality proofs as arguments.",
+            "The coefficient collection is an equality, so <code>ring</code> proves it without using any new order assumptions."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "declaration": {
+        "start": 46,
+        "end": 47
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "convex_add",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": "g",
+          "explanation": "The second real-valued function in the addition lemma."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "hf",
+          "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+        },
+        {
+          "token": "IsConvex",
+          "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+        },
+        {
+          "token": "hg",
+          "explanation": "The supplied convexity proof for g."
+        },
+        {
+          "token": "fun",
+          "explanation": "Introduce an anonymous function, giving its bound input before ↦."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "↦",
+          "explanation": "Separate an anonymous function’s bound input from its output expression."
+        },
+        {
+          "token": "+",
+          "explanation": "Real addition."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "scale",
+      "title": "Scale a convex function by a nonnegative constant",
+      "file": "ConvexityTutorial/Basic.lean",
+      "theorem": "convex_nonnegative_scale",
+      "why": "<p>The sign restriction enters at one precise order step. Multiplying Jensen’s inequality by a nonnegative constant preserves its direction; the remainder is algebra.</p>",
+      "statementMath": "f\\text{ convex},\\quad c\\ge0\\quad\\Longrightarrow\\quad t\\mapsto cf(t)\\text{ is convex}",
+      "proofMath": "\\begin{aligned}cf(ax+by)&\\le c(af(x)+bf(y))\\\\&=a(cf(x))+b(cf(y)).\\end{aligned}",
+      "prerequisites": [
+        "sum"
+      ],
+      "steps": [
+        {
+          "id": "scale-unfold",
+          "title": "Expose the scaled convexity target",
+          "math": "\\text{Prove Jensen’s inequality for }t\\mapsto cf(t).",
+          "explanation": "<p>Expand IsConvex. Keep both the original convexity proof and the separate proof that the scaling factor is nonnegative.</p>",
+          "start": 62,
+          "end": 62,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hf",
+              "type": "IsConvex f",
+              "meaning": "Convexity of f."
+            },
+            {
+              "name": "c",
+              "type": "ℝ",
+              "meaning": "The scaling factor."
+            },
+            {
+              "name": "hc",
+              "type": "0 ≤ c",
+              "meaning": "Its required nonnegativity proof."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "unfold",
+              "explanation": "Replace the listed definition by its defining expression in the current goal."
+            },
+            {
+              "token": "IsConvex",
+              "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "scale-intro",
+          "title": "Fix arbitrary admissible data",
+          "math": "x,y,a,b\\in\\mathbb R,\\qquad a,b\\ge0,\\quad a+b=1.",
+          "explanation": "<p>Introduce the points, weights, and weight proofs required by the convexity definition.</p>",
+          "start": 63,
+          "end": 63,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "x y a b",
+              "type": "ℝ",
+              "meaning": "Arbitrary real points and the two weights."
+            },
+            {
+              "name": "ha",
+              "type": "0 ≤ a",
+              "meaning": "First weight is nonnegative."
+            },
+            {
+              "name": "hb",
+              "type": "0 ≤ b",
+              "meaning": "Second weight is nonnegative."
+            },
+            {
+              "name": "hab",
+              "type": "a + b = 1",
+              "meaning": "The weights sum to one."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "intro",
+              "explanation": "Introduce the next universally quantified inputs or implication hypotheses into the context."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "scale-jensen",
+          "title": "Obtain the original Jensen inequality",
+          "math": "f(ax+by)\\le af(x)+bf(y)",
+          "explanation": "<p>Apply the original convexity proof at the chosen data. This is the inequality to multiply by c.</p>",
+          "start": 64,
+          "end": 64,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hf",
+              "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "scale-change",
+          "title": "Evaluate the scaled function",
+          "math": "cf(ax+by)\\le a(cf(x))+b(cf(y))",
+          "explanation": "<p>Compute the anonymous function in the target, leaving an explicit scalar inequality.</p>",
+          "start": 65,
+          "end": 65,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "change",
+              "explanation": "Replace the goal with a definitionally equal expression; no new mathematical assertion is assumed."
+            },
+            {
+              "token": "c",
+              "explanation": "The real constant parameter: an affine offset or a scaling factor as specified by the theorem."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "scale-calc",
+          "title": "Use nonnegativity exactly where it is needed",
+          "math": "cf(ax+by)\\le c(af(x)+bf(y))=a(cf(x))+b(cf(y))",
+          "explanation": "<p>The order lemma receives both the original inequality and the sign proof hc. It preserves the comparison when multiplying on the left. The equality link then distributes and reorders products.</p>",
+          "start": 66,
+          "end": 69,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "calc",
+              "explanation": "Construct a chain of equalities or inequalities; Lean checks each link and composes them."
+            },
+            {
+              "token": "c",
+              "explanation": "The nonnegative scaling factor."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "mul_le_mul_of_nonneg_left",
+              "explanation": "Multiply an inequality on the left by a nonnegative scalar; its second proof argument certifies nonnegativity."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            },
+            {
+              "token": "hc",
+              "explanation": "The supplied proof that the scaling coefficient is nonnegative."
+            },
+            {
+              "token": "_",
+              "explanation": "In a calc continuation, repeat the preceding right-hand side. This is not an extra variable."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>mul_le_mul_of_nonneg_left h hc</code> uses hc at the first link. A negative factor would reverse the inequality, so the sign is mathematically essential.",
+            "The theorem includes c = 0. No division by c is used."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "declaration": {
+        "start": 60,
+        "end": 61
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "convex_nonnegative_scale",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "hf",
+          "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+        },
+        {
+          "token": "IsConvex",
+          "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+        },
+        {
+          "token": "c",
+          "explanation": "The real constant parameter: an affine offset or a scaling factor as specified by the theorem."
+        },
+        {
+          "token": "hc",
+          "explanation": "The supplied proof that the scaling coefficient is nonnegative."
+        },
+        {
+          "token": "0",
+          "explanation": "The real zero in these arithmetic expressions."
+        },
+        {
+          "token": "≤",
+          "explanation": "The non-strict order relation on real numbers."
+        },
+        {
+          "token": "fun",
+          "explanation": "Introduce an anonymous function, giving its bound input before ↦."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "↦",
+          "explanation": "Separate an anonymous function’s bound input from its output expression."
+        },
+        {
+          "token": "*",
+          "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "minimizers",
+      "title": "Convex combinations of minimizers remain minimizers",
+      "file": "ConvexityTutorial/Minimizers.lean",
+      "theorem": "convex_combination_minimizer",
+      "why": "<p>This is an optimization consequence of the chord inequality. It assumes two global minimizers are already given; it does not assert that a minimizer exists.</p>",
+      "statementMath": "\\begin{gathered}f\\text{ convex},\\quad x,y\\in\\operatorname{argmin}f,\\quad a,b\\ge0,\\quad a+b=1\\\\\\Longrightarrow\\quad ax+by\\in\\operatorname{argmin}f.\\end{gathered}",
+      "proofMath": "\\begin{gathered}f(y)=f(x),\\qquad f(ax+by)\\le af(x)+bf(y)=f(x),\\\\\\forall z:\\quad f(ax+by)\\le f(x)\\le f(z).\\end{gathered}",
+      "prerequisites": [
+        "sum",
+        "scale"
+      ],
+      "steps": [
+        {
+          "id": "minimizers-same-value",
+          "title": "Compare the two minimum values",
+          "math": "f(y)\\le f(x),\\quad f(x)\\le f(y)\\quad\\Longrightarrow\\quad f(y)=f(x)",
+          "explanation": "<p>By definition, hx compares f(x) with every function value, and hy does the same for f(y). Evaluate them at the opposite points. Antisymmetry turns the two comparisons into an equality of minimum values.</p>",
+          "start": 15,
+          "end": 15,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hx",
+              "type": "IsGlobalMinimizer f x",
+              "meaning": "The statement ∀ z : ℝ, f x ≤ f z."
+            },
+            {
+              "name": "hy",
+              "type": "IsGlobalMinimizer f y",
+              "meaning": "The statement ∀ z : ℝ, f y ≤ f z."
+            },
+            {
+              "name": "hsame",
+              "type": "f y = f x",
+              "meaning": "The equality of the two supplied minimum values."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hsame",
+              "explanation": "The equality f y = f x, proved from the two global-minimum comparisons."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "le_antisymm",
+              "explanation": "Turn A ≤ B and B ≤ A into A = B, in that argument order."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "hy",
+              "explanation": "The supplied global-minimum proof at y, or the supporting-line proof at y in the slope theorem."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "hx",
+              "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+            }
+          ],
+          "codeNotes": [
+            "<code>le_antisymm (hy x) (hx y)</code> proves f y = f x in this order: the first argument is f y ≤ f x and the second is f x ≤ f y."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "minimizers-upper",
+          "title": "Bound the combined point by the common minimum",
+          "math": "f(ax+by)\\le af(x)+bf(y)=(a+b)f(x)=f(x)",
+          "explanation": "<p>Introduce a local upper bound and prove it by a calculation chain. First apply convexity. Replace f(y) by f(x), collect coefficients with ring, then use the weight sum to get f(x).</p>",
+          "start": 16,
+          "end": 20,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hcomb",
+              "type": "f (a * x + b * y) ≤ f x",
+              "meaning": "The local upper bound proved by the nested calculation."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hcomb",
+              "explanation": "The upper bound f (a * x + b * y) ≤ f x proved in its local calc block."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "calc",
+              "explanation": "Construct a chain of equalities or inequalities; Lean checks each link and composes them."
+            },
+            {
+              "token": "hf",
+              "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+            },
+            {
+              "token": "ha",
+              "explanation": "A proof that 0 ≤ a."
+            },
+            {
+              "token": "hb",
+              "explanation": "A proof that 0 ≤ b."
+            },
+            {
+              "token": "hab",
+              "explanation": "A proof that a + b = 1."
+            },
+            {
+              "token": "_",
+              "explanation": "In a calc continuation, repeat the preceding right-hand side. This is not an extra variable."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "rw",
+              "explanation": "Rewrite using the listed proved equalities, from left to right unless an arrow requests the opposite direction."
+            },
+            {
+              "token": "[",
+              "explanation": "Open the explicit list of equality lemmas used by rw or simp only."
+            },
+            {
+              "token": "hsame",
+              "explanation": "The equality f y = f x, proved from the two global-minimum comparisons."
+            },
+            {
+              "token": "]",
+              "explanation": "Close that list of equality lemmas."
+            },
+            {
+              "token": ";",
+              "explanation": "Separate the rewrite and the following ring tactic within this one local by block."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            },
+            {
+              "token": ",",
+              "explanation": "End the binder list after ∀, or separate entries in a rewrite list."
+            },
+            {
+              "token": "one_mul",
+              "explanation": "The equality 1 * t = t."
+            }
+          ],
+          "codeNotes": [
+            "The indented block after <code>have hcomb : … := by</code> proves only that local proposition, then returns to the original minimizer goal.",
+            "<code>rw [hsame]; ring</code> rewrites the equal minimum values and then runs polynomial normalization in that same local equality goal.",
+            "<code>rw [hab, one_mul]</code> evaluates the coefficient sum in the last equality."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "minimizers-unfold",
+          "title": "Read the global-minimum conclusion",
+          "math": "\\forall z\\in\\mathbb R,\\quad f(ax+by)\\le f(z)",
+          "explanation": "<p>Expand the minimizer definition. It requests a comparison with every real point, not merely with the two endpoints.</p>",
+          "start": 21,
+          "end": 21,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "unfold",
+              "explanation": "Replace the listed definition by its defining expression in the current goal."
+            },
+            {
+              "token": "IsGlobalMinimizer",
+              "explanation": "The predicate ∀ y : ℝ, f x ≤ f y; a global comparison with every point."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "minimizers-intro",
+          "title": "Choose an arbitrary comparison point",
+          "math": "z\\in\\mathbb R\\quad\\text{arbitrary}",
+          "explanation": "<p>Introduce a completely arbitrary real z. Proving the comparison for this arbitrary input proves the universal claim.</p>",
+          "start": 22,
+          "end": 22,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "z",
+              "type": "ℝ",
+              "meaning": "An arbitrary point used to test global minimality."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "intro",
+              "explanation": "Introduce the next universally quantified inputs or implication hypotheses into the context."
+            },
+            {
+              "token": "z",
+              "explanation": "An arbitrary comparison point introduced for the minimizer claim."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "minimizers-calc",
+          "title": "Compare through a known minimizer",
+          "math": "f(ax+by)\\le f(x)\\le f(z)",
+          "explanation": "<p>Use the established upper bound for the first link. The global-minimum proof hx, evaluated at z, supplies the second. Transitivity of order proves that the combined point is a global minimizer.</p>",
+          "start": 23,
+          "end": 25,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "calc",
+              "explanation": "Construct a chain of equalities or inequalities; Lean checks each link and composes them."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "a",
+              "explanation": "The first Jensen weight."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "b",
+              "explanation": "The second Jensen weight."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hcomb",
+              "explanation": "The upper bound f (a * x + b * y) ≤ f x proved in its local calc block."
+            },
+            {
+              "token": "_",
+              "explanation": "In a calc continuation, repeat the preceding right-hand side. This is not an extra variable."
+            },
+            {
+              "token": "z",
+              "explanation": "An arbitrary comparison point introduced for the minimizer claim."
+            },
+            {
+              "token": "hx",
+              "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+            }
+          ],
+          "codeNotes": [
+            "The terms <code>hcomb</code> and <code>hx z</code> already prove the individual links, so those links do not need by blocks."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "definitions": [
+        {
+          "file": "ConvexityTutorial/Definitions.lean",
+          "start": 29,
+          "end": 30,
+          "name": "IsGlobalMinimizer",
+          "math": "\\operatorname{IsGlobalMinimizer}(f,x)\\iff\\forall y,\\ f(x)\\le f(y)"
+        }
+      ],
+      "declaration": {
+        "start": 11,
+        "end": 14
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "convex_combination_minimizer",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "hf",
+          "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+        },
+        {
+          "token": "IsConvex",
+          "explanation": "The predicate defined in Definitions.lean: the two-weight Jensen inequality for all real points and admissible weights."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "y",
+          "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+        },
+        {
+          "token": "a",
+          "explanation": "The first Jensen weight."
+        },
+        {
+          "token": "b",
+          "explanation": "The second Jensen weight."
+        },
+        {
+          "token": "hx",
+          "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+        },
+        {
+          "token": "IsGlobalMinimizer",
+          "explanation": "The predicate ∀ y : ℝ, f x ≤ f y; a global comparison with every point."
+        },
+        {
+          "token": "hy",
+          "explanation": "The supplied global-minimum proof at y, or the supporting-line proof at y in the slope theorem."
+        },
+        {
+          "token": "ha",
+          "explanation": "A proof that 0 ≤ a."
+        },
+        {
+          "token": "0",
+          "explanation": "The real zero in these arithmetic expressions."
+        },
+        {
+          "token": "≤",
+          "explanation": "The non-strict order relation on real numbers."
+        },
+        {
+          "token": "hb",
+          "explanation": "A proof that 0 ≤ b."
+        },
+        {
+          "token": "hab",
+          "explanation": "A proof that a + b = 1."
+        },
+        {
+          "token": "+",
+          "explanation": "Real addition."
+        },
+        {
+          "token": "=",
+          "explanation": "Equality of the two real expressions or points."
+        },
+        {
+          "token": "1",
+          "explanation": "The real unit in these arithmetic expressions."
+        },
+        {
+          "token": "*",
+          "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "zero-support",
+      "title": "A horizontal supporting line certifies a global minimum",
+      "file": "ConvexityTutorial/Subgradients.lean",
+      "theorem": "global_minimizer_of_zero_support",
+      "why": "<p>A supporting line is an explicit global inequality. With slope zero it is exactly the global-minimum comparison. No differentiability or additional convexity assumption is required for this implication.</p>",
+      "statementMath": "\\bigl[\\forall y,\\ f(x)+0\\,(y-x)\\le f(y)\\bigr]\\quad\\Longrightarrow\\quad x\\in\\operatorname{argmin}f",
+      "proofMath": "f(x)+0\\,(y-x)\\le f(y)\\quad\\Longrightarrow\\quad f(x)\\le f(y)",
+      "prerequisites": [
+        "reading-convexity",
+        "minimizers"
+      ],
+      "steps": [
+        {
+          "id": "zero-support-intro",
+          "title": "Introduce the point used to test global minimality",
+          "math": "\\text{Fix arbitrary }y\\in\\mathbb R;\\quad\\text{prove }f(x)\\le f(y).",
+          "explanation": "<p>The target IsGlobalMinimizer unfolds as needed when intro encounters it. Introduce its arbitrary comparison point y. The supporting-line assumption remains available.</p>",
+          "start": 19,
+          "end": 19,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hsupport",
+              "type": "SupportsAt f x 0",
+              "meaning": "The statement ∀ y : ℝ, f x + 0 * (y - x) ≤ f y."
+            },
+            {
+              "name": "y",
+              "type": "ℝ",
+              "meaning": "The arbitrary comparison point."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "intro",
+              "explanation": "Introduce the next universally quantified inputs or implication hypotheses into the context."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "zero-support-apply",
+          "title": "Evaluate the supporting inequality at that point",
+          "math": "f(x)+0\\,(y-x)\\le f(y)",
+          "explanation": "<p>Apply the supplied universal supporting-line proof to y and name the resulting inequality h.</p>",
+          "start": 20,
+          "end": 20,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hsupport",
+              "explanation": "The supplied horizontal supporting-line proof at x."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "zero-support-simpa",
+          "title": "Simplify the horizontal line",
+          "math": "f(x)\\le f(y)",
+          "explanation": "<p>Simplify only the product by zero and the resulting addition by zero in h. The simplified proof has the exact target type, so simpa completes the goal.</p>",
+          "start": 21,
+          "end": 21,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "simpa",
+              "explanation": "Simplify the target and a supplied known proof until their propositions match."
+            },
+            {
+              "token": "only",
+              "explanation": "Restrict simplification to the explicitly listed equalities."
+            },
+            {
+              "token": "[",
+              "explanation": "Open the explicit list of equality lemmas used by rw or simp only."
+            },
+            {
+              "token": "zero_mul",
+              "explanation": "The equality 0 * t = 0."
+            },
+            {
+              "token": ",",
+              "explanation": "End the binder list after ∀, or separate entries in a rewrite list."
+            },
+            {
+              "token": "add_zero",
+              "explanation": "The equality t + 0 = t."
+            },
+            {
+              "token": "]",
+              "explanation": "Close that list of equality lemmas."
+            },
+            {
+              "token": "using",
+              "explanation": "Supply the named proof that simpa should simplify."
+            },
+            {
+              "token": "h",
+              "explanation": "The newly named inequality obtained by applying the supplied convexity or supporting-line proof."
+            }
+          ],
+          "codeNotes": [
+            "<code>simpa only [zero_mul, add_zero] using h</code> simplifies the supplied proof using exactly two named equality rules, then checks it matches the target.",
+            "<code>zero_mul</code> is 0 * t = 0; <code>add_zero</code> is t + 0 = t."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "definitions": [
+        {
+          "file": "ConvexityTutorial/Definitions.lean",
+          "start": 33,
+          "end": 34,
+          "name": "SupportsAt",
+          "math": "\\operatorname{SupportsAt}(f,x,g)\\iff\\forall y,\\ f(x)+g(y-x)\\le f(y)"
+        }
+      ],
+      "declaration": {
+        "start": 16,
+        "end": 18
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "global_minimizer_of_zero_support",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "hsupport",
+          "explanation": "The supplied horizontal supporting-line proof at x."
+        },
+        {
+          "token": "SupportsAt",
+          "explanation": "The predicate ∀ y : ℝ, f x + slope * (y - x) ≤ f y; a globally supporting affine line."
+        },
+        {
+          "token": "0",
+          "explanation": "The real zero in these arithmetic expressions."
+        },
+        {
+          "token": "IsGlobalMinimizer",
+          "explanation": "The predicate ∀ y : ℝ, f x ≤ f y; a global comparison with every point."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "support-slopes",
+      "title": "Supporting slopes are monotone",
+      "file": "ConvexityTutorial/Subgradients.lean",
+      "theorem": "supporting_slopes_monotone",
+      "why": "<p>Two supporting-line certificates already contain a monotonicity theorem. Adding them cancels the function values and yields an inequality involving only the points and slopes. The slopes are not assumed to be derivatives.</p>",
+      "statementMath": "\\operatorname{SupportsAt}(f,x,g_x),\\quad\\operatorname{SupportsAt}(f,y,g_y)\\quad\\Longrightarrow\\quad0\\le(g_y-g_x)(y-x)",
+      "proofMath": "\\begin{aligned}f(x)+g_x(y-x)&\\le f(y),\\\\f(y)+g_y(x-y)&\\le f(x),\\\\g_x(y-x)+g_y(x-y)&\\le0,\\\\0&\\le(g_y-g_x)(y-x).\\end{aligned}",
+      "prerequisites": [
+        "zero-support",
+        "sum"
+      ],
+      "steps": [
+        {
+          "id": "slopes-first",
+          "title": "Test the support at x against y",
+          "math": "f(x)+g_x(y-x)\\le f(y)",
+          "explanation": "<p>Apply the support proof hx to the other point y. The locally named inequality hxy is the first half of the cancellation argument.</p>",
+          "start": 37,
+          "end": 37,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hx",
+              "type": "SupportsAt f x gx",
+              "meaning": "The support inequality based at x with slope gx."
+            },
+            {
+              "name": "hy",
+              "type": "SupportsAt f y gy",
+              "meaning": "The support inequality based at y with slope gy."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hxy",
+              "explanation": "The supporting inequality based at x and evaluated at y."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hx",
+              "explanation": "The supporting-line proof at x with slope gx."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "slopes-second",
+          "title": "Test the support at y against x",
+          "math": "f(y)+g_y(x-y)\\le f(x)",
+          "explanation": "<p>Apply hy to x, producing the opposite-direction support inequality hyx.</p>",
+          "start": 38,
+          "end": 38,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hyx",
+              "explanation": "The inequality from the support at y evaluated at x."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hy",
+              "explanation": "The supporting-line proof at y with slope gy."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "slopes-cancel",
+          "title": "Add the inequalities and cancel function values",
+          "math": "g_x(y-x)+g_y(x-y)\\le0",
+          "explanation": "<p>Introduce the displayed sum inequality as a local goal. Linear arithmetic adds the two known support inequalities and cancels f(x) and f(y). No derivative or strict-convexity theorem is involved.</p>",
+          "start": 39,
+          "end": 40,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hsum",
+              "type": "gx * (y - x) + gy * (x - y) ≤ 0",
+              "meaning": "The sum of support increments is nonpositive."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hsum",
+              "explanation": "The proved nonpositivity of the sum of the two support increments."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "gx",
+              "explanation": "The real supporting slope at x; no derivative is assumed."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "-",
+              "explanation": "Real subtraction; in front of a parenthesized term it is unary negation."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "gy",
+              "explanation": "The real supporting slope at y; no derivative is assumed."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": "0",
+              "explanation": "The real zero in these arithmetic expressions."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "linarith",
+              "explanation": "Combine the available real inequalities by checked linear arithmetic. Here it adds/cancels function values or exposes a contradiction."
+            }
+          ],
+          "codeNotes": [
+            "<code>linarith</code> is used here only for the linear consequence of the two support inequalities. The products can be treated as the existing real terms being added and canceled."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "slopes-calc",
+          "title": "Negate the sum and identify the product",
+          "math": "0\\le-[g_x(y-x)+g_y(x-y)]=(g_y-g_x)(y-x)",
+          "explanation": "<p>Negating a nonpositive quantity makes it nonnegative. The first link applies that order equivalence to hsum. The second link is the algebraic identity that factors the negated sum into the change of slope times the change of point.</p>",
+          "start": 41,
+          "end": 43,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "calc",
+              "explanation": "Construct a chain of equalities or inequalities; Lean checks each link and composes them."
+            },
+            {
+              "token": "0",
+              "explanation": "The real zero in these arithmetic expressions."
+            },
+            {
+              "token": "≤",
+              "explanation": "The non-strict order relation on real numbers."
+            },
+            {
+              "token": "-",
+              "explanation": "Real subtraction; in front of a parenthesized term it is unary negation."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "gx",
+              "explanation": "The real supporting slope at x; no derivative is assumed."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "gy",
+              "explanation": "The real supporting slope at y; no derivative is assumed."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "neg_nonneg.mpr",
+              "explanation": "Use the reverse direction of 0 ≤ -t ↔ t ≤ 0: a proof of t ≤ 0 becomes a proof of 0 ≤ -t."
+            },
+            {
+              "token": "hsum",
+              "explanation": "The locally proved weight-sum equality, or the supporting-line sum inequality in the slope theorem."
+            },
+            {
+              "token": "_",
+              "explanation": "In a calc continuation, repeat the preceding right-hand side. This is not an extra variable."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "ring",
+              "explanation": "Prove this polynomial identity by normalization in a commutative ring; it constructs a checked algebraic proof."
+            }
+          ],
+          "codeNotes": [
+            "The suffix <code>.mpr</code> selects the right-to-left implication of an equivalence. Here <code>neg_nonneg</code> states 0 ≤ -t ↔ t ≤ 0.",
+            "<code>ring</code> proves the last factorization. If y &gt; x, the displayed product inequality implies gy ≥ gx, but division by y - x is not needed for the proved theorem."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "declaration": {
+        "start": 33,
+        "end": 36
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "supporting_slopes_monotone",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "y",
+          "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+        },
+        {
+          "token": "gx",
+          "explanation": "The real supporting slope at x; no derivative is assumed."
+        },
+        {
+          "token": "gy",
+          "explanation": "The real supporting slope at y; no derivative is assumed."
+        },
+        {
+          "token": "hx",
+          "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+        },
+        {
+          "token": "SupportsAt",
+          "explanation": "The predicate ∀ y : ℝ, f x + slope * (y - x) ≤ f y; a globally supporting affine line."
+        },
+        {
+          "token": "hy",
+          "explanation": "The supplied global-minimum proof at y, or the supporting-line proof at y in the slope theorem."
+        },
+        {
+          "token": "0",
+          "explanation": "The real zero in these arithmetic expressions."
+        },
+        {
+          "token": "≤",
+          "explanation": "The non-strict order relation on real numbers."
+        },
+        {
+          "token": "-",
+          "explanation": "Real subtraction; in front of a parenthesized term it is unary negation."
+        },
+        {
+          "token": "*",
+          "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    },
+    {
+      "id": "strict-uniqueness",
+      "title": "Optional: strict convexity makes a minimizer unique",
+      "file": "ConvexityTutorial/Minimizers.lean",
+      "theorem": "strictly_convex_unique_minimizer",
+      "why": "<p>Strict convexity rules out two distinct global minimizers by testing their midpoint. This final example adds proof by contradiction and combines already familiar numerical and order steps. It assumes minimizers are given and proves uniqueness, not existence.</p>",
+      "statementMath": "f\\text{ strictly convex},\\quad x,y\\in\\operatorname{argmin}f\\quad\\Longrightarrow\\quad x=y",
+      "proofMath": "\\begin{gathered}x\\ne y\\Longrightarrow f(\\tfrac12x+\\tfrac12y)<\\tfrac12f(x)+\\tfrac12f(y)=f(x),\\\\f(x)\\le f(\\tfrac12x+\\tfrac12y),\\qquad\\text{contradiction}.\\end{gathered}",
+      "prerequisites": [
+        "midpoint",
+        "minimizers"
+      ],
+      "steps": [
+        {
+          "id": "strict-contradiction",
+          "title": "Assume the two minimizers are distinct",
+          "math": "\\text{Assume }x\\ne y\\text{ and derive a contradiction}.",
+          "explanation": "<p>Proof by contradiction assumes the negation of the equality target under the name hxy. The remaining goal becomes False. This assumption is exactly the distinct-point input required by strict convexity.</p>",
+          "start": 30,
+          "end": 30,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [
+            {
+              "name": "hf",
+              "type": "IsStrictlyConvex f",
+              "meaning": "Strict Jensen inequality for distinct points and positive weights."
+            },
+            {
+              "name": "hxy",
+              "type": "¬ x = y",
+              "meaning": "The temporary assumption that the equality target is false."
+            }
+          ],
+          "tokens": [
+            {
+              "token": "by_contra",
+              "explanation": "Prove the target by contradiction: assume its negation under the supplied name and prove False."
+            },
+            {
+              "token": "hxy",
+              "explanation": "The temporary proof that x ≠ y, introduced by contradiction."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-half",
+          "title": "Prove strict positivity of the half-weight",
+          "math": "0<\\tfrac12",
+          "explanation": "<p>Strict convexity needs positive weights. The concrete rational inequality is checked exactly.</p>",
+          "start": 31,
+          "end": 31,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hhalf",
+              "explanation": "The proved nonnegativity, or strict positivity where stated, of the real number 1 / 2."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "0",
+              "explanation": "The real zero in these arithmetic expressions."
+            },
+            {
+              "token": "<",
+              "explanation": "The strict real order relation."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "norm_num",
+              "explanation": "Check a concrete rational numerical equality or inequality and construct its proof."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-sum",
+          "title": "Prove the weight sum",
+          "math": "\\tfrac12+\\tfrac12=1",
+          "explanation": "<p>The familiar weight-sum equality supplies the other numerical input.</p>",
+          "start": 32,
+          "end": 32,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hsum",
+              "explanation": "The locally proved weight-sum equality, or the supporting-line sum inequality in the slope theorem."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "by",
+              "explanation": "Begin a tactic block that constructs the required proof term."
+            },
+            {
+              "token": "norm_num",
+              "explanation": "Check a concrete rational numerical equality or inequality and construct its proof."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-midpoint",
+          "title": "Apply strict convexity to the distinct points",
+          "math": "f(\\tfrac12x+\\tfrac12y)<\\tfrac12f(x)+\\tfrac12f(y)",
+          "explanation": "<p>Supply the points, weights, distinctness proof, two positivity proofs, and weight-sum proof to hf. This is the strict version of the earlier midpoint application.</p>",
+          "start": 33,
+          "end": 33,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hstrict",
+              "explanation": "The strict midpoint inequality obtained from strict convexity."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hf",
+              "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "hxy",
+              "explanation": "The proof x ≠ y required by strict convexity."
+            },
+            {
+              "token": "hhalf",
+              "explanation": "The proved nonnegativity, or strict positivity where stated, of the real number 1 / 2."
+            },
+            {
+              "token": "hsum",
+              "explanation": "The locally proved weight-sum equality, or the supporting-line sum inequality in the slope theorem."
+            }
+          ],
+          "codeNotes": [
+            "The definition IsStrictlyConvex has one more hypothesis than IsConvex: distinctness of the two points. Its weight inequalities are strict."
+          ],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-same-value",
+          "title": "Identify the two minimum values",
+          "math": "f(y)=f(x)",
+          "explanation": "<p>Evaluate each global-minimum proof at the other point and apply antisymmetry, exactly as in the convex-combination lesson.</p>",
+          "start": 34,
+          "end": 34,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hsame",
+              "explanation": "The equality f y = f x, proved from the two global-minimum comparisons."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "f",
+              "explanation": "The real-valued function being studied."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            },
+            {
+              "token": "=",
+              "explanation": "Equality of the two real expressions or points."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "le_antisymm",
+              "explanation": "Turn A ≤ B and B ≤ A into A = B, in that argument order."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "hy",
+              "explanation": "The supplied global-minimum proof at y, or the supporting-line proof at y in the slope theorem."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "hx",
+              "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-rewrite",
+          "title": "Rewrite the strict bound using the common value",
+          "math": "f(\\tfrac12x+\\tfrac12y)<\\tfrac12f(x)+\\tfrac12f(x)",
+          "explanation": "<p>Replace f(y) with f(x) in the known strict inequality. This modifies the hypothesis hstrict while the current goal remains False.</p>",
+          "start": 35,
+          "end": 35,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "rw",
+              "explanation": "Rewrite using the listed proved equalities, from left to right unless an arrow requests the opposite direction."
+            },
+            {
+              "token": "[",
+              "explanation": "Open the explicit list of equality lemmas used by rw or simp only."
+            },
+            {
+              "token": "hsame",
+              "explanation": "The equality f y = f x, proved from the two global-minimum comparisons."
+            },
+            {
+              "token": "]",
+              "explanation": "Close that list of equality lemmas."
+            },
+            {
+              "token": "at",
+              "explanation": "Direct a rewrite to the named hypothesis rather than to the current goal."
+            },
+            {
+              "token": "hstrict",
+              "explanation": "The strict midpoint inequality obtained from strict convexity."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-minimal",
+          "title": "Compare the minimizer to its midpoint",
+          "math": "f(x)\\le f(\\tfrac12x+\\tfrac12y)",
+          "explanation": "<p>Global minimality of x applies to every point, including this midpoint. Name that comparison hminimal.</p>",
+          "start": 36,
+          "end": 36,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "have",
+              "explanation": "Add a named intermediate fact, supplying its proof after :=."
+            },
+            {
+              "token": "hminimal",
+              "explanation": "The minimum comparison f x ≤ f ((1 / 2) * x + (1 / 2) * y)."
+            },
+            {
+              "token": ":=",
+              "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+            },
+            {
+              "token": "hx",
+              "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+            },
+            {
+              "token": "(",
+              "explanation": "Open a grouping or an explicit binder/type annotation."
+            },
+            {
+              "token": "1",
+              "explanation": "The real unit in these arithmetic expressions."
+            },
+            {
+              "token": "/",
+              "explanation": "Real division in these expressions; (1 / 2 : ℝ) explicitly selects real, not natural-number, division."
+            },
+            {
+              "token": "2",
+              "explanation": "The real numeral two in these arithmetic expressions."
+            },
+            {
+              "token": ":",
+              "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+            },
+            {
+              "token": "ℝ",
+              "explanation": "The type of real numbers, including its ordered-field operations."
+            },
+            {
+              "token": ")",
+              "explanation": "Close that grouping, binder, or type annotation."
+            },
+            {
+              "token": "*",
+              "explanation": "Real multiplication. Function application binds more tightly: a * f x means a * (f x)."
+            },
+            {
+              "token": "x",
+              "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+            },
+            {
+              "token": "+",
+              "explanation": "Real addition."
+            },
+            {
+              "token": "y",
+              "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+            }
+          ],
+          "codeNotes": [],
+          "kind": "tactic"
+        },
+        {
+          "id": "strict-close",
+          "title": "Expose the incompatible inequalities",
+          "math": "f(x)\\le f(\\tfrac12x+\\tfrac12y)<f(x)",
+          "explanation": "<p>The strict upper bound and the minimum lower bound contradict one another after collecting the half coefficients. Linear arithmetic proves False, closing the contradiction and establishing x = y.</p>",
+          "start": 37,
+          "end": 37,
+          "goalBefore": null,
+          "goalAfter": null,
+          "context": [],
+          "tokens": [
+            {
+              "token": "linarith",
+              "explanation": "Combine the available real inequalities by checked linear arithmetic. Here it adds/cancels function values or exposes a contradiction."
+            }
+          ],
+          "codeNotes": [
+            "This linarith call uses both a strict and a non-strict inequality. It constructs a proof that they cannot hold together."
+          ],
+          "kind": "tactic"
+        }
+      ],
+      "optional": true,
+      "definitions": [
+        {
+          "file": "ConvexityTutorial/Definitions.lean",
+          "start": 23,
+          "end": 26,
+          "name": "IsStrictlyConvex",
+          "math": "x\\ne y,\\ a,b>0,\\ a+b=1\\Longrightarrow f(ax+by)<af(x)+bf(y)"
+        }
+      ],
+      "declaration": {
+        "start": 28,
+        "end": 29
+      },
+      "statementTokens": [
+        {
+          "token": "theorem",
+          "explanation": "Declare a proposition together with a proof term of that proposition."
+        },
+        {
+          "token": "strictly_convex_unique_minimizer",
+          "explanation": "The name of this theorem. It can be used later with the declared inputs to obtain its conclusion."
+        },
+        {
+          "token": "(",
+          "explanation": "Open a grouping or an explicit binder/type annotation."
+        },
+        {
+          "token": "f",
+          "explanation": "The real-valued function being studied."
+        },
+        {
+          "token": ":",
+          "explanation": "Separate a name or expression from its type; before a theorem body, this introduces the proposition to prove."
+        },
+        {
+          "token": "ℝ",
+          "explanation": "The type of real numbers, including its ordered-field operations."
+        },
+        {
+          "token": "→",
+          "explanation": "Between types, form a function type. Between propositions, mean implication: a proof of the premise is an input to a proof of the conclusion."
+        },
+        {
+          "token": ")",
+          "explanation": "Close that grouping, binder, or type annotation."
+        },
+        {
+          "token": "hf",
+          "explanation": "The supplied proof of convexity, or strict convexity in the final optional theorem."
+        },
+        {
+          "token": "IsStrictlyConvex",
+          "explanation": "The strict Jensen predicate for distinct points and strictly positive weights."
+        },
+        {
+          "token": "x",
+          "explanation": "A real point; in fun x ↦ … it is the function’s bound input."
+        },
+        {
+          "token": "y",
+          "explanation": "The second real point or, after intro y, an arbitrary comparison point."
+        },
+        {
+          "token": "hx",
+          "explanation": "The supplied global-minimum proof at x, or the supporting-line proof at x in the slope theorem."
+        },
+        {
+          "token": "IsGlobalMinimizer",
+          "explanation": "The predicate ∀ y : ℝ, f x ≤ f y; a global comparison with every point."
+        },
+        {
+          "token": "hy",
+          "explanation": "The supplied global-minimum proof at y, or the supporting-line proof at y in the slope theorem."
+        },
+        {
+          "token": "=",
+          "explanation": "Equality of the two real expressions or points."
+        },
+        {
+          "token": ":=",
+          "explanation": "Provide the defining expression or the proof term of the preceding declaration."
+        },
+        {
+          "token": "by",
+          "explanation": "Begin a tactic block that constructs the required proof term."
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "file": "ConvexityTutorial/Basic.lean",
+      "theorem": "convex_const",
+      "role": "A supporting algebra example; affine convexity already includes the constant case."
+    },
+    {
+      "file": "ConvexityTutorial/Definitions.lean",
+      "theorem": "isConvex_iff_mathlib",
+      "role": "Connects the explicit educational predicate to ConvexOn ℝ Set.univ f."
+    },
+    {
+      "file": "ConvexityTutorial/Definitions.lean",
+      "theorem": "isStrictlyConvex_iff_mathlib",
+      "role": "The corresponding strict-convexity equivalence."
+    },
+    {
+      "file": "ConvexityTutorial/Subgradients.lean",
+      "theorem": "zero_support_of_global_minimizer",
+      "role": "The converse of the horizontal-support certificate."
+    }
+  ]
+}
