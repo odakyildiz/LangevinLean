@@ -69,10 +69,20 @@ HTML includes the offline fonts, formula rendering, and source viewers.
 
 ## Repository structure and reuse
 
+The [ULA analysis under LSI](UnadjustedLangevin/LSI/README.md) follows
+[Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf):
+for $0<h\le\alpha/(4L^2)$, the KL bound is
+$H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+8hnL^2/\alpha$.
+The Lean endpoint `ULA.LSI.ula_kl_bound_of_interpolation` is **conditional** on
+explicit density, interpolation, and moment hypotheses, including
+$\alpha\le L$. The guide identifies the remaining analytic work needed for a
+complete proof from only the published LSI and smoothness assumptions.
+
 | Location | Purpose |
 | --- | --- |
 | [`UnadjustedLangevin/`](UnadjustedLangevin/README.md) | Reusable analysis, Gaussian and Brownian constructions, Gibbs measures and stationarity, transport estimates, and the ULA convergence theorem. |
 | [`UnadjustedLangevin/Analysis/`](UnadjustedLangevin/Analysis/) | Shared smoothness estimates; convexity support is in [`StrongConvexity.lean`](UnadjustedLangevin/StrongConvexity.lean). |
+| [`UnadjustedLangevin/LSI/`](UnadjustedLangevin/LSI/README.md) | KL/Fisher calculus, Gaussian interpolation laws, and conditional ULA entropy bounds under LSI. |
 | [`IPLA/`](IPLA/exposition/README.md) | Lifted particle geometry, identification of IPLA with ULA, the parameter marginal and its log-concavity and concentration, and the final IPLA theorem. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/dist/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html) | Offline exposition, source viewers, and verification reports. |

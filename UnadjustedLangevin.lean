@@ -57,3 +57,7 @@ import UnadjustedLangevin.BrownianSegmentsGlobal
 import UnadjustedLangevin.CanonicalULA
 import UnadjustedLangevin.GaussianULA
 import UnadjustedLangevin.Degenerate
+import UnadjustedLangevin.LSI.Theorem
+import UnadjustedLangevin.LSI.Regularity
+import UnadjustedLangevin.LSI.RegularizedTheorem
+import UnadjustedLangevin.LSI.GaussianDrift
