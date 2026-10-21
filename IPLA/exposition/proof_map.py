@@ -44,9 +44,10 @@ NODES = [
          file="UnadjustedLangevin/HilbertDalalyan.lean",
          declaration="dalalyan_small_step_of_integral_reference"),
     dict(id="canonical", x=355, y=810, kind="ula",
-         title="Complete shared ULA theorem",
-         detail="Construct the reference and all couplings",
-         file="UnadjustedLangevin/CanonicalULA.lean", declaration="dalalyan"),
+         title="Shared Gaussian ULA theorem",
+         detail="Actual Gaussian chain · initial W₂ derived",
+         file="UnadjustedLangevin/GaussianULA.lean",
+         declaration="dalalyan_of_gaussian_innovations"),
     dict(id="marginal", x=685, y=210, kind="concentration",
          title="Compute the parameter marginal",
          detail="πN projected to θ has density ∝ ℓy(θ)ᴺ",
@@ -176,9 +177,8 @@ def proof_map_section(sources):
     svg = diagram_svg(sources)
     (HERE / "proof-map.svg").write_text(svg)
     groups = [
-        ("IPLA", "IPLA."),
+        ("IPLA", "IPLA geometry and concentration"),
         ("UnadjustedLangevin", "Shared ULA"),
-        ("GradientDescent", "Convexity and smoothness"),
     ]
     catalog = []
     for prefix, label in groups:
@@ -189,6 +189,7 @@ def proof_map_section(sources):
     supplements = [
         ("IPLA/Dynamics.lean", "Physical θ and x updates"),
         ("IPLA/Scaling.lean", "Exact constants and step size"),
+        ("UnadjustedLangevin/CanonicalULA.lean", "Shared law-level ULA estimate"),
         ("UnadjustedLangevin/MALACoupling.lean", "Rejection-cost coupling"),
         ("UnadjustedLangevin/EulerLimit.lean", "Euler convergence"),
         ("UnadjustedLangevin/GibbsScore.lean", "Gibbs score moment"),
@@ -238,7 +239,7 @@ def page_css():
 .proof-note{background:#edf7fa;border-left:3px solid #82aebc;padding:14px 18px;font-size:15px}
 .source-library{margin:22px 0;padding:16px 20px;border:1px solid #dce4e8;border-radius:8px}
 .source-library summary{font-weight:600;cursor:pointer}
-.source-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:15px}
+.source-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:15px}
 .source-groups h4{margin:6px 0;font-size:15px}
 .source-groups ul{list-style:none;margin:0;padding:0}
 .source-groups li{font:12px/1.9 ui-monospace,monospace;overflow-wrap:anywhere}

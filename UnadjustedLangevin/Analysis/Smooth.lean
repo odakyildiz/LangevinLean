@@ -11,14 +11,15 @@ import Mathlib.Tactic.Ring
 /-!
 # The quadratic upper bound for a function with a Lipschitz gradient
 
-This is the descent lemma in a real Hilbert space. The proof restricts the function to the
-line segment from `x` to `y`, subtracts the affine approximation and a quadratic correction,
-and shows that the resulting scalar function is decreasing on `[0, 1]`.
+This shared analytic lemma underlies ULA contraction and the Gibbs/MALA
+estimates. Restrict the function to the line segment from `x` to `y`, subtract
+the affine approximation and a quadratic correction, and show that the
+resulting scalar function is decreasing on `[0, 1]`.
 -/
 
 open scoped NNReal
 
-namespace GradientDescent
+namespace ULA.Analysis
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
 
@@ -71,4 +72,4 @@ theorem smooth_upper_bound (f : H → ℝ) (L : ℝ≥0)
   rw [hxy] at hfinal
   linarith
 
-end GradientDescent
+end ULA.Analysis

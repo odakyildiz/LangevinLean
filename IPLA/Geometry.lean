@@ -23,8 +23,17 @@ namespace IPLA
 abbrev State (N dθ dx : ℕ) := EuclideanSpace ℝ (Fin dθ ⊕ (Fin N × Fin dx))
 /-- A parameter-particle pair, with parameter block first. -/
 abbrev Joint (dθ dx : ℕ) := EuclideanSpace ℝ (Fin dθ ⊕ Fin dx)
-/-- All parameter-particle pairs, with the common parameter replicated. -/
-abbrev Family (N dθ dx : ℕ) := EuclideanSpace ℝ (Fin N × (Fin dθ ⊕ Fin dx))
+
+/-- IPLA has one common parameter and `N` latent vectors, in arbitrary,
+independent parameter and latent dimensions. -/
+@[simp] theorem finrank_state (N dθ dx : ℕ) :
+    Module.finrank ℝ (State N dθ dx) = dθ + N * dx := by
+  simp [State]
+
+/-- The original joint potential has one parameter block and one latent block. -/
+@[simp] theorem finrank_joint (dθ dx : ℕ) :
+    Module.finrank ℝ (Joint dθ dx) = dθ + dx := by
+  simp [Joint]
 
 /-- Extract the scaled latent vector of particle `i`. -/
 def block {N dθ dx : ℕ} (z : State N dθ dx) (i : Fin N) : EuclideanSpace ℝ (Fin dx) :=

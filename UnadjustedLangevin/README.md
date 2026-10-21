@@ -60,7 +60,7 @@ bounds therefore do not conceal infinite costs behind `ENNReal.toReal`.
 
 | Modules | Checked content |
 | --- | --- |
-| `StrongConvexity`, `SharpContraction`, `PotentialAssumptions` | First-order convexity facts, both sharp Euler contractions, and m≤L in nonzero dimension. |
+| `StrongConvexity`, `Analysis/Smooth`, `SharpContraction`, `PotentialAssumptions` | Shared quadratic lower and upper bounds, both sharp Euler contractions, and m≤L in nonzero dimension. |
 | `Gibbs`, `GibbsScore`, `StationaryMoments`, `GibbsConcentration` | Finite positive normalization, Gibbs moments, sharp score bound, and mode concentration. |
 | `Generator`, `GeneratorDirichlet` | Integration of the generator, absolute integrability, Dirichlet identity, symmetry, and dissipativity for compact C² tests. |
 | `CanonicalBrownian`, `GaussianHilbert`, `LpCharacteristic` | An explicit independent Brownian source from Gaussian series, with its finite-dimensional laws proved. |

@@ -1,5 +1,5 @@
 import UnadjustedLangevin.Gibbs
-import GradientDescent.Smooth
+import UnadjustedLangevin.Analysis.Smooth
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
 
@@ -27,7 +27,7 @@ theorem gibbsWeight_mul_exp_score_le
     (hLip : LipschitzWith L (gradient U)) (x v : H) :
     gibbsWeight U x * ENNReal.ofReal (Real.exp (-inner ℝ (gradient U x) v)) ≤
       ENNReal.ofReal (Real.exp ((L : ℝ) / 2 * ‖v‖ ^ 2)) * gibbsWeight U (x + v) := by
-  have hs := GradientDescent.smooth_upper_bound U L hdiff hLip x (x + v)
+  have hs := Analysis.smooth_upper_bound U L hdiff hLip x (x + v)
   simp only [add_sub_cancel_left] at hs
   unfold gibbsWeight
   rw [← ENNReal.ofReal_mul (Real.exp_nonneg _),

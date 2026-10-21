@@ -61,6 +61,14 @@ def theorem_binders(theorem):
 
 def main():
     manifest = json.loads((HERE/'exposition/source_manifest.json').read_text())
+    # The reusable ULA library must stay independent of the particle method.
+    # The standalone closure may contain only these two local libraries.
+    for path in manifest:
+        if not path.startswith(('IPLA/', 'UnadjustedLangevin/')):
+            raise SystemExit(f'Unexpected local library in IPLA closure: {path}')
+    for path in (ROOT/'UnadjustedLangevin').rglob('*.lean'):
+        if re.search(r'^import IPLA(?:\.|\s|$)', path.read_text(), re.M):
+            raise SystemExit(f'ULA depends on IPLA: {path.relative_to(ROOT)}')
     for path, digest in manifest.items():
         actual = hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
         if actual != digest:
@@ -145,7 +153,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix='ipla-standalone-') as temp:
         copy = Path(temp)/'Standalone.lean'; shutil.copyfile(HERE/'Standalone.lean', copy)
         completed = subprocess.run([lean_bin, str(copy)], cwd=temp, env=env, text=True, capture_output=True)
-    output = completed.stdout + completed.stderr
+    # Keep the committed diagnostic report independent of a machine's temporary
+    # directory, and remove whitespace introduced by Lean's suggestion printer.
+    output = (completed.stdout + completed.stderr).replace(str(copy), 'Standalone.lean')
+    output = '\n'.join(line.rstrip() for line in output.splitlines()) + '\n'
     allowed_axioms = {'propext', 'Classical.choice', 'Quot.sound'}
     axiom_entries = re.findall(r"'([\w.]+)' depends on axioms: \[([^\]]*)\]", output)
     axiom_audit = {name: [x.strip() for x in group.split(',') if x.strip()]
@@ -158,6 +169,8 @@ def main():
         'standalone_exit_code': completed.returncode,
         'local_compiled_modules_excluded': local not in env['LEAN_PATH'].split(os.pathsep),
         'only_mathlib_imports': True,
+        'local_libraries': ['UnadjustedLangevin', 'IPLA'],
+        'ula_library_independent_of_ipla': True,
         'local_source_module_count': len(manifest)-1,
         'standalone_sha256': hashlib.sha256(source.encode()).hexdigest(),
         'lean_toolchain': (ROOT/'lean-toolchain').read_text().strip(),
