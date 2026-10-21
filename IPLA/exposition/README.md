@@ -1,9 +1,9 @@
-# IPLA with the joint potential U_y(θ,x)
+# IPLA with the joint potential \(U_y(\theta,x)\)
 
 The final theorem proves the strongly convex IPLA bound from the original
-joint-potential assumptions. **θ denotes the parameter, x the latent variable,
-and y fixed observed data.** Strong convexity and gradient Lipschitz continuity
-are assumed only for the same joint function U_y(θ,x). The stationary reference,
+joint-potential assumptions. **\(\theta\) denotes the parameter, \(x\) the latent variable,
+and \(y\) fixed observed data.** Strong convexity and gradient Lipschitz continuity
+are assumed only for the same joint function \(U_y(\theta,x)\). The stationary reference,
 Gibbs invariance, marginal strong convexity, and concentration are proved facts,
 not additional hypotheses in `IPLA.theorem1`.
 
@@ -14,36 +14,36 @@ The diagram is also available as a [standalone SVG](proof-map.svg).
 
 The source is [Theorem 1, equation (34), and Appendix B of
 arXiv:2409.07101v2](https://arxiv.org/html/2409.07101v2).
-Its forcing parameter b corresponds to θ here; its latent FEM state u corresponds
-to x. Both have dimension d=n_u in the printed theorem. The formalization proves
-its extension to independent dimensions d_θ and d_x by the same Appendix B
-argument: the rescaled state has dimension d_θ+Nd_x, and concentration concerns
-only the d_θ-dimensional parameter marginal. No equality, ordering, embedding,
-or padding assumption relates d_θ and d_x. Setting d_θ=d_x=d recovers the
-printed equation (34). The source also uses θ for a different fixed
-model index; that fixed index is absorbed into U_y here.
+Its forcing parameter \(b\) corresponds to \(\theta\) here; its latent FEM state \(u\) corresponds
+to \(x\). Both have dimension \(d=n_u\) in the printed theorem. The formalization proves
+its extension to independent dimensions \(d_\theta\) and \(d_x\) by the same Appendix B
+argument: the rescaled state has dimension \(d_\theta+Nd_x\), and concentration concerns
+only the \(d_\theta\)-dimensional parameter marginal. No equality, ordering, embedding,
+or padding assumption relates \(d_\theta\) and \(d_x\). Setting \(d_\theta=d_x=d\) recovers the
+printed equation (34). The source also uses \(\theta\) for a different fixed
+model index; that fixed index is absorbed into \(U_y\) here.
 
 ## Mathematical statement
 
 Let \(\theta\in\mathbb R^{d_\theta}\) and
-\(x\in\mathbb R^{d_x}\), where d_θ and d_x are independent nonnegative integers. Fix observed data y and define
+\(x\in\mathbb R^{d_x}\), where \(d_\theta\) and \(d_x\) are independent nonnegative integers. Fix observed data \(y\) and define
 
 \[
  U_y(\theta,x)=-\log p_\theta(x,y),\qquad
  \ell_y(\theta)=\int_{\mathbb R^{d_x}}e^{-U_y(\theta,x)}\,dx.
 \]
 
-A parameter prior can be included in U_y. Without a prior, a maximizer of ℓ_y
+A parameter prior can be included in \(U_y\). Without a prior, a maximizer of \(\ell_y\)
 is a marginal maximum-likelihood estimator. With a prior included, it is a
 marginal MAP estimator. The predicate `IsMarginalMaximizer` therefore describes
 the center without requiring a particular statistical interpretation. It means
-a maximizer of the actual integral over x. It does not mean the parameter
+a maximizer of the actual integral over \(x\). It does not mean the parameter
 coordinate of the joint minimizer.
 
-Assume U_y is differentiable, m-strongly convex jointly in (θ,x), and has a
-globally L-Lipschitz joint gradient. Let m>0, N≥1, and
-0<γ≤2/(m+L). Let the initialization have a finite second moment.
-The Gaussian IPLA recursion is
+Assume \(U_y\) is differentiable, \(m\)-strongly convex jointly in \((\theta,x)\), and has a
+globally \(L\)-Lipschitz joint gradient. Let \(m>0\), \(N\geq1\), and
+\(0<\gamma\leq2/(m+L)\). Let the initialization have a finite second moment.
+IPLA (the interacting particle Langevin algorithm) uses the recursion
 
 \[
 \begin{aligned}
@@ -57,9 +57,11 @@ x_{k+1}^i
 \]
 
 The innovations are independent standard Gaussian vectors and are independent
-of the initialization. The parameter innovation ξ⁰ has dimension d_θ and
-each latent innovation ξⁱ has dimension d_x. `noise k` in Lean is the innovation for transition
-k→k+1. There are no regularity assumptions in the observed data y.
+of the initialization. The parameter innovation \(\xi^0\) has dimension \(d_\theta\) and
+each latent innovation \(\xi^i\) has dimension \(d_x\). **“Gaussian IPLA” refers to this
+Gaussian update noise.** It does not require a Gaussian statistical model, a
+quadratic potential, or a Gaussian initialization. `noise k` in Lean is the innovation for transition
+\(k\to k+1\). There are no regularity assumptions in the observed data \(y\).
 
 Use the rescaled state and lifted potential
 
@@ -70,14 +72,14 @@ Use the rescaled state and lifted potential
 \]
 
 Thus \(z_k\in\mathbb R^{d_\theta+Nd_x}\); the two coordinate blocks
-retain their own dimensions. Let ν_k be the law of z_k, and let
+retain their own dimensions. Let \(\nu_k\) be the law of \(z_k\), and let
 
 \[
  \pi_N(dz)=Z_N^{-1}e^{-U_{N,y}(z)}\,dz.
 \]
 
-The normalization Z_N is positive and finite. There is a unique maximizer θ⋆
-of ℓ_y. For every integer k≥0, the final theorem proves
+The normalization \(Z_N\) is positive and finite. There is a unique maximizer \(\theta^\star\)
+of \(\ell_y\). For every integer \(k\geq0\), the final theorem proves
 
 \[
 \boxed{
@@ -90,9 +92,9 @@ of ℓ_y. For every integer k≥0, the final theorem proves
 }
 \]
 
-The coefficient 33/20 is exactly 1.65. The initial transport distance is finite
-as a consequence of the stated second moments. For fixed N and γ, the first
-and last terms give the error floor appearing in the paper.
+The coefficient \(33/20\) is exactly \(1.65\). The initial transport distance is finite
+as a consequence of the stated second moments. For fixed \(N\) and \(\gamma\), the first
+and last terms give the persistent part of this upper bound.
 
 ## Exact joint assumptions
 
@@ -107,16 +109,16 @@ The potential assumptions in the final declaration are exactly
 ```
 
 Here `Joint dθ dx = EuclideanSpace ℝ (Fin dθ ⊕ Fin dx)`. The `Sum.inl`
-coordinates form θ and the `Sum.inr` coordinates form x, and
-`U y (pair θ x)` is U_y(θ,x). Mathlib's convention for
-strong convexity has the quadratic coefficient m/2.
+coordinates form \(\theta\) and the `Sum.inr` coordinates form \(x\), and
+`U y (pair θ x)` is \(U_y(\theta,x)\). Mathlib's convention for
+strong convexity has the quadratic coefficient \(m/2\).
 
 There is one joint strong-convexity binder and one joint gradient-Lipschitz
 binder. There are no separate assumptions about either coordinate block,
-the lifted potential, or the negative log marginal. No Hessian, C² regularity,
+the lifted potential, or the negative log marginal. No Hessian, \(C^2\) regularity,
 quadratic potential, or Gaussian statistical model is assumed. The inequality
-m≤L is derived whenever the Euclidean space is nontrivial. The final theorem
-also covers zero-dimensional blocks. If d_θ=0, the parameter RMS error is
+\(m\leq L\) is derived whenever the Euclidean space is nontrivial. The final theorem
+also covers zero-dimensional blocks. If \(d_\theta=0\), the parameter RMS error is
 zero. The proof applies the shared ULA theorem whenever the total state
 space is nontrivial and proves the completely zero-dimensional case directly.
 No dimension-positivity premise is hidden in the final declaration.
@@ -125,65 +127,65 @@ No dimension-positivity premise is hidden in the final declaration.
 
 | Mathematical object | Lean representation | Verified meaning |
 | --- | --- | --- |
-| Fixed observation y | `y : Data` | All assumptions use the fixed slice `U y`. |
-| Pair (θ,x) | `Joint dθ dx`, `pair θ x` | Parameter first, latent state second. |
-| Rescaled state z | `State N dθ dx` | Euclidean coordinates indexed by `Fin dθ ⊕ (Fin N × Fin dx)`. |
+| Fixed observation \(y\) | `y : Data` | All assumptions use the fixed slice `U y`. |
+| Pair \((\theta,x)\) | `Joint dθ dx`, `pair θ x` | Parameter first, latent state second. |
+| Rescaled state \(z\) | `State N dθ dx` | Euclidean coordinates indexed by `Fin dθ ⊕ (Fin N × Fin dx)`. |
 | Parameter coordinate | `parameterCLM z` | `Sum.inl` coordinates, operator norm at most one. |
-| Physical particle x_i | `Real.sqrt N • block z i` | Exactly reverses the particle rescaling. |
-| Lifted potential U_{N,y} | `potential (U y)` | The defined sum of N copies of U_y. |
+| Physical particle \(x_i\) | `Real.sqrt N • block z i` | Exactly reverses the particle rescaling. |
+| Lifted potential \(U_{N,y}\) | `potential (U y)` | The defined sum of \(N\) copies of \(U_y\). |
 | Physical IPLA updates | `scaledUpdate_parameter`, `scaledUpdate_particle` | Both drift and Gaussian noise factors agree with the displayed recursion. |
 | Pointwise algorithm | `scaledChain` | Iterates precisely that scaled update. |
-| L² algorithm | `lpChain` | `lpChain_coe` gives almost-everywhere equality to the pointwise recursion. |
-| ν_k | `laws P (U y) … k` | `laws_eq_scaledChain` gives the pointwise chain law. |
-| ULA identification | `laws_eq_ulaLawStep` | Actual IPLA law equals iterated ULA for U_{N,y}, step γ/N. |
-| π_N | `gibbsTarget (U y)` | The actual normalized density, definitionally the Gibbs measure of `potential (U y)`. |
-| Parameter marginal of π_N | `marginalTarget N (U y)` | Its density is proportional to ℓ_y(θ)^N, proved by `gibbsTarget_parameter_marginal`. |
-| θ⋆ | `θStar` and `IsMarginalMaximizer (U y) θStar` | A maximizer of the latent integral; existence and uniqueness are derived. |
-| Initial W₂ | `ULA.wasserstein2Real (P.map initial) (gibbsTarget (U y))` | The genuine coupling infimum for the rescaled state. |
+| \(L^2\) algorithm | `lpChain` | `lpChain_coe` gives almost-everywhere equality to the pointwise recursion. |
+| \(\nu_k\) | `laws P (U y) … k` | `laws_eq_scaledChain` gives the pointwise chain law. |
+| ULA identification | `laws_eq_ulaLawStep` | Actual IPLA law equals iterated ULA for \(U_{N,y}\), step \(\gamma/N\). |
+| \(\pi_N\) | `gibbsTarget (U y)` | The actual normalized density, definitionally the Gibbs measure of `potential (U y)`. |
+| Parameter marginal of \(\pi_N\) | `marginalTarget N (U y)` | Its density is proportional to \(\ell_y(\theta)^N\), proved by `gibbsTarget_parameter_marginal`. |
+| \(\theta^\star\) | `θStar` and `IsMarginalMaximizer (U y) θStar` | A maximizer of the latent integral; existence and uniqueness are derived. |
+| Initial \(W_2\) | `ULA.wasserstein2Real (P.map initial) (gibbsTarget (U y))` | The genuine coupling infimum for the rescaled state. |
 | RMS error | The square root of the law integral in `theorem1` | Finite second moment is proved before converting extended quantities to real numbers. |
 
 The substitutions into the shared Dalalyan theorem are exact:
 
 | ULA quantity | IPLA substitution | Lean justification |
 | --- | --- | --- |
-| Dimension D | d_θ+Nd_x | Cardinality of the actual coordinate index set. |
-| Strong-convexity constant | Nm | `potential_strongConvex`. |
-| Gradient Lipschitz constant | NL | `potential_gradient_lipschitz`. |
-| Step h | γ/N | `laws_eq_ulaLawStep`. |
-| 1−(Nm)h | 1−mγ | Arithmetic identity in `theorem1`. |
-| (NL)/(Nm) | L/m | Cancellation with N>0. |
-| √(hD) | √(d_x+d_θ/N)√γ | `scaled_bias_eq`, an equality. |
-| h≤2/(Nm+NL) | γ≤2/(m+L) | `scaled_step_iff`, a proved equivalence. |
-| Parameter equilibrium RMS | √(2d_θ/(Nm)) | `gibbsTarget_parameter_concentration`, proved from the original joint assumptions. |
+| Dimension \(D\) | \(d_\theta+Nd_x\) | Cardinality of the actual coordinate index set. |
+| Strong-convexity constant | \(Nm\) | `potential_strongConvex`. |
+| Gradient Lipschitz constant | \(NL\) | `potential_gradient_lipschitz`. |
+| Step \(h\) | \(\gamma/N\) | `laws_eq_ulaLawStep`. |
+| \(1-(Nm)h\) | \(1-m\gamma\) | Arithmetic identity in `theorem1`. |
+| \((NL)/(Nm)\) | \(L/m\) | Cancellation with \(N>0\). |
+| \(\sqrt{hD}\) | \(\sqrt{d_x+d_\theta/N}\sqrt\gamma\) | `scaled_bias_eq`, an equality. |
+| \(h\leq2/(Nm+NL)\) | \(\gamma\leq2/(m+L)\) | `scaled_step_iff`, a proved equivalence. |
+| Parameter equilibrium RMS | \(\sqrt{2d_\theta/(Nm)}\) | `gibbsTarget_parameter_concentration`, proved from the original joint assumptions. |
 
 Thus every coefficient and measure has an explicit Lean counterpart in the
-general-dimension bound. With d_θ=d_x=d, the last factor becomes
-√(d+d/N)=√(((N+1)d)/N), and the radius becomes √(2d/(Nm)); these are exactly
+general-dimension bound. With \(d_\theta=d_x=d\), the last factor becomes
+\(\sqrt{d+d/N}=\sqrt{(N+1)d/N}\), and the radius becomes \(\sqrt{2d/(Nm)}\); these are exactly
 the coefficients in equation (34). The source proof needs only the total
-dimension d_θ+Nd_x for ULA and the parameter dimension d_θ for concentration.
-The initial W₂ is for the scaled state, as in Appendix B; using
+dimension \(d_\theta+Nd_x\) for ULA and the parameter dimension \(d_\theta\) for concentration.
+The initial \(W_2\) is for the scaled state, as in Appendix B; using
 the unscaled state would change the theorem. The source orders its joint pair
-as (u,b), while Lean uses (θ,x); this is only a coordinate permutation.
+as \((u,b)\), while Lean uses \((\theta,x)\); this is only a coordinate permutation.
 
-There is one necessary source clarification. The printed Theorem 1 defines L
-using Φ, the potential without the parameter prior, whereas Appendix B applies
-L-smoothness to Ψ, the potential including that prior. Here L bounds the gradient
-of the same U_y that drives the algorithm. This matches Appendix B and the
-corrected quantitative theorem; a bound for Φ alone would not justify applying
-that same constant to Ψ. The formalization therefore does not claim that those
+There is one necessary source clarification. The printed Theorem 1 defines \(L\)
+using \(\Phi\), the potential without the parameter prior, whereas Appendix B applies
+\(L\)-smoothness to \(\Psi\), the potential including that prior. Here \(L\) bounds the gradient
+of the same \(U_y\) that drives the algorithm. This matches Appendix B and the
+corrected quantitative theorem; a bound for \(\Phi\) alone would not justify applying
+that same constant to \(\Psi\). The formalization therefore does not claim that those
 two different printed potentials have the same smoothness constant.
 
 ## Complete assumption audit
 
 | Item | Status in the final theorem |
 | --- | --- |
-| Joint differentiability, positive strong convexity, and gradient L-Lipschitz continuity | The three displayed assumptions on U_y. |
-| N≥1; independent natural dimensions d_θ,d_x; m>0; 0<γ≤2/(m+L) | The algorithm's dimensions and numerical regime. There is no relation between d_θ and d_x. |
+| Joint differentiability, positive strong convexity, and gradient \(L\)-Lipschitz continuity | The three displayed assumptions on \(U_y\). |
+| \(N\geq1\); independent natural dimensions \(d_\theta,d_x\); \(m>0\); \(0<\gamma\leq2/(m+L)\) | The algorithm's dimensions and numerical regime. There is no relation between \(d_\theta\) and \(d_x\). |
 | Independent standard Gaussian innovations, independent of initialization | The three fields of `GaussianInnovations`, specifying the algorithm. |
 | Square-integrable realization of the initialization | `initial : Lp (State N dθ dx) 2 P`; this is the finite-initial-moment regime of the bound. |
-| Square-integrable innovations | Their L² representation; standard Gaussian laws ensure finite moments. |
-| A chosen marginal maximizer θ⋆ | The center is named with `IsMarginalMaximizer`; `existsUnique_marginalMaximizer` proves there is exactly one. |
-| Finite initial W₂ | Derived from initialization and Gibbs second moments; no `hfinite` binder. |
+| Square-integrable innovations | Their \(L^2\) representation; standard Gaussian laws ensure finite moments. |
+| A chosen marginal maximizer \(\theta^\star\) | The center is named with `IsMarginalMaximizer`; `existsUnique_marginalMaximizer` proves there is exactly one. |
+| Finite initial \(W_2\) | Derived from initialization and Gibbs second moments; no `hfinite` binder. |
 | Gibbs normalization and finite moments | Derived from joint strong convexity. |
 | Gibbs score second moment | Derived using differentiability and gradient Lipschitz continuity, with no Hessian. |
 | Independent Brownian source and continuous Langevin solution | Constructed in the shared ULA library. |
@@ -193,11 +195,11 @@ two different printed potentials have the same smoothness constant.
 | Sharp equilibrium parameter concentration | Proved in `gibbsTarget_parameter_concentration`; no concentration binder. |
 | Output finite transport and finite projected moment | Derived before taking real-valued Wasserstein distance and RMS. |
 
-Finite W₂ and an L² initialization describe the same moment regime here:
-`initial_memLp_of_finite_transport` proves the implication from finite W₂,
+Finite \(W_2\) and an \(L^2\) initialization describe the same moment regime here:
+`initial_memLp_of_finite_transport` proves the implication from finite \(W_2\),
 and `wasserstein2_ne_top_of_memLp` proves the converse when the target has its
-derived second moment. The theorem's L² representation therefore adds no
-independent analytical integrability requirement beyond the source's finite-W₂
+derived second moment. The theorem's \(L^2\) representation therefore adds no
+independent analytical integrability requirement beyond the source's finite-\(W_2\)
 initialization. Every extra premise of the earlier conditional endpoint has
 been removed from the final theorem declaration.
 
@@ -206,8 +208,8 @@ been removed from the final theorem declaration.
 This is a file-level roadmap; the proof is contained in the Lean sources.
 
 1. `IPLA/Geometry.lean` and `IPLA/Dynamics.lean` derive the lifted constants,
-   gradient blocks, and both physical IPLA updates from U_y. `IPLA/ULAAdapter.lean`
-   identifies the actual Gaussian IPLA laws with the shared ULA law.
+   gradient blocks, and both physical IPLA updates from \(U_y\). `IPLA/ULAAdapter.lean`
+   identifies the laws of the IPLA recursion with the shared ULA law.
 2. `UnadjustedLangevin/CanonicalULA.lean` supplies the complete Dalalyan estimate
    for that law. It reuses the earlier ULA contraction, local-error recurrence,
    transport infimum, Gibbs normalization, and score estimates. Its canonical
@@ -221,14 +223,14 @@ This is a file-level roadmap; the proof is contained in the Lean sources.
    including all Jacobians and normalizers. `PrekopaLeindler.lean` proves the
    one-dimensional integral inequality by monotone transport;
    `PrekopaTensorization.lean` extends it to finite dimensions.
-   `StrongLogConcavity.lean` derives m-strong convexity of −log ℓ_y and the
+   `StrongLogConcavity.lean` derives \(m\)-strong convexity of \(-\log\ell_y\) and the
    unique maximizer. These are conclusions, not additional potential assumptions.
 5. `UnadjustedLangevin/GibbsConcentration.lean` proves the dimension-sharp
    second-moment bound by dilation for a continuous strongly convex potential
-   about its mode. `IPLA/Concentration.lean` applies it to −N log ℓ_y and gets
-   the radius √(2d_θ/(Nm)).
+   about its mode. `IPLA/Concentration.lean` applies it to \(-N\log\ell_y\) and gets
+   the radius \(\sqrt{2d_\theta/(Nm)}\).
 6. `IPLA/Theorem.lean` applies ULA at the exact scaled constants, uses the
-   proved concentration theorem, and projects to θ with a norm-one map.
+   proved concentration theorem, and projects to \(\theta\) with a map of operator norm at most one.
 
 The ULA proof is reused as a shared library. The special IPLA geometry and
 marginal argument are separate modules; the ULA convergence theorem is not
@@ -237,10 +239,10 @@ reproved for a different statistical model.
 ## What the generator argument establishes
 
 `UnadjustedLangevin/Generator.lean` integrates the Langevin generator against
-the actual Gibbs density using compact C² test functions. `GeneratorDirichlet.lean`
+the actual Gibbs density using compactly supported \(C^2\) test functions. `GeneratorDirichlet.lean`
 proves the Dirichlet identity, symmetry, and dissipativity, and
 `FokkerPlanck.lean` proves the constant Gibbs weak forward solution. These facts
-use first-order assumptions on U_y, with no Hessian of the potential.
+use first-order assumptions on \(U_y\), with no Hessian of the potential.
 
 An integrated generator identity by itself does not identify the law of a
 constructed stochastic solution. That identification is now proved separately

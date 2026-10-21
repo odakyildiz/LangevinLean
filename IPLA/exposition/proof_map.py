@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 # This is a logical proof roadmap, rather than a graph of Lean import commands.
 NODES = [
     dict(id="assumptions", x=355, y=24, kind="input",
-         title="Joint U(θ,x;y) + Gaussian IPLA",
+         title="Joint potential + Gaussian noise",
          detail="m-strong convexity · L-Lipschitz gradient",
          file="IPLA/Model.lean", declaration="GaussianInnovations"),
     dict(id="geometry", x=25, y=210, kind="ipla",
