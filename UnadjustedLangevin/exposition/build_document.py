@@ -20,8 +20,8 @@ ENTRY_POINTS = {
     "beginner_guide.html": "dist/index.html#lean-beginner-guide",
 }
 NOTES = ["notes_analytic.json", "notes_probability.json", "notes_assembly.json"]
-ORDER = ["UnadjustedLangevin/StrongConvexity.lean", "GradientDescent/StrongConvexity.lean",
-         "GradientDescent/Smooth.lean", "UnadjustedLangevin/GradientStep.lean",
+ORDER = ["UnadjustedLangevin/StrongConvexity.lean",
+         "UnadjustedLangevin/Analysis/Smooth.lean", "UnadjustedLangevin/GradientStep.lean",
          "UnadjustedLangevin/ULAupdate.lean", "UnadjustedLangevin/SharpContraction.lean",
          "UnadjustedLangevin/Dynamics.lean", "UnadjustedLangevin/Coupling.lean",
          "UnadjustedLangevin/Integrability.lean", "UnadjustedLangevin/LocalError.lean",

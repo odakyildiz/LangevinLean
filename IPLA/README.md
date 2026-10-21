@@ -25,16 +25,24 @@ the source's Φ/Ψ smoothness issue, and a file-level proof roadmap. The
 exposition includes the final declaration copied directly from the source;
 it does not reproduce the proof.
 
-For the rescaled state, the dimension is `dθ + N*dx`. The bound has equilibrium
+For the rescaled state, the dimension is `dθ + N*dx`, proved explicitly by
+`IPLA.finrank_state` in [Geometry.lean](Geometry.lean). There is one shared
+parameter block and `N` latent blocks. The bound has equilibrium
 radius `sqrt (2*dθ/(N*m))` and discretization term
 `(33/20)*(L/m)*sqrt (dx + dθ/N)*sqrt γ`. Neither coefficient replaces one
 dimension by the other.
 
-The analytic ULA argument is reused from `UnadjustedLangevin`, including
-contraction, local error, finite transport, Brownian reference construction,
-and the now-proved Gibbs stationarity theorem. IPLA adds the lifted geometry,
-algorithm law identification, the exact parameter marginal, the proved
-Prékopa theorem, and sharp parameter concentration.
+The final proof directly applies
+`ULA.Hilbert.dalalyan_of_gaussian_innovations` from
+[GaussianULA.lean](../UnadjustedLangevin/GaussianULA.lean) to the lifted chain.
+That shared ULA module also derives finite initial transport from the
+initialization and Gibbs moments. Contraction, local error, Brownian reference
+construction, and Gibbs stationarity all stay in `UnadjustedLangevin`.
+The `laws_eq_ulaLawStep` bridge transfers ULA's output-finiteness result to
+the IPLA law before projection. IPLA adds the lifted geometry, algorithm
+identification, exact parameter marginal, proved Prékopa theorem, and sharp
+parameter concentration. The small compatibility export modules contain no
+separate ULA proofs.
 
 ## Compile
 

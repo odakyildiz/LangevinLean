@@ -15,7 +15,6 @@ import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Analysis.Convex.Deriv
 import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Tactic.FieldSimp
 import Mathlib.Analysis.InnerProductSpace.Basic
 import Mathlib.Analysis.Real.Sqrt
 import Mathlib.Tactic.Module
@@ -38,13 +37,9 @@ import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Probability.Distributions.Gaussian.Real
 import Mathlib.Probability.Independence.Basic
 import Mathlib.MeasureTheory.Measure.WithDensity
-import Mathlib.Probability.BrownianMotion.Basic
-import Mathlib.MeasureTheory.SpecificCodomains.WithLp
-import Mathlib.Analysis.ODE.ExistUnique
 import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.Probability.Moments.SubGaussian
 import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
-import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.Normed.Operator.Basic
 import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
 import Mathlib.Topology.MetricSpace.Bounded
@@ -58,6 +53,9 @@ import Mathlib.MeasureTheory.Integral.IntegralEqImproper
 import Mathlib.MeasureTheory.Function.JacobianOneDim
 import Mathlib.Topology.Order.IntermediateValue
 import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.BrownianMotion.Basic
+import Mathlib.MeasureTheory.SpecificCodomains.WithLp
+import Mathlib.Analysis.ODE.ExistUnique
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Topology.UniformSpace.HeineCantor
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
@@ -70,6 +68,7 @@ import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Basic
 import Mathlib.LinearAlgebra.Pi
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+import Mathlib.Analysis.ODE.Gronwall
 import Mathlib.Analysis.Calculus.LineDeriv.IntegrationByParts
 import Mathlib.Analysis.Calculus.ContDiff.Comp
 import Mathlib.Analysis.InnerProductSpace.Laplacian
@@ -126,8 +125,17 @@ namespace IPLA
 abbrev State (N dθ dx : ℕ) := EuclideanSpace ℝ (Fin dθ ⊕ (Fin N × Fin dx))
 /-- A parameter-particle pair, with parameter block first. -/
 abbrev Joint (dθ dx : ℕ) := EuclideanSpace ℝ (Fin dθ ⊕ Fin dx)
-/-- All parameter-particle pairs, with the common parameter replicated. -/
-abbrev Family (N dθ dx : ℕ) := EuclideanSpace ℝ (Fin N × (Fin dθ ⊕ Fin dx))
+
+/-- IPLA has one common parameter and `N` latent vectors, in arbitrary,
+independent parameter and latent dimensions. -/
+@[simp] theorem finrank_state (N dθ dx : ℕ) :
+    Module.finrank ℝ (State N dθ dx) = dθ + N * dx := by
+  simp [State]
+
+/-- The original joint potential has one parameter block and one latent block. -/
+@[simp] theorem finrank_joint (dθ dx : ℕ) :
+    Module.finrank ℝ (Joint dθ dx) = dθ + dx := by
+  simp [Joint]
 
 /-- Extract the scaled latent vector of particle `i`. -/
 def block {N dθ dx : ℕ} (z : State N dθ dx) (i : Fin N) : EuclideanSpace ℝ (Fin dx) :=
@@ -375,20 +383,21 @@ end
 end
 
 
-/-! ## Included source: GradientDescent/Smooth.lean -/
+/-! ## Included source: UnadjustedLangevin/Analysis/Smooth.lean -/
 section
 
 /-!
 # The quadratic upper bound for a function with a Lipschitz gradient
 
-This is the descent lemma in a real Hilbert space. The proof restricts the function to the
-line segment from `x` to `y`, subtracts the affine approximation and a quadratic correction,
-and shows that the resulting scalar function is decreasing on `[0, 1]`.
+This shared analytic lemma underlies ULA contraction and the Gibbs/MALA
+estimates. Restrict the function to the line segment from `x` to `y`, subtract
+the affine approximation and a quadratic correction, and show that the
+resulting scalar function is decreasing on `[0, 1]`.
 -/
 
 open scoped NNReal
 
-namespace GradientDescent
+namespace ULA.Analysis
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
 
@@ -441,153 +450,7 @@ theorem smooth_upper_bound (f : H → ℝ) (L : ℝ≥0)
   rw [hxy] at hfinal
   linarith
 
-end GradientDescent
-
-
-end
-
-
-/-! ## Included source: GradientDescent/StrongConvexity.lean -/
-section
-
-/-! # First-order consequences of strong convexity
-
-All statements use Mathlib's `StrongConvexOn Set.univ m f`, with quadratic
-normalization `m / 2`. In a real Hilbert space this is equivalent to convexity
-of `fun x ↦ f x - m / 2 * ‖x‖ ^ 2`.
--/
-
-noncomputable section
-
-namespace GradientDescent
-
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
-
-/-- A differentiable convex function lies above each of its tangent planes. -/
-lemma convex_first_order {f : H → ℝ} (hf : ConvexOn ℝ Set.univ f)
-    (hdiff : Differentiable ℝ f) (x y : H) :
-    f x + fderiv ℝ f x (y - x) ≤ f y := by
-  let line : ℝ →ᵃ[ℝ] H := AffineMap.lineMap x y
-  have hc : ConvexOn ℝ Set.univ (f ∘ line) := by
-    simpa [line] using hf.comp_affineMap line
-  have hl : HasDerivAt line (y - x) 0 := by
-    change HasDerivAt (fun t : ℝ ↦ t • (y - x) + x) (y - x) 0
-    simpa using
-      ((hasDerivAt_id (0 : ℝ)).smul_const (y - x)).add_const x
-  have hd : HasDerivAt (f ∘ line) (fderiv ℝ f x (y - x)) 0 := by
-    exact (hdiff x).hasFDerivAt.comp_hasDerivAt_of_eq 0 hl (by simp [line])
-  have hs := hc.le_slope_of_hasDerivAt (Set.mem_univ 0) (Set.mem_univ 1)
-    (zero_lt_one : (0 : ℝ) < 1) hd
-  simp only [slope_def_field, Function.comp_apply, line, AffineMap.lineMap_apply_one,
-    AffineMap.lineMap_apply_zero, sub_zero, div_one] at hs
-  linarith
-
-/-- The first-order inequality associated with `m`-strong convexity. -/
-lemma strong_first_order [CompleteSpace H] {f : H → ℝ} {m : ℝ}
-    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (x y : H) :
-    f x + inner ℝ (gradient f x) (y - x) + m / 2 * ‖y - x‖ ^ 2 ≤ f y := by
-  let g : H → ℝ := fun v ↦ f v - m / 2 * ‖v‖ ^ 2
-  have hc : ConvexOn ℝ Set.univ g := strongConvexOn_iff_convex.mp hsc
-  have hg (v : H) : HasFDerivAt g
-      (fderiv ℝ f v - (m / 2) • (2 • innerSL ℝ v)) v := by
-    exact (hdiff v).hasFDerivAt.sub
-      ((hasStrictFDerivAt_norm_sq v).hasFDerivAt.const_mul (m / 2))
-  have hgd : Differentiable ℝ g := fun v ↦ (hg v).differentiableAt
-  have hxy := convex_first_order hc hgd x y
-  rw [(hg x).fderiv] at hxy
-  simp only [g, sub_apply, smul_apply, smul_eq_mul, innerSL_apply_apply,
-    ← inner_gradient_left, inner_sub_right, real_inner_self_eq_norm_sq,
-    two_smul, add_apply] at hxy
-  rw [norm_sub_sq_real]
-  simp only [inner_sub_right, real_inner_comm] at hxy ⊢
-  nlinarith
-
-/-- Strong convexity makes the gradient strongly monotone. -/
-lemma strong_gradient_monotone [CompleteSpace H] {f : H → ℝ} {m : ℝ}
-    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (x y : H) :
-    m * ‖x - y‖ ^ 2 ≤ inner ℝ (gradient f x - gradient f y) (x - y) := by
-  have hxy := strong_first_order hdiff hsc x y
-  have hyx := strong_first_order hdiff hsc y x
-  rw [norm_sub_rev y x] at hxy
-  have hi : inner ℝ (gradient f x) (y - x) =
-      -inner ℝ (gradient f x) (x - y) := by
-    rw [← neg_sub, inner_neg_right]
-  rw [hi] at hxy
-  rw [inner_sub_left]
-  linarith
-
-/-- A stationary point has a quadratic lower bound on the objective gap. -/
-lemma strong_lower_gap [CompleteSpace H] {f : H → ℝ} {m : ℝ}
-    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
-    {z : H} (hz : gradient f z = 0) (x : H) :
-    m / 2 * ‖x - z‖ ^ 2 ≤ f x - f z := by
-  have h := strong_first_order hdiff hsc z x
-  rw [hz, inner_zero_left, add_zero] at h
-  linarith
-
-/-- Strong convexity gives the Polyak--Łojasiewicz upper bound on an objective gap.
-The reference point can be arbitrary; no stationarity hypothesis is required. -/
-lemma strong_upper_gap [CompleteSpace H] {f : H → ℝ} {m : ℝ}
-    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f)
-    (hm : 0 < m) (x z : H) :
-    f x - f z ≤ ‖gradient f x‖ ^ 2 / (2 * m) := by
-  have hfirst := strong_first_order hdiff hsc x z
-  have hinner := neg_le_of_abs_le (abs_real_inner_le_norm (gradient f x) (z - x))
-  have hgap : f x - f z ≤
-      ‖gradient f x‖ * ‖z - x‖ - m / 2 * ‖z - x‖ ^ 2 := by
-    linarith
-  apply hgap.trans
-  apply (le_div_iff₀ (by positivity : (0 : ℝ) < 2 * m)).2
-  nlinarith [sq_nonneg (m * ‖z - x‖ - ‖gradient f x‖)]
-
-end GradientDescent
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/GradientStep.lean -/
-section
-
-/-! Squared and square-root bounds for a strongly monotone Lipschitz Euler step.
-See `GradientStep.tex` for the corresponding mathematical proof. -/
-
-open scoped NNReal
-
-namespace ULA
-
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
-
-/-- Monotonicity and Lipschitz bounds control squared distance after one Euler step. -/
-theorem gradient_step_sq_bound
-    (x y gx gy : H) (m h : ℝ) (L : ℝ≥0) (hh : 0 ≤ h)
-    (hmono : m * ‖x - y‖ ^ 2 ≤ inner ℝ (gx - gy) (x - y))
-    (hLip : ‖gx - gy‖ ≤ (L : ℝ) * ‖x - y‖) :
-    ‖(x - h • gx) - (y - h • gy)‖ ^ 2 ≤
-      (1 - 2 * h * m + h ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖ ^ 2 := by
-  have hLipSq : ‖gx - gy‖ ^ 2 ≤ (L : ℝ) ^ 2 * ‖x - y‖ ^ 2 := by
-    nlinarith [norm_nonneg (gx - gy), norm_nonneg (x - y), L.coe_nonneg]
-  have hmonoScaled := mul_le_mul_of_nonneg_left hmono (show 0 ≤ 2 * h by positivity)
-  have hLipScaled := mul_le_mul_of_nonneg_left hLipSq (sq_nonneg h)
-  rw [show (x - h • gx) - (y - h • gy) = (x - y) - h • (gx - gy) by module,
-    norm_sub_sq_real, real_inner_smul_right, norm_smul, Real.norm_eq_abs,
-    abs_of_nonneg hh, ← real_inner_comm (x - y) (gx - gy)]
-  nlinarith
-
-/-- One Euler step satisfies the usual square-root norm bound; the coefficient
-need not be assumed nonnegative. -/
-theorem gradient_step_contract
-    (x y gx gy : H) (m h : ℝ) (L : ℝ≥0) (hh : 0 ≤ h)
-    (hmono : m * ‖x - y‖ ^ 2 ≤ inner ℝ (gx - gy) (x - y))
-    (hLip : ‖gx - gy‖ ≤ (L : ℝ) * ‖x - y‖) :
-    ‖(x - h • gx) - (y - h • gy)‖ ≤
-      Real.sqrt (1 - 2 * h * m + h ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖ := by
-  have hsq := gradient_step_sq_bound x y gx gy m h L hh hmono hLip
-  have hbound := Real.le_sqrt_of_sq_le hsq
-  rwa [Real.sqrt_mul' _ (sq_nonneg _), Real.sqrt_sq (norm_nonneg _)] at hbound
-
-end ULA
+end ULA.Analysis
 
 
 end
@@ -647,10 +510,77 @@ lemma strong_gradient_monotone [CompleteSpace H] {f : H → ℝ} {m : ℝ}
     real_inner_comm] at hxy hyx ⊢
   nlinarith
 
+/-- The supporting-plane inequality associated with `m`-strong convexity.
+This shared form supplies both sharp ULA contraction and Gibbs tail bounds. -/
+lemma strong_first_order [CompleteSpace H] {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (x y : H) :
+    f x + inner ℝ (gradient f x) (y - x) + m / 2 * ‖y - x‖ ^ 2 ≤ f y := by
+  let g : H → ℝ := fun v ↦ f v - m / 2 * ‖v‖ ^ 2
+  have hc : ConvexOn ℝ Set.univ g := strongConvexOn_iff_convex.mp hsc
+  have hg (v : H) : HasFDerivAt g
+      (fderiv ℝ f v - (m / 2) • (2 • innerSL ℝ v)) v := by
+    exact (hdiff v).hasFDerivAt.sub
+      ((hasStrictFDerivAt_norm_sq v).hasFDerivAt.const_mul (m / 2))
+  have hgd : Differentiable ℝ g := fun v ↦ (hg v).differentiableAt
+  have hxy := convex_first_order hc hgd x y
+  rw [(hg x).fderiv] at hxy
+  simp only [g, sub_apply, smul_apply, smul_eq_mul, innerSL_apply_apply,
+    ← inner_gradient_left, inner_sub_right, real_inner_self_eq_norm_sq,
+    two_smul, add_apply] at hxy
+  rw [norm_sub_sq_real]
+  simp only [inner_sub_right, real_inner_comm] at hxy ⊢
+  nlinarith
+
 end ULA
 
 
 end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/GradientStep.lean -/
+section
+
+/-! Squared and square-root bounds for a strongly monotone Lipschitz Euler step.
+See `GradientStep.tex` for the corresponding mathematical proof. -/
+
+open scoped NNReal
+
+namespace ULA
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+
+/-- Monotonicity and Lipschitz bounds control squared distance after one Euler step. -/
+theorem gradient_step_sq_bound
+    (x y gx gy : H) (m h : ℝ) (L : ℝ≥0) (hh : 0 ≤ h)
+    (hmono : m * ‖x - y‖ ^ 2 ≤ inner ℝ (gx - gy) (x - y))
+    (hLip : ‖gx - gy‖ ≤ (L : ℝ) * ‖x - y‖) :
+    ‖(x - h • gx) - (y - h • gy)‖ ^ 2 ≤
+      (1 - 2 * h * m + h ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖ ^ 2 := by
+  have hLipSq : ‖gx - gy‖ ^ 2 ≤ (L : ℝ) ^ 2 * ‖x - y‖ ^ 2 := by
+    nlinarith [norm_nonneg (gx - gy), norm_nonneg (x - y), L.coe_nonneg]
+  have hmonoScaled := mul_le_mul_of_nonneg_left hmono (show 0 ≤ 2 * h by positivity)
+  have hLipScaled := mul_le_mul_of_nonneg_left hLipSq (sq_nonneg h)
+  rw [show (x - h • gx) - (y - h • gy) = (x - y) - h • (gx - gy) by module,
+    norm_sub_sq_real, real_inner_smul_right, norm_smul, Real.norm_eq_abs,
+    abs_of_nonneg hh, ← real_inner_comm (x - y) (gx - gy)]
+  nlinarith
+
+/-- One Euler step satisfies the usual square-root norm bound; the coefficient
+need not be assumed nonnegative. -/
+theorem gradient_step_contract
+    (x y gx gy : H) (m h : ℝ) (L : ℝ≥0) (hh : 0 ≤ h)
+    (hmono : m * ‖x - y‖ ^ 2 ≤ inner ℝ (gx - gy) (x - y))
+    (hLip : ‖gx - gy‖ ≤ (L : ℝ) * ‖x - y‖) :
+    ‖(x - h • gx) - (y - h • gy)‖ ≤
+      Real.sqrt (1 - 2 * h * m + h ^ 2 * (L : ℝ) ^ 2) * ‖x - y‖ := by
+  have hsq := gradient_step_sq_bound x y gx gy m h L hh hmono hLip
+  have hbound := Real.le_sqrt_of_sq_le hsq
+  rwa [Real.sqrt_mul' _ (sq_nonneg _), Real.sqrt_sq (norm_nonneg _)] at hbound
+
+end ULA
+
+
 end
 
 
@@ -799,7 +729,7 @@ theorem strong_smooth_gradient_interpolation [CompleteSpace H]
   let F : H → ℝ := fun v ↦ f v - m / 2 * ‖v‖ ^ 2
   let G : H → H := fun v ↦ gradient f v - m • v
   have hlower (a b : H) : F a + inner ℝ (G a) (b - a) ≤ F b := by
-    have h := GradientDescent.strong_first_order hdiff hsc a b
+    have h := strong_first_order hdiff hsc a b
     dsimp [F, G]
     simp only [inner_sub_left, real_inner_smul_left, inner_sub_right,
       real_inner_self_eq_norm_sq] at h ⊢
@@ -807,7 +737,7 @@ theorem strong_smooth_gradient_interpolation [CompleteSpace H]
     nlinarith
   have hupper (a b : H) :
       F b ≤ F a + inner ℝ (G a) (b - a) + ((L : ℝ) - m) / 2 * ‖b - a‖ ^ 2 := by
-    have h := GradientDescent.smooth_upper_bound f L hdiff hLip a b
+    have h := Analysis.smooth_upper_bound f L hdiff hLip a b
     dsimp [F, G]
     simp only [inner_sub_left, real_inner_smul_left, inner_sub_right,
       real_inner_self_eq_norm_sq] at h ⊢
@@ -2134,751 +2064,6 @@ end
 end
 
 
-/-! ## Included source: UnadjustedLangevin/GaussianMoments.lean -/
-section
-
-/-!
-# Gaussian and Brownian noise moments in Euclidean space
-
-The square-root noise estimate is proved from Gaussian coordinate laws.
-Independence is unnecessary for this particular second-moment calculation:
-the squared Euclidean norm is a sum of coordinate squares, with no cross terms.
-The Brownian specialization uses mathlib's actual Brownian marginal-law theorem.
--/
-
-noncomputable section
-
-open MeasureTheory ProbabilityTheory
-open scoped NNReal
-
-namespace ULA
-
-variable {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) {d : ℕ}
-
-/-- The second moment of a centered real Gaussian is its variance parameter. -/
-theorem centered_gaussian_second_moment (v : ℝ≥0) :
-    (∫ x : ℝ, x ^ 2 ∂gaussianReal 0 v) = (v : ℝ) := by
-  have hv := variance_fun_id_gaussianReal (μ := 0) (v := v)
-  rw [variance_eq_integral measurable_id'.aemeasurable, integral_id_gaussianReal] at hv
-  simpa only [sub_zero] using hv
-
-/-- Gaussian coordinate laws imply genuine square integrability of a vector. -/
-theorem gaussian_vector_memLp (X : Ω → E d) (v : ℝ≥0)
-    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    MemLp X 2 P := by
-  apply memLp_piLp_iff.mpr
-  intro i
-  exact (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
-
-/-- Summing exact Gaussian coordinate moments gives the dimension factor. -/
-theorem gaussian_vector_second_moment (X : Ω → E d) (v : ℝ≥0)
-    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    (∫ ω, ‖X ω‖ ^ 2 ∂P) = (d : ℝ) * (v : ℝ) := by
-  have hmem (i : Fin d) : MemLp (fun ω ↦ X ω i) 2 P :=
-    (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
-  have hmom (i : Fin d) : (∫ ω, (X ω i) ^ 2 ∂P) = (v : ℝ) := by
-    exact (hlaw i).integral_comp (f := fun x : ℝ ↦ x ^ 2) (by fun_prop) |>.trans
-      (centered_gaussian_second_moment v)
-  simp_rw [EuclideanSpace.real_norm_sq_eq]
-  rw [integral_finsetSum _ (fun i _ ↦ (hmem i).integrable_sq)]
-  simp only [hmom, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
-
-/-- Its L² representative has the same exact second moment. -/
-theorem gaussian_vector_toLp_norm_sq (X : Ω → E d) (v : ℝ≥0)
-    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖(gaussian_vector_memLp P X v hlaw).toLp X‖ ^ 2 = (d : ℝ) * (v : ℝ) := by
-  rw [← real_inner_self_eq_norm_sq, L2.inner_def]
-  have hid : (∫ ω, inner ℝ
-      ((gaussian_vector_memLp P X v hlaw).toLp X ω)
-      ((gaussian_vector_memLp P X v hlaw).toLp X ω) ∂P) = ∫ ω, ‖X ω‖ ^ 2 ∂P := by
-    apply integral_congr_ae
-    filter_upwards [(gaussian_vector_memLp P X v hlaw).coeFn_toLp] with ω hω
-    rw [hω, real_inner_self_eq_norm_sq]
-  rw [hid, gaussian_vector_second_moment P X v hlaw]
-
-/-- The exact square-root Gaussian L² norm, including zero dimension or variance. -/
-theorem gaussian_vector_toLp_norm (X : Ω → E d) (v : ℝ≥0)
-    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖(gaussian_vector_memLp P X v hlaw).toLp X‖ = Real.sqrt ((d : ℝ) * (v : ℝ)) := by
-  rw [← gaussian_vector_toLp_norm_sq P X v hlaw, Real.sqrt_sq (norm_nonneg _)]
-
-/-- The Langevin scaling `√2` gives precisely the noise moment `√(2dv)`. -/
-theorem gaussian_vector_scaled_l2_norm (X : Ω → E d) (v : ℝ≥0)
-    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖Real.sqrt 2 • (gaussian_vector_memLp P X v hlaw).toLp X‖ =
-      Real.sqrt (2 * (d : ℝ)) * Real.sqrt (v : ℝ) := by
-  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
-    gaussian_vector_toLp_norm P X v hlaw,
-    Real.sqrt_mul (by positivity : (0 : ℝ) ≤ d),
-    Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
-  ring
-
-/-- Assemble scalar Brownian coordinates into the Euclidean noise vector. -/
-def brownianVector (W : Fin d → ℝ≥0 → Ω → ℝ) (t : ℝ≥0) : Ω → E d :=
-  fun ω ↦ WithLp.toLp 2 (fun i ↦ W i t ω)
-
-/-- Mathlib's Brownian marginal laws supply the Gaussian hypotheses above. -/
-theorem brownianVector_coordinate_law (W : Fin d → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) (i : Fin d) :
-    HasLaw (fun ω ↦ brownianVector W t ω i) (gaussianReal 0 t) P :=
-  (hW i).hasLaw_eval t
-
-/-- A Brownian vector at any nonnegative time has finite second moment. -/
-theorem brownianVector_memLp (W : Fin d → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
-    MemLp (brownianVector W t) 2 P :=
-  gaussian_vector_memLp P (brownianVector W t) t (brownianVector_coordinate_law P W hW t)
-
-/-- The noise moment used by Dalalyan's proof follows from Brownian laws. -/
-theorem brownianVector_scaled_l2_norm (W : Fin d → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
-    ‖Real.sqrt 2 • (brownianVector_memLp P W hW t).toLp (brownianVector W t)‖ =
-      Real.sqrt (2 * (d : ℝ)) * Real.sqrt (t : ℝ) :=
-  gaussian_vector_scaled_l2_norm P (brownianVector W t) t
-    (brownianVector_coordinate_law P W hW t)
-
-/-- The Brownian vector increment over the interval from `a` to `a+t`. -/
-def brownianVectorIncrement (W : Fin d → ℝ≥0 → Ω → ℝ) (a t : ℝ≥0) : Ω → E d :=
-  fun ω ↦ brownianVector W (a + t) ω - brownianVector W a ω
-
-/-- Brownian increments have variance equal to the elapsed time, at every
-starting time. This uses the actual Brownian marginal difference law. -/
-theorem brownianVectorIncrement_coordinate_law (W : Fin d → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) (i : Fin d) :
-    HasLaw (fun ω ↦ brownianVectorIncrement W a t ω i) (gaussianReal 0 t) P := by
-  change HasLaw (fun ω ↦ W i (a + t) ω - W i a ω) (gaussianReal 0 t) P
-  convert (hW i).hasLaw_sub (a + t) a using 1
-  congr 1
-  apply NNReal.eq
-  simp only [coe_nndist, Real.dist_eq]
-  change (t : ℝ) = |((a : ℝ) + (t : ℝ)) - (a : ℝ)|
-  rw [add_sub_cancel_left, abs_of_nonneg t.coe_nonneg]
-
-/-- The vector increment is a genuinely square-integrable random variable. -/
-theorem brownianVectorIncrement_memLp (W : Fin d → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
-    MemLp (brownianVectorIncrement W a t) 2 P :=
-  gaussian_vector_memLp P (brownianVectorIncrement W a t) t
-    (brownianVectorIncrement_coordinate_law P W hW a t)
-
-/-- Every reference segment has the same exact Langevin noise L² norm,
-`√(2d)√t`, regardless of its starting time. -/
-theorem brownianVector_increment_scaled_l2_norm (W : Fin d → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
-    ‖Real.sqrt 2 • (brownianVectorIncrement_memLp P W hW a t).toLp
-      (brownianVectorIncrement W a t)‖ =
-      Real.sqrt (2 * (d : ℝ)) * Real.sqrt (t : ℝ) :=
-  gaussian_vector_scaled_l2_norm P (brownianVectorIncrement W a t) t
-    (brownianVectorIncrement_coordinate_law P W hW a t)
-
-end ULA
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/GaussianCoordinates.lean -/
-section
-
-set_option linter.style.header false
-
-/-!
-# Gaussian and Brownian moments for arbitrary finite coordinate sets
-
-The previous Gaussian moment lemmas use `Fin d`. IPLA uses the product set of
-particle blocks and within-block coordinates. This module supplies the same
-exact moment bounds for `EuclideanSpace ℝ ι`, for any finite coordinate set.
-Only marginal coordinate laws are needed for second moments; independence is
-not added as an unnecessary hypothesis.
--/
-
-noncomputable section
-
-open MeasureTheory ProbabilityTheory
-open scoped NNReal
-
-namespace ULA
-
-variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
-  (P : Measure Ω)
-
-/-- Gaussian coordinate laws imply square integrability on any finite
-Euclidean coordinate space. -/
-theorem gaussian_coordinates_memLp (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    MemLp X 2 P := by
-  apply memLp_piLp_iff.mpr
-  intro i
-  exact (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
-
-/-- The dimension factor is the exact cardinality of the coordinate set. -/
-theorem gaussian_coordinates_second_moment (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    (∫ ω, ‖X ω‖ ^ 2 ∂P) = (Fintype.card ι : ℝ) * (v : ℝ) := by
-  have hmem (i : ι) : MemLp (fun ω ↦ X ω i) 2 P :=
-    (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
-  have hmom (i : ι) : (∫ ω, (X ω i) ^ 2 ∂P) = (v : ℝ) := by
-    exact (hlaw i).integral_comp (f := fun x : ℝ ↦ x ^ 2) (by fun_prop) |>.trans
-      (centered_gaussian_second_moment v)
-  simp_rw [EuclideanSpace.real_norm_sq_eq]
-  rw [integral_finsetSum _ (fun i _ ↦ (hmem i).integrable_sq)]
-  simp only [hmom, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-
-/-- Exact norm identity for an existing `L²` Gaussian vector. -/
-theorem gaussian_coordinates_Lp_norm_sq (X : Lp (EuclideanSpace ℝ ι) 2 P) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖X‖ ^ 2 = (Fintype.card ι : ℝ) * (v : ℝ) := by
-  rw [← real_inner_self_eq_norm_sq, L2.inner_def]
-  simpa only [real_inner_self_eq_norm_sq] using
-    gaussian_coordinates_second_moment P X v hlaw
-
-/-- Exact square-root norm identity for an existing `L²` Gaussian vector. -/
-theorem gaussian_coordinates_Lp_norm (X : Lp (EuclideanSpace ℝ ι) 2 P) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖X‖ = Real.sqrt ((Fintype.card ι : ℝ) * (v : ℝ)) := by
-  rw [← gaussian_coordinates_Lp_norm_sq P X v hlaw,
-    Real.sqrt_sq (norm_nonneg _)]
-
-/-- Its `L²` representative has the original Gaussian coordinate laws. -/
-theorem gaussian_coordinates_toLp_coordinateLaw
-    (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) (i : ι) :
-    HasLaw (fun ω ↦ (gaussian_coordinates_memLp P X v hlaw).toLp X ω i)
-      (gaussianReal 0 v) P := by
-  exact (hlaw i).congr
-    ((gaussian_coordinates_memLp P X v hlaw).coeFn_toLp.fun_comp (fun z ↦ z i))
-
-/-- Exact square-root norm of the canonical `L²` representative. -/
-theorem gaussian_coordinates_toLp_norm (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖(gaussian_coordinates_memLp P X v hlaw).toLp X‖ =
-      Real.sqrt ((Fintype.card ι : ℝ) * (v : ℝ)) :=
-  gaussian_coordinates_Lp_norm P _ v
-    (gaussian_coordinates_toLp_coordinateLaw P X v hlaw)
-
-/-- The `√2` Langevin scaling gives exactly the required local-noise radius. -/
-theorem gaussian_coordinates_scaled_l2_norm (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
-    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
-    ‖Real.sqrt 2 • (gaussian_coordinates_memLp P X v hlaw).toLp X‖ =
-      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt (v : ℝ) := by
-  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
-    gaussian_coordinates_toLp_norm P X v hlaw,
-    Real.sqrt_mul (by positivity : (0 : ℝ) ≤ Fintype.card ι),
-    Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
-  ring
-
-/-- Assemble scalar Brownian coordinates in any finite Euclidean space. -/
-def brownianCoordinates (W : ι → ℝ≥0 → Ω → ℝ) (t : ℝ≥0) :
-    Ω → EuclideanSpace ℝ ι :=
-  fun ω ↦ WithLp.toLp 2 (fun i ↦ W i t ω)
-
-omit [Fintype ι] in
-/-- Actual scalar Brownian laws give the vector's coordinate laws. -/
-theorem brownianCoordinates_coordinateLaw (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) (i : ι) :
-    HasLaw (fun ω ↦ brownianCoordinates W t ω i) (gaussianReal 0 t) P :=
-  (hW i).hasLaw_eval t
-
-/-- A Brownian vector increment over an arbitrary starting time. -/
-def brownianCoordinatesIncrement (W : ι → ℝ≥0 → Ω → ℝ) (a t : ℝ≥0) :
-    Ω → EuclideanSpace ℝ ι :=
-  fun ω ↦ brownianCoordinates W (a + t) ω - brownianCoordinates W a ω
-
-omit [Fintype ι] in
-/-- Every coordinate increment has Gaussian variance equal to elapsed time. -/
-theorem brownianCoordinatesIncrement_coordinateLaw (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) (i : ι) :
-    HasLaw (fun ω ↦ brownianCoordinatesIncrement W a t ω i) (gaussianReal 0 t) P := by
-  change HasLaw (fun ω ↦ W i (a + t) ω - W i a ω) (gaussianReal 0 t) P
-  convert (hW i).hasLaw_sub (a + t) a using 1
-  congr 1
-  apply NNReal.eq
-  simp only [coe_nndist, Real.dist_eq]
-  change (t : ℝ) = |((a : ℝ) + (t : ℝ)) - (a : ℝ)|
-  rw [add_sub_cancel_left, abs_of_nonneg t.coe_nonneg]
-
-/-- Brownian increments are square integrable in the full vector space. -/
-theorem brownianCoordinatesIncrement_memLp (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
-    MemLp (brownianCoordinatesIncrement W a t) 2 P :=
-  gaussian_coordinates_memLp P _ t
-    (brownianCoordinatesIncrement_coordinateLaw P W hW a t)
-
-/-- The exact Langevin noise moment is derived from Brownian laws; no supplied
-moment inequality or independence premise is required. -/
-theorem brownianCoordinatesIncrement_scaled_l2_norm (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
-    ‖Real.sqrt 2 • (brownianCoordinatesIncrement_memLp P W hW a t).toLp
-      (brownianCoordinatesIncrement W a t)‖ =
-      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt (t : ℝ) :=
-  gaussian_coordinates_scaled_l2_norm P _ t
-    (brownianCoordinatesIncrement_coordinateLaw P W hW a t)
-
-/-- Brownian coordinates as canonical square-integrable random variables. -/
-def brownianCoordinatesLp (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
-    Lp (EuclideanSpace ℝ ι) 2 P :=
-  (gaussian_coordinates_memLp P (brownianCoordinates W t) t
-    (brownianCoordinates_coordinateLaw P W hW t)).toLp (brownianCoordinates W t)
-
-/-- The canonical `L²` Brownian vector agrees with the coordinate process. -/
-theorem brownianCoordinatesLp_coe (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
-    brownianCoordinatesLp P W hW t =ᵐ[P] brownianCoordinates W t :=
-  (gaussian_coordinates_memLp P (brownianCoordinates W t) t
-    (brownianCoordinates_coordinateLaw P W hW t)).coeFn_toLp
-
-/-- Canonical `L²` Brownian differences have the actual Gaussian increment law
-in every coordinate, including differences with reversed time order. -/
-theorem brownianCoordinatesLp_sub_coordinateLaw (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t s : ℝ≥0) (i : ι) :
-    HasLaw (fun ω ↦ (brownianCoordinatesLp P W hW t -
-      brownianCoordinatesLp P W hW s) ω i)
-      (gaussianReal 0 (nndist (t : ℝ) (s : ℝ))) P := by
-  apply (hW i).hasLaw_sub t s |>.congr
-  filter_upwards [Lp.coeFn_sub (brownianCoordinatesLp P W hW t)
-      (brownianCoordinatesLp P W hW s),
-    brownianCoordinatesLp_coe P W hW t, brownianCoordinatesLp_coe P W hW s]
-    with ω hsub ht hs
-  simp only [hsub, ht, hs, brownianCoordinates, Pi.sub_apply, PiLp.sub_apply]
-
-/-- The exact `L²` norm of an arbitrary Brownian difference. -/
-theorem brownianCoordinatesLp_norm_sub (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t s : ℝ≥0) :
-    ‖brownianCoordinatesLp P W hW t - brownianCoordinatesLp P W hW s‖ =
-      Real.sqrt ((Fintype.card ι : ℝ) * dist (t : ℝ) (s : ℝ)) := by
-  simpa only [coe_nndist] using gaussian_coordinates_Lp_norm P
-    (brownianCoordinatesLp P W hW t - brownianCoordinatesLp P W hW s)
-    (nndist (t : ℝ) (s : ℝ)) (brownianCoordinatesLp_sub_coordinateLaw P W hW t s)
-
-/-- Brownian coordinates are continuous as a map into `L²`. The proof derives
-continuity from Gaussian increment moments and needs no path-continuity input. -/
-theorem brownianCoordinatesLp_continuous (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) :
-    Continuous (brownianCoordinatesLp P W hW) := by
-  apply continuous_iff_continuousAt.mpr
-  intro s
-  apply tendsto_iff_norm_sub_tendsto_zero.mpr
-  simp_rw [brownianCoordinatesLp_norm_sub P W hW]
-  have hc : Continuous (fun t : ℝ≥0 ↦
-      Real.sqrt ((Fintype.card ι : ℝ) * dist (t : ℝ) (s : ℝ))) := by fun_prop
-  simpa only [dist_self, mul_zero, Real.sqrt_zero] using hc.tendsto s
-
-/-- The exact `L²` Brownian increment bound in the additive Langevin equation. -/
-theorem brownianCoordinatesLp_increment_scaled_norm (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
-    ‖Real.sqrt 2 • (brownianCoordinatesLp P W hW (a + t) -
-      brownianCoordinatesLp P W hW a)‖ =
-      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt (t : ℝ) := by
-  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
-    brownianCoordinatesLp_norm_sub]
-  simp only [NNReal.coe_add, Real.dist_eq, add_sub_cancel_left,
-    abs_of_nonneg t.coe_nonneg]
-  rw [Real.sqrt_mul (by positivity : (0 : ℝ) ≤ Fintype.card ι),
-    Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
-  ring
-
-/-- The canonical Brownian vector starts at zero in `L²`. -/
-@[simp] theorem brownianCoordinatesLp_zero (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) :
-    brownianCoordinatesLp P W hW 0 = 0 := by
-  apply norm_eq_zero.mp
-  simpa only [brownianCoordinatesLp, NNReal.coe_zero, mul_zero, Real.sqrt_zero] using
-    gaussian_coordinates_toLp_norm P (brownianCoordinates W 0) 0
-      (brownianCoordinates_coordinateLaw P W hW 0)
-
-/-- A real-time presentation, constant at zero on negative times, for use with
-ordinary real interval integrals and deterministic Banach-space ODEs. -/
-def brownianCoordinatesRealLp (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ) :
-    Lp (EuclideanSpace ℝ ι) 2 P :=
-  brownianCoordinatesLp P W hW t.toNNReal
-
-/-- The real-time Brownian presentation is continuous in `L²`. -/
-theorem brownianCoordinatesRealLp_continuous (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) :
-    Continuous (brownianCoordinatesRealLp P W hW) :=
-  (brownianCoordinatesLp_continuous P W hW).comp continuous_real_toNNReal
-
-@[simp] theorem brownianCoordinatesRealLp_zero (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) :
-    brownianCoordinatesRealLp P W hW 0 = 0 := by
-  simp only [brownianCoordinatesRealLp, Real.toNNReal_zero, brownianCoordinatesLp_zero]
-
-/-- The real-time additive noise has the exact local moment required in the
-Langevin error bound, for every nonnegative starting time and elapsed time. -/
-theorem brownianCoordinatesRealLp_increment_scaled_norm (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ)
-    (ha : 0 ≤ a) (ht : 0 ≤ t) :
-    ‖Real.sqrt 2 • (brownianCoordinatesRealLp P W hW (a + t) -
-      brownianCoordinatesRealLp P W hW a)‖ =
-      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t := by
-  simpa only [brownianCoordinatesRealLp, Real.toNNReal_add ha ht,
-    Real.coe_toNNReal t ht] using
-    brownianCoordinatesLp_increment_scaled_norm P W hW a.toNNReal t.toNNReal
-
-end ULA
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/LangevinIntegral.lean -/
-section
-
-set_option linter.style.header false
-
-/-! # Constructing an additive-noise Langevin integral solution
-
-For a globally Lipschitz drift and a continuous additive input, Picard iteration
-constructs the solution in the Banach space itself. In particular the Banach
-space may be L², so existence of the integral equation is proved rather than
-postulated. This file does not establish Gibbs invariance of that solution.
--/
-
-noncomputable section
-open MeasureTheory Set Metric
-open scoped NNReal
-namespace ULA
-
-variable {H : Type*} [NormedAddCommGroup H] [NormedSpace ℝ H] [CompleteSpace H]
-
-/-- Picard constructs the continuous solution of `Y = x + B - ∫g(Y)` on a
-short interval. The noise need only be continuous in the Banach norm. The
-condition `L*h ≤ 1/2` is a local construction condition, not an assumption on
-the final Langevin diffusion; longer intervals require concatenation. -/
-theorem exists_langevin_integral_small
-    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
-    (x : H) (B : ℝ → H) (hB : Continuous B) (hB0 : B 0 = 0)
-    (h : ℝ) (hh : 0 ≤ h) (hsmall : (L : ℝ) * h ≤ 1 / 2) :
-    ∃ Y : ℝ → H, Continuous Y ∧ Y 0 = x ∧
-      ∀ t ∈ Icc 0 h,
-        Y t - x = -(∫ s in 0..t, g (Y s)) + B t := by
-  have hbound := ((isCompact_Icc : IsCompact (Icc (0 : ℝ) h)).image hB).isBounded.exists_norm_le
-  obtain ⟨C, hC⟩ := hbound
-  let C' : ℝ := max C 0
-  have hC' : 0 ≤ C' := le_max_right _ _
-  have hBC (t : ℝ) (ht : t ∈ Icc 0 h) : ‖B t‖ ≤ C' :=
-    (hC _ (mem_image_of_mem B ht)).trans (le_max_left _ _)
-  let G : ℝ := ‖g x‖ + (L : ℝ) * C'
-  have hG : 0 ≤ G := by dsimp [G]; positivity
-  let a : ℝ≥0 := ⟨2 * h * G, by positivity⟩
-  let M : ℝ≥0 := ⟨G + (L : ℝ) * a, by positivity⟩
-  let f : ℝ → H → H := fun t z ↦ -g (z + B t)
-  let t₀ : Icc 0 h := ⟨0, by simp [hh]⟩
-  have hpicard : IsPicardLindelof f t₀ x a 0 M L := by
-    constructor
-    · intro t ht
-      apply LipschitzOnWith.of_dist_le_mul
-      intro z hz w hw
-      dsimp [f]
-      simpa only [dist_neg_neg, dist_add_right] using hLip.dist_le_mul (z + B t) (w + B t)
-    · intro z hz
-      exact (hLip.continuous.comp (continuous_const.add hB)).neg.continuousOn
-    · intro t ht z hz
-      have hz' : ‖z - x‖ ≤ (a : ℝ) := by simpa only [mem_closedBall, dist_eq_norm] using hz
-      have hnorm : ‖z + B t - x‖ ≤ (a : ℝ) + C' := by
-        have hid : z + B t - x = (z - x) + B t := by abel
-        rw [hid]
-        exact (norm_add_le _ _).trans (add_le_add hz' (hBC t ht))
-      have hg : ‖g (z + B t) - g x‖ ≤ (L : ℝ) * ((a : ℝ) + C') := by
-        exact (hLip.norm_sub_le (z + B t) x).trans
-          (mul_le_mul_of_nonneg_left hnorm L.coe_nonneg)
-      change ‖-g (z + B t)‖ ≤ (M : ℝ)
-      rw [norm_neg]
-      have hu : ‖g (z + B t)‖ ≤ ‖g x‖ + ‖g (z + B t) - g x‖ := by
-        simpa only [norm_sub_rev] using norm_le_norm_add_norm_sub (g x) (g (z + B t))
-      change ‖g (z + B t)‖ ≤ G + (L : ℝ) * (a : ℝ)
-      dsimp [G]
-      nlinarith
-    · change (M : ℝ) * max (h - 0) (0 - 0) ≤ (a : ℝ) - 0
-      rw [sub_zero, sub_self, max_eq_left hh, sub_zero]
-      change (G + (L : ℝ) * (2 * h * G)) * h ≤ 2 * h * G
-      have hm := mul_le_mul_of_nonneg_right hsmall
-        (by positivity : 0 ≤ 2 * h * G)
-      nlinarith
-  have hx : x ∈ closedBall x (0 : ℝ≥0) := by simp
-  obtain ⟨α, hα⟩ := ODE.FunSpace.exists_isFixedPt_next hpicard hx
-  let Z : ℝ → H := α.compProj
-  have hZ : Continuous Z := α.continuous_compProj
-  have hZeq (t : ℝ) (ht : t ∈ Icc 0 h) :
-      Z t = x + ∫ s in 0..t, f s (Z s) := by
-    change α.compProj t = x + ∫ s in 0..t, f s (α.compProj s)
-    nth_rw 1 [← hα]
-    rw [ODE.FunSpace.compProj_of_mem ht, ODE.FunSpace.next_apply]
-    rfl
-  have hZ0 : Z 0 = x := by simpa using hZeq 0 ⟨le_rfl, hh⟩
-  refine ⟨fun t ↦ Z t + B t, hZ.add hB, by simp [hZ0, hB0], ?_⟩
-  intro t ht
-  change (Z t + B t) - x = -(∫ s in 0..t, g (Z s + B s)) + B t
-  rw [hZeq t ht]
-  dsimp [f]
-  rw [intervalIntegral.integral_neg]
-  abel
-
-
-omit [CompleteSpace H] in
-/-- Two consecutive solutions splice into one continuous integral solution.
-This is the finite-horizon extension step, with no new drift hypotheses. -/
-lemma splice_langevin_integral
-    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
-    (x : H) (B Y Z : ℝ → H) (hY : Continuous Y) (hZ : Continuous Z)
-    (a b : ℝ) (ha : 0 ≤ a) (_hb : 0 ≤ b)
-    (hY0 : Y 0 = x) (hZ0 : Z 0 = Y a)
-    (hYe : ∀ t ∈ Icc 0 a, Y t - x = -(∫ s in 0..t, g (Y s)) + B t)
-    (hZe : ∀ t ∈ Icc 0 b, Z t - Y a =
-      -(∫ s in 0..t, g (Z s)) + (B (a + t) - B a)) :
-    ∃ S : ℝ → H, Continuous S ∧ S 0 = x ∧
-      ∀ t ∈ Icc 0 (a + b), S t - x = -(∫ s in 0..t, g (S s)) + B t := by
-  classical
-  let S : ℝ → H := fun t ↦ if t ≤ a then Y t else Z (t - a)
-  have hSl (t : ℝ) (ht : t ≤ a) : S t = Y t := by simp [S, ht]
-  have hSr (t : ℝ) (ht : a ≤ t) : S t = Z (t - a) := by
-    by_cases hl : t ≤ a
-    · have he : t = a := le_antisymm hl ht
-      simp [S, he, hZ0]
-    · simp [S, hl]
-  have hS : Continuous S := hY.if_le (hZ.comp (continuous_id.sub continuous_const))
-    continuous_id continuous_const (fun t ht ↦ by simp only [ht, sub_self, hZ0])
-  have hSlint (t : ℝ) (ht : t ∈ Icc 0 a) :
-      (∫ s in 0..t, g (S s)) = ∫ s in 0..t, g (Y s) := by
-    apply intervalIntegral.integral_congr
-    intro s hs
-    rw [uIcc_of_le ht.1] at hs
-    change g (S s) = g (Y s)
-    rw [hSl s (hs.2.trans ht.2)]
-  refine ⟨S, hS, by rw [hSl 0 ha, hY0], ?_⟩
-  intro t ht
-  by_cases hta : t ≤ a
-  · rw [hSl t hta, hSlint t ⟨ht.1, hta⟩]
-    exact hYe t ⟨ht.1, hta⟩
-  · have hat : a ≤ t := le_of_lt (lt_of_not_ge hta)
-    have hz := hZe (t - a) ⟨sub_nonneg.mpr hat, by linarith [ht.2]⟩
-    have hy := hYe a ⟨ha, le_rfl⟩
-    have hright : (∫ s in a..t, g (S s)) = ∫ s in 0..(t - a), g (Z s) := by
-      calc
-        _ = ∫ s in a..t, g (Z (s - a)) := by
-          apply intervalIntegral.integral_congr
-          intro s hs
-          rw [uIcc_of_le hat] at hs
-          change g (S s) = g (Z (s - a))
-          rw [hSr s hs.1]
-        _ = _ := by
-          simpa only [sub_self] using
-            (intervalIntegral.integral_comp_sub_right (f := fun s ↦ g (Z s))
-              (a := a) (b := t) a)
-    have hint : (∫ s in 0..t, g (S s)) =
-        (∫ s in 0..a, g (Y s)) + ∫ s in 0..(t - a), g (Z s) := by
-      calc
-        _ = (∫ s in 0..a, g (S s)) + ∫ s in a..t, g (S s) :=
-          (intervalIntegral.integral_add_adjacent_intervals
-            (show IntervalIntegrable (fun s ↦ g (S s)) volume 0 a from
-              (hLip.continuous.comp hS).intervalIntegrable 0 a)
-            (show IntervalIntegrable (fun s ↦ g (S s)) volume a t from
-              (hLip.continuous.comp hS).intervalIntegrable a t)).symm
-        _ = _ := by rw [hSlint a ⟨ha, le_rfl⟩, hright]
-    have hyval : Y a = x - (∫ s in 0..a, g (Y s)) + B a := by
-      rw [sub_eq_iff_eq_add] at hy
-      rw [hy]
-      abel
-    have hzval : Z (t - a) = Y a - (∫ s in 0..(t - a), g (Z s)) + B t - B a := by
-      rw [show a + (t - a) = t by ring, sub_eq_iff_eq_add] at hz
-      rw [hz]
-      abel
-    rw [hSr t hat, hzval, hyval, hint]
-    abel
-
-/-- A globally Lipschitz drift admits an additive-noise integral solution on
-any finite nonnegative horizon. The proof constructs short Picard segments and
-splices them; no small-step restriction or reference process is assumed. -/
-theorem exists_langevin_integral
-    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
-    (x : H) (B : ℝ → H) (hB : Continuous B) (hB0 : B 0 = 0)
-    (h : ℝ) (_hh : 0 ≤ h) :
-    ∃ Y : ℝ → H, Continuous Y ∧ Y 0 = x ∧
-      ∀ t ∈ Icc 0 h, Y t - x = -(∫ s in 0..t, g (Y s)) + B t := by
-  let δ : ℝ := 1 / (2 * ((L : ℝ) + 1))
-  have hδ : 0 < δ := by dsimp [δ]; positivity
-  have hδsmall : (L : ℝ) * δ ≤ 1 / 2 := by
-    dsimp [δ]
-    rw [mul_one_div]
-    apply (div_le_iff₀ (by positivity : 0 < 2 * ((L : ℝ) + 1))).mpr
-    linarith
-  have hex (n : ℕ) : ∃ Y : ℝ → H, Continuous Y ∧ Y 0 = x ∧
-      ∀ t ∈ Icc 0 ((n : ℝ) * δ),
-        Y t - x = -(∫ s in 0..t, g (Y s)) + B t := by
-    induction n with
-    | zero =>
-        refine ⟨fun _ ↦ x, continuous_const, rfl, ?_⟩
-        intro t ht
-        simp only [Nat.cast_zero, zero_mul] at ht
-        have ht0 : t = 0 := le_antisymm ht.2 ht.1
-        simp [ht0, hB0]
-    | succ n ih =>
-        obtain ⟨Y, hY, hY0, hYe⟩ := ih
-        let a : ℝ := (n : ℝ) * δ
-        have ha : 0 ≤ a := by dsimp [a]; positivity
-        obtain ⟨Z, hZ, hZ0, hZe⟩ := exists_langevin_integral_small g L hLip (Y a)
-          (fun t ↦ B (a + t) - B a)
-          ((hB.comp (continuous_const.add continuous_id)).sub continuous_const)
-          (by simp) δ hδ.le hδsmall
-        have hs := splice_langevin_integral g L hLip x B Y Z hY hZ a δ ha hδ.le hY0 hZ0 hYe hZe
-        convert hs using 1
-        simp only [Nat.cast_add, Nat.cast_one, add_mul, one_mul, a]
-  obtain ⟨n, hn⟩ := exists_nat_ge (h / δ)
-  obtain ⟨Y, hY, hY0, hYe⟩ := hex n
-  refine ⟨Y, hY, hY0, fun t ht ↦ hYe t ⟨ht.1, ht.2.trans ?_⟩⟩
-  exact (div_le_iff₀ hδ).mp hn
-
-variable {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P]
-  {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteSpace K]
-
-/-- The actual gradient has an L² integral solution from its Lipschitz
-hypothesis and a continuous L² additive noise path. No reference solution or
-integral identity is assumed in this construction. -/
-theorem exists_lp_langevin_integral_small
-    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
-    (initial : Lp K 2 P) (B : ℝ → Lp K 2 P)
-    (hB : Continuous B) (hB0 : B 0 = 0)
-    (h : ℝ) (hh : 0 ≤ h) (hsmall : (L : ℝ) * h ≤ 1 / 2) :
-    ∃ Y : ℝ → Lp K 2 P, Continuous Y ∧ Y 0 = initial ∧
-      ∀ t ∈ Icc 0 h, Y t - initial =
-        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t :=
-  exists_langevin_integral_small (lpDrift P (gradient U) hLip) L
-    (lpDrift_lipschitz P (gradient U) hLip) initial B hB hB0 h hh hsmall
-
-/-- Finite-horizon existence of the actual L² Langevin integral equation from
-only Lipschitz gradient and continuous additive noise, with no step restriction. -/
-theorem exists_lp_langevin_integral
-    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
-    (initial : Lp K 2 P) (B : ℝ → Lp K 2 P)
-    (hB : Continuous B) (hB0 : B 0 = 0) (h : ℝ) (hh : 0 ≤ h) :
-    ∃ Y : ℝ → Lp K 2 P, Continuous Y ∧ Y 0 = initial ∧
-      ∀ t ∈ Icc 0 h, Y t - initial =
-        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t :=
-  exists_langevin_integral (lpDrift P (gradient U) hLip) L
-    (lpDrift_lipschitz P (gradient U) hLip) initial B hB hB0 h hh
-
-
-end ULA
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/BrownianLangevin.lean -/
-section
-
-set_option linter.style.header false
-
-/-!
-# Constructing the `L²` Langevin equation from Brownian coordinates
-
-Actual Brownian coordinate laws construct a continuous `L²` additive noise path
-and its exact square-root increment moment. Picard then constructs the integral
-solution for the actual gradient. No integral equation, noise continuity, or
-noise moment bound is supplied as an assumption.
-
-This construction does not establish the stationary Gibbs law, a score moment
-bound, or independence/adaptedness of the initial state and Brownian input.
-Those are distinct probabilistic claims.
--/
-
-noncomputable section
-
-open MeasureTheory ProbabilityTheory Set
-open scoped NNReal
-
-namespace ULA
-
-variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
-  (P : Measure Ω)
-
-/-- The additive Langevin noise over a segment starting at real time `a`.
-The real-time Brownian presentation is constant at zero at negative times. -/
-def brownianLangevinNoise (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ) :
-    Lp (EuclideanSpace ℝ ι) 2 P :=
-  Real.sqrt 2 • (brownianCoordinatesRealLp P W hW (a + t) -
-    brownianCoordinatesRealLp P W hW a)
-
-/-- Noise continuity follows from Gaussian increment moments in `L²`. -/
-theorem brownianLangevinNoise_continuous (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a : ℝ) :
-    Continuous (brownianLangevinNoise P W hW a) := by
-  exact (((brownianCoordinatesRealLp_continuous P W hW).comp
-    (continuous_const.add continuous_id)).sub continuous_const).const_smul (Real.sqrt 2)
-
-@[simp] theorem brownianLangevinNoise_zero (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a : ℝ) :
-    brownianLangevinNoise P W hW a 0 = 0 := by
-  simp only [brownianLangevinNoise, add_zero, sub_self, smul_zero]
-
-/-- The exact segment noise moment is a theorem about the Brownian input. -/
-theorem brownianLangevinNoise_norm (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ)
-    (ha : 0 ≤ a) (ht : 0 ≤ t) :
-    ‖brownianLangevinNoise P W hW a t‖ =
-      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t :=
-  brownianCoordinatesRealLp_increment_scaled_norm P W hW a t ha ht
-
-variable [IsProbabilityMeasure P]
-
-/-- Actual Brownian coordinates and a Lipschitz gradient construct a continuous
-short-time `L²` Langevin solution. The local step restriction belongs to the
-Picard construction and may be removed by concatenation. No score bound or
-stationary-law assertion is made. -/
-theorem exists_lp_langevin_integral_of_brownian_small
-    (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (initial : Lp (EuclideanSpace ℝ ι) 2 P)
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (a h : ℝ) (ha : 0 ≤ a) (hh : 0 ≤ h) (hsmall : (L : ℝ) * h ≤ 1 / 2) :
-    ∃ Y : ℝ → Lp (EuclideanSpace ℝ ι) 2 P,
-      Continuous Y ∧ Y 0 = initial ∧
-      (∀ t ∈ Icc 0 h, Y t - initial =
-        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) +
-          brownianLangevinNoise P W hW a t) ∧
-      (∀ t ∈ Icc 0 h, ‖brownianLangevinNoise P W hW a t‖ =
-        Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t) := by
-  obtain ⟨Y, hY, hY0, hYeq⟩ := exists_lp_langevin_integral_small P U L hLip initial
-    (brownianLangevinNoise P W hW a) (brownianLangevinNoise_continuous P W hW a)
-    (brownianLangevinNoise_zero P W hW a) h hh hsmall
-  exact ⟨Y, hY, hY0, hYeq,
-    fun t ht ↦ brownianLangevinNoise_norm P W hW a t ha ht.1⟩
-
-/-- Actual Brownian coordinates construct a finite-horizon `L²` Langevin
-solution from the Lipschitz gradient, without a small-time restriction. Both
-the integral equation and exact noise moment are conclusions. -/
-theorem exists_lp_langevin_integral_of_brownian
-    (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (initial : Lp (EuclideanSpace ℝ ι) 2 P)
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (a h : ℝ) (ha : 0 ≤ a) (hh : 0 ≤ h) :
-    ∃ Y : ℝ → Lp (EuclideanSpace ℝ ι) 2 P,
-      Continuous Y ∧ Y 0 = initial ∧
-      (∀ t ∈ Icc 0 h, Y t - initial =
-        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) +
-          brownianLangevinNoise P W hW a t) ∧
-      (∀ t ∈ Icc 0 h, ‖brownianLangevinNoise P W hW a t‖ =
-        Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t) := by
-  obtain ⟨Y, hY, hY0, hYeq⟩ := exists_lp_langevin_integral P U L hLip initial
-    (brownianLangevinNoise P W hW a) (brownianLangevinNoise_continuous P W hW a)
-    (brownianLangevinNoise_zero P W hW a) h hh
-  exact ⟨Y, hY, hY0, hYeq,
-    fun t ht ↦ brownianLangevinNoise_norm P W hW a t ha ht.1⟩
-
-end ULA
-
-
-end
-end
-
-
 /-! ## Included source: UnadjustedLangevin/Gibbs.lean -/
 section
 
@@ -2926,7 +2111,7 @@ theorem strongConvex_quadratic_lower_bound
     (U : H → ℝ) (m : ℝ) (hm : 0 < m)
     (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U) (x : H) :
     U 0 - ‖gradient U 0‖ ^ 2 / m + m / 4 * ‖x‖ ^ 2 ≤ U x := by
-  have hs := GradientDescent.strong_first_order hdiff hsc (0 : H) x
+  have hs := strong_first_order hdiff hsc (0 : H) x
   simp only [sub_zero] at hs
   have hip := neg_le_of_abs_le (abs_real_inner_le_norm (gradient U 0) x)
   have hy : ‖gradient U 0‖ * ‖x‖ ≤ m / 4 * ‖x‖ ^ 2 + ‖gradient U 0‖ ^ 2 / m := by
@@ -3116,7 +2301,7 @@ theorem gibbsWeight_mul_exp_score_le
     (hLip : LipschitzWith L (gradient U)) (x v : H) :
     gibbsWeight U x * ENNReal.ofReal (Real.exp (-inner ℝ (gradient U x) v)) ≤
       ENNReal.ofReal (Real.exp ((L : ℝ) / 2 * ‖v‖ ^ 2)) * gibbsWeight U (x + v) := by
-  have hs := GradientDescent.smooth_upper_bound U L hdiff hLip x (x + v)
+  have hs := Analysis.smooth_upper_bound U L hdiff hLip x (x + v)
   simp only [add_sub_cancel_left] at hs
   unfold gibbsWeight
   rw [← ENNReal.ofReal_mul (Real.exp_nonneg _),
@@ -3328,381 +2513,6 @@ end
 end
 
 
-/-! ## Included source: UnadjustedLangevin/StationaryMoments.lean -/
-section
-
-set_option linter.style.header false
-
-/-! # The reference score bound is derived from its Gibbs law
-
-A random variable with Gibbs law inherits the sharp score moment proved from
-the potential assumptions. Stationarity itself is not established by this
-moment-transfer lemma.
--/
-
-noncomputable section
-open MeasureTheory
-open scoped NNReal ENNReal
-namespace ULA
-
-variable {Ω H : Type*} [MeasurableSpace Ω]
-  [NormedAddCommGroup H] [InnerProductSpace ℝ H] [FiniteDimensional ℝ H]
-  [MeasurableSpace H] [BorelSpace H]
-  (P : Measure Ω) [IsProbabilityMeasure P]
-
-/-- The exact score norm used in Dalalyan's reference argument follows from
-first-order smoothness and the stated Gibbs law, without a moment hypothesis. -/
-theorem lpDrift_norm_le_of_gibbs_law
-    (U : H → ℝ) (L : ℝ≥0) (hdiff : Differentiable ℝ U)
-    (hLip : LipschitzWith L (gradient U)) (hZ : gibbsPartition U ≠ ⊤)
-    (Y : Lp H 2 P) (hlaw : P.map Y = gibbsMeasure U) :
-    ‖lpDrift P (gradient U) hLip Y‖ ≤
-      Real.sqrt ((L : ℝ) * (Module.finrank ℝ H : ℝ)) := by
-  have he : (∫ x, ‖gradient U x‖ ^ 2 ∂P.map Y) =
-      ∫ ω, ‖gradient U (Y ω)‖ ^ 2 ∂P := by
-    exact integral_map (Lp.aestronglyMeasurable Y).aemeasurable
-      ((hLip.continuous.norm.pow 2).aestronglyMeasurable)
-  rw [hlaw] at he
-  apply lpDrift_norm_le_sqrt P (gradient U) hLip Y
-  rw [← he]
-  exact integral_norm_sq_gradient_gibbs_le U L hdiff hLip hZ
-
-/-- The strong-convexity form also discharges finite normalization internally. -/
-theorem lpDrift_norm_le_of_strongConvex_gibbs_law
-    (U : H → ℝ) (m : ℝ) (L : ℝ≥0) (hm : 0 < m)
-    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
-    (hLip : LipschitzWith L (gradient U))
-    (Y : Lp H 2 P) (hlaw : P.map Y = gibbsMeasure U) :
-    ‖lpDrift P (gradient U) hLip Y‖ ≤
-      Real.sqrt ((L : ℝ) * (Module.finrank ℝ H : ℝ)) :=
-  lpDrift_norm_le_of_gibbs_law P U L hdiff hLip
-    (gibbsPartition_ne_top U m hm hdiff hsc) Y hlaw
-
-end ULA
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/BrownianReference.lean -/
-section
-
-set_option linter.style.header false
-
-/-! # An actual Brownian Langevin reference, conditional on Gibbs invariance
-
-The integral equation, continuity, matching Euler noise, and both moment bounds
-are constructed or proved here. The only remaining process-law input is the
-explicit assertion that the constructed segments have the Gibbs law at every
-time. This file does not claim to prove that invariance assertion.
--/
-
-noncomputable section
-open MeasureTheory ProbabilityTheory Set
-open scoped NNReal
-namespace ULA.Hilbert
-open ULA
-
-variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
-  (P : Measure Ω) [IsProbabilityMeasure P]
-
-/-- The canonical choice of the constructed solution over the `n`th time
-segment, starting from the supplied knot. -/
-def brownianSegmentFrom (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 ≤ h) (n : ℕ) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
-    ℝ → Lp (EuclideanSpace ℝ ι) 2 P :=
-  Classical.choose (exists_lp_langevin_integral_of_brownian P U L hLip initial W hW
-    ((n : ℝ) * h) h (mul_nonneg (Nat.cast_nonneg n) hh) hh)
-
-/-- The properties of the actual integral solution used to define a segment. -/
-theorem brownianSegmentFrom_spec (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 ≤ h) (n : ℕ) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
-    Continuous (brownianSegmentFrom P U L hLip W hW h hh n initial) ∧
-      brownianSegmentFrom P U L hLip W hW h hh n initial 0 = initial ∧
-      (∀ t ∈ Icc 0 h,
-        brownianSegmentFrom P U L hLip W hW h hh n initial t - initial =
-          -(∫ s in 0..t, lpDrift P (gradient U) hLip
-            (brownianSegmentFrom P U L hLip W hW h hh n initial s)) +
-            brownianLangevinNoise P W hW ((n : ℝ) * h) t) ∧
-      (∀ t ∈ Icc 0 h, ‖brownianLangevinNoise P W hW ((n : ℝ) * h) t‖ =
-        Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t) :=
-  Classical.choose_spec (exists_lp_langevin_integral_of_brownian P U L hLip initial W hW
-    ((n : ℝ) * h) h (mul_nonneg (Nat.cast_nonneg n) hh) hh)
-
-/-- Successive knots are the endpoints of the constructed integral solutions. -/
-def brownianKnots (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
-    ℕ → Lp (EuclideanSpace ℝ ι) 2 P
-  | 0 => initial
-  | n + 1 => brownianSegmentFrom P U L hLip W hW h hh n
-      (brownianKnots U L hLip W hW h hh initial n) h
-
-/-- The reference segments use the recursively constructed endpoints. -/
-def brownianSegments (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P)
-    (n : ℕ) : ℝ → Lp (EuclideanSpace ℝ ι) 2 P :=
-  brownianSegmentFrom P U L hLip W hW h hh n
-    (brownianKnots P U L hLip W hW h hh initial n)
-
-/-- Each segment starts exactly at its recursively constructed knot. -/
-@[simp] theorem brownianSegments_start (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P) (n : ℕ) :
-    brownianSegments P U L hLip W hW h hh initial n 0 =
-      brownianKnots P U L hLip W hW h hh initial n :=
-  (brownianSegmentFrom_spec P U L hLip W hW h hh n _).2.1
-
-/-- The constructed process starts from precisely the prescribed random
-variable, including its chosen joint realization with the Euler initialization. -/
-@[simp] theorem brownianSegments_initial (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
-    brownianSegments P U L hLip W hW h hh initial 0 0 = initial := by
-  rw [brownianSegments_start]
-  rfl
-
-/-- Normalize each actual Brownian endpoint to the Euler innovation. -/
-def brownianEulerNoise (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (h : ℝ) (n : ℕ) :
-    Lp (EuclideanSpace ℝ ι) 2 P :=
-  (Real.sqrt (2 * h))⁻¹ • brownianLangevinNoise P W hW ((n : ℝ) * h) h
-
-omit [IsProbabilityMeasure P] in
-/-- The normalized endpoint matches the same additive noise used by the
-integral equation exactly, without a supplied endpoint hypothesis. -/
-theorem brownianEulerNoise_endpoint (W : ι → ℝ≥0 → Ω → ℝ)
-    (hW : ∀ i, IsPreBrownianReal (W i) P) (h : ℝ) (hh : 0 < h) (n : ℕ) :
-    brownianLangevinNoise P W hW ((n : ℝ) * h) h =
-      Real.sqrt (2 * h) • brownianEulerNoise P W hW h n := by
-  have hs : Real.sqrt (2 * h) ≠ 0 := ne_of_gt (Real.sqrt_pos.mpr (by positivity))
-  simp only [brownianEulerNoise, smul_smul, mul_inv_cancel₀ hs, one_smul]
-
-/-- All analytic and noise fields of `L2Reference` follow from the constructed
-Brownian integral solutions and the sharp Gibbs score theorem. The all-time
-Gibbs-law premise is the single remaining process-law obligation. -/
-def brownianReference (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
-    (hdiff : Differentiable ℝ U) (hLip : LipschitzWith L (gradient U))
-    (hZ : gibbsPartition U ≠ ⊤)
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 < h) (initial : Lp (EuclideanSpace ℝ ι) 2 P)
-    (hstationary : ∀ n t, t ∈ Icc 0 h →
-      P.map (brownianSegments P U L hLip W hW h hh.le initial n t) = gibbsMeasure U) :
-    L2Reference P (Fintype.card ι) U h L hLip
-      (brownianEulerNoise P W hW h) (gibbsMeasure U) where
-  segment := brownianSegments P U L hLip W hW h hh.le initial
-  increment := fun n ↦ brownianLangevinNoise P W hW ((n : ℝ) * h)
-  continuous n := (brownianSegmentFrom_spec P U L hLip W hW h hh.le n _).1
-  join n := by
-    change brownianSegments P U L hLip W hW h hh.le initial n h =
-      brownianSegmentFrom P U L hLip W hW h hh.le (n + 1)
-        (brownianKnots P U L hLip W hW h hh.le initial (n + 1)) 0
-    rw [(brownianSegmentFrom_spec P U L hLip W hW h hh.le (n + 1) _).2.1]
-    rfl
-  noiseEndpoint := brownianEulerNoise_endpoint P W hW h hh
-  stationary n := hstationary n 0 ⟨le_rfl, hh.le⟩
-  integralEquation n t ht := by
-    change brownianSegmentFrom P U L hLip W hW h hh.le n _ t -
-      brownianSegmentFrom P U L hLip W hW h hh.le n _ 0 = _
-    rw [(brownianSegmentFrom_spec P U L hLip W hW h hh.le n _).2.1]
-    exact (brownianSegmentFrom_spec P U L hLip W hW h hh.le n _).2.2.1 t ht
-  scoreBound n t ht := by
-    simpa using lpDrift_norm_le_of_gibbs_law P U L hdiff hLip hZ
-      (brownianSegments P U L hLip W hW h hh.le initial n t) (hstationary n t ht)
-  noiseBound n t ht :=
-    (brownianLangevinNoise_norm P W hW ((n : ℝ) * h) t
-      (mul_nonneg (Nat.cast_nonneg n) hh.le) ht.1).le
-
-/-- The strong-convexity version has no separate normalization or moment
-hypothesis: only Gibbs invariance of the actual constructed segments remains. -/
-def brownianReference_of_strongConvex
-    (U : EuclideanSpace ℝ ι → ℝ) (m : ℝ) (L : ℝ≥0) (hm : 0 < m)
-    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
-    (hLip : LipschitzWith L (gradient U))
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (h : ℝ) (hh : 0 < h) (initial : Lp (EuclideanSpace ℝ ι) 2 P)
-    (hstationary : ∀ n t, t ∈ Icc 0 h →
-      P.map (brownianSegments P U L hLip W hW h hh.le initial n t) = gibbsMeasure U) :
-    L2Reference P (Fintype.card ι) U h L hLip
-      (brownianEulerNoise P W hW h) (gibbsMeasure U) :=
-  brownianReference P U L hdiff hLip (gibbsPartition_ne_top U m hm hdiff hsc)
-    W hW h hh initial hstationary
-
-end ULA.Hilbert
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/PotentialAssumptions.lean -/
-section
-
-set_option linter.style.header false
-
-/-!
-# Compatibility of strong convexity and a Lipschitz gradient
-
-On a nontrivial Hilbert space the inequality `m ≤ L` is a consequence of the
-potential assumptions, and does not need to be an independent numerical input.
-The gradient is that of the same differentiable function in both hypotheses.
--/
-
-noncomputable section
-
-open scoped NNReal
-
-namespace ULA
-
-variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
-  [CompleteSpace H] [Nontrivial H]
-
-/-- The strong-convexity constant cannot exceed the gradient Lipschitz constant
-on a nontrivial Hilbert space. Neither constant needs to be positive here. -/
-theorem strongConvex_le_lipschitz {U : H → ℝ} {m : ℝ} {L : ℝ≥0}
-    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
-    (hLip : LipschitzWith L (gradient U)) : m ≤ (L : ℝ) := by
-  obtain ⟨x, hx⟩ := exists_ne (0 : H)
-  have hxpos : 0 < ‖x‖ := norm_pos_iff.mpr hx
-  have hmono : m * ‖x‖ ^ 2 ≤ inner ℝ (gradient U x - gradient U 0) x := by
-    simpa only [sub_zero] using strong_gradient_monotone hdiff hsc x 0
-  have hbound : inner ℝ (gradient U x - gradient U 0) x ≤ (L : ℝ) * ‖x‖ ^ 2 := by
-    calc
-      _ ≤ ‖gradient U x - gradient U 0‖ * ‖x‖ := real_inner_le_norm _ _
-      _ ≤ ((L : ℝ) * ‖x‖) * ‖x‖ :=
-        mul_le_mul_of_nonneg_right (by simpa only [sub_zero] using hLip.norm_sub_le x 0)
-          (norm_nonneg x)
-      _ = _ := by ring
-  exact (mul_le_mul_iff_right₀ (sq_pos_of_pos hxpos)).mp
-    (by simpa only [mul_comm] using hmono.trans hbound)
-
-end ULA
-
-
-end
-end
-
-
-/-! ## Included source: UnadjustedLangevin/ULAFromBrownian.lean -/
-section
-
-set_option linter.style.header false
-
-/-! # Dalalyan with a constructed Brownian reference
-
-All integral-equation, continuity and moment fields are discharged. Scalar
-Brownian-coordinate laws suffice for these estimates; cross-coordinate and
-initial-state independence are not asserted by this auxiliary endpoint. The
-remaining stationarity assumption is displayed explicitly: the constructed
-solution has not yet been proved to preserve the Gibbs law.
--/
-
-noncomputable section
-open MeasureTheory ProbabilityTheory Set
-open scoped NNReal
-namespace ULA.Hilbert
-
-/-- An analytic ULA endpoint for the supplied Brownian-coordinate noise:
-no supplied reference structure, score bound,
-noise bound, integral equation, or separate `m ≤ L` assumption. The full
-stationarity theorem remains the explicit `hstationary` premise. -/
-theorem dalalyan_of_constructed_brownian_reference
-    {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] [Nonempty ι]
-    (P : Measure Ω) [IsProbabilityMeasure P]
-    (U : EuclideanSpace ℝ ι → ℝ) (m h : ℝ) (L : ℝ≥0)
-    (hm : 0 < m) (hdiff : Differentiable ℝ U)
-    (hsc : StrongConvexOn Set.univ m U) (hLip : LipschitzWith L (gradient U))
-    (hh : 0 < h) (hsmall : h ≤ 2 / (m + (L : ℝ)))
-    (initial referenceInitial : Lp (EuclideanSpace ℝ ι) 2 P)
-    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
-    (hstationary : ∀ n t, t ∈ Icc 0 h →
-      P.map (brownianSegments P U L hLip W hW h hh.le referenceInitial n t) =
-        ULA.gibbsMeasure U) (k : ℕ) :
-    ULA.wasserstein2Real
-      (P.map (lpChain P U h hLip initial (brownianEulerNoise P W hW h) k))
-      (ULA.gibbsMeasure U) ≤
-      (1 - m * h) ^ k * ‖initial - referenceInitial‖ +
-        (33 / 20 : ℝ) * ((L : ℝ) / m) * Real.sqrt (h * (Fintype.card ι : ℝ)) := by
-  have hb := dalalyan_small_step_of_integral_reference P (Fintype.card ι)
-    U m h L hdiff hsc hLip hm (ULA.strongConvex_le_lipschitz hdiff hsc hLip)
-    hh hsmall initial (brownianEulerNoise P W hW h) (ULA.gibbsMeasure U)
-    (brownianReference_of_strongConvex P U m L hm hdiff hsc hLip W hW h hh
-      referenceInitial hstationary) k
-  simpa only [brownianReference_of_strongConvex, brownianReference,
-    brownianSegments_initial] using hb
-
-end ULA.Hilbert
-
-
-end
-end
-
-
-/-! ## Included source: IPLA/BrownianReference.lean -/
-section
-
-set_option linter.style.header false
-
-/-! # Compatibility exports for the shared ULA BrownianReference module
-
-All generic implementation and proofs live in
-`UnadjustedLangevin.BrownianReference`, under `ULA.Hilbert`.
-These aliases preserve the earlier IPLA API without duplicating its proofs.
--/
-
-namespace IPLA
-
-export ULA.Hilbert (
-  brownianSegmentFrom
-  brownianSegmentFrom_spec
-  brownianKnots
-  brownianSegments
-  brownianSegments_start
-  brownianSegments_initial
-  brownianEulerNoise
-  brownianEulerNoise_endpoint
-  brownianReference
-  brownianReference_of_strongConvex)
-
-end IPLA
-
-
-end
-
-
-/-! ## Included source: IPLA/ULAFromBrownian.lean -/
-section
-
-set_option linter.style.header false
-
-/-! # Compatibility exports for the shared ULA ULAFromBrownian module
-
-All generic implementation and proofs live in
-`UnadjustedLangevin.ULAFromBrownian`, under `ULA.Hilbert`.
-These aliases preserve the earlier IPLA API without duplicating its proofs.
--/
-
-namespace IPLA
-
-export ULA.Hilbert (
-  dalalyan_of_constructed_brownian_reference)
-
-end IPLA
-
-
-end
-
-
 /-! ## Included source: UnadjustedLangevin/TransportMoments.lean -/
 section
 
@@ -3789,133 +2599,6 @@ end
 end
 
 
-/-! ## Included source: UnadjustedLangevin/LangevinUniqueness.lean -/
-section
-
-set_option linter.style.header false
-
-/-!
-# Uniqueness and initial-state stability of the additive Langevin equation
-
-Common additive noise cancels between two integral solutions. Their difference
-is therefore differentiable even when the noise is only continuous. Grönwall
-bounds its norm and proves uniqueness on every finite horizon, without a
-small-time condition. Together with `LangevinIntegral.lean` this establishes
-existence and uniqueness in the Banach space, including the actual `L²` drift.
-No stationary-law or Gibbs-invariance assertion is made.
--/
-
-noncomputable section
-
-open MeasureTheory Set Filter
-open scoped NNReal Topology
-
-namespace ULA
-
-variable {H : Type*} [NormedAddCommGroup H] [NormedSpace ℝ H] [CompleteSpace H]
-
-/-- Two continuous solutions with the same additive input depend at most
-exponentially on their initial values. Noise derivatives and a small-time
-restriction are unnecessary. -/
-theorem langevin_integral_stability
-    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
-    (x y : H) (B Y Z : ℝ → H) (hY : Continuous Y) (hZ : Continuous Z)
-    (h : ℝ) (hh : 0 ≤ h)
-    (hYe : ∀ t ∈ Icc 0 h, Y t - x = -(∫ s in 0..t, g (Y s)) + B t)
-    (hZe : ∀ t ∈ Icc 0 h, Z t - y = -(∫ s in 0..t, g (Z s)) + B t) :
-    ∀ t ∈ Icc 0 h, ‖Y t - Z t‖ ≤ ‖x - y‖ * Real.exp ((L : ℝ) * t) := by
-  let D : ℝ → H := fun t ↦ Y t - Z t
-  let F : ℝ → H := fun t ↦ (x - y) -
-    ((∫ s in 0..t, g (Y s)) - ∫ s in 0..t, g (Z s))
-  have hD : ∀ t ∈ Icc 0 h, D t = F t := by
-    intro t ht
-    have hy := hYe t ht
-    have hz := hZe t ht
-    dsimp [D, F]
-    rw [sub_eq_iff_eq_add] at hy hz
-    rw [hy, hz]
-    abel
-  have hcY : Continuous (fun s ↦ g (Y s)) := hLip.continuous.comp hY
-  have hcZ : Continuous (fun s ↦ g (Z s)) := hLip.continuous.comp hZ
-  have hderiv : ∀ t ∈ Ico 0 h,
-      HasDerivWithinAt D (-(g (Y t) - g (Z t))) (Ici t) t := by
-    intro t ht
-    have hiY := intervalIntegral.integral_hasDerivAt_right
-      (hcY.intervalIntegrable 0 t) (hcY.stronglyMeasurableAtFilter volume (𝓝 t)) hcY.continuousAt
-    have hiZ := intervalIntegral.integral_hasDerivAt_right
-      (hcZ.intervalIntegrable 0 t) (hcZ.stronglyMeasurableAtFilter volume (𝓝 t)) hcZ.continuousAt
-    have hf : HasDerivAt F (-(g (Y t) - g (Z t))) t := by
-      convert (hasDerivAt_const t (x - y)).sub (hiY.sub hiZ) using 1
-      simp
-    have hevent : D =ᶠ[𝓝[Ici t] t] F := by
-      filter_upwards [self_mem_nhdsWithin,
-        nhdsWithin_le_nhds (Iio_mem_nhds ht.2)] with s hst hsh
-      exact hD s ⟨ht.1.trans hst, hsh.le⟩
-    exact hf.hasDerivWithinAt.congr_of_eventuallyEq hevent (hD t ⟨ht.1, ht.2.le⟩)
-  have hD0 : D 0 = x - y := by
-    simpa only [F, intervalIntegral.integral_same, sub_self, sub_zero] using
-      hD 0 ⟨le_rfl, hh⟩
-  have hb (t : ℝ) (_ht : t ∈ Ico 0 h) :
-      ‖-(g (Y t) - g (Z t))‖ ≤ (L : ℝ) * ‖D t‖ + 0 := by
-    simpa only [norm_neg, D, add_zero] using hLip.norm_sub_le (Y t) (Z t)
-  have hg := norm_le_gronwallBound_of_norm_deriv_right_le
-    (f := D) (f' := fun t ↦ -(g (Y t) - g (Z t)))
-    (δ := ‖x - y‖) (K := (L : ℝ)) (ε := 0)
-    (hY.sub hZ).continuousOn hderiv (by rw [hD0]) hb
-  intro t ht
-  simpa only [D, gronwallBound_ε0, sub_zero] using hg t ht
-
-/-- A continuous solution with a fixed initial state and additive input is
-unique on the entire finite interval. -/
-theorem langevin_integral_unique
-    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
-    (x : H) (B Y Z : ℝ → H) (hY : Continuous Y) (hZ : Continuous Z)
-    (h : ℝ) (hh : 0 ≤ h)
-    (hYe : ∀ t ∈ Icc 0 h, Y t - x = -(∫ s in 0..t, g (Y s)) + B t)
-    (hZe : ∀ t ∈ Icc 0 h, Z t - x = -(∫ s in 0..t, g (Z s)) + B t) :
-    EqOn Y Z (Icc 0 h) := by
-  intro t ht
-  have hb := langevin_integral_stability g L hLip x x B Y Z hY hZ h hh hYe hZe t ht
-  simpa only [sub_self, norm_zero, zero_mul, norm_le_zero_iff, sub_eq_zero] using hb
-
-variable {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P]
-  {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteSpace K]
-
-/-- Initial-state stability for the actual square-integrable gradient drift. -/
-theorem lp_langevin_integral_stability
-    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
-    (initial₁ initial₂ : Lp K 2 P) (B Y Z : ℝ → Lp K 2 P)
-    (hY : Continuous Y) (hZ : Continuous Z) (h : ℝ) (hh : 0 ≤ h)
-    (hYe : ∀ t ∈ Icc 0 h, Y t - initial₁ =
-      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t)
-    (hZe : ∀ t ∈ Icc 0 h, Z t - initial₂ =
-      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Z s)) + B t) :
-    ∀ t ∈ Icc 0 h,
-      ‖Y t - Z t‖ ≤ ‖initial₁ - initial₂‖ * Real.exp ((L : ℝ) * t) :=
-  langevin_integral_stability (lpDrift P (gradient U) hLip) L
-    (lpDrift_lipschitz P (gradient U) hLip) initial₁ initial₂ B Y Z hY hZ h hh hYe hZe
-
-/-- Uniqueness of the actual `L²` Langevin integral solution with common initial
-state and noise, on any finite nonnegative time interval. -/
-theorem lp_langevin_integral_unique
-    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
-    (initial : Lp K 2 P) (B Y Z : ℝ → Lp K 2 P)
-    (hY : Continuous Y) (hZ : Continuous Z) (h : ℝ) (hh : 0 ≤ h)
-    (hYe : ∀ t ∈ Icc 0 h, Y t - initial =
-      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t)
-    (hZe : ∀ t ∈ Icc 0 h, Z t - initial =
-      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Z s)) + B t) :
-    EqOn Y Z (Icc 0 h) :=
-  langevin_integral_unique (lpDrift P (gradient U) hLip) L
-    (lpDrift_lipschitz P (gradient U) hLip) initial B Y Z hY hZ h hh hYe hZe
-
-end ULA
-
-
-end
-end
-
-
 /-! ## Included source: IPLA/Foundations.lean -/
 section
 
@@ -3927,9 +2610,9 @@ The joint assumptions on `U(θ,x)` imply normalization and finite moments for
 the actual lifted Gibbs measure. Finite initial W₂ then implies finite initial
 second moment. Neither normalization nor moments are separate hypotheses.
 
-The Brownian Langevin existence theorem imported here constructs the L²
-integral solution, its continuity and noise bounds. It does not prove its
-Gibbs stationarity or the marginal concentration estimate.
+These are direct applications of the shared ULA Gibbs and transport-moment
+theorems to the lifted potential. Brownian construction and stationarity stay
+in ULA and enter the final theorem through its Gaussian ULA estimate.
 -/
 
 noncomputable section
@@ -3990,8 +2673,7 @@ theorem gibbsTarget_score_moment {N dθ dx : ℕ} (hN : 0 < N)
     (mul_pos (by exact_mod_cast hN) hm)
     (potential_differentiable hdiff) (potential_strongConvex hsc)
     (potential_gradient_lipschitz hdiff hLip)
-  simpa only [finrank_euclideanSpace, Fintype.card_sum, Fintype.card_prod, Fintype.card_fin,
-    NNReal.coe_mul, NNReal.coe_natCast] using hb
+  simpa only [finrank_state, NNReal.coe_mul, NNReal.coe_natCast] using hb
 
 end IPLA
 
@@ -6525,6 +5207,1016 @@ end
 end
 
 
+/-! ## Included source: UnadjustedLangevin/GaussianMoments.lean -/
+section
+
+/-!
+# Gaussian and Brownian noise moments in Euclidean space
+
+The square-root noise estimate is proved from Gaussian coordinate laws.
+Independence is unnecessary for this particular second-moment calculation:
+the squared Euclidean norm is a sum of coordinate squares, with no cross terms.
+The Brownian specialization uses mathlib's actual Brownian marginal-law theorem.
+-/
+
+noncomputable section
+
+open MeasureTheory ProbabilityTheory
+open scoped NNReal
+
+namespace ULA
+
+variable {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) {d : ℕ}
+
+/-- The second moment of a centered real Gaussian is its variance parameter. -/
+theorem centered_gaussian_second_moment (v : ℝ≥0) :
+    (∫ x : ℝ, x ^ 2 ∂gaussianReal 0 v) = (v : ℝ) := by
+  have hv := variance_fun_id_gaussianReal (μ := 0) (v := v)
+  rw [variance_eq_integral measurable_id'.aemeasurable, integral_id_gaussianReal] at hv
+  simpa only [sub_zero] using hv
+
+/-- Gaussian coordinate laws imply genuine square integrability of a vector. -/
+theorem gaussian_vector_memLp (X : Ω → E d) (v : ℝ≥0)
+    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    MemLp X 2 P := by
+  apply memLp_piLp_iff.mpr
+  intro i
+  exact (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
+
+/-- Summing exact Gaussian coordinate moments gives the dimension factor. -/
+theorem gaussian_vector_second_moment (X : Ω → E d) (v : ℝ≥0)
+    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    (∫ ω, ‖X ω‖ ^ 2 ∂P) = (d : ℝ) * (v : ℝ) := by
+  have hmem (i : Fin d) : MemLp (fun ω ↦ X ω i) 2 P :=
+    (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
+  have hmom (i : Fin d) : (∫ ω, (X ω i) ^ 2 ∂P) = (v : ℝ) := by
+    exact (hlaw i).integral_comp (f := fun x : ℝ ↦ x ^ 2) (by fun_prop) |>.trans
+      (centered_gaussian_second_moment v)
+  simp_rw [EuclideanSpace.real_norm_sq_eq]
+  rw [integral_finsetSum _ (fun i _ ↦ (hmem i).integrable_sq)]
+  simp only [hmom, Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+
+/-- Its L² representative has the same exact second moment. -/
+theorem gaussian_vector_toLp_norm_sq (X : Ω → E d) (v : ℝ≥0)
+    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖(gaussian_vector_memLp P X v hlaw).toLp X‖ ^ 2 = (d : ℝ) * (v : ℝ) := by
+  rw [← real_inner_self_eq_norm_sq, L2.inner_def]
+  have hid : (∫ ω, inner ℝ
+      ((gaussian_vector_memLp P X v hlaw).toLp X ω)
+      ((gaussian_vector_memLp P X v hlaw).toLp X ω) ∂P) = ∫ ω, ‖X ω‖ ^ 2 ∂P := by
+    apply integral_congr_ae
+    filter_upwards [(gaussian_vector_memLp P X v hlaw).coeFn_toLp] with ω hω
+    rw [hω, real_inner_self_eq_norm_sq]
+  rw [hid, gaussian_vector_second_moment P X v hlaw]
+
+/-- The exact square-root Gaussian L² norm, including zero dimension or variance. -/
+theorem gaussian_vector_toLp_norm (X : Ω → E d) (v : ℝ≥0)
+    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖(gaussian_vector_memLp P X v hlaw).toLp X‖ = Real.sqrt ((d : ℝ) * (v : ℝ)) := by
+  rw [← gaussian_vector_toLp_norm_sq P X v hlaw, Real.sqrt_sq (norm_nonneg _)]
+
+/-- The Langevin scaling `√2` gives precisely the noise moment `√(2dv)`. -/
+theorem gaussian_vector_scaled_l2_norm (X : Ω → E d) (v : ℝ≥0)
+    (hlaw : ∀ i : Fin d, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖Real.sqrt 2 • (gaussian_vector_memLp P X v hlaw).toLp X‖ =
+      Real.sqrt (2 * (d : ℝ)) * Real.sqrt (v : ℝ) := by
+  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
+    gaussian_vector_toLp_norm P X v hlaw,
+    Real.sqrt_mul (by positivity : (0 : ℝ) ≤ d),
+    Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+  ring
+
+/-- Assemble scalar Brownian coordinates into the Euclidean noise vector. -/
+def brownianVector (W : Fin d → ℝ≥0 → Ω → ℝ) (t : ℝ≥0) : Ω → E d :=
+  fun ω ↦ WithLp.toLp 2 (fun i ↦ W i t ω)
+
+/-- Mathlib's Brownian marginal laws supply the Gaussian hypotheses above. -/
+theorem brownianVector_coordinate_law (W : Fin d → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) (i : Fin d) :
+    HasLaw (fun ω ↦ brownianVector W t ω i) (gaussianReal 0 t) P :=
+  (hW i).hasLaw_eval t
+
+/-- A Brownian vector at any nonnegative time has finite second moment. -/
+theorem brownianVector_memLp (W : Fin d → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
+    MemLp (brownianVector W t) 2 P :=
+  gaussian_vector_memLp P (brownianVector W t) t (brownianVector_coordinate_law P W hW t)
+
+/-- The noise moment used by Dalalyan's proof follows from Brownian laws. -/
+theorem brownianVector_scaled_l2_norm (W : Fin d → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
+    ‖Real.sqrt 2 • (brownianVector_memLp P W hW t).toLp (brownianVector W t)‖ =
+      Real.sqrt (2 * (d : ℝ)) * Real.sqrt (t : ℝ) :=
+  gaussian_vector_scaled_l2_norm P (brownianVector W t) t
+    (brownianVector_coordinate_law P W hW t)
+
+/-- The Brownian vector increment over the interval from `a` to `a+t`. -/
+def brownianVectorIncrement (W : Fin d → ℝ≥0 → Ω → ℝ) (a t : ℝ≥0) : Ω → E d :=
+  fun ω ↦ brownianVector W (a + t) ω - brownianVector W a ω
+
+/-- Brownian increments have variance equal to the elapsed time, at every
+starting time. This uses the actual Brownian marginal difference law. -/
+theorem brownianVectorIncrement_coordinate_law (W : Fin d → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) (i : Fin d) :
+    HasLaw (fun ω ↦ brownianVectorIncrement W a t ω i) (gaussianReal 0 t) P := by
+  change HasLaw (fun ω ↦ W i (a + t) ω - W i a ω) (gaussianReal 0 t) P
+  convert (hW i).hasLaw_sub (a + t) a using 1
+  congr 1
+  apply NNReal.eq
+  simp only [coe_nndist, Real.dist_eq]
+  change (t : ℝ) = |((a : ℝ) + (t : ℝ)) - (a : ℝ)|
+  rw [add_sub_cancel_left, abs_of_nonneg t.coe_nonneg]
+
+/-- The vector increment is a genuinely square-integrable random variable. -/
+theorem brownianVectorIncrement_memLp (W : Fin d → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
+    MemLp (brownianVectorIncrement W a t) 2 P :=
+  gaussian_vector_memLp P (brownianVectorIncrement W a t) t
+    (brownianVectorIncrement_coordinate_law P W hW a t)
+
+/-- Every reference segment has the same exact Langevin noise L² norm,
+`√(2d)√t`, regardless of its starting time. -/
+theorem brownianVector_increment_scaled_l2_norm (W : Fin d → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
+    ‖Real.sqrt 2 • (brownianVectorIncrement_memLp P W hW a t).toLp
+      (brownianVectorIncrement W a t)‖ =
+      Real.sqrt (2 * (d : ℝ)) * Real.sqrt (t : ℝ) :=
+  gaussian_vector_scaled_l2_norm P (brownianVectorIncrement W a t) t
+    (brownianVectorIncrement_coordinate_law P W hW a t)
+
+end ULA
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/GaussianCoordinates.lean -/
+section
+
+set_option linter.style.header false
+
+/-!
+# Gaussian and Brownian moments for arbitrary finite coordinate sets
+
+The previous Gaussian moment lemmas use `Fin d`. IPLA uses the product set of
+particle blocks and within-block coordinates. This module supplies the same
+exact moment bounds for `EuclideanSpace ℝ ι`, for any finite coordinate set.
+Only marginal coordinate laws are needed for second moments; independence is
+not added as an unnecessary hypothesis.
+-/
+
+noncomputable section
+
+open MeasureTheory ProbabilityTheory
+open scoped NNReal
+
+namespace ULA
+
+variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
+  (P : Measure Ω)
+
+/-- Gaussian coordinate laws imply square integrability on any finite
+Euclidean coordinate space. -/
+theorem gaussian_coordinates_memLp (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    MemLp X 2 P := by
+  apply memLp_piLp_iff.mpr
+  intro i
+  exact (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
+
+/-- The dimension factor is the exact cardinality of the coordinate set. -/
+theorem gaussian_coordinates_second_moment (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    (∫ ω, ‖X ω‖ ^ 2 ∂P) = (Fintype.card ι : ℝ) * (v : ℝ) := by
+  have hmem (i : ι) : MemLp (fun ω ↦ X ω i) 2 P :=
+    (hlaw i).memLp (memLp_id_gaussianReal (2 : ℝ≥0))
+  have hmom (i : ι) : (∫ ω, (X ω i) ^ 2 ∂P) = (v : ℝ) := by
+    exact (hlaw i).integral_comp (f := fun x : ℝ ↦ x ^ 2) (by fun_prop) |>.trans
+      (centered_gaussian_second_moment v)
+  simp_rw [EuclideanSpace.real_norm_sq_eq]
+  rw [integral_finsetSum _ (fun i _ ↦ (hmem i).integrable_sq)]
+  simp only [hmom, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
+
+/-- Exact norm identity for an existing `L²` Gaussian vector. -/
+theorem gaussian_coordinates_Lp_norm_sq (X : Lp (EuclideanSpace ℝ ι) 2 P) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖X‖ ^ 2 = (Fintype.card ι : ℝ) * (v : ℝ) := by
+  rw [← real_inner_self_eq_norm_sq, L2.inner_def]
+  simpa only [real_inner_self_eq_norm_sq] using
+    gaussian_coordinates_second_moment P X v hlaw
+
+/-- Exact square-root norm identity for an existing `L²` Gaussian vector. -/
+theorem gaussian_coordinates_Lp_norm (X : Lp (EuclideanSpace ℝ ι) 2 P) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖X‖ = Real.sqrt ((Fintype.card ι : ℝ) * (v : ℝ)) := by
+  rw [← gaussian_coordinates_Lp_norm_sq P X v hlaw,
+    Real.sqrt_sq (norm_nonneg _)]
+
+/-- Its `L²` representative has the original Gaussian coordinate laws. -/
+theorem gaussian_coordinates_toLp_coordinateLaw
+    (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) (i : ι) :
+    HasLaw (fun ω ↦ (gaussian_coordinates_memLp P X v hlaw).toLp X ω i)
+      (gaussianReal 0 v) P := by
+  exact (hlaw i).congr
+    ((gaussian_coordinates_memLp P X v hlaw).coeFn_toLp.fun_comp (fun z ↦ z i))
+
+/-- Exact square-root norm of the canonical `L²` representative. -/
+theorem gaussian_coordinates_toLp_norm (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖(gaussian_coordinates_memLp P X v hlaw).toLp X‖ =
+      Real.sqrt ((Fintype.card ι : ℝ) * (v : ℝ)) :=
+  gaussian_coordinates_Lp_norm P _ v
+    (gaussian_coordinates_toLp_coordinateLaw P X v hlaw)
+
+/-- The `√2` Langevin scaling gives exactly the required local-noise radius. -/
+theorem gaussian_coordinates_scaled_l2_norm (X : Ω → EuclideanSpace ℝ ι) (v : ℝ≥0)
+    (hlaw : ∀ i : ι, HasLaw (fun ω ↦ X ω i) (gaussianReal 0 v) P) :
+    ‖Real.sqrt 2 • (gaussian_coordinates_memLp P X v hlaw).toLp X‖ =
+      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt (v : ℝ) := by
+  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
+    gaussian_coordinates_toLp_norm P X v hlaw,
+    Real.sqrt_mul (by positivity : (0 : ℝ) ≤ Fintype.card ι),
+    Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+  ring
+
+/-- Assemble scalar Brownian coordinates in any finite Euclidean space. -/
+def brownianCoordinates (W : ι → ℝ≥0 → Ω → ℝ) (t : ℝ≥0) :
+    Ω → EuclideanSpace ℝ ι :=
+  fun ω ↦ WithLp.toLp 2 (fun i ↦ W i t ω)
+
+omit [Fintype ι] in
+/-- Actual scalar Brownian laws give the vector's coordinate laws. -/
+theorem brownianCoordinates_coordinateLaw (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) (i : ι) :
+    HasLaw (fun ω ↦ brownianCoordinates W t ω i) (gaussianReal 0 t) P :=
+  (hW i).hasLaw_eval t
+
+/-- A Brownian vector increment over an arbitrary starting time. -/
+def brownianCoordinatesIncrement (W : ι → ℝ≥0 → Ω → ℝ) (a t : ℝ≥0) :
+    Ω → EuclideanSpace ℝ ι :=
+  fun ω ↦ brownianCoordinates W (a + t) ω - brownianCoordinates W a ω
+
+omit [Fintype ι] in
+/-- Every coordinate increment has Gaussian variance equal to elapsed time. -/
+theorem brownianCoordinatesIncrement_coordinateLaw (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) (i : ι) :
+    HasLaw (fun ω ↦ brownianCoordinatesIncrement W a t ω i) (gaussianReal 0 t) P := by
+  change HasLaw (fun ω ↦ W i (a + t) ω - W i a ω) (gaussianReal 0 t) P
+  convert (hW i).hasLaw_sub (a + t) a using 1
+  congr 1
+  apply NNReal.eq
+  simp only [coe_nndist, Real.dist_eq]
+  change (t : ℝ) = |((a : ℝ) + (t : ℝ)) - (a : ℝ)|
+  rw [add_sub_cancel_left, abs_of_nonneg t.coe_nonneg]
+
+/-- Brownian increments are square integrable in the full vector space. -/
+theorem brownianCoordinatesIncrement_memLp (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
+    MemLp (brownianCoordinatesIncrement W a t) 2 P :=
+  gaussian_coordinates_memLp P _ t
+    (brownianCoordinatesIncrement_coordinateLaw P W hW a t)
+
+/-- The exact Langevin noise moment is derived from Brownian laws; no supplied
+moment inequality or independence premise is required. -/
+theorem brownianCoordinatesIncrement_scaled_l2_norm (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
+    ‖Real.sqrt 2 • (brownianCoordinatesIncrement_memLp P W hW a t).toLp
+      (brownianCoordinatesIncrement W a t)‖ =
+      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt (t : ℝ) :=
+  gaussian_coordinates_scaled_l2_norm P _ t
+    (brownianCoordinatesIncrement_coordinateLaw P W hW a t)
+
+/-- Brownian coordinates as canonical square-integrable random variables. -/
+def brownianCoordinatesLp (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
+    Lp (EuclideanSpace ℝ ι) 2 P :=
+  (gaussian_coordinates_memLp P (brownianCoordinates W t) t
+    (brownianCoordinates_coordinateLaw P W hW t)).toLp (brownianCoordinates W t)
+
+/-- The canonical `L²` Brownian vector agrees with the coordinate process. -/
+theorem brownianCoordinatesLp_coe (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ≥0) :
+    brownianCoordinatesLp P W hW t =ᵐ[P] brownianCoordinates W t :=
+  (gaussian_coordinates_memLp P (brownianCoordinates W t) t
+    (brownianCoordinates_coordinateLaw P W hW t)).coeFn_toLp
+
+/-- Canonical `L²` Brownian differences have the actual Gaussian increment law
+in every coordinate, including differences with reversed time order. -/
+theorem brownianCoordinatesLp_sub_coordinateLaw (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t s : ℝ≥0) (i : ι) :
+    HasLaw (fun ω ↦ (brownianCoordinatesLp P W hW t -
+      brownianCoordinatesLp P W hW s) ω i)
+      (gaussianReal 0 (nndist (t : ℝ) (s : ℝ))) P := by
+  apply (hW i).hasLaw_sub t s |>.congr
+  filter_upwards [Lp.coeFn_sub (brownianCoordinatesLp P W hW t)
+      (brownianCoordinatesLp P W hW s),
+    brownianCoordinatesLp_coe P W hW t, brownianCoordinatesLp_coe P W hW s]
+    with ω hsub ht hs
+  simp only [hsub, ht, hs, brownianCoordinates, Pi.sub_apply, PiLp.sub_apply]
+
+/-- The exact `L²` norm of an arbitrary Brownian difference. -/
+theorem brownianCoordinatesLp_norm_sub (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t s : ℝ≥0) :
+    ‖brownianCoordinatesLp P W hW t - brownianCoordinatesLp P W hW s‖ =
+      Real.sqrt ((Fintype.card ι : ℝ) * dist (t : ℝ) (s : ℝ)) := by
+  simpa only [coe_nndist] using gaussian_coordinates_Lp_norm P
+    (brownianCoordinatesLp P W hW t - brownianCoordinatesLp P W hW s)
+    (nndist (t : ℝ) (s : ℝ)) (brownianCoordinatesLp_sub_coordinateLaw P W hW t s)
+
+/-- Brownian coordinates are continuous as a map into `L²`. The proof derives
+continuity from Gaussian increment moments and needs no path-continuity input. -/
+theorem brownianCoordinatesLp_continuous (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) :
+    Continuous (brownianCoordinatesLp P W hW) := by
+  apply continuous_iff_continuousAt.mpr
+  intro s
+  apply tendsto_iff_norm_sub_tendsto_zero.mpr
+  simp_rw [brownianCoordinatesLp_norm_sub P W hW]
+  have hc : Continuous (fun t : ℝ≥0 ↦
+      Real.sqrt ((Fintype.card ι : ℝ) * dist (t : ℝ) (s : ℝ))) := by fun_prop
+  simpa only [dist_self, mul_zero, Real.sqrt_zero] using hc.tendsto s
+
+/-- The exact `L²` Brownian increment bound in the additive Langevin equation. -/
+theorem brownianCoordinatesLp_increment_scaled_norm (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ≥0) :
+    ‖Real.sqrt 2 • (brownianCoordinatesLp P W hW (a + t) -
+      brownianCoordinatesLp P W hW a)‖ =
+      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt (t : ℝ) := by
+  rw [norm_smul, Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg _),
+    brownianCoordinatesLp_norm_sub]
+  simp only [NNReal.coe_add, Real.dist_eq, add_sub_cancel_left,
+    abs_of_nonneg t.coe_nonneg]
+  rw [Real.sqrt_mul (by positivity : (0 : ℝ) ≤ Fintype.card ι),
+    Real.sqrt_mul (by norm_num : (0 : ℝ) ≤ 2)]
+  ring
+
+/-- The canonical Brownian vector starts at zero in `L²`. -/
+@[simp] theorem brownianCoordinatesLp_zero (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) :
+    brownianCoordinatesLp P W hW 0 = 0 := by
+  apply norm_eq_zero.mp
+  simpa only [brownianCoordinatesLp, NNReal.coe_zero, mul_zero, Real.sqrt_zero] using
+    gaussian_coordinates_toLp_norm P (brownianCoordinates W 0) 0
+      (brownianCoordinates_coordinateLaw P W hW 0)
+
+/-- A real-time presentation, constant at zero on negative times, for use with
+ordinary real interval integrals and deterministic Banach-space ODEs. -/
+def brownianCoordinatesRealLp (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (t : ℝ) :
+    Lp (EuclideanSpace ℝ ι) 2 P :=
+  brownianCoordinatesLp P W hW t.toNNReal
+
+/-- The real-time Brownian presentation is continuous in `L²`. -/
+theorem brownianCoordinatesRealLp_continuous (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) :
+    Continuous (brownianCoordinatesRealLp P W hW) :=
+  (brownianCoordinatesLp_continuous P W hW).comp continuous_real_toNNReal
+
+@[simp] theorem brownianCoordinatesRealLp_zero (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) :
+    brownianCoordinatesRealLp P W hW 0 = 0 := by
+  simp only [brownianCoordinatesRealLp, Real.toNNReal_zero, brownianCoordinatesLp_zero]
+
+/-- The real-time additive noise has the exact local moment required in the
+Langevin error bound, for every nonnegative starting time and elapsed time. -/
+theorem brownianCoordinatesRealLp_increment_scaled_norm (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ)
+    (ha : 0 ≤ a) (ht : 0 ≤ t) :
+    ‖Real.sqrt 2 • (brownianCoordinatesRealLp P W hW (a + t) -
+      brownianCoordinatesRealLp P W hW a)‖ =
+      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t := by
+  simpa only [brownianCoordinatesRealLp, Real.toNNReal_add ha ht,
+    Real.coe_toNNReal t ht] using
+    brownianCoordinatesLp_increment_scaled_norm P W hW a.toNNReal t.toNNReal
+
+end ULA
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/LangevinIntegral.lean -/
+section
+
+set_option linter.style.header false
+
+/-! # Constructing an additive-noise Langevin integral solution
+
+For a globally Lipschitz drift and a continuous additive input, Picard iteration
+constructs the solution in the Banach space itself. In particular the Banach
+space may be L², so existence of the integral equation is proved rather than
+postulated. This file does not establish Gibbs invariance of that solution.
+-/
+
+noncomputable section
+open MeasureTheory Set Metric
+open scoped NNReal
+namespace ULA
+
+variable {H : Type*} [NormedAddCommGroup H] [NormedSpace ℝ H] [CompleteSpace H]
+
+/-- Picard constructs the continuous solution of `Y = x + B - ∫g(Y)` on a
+short interval. The noise need only be continuous in the Banach norm. The
+condition `L*h ≤ 1/2` is a local construction condition, not an assumption on
+the final Langevin diffusion; longer intervals require concatenation. -/
+theorem exists_langevin_integral_small
+    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
+    (x : H) (B : ℝ → H) (hB : Continuous B) (hB0 : B 0 = 0)
+    (h : ℝ) (hh : 0 ≤ h) (hsmall : (L : ℝ) * h ≤ 1 / 2) :
+    ∃ Y : ℝ → H, Continuous Y ∧ Y 0 = x ∧
+      ∀ t ∈ Icc 0 h,
+        Y t - x = -(∫ s in 0..t, g (Y s)) + B t := by
+  have hbound := ((isCompact_Icc : IsCompact (Icc (0 : ℝ) h)).image hB).isBounded.exists_norm_le
+  obtain ⟨C, hC⟩ := hbound
+  let C' : ℝ := max C 0
+  have hC' : 0 ≤ C' := le_max_right _ _
+  have hBC (t : ℝ) (ht : t ∈ Icc 0 h) : ‖B t‖ ≤ C' :=
+    (hC _ (mem_image_of_mem B ht)).trans (le_max_left _ _)
+  let G : ℝ := ‖g x‖ + (L : ℝ) * C'
+  have hG : 0 ≤ G := by dsimp [G]; positivity
+  let a : ℝ≥0 := ⟨2 * h * G, by positivity⟩
+  let M : ℝ≥0 := ⟨G + (L : ℝ) * a, by positivity⟩
+  let f : ℝ → H → H := fun t z ↦ -g (z + B t)
+  let t₀ : Icc 0 h := ⟨0, by simp [hh]⟩
+  have hpicard : IsPicardLindelof f t₀ x a 0 M L := by
+    constructor
+    · intro t ht
+      apply LipschitzOnWith.of_dist_le_mul
+      intro z hz w hw
+      dsimp [f]
+      simpa only [dist_neg_neg, dist_add_right] using hLip.dist_le_mul (z + B t) (w + B t)
+    · intro z hz
+      exact (hLip.continuous.comp (continuous_const.add hB)).neg.continuousOn
+    · intro t ht z hz
+      have hz' : ‖z - x‖ ≤ (a : ℝ) := by simpa only [mem_closedBall, dist_eq_norm] using hz
+      have hnorm : ‖z + B t - x‖ ≤ (a : ℝ) + C' := by
+        have hid : z + B t - x = (z - x) + B t := by abel
+        rw [hid]
+        exact (norm_add_le _ _).trans (add_le_add hz' (hBC t ht))
+      have hg : ‖g (z + B t) - g x‖ ≤ (L : ℝ) * ((a : ℝ) + C') := by
+        exact (hLip.norm_sub_le (z + B t) x).trans
+          (mul_le_mul_of_nonneg_left hnorm L.coe_nonneg)
+      change ‖-g (z + B t)‖ ≤ (M : ℝ)
+      rw [norm_neg]
+      have hu : ‖g (z + B t)‖ ≤ ‖g x‖ + ‖g (z + B t) - g x‖ := by
+        simpa only [norm_sub_rev] using norm_le_norm_add_norm_sub (g x) (g (z + B t))
+      change ‖g (z + B t)‖ ≤ G + (L : ℝ) * (a : ℝ)
+      dsimp [G]
+      nlinarith
+    · change (M : ℝ) * max (h - 0) (0 - 0) ≤ (a : ℝ) - 0
+      rw [sub_zero, sub_self, max_eq_left hh, sub_zero]
+      change (G + (L : ℝ) * (2 * h * G)) * h ≤ 2 * h * G
+      have hm := mul_le_mul_of_nonneg_right hsmall
+        (by positivity : 0 ≤ 2 * h * G)
+      nlinarith
+  have hx : x ∈ closedBall x (0 : ℝ≥0) := by simp
+  obtain ⟨α, hα⟩ := ODE.FunSpace.exists_isFixedPt_next hpicard hx
+  let Z : ℝ → H := α.compProj
+  have hZ : Continuous Z := α.continuous_compProj
+  have hZeq (t : ℝ) (ht : t ∈ Icc 0 h) :
+      Z t = x + ∫ s in 0..t, f s (Z s) := by
+    change α.compProj t = x + ∫ s in 0..t, f s (α.compProj s)
+    nth_rw 1 [← hα]
+    rw [ODE.FunSpace.compProj_of_mem ht, ODE.FunSpace.next_apply]
+    rfl
+  have hZ0 : Z 0 = x := by simpa using hZeq 0 ⟨le_rfl, hh⟩
+  refine ⟨fun t ↦ Z t + B t, hZ.add hB, by simp [hZ0, hB0], ?_⟩
+  intro t ht
+  change (Z t + B t) - x = -(∫ s in 0..t, g (Z s + B s)) + B t
+  rw [hZeq t ht]
+  dsimp [f]
+  rw [intervalIntegral.integral_neg]
+  abel
+
+
+omit [CompleteSpace H] in
+/-- Two consecutive solutions splice into one continuous integral solution.
+This is the finite-horizon extension step, with no new drift hypotheses. -/
+lemma splice_langevin_integral
+    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
+    (x : H) (B Y Z : ℝ → H) (hY : Continuous Y) (hZ : Continuous Z)
+    (a b : ℝ) (ha : 0 ≤ a) (_hb : 0 ≤ b)
+    (hY0 : Y 0 = x) (hZ0 : Z 0 = Y a)
+    (hYe : ∀ t ∈ Icc 0 a, Y t - x = -(∫ s in 0..t, g (Y s)) + B t)
+    (hZe : ∀ t ∈ Icc 0 b, Z t - Y a =
+      -(∫ s in 0..t, g (Z s)) + (B (a + t) - B a)) :
+    ∃ S : ℝ → H, Continuous S ∧ S 0 = x ∧
+      ∀ t ∈ Icc 0 (a + b), S t - x = -(∫ s in 0..t, g (S s)) + B t := by
+  classical
+  let S : ℝ → H := fun t ↦ if t ≤ a then Y t else Z (t - a)
+  have hSl (t : ℝ) (ht : t ≤ a) : S t = Y t := by simp [S, ht]
+  have hSr (t : ℝ) (ht : a ≤ t) : S t = Z (t - a) := by
+    by_cases hl : t ≤ a
+    · have he : t = a := le_antisymm hl ht
+      simp [S, he, hZ0]
+    · simp [S, hl]
+  have hS : Continuous S := hY.if_le (hZ.comp (continuous_id.sub continuous_const))
+    continuous_id continuous_const (fun t ht ↦ by simp only [ht, sub_self, hZ0])
+  have hSlint (t : ℝ) (ht : t ∈ Icc 0 a) :
+      (∫ s in 0..t, g (S s)) = ∫ s in 0..t, g (Y s) := by
+    apply intervalIntegral.integral_congr
+    intro s hs
+    rw [uIcc_of_le ht.1] at hs
+    change g (S s) = g (Y s)
+    rw [hSl s (hs.2.trans ht.2)]
+  refine ⟨S, hS, by rw [hSl 0 ha, hY0], ?_⟩
+  intro t ht
+  by_cases hta : t ≤ a
+  · rw [hSl t hta, hSlint t ⟨ht.1, hta⟩]
+    exact hYe t ⟨ht.1, hta⟩
+  · have hat : a ≤ t := le_of_lt (lt_of_not_ge hta)
+    have hz := hZe (t - a) ⟨sub_nonneg.mpr hat, by linarith [ht.2]⟩
+    have hy := hYe a ⟨ha, le_rfl⟩
+    have hright : (∫ s in a..t, g (S s)) = ∫ s in 0..(t - a), g (Z s) := by
+      calc
+        _ = ∫ s in a..t, g (Z (s - a)) := by
+          apply intervalIntegral.integral_congr
+          intro s hs
+          rw [uIcc_of_le hat] at hs
+          change g (S s) = g (Z (s - a))
+          rw [hSr s hs.1]
+        _ = _ := by
+          simpa only [sub_self] using
+            (intervalIntegral.integral_comp_sub_right (f := fun s ↦ g (Z s))
+              (a := a) (b := t) a)
+    have hint : (∫ s in 0..t, g (S s)) =
+        (∫ s in 0..a, g (Y s)) + ∫ s in 0..(t - a), g (Z s) := by
+      calc
+        _ = (∫ s in 0..a, g (S s)) + ∫ s in a..t, g (S s) :=
+          (intervalIntegral.integral_add_adjacent_intervals
+            (show IntervalIntegrable (fun s ↦ g (S s)) volume 0 a from
+              (hLip.continuous.comp hS).intervalIntegrable 0 a)
+            (show IntervalIntegrable (fun s ↦ g (S s)) volume a t from
+              (hLip.continuous.comp hS).intervalIntegrable a t)).symm
+        _ = _ := by rw [hSlint a ⟨ha, le_rfl⟩, hright]
+    have hyval : Y a = x - (∫ s in 0..a, g (Y s)) + B a := by
+      rw [sub_eq_iff_eq_add] at hy
+      rw [hy]
+      abel
+    have hzval : Z (t - a) = Y a - (∫ s in 0..(t - a), g (Z s)) + B t - B a := by
+      rw [show a + (t - a) = t by ring, sub_eq_iff_eq_add] at hz
+      rw [hz]
+      abel
+    rw [hSr t hat, hzval, hyval, hint]
+    abel
+
+/-- A globally Lipschitz drift admits an additive-noise integral solution on
+any finite nonnegative horizon. The proof constructs short Picard segments and
+splices them; no small-step restriction or reference process is assumed. -/
+theorem exists_langevin_integral
+    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
+    (x : H) (B : ℝ → H) (hB : Continuous B) (hB0 : B 0 = 0)
+    (h : ℝ) (_hh : 0 ≤ h) :
+    ∃ Y : ℝ → H, Continuous Y ∧ Y 0 = x ∧
+      ∀ t ∈ Icc 0 h, Y t - x = -(∫ s in 0..t, g (Y s)) + B t := by
+  let δ : ℝ := 1 / (2 * ((L : ℝ) + 1))
+  have hδ : 0 < δ := by dsimp [δ]; positivity
+  have hδsmall : (L : ℝ) * δ ≤ 1 / 2 := by
+    dsimp [δ]
+    rw [mul_one_div]
+    apply (div_le_iff₀ (by positivity : 0 < 2 * ((L : ℝ) + 1))).mpr
+    linarith
+  have hex (n : ℕ) : ∃ Y : ℝ → H, Continuous Y ∧ Y 0 = x ∧
+      ∀ t ∈ Icc 0 ((n : ℝ) * δ),
+        Y t - x = -(∫ s in 0..t, g (Y s)) + B t := by
+    induction n with
+    | zero =>
+        refine ⟨fun _ ↦ x, continuous_const, rfl, ?_⟩
+        intro t ht
+        simp only [Nat.cast_zero, zero_mul] at ht
+        have ht0 : t = 0 := le_antisymm ht.2 ht.1
+        simp [ht0, hB0]
+    | succ n ih =>
+        obtain ⟨Y, hY, hY0, hYe⟩ := ih
+        let a : ℝ := (n : ℝ) * δ
+        have ha : 0 ≤ a := by dsimp [a]; positivity
+        obtain ⟨Z, hZ, hZ0, hZe⟩ := exists_langevin_integral_small g L hLip (Y a)
+          (fun t ↦ B (a + t) - B a)
+          ((hB.comp (continuous_const.add continuous_id)).sub continuous_const)
+          (by simp) δ hδ.le hδsmall
+        have hs := splice_langevin_integral g L hLip x B Y Z hY hZ a δ ha hδ.le hY0 hZ0 hYe hZe
+        convert hs using 1
+        simp only [Nat.cast_add, Nat.cast_one, add_mul, one_mul, a]
+  obtain ⟨n, hn⟩ := exists_nat_ge (h / δ)
+  obtain ⟨Y, hY, hY0, hYe⟩ := hex n
+  refine ⟨Y, hY, hY0, fun t ht ↦ hYe t ⟨ht.1, ht.2.trans ?_⟩⟩
+  exact (div_le_iff₀ hδ).mp hn
+
+variable {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P]
+  {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteSpace K]
+
+/-- The actual gradient has an L² integral solution from its Lipschitz
+hypothesis and a continuous L² additive noise path. No reference solution or
+integral identity is assumed in this construction. -/
+theorem exists_lp_langevin_integral_small
+    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
+    (initial : Lp K 2 P) (B : ℝ → Lp K 2 P)
+    (hB : Continuous B) (hB0 : B 0 = 0)
+    (h : ℝ) (hh : 0 ≤ h) (hsmall : (L : ℝ) * h ≤ 1 / 2) :
+    ∃ Y : ℝ → Lp K 2 P, Continuous Y ∧ Y 0 = initial ∧
+      ∀ t ∈ Icc 0 h, Y t - initial =
+        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t :=
+  exists_langevin_integral_small (lpDrift P (gradient U) hLip) L
+    (lpDrift_lipschitz P (gradient U) hLip) initial B hB hB0 h hh hsmall
+
+/-- Finite-horizon existence of the actual L² Langevin integral equation from
+only Lipschitz gradient and continuous additive noise, with no step restriction. -/
+theorem exists_lp_langevin_integral
+    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
+    (initial : Lp K 2 P) (B : ℝ → Lp K 2 P)
+    (hB : Continuous B) (hB0 : B 0 = 0) (h : ℝ) (hh : 0 ≤ h) :
+    ∃ Y : ℝ → Lp K 2 P, Continuous Y ∧ Y 0 = initial ∧
+      ∀ t ∈ Icc 0 h, Y t - initial =
+        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t :=
+  exists_langevin_integral (lpDrift P (gradient U) hLip) L
+    (lpDrift_lipschitz P (gradient U) hLip) initial B hB hB0 h hh
+
+
+end ULA
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/BrownianLangevin.lean -/
+section
+
+set_option linter.style.header false
+
+/-!
+# Constructing the `L²` Langevin equation from Brownian coordinates
+
+Actual Brownian coordinate laws construct a continuous `L²` additive noise path
+and its exact square-root increment moment. Picard then constructs the integral
+solution for the actual gradient. No integral equation, noise continuity, or
+noise moment bound is supplied as an assumption.
+
+This construction does not establish the stationary Gibbs law, a score moment
+bound, or independence/adaptedness of the initial state and Brownian input.
+Those are distinct probabilistic claims.
+-/
+
+noncomputable section
+
+open MeasureTheory ProbabilityTheory Set
+open scoped NNReal
+
+namespace ULA
+
+variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
+  (P : Measure Ω)
+
+/-- The additive Langevin noise over a segment starting at real time `a`.
+The real-time Brownian presentation is constant at zero at negative times. -/
+def brownianLangevinNoise (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ) :
+    Lp (EuclideanSpace ℝ ι) 2 P :=
+  Real.sqrt 2 • (brownianCoordinatesRealLp P W hW (a + t) -
+    brownianCoordinatesRealLp P W hW a)
+
+/-- Noise continuity follows from Gaussian increment moments in `L²`. -/
+theorem brownianLangevinNoise_continuous (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a : ℝ) :
+    Continuous (brownianLangevinNoise P W hW a) := by
+  exact (((brownianCoordinatesRealLp_continuous P W hW).comp
+    (continuous_const.add continuous_id)).sub continuous_const).const_smul (Real.sqrt 2)
+
+@[simp] theorem brownianLangevinNoise_zero (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a : ℝ) :
+    brownianLangevinNoise P W hW a 0 = 0 := by
+  simp only [brownianLangevinNoise, add_zero, sub_self, smul_zero]
+
+/-- The exact segment noise moment is a theorem about the Brownian input. -/
+theorem brownianLangevinNoise_norm (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (a t : ℝ)
+    (ha : 0 ≤ a) (ht : 0 ≤ t) :
+    ‖brownianLangevinNoise P W hW a t‖ =
+      Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t :=
+  brownianCoordinatesRealLp_increment_scaled_norm P W hW a t ha ht
+
+variable [IsProbabilityMeasure P]
+
+/-- Actual Brownian coordinates and a Lipschitz gradient construct a continuous
+short-time `L²` Langevin solution. The local step restriction belongs to the
+Picard construction and may be removed by concatenation. No score bound or
+stationary-law assertion is made. -/
+theorem exists_lp_langevin_integral_of_brownian_small
+    (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (a h : ℝ) (ha : 0 ≤ a) (hh : 0 ≤ h) (hsmall : (L : ℝ) * h ≤ 1 / 2) :
+    ∃ Y : ℝ → Lp (EuclideanSpace ℝ ι) 2 P,
+      Continuous Y ∧ Y 0 = initial ∧
+      (∀ t ∈ Icc 0 h, Y t - initial =
+        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) +
+          brownianLangevinNoise P W hW a t) ∧
+      (∀ t ∈ Icc 0 h, ‖brownianLangevinNoise P W hW a t‖ =
+        Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t) := by
+  obtain ⟨Y, hY, hY0, hYeq⟩ := exists_lp_langevin_integral_small P U L hLip initial
+    (brownianLangevinNoise P W hW a) (brownianLangevinNoise_continuous P W hW a)
+    (brownianLangevinNoise_zero P W hW a) h hh hsmall
+  exact ⟨Y, hY, hY0, hYeq,
+    fun t ht ↦ brownianLangevinNoise_norm P W hW a t ha ht.1⟩
+
+/-- Actual Brownian coordinates construct a finite-horizon `L²` Langevin
+solution from the Lipschitz gradient, without a small-time restriction. Both
+the integral equation and exact noise moment are conclusions. -/
+theorem exists_lp_langevin_integral_of_brownian
+    (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (a h : ℝ) (ha : 0 ≤ a) (hh : 0 ≤ h) :
+    ∃ Y : ℝ → Lp (EuclideanSpace ℝ ι) 2 P,
+      Continuous Y ∧ Y 0 = initial ∧
+      (∀ t ∈ Icc 0 h, Y t - initial =
+        -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) +
+          brownianLangevinNoise P W hW a t) ∧
+      (∀ t ∈ Icc 0 h, ‖brownianLangevinNoise P W hW a t‖ =
+        Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t) := by
+  obtain ⟨Y, hY, hY0, hYeq⟩ := exists_lp_langevin_integral P U L hLip initial
+    (brownianLangevinNoise P W hW a) (brownianLangevinNoise_continuous P W hW a)
+    (brownianLangevinNoise_zero P W hW a) h hh
+  exact ⟨Y, hY, hY0, hYeq,
+    fun t ht ↦ brownianLangevinNoise_norm P W hW a t ha ht.1⟩
+
+end ULA
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/StationaryMoments.lean -/
+section
+
+set_option linter.style.header false
+
+/-! # The reference score bound is derived from its Gibbs law
+
+A random variable with Gibbs law inherits the sharp score moment proved from
+the potential assumptions. Stationarity itself is not established by this
+moment-transfer lemma.
+-/
+
+noncomputable section
+open MeasureTheory
+open scoped NNReal ENNReal
+namespace ULA
+
+variable {Ω H : Type*} [MeasurableSpace Ω]
+  [NormedAddCommGroup H] [InnerProductSpace ℝ H] [FiniteDimensional ℝ H]
+  [MeasurableSpace H] [BorelSpace H]
+  (P : Measure Ω) [IsProbabilityMeasure P]
+
+/-- The exact score norm used in Dalalyan's reference argument follows from
+first-order smoothness and the stated Gibbs law, without a moment hypothesis. -/
+theorem lpDrift_norm_le_of_gibbs_law
+    (U : H → ℝ) (L : ℝ≥0) (hdiff : Differentiable ℝ U)
+    (hLip : LipschitzWith L (gradient U)) (hZ : gibbsPartition U ≠ ⊤)
+    (Y : Lp H 2 P) (hlaw : P.map Y = gibbsMeasure U) :
+    ‖lpDrift P (gradient U) hLip Y‖ ≤
+      Real.sqrt ((L : ℝ) * (Module.finrank ℝ H : ℝ)) := by
+  have he : (∫ x, ‖gradient U x‖ ^ 2 ∂P.map Y) =
+      ∫ ω, ‖gradient U (Y ω)‖ ^ 2 ∂P := by
+    exact integral_map (Lp.aestronglyMeasurable Y).aemeasurable
+      ((hLip.continuous.norm.pow 2).aestronglyMeasurable)
+  rw [hlaw] at he
+  apply lpDrift_norm_le_sqrt P (gradient U) hLip Y
+  rw [← he]
+  exact integral_norm_sq_gradient_gibbs_le U L hdiff hLip hZ
+
+/-- The strong-convexity form also discharges finite normalization internally. -/
+theorem lpDrift_norm_le_of_strongConvex_gibbs_law
+    (U : H → ℝ) (m : ℝ) (L : ℝ≥0) (hm : 0 < m)
+    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
+    (hLip : LipschitzWith L (gradient U))
+    (Y : Lp H 2 P) (hlaw : P.map Y = gibbsMeasure U) :
+    ‖lpDrift P (gradient U) hLip Y‖ ≤
+      Real.sqrt ((L : ℝ) * (Module.finrank ℝ H : ℝ)) :=
+  lpDrift_norm_le_of_gibbs_law P U L hdiff hLip
+    (gibbsPartition_ne_top U m hm hdiff hsc) Y hlaw
+
+end ULA
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/BrownianReference.lean -/
+section
+
+set_option linter.style.header false
+
+/-! # An actual Brownian Langevin reference, conditional on Gibbs invariance
+
+The integral equation, continuity, matching Euler noise, and both moment bounds
+are constructed or proved here. The only remaining process-law input is the
+explicit assertion that the constructed segments have the Gibbs law at every
+time. This file does not claim to prove that invariance assertion.
+-/
+
+noncomputable section
+open MeasureTheory ProbabilityTheory Set
+open scoped NNReal
+namespace ULA.Hilbert
+open ULA
+
+variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι]
+  (P : Measure Ω) [IsProbabilityMeasure P]
+
+/-- The canonical choice of the constructed solution over the `n`th time
+segment, starting from the supplied knot. -/
+def brownianSegmentFrom (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 ≤ h) (n : ℕ) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
+    ℝ → Lp (EuclideanSpace ℝ ι) 2 P :=
+  Classical.choose (exists_lp_langevin_integral_of_brownian P U L hLip initial W hW
+    ((n : ℝ) * h) h (mul_nonneg (Nat.cast_nonneg n) hh) hh)
+
+/-- The properties of the actual integral solution used to define a segment. -/
+theorem brownianSegmentFrom_spec (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 ≤ h) (n : ℕ) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
+    Continuous (brownianSegmentFrom P U L hLip W hW h hh n initial) ∧
+      brownianSegmentFrom P U L hLip W hW h hh n initial 0 = initial ∧
+      (∀ t ∈ Icc 0 h,
+        brownianSegmentFrom P U L hLip W hW h hh n initial t - initial =
+          -(∫ s in 0..t, lpDrift P (gradient U) hLip
+            (brownianSegmentFrom P U L hLip W hW h hh n initial s)) +
+            brownianLangevinNoise P W hW ((n : ℝ) * h) t) ∧
+      (∀ t ∈ Icc 0 h, ‖brownianLangevinNoise P W hW ((n : ℝ) * h) t‖ =
+        Real.sqrt (2 * (Fintype.card ι : ℝ)) * Real.sqrt t) :=
+  Classical.choose_spec (exists_lp_langevin_integral_of_brownian P U L hLip initial W hW
+    ((n : ℝ) * h) h (mul_nonneg (Nat.cast_nonneg n) hh) hh)
+
+/-- Successive knots are the endpoints of the constructed integral solutions. -/
+def brownianKnots (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
+    ℕ → Lp (EuclideanSpace ℝ ι) 2 P
+  | 0 => initial
+  | n + 1 => brownianSegmentFrom P U L hLip W hW h hh n
+      (brownianKnots U L hLip W hW h hh initial n) h
+
+/-- The reference segments use the recursively constructed endpoints. -/
+def brownianSegments (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (n : ℕ) : ℝ → Lp (EuclideanSpace ℝ ι) 2 P :=
+  brownianSegmentFrom P U L hLip W hW h hh n
+    (brownianKnots P U L hLip W hW h hh initial n)
+
+/-- Each segment starts exactly at its recursively constructed knot. -/
+@[simp] theorem brownianSegments_start (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P) (n : ℕ) :
+    brownianSegments P U L hLip W hW h hh initial n 0 =
+      brownianKnots P U L hLip W hW h hh initial n :=
+  (brownianSegmentFrom_spec P U L hLip W hW h hh n _).2.1
+
+/-- The constructed process starts from precisely the prescribed random
+variable, including its chosen joint realization with the Euler initialization. -/
+@[simp] theorem brownianSegments_initial (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 ≤ h) (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
+    brownianSegments P U L hLip W hW h hh initial 0 0 = initial := by
+  rw [brownianSegments_start]
+  rfl
+
+/-- Normalize each actual Brownian endpoint to the Euler innovation. -/
+def brownianEulerNoise (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (h : ℝ) (n : ℕ) :
+    Lp (EuclideanSpace ℝ ι) 2 P :=
+  (Real.sqrt (2 * h))⁻¹ • brownianLangevinNoise P W hW ((n : ℝ) * h) h
+
+omit [IsProbabilityMeasure P] in
+/-- The normalized endpoint matches the same additive noise used by the
+integral equation exactly, without a supplied endpoint hypothesis. -/
+theorem brownianEulerNoise_endpoint (W : ι → ℝ≥0 → Ω → ℝ)
+    (hW : ∀ i, IsPreBrownianReal (W i) P) (h : ℝ) (hh : 0 < h) (n : ℕ) :
+    brownianLangevinNoise P W hW ((n : ℝ) * h) h =
+      Real.sqrt (2 * h) • brownianEulerNoise P W hW h n := by
+  have hs : Real.sqrt (2 * h) ≠ 0 := ne_of_gt (Real.sqrt_pos.mpr (by positivity))
+  simp only [brownianEulerNoise, smul_smul, mul_inv_cancel₀ hs, one_smul]
+
+/-- All analytic and noise fields of `L2Reference` follow from the constructed
+Brownian integral solutions and the sharp Gibbs score theorem. The all-time
+Gibbs-law premise is the single remaining process-law obligation. -/
+def brownianReference (U : EuclideanSpace ℝ ι → ℝ) (L : ℝ≥0)
+    (hdiff : Differentiable ℝ U) (hLip : LipschitzWith L (gradient U))
+    (hZ : gibbsPartition U ≠ ⊤)
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 < h) (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (hstationary : ∀ n t, t ∈ Icc 0 h →
+      P.map (brownianSegments P U L hLip W hW h hh.le initial n t) = gibbsMeasure U) :
+    L2Reference P (Fintype.card ι) U h L hLip
+      (brownianEulerNoise P W hW h) (gibbsMeasure U) where
+  segment := brownianSegments P U L hLip W hW h hh.le initial
+  increment := fun n ↦ brownianLangevinNoise P W hW ((n : ℝ) * h)
+  continuous n := (brownianSegmentFrom_spec P U L hLip W hW h hh.le n _).1
+  join n := by
+    change brownianSegments P U L hLip W hW h hh.le initial n h =
+      brownianSegmentFrom P U L hLip W hW h hh.le (n + 1)
+        (brownianKnots P U L hLip W hW h hh.le initial (n + 1)) 0
+    rw [(brownianSegmentFrom_spec P U L hLip W hW h hh.le (n + 1) _).2.1]
+    rfl
+  noiseEndpoint := brownianEulerNoise_endpoint P W hW h hh
+  stationary n := hstationary n 0 ⟨le_rfl, hh.le⟩
+  integralEquation n t ht := by
+    change brownianSegmentFrom P U L hLip W hW h hh.le n _ t -
+      brownianSegmentFrom P U L hLip W hW h hh.le n _ 0 = _
+    rw [(brownianSegmentFrom_spec P U L hLip W hW h hh.le n _).2.1]
+    exact (brownianSegmentFrom_spec P U L hLip W hW h hh.le n _).2.2.1 t ht
+  scoreBound n t ht := by
+    simpa using lpDrift_norm_le_of_gibbs_law P U L hdiff hLip hZ
+      (brownianSegments P U L hLip W hW h hh.le initial n t) (hstationary n t ht)
+  noiseBound n t ht :=
+    (brownianLangevinNoise_norm P W hW ((n : ℝ) * h) t
+      (mul_nonneg (Nat.cast_nonneg n) hh.le) ht.1).le
+
+/-- The strong-convexity version has no separate normalization or moment
+hypothesis: only Gibbs invariance of the actual constructed segments remains. -/
+def brownianReference_of_strongConvex
+    (U : EuclideanSpace ℝ ι → ℝ) (m : ℝ) (L : ℝ≥0) (hm : 0 < m)
+    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
+    (hLip : LipschitzWith L (gradient U))
+    (W : ι → ℝ≥0 → Ω → ℝ) (hW : ∀ i, IsPreBrownianReal (W i) P)
+    (h : ℝ) (hh : 0 < h) (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (hstationary : ∀ n t, t ∈ Icc 0 h →
+      P.map (brownianSegments P U L hLip W hW h hh.le initial n t) = gibbsMeasure U) :
+    L2Reference P (Fintype.card ι) U h L hLip
+      (brownianEulerNoise P W hW h) (gibbsMeasure U) :=
+  brownianReference P U L hdiff hLip (gibbsPartition_ne_top U m hm hdiff hsc)
+    W hW h hh initial hstationary
+
+end ULA.Hilbert
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/PotentialAssumptions.lean -/
+section
+
+set_option linter.style.header false
+
+/-!
+# Compatibility of strong convexity and a Lipschitz gradient
+
+On a nontrivial Hilbert space the inequality `m ≤ L` is a consequence of the
+potential assumptions, and does not need to be an independent numerical input.
+The gradient is that of the same differentiable function in both hypotheses.
+-/
+
+noncomputable section
+
+open scoped NNReal
+
+namespace ULA
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+  [CompleteSpace H] [Nontrivial H]
+
+/-- The strong-convexity constant cannot exceed the gradient Lipschitz constant
+on a nontrivial Hilbert space. Neither constant needs to be positive here. -/
+theorem strongConvex_le_lipschitz {U : H → ℝ} {m : ℝ} {L : ℝ≥0}
+    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
+    (hLip : LipschitzWith L (gradient U)) : m ≤ (L : ℝ) := by
+  obtain ⟨x, hx⟩ := exists_ne (0 : H)
+  have hxpos : 0 < ‖x‖ := norm_pos_iff.mpr hx
+  have hmono : m * ‖x‖ ^ 2 ≤ inner ℝ (gradient U x - gradient U 0) x := by
+    simpa only [sub_zero] using strong_gradient_monotone hdiff hsc x 0
+  have hbound : inner ℝ (gradient U x - gradient U 0) x ≤ (L : ℝ) * ‖x‖ ^ 2 := by
+    calc
+      _ ≤ ‖gradient U x - gradient U 0‖ * ‖x‖ := real_inner_le_norm _ _
+      _ ≤ ((L : ℝ) * ‖x‖) * ‖x‖ :=
+        mul_le_mul_of_nonneg_right (by simpa only [sub_zero] using hLip.norm_sub_le x 0)
+          (norm_nonneg x)
+      _ = _ := by ring
+  exact (mul_le_mul_iff_right₀ (sq_pos_of_pos hxpos)).mp
+    (by simpa only [mul_comm] using hmono.trans hbound)
+
+end ULA
+
+
+end
+end
+
+
 /-! ## Included source: UnadjustedLangevin/BrownianInnovations.lean -/
 section
 
@@ -7744,8 +7436,8 @@ theorem potential_trapezoid_bound (U : H → ℝ) (L : ℝ≥0)
     (hdiff : Differentiable ℝ U) (hLip : LipschitzWith L (gradient U)) (x y : H) :
     |U x - U y + (1 / 2 : ℝ) * inner ℝ (gradient U x + gradient U y) (y - x)| ≤
       (L : ℝ) * ‖y - x‖ ^ 2 := by
-  have hxy := GradientDescent.smooth_upper_bound U L hdiff hLip x y
-  have hyx := GradientDescent.smooth_upper_bound U L hdiff hLip y x
+  have hxy := Analysis.smooth_upper_bound U L hdiff hLip x y
+  have hyx := Analysis.smooth_upper_bound U L hdiff hLip y x
   have hsub : x - y = -(y - x) := by abel
   rw [hsub, inner_neg_right, norm_neg] at hyx
   have hgrad : |inner ℝ (gradient U y - gradient U x) (y - x)| ≤
@@ -10171,6 +9863,133 @@ end
 end
 
 
+/-! ## Included source: UnadjustedLangevin/LangevinUniqueness.lean -/
+section
+
+set_option linter.style.header false
+
+/-!
+# Uniqueness and initial-state stability of the additive Langevin equation
+
+Common additive noise cancels between two integral solutions. Their difference
+is therefore differentiable even when the noise is only continuous. Grönwall
+bounds its norm and proves uniqueness on every finite horizon, without a
+small-time condition. Together with `LangevinIntegral.lean` this establishes
+existence and uniqueness in the Banach space, including the actual `L²` drift.
+No stationary-law or Gibbs-invariance assertion is made.
+-/
+
+noncomputable section
+
+open MeasureTheory Set Filter
+open scoped NNReal Topology
+
+namespace ULA
+
+variable {H : Type*} [NormedAddCommGroup H] [NormedSpace ℝ H] [CompleteSpace H]
+
+/-- Two continuous solutions with the same additive input depend at most
+exponentially on their initial values. Noise derivatives and a small-time
+restriction are unnecessary. -/
+theorem langevin_integral_stability
+    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
+    (x y : H) (B Y Z : ℝ → H) (hY : Continuous Y) (hZ : Continuous Z)
+    (h : ℝ) (hh : 0 ≤ h)
+    (hYe : ∀ t ∈ Icc 0 h, Y t - x = -(∫ s in 0..t, g (Y s)) + B t)
+    (hZe : ∀ t ∈ Icc 0 h, Z t - y = -(∫ s in 0..t, g (Z s)) + B t) :
+    ∀ t ∈ Icc 0 h, ‖Y t - Z t‖ ≤ ‖x - y‖ * Real.exp ((L : ℝ) * t) := by
+  let D : ℝ → H := fun t ↦ Y t - Z t
+  let F : ℝ → H := fun t ↦ (x - y) -
+    ((∫ s in 0..t, g (Y s)) - ∫ s in 0..t, g (Z s))
+  have hD : ∀ t ∈ Icc 0 h, D t = F t := by
+    intro t ht
+    have hy := hYe t ht
+    have hz := hZe t ht
+    dsimp [D, F]
+    rw [sub_eq_iff_eq_add] at hy hz
+    rw [hy, hz]
+    abel
+  have hcY : Continuous (fun s ↦ g (Y s)) := hLip.continuous.comp hY
+  have hcZ : Continuous (fun s ↦ g (Z s)) := hLip.continuous.comp hZ
+  have hderiv : ∀ t ∈ Ico 0 h,
+      HasDerivWithinAt D (-(g (Y t) - g (Z t))) (Ici t) t := by
+    intro t ht
+    have hiY := intervalIntegral.integral_hasDerivAt_right
+      (hcY.intervalIntegrable 0 t) (hcY.stronglyMeasurableAtFilter volume (𝓝 t)) hcY.continuousAt
+    have hiZ := intervalIntegral.integral_hasDerivAt_right
+      (hcZ.intervalIntegrable 0 t) (hcZ.stronglyMeasurableAtFilter volume (𝓝 t)) hcZ.continuousAt
+    have hf : HasDerivAt F (-(g (Y t) - g (Z t))) t := by
+      convert (hasDerivAt_const t (x - y)).sub (hiY.sub hiZ) using 1
+      simp
+    have hevent : D =ᶠ[𝓝[Ici t] t] F := by
+      filter_upwards [self_mem_nhdsWithin,
+        nhdsWithin_le_nhds (Iio_mem_nhds ht.2)] with s hst hsh
+      exact hD s ⟨ht.1.trans hst, hsh.le⟩
+    exact hf.hasDerivWithinAt.congr_of_eventuallyEq hevent (hD t ⟨ht.1, ht.2.le⟩)
+  have hD0 : D 0 = x - y := by
+    simpa only [F, intervalIntegral.integral_same, sub_self, sub_zero] using
+      hD 0 ⟨le_rfl, hh⟩
+  have hb (t : ℝ) (_ht : t ∈ Ico 0 h) :
+      ‖-(g (Y t) - g (Z t))‖ ≤ (L : ℝ) * ‖D t‖ + 0 := by
+    simpa only [norm_neg, D, add_zero] using hLip.norm_sub_le (Y t) (Z t)
+  have hg := norm_le_gronwallBound_of_norm_deriv_right_le
+    (f := D) (f' := fun t ↦ -(g (Y t) - g (Z t)))
+    (δ := ‖x - y‖) (K := (L : ℝ)) (ε := 0)
+    (hY.sub hZ).continuousOn hderiv (by rw [hD0]) hb
+  intro t ht
+  simpa only [D, gronwallBound_ε0, sub_zero] using hg t ht
+
+/-- A continuous solution with a fixed initial state and additive input is
+unique on the entire finite interval. -/
+theorem langevin_integral_unique
+    (g : H → H) (L : ℝ≥0) (hLip : LipschitzWith L g)
+    (x : H) (B Y Z : ℝ → H) (hY : Continuous Y) (hZ : Continuous Z)
+    (h : ℝ) (hh : 0 ≤ h)
+    (hYe : ∀ t ∈ Icc 0 h, Y t - x = -(∫ s in 0..t, g (Y s)) + B t)
+    (hZe : ∀ t ∈ Icc 0 h, Z t - x = -(∫ s in 0..t, g (Z s)) + B t) :
+    EqOn Y Z (Icc 0 h) := by
+  intro t ht
+  have hb := langevin_integral_stability g L hLip x x B Y Z hY hZ h hh hYe hZe t ht
+  simpa only [sub_self, norm_zero, zero_mul, norm_le_zero_iff, sub_eq_zero] using hb
+
+variable {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω) [IsProbabilityMeasure P]
+  {K : Type*} [NormedAddCommGroup K] [InnerProductSpace ℝ K] [CompleteSpace K]
+
+/-- Initial-state stability for the actual square-integrable gradient drift. -/
+theorem lp_langevin_integral_stability
+    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
+    (initial₁ initial₂ : Lp K 2 P) (B Y Z : ℝ → Lp K 2 P)
+    (hY : Continuous Y) (hZ : Continuous Z) (h : ℝ) (hh : 0 ≤ h)
+    (hYe : ∀ t ∈ Icc 0 h, Y t - initial₁ =
+      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t)
+    (hZe : ∀ t ∈ Icc 0 h, Z t - initial₂ =
+      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Z s)) + B t) :
+    ∀ t ∈ Icc 0 h,
+      ‖Y t - Z t‖ ≤ ‖initial₁ - initial₂‖ * Real.exp ((L : ℝ) * t) :=
+  langevin_integral_stability (lpDrift P (gradient U) hLip) L
+    (lpDrift_lipschitz P (gradient U) hLip) initial₁ initial₂ B Y Z hY hZ h hh hYe hZe
+
+/-- Uniqueness of the actual `L²` Langevin integral solution with common initial
+state and noise, on any finite nonnegative time interval. -/
+theorem lp_langevin_integral_unique
+    (U : K → ℝ) (L : ℝ≥0) (hLip : LipschitzWith L (gradient U))
+    (initial : Lp K 2 P) (B Y Z : ℝ → Lp K 2 P)
+    (hY : Continuous Y) (hZ : Continuous Z) (h : ℝ) (hh : 0 ≤ h)
+    (hYe : ∀ t ∈ Icc 0 h, Y t - initial =
+      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Y s)) + B t)
+    (hZe : ∀ t ∈ Icc 0 h, Z t - initial =
+      -(∫ s in 0..t, lpDrift P (gradient U) hLip (Z s)) + B t) :
+    EqOn Y Z (Icc 0 h) :=
+  langevin_integral_unique (lpDrift P (gradient U) hLip) L
+    (lpDrift_lipschitz P (gradient U) hLip) initial B Y Z hY hZ h hh hYe hZe
+
+end ULA
+
+
+end
+end
+
+
 /-! ## Included source: UnadjustedLangevin/BrownianSegmentsGlobal.lean -/
 section
 
@@ -10518,6 +10337,108 @@ theorem dalalyan_large_step [Nonempty ι]
       CanonicalBrownian.coordinate CanonicalBrownian.coordinate_isPreBrownian h)
     hfinite (canonicalProductReference U m h L hm hdiff hsc hLip hh) k
   rwa [canonicalOutput_eq_ulaLawStep U m h L hm hdiff hsc hLip hh μ hfinite k] at hb
+
+end ULA.Hilbert
+
+
+end
+end
+
+
+/-! ## Included source: UnadjustedLangevin/GaussianULA.lean -/
+section
+
+set_option linter.style.header false
+
+/-! # Dalalyan for the actual Gaussian ULA recursion
+
+All scalar Gaussian laws and all coordinate/time independence are used to
+identify the actual `L²` chain law. The initial second moment comes from its
+`L²` representation; the Gibbs moment comes from strong convexity. Their
+independent product proves finite initial Wasserstein distance. No reference,
+stationarity, normalization, or extra potential regularity is assumed.
+-/
+
+noncomputable section
+open MeasureTheory ProbabilityTheory Set
+open scoped NNReal ENNReal
+
+namespace ULA.Hilbert
+open ULA
+
+variable {Ω ι : Type*} [MeasurableSpace Ω] [Fintype ι] [Nonempty ι]
+  (P : Measure Ω) [IsProbabilityMeasure P]
+
+private theorem initialLaw_probability (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
+    IsProbabilityMeasure (P.map initial) := by
+  constructor
+  rw [Measure.map_apply_of_aemeasurable (Lp.aestronglyMeasurable initial).aemeasurable
+    MeasurableSet.univ, Set.preimage_univ, measure_univ]
+
+/-- Finite initial quadratic transport follows from the actual initialization
+and the original strongly convex potential assumptions. -/
+theorem gaussianULA_initial_transport_finite
+    (U : EuclideanSpace ℝ ι → ℝ) (m : ℝ) (hm : 0 < m)
+    (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U)
+    (initial : Lp (EuclideanSpace ℝ ι) 2 P) :
+    wasserstein2 (P.map initial) (gibbsMeasure U) ≠ ⊤ := by
+  have := initialLaw_probability P initial
+  have := isProbabilityMeasure_gibbsMeasure U m hm hdiff hsc
+  have hμ : MemLp (fun x : EuclideanSpace ℝ ι ↦ x) 2 (P.map initial) :=
+    (memLp_map_measure_iff (by fun_prop)
+      (Lp.aestronglyMeasurable initial).aemeasurable).mpr (Lp.memLp initial)
+  exact wasserstein2_ne_top_of_memLp (P.map initial) (gibbsMeasure U) hμ
+    (memLp_id_gibbsMeasure U m hm hdiff hsc)
+
+/-- Dalalyan's small-step theorem for the actual Gaussian ULA implementation.
+Only the displayed potential/step assumptions and the algorithm's ordinary
+Gaussian laws and independence assumptions are inputs. -/
+theorem dalalyan_of_gaussian_innovations
+    (U : EuclideanSpace ℝ ι → ℝ) (m h : ℝ) (L : ℝ≥0)
+    (hm : 0 < m) (hdiff : Differentiable ℝ U)
+    (hsc : StrongConvexOn Set.univ m U) (hLip : LipschitzWith L (gradient U))
+    (hh : 0 < h) (hsmall : h ≤ 2 / (m + (L : ℝ)))
+    (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (noise : ℕ → Lp (EuclideanSpace ℝ ι) 2 P)
+    (hcoord : ∀ n i, HasLaw (fun ω ↦ noise n ω i) (gaussianReal 0 1) P)
+    (hind : iIndepFun (fun p : ℕ × ι ↦ fun ω ↦ noise p.1 ω p.2) P)
+    (hindinitial : IndepFun initial (fun ω n ↦ noise n ω) P) (k : ℕ) :
+    wasserstein2Real (P.map (lpChain P U h hLip initial noise k)) (gibbsMeasure U) ≤
+      (1 - m * h) ^ k * wasserstein2Real (P.map initial) (gibbsMeasure U) +
+        (33 / 20 : ℝ) * ((L : ℝ) / m) * Real.sqrt (h * (Fintype.card ι : ℝ)) := by
+  have := initialLaw_probability P initial
+  have hW (n : ℕ) : AEMeasurable (noise n) P :=
+    (Lp.aestronglyMeasurable _).aemeasurable
+  rw [hilbert_lpChain_law_eq_ulaLawStep P U h L hLip initial noise hindinitial
+    (gaussianInnovations_vectorIndependent P (fun n ω ↦ noise n ω) hW hcoord hind)
+    (gaussianInnovations_vectorLaw P (fun n ω ↦ noise n ω) hW hcoord hind)]
+  exact dalalyan U m h L hm hdiff hsc hLip hh hsmall (P.map initial)
+    (gaussianULA_initial_transport_finite P U m hm hdiff hsc initial) k
+
+/-- Dalalyan's other stable step-size branch for the same actual Gaussian
+implementation, with all reference obligations already proved. -/
+theorem dalalyan_large_step_of_gaussian_innovations
+    (U : EuclideanSpace ℝ ι → ℝ) (m h : ℝ) (L : ℝ≥0)
+    (hm : 0 < m) (hdiff : Differentiable ℝ U)
+    (hsc : StrongConvexOn Set.univ m U) (hLip : LipschitzWith L (gradient U))
+    (hh : 0 < h) (hlarge : 2 / (m + (L : ℝ)) ≤ h) (hstep : (L : ℝ) * h < 2)
+    (initial : Lp (EuclideanSpace ℝ ι) 2 P)
+    (noise : ℕ → Lp (EuclideanSpace ℝ ι) 2 P)
+    (hcoord : ∀ n i, HasLaw (fun ω ↦ noise n ω i) (gaussianReal 0 1) P)
+    (hind : iIndepFun (fun p : ℕ × ι ↦ fun ω ↦ noise p.1 ω p.2) P)
+    (hindinitial : IndepFun initial (fun ω n ↦ noise n ω) P) (k : ℕ) :
+    wasserstein2Real (P.map (lpChain P U h hLip initial noise k)) (gibbsMeasure U) ≤
+      ((L : ℝ) * h - 1) ^ k * wasserstein2Real (P.map initial) (gibbsMeasure U) +
+        ((33 / 20 : ℝ) * (L : ℝ) * h / (2 - (L : ℝ) * h)) *
+          Real.sqrt (h * (Fintype.card ι : ℝ)) := by
+  have := initialLaw_probability P initial
+  have hW (n : ℕ) : AEMeasurable (noise n) P :=
+    (Lp.aestronglyMeasurable _).aemeasurable
+  rw [hilbert_lpChain_law_eq_ulaLawStep P U h L hLip initial noise hindinitial
+    (gaussianInnovations_vectorIndependent P (fun n ω ↦ noise n ω) hW hcoord hind)
+    (gaussianInnovations_vectorLaw P (fun n ω ↦ noise n ω) hW hcoord hind)]
+  exact dalalyan_large_step U m h L hm hdiff hsc hLip hh hlarge hstep (P.map initial)
+    (gaussianULA_initial_transport_finite P U m hm hdiff hsc initial) k
 
 end ULA.Hilbert
 
@@ -11250,7 +11171,9 @@ set_option linter.style.header false
 
 /-! # Theorem 1 from the original joint-potential assumptions
 
-The shared ULA theorem constructs the reference and proves Gibbs stationarity.
+The shared Gaussian ULA theorem is applied directly to the lifted IPLA chain.
+ULA supplies the initial transport bound, constructs the Langevin reference,
+and proves Gibbs stationarity; none of those proofs is repeated here.
 The IPLA concentration theorem proves the sharp parameter-marginal bound.
 Neither result is supplied as an additional hypothesis here.
 The observation `y` is fixed. Both strong convexity and gradient smoothness
@@ -11294,26 +11217,28 @@ private theorem nonempty_dimension_bound
   have hn : (0 : ℝ) < N := by exact_mod_cast hN
   have : IsProbabilityMeasure (@gibbsTarget N dθ dx (U y)) :=
     gibbsTarget_isProbability hN (U y) m hm hdiff hsc
-  have hμ : MemLp (fun z : State N dθ dx ↦ z) 2 (P.map initial) := by
-    exact (memLp_map_measure_iff (by fun_prop)
-      (Lp.aestronglyMeasurable initial).aemeasurable).mpr (Lp.memLp initial)
-  have hfinite := ULA.wasserstein2_ne_top_of_memLp (P.map initial)
-    (@gibbsTarget N dθ dx (U y)) hμ (gibbsTarget_memLp hN (U y) m hm hdiff hsc)
+  have hfinite := ULA.Hilbert.gaussianULA_initial_transport_finite P
+    (@potential N dθ dx (U y)) ((N : ℝ) * m) (mul_pos hn hm)
+    (potential_differentiable hdiff) (potential_strongConvex hsc) initial
   have hs : γ / (N : ℝ) ≤
       2 / ((N : ℝ) * m + (((N : ℝ≥0) * L : ℝ≥0) : ℝ)) := by
     simpa using (scaled_step_iff N hN m (L : ℝ) γ).mpr hsmall
-  have htransport := ULA.Hilbert.dalalyan (@potential N dθ dx (U y))
+  have htransport := ULA.Hilbert.dalalyan_of_gaussian_innovations P
+    (@potential N dθ dx (U y))
     ((N : ℝ) * m) (γ / N) ((N : ℝ≥0) * L) (mul_pos hn hm)
     (potential_differentiable hdiff) (potential_strongConvex hsc)
     (potential_gradient_lipschitz hdiff hLip) (div_pos hγ hn) hs
-    (P.map initial) hfinite k
+    initial noise hGaussian.coordinateLaw hGaussian.independent
+    hGaussian.independentInitial k
+  change ULA.wasserstein2Real (laws P (U y) γ L hdiff hLip initial noise k)
+    (ULA.gibbsMeasure (potential (U y))) ≤ _ at htransport
   have houtput := ULA.Hilbert.dalalyan_output_finite (@potential N dθ dx (U y))
     ((N : ℝ) * m) (γ / N) ((N : ℝ≥0) * L) (mul_pos hn hm)
     (potential_differentiable hdiff) (potential_strongConvex hsc)
     (potential_gradient_lipschitz hdiff hLip) (div_pos hγ hn)
     (P.map initial) hfinite k
   have hlaw := laws_eq_ulaLawStep P (U y) γ L hdiff hLip initial noise hGaussian k
-  rw [← hlaw] at htransport houtput
+  rw [← hlaw] at houtput
   rw [← gibbsTarget_eq_gibbsMeasure (U y)] at htransport houtput
   have hfactor : (N : ℝ) * m * (γ / N) = m * γ := by field_simp
   simp only [Fintype.card_sum, Fintype.card_prod, Fintype.card_fin, NNReal.coe_mul,
@@ -11378,7 +11303,11 @@ end
 -- Exact final theorem and complete kernel dependency audit.
 #check @IPLA.theorem1
 #print axioms IPLA.theorem1
+#print axioms IPLA.finrank_state
+#print axioms IPLA.finrank_joint
 #print axioms ULA.Hilbert.dalalyan
+#print axioms ULA.Hilbert.dalalyan_of_gaussian_innovations
+#print axioms ULA.Hilbert.gaussianULA_initial_transport_finite
 #print axioms ULA.Hilbert.canonicalProductReference
 #print axioms ULA.lp_langevin_gibbs_stationary
 #print axioms ULA.Hilbert.brownianSegments_eq_global

@@ -1,10 +1,7 @@
 import IPLA.Model
-import IPLA.ULAFromBrownian
 import UnadjustedLangevin.Gibbs
+import UnadjustedLangevin.GibbsScore
 import UnadjustedLangevin.TransportMoments
-import UnadjustedLangevin.BrownianLangevin
-import UnadjustedLangevin.LangevinUniqueness
-import UnadjustedLangevin.StationaryMoments
 
 set_option linter.style.header false
 
@@ -14,9 +11,9 @@ The joint assumptions on `U(θ,x)` imply normalization and finite moments for
 the actual lifted Gibbs measure. Finite initial W₂ then implies finite initial
 second moment. Neither normalization nor moments are separate hypotheses.
 
-The Brownian Langevin existence theorem imported here constructs the L²
-integral solution, its continuity and noise bounds. It does not prove its
-Gibbs stationarity or the marginal concentration estimate.
+These are direct applications of the shared ULA Gibbs and transport-moment
+theorems to the lifted potential. Brownian construction and stationarity stay
+in ULA and enter the final theorem through its Gaussian ULA estimate.
 -/
 
 noncomputable section
@@ -77,7 +74,6 @@ theorem gibbsTarget_score_moment {N dθ dx : ℕ} (hN : 0 < N)
     (mul_pos (by exact_mod_cast hN) hm)
     (potential_differentiable hdiff) (potential_strongConvex hsc)
     (potential_gradient_lipschitz hdiff hLip)
-  simpa only [finrank_euclideanSpace, Fintype.card_sum, Fintype.card_prod, Fintype.card_fin,
-    NNReal.coe_mul, NNReal.coe_natCast] using hb
+  simpa only [finrank_state, NNReal.coe_mul, NNReal.coe_natCast] using hb
 
 end IPLA

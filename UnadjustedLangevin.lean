@@ -1,5 +1,6 @@
 import UnadjustedLangevin.GradientStep
 import UnadjustedLangevin.StrongConvexity
+import UnadjustedLangevin.Analysis.Smooth
 import UnadjustedLangevin.ULAupdate
 import UnadjustedLangevin.SharpContraction
 import UnadjustedLangevin.Dynamics

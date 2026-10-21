@@ -11,6 +11,8 @@ Only `propext`, `Classical.choice`, and `Quot.sound` may appear below.
 
 #print axioms IPLA.theorem1
 #print axioms ULA.Hilbert.dalalyan
+#print axioms ULA.Hilbert.dalalyan_of_gaussian_innovations
+#print axioms ULA.Hilbert.gaussianULA_initial_transport_finite
 #print axioms ULA.Hilbert.canonicalProductReference
 #print axioms ULA.lp_langevin_gibbs_stationary
 #print axioms ULA.Hilbert.brownianSegments_eq_global
@@ -31,6 +33,8 @@ Only `propext`, `Classical.choice`, and `Quot.sound` may appear below.
 #print axioms IPLA.existsUnique_marginalMaximizer
 #print axioms ULA.integral_sq_dist_gibbs_le_of_continuous_strongConvex_mode
 #print axioms IPLA.gibbsTarget_parameter_concentration
+#print axioms IPLA.finrank_state
+#print axioms IPLA.finrank_joint
 #print axioms IPLA.joint_norm_sq_sum
 #print axioms IPLA.potential_strongConvex
 #print axioms IPLA.potential_gradient_lipschitz

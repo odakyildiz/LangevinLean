@@ -1,4 +1,4 @@
-import GradientDescent.StrongConvexity
+import UnadjustedLangevin.StrongConvexity
 import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.MeasureTheory.Function.L2Space
 import Mathlib.MeasureTheory.Measure.WithDensity
@@ -48,7 +48,7 @@ theorem strongConvex_quadratic_lower_bound
     (U : H → ℝ) (m : ℝ) (hm : 0 < m)
     (hdiff : Differentiable ℝ U) (hsc : StrongConvexOn Set.univ m U) (x : H) :
     U 0 - ‖gradient U 0‖ ^ 2 / m + m / 4 * ‖x‖ ^ 2 ≤ U x := by
-  have hs := GradientDescent.strong_first_order hdiff hsc (0 : H) x
+  have hs := strong_first_order hdiff hsc (0 : H) x
   simp only [sub_zero] at hs
   have hip := neg_le_of_abs_le (abs_real_inner_le_norm (gradient U 0) x)
   have hy : ‖gradient U 0‖ * ‖x‖ ≤ m / 4 * ‖x‖ ^ 2 + ‖gradient U 0‖ ^ 2 / m := by

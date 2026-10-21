@@ -1,5 +1,5 @@
-import GradientDescent.Smooth
-import GradientDescent.StrongConvexity
+import UnadjustedLangevin.Analysis.Smooth
+import UnadjustedLangevin.StrongConvexity
 import UnadjustedLangevin.ULAupdate
 import Mathlib.Tactic.Module
 import Mathlib.Tactic.Positivity
@@ -94,7 +94,7 @@ theorem strong_smooth_gradient_interpolation [CompleteSpace H]
   let F : H → ℝ := fun v ↦ f v - m / 2 * ‖v‖ ^ 2
   let G : H → H := fun v ↦ gradient f v - m • v
   have hlower (a b : H) : F a + inner ℝ (G a) (b - a) ≤ F b := by
-    have h := GradientDescent.strong_first_order hdiff hsc a b
+    have h := strong_first_order hdiff hsc a b
     dsimp [F, G]
     simp only [inner_sub_left, real_inner_smul_left, inner_sub_right,
       real_inner_self_eq_norm_sq] at h ⊢
@@ -102,7 +102,7 @@ theorem strong_smooth_gradient_interpolation [CompleteSpace H]
     nlinarith
   have hupper (a b : H) :
       F b ≤ F a + inner ℝ (G a) (b - a) + ((L : ℝ) - m) / 2 * ‖b - a‖ ^ 2 := by
-    have h := GradientDescent.smooth_upper_bound f L hdiff hLip a b
+    have h := Analysis.smooth_upper_bound f L hdiff hLip a b
     dsimp [F, G]
     simp only [inner_sub_left, real_inner_smul_left, inner_sub_right,
       real_inner_self_eq_norm_sq] at h ⊢

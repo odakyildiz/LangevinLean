@@ -19,7 +19,11 @@ ROOT = HERE.parent
 EXPO = HERE / 'exposition'
 AUDIT_THEOREMS = [
     'IPLA.theorem1',
+    'IPLA.finrank_state',
+    'IPLA.finrank_joint',
     'ULA.Hilbert.dalalyan',
+    'ULA.Hilbert.dalalyan_of_gaussian_innovations',
+    'ULA.Hilbert.gaussianULA_initial_transport_finite',
     'ULA.Hilbert.canonicalProductReference',
     'ULA.lp_langevin_gibbs_stationary',
     'ULA.Hilbert.brownianSegments_eq_global',
@@ -118,7 +122,7 @@ set_option linter.unusedSectionVars false
                   '#check @IPLA.theorem1\n' +
                   ''.join('#print axioms ' + name + '\n' for name in AUDIT_THEOREMS))
     result = '\n'.join(chunks)
-    if re.search(r'^import (?:IPLA|UnadjustedLangevin|GradientDescent)', result, re.M):
+    if re.search(r'^import (?:IPLA|UnadjustedLangevin)', result, re.M):
         raise ValueError('Standalone retains a local import')
     (HERE / 'Standalone.lean').write_text(result)
 
@@ -152,7 +156,7 @@ def markdown(text):
     def inline(s):
         def code_link(match):
             value = match[1]
-            linked = (re.fullmatch(r'(?:IPLA|UnadjustedLangevin|GradientDescent)/[\w/]+\.lean',
+            linked = (re.fullmatch(r'(?:IPLA|UnadjustedLangevin)/[\w/]+\.lean',
                                   value) and (ROOT/value).is_file())
             return token('<code>' + (lean_link(value) if linked else html.escape(value)) + '</code>')
         s = re.sub(r'`([^`]+)`', code_link, s)

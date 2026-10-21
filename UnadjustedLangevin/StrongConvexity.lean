@@ -55,4 +55,25 @@ lemma strong_gradient_monotone [CompleteSpace H] {f : H → ℝ} {m : ℝ}
     real_inner_comm] at hxy hyx ⊢
   nlinarith
 
+/-- The supporting-plane inequality associated with `m`-strong convexity.
+This shared form supplies both sharp ULA contraction and Gibbs tail bounds. -/
+lemma strong_first_order [CompleteSpace H] {f : H → ℝ} {m : ℝ}
+    (hdiff : Differentiable ℝ f) (hsc : StrongConvexOn Set.univ m f) (x y : H) :
+    f x + inner ℝ (gradient f x) (y - x) + m / 2 * ‖y - x‖ ^ 2 ≤ f y := by
+  let g : H → ℝ := fun v ↦ f v - m / 2 * ‖v‖ ^ 2
+  have hc : ConvexOn ℝ Set.univ g := strongConvexOn_iff_convex.mp hsc
+  have hg (v : H) : HasFDerivAt g
+      (fderiv ℝ f v - (m / 2) • (2 • innerSL ℝ v)) v := by
+    exact (hdiff v).hasFDerivAt.sub
+      ((hasStrictFDerivAt_norm_sq v).hasFDerivAt.const_mul (m / 2))
+  have hgd : Differentiable ℝ g := fun v ↦ (hg v).differentiableAt
+  have hxy := convex_first_order hc hgd x y
+  rw [(hg x).fderiv] at hxy
+  simp only [g, sub_apply, smul_apply, smul_eq_mul, innerSL_apply_apply,
+    ← inner_gradient_left, inner_sub_right, real_inner_self_eq_norm_sq,
+    two_smul, add_apply] at hxy
+  rw [norm_sub_sq_real]
+  simp only [inner_sub_right, real_inner_comm] at hxy ⊢
+  nlinarith
+
 end ULA

@@ -71,8 +71,9 @@ Use the rescaled state and lifted potential
    =\sum_{i=1}^N U_y(\theta,\sqrt Np_i).
 \]
 
-Thus \(z_k\in\mathbb R^{d_\theta+Nd_x}\); the two coordinate blocks
-retain their own dimensions. Let \(\nu_k\) be the law of \(z_k\), and let
+Thus \(z_k\in\mathbb R^{d_\theta+Nd_x}\), with one shared parameter block
+and \(N\) latent blocks. The explicit theorem `IPLA.finrank_state` proves this
+dimension identity for `State N dθ dx`. Let \(\nu_k\) be the law of \(z_k\), and let
 
 \[
  \pi_N(dz)=Z_N^{-1}e^{-U_{N,y}(z)}\,dz.
@@ -129,7 +130,7 @@ No dimension-positivity premise is hidden in the final declaration.
 | --- | --- | --- |
 | Fixed observation \(y\) | `y : Data` | All assumptions use the fixed slice `U y`. |
 | Pair \((\theta,x)\) | `Joint dθ dx`, `pair θ x` | Parameter first, latent state second. |
-| Rescaled state \(z\) | `State N dθ dx` | Euclidean coordinates indexed by `Fin dθ ⊕ (Fin N × Fin dx)`. |
+| Rescaled state \(z\) | `State N dθ dx` | Euclidean coordinates indexed by `Fin dθ ⊕ (Fin N × Fin dx)`; `finrank_state` proves dimension \(d_\theta+Nd_x\). |
 | Parameter coordinate | `parameterCLM z` | `Sum.inl` coordinates, operator norm at most one. |
 | Physical particle \(x_i\) | `Real.sqrt N • block z i` | Exactly reverses the particle rescaling. |
 | Lifted potential \(U_{N,y}\) | `potential (U y)` | The defined sum of \(N\) copies of \(U_y\). |
@@ -148,7 +149,7 @@ The substitutions into the shared Dalalyan theorem are exact:
 
 | ULA quantity | IPLA substitution | Lean justification |
 | --- | --- | --- |
-| Dimension \(D\) | \(d_\theta+Nd_x\) | Cardinality of the actual coordinate index set. |
+| Dimension \(D\) | \(d_\theta+Nd_x\) | `finrank_state`, the dimension of the actual state. |
 | Strong-convexity constant | \(Nm\) | `potential_strongConvex`. |
 | Gradient Lipschitz constant | \(NL\) | `potential_gradient_lipschitz`. |
 | Step \(h\) | \(\gamma/N\) | `laws_eq_ulaLawStep`. |
@@ -185,7 +186,7 @@ two different printed potentials have the same smoothness constant.
 | Square-integrable realization of the initialization | `initial : Lp (State N dθ dx) 2 P`; this is the finite-initial-moment regime of the bound. |
 | Square-integrable innovations | Their \(L^2\) representation; standard Gaussian laws ensure finite moments. |
 | A chosen marginal maximizer \(\theta^\star\) | The center is named with `IsMarginalMaximizer`; `existsUnique_marginalMaximizer` proves there is exactly one. |
-| Finite initial \(W_2\) | Derived from initialization and Gibbs second moments; no `hfinite` binder. |
+| Finite initial \(W_2\) | `ULA.Hilbert.gaussianULA_initial_transport_finite` derives it from initialization and Gibbs second moments; no `hfinite` binder. |
 | Gibbs normalization and finite moments | Derived from joint strong convexity. |
 | Gibbs score second moment | Derived using differentiability and gradient Lipschitz continuity, with no Hessian. |
 | Independent Brownian source and continuous Langevin solution | Constructed in the shared ULA library. |
@@ -210,10 +211,15 @@ This is a file-level roadmap; the proof is contained in the Lean sources.
 1. `IPLA/Geometry.lean` and `IPLA/Dynamics.lean` derive the lifted constants,
    gradient blocks, and both physical IPLA updates from \(U_y\). `IPLA/ULAAdapter.lean`
    identifies the laws of the IPLA recursion with the shared ULA law.
-2. `UnadjustedLangevin/CanonicalULA.lean` supplies the complete Dalalyan estimate
-   for that law. It reuses the earlier ULA contraction, local-error recurrence,
-   transport infimum, Gibbs normalization, and score estimates. Its canonical
-   Brownian source and all initial coupling extensions are constructed.
+2. `UnadjustedLangevin/GaussianULA.lean` supplies
+   `dalalyan_of_gaussian_innovations`, applied directly to the lifted chain,
+   and `gaussianULA_initial_transport_finite`, which derives finite initial
+   transport. This reuses `UnadjustedLangevin/CanonicalULA.lean` and the shared
+   ULA contraction, local-error recurrence, transport infimum, Gibbs
+   normalization, and score estimates. The canonical Brownian source and all
+   initial coupling extensions are constructed there. The retained
+   `laws_eq_ulaLawStep` bridge transfers ULA's `dalalyan_output_finite` result
+   to the actual IPLA law before taking a real-valued projected moment.
 3. `UnadjustedLangevin/GibbsStationarity.lean` proves that the constructed
    Langevin solution has Gibbs law at every time, using exactly invariant
    Metropolis approximations, vanishing rejection cost, Euler convergence,
@@ -233,8 +239,9 @@ This is a file-level roadmap; the proof is contained in the Lean sources.
    proved concentration theorem, and projects to \(\theta\) with a map of operator norm at most one.
 
 The ULA proof is reused as a shared library. The special IPLA geometry and
-marginal argument are separate modules; the ULA convergence theorem is not
-reproved for a different statistical model.
+marginal argument are separate modules. IPLA's small compatibility export
+files, including `IPLA/Dalalyan.lean`, add names for shared results and contain
+no separate convergence, Brownian-reference, or transport proofs.
 
 ## What the generator argument establishes
 

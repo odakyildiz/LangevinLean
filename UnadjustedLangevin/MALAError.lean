@@ -1,6 +1,6 @@
 import UnadjustedLangevin.Gibbs
 import UnadjustedLangevin.LpDrift
-import GradientDescent.Smooth
+import UnadjustedLangevin.Analysis.Smooth
 import Mathlib.Probability.Distributions.Gaussian.Multivariate
 import Mathlib.Probability.Distributions.Gaussian.Fernique
 
@@ -63,8 +63,8 @@ theorem potential_trapezoid_bound (U : H → ℝ) (L : ℝ≥0)
     (hdiff : Differentiable ℝ U) (hLip : LipschitzWith L (gradient U)) (x y : H) :
     |U x - U y + (1 / 2 : ℝ) * inner ℝ (gradient U x + gradient U y) (y - x)| ≤
       (L : ℝ) * ‖y - x‖ ^ 2 := by
-  have hxy := GradientDescent.smooth_upper_bound U L hdiff hLip x y
-  have hyx := GradientDescent.smooth_upper_bound U L hdiff hLip y x
+  have hxy := Analysis.smooth_upper_bound U L hdiff hLip x y
+  have hyx := Analysis.smooth_upper_bound U L hdiff hLip y x
   have hsub : x - y = -(y - x) := by abel
   rw [hsub, inner_neg_right, norm_neg] at hyx
   have hgrad : |inner ℝ (gradient U y - gradient U x) (y - x)| ≤
