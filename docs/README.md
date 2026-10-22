@@ -30,6 +30,11 @@ proof of each included source module in HTML; its LaTeX export gathers all those
 mathematical statements and proofs into one document in dependency order.
 LaTeX exports use `fontspec` and can be compiled with XeLaTeX or LuaLaTeX.
 
+Each Lean statement, proof excerpt, and full-module block has a **Copy Lean**
+button. It copies the displayed source as plain text, preserving indentation and
+Unicode while excluding line numbers. Copy controls also work when reading local
+files, with a selection-based fallback if the browser denies Clipboard API access.
+
 The original long teaching documents and paper audits remain available from
 “Further reading”: ULA at `UnadjustedLangevin/exposition/dist/index.html`, IPLA at
 `IPLA/exposition/proof.html`, and proximal algorithms at
@@ -83,6 +88,7 @@ Optional browser QA, with Playwright and Chromium or Google Chrome installed:
 
 ```sh
 node docs/verify_browser.cjs
+node docs/verify_copy.cjs
 ```
 
 It checks all five overviews and representative module proofs at desktop,
@@ -90,6 +96,10 @@ It checks all five overviews and representative module proofs at desktop,
 downloads, old section links, and offline `file://` reading. Screenshots and a
 JSON report are written to a temporary directory. Set `NODE_PATH` if Playwright
 is installed outside Node's usual module search path.
+The separate copy check compares clipboard payloads against the Lean sources and
+checks Unicode, indentation, local files, clipboard rejection fallbacks, and
+focus and selection restoration. Its clipboard stubs leave the system clipboard
+untouched.
 
 Open `../index.html` directly, or serve the repository root with
 `python3 -m http.server 8000 --bind 127.0.0.1`. Pages, mathematics, fonts, source
