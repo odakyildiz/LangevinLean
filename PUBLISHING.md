@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`eaa9fdcd316aaa67d9a6210921981f8300f394ed`. GitHub Pages serves `gh-pages`
+`3158dadb914e41c591185a39d1f1e667be63af38`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -18,3 +18,7 @@ locally, and GitHub Pages serves the generated static site.
 To update the publication, start with the latest verified `main` snapshot and
 reapply the indexing metadata to every HTML page before pushing `gh-pages`.
 Do not regenerate HTML directly here without restoring those directives.
+
+The `papers/` directory is never published. Apply documentation and cleanup commits
+separately from paper-source commits; do not merge `main` wholesale into this
+branch. Before publishing, `git ls-files papers` must return no files.
