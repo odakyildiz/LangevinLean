@@ -104,6 +104,7 @@ def shell(page, title, body, active=None):
                   for lib, label in zip(LIBRARIES, ["ULA", "IPLA", "Proximal"]))
     return ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            '<meta name="robots" content="noindex, nofollow, noarchive">'
             f'<title>{E(title)} · LangevinLean</title>'
             f'<link rel="stylesheet" href="{relative("docs/assets/katex.css",page)}">'
             f'<link rel="stylesheet" href="{relative("docs/assets/site.css",page)}">'

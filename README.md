@@ -132,8 +132,8 @@ bash scripts/check-local.sh
 ```
 
 This builds all three Lean libraries, runs the five theorem dependency audits,
-checks all four proof documents, and compiles the IPLA standalone in isolation
-with only Mathlib available. The standalone verifier refreshes its committed
+checks all four proof documents and the complete module proof atlas, and compiles
+the IPLA standalone in isolation with only Mathlib available. The standalone verifier refreshes its committed
 diagnostic reports; review any changes before committing.
 
 The repository has no GitHub Actions workflow files. Keep verification local

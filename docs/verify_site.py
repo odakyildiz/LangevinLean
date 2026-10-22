@@ -19,8 +19,11 @@ class Page(HTMLParser):
         self.text = []
         self.styles = self.scripts = 0
         self.boxes = []
+        self.robots = []
     def handle_starttag(self, tag, attributes):
         attrs = dict(attributes)
+        if tag=='meta' and attrs.get('name','').lower()=='robots':
+            self.robots.append(attrs.get('content',''))
         if 'id' in attrs: self.ids.append(attrs['id'])
         if tag=='a' and 'href' in attrs:
             self.links.append(attrs['href'])
@@ -53,6 +56,8 @@ def digest(path):
 
 
 def verify():
+    workflows=ROOT/'.github/workflows'
+    assert not any(workflows.glob('*.yml')) and not any(workflows.glob('*.yaml')), 'GitHub Actions workflows are prohibited; run checks locally'
     sources,parsed,notes=load()
     manifest=json.loads((ROOT/'docs/coverage.json').read_text())
     assert set(manifest['modules'])==set(sources),'Missing module page in coverage manifest'
@@ -73,6 +78,7 @@ def verify():
         text=target.read_text()
         doc=parse(target)
         assert text.startswith('<!doctype html>'),f'Incomplete HTML: {path}'
+        assert doc.robots==['noindex, nofollow, noarchive'],f'Missing publication indexing restrictions: {path}'
         assert len(doc.ids)==len(set(doc.ids)),f'Duplicate HTML IDs: {path}'
         assert 'katex-error' not in text,f'Invalid rendered formula: {path}'
         assert not re.search(r'\\[\[(]',''.join(doc.text)),f'Unrendered mathematics: {path}'
@@ -112,6 +118,13 @@ def verify():
         assert len(doc.boxes)>=8,f'Missing logical proof map: {lib}'
         assert {'main-results','verification','proof-map','modules'}<=set(doc.ids),f'Missing standard section: {lib}'
         assert any(b['data-role']=='statement' for b in doc.blocks),f'Missing exact main theorem: {lib}'
+    for path in ['UnadjustedLangevin/exposition/main_theorem.html',
+                 'UnadjustedLangevin/exposition/beginner_guide.html',
+                 'UnadjustedLangevin/exposition/dist/index.html',
+                 'UnadjustedLangevin/LSI/exposition/index.html',
+                 'IPLA/LSI/exposition/index.html','IPLA/exposition/proof.html',
+                 'ProximalLangevin/exposition/proof.html']:
+        assert parse(ROOT/path).robots==['noindex, nofollow, noarchive'],f'Missing legacy indexing restrictions: {path}'
     print(f'Verified {len(sources)} module pages and LaTeX exports; '
           f'{sum(len(d) for d in parsed.values())} explained declarations; '
           f'{blocks} exact source excerpts; {links} links/resources; three standard overviews.')

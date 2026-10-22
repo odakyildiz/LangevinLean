@@ -57,8 +57,13 @@ lake env lean IPLA/LSI/Check.lean
 ```
 
 `python3 docs/build_site.py --check` independently rerenders the entire site and
-fails if any generated file is stale. CI runs the documentation verifier as well
-as the existing Lean builds, axiom audits, and legacy exposition checks.
+fails if any generated file is stale. `bash scripts/check-local.sh` runs these
+checks locally alongside the Lean builds, axiom audits, and legacy exposition
+checks. The repository contains no GitHub Actions workflows.
+
+All generated HTML carries `noindex, nofollow, noarchive` metadata, including
+module pages and archived expositions. Publication uses the existing `gh-pages`
+branch with `.nojekyll`; generation and verification run locally.
 
 Optional browser QA, with Playwright and Chromium or Google Chrome installed:
 
