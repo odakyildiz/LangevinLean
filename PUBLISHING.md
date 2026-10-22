@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`65904963def33159fbfbb4cf3450e94c3f6e6f51`. GitHub Pages serves `gh-pages`
+`89d9f7adb2b6e3e746ad15c1061a3555c6839f3c`. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
