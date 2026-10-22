@@ -6,46 +6,244 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/GaussianHilbert.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/GaussianHilbert.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 An explicit product of standard normal coordinates realizes a linear isometry \(I:H\to L^2\) with \(I(x)\sim\mathcal N(0,\|x\|^2)\) and covariance \(\mathbb E[I(x)I(y)]=\langle x,y\rangle\).
 
 
-\section{Independent orthonormal Gaussian coordinates}
+\section{source}
 
 
-The product-probability construction gives total mass one for \(Q=\bigotimes_{i\in\mathcal I}\mathcal N(0,1)\), since every scalar factor has mass one. On this space, evaluation \(\omega\mapsto\omega_i\) has standard normal law and mean zero. Regard it as an \(L^2\) class \(Z_i\); the representative agrees with evaluation almost everywhere. Independence gives \(\mathbb E Z_iZ_j=0\) for distinct indices, while the scalar Gaussian second moment gives \(\mathbb E Z_i^2=1\). Thus \((Z_i)\) is an orthonormal family in \(L^2(Q)\).
-
-
-
-\noindent Lean declarations: \texttt{source}, \texttt{coordinate\_hasLaw}, \texttt{coordinateLp}, \texttt{coordinateLp\_coe}, \texttt{coordinates\_independent}, \texttt{coordinate\_mean}, \texttt{coordinateLp\_inner}, \texttt{coordinates\_orthonormal}, \texttt{source\_isProbabilityMeasure}.
-
-\section{Square-summable synthesis and an arbitrary Hilbert basis}
-
-
-The orthogonal-family extension defines an isometry \(S:\ell^2(\mathcal I)\to L^2(Q)\) with \(S(a)=\sum_i a_iZ_i\), convergence in \(L^2\). For a Hilbert basis \((b_i)\) of \(H\), compose its coordinate isometry with \(S\): \(I(x)=S((\langle b_i,x\rangle)_i)\). The two sum theorems record these convergent series explicitly.
+Use the product probability \(Q=\bigotimes_{i\in\iota}\mathcal N(0,1)\) on real coordinate families. The construction uses \texttt{Measure.infinitePi}; independence and coordinate marginals are properties of this concrete source rather than extra assumptions on an unspecified Gaussian process.
 
 
 
-\noindent Lean declarations: \texttt{synthesis}, \texttt{synthesis\_hasSum}, \texttt{isonormal}, \texttt{isonormal\_hasSum}.
+\noindent Lean declarations: \texttt{source}.
 
-\section{Mean and variance commute with L\ensuremath{{}^{2}} limits}
-
-
-Expectation is the continuous functional \(X\mapsto\langle1,X\rangle_{L^2}\). Every finite linear combination of the centered coordinates has expectation zero; passing to the convergent sum gives \(\mathbb ES(a)=\mathbb EI(x)=0\). For a centered \(X\in L^2\), the definition of variance simplifies to \(\operatorname{Var}(X)=\int X^2dQ=\|X\|_2^2\).
+\section{coordinate hasLaw}
 
 
-
-\noindent Lean declarations: \texttt{integral\_eq\_inner\_one}, \texttt{coordinateLp\_mean}, \texttt{synthesis\_mean}, \texttt{isonormal\_mean}, \texttt{variance\_eq\_norm\_sq}.
-
-\section{Identify the Gaussian law and covariance}
-
-
-Induction identifies each finite \(L^2\) sum with \(\sum_i a_i\omega_i\) almost everywhere. Independence and Gaussian stability under finite linear combinations make it Gaussian; its mean is zero and variance is its squared \(L^2\) norm. The Gaussian closure theorem for \(L^2\) limits therefore gives \(S(a)\sim\mathcal N(0,\|a\|^2)\), then \(I(x)\sim\mathcal N(0,\|x\|^2)\). Finally centered covariance is the \(L^2\) inner product, and the isometry gives \(\operatorname{Cov}(I(x),I(y))=\langle x,y\rangle\).
+The coordinate projection \(\omega\mapsto\omega_i\) pushes the product measure to its \(i\)-th factor \(\mathcal N(0,1)\). The product marginal theorem proves both almost-everywhere measurability and the pushforward identity, packaged as \texttt{HasLaw}.
 
 
 
-\noindent Lean declarations: \texttt{partial\_sum\_coe}, \texttt{partial\_sum\_hasGaussianLaw}, \texttt{partial\_sum\_mean}, \texttt{partial\_sum\_hasLaw}, \texttt{synthesis\_hasLaw}, \texttt{isonormal\_hasLaw}, \texttt{isonormal\_hasGaussianLaw}, \texttt{isonormal\_covariance}.
+\noindent Lean declarations: \texttt{coordinate\_hasLaw}.
+
+\section{coordinateLp}
+
+
+A standard Gaussian has finite second moment, so the coordinate projection belongs to \(L^2(Q)\). Apply its \texttt{MemLp.toLp} construction to obtain the quotient class \(Z_i\); the definition stores the original coordinate function together with its integrability proof.
+
+
+
+\noindent Lean declarations: \texttt{coordinateLp}.
+
+\section{coordinateLp coe}
+
+
+The representative selected for \(Z_i\) agrees with \(\omega_i\) almost everywhere by the defining property of \texttt{toLp}. This equality is the bridge used to transfer coordinate laws, means, and independence calculations to the \(L^2\) classes.
+
+
+
+\noindent Lean declarations: \texttt{coordinateLp\_coe}.
+
+\section{coordinates independent}
+
+
+The coordinate projections of an infinite product measure are jointly independent. Invoke that product theorem for the scalar Gaussian factors. This is independence of every finite set of coordinates, which is precisely what finite Gaussian linear combinations require.
+
+
+
+\noindent Lean declarations: \texttt{coordinates\_independent}.
+
+\section{coordinate mean}
+
+
+Change variables through the coordinate law and use the centered Gaussian mean: \(\int\omega_i\,dQ=\int x\,d\mathcal N(0,1)=0\). Gaussian integrability makes this an ordinary expectation identity.
+
+
+
+\noindent Lean declarations: \texttt{coordinate\_mean}.
+
+\section{coordinateLp inner}
+
+
+For \(i=j\), the \(L^2\) inner product is \(\mathbb EZ_i^2=1\). For \(i\ne j\), independence factors \(\mathbb EZ_iZ_j=(\mathbb EZ_i)(\mathbb EZ_j)=0\). Almost-everywhere representative identities move between \(Z_i\) and the product coordinates. Thus \(\langle Z_i,Z_j\rangle=\mathbf1_{i=j}\).
+
+
+
+\noindent Lean declarations: \texttt{coordinateLp\_inner}.
+
+\section{coordinates orthonormal}
+
+
+The preceding inner-product formula is the orthonormality criterion for a family in a real Hilbert space. Lean converts the diagonal value one and off-diagonal value zero into \texttt{Orthonormal \ensuremath{\mathbb R} coordinateLp}, the input for the orthogonal-series extension.
+
+
+
+\noindent Lean declarations: \texttt{coordinates\_orthonormal}.
+
+\section{source isProbabilityMeasure}
+
+
+Each scalar Gaussian factor is a probability measure. The product-probability instance therefore gives \(Q(\Omega)=1\). This instance is what permits constant functions and integrable functions to be treated in the usual probability-space \(L^2\) theory below.
+
+
+
+\noindent Lean declarations: \texttt{source\_isProbabilityMeasure}.
+
+\section{synthesis}
+
+
+Extend the orthonormal family \(Z_i\) to a linear isometry \(S:\ell^2(\iota)\to L^2(Q)\). The orthogonal-family extension theorem constructs the limit of finite sums and preserves squared norm, \(\|S(a)\|_2^2=\sum_i a_i^2\). It constructs an \(L^2\) limit rather than assuming pointwise convergence of a random series.
+
+
+
+\noindent Lean declarations: \texttt{synthesis}.
+
+\section{synthesis hasSum}
+
+
+The synthesis extension theorem states \(\sum_i a_iZ_i=S(a)\), with convergence of finite partial sums in \(L^2\). In Lean \texttt{HasSum} is convergence along finite subsets, so the identity does not require choosing an enumeration of the basis index set.
+
+
+
+\noindent Lean declarations: \texttt{synthesis\_hasSum}.
+
+\section{isonormal}
+
+
+For a Hilbert basis \(b\), compose its coordinate isometry \(b.\mathrm{repr}:H\to\ell^2(\iota)\) with \texttt{synthesis}. The resulting linear isometry \(I_b\) sends \(x\) to the Gaussian series with coefficients \(\langle b_i,x\rangle\), and preserves all inner products.
+
+
+
+\noindent Lean declarations: \texttt{isonormal}.
+
+\section{isonormal hasSum}
+
+
+Apply \texttt{synthesis\_hasSum} to the coefficient family \(b.\mathrm{repr}(x)\). Unfolding the composition gives \(I_b(x)=\sum_i\langle b_i,x\rangle Z_i\) in \(L^2\). This is the exact series represented by the bundled isonormal isometry.
+
+
+
+\noindent Lean declarations: \texttt{isonormal\_hasSum}.
+
+\section{integral eq inner one}
+
+
+On a probability space, the constant one is in \(L^2\). The definition of the real \(L^2\) inner product gives \(\mathbb EX=\langle1,X\rangle\), after replacing the selected constant representative by one almost everywhere. This exhibits expectation as a continuous functional.
+
+
+
+\noindent Lean declarations: \texttt{integral\_eq\_inner\_one}.
+
+\section{coordinateLp mean}
+
+
+Use \(Z_i=\omega_i\) almost everywhere to replace the \(L^2\) representative inside the integral. The already established centered coordinate expectation then gives \(\mathbb EZ_i=0\).
+
+
+
+\noindent Lean declarations: \texttt{coordinateLp\_mean}.
+
+\section{synthesis mean}
+
+
+Each finite partial sum \(\sum_{i\in F}a_iZ_i\) has mean zero by linearity and the coordinate means. Pair the \(L^2\)-convergent series with the constant one; continuity of the inner product passes the zero expectations to the limit, giving \(\mathbb ES(a)=0\).
+
+
+
+\noindent Lean declarations: \texttt{synthesis\_mean}.
+
+\section{isonormal mean}
+
+
+The isonormal variable is \texttt{synthesis} applied to the Hilbert-basis coefficients of \(x\). Specialize the synthesis mean theorem to these coefficients to get \(\mathbb EI_b(x)=0\), without redoing the infinite-series limit.
+
+
+
+\noindent Lean declarations: \texttt{isonormal\_mean}.
+
+\section{variance eq norm sq}
+
+
+For an \(L^2\) random variable with mean zero, the variance formula reduces to \(\operatorname{Var}(X)=\int X^2dQ\). The \(L^2\) norm identity identifies this with \(\|X\|_2^2\). The explicit mean premise is used to remove the centering term.
+
+
+
+\noindent Lean declarations: \texttt{variance\_eq\_norm\_sq}.
+
+\section{partial sum coe}
+
+
+Induct over the finite set. The zero sum has zero representative almost everywhere; addition and scalar multiplication of \(L^2\) classes agree almost everywhere with the corresponding pointwise operations. Intersect the finitely many full-measure sets to obtain \(\sum_{i\in F}a_iZ_i=\sum_{i\in F}a_i\omega_i\) almost everywhere.
+
+
+
+\noindent Lean declarations: \texttt{partial\_sum\_coe}.
+
+\section{partial sum hasGaussianLaw}
+
+
+Independent scalar standard Gaussians remain Gaussian after a finite linear combination. Apply that finite-sum Gaussian theorem to \(a_i\omega_i\), and transfer the law across \texttt{partial\_sum\_coe}. This proves Gaussianity of the actual \(L^2\) partial sum, not merely of a formally similar expression.
+
+
+
+\noindent Lean declarations: \texttt{partial\_sum\_hasGaussianLaw}.
+
+\section{partial sum mean}
+
+
+The integral of a finite \(L^2\) sum is the sum of its integrals, because every summand is integrable. Each coordinate mean is zero, hence \(\mathbb E\sum_{i\in F}a_iZ_i=0\). This supplies the centering parameter needed to identify its Gaussian law.
+
+
+
+\noindent Lean declarations: \texttt{partial\_sum\_mean}.
+
+\section{partial sum hasLaw}
+
+
+A scalar Gaussian law is determined by its mean and variance. The finite sum is Gaussian and centered; its variance is its squared \(L^2\) norm. Therefore its law is \(\mathcal N(0,\|\sum_{i\in F}a_iZ_i\|_2^2)\), with the variance converted to a nonnegative real.
+
+
+
+\noindent Lean declarations: \texttt{partial\_sum\_hasLaw}.
+
+\section{synthesis hasLaw}
+
+
+Finite partial sums converge in \(L^2\) to \(S(a)\), and each has the centered Gaussian law with its own squared norm as variance. Apply \texttt{hasLaw\_gaussianReal\_of\_tendsto\_Lp}; the isometry then rewrites the limiting variance as \(\|a\|_{\ell^2}^2\). This proves Gaussianity of the completed infinite series.
+
+
+
+\noindent Lean declarations: \texttt{synthesis\_hasLaw}.
+
+\section{isonormal hasLaw}
+
+
+Apply the synthesis law theorem to \(b.\mathrm{repr}(x)\). The Hilbert-basis coordinate map preserves norm, so the variance becomes \(\|x\|^2\). Hence \(I_b(x)\sim\mathcal N(0,\|x\|^2)\), including the degenerate law for \(x=0\).
+
+
+
+\noindent Lean declarations: \texttt{isonormal\_hasLaw}.
+
+\section{isonormal hasGaussianLaw}
+
+
+The exact law theorem identifies \(I_b(x)\) with a scalar Gaussian probability. Forgetting its explicit mean and variance parameters yields the bundled \texttt{HasGaussianLaw} predicate used by the finite-dimensional Gaussian-process construction.
+
+
+
+\noindent Lean declarations: \texttt{isonormal\_hasGaussianLaw}.
+
+\section{isonormal covariance}
+
+
+Both variables are centered, so their covariance is \(\mathbb E[I_b(x)I_b(y)]\), the \(L^2\) inner product. The linear isometry preserves that inner product, giving \(\operatorname{Cov}(I_b(x),I_b(y))=\langle x,y\rangle_H\). Lean checks integrability through their \(L^2\) membership.
+
+
+
+\noindent Lean declarations: \texttt{isonormal\_covariance}.
 
 \end{document}

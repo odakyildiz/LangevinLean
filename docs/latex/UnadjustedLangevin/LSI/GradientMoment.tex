@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Transfer the Gibbs score moment through a transport coupling}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/GradientMoment.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+For any finite-cost coupling of \(X\sim\mu\) and \(Y\sim\nu\), an \(L\)-Lipschitz gradient gives \(\mathbb E_\mu\|\nabla U\|^2\le2L^2\mathbb E\|X-Y\|^2+2\mathbb E_\nu\|\nabla U\|^2\). This module proves that estimate together with gradient square integrability. For a normalized Gibbs target the second term is bounded by \(2nL\). An explicit entropy-cost coupling then supplies the exact gradient-moment bound used by the ULA proof. The implication from LSI to such transport control remains a separate formal obligation.
+
+
+\section{Derive both integrability and the coupling moment estimate}
+
+
+Let \(c\) be a joint measure with marginals \(\mu\) and \(\nu\). Assume \(\int\|x-y\|^2dc<\infty\), that the gradient is \(L\)-Lipschitz, and that \(\int\|\nabla U\|^2d\nu<\infty\). The theorem proves square integrability under \(\mu\) and
+
+\[\int\|\nabla U\|^2d\mu\le2L^2\int\|x-y\|^2\,dc(x,y)+2\int\|\nabla U\|^2d\nu.\]
+
+At a pair \((x,y)\), write \(\nabla U(x)=(\nabla U(x)-\nabla U(y))+\nabla U(y)\). The triangle inequality and Lipschitzness give \(\|\nabla U(x)\|\le L\|x-y\|+\|\nabla U(y)\|\). Squaring and applying \((a+b)^2\le2a^2+2b^2\) proves the pointwise bound \texttt{hpoint}. Lean obtains the last elementary inequality from the nonnegative square \((a-b)^2\).
+
+
+
+Before integrating the inequality, the proof establishes integrability: \texttt{hsecond} pulls the target squared-gradient integrand to the second marginal, while \texttt{hmajor} combines it with the integrable coupling cost. This dominating function and continuity of the gradient prove \texttt{hfirst}, integrability of the first-coordinate squared gradient. The map-integrability equivalence and the first-marginal identity then prove \texttt{h\ensuremath{\mu}}. Thus a missing moment is derived, rather than represented by a possibly undefined real integral.
+
+
+
+Finally \texttt{integral\_mono} integrates \texttt{hpoint}. The identities \texttt{hfirst\_marginal} and \texttt{hsecond\_marginal}, proved by the pushforward integral formula, replace the joint-coordinate integrals by their marginal integrals and give exactly the displayed estimate.
+
+
+
+\noindent Lean declarations: \texttt{gradient\_moment\_bound\_of\_coupling}.
+
+\section{Insert the derived target score bound}
+
+
+For the normalized Gibbs probability \(\nu=Z^{-1}e^{-U}dx\), differentiability of \(U\) and an \(L\)-Lipschitz gradient imply the target estimate \(\int\|\nabla U\|^2d\nu\le nL\). Consequently every finite-cost coupling gives
+
+\[\int\|\nabla U\|^2d\mu\le2L^2\int\|x-y\|^2dc+2nL.\]
+
+The proof first derives \(Z<\infty\) from probability normalization, using \texttt{gibbsPartition\_ne\_top\_of\_probability}. The shared theorem \texttt{ULA.memLp\_gradient\_gibbsMeasure} then supplies target square integrability; its \(L^2\) conclusion is converted into the integrability input for the preceding coupling theorem. The sharp target moment itself comes from \texttt{ULA.integral\_norm\_sq\_gradient\_gibbs\_le}.
+
+
+
+Those shared Gibbs results use translation invariance and a sub-Gaussian score argument under first-order smoothness, so strong convexity is unnecessary here. Substituting their target bound into the coupling estimate proves the stated result and retains the newly derived square integrability under \(\mu\).
+
+
+
+\noindent Lean declarations: \texttt{gibbs\_gradient\_moment\_bound\_of\_coupling}.
+
+\section{Obtain the exact entropy-dependent coefficient from transport control}
+
+
+Suppose the preceding finite-cost coupling additionally satisfies
+
+\[\int\|x-y\|^2dc(x,y)\le\frac2\alpha D_{\mathrm{KL}}(\mu\Vert\nu),\qquad \alpha>0,\quad D_{\mathrm{KL}}(\mu\Vert\nu)<\infty.\]
+
+Substitution into the coupling bound gives
+
+\[\int\|\nabla U\|^2d\mu\le\frac{4L^2}{\alpha}D_{\mathrm{KL}}(\mu\Vert\nu)+2nL.\]
+
+The Lean hypothesis \texttt{htransport} is exactly the displayed cost estimate for the supplied coupling. It is multiplied by the nonnegative factor \(2L^2\); \texttt{heq} verifies the coefficient identity \(2L^2(2/\alpha)=4L^2/\alpha\). The result also returns gradient square integrability from the previous theorem. Separate hypotheses record positive \(\alpha\) and finite extended KL before its real value is used.
+
+
+
+This theorem completes the coupling-to-moment calculation and connects it to the already proved target score bound. It does not assert that LSI constructs this coupling or prove the LSI-to-Talagrand implication. The existing ULA endpoint still displays its gradient-moment input until that transport implication and the remaining analytic path construction are assembled.
+
+
+
+\noindent Lean declarations: \texttt{gibbs\_gradient\_moment\_bound\_of\_entropy\_coupling}.
+
+\end{document}

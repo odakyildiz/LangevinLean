@@ -6,32 +6,68 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/MALAInvariance.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/MALAInvariance.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 The Gaussian proposal density identifies the MALA pair flow. Its reversed-to-forward density ratio is precisely the exponential of the implemented log ratio, so the Metropolis balance theorem proves exact Gibbs invariance.
 
 
-\section{Write the proposal-pair weight}
+\section{malaProposalJoint}
 
 
-Define the joint law of \((X,p_h(X,Z))\), and its unnormalized weight
-
-\[w(x,y)=\exp\!\left(-U(x)-\frac{\|y-x+h\nabla U(x)\|^2}{4h}\right).\]
-
-Subtracting the exponents gives \(w(y,x)/w(x,y)=e^{R(x,y)}\). The general weighted-pushforward identity rewrites the implemented accepted/rejected transition as the Metropolis output of this joint proposal measure.
+Push \(\mu\otimes\gamma\) through \((x,\xi)\mapsto(x,T_h(x,\xi))\). Its first coordinate retains the current state, and its second records the actual Gaussian proposal. This joint measure is the input to the accepted-flow detailed-balance theorem.
 
 
 
-\noindent Lean declarations: \texttt{malaProposalJoint}, \texttt{malaJointWeight}, \texttt{malaJointWeight\_ratio}, \texttt{malaOneStep\_eq\_metropolisOutput}.
+\noindent Lean declarations: \texttt{malaProposalJoint}.
 
-\section{Apply symmetric minimum-density balance}
-
-
-The Gaussian pair-density theorem and the Gibbs density show that the proposal joint law is \(w(x,y)\) times the symmetric base \(Z^{-1}N_h\,dx\,dy\). The weight is measurable and strictly positive, and swapping \(x,y\) leaves the base unchanged. The Metropolis theorem therefore preserves the first marginal. Projecting the joint proposal back to its first coordinate recovers Gibbs, proving \(M_h\pi=\pi\) for \(h>0\). This density-level identity needs differentiability and Lipschitzness as displayed; strong convexity is used elsewhere to make Gibbs a probability with moments.
+\section{malaJointWeight}
 
 
+Set \(w_h(x,y)=\exp(-U(x)-\|y-x+h\nabla U(x)\|^2/(4h))\). The Gibbs and Gaussian normalization constants are kept in a separate symmetric base measure, so \(w_h\) is strictly positive and its reverse/forward ratio is easy to compute.
 
-\noindent Lean declarations: \texttt{malaProposalJoint\_gibbs\_density}, \texttt{malaOneStep\_gibbs\_invariant}.
+
+
+\noindent Lean declarations: \texttt{malaJointWeight}.
+
+\section{malaJointWeight ratio}
+
+
+Divide the two positive exponentials and use \(e^a/e^b=e^{a-b}\). Expanding the definition of \(w_h\) shows the exponent difference is exactly \texttt{malaLogRatio}. Thus \(w_h(y,x)/w_h(x,y)=e^{R_h(x,y)}\).
+
+
+
+\noindent Lean declarations: \texttt{malaJointWeight\_ratio}.
+
+\section{malaOneStep eq metropolisOutput}
+
+
+Transport acceptance and rejection weights through the measurable pair map using \texttt{map\_weighted\_comp}. Projecting the accepted pair to its second coordinate gives the proposal; projecting rejected pairs to the first gives the unchanged state. These are precisely the two branches defining \texttt{malaOneStep}.
+
+
+
+\noindent Lean declarations: \texttt{malaOneStep\_eq\_metropolisOutput}.
+
+\section{malaProposalJoint gibbs density}
+
+
+Apply the Gaussian joint-density theorem with center \(x-h\nabla U(x)\), then multiply its density by the Gibbs density. Combine the exponential factors into \(w_h(x,y)\). Pull the two state-independent normalizers into the base measure \(Z_U^{-1}C_h(dx\,dy)\), which is invariant under coordinate swap.
+
+
+
+\noindent Lean declarations: \texttt{malaProposalJoint\_gibbs\_density}.
+
+\section{malaOneStep gibbs invariant}
+
+
+The joint proposal measure has a positive density \(w_h\) against a symmetric base. Its acceptance rule is \(\min(1,w_h(y,x)/w_h(x,y))\) by \texttt{malaJointWeight\_ratio}. Hence its accepted density is the symmetric minimum \(\min(w_h(x,y),w_h(y,x))\).
+
+
+
+Apply \texttt{metropolisOutput\_density\_eq\_initial} and the exact step/output identity. The initial marginal of the proposal pair is Gibbs, since projecting \(\pi_U\otimes\gamma\) to its state returns \(\pi_U\). Thus \(M_h\pi_U=\pi_U\) is proved with no stationarity input.
+
+
+
+\noindent Lean declarations: \texttt{malaOneStep\_gibbs\_invariant}.
 
 \end{document}

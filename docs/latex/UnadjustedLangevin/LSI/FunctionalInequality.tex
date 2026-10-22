@@ -6,49 +6,43 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/LSI/FunctionalInequality.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/FunctionalInequality.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 Write \(\rho=r\nu\), \(H_\nu(\rho)=\int r\log r\,d\nu\), and \(J_\nu(\rho)=\int\|\nabla\log r\|^2d\rho\). This module defines the explicit smooth positive-density LSI convention \(2\alpha H\le J\) and guards real-valued conversions by finite divergence and Fisher information.
 
 
-\section{Relative density, relative score, and LSI normalization}
+\section{tiltedMeasure}
 
 
-Use a density relative to the target, rather than to Lebesgue measure: \(\rho=r\nu\). When \(\nu(dx)=Z^{-1}e^{-U(x)}dx\) and \(\rho(dx)=p(x)dx\), this means \(r=Zpe^U\), so the relative score is \(s=\nabla\log r=\nabla\log p+\nabla U\). The basic quantities are
-
-
-\[
-H_\nu(\rho)=\int r\log r\,d\nu,
-\qquad
-J_\nu(\rho)=\int\|\nabla\log r\|^2\,d\rho.
-\]
-
-
-The normalization is \(2\alpha H_\nu(\rho)\leq J_\nu(\rho)\). A factor of two in the LSI convention would change every stated rate, so this normalization is part of the comparison with the paper. Lean's \texttt{tiltedMeasure} is the actual measure with relative density \(r\), and \texttt{relativeFisher} is its extended nonnegative score integral. \texttt{IsLogSobolev} asserts that the target is a probability measure and tests the inequality on strictly positive, continuously differentiable relative densities that define probability measures. An extension from that test class to arbitrary densities is not asserted here.
+For a real relative density \(r\), define \(\rho_r(dx)=r(x)\nu(dx)\) using \texttt{withDensity (ENNReal.ofReal ∘ r)}. Positivity and normalization are later hypotheses, rather than part of this raw measure definition. A normalized positive \(r\) is the density of the current law relative to the target.
 
 
 
+\noindent Lean declarations: \texttt{tiltedMeasure}.
 
-To compare conventions, for a positive smooth function \(g\) with \(\int g^2d\nu=1\), put \(r=g^2\). Then \(\int r\|\nabla\log r\|^2d\nu=4\int\|\nabla g\|^2d\nu\). This explains the familiar LSI convention \(\operatorname{Ent}_\nu(g^2)\leq(2/\alpha)\int\|\nabla g\|^2d\nu\). This equivalence describes the normalization; the declared property itself is the explicit relative-density formulation shown in Lean.
+\section{relativeFisher}
+
+
+Define \(I_\nu(r)=\int\|\nabla\log r\|^2d\rho_r\) as an extended nonnegative integral. The explicit density is differentiated pointwise, avoiding differentiation of an arbitrary almost-everywhere Radon–Nikodym representative. Later real-valued estimates prove finiteness before taking \texttt{toReal}.
 
 
 
-\noindent Lean declarations: \texttt{tiltedMeasure}, \texttt{relativeFisher}, \texttt{IsLogSobolev}.
+\noindent Lean declarations: \texttt{relativeFisher}.
+
+\section{IsLogSobolev}
+
+
+The target is a probability and satisfies \(2\alpha\operatorname{KL}(\rho_r\mid\nu)\le I_\nu(r)\) for every strictly positive \(C^1\) normalized relative density. The factor \(2\alpha\) fixes the convention used throughout the proof. This test class and its normalization are explicit; the definition contains no algorithm or entropy-decay claim.
+
+
+
+\noindent Lean declarations: \texttt{IsLogSobolev}.
 
 \section{Why finite KL and Fisher information are separate obligations}
 
 
-The entropy is Mathlib's \texttt{InformationTheory.klDiv}, not a function chosen solely to satisfy a recurrence. This divergence and the Fisher information take values in \([0,\infty]\). Lean's real-valued comparisons use \texttt{ENNReal.toReal}; that operation sends infinity to zero, so a real inequality alone would not establish a meaningful finite-entropy estimate.
-
-
-
-
-\texttt{IsLogSobolev.entropy\_le\_fisher} therefore retains proofs that both extended quantities are finite before giving \(2\alpha H\leq J\) over the reals. The endpoint also retains finite KL along every identified interpolation path. \texttt{ula\_kl\_finite\_of\_interpolation} uses its zero-time identification to prove finite KL for the corresponding ULA law, including initialization. These are the guards that make \texttt{densityEntropy} and \texttt{ulaEntropy} faithful real representations of entropy in their applications.
-
-
-
-Proof of the real inequality: apply the LSI property to the supplied density \(r\), giving \(\operatorname{ofReal}(2\alpha)\operatorname{KL}\le J\) in extended nonnegative reals. The two finiteness guards make conversion order preserving and multiplicative; \(\alpha\ge0\) rewrites the scalar conversion as \(2\alpha\), yielding \(2\alpha\operatorname{KL}_{\mathbb R}\le J_{\mathbb R}\).
+Apply the extended LSI to the supplied positive \(C^1\) probability density. Both KL and Fisher are assumed finite, so \texttt{ENNReal.toReal\_le\_toReal} preserves the inequality. Nonnegativity of \(2\alpha\) identifies the real value of its embedding, giving \(2\alpha H_\nu(r)\le I_\nu(r)_{\mathbb R}\).
 
 
 

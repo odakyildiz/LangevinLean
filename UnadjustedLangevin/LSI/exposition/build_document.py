@@ -17,7 +17,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 LSI = HERE.parent
-OUT = HERE / "index.html"
+OUT = HERE / "proof.html"
 SPEC = importlib.util.spec_from_file_location(
     "ula_proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 SHARED = importlib.util.module_from_spec(SPEC)

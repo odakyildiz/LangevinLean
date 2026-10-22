@@ -62,3 +62,7 @@ import UnadjustedLangevin.LSI.Regularity
 import UnadjustedLangevin.LSI.RegularizedTheorem
 import UnadjustedLangevin.LSI.GaussianDrift
 import UnadjustedLangevin.LSI.InterpolationData
+import UnadjustedLangevin.LSI.ConditionalDrift
+import UnadjustedLangevin.LSI.InterpolationDensity
+import UnadjustedLangevin.LSI.InteriorEntropy
+import UnadjustedLangevin.LSI.GradientMoment

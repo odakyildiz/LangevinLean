@@ -6,38 +6,100 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/LSI/ULALaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/ULALaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 Define the frozen-drift law \(\rho_{k,t}=\operatorname{Law}(X_k-t\nabla U(X_k)+\sqrt{2t}Z)\), with independent standard Gaussian \(Z\), and \(\rho_{k+1}=\rho_{k,h}\). The endpoint and probability identities connect the entropy argument to the actual algorithm.
 
 
-\section{Why finite KL and Fisher information are separate obligations}
+\section{ulaEntropy}
 
 
-For the iterated Gaussian laws \(\rho_k=P_h^k\mu\) and any reference measure \(\nu\), define \(\operatorname{ulaEntropy}(k)=\operatorname{toReal}\operatorname{KL}(\rho_k\|\nu)\). The time-zero law is definitionally \(\rho_0=\mu\), so substitution gives \(\operatorname{ulaEntropy}(0)=\operatorname{toReal}\operatorname{KL}(\mu\|\nu)\). Finite KL is proved separately wherever this conversion is used as real entropy; the definition alone does not rule out an infinite extended divergence.
-
-
-
-\noindent Lean declarations: \texttt{ulaEntropy}, \texttt{ulaEntropy\_zero}.
-
-\section{Pushforward laws and their endpoints}
-
-
-Let \(\mu\) be a probability, \(Z\sim\mathcal N(0,I)\) independent of \(X\sim\mu\), and \(P_t\mu=\operatorname{Law}(X-t\nabla U(X)+\sqrt{2t}Z)\). Write \(\rho_k=P_h^k\mu\). \texttt{interpolationLaw U \ensuremath{\mu} t} is defined using the same pushforward transition as ULA: apply \((x,z)\mapsto x-t\nabla U(x)+\sqrt{2t}\,z\) to \(\mu\otimes\mathcal N(0,I)\). The product measure expresses the required independence. \texttt{ulaLaws U h \ensuremath{\mu} k} iterates this transition on measures, starting from \(\mu\).
-
-
-\[
-\operatorname{Law}(Y_0)=\rho_k,
-\qquad
-\operatorname{Law}(Y_h)=\rho_{k+1}.
-\]
-
-
-The zero-time identity needs no regularity of \(U\). Lipschitz continuity of \(\nabla U\) supplies measurability of the update and proves probability preservation; iteration proves that all \(\rho_k\) are probability laws. These statements identify the algorithm that the final entropy bound concerns. They do not provide a smooth density for the pushforward or differentiate its entropy. Although the law definition accepts a real time parameter, its frozen-drift Gaussian interpretation in this argument is for \(t\geq0\).
+Set \(H_k=\operatorname{KL}(\rho_k\mid\nu)_{\mathbb R}\). The definition uses the actual extended KL of the ULA law, followed by \texttt{toReal}. Separate theorems prove finite KL wherever this is used as ordinary real entropy; the definition alone would not exclude infinity.
 
 
 
-\noindent Lean declarations: \texttt{interpolationLaw}, \texttt{ulaLaws}, \texttt{interpolationLaw\_endpoint}, \texttt{ulaLaws\_isProbability}, \texttt{interpolationLaw\_zero}, \texttt{ulaLaws\_zero}, \texttt{ulaLaws\_succ}, \texttt{interpolationLaw\_isProbability}.
+\noindent Lean declarations: \texttt{ulaEntropy}.
+
+\section{ulaEntropy zero}
+
+
+Substitute the definitional identity \(\rho_0=\mu\) into the entropy definition. This gives \(H_0=\operatorname{KL}(\mu\mid\nu)_{\mathbb R}\), the initial term appearing in the final exponential bound.
+
+
+
+\noindent Lean declarations: \texttt{ulaEntropy\_zero}.
+
+\section{interpolationLaw}
+
+
+Define \(\rho_t=(T_t)_*(\mu\otimes\gamma)\), where \(T_t(x,z)=x-t\nabla U(x)+\sqrt{2t}z\). The product encodes independence. This is an alias of the actual \texttt{ulaLawStep}; its frozen-drift Gaussian interpolation interpretation applies to \(t\ge0\).
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw}.
+
+\section{ulaLaws}
+
+
+Iterate the actual independent-Gaussian transition at fixed step \(h\): \(\rho_k=P_h^k\mu\). The definition is on measures, while the separate chain-law theorems identify independent iid implementations with these same laws.
+
+
+
+\noindent Lean declarations: \texttt{ulaLaws}.
+
+\section{interpolationLaw endpoint}
+
+
+At elapsed time \(h\), the interpolation from \(\rho_k\) is \(P_h\rho_k\). The preceding successor identity therefore proves \(\rho_{k,h}=\rho_{k+1}\). This is the law equality used to turn a continuous interpolation bound into the discrete entropy step.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw\_endpoint}.
+
+\section{ulaLaws isProbability}
+
+
+Induct from the initial probability \(\mu\). At the successor rewrite the iterate as one interpolation step at time \(h\), then apply probability preservation. Every algorithm law is therefore a probability before applying KL and LSI identities.
+
+
+
+\noindent Lean declarations: \texttt{ulaLaws\_isProbability}.
+
+\section{interpolationLaw zero}
+
+
+At \(t=0\), both the drift increment and Gaussian increment vanish, so the update map is first-coordinate projection. Integrating out the standard Gaussian probability returns \(\mu\). This endpoint identity needs no potential regularity.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw\_zero}.
+
+\section{ulaLaws zero}
+
+
+The zeroth iterate of a function is the identity, hence \(\rho_0=\mu\). Lean uses definitional equality, which makes the initial-entropy rewrite exact rather than an asymptotic endpoint argument.
+
+
+
+\noindent Lean declarations: \texttt{ulaLaws\_zero}.
+
+\section{ulaLaws succ}
+
+
+The successor-iterate identity gives \(\rho_{k+1}=P_h(\rho_k)\). Lean invokes \texttt{Function.iterate\_succ\_apply'}, whose order matches applying one more transition to the current law.
+
+
+
+\noindent Lean declarations: \texttt{ulaLaws\_succ}.
+
+\section{interpolationLaw isProbability}
+
+
+Lipschitzness makes the gradient continuous and the joint update measurable. The product \(\mu\otimes\gamma\) is a probability, and its pushforward has the same total mass. Evaluating the mapped measure on the whole space proves normalization of \(\rho_t\).
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw\_isProbability}.
 
 \end{document}

@@ -6,54 +6,154 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/Gibbs.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/Gibbs.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 On a finite-dimensional real Hilbert space, differentiability and \(m\)-strong convexity with \(m>0\) imply that \(\pi(dx)=Z^{-1}e^{-U(x)}dx\) is a probability measure with finite second moment. This establishes existence of the target measure used throughout the coupling proof.
 
 
-\section{The weight, partition, and normalized measure}
+\section{gibbsWeight}
 
 
-Define \(w(x)=e^{-U(x)}\), \(Z=\int w(x)dx\), and \(\pi=Z^{-1}w\,dx\). Lean first defines these objects in \([0,\infty]\); positivity and finiteness are subsequent theorems, so the definitions alone assert no normalization.
-
-
-
-\noindent Lean declarations: \texttt{gibbsWeight}, \texttt{gibbsPartition}, \texttt{gibbsMeasure}.
-
-\section{A Gaussian envelope from strong convexity}
-
-
-The first-order strong-convexity inequality at zero gives \(U(x)\ge U(0)+\langle\nabla U(0),x\rangle+\frac m2\|x\|^2\). Complete a square, or use \(\|\nabla U(0)\|\|x\|\le\frac m4\|x\|^2+\|\nabla U(0)\|^2/m\), to obtain
-
-\[U(x)\ge U(0)-\|\nabla U(0)\|^2/m+(m/4)\|x\|^2.\]
-
-The standard finite-dimensional Gaussian integral proves integrability of \(e^{-a\|x\|^2}\) for \(a>0\). The displayed envelope therefore dominates \(e^{-U}\) by a constant times such an integrable Gaussian.
+The unnormalized density is \(w_U(x)=e^{-U(x)}\), embedded in \([0,\infty]\) with \texttt{ENNReal.ofReal}. This choice lets the partition integral retain the value infinity; positivity of the exponential ensures that embedding does not discard any part of the density.
 
 
 
-\noindent Lean declarations: \texttt{integrable\_exp\_neg\_mul\_norm\_sq}, \texttt{strongConvex\_quadratic\_lower\_bound}, \texttt{integrable\_exp\_neg\_of\_strongConvex}.
+\noindent Lean declarations: \texttt{gibbsWeight}.
 
-\section{Polynomial moments and the partition guards}
+\section{gibbsPartition}
 
 
-To integrate \(\|x\|^2e^{-a\|x\|^2}\), absorb the polynomial into half of the Gaussian decay, using \(u\le e^u\) for \(u\ge0\). Apply the same quadratic envelope to \(U\). The weight is everywhere strictly positive and continuous, hence its integral is positive; its Gaussian envelope makes that integral finite. Consequently
-
-\[0<Z<\infty,\qquad Z=\operatorname{ofReal}\!\left(\int e^{-U(x)}dx\right).\]
-
-These guards justify taking reciprocals and converting the extended integral into a real integral.
+The partition function is \(Z_U=\int e^{-U(x)}\,dx\), formed as a nonnegative extended integral. At this definition no finiteness assumption is made. Later normalization uses separate proofs of \(0<Z_U\) and \(Z_U<\infty\), which are needed to justify cancellation with its inverse.
 
 
 
-\noindent Lean declarations: \texttt{integrable\_norm\_sq\_mul\_exp\_neg\_mul\_norm\_sq}, \texttt{integrable\_norm\_sq\_mul\_exp\_neg\_of\_strongConvex}, \texttt{gibbsPartition\_pos}, \texttt{gibbsPartition\_ne\_top}, \texttt{gibbsPartition\_eq\_ofReal\_integral}, \texttt{integral\_exp\_neg\_pos}.
+\noindent Lean declarations: \texttt{gibbsPartition}.
 
-\section{Probability and L\ensuremath{{}^{2}} moments}
-
-
-The total mass of \(Z^{-1}w\,dx\) is \(Z^{-1}Z=1\). The already proved weighted second-moment integrability transfers through the with-density formula and finite rescaling, giving \(\int\|x\|^2d\pi<\infty\). Thus the identity belongs to \(L^2(\pi)\), and so does \(x\mapsto x-z\) for every fixed \(z\), because constants belong to \(L^2\) under a probability measure.
+\section{gibbsMeasure}
 
 
+Define \(\pi_U(dx)=Z_U^{-1}e^{-U(x)}dx\) using \texttt{volume.withDensity}. The inverse is the extended nonnegative inverse. The definition therefore exists for every potential, while the later probability theorem proves that it has total mass one under the stated strong convexity assumptions.
 
-\noindent Lean declarations: \texttt{isProbabilityMeasure\_gibbsMeasure}, \texttt{integrable\_norm\_sq\_gibbsMeasure}, \texttt{memLp\_id\_gibbsMeasure}, \texttt{memLp\_sub\_const\_gibbsMeasure}.
+
+
+\noindent Lean declarations: \texttt{gibbsMeasure}.
+
+\section{integrable exp neg mul norm sq}
+
+
+For \(a>0\), \(e^{-a\|x\|^2}\) is Lebesgue integrable in finite dimension. The Lean proof specializes \texttt{GaussianFourier.integrable\_cexp\_neg\_mul\_sq\_norm\_add} to real positive precision \(a\) and zero linear term, then takes the real part. The complex Gaussian integrand is the real embedding of the desired exponential, so the final simplification identifies the functions exactly. This also includes dimension zero.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_exp\_neg\_mul\_norm\_sq}.
+
+\section{strongConvex quadratic lower bound}
+
+
+Apply the strong supporting-plane inequality at zero: \(U(x)\ge U(0)+\langle\nabla U(0),x\rangle+\frac m2\|x\|^2\). Cauchy–Schwarz and \(ab\le a^2/m+(m/4)b^2\), valid for \(m>0\), absorb the linear term. The result is \(U(x)\ge U(0)-\|\nabla U(0)\|^2/m+(m/4)\|x\|^2\). Lean isolates this scalar square inequality before its final arithmetic rearrangement.
+
+
+
+\noindent Lean declarations: \texttt{strongConvex\_quadratic\_lower\_bound}.
+
+\section{integrable exp neg of strongConvex}
+
+
+Exponentiating the quadratic lower bound gives \(e^{-U(x)}\le e^{-U(0)+\|\nabla U(0)\|^2/m}e^{-(m/4)\|x\|^2}\). The right side is an integrable Gaussian multiple. Differentiability supplies continuity and measurability of the left side, so \texttt{Integrable.mono'} transfers integrability from that explicit dominating function.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_exp\_neg\_of\_strongConvex}.
+
+\section{integrable norm sq mul exp neg mul norm sq}
+
+
+For \(a>0\), split the Gaussian decay into two equal factors. The scalar function \(s\mapsto s e^{-(a/2)s}\) is bounded on \([0,\infty)\), so \(\|x\|^2e^{-a\|x\|^2}\le C_a e^{-(a/2)\|x\|^2}\). The remaining Gaussian is integrable; the proof checks measurability and nonnegativity before applying domination.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_norm\_sq\_mul\_exp\_neg\_mul\_norm\_sq}.
+
+\section{integrable norm sq mul exp neg of strongConvex}
+
+
+Multiply the previous Gibbs Gaussian domination by \(\|x\|^2\). Its right side has the form \(C\|x\|^2e^{-(m/4)\|x\|^2}\), whose integrability was proved separately. The pointwise inequality uses \(\|x\|^2\ge0\), so multiplying it preserves order; this is the second-moment input for the normalized measure.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_norm\_sq\_mul\_exp\_neg\_of\_strongConvex}.
+
+\section{gibbsPartition pos}
+
+
+The continuous function \(e^{-U}\) is strictly positive everywhere. Its extended integral cannot vanish: a zero integral of a nonnegative measurable function would force it to vanish almost everywhere, contradicting positivity on a nonzero-volume open set. This proves \(0<Z_U\) without requiring an upper bound on \(Z_U\).
+
+
+
+\noindent Lean declarations: \texttt{gibbsPartition\_pos}.
+
+\section{gibbsPartition ne top}
+
+
+Strong convexity with \(m>0\) has already given ordinary integrability of \(e^{-U}\). For a nonnegative integrable function its extended integral is finite. Unfolding \texttt{gibbsPartition} identifies that integral exactly with \(Z_U\), giving the guard needed for inverse cancellation.
+
+
+
+\noindent Lean declarations: \texttt{gibbsPartition\_ne\_top}.
+
+\section{gibbsPartition eq ofReal integral}
+
+
+Nonnegativity and integrability identify the extended integral with the embedded real integral: \(Z_U=\operatorname{ofReal}(\int e^{-U}\,dx)\). The proof uses the genuine integral/lintegral comparison theorem, so it cannot identify an infinite partition with the default real value of an undefined integral.
+
+
+
+\noindent Lean declarations: \texttt{gibbsPartition\_eq\_ofReal\_integral}.
+
+\section{integral exp neg pos}
+
+
+Combine \(0<Z_U\) with \(Z_U=\operatorname{ofReal}(\int e^{-U}\,dx)\). Positivity of \texttt{ofReal} is equivalent to positivity of its real argument, proving that the ordinary normalizing constant is strictly positive and allowing real division by it later.
+
+
+
+\noindent Lean declarations: \texttt{integral\_exp\_neg\_pos}.
+
+\section{isProbabilityMeasure gibbsMeasure}
+
+
+The mass of a density measure is its extended density integral. Pull the constant \(Z_U^{-1}\) out to get \(\pi_U(H)=Z_U^{-1}Z_U\). The proofs that \(Z_U\ne0\) and \(Z_U\ne\infty\) justify this product being one. This theorem constructs the \texttt{IsProbabilityMeasure} instance rather than assuming normalization.
+
+
+
+\noindent Lean declarations: \texttt{isProbabilityMeasure\_gibbsMeasure}.
+
+\section{integrable norm sq gibbsMeasure}
+
+
+Changing measure converts integrability under \(\pi_U\) to integrability of \(Z_U^{-1}e^{-U(x)}\|x\|^2\) under volume. The weighted second moment is already integrable, and the real normalizing factor is a finite scalar. The with-density theorem supplies the almost-everywhere measurability and finiteness guards for this conversion.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_norm\_sq\_gibbsMeasure}.
+
+\section{memLp id gibbsMeasure}
+
+
+For the identity random variable, membership in \(L^2(\pi_U;H)\) is equivalent to integrability of \(\|x\|^2\). The identity is measurable, and the preceding weighted-moment theorem supplies the integral. Lean uses the \(p=2\) characterization of \texttt{MemLp}, retaining the actual function before passing to any quotient class.
+
+
+
+\noindent Lean declarations: \texttt{memLp\_id\_gibbsMeasure}.
+
+\section{memLp sub const gibbsMeasure}
+
+
+Since \(\pi_U\) is a probability, the constant map \(x\mapsto z\) belongs to \(L^2\). Subtract it from the identity, already in \(L^2(\pi_U)\), to obtain \(x\mapsto x-z\in L^2(\pi_U)\). This is a moment assertion for every chosen center, without requiring that the center minimize the potential.
+
+
+
+\noindent Lean declarations: \texttt{memLp\_sub\_const\_gibbsMeasure}.
 
 \end{document}

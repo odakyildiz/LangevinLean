@@ -2,7 +2,8 @@
 
 Open [index.html](index.html) for the general theorem, the per-particle
 specialization, parameter-marginal consequences, and the complete proof beside
-its exact Lean declarations. The page works offline and includes every local
+its exact Lean declarations. The source-by-source archive is [proof.html](proof.html).
+These pages work offline; the archive includes every local
 source dependency, formula rendering, source search, and copy/save controls.
 
 This derivation is developed in this repository using its shared ULA entropy
@@ -19,6 +20,8 @@ Regenerate and verify from the repository root:
 ```sh
 python3 -B IPLA/LSI/exposition/build_document.py
 python3 -B IPLA/LSI/exposition/verify_document.py
+python3 -B docs/build_site.py
+python3 -B docs/verify_site.py
 ```
 
 Building requires Python 3, Node.js and the existing vendored KaTeX. No

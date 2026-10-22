@@ -6,7 +6,7 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/LSI/InterpolationData.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/InterpolationData.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 The RegularInterpolationData structure bundles density paths identifying the actual ULA interpolation, regularity, weak-equation and error controls. Its methods derive path probability, finite KL, the one-step recurrence and the iterated entropy bound. Existence of this package is not asserted by its definition.
@@ -15,64 +15,46 @@ The RegularInterpolationData structure bundles density paths identifying the act
 \section{Specify the actual laws, density regularity and energy data}
 
 
-Let \(E\) be a finite-dimensional real Hilbert space, \(d=\dim E\), \(U:E\to\mathbb R\), \(\nu=\pi_U\), and \(\mu\) an initial law. Define the Gaussian transition \(P_t\mu=\operatorname{Law}(X-t\nabla U(X)+\sqrt{2t}Z)\), with independent \(Z\sim\mathcal N(0,I)\), and \(\rho_k=P_h^k\mu\). A RegularInterpolationData package supplies functions \(r_{k,t}>0\), time derivatives \(\dot r_{k,t}\), and error fields \(e_{k,t}\) such that
-
-
-\[r_{k,t}\nu=P_t\rho_k,\qquad 0\le t\le h.\]
-
-
-Every spatial density is \(C^1\); its local time regularity includes a common two-sided time neighborhood with pointwise derivatives and an integrable bound on \(|\dot r(\log r+1)|\). The squared relative score \(\|\nabla\log r\|^2\) is integrable under \(r\nu\). The error energy \(r\|e\|^2\) is integrable and the score/error pairing is almost measurable. For every \(C^1\) test whose three displayed integrands are integrable, the package requires
-
-
-\[\int\dot r_{k,t}\psi\,d\nu=-\int\langle\nabla r_{k,t},\nabla\psi\rangle d\nu+\int r_{k,t}\langle e_{k,t},\nabla\psi\rangle d\nu.\]
-
-
-Writing \(G_k=\int\|\nabla U\|^2d\rho_k\) and \(H_k=\operatorname{KL}(\rho_k\|\nu)\), its quantitative fields are
-
-
-\[\int r_{k,t}\|e_{k,t}\|^2d\nu\le t^2L^2G_k+2tdL^2,\qquad G_k\le(4L^2/\alpha)H_k+2dL.\]
-
-
-Gradient integrability under each \(\rho_k\) is explicit. These fields are assumptions; none is an entropy derivative, recurrence or convergence conclusion. Constructing this package from smoothness and LSI alone is not proved here.
+Package the relative densities \(r_{k,t}\), their time derivatives, and drift fields together with the exact law identity, positivity, spatial regularity, local entropy domination, finite score/error energies, admissible weak equation, drift-energy bound, and gradient-moment bound. These remain explicit mathematical inputs. No entropy derivative, entropy recurrence, or convergence estimate is a structure field.
 
 
 
 \noindent Lean declarations: \texttt{RegularInterpolationData}.
 
-\section{Derive path probability and finite algorithm KL}
+\section{RegularInterpolationData.path probability}
 
 
-If \(\mu\) is a probability and \(\nabla U\) is Lipschitz, the Gaussian transition is measurable and preserves probability. The density-law identity therefore makes \(r_{k,t}\nu\) a probability. If \(\nu\) is also a probability, local regularity supplies integrability of \(r_{k,t}\log r_{k,t}\); the change-of-measure formula proves finite actual KL. At time zero, \(P_0\rho_k=\rho_k\), so this gives \(\operatorname{KL}(\rho_k\|\nu)<\infty\) for every \(k\), including initialization.
-
-
-
-\noindent Lean declarations: \texttt{RegularInterpolationData.path\_probability}, \texttt{RegularInterpolationData.kl\_finite}.
-
-\section{Derive the one-step and iterated entropy bounds}
-
-
-Assume separately \(\alpha>0\), \(L>0\), \(\alpha\le L\), \(0<h\le\alpha/(4L^2)\), differentiable \(U\) with \(L\)-Lipschitz gradient, and the smooth-density LSI \(2\alpha\operatorname{KL}(r\nu\|\nu)\le J_\nu(r\nu)\). Differentiation under the dominated entropy integral gives \(H_k\prime(t)=\int\dot r_{k,t}(\log r_{k,t}+1)d\nu\). Test the weak equation with \(\log r+1\); the score chain rule and Young’s inequality give
-
-
-\[H_k\prime(t)\le-\tfrac34J_k(t)+t^2L^2G_k+2tdL^2.\]
-
-
-All integrability obligations for this noncompact test follow from the package’s fields. Apply the scalar interpolation comparison using its gradient bound. The law identities at zero and \(h\) give
-
-
-\[H_{k+1}\le e^{-\alpha h}H_k+6h^2dL^2.\]
-
-
-Iterate the geometric recurrence and use \(1-e^{-\alpha h}\ge(3/4)\alpha h\) to conclude
-
-
-\[H_k\le e^{-\alpha hk}\operatorname{KL}(\mu\|\nu)+\frac{8hdL^2}{\alpha}.\]
-
-
-The kl\_bound method invokes the regularized endpoint with all fields supplied; one\_step constructs its entropy derivative and production bound explicitly and invokes the one-step endpoint. The IPLA entropy extension reuses this interface with a lifted target.
+The data's law field identifies the tilted density with the actual interpolation from \(\rho_k\). Probability preservation proves that interpolation is normalized. Rewrite by the law identity to obtain normalization of each density along the supplied path.
 
 
 
-\noindent Lean declarations: \texttt{RegularInterpolationData.one\_step}, \texttt{RegularInterpolationData.kl\_bound}.
+\noindent Lean declarations: \texttt{RegularInterpolationData.path\_probability}.
+
+\section{RegularInterpolationData.kl finite}
+
+
+Use local entropy regularity to prove finite KL for each relative density, then apply the time-zero law identification in \texttt{ula\_kl\_finite\_of\_interpolation}. The target probability instance is explicit; in the final theorem it is supplied by the LSI hypothesis.
+
+
+
+\noindent Lean declarations: \texttt{RegularInterpolationData.kl\_finite}.
+
+\section{RegularInterpolationData.one step}
+
+
+Define \(H'_k(t)\) by the differentiated entropy integral. The regular weak-equation theorem proves its right-derivative identity and Fisher/drift production bound. Data fields supply probability, KL/Fisher finiteness, continuity, numerical error-energy and gradient bounds. Feed these proved ingredients to \texttt{ula\_kl\_one\_step\_of\_interpolation} to derive the recurrence rather than assuming it in the data.
+
+
+
+\noindent Lean declarations: \texttt{RegularInterpolationData.one\_step}.
+
+\section{RegularInterpolationData.kl bound}
+
+
+Unpack every analytic field into \texttt{ula\_kl\_bound\_of\_regular\_interpolation}, retaining LSI, potential smoothness, and the step regime as separate arguments. Its already proved differentiation, one-step estimate, and geometric iteration give the full displayed KL bound for the actual ULA laws represented by the data.
+
+
+
+\noindent Lean declarations: \texttt{RegularInterpolationData.kl\_bound}.
 
 \end{document}

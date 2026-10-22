@@ -6,7 +6,7 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/LSI/Theorem.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/Theorem.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 The actual iterated Gaussian ULA laws satisfy \(H_k\le e^{-\alpha hk}H_0+8hdL^2/\alpha\), once the displayed interpolation identification, finite KL, entropy/Fisher dissipation, LSI, and moment hypotheses are supplied. This endpoint does not construct all those analytic data from LSI and smoothness alone.
@@ -15,35 +15,7 @@ The actual iterated Gaussian ULA laws satisfy \(H_k\le e^{-\alpha hk}H_0+8hdL^2/
 \section{The target estimate and the conditional Lean statement}
 
 
-Work in a finite-dimensional real Hilbert space \(E\), \(n=\dim E\). Let \(U\) be differentiable with \(L\)-Lipschitz gradient, \(\mu\) a probability, and \(\nu=\pi_U\) a Gibbs target satisfying the smooth positive-density LSI \(2\alpha H_\nu\le J_\nu\). Here \(H_\nu(\rho)=\operatorname{KL}(\rho\|\nu)\) and \(J_\nu(r\nu)=\int\|\nabla\log r\|^2r\,d\nu\). Put \(P_t\rho=\operatorname{Law}(X-t\nabla U(X)+\sqrt{2t}Z)\), independently Gaussian, and \(\rho_k=P_h^k\mu\).
-
-
-
-For the independent-Gaussian update
-
-
-\[
-X_{k+1}=X_k-h\nabla U(X_k)+\sqrt{2h}\,Z_k,
-\qquad Z_k\sim\mathcal N(0,I),
-\]
-
-
-write \(\rho_k=\operatorname{Law}(X_k)\). The published Theorem 2 has the form
-
-
-\[
-0<h\leq\frac{\alpha}{4L^2}
-\quad\Longrightarrow\quad
-H_\nu(\rho_k)\leq e^{-\alpha hk}H_\nu(\rho_0)
-+\frac{8hnL^2}{\alpha}.
-\]
-
-
-The first term is the decaying contribution of initialization; the second is a step-size-dependent upper bound on persistent discretization error. The Lean theorem proves this same numerical bound for \texttt{ulaLaws}, using the target \texttt{ULA.gibbsMeasure U}, once its interpolation hypotheses are supplied. Its assumptions explicitly include \(\alpha>0\), \(L>0\), \(\alpha\leq L\), the step restriction, and the following analytic density-path data. This is a theorem about the actual transition, with additional premises; it is not yet a derivation of all premises from LSI and Lipschitzness.
-
-
-
-Proof: the time-zero identification gives finite KL at every \(\rho_k\). For each step, the identified probability path, finite Fisher/KL guards and LSI supply the scalar assumptions; the one-step method derives \(H_\nu(\rho_{k+1})\le e^{-\alpha h}H_\nu(\rho_k)+6h^2nL^2\). Apply the exact geometric recurrence and \(1-e^{-\alpha h}\ge(3/4)\alpha h\), and rewrite \(\rho_0=\mu\), to obtain the bound.
+For every index, derive the one-step recurrence from the preceding interpolation theorem. The numerical conditions \(\alpha\le L\), \(h\le\alpha/(4L^2)\) imply \(\alpha h\le1/4\). Apply \texttt{discrete\_entropy\_recurrence\_bound} and rewrite the initial value with \texttt{ulaEntropy\_zero}. This gives \(H_k\le e^{-\alpha hk}\operatorname{KL}(\mu\mid\pi_U)_{\mathbb R}+8hdL^2/\alpha\), conditional on the displayed analytic path hypotheses.
 
 
 
@@ -52,12 +24,7 @@ Proof: the time-zero identification gives finite KL at every \(\rho_k\). For eac
 \section{Why finite KL and Fisher information are separate obligations}
 
 
-The entropy is Mathlib's \texttt{InformationTheory.klDiv}, not a function chosen solely to satisfy a recurrence. This divergence and the Fisher information take values in \([0,\infty]\). Lean's real-valued comparisons use \texttt{ENNReal.toReal}; that operation sends infinity to zero, so a real inequality alone would not establish a meaningful finite-entropy estimate.
-
-
-
-
-\texttt{IsLogSobolev.entropy\_le\_fisher} therefore retains proofs that both extended quantities are finite before giving \(2\alpha H\leq J\) over the reals. The endpoint also retains finite KL along every identified interpolation path. \texttt{ula\_kl\_finite\_of\_interpolation} uses its zero-time identification to prove finite KL for the corresponding ULA law, including initialization. These are the guards that make \texttt{densityEntropy} and \texttt{ulaEntropy} faithful real representations of entropy in their applications.
+At time zero the supplied relative-density law identity gives \(r_{k,0}\nu=\rho_k\), because \texttt{interpolationLaw\_zero} returns its input law. Substitute this equality into finite KL of the time-zero density path. It yields finite actual KL of the algorithm law at every index.
 
 
 
@@ -66,28 +33,7 @@ The entropy is Mathlib's \texttt{InformationTheory.klDiv}, not a function chosen
 \section{Combine production, LSI, and the initial gradient moment}
 
 
-Define \(G_k=\operatorname{ulaGradientMoment}(k)=\int\|\nabla U(x)\|^2d\rho_k(x)\); squared-gradient integrability is a separate premise. For the current step set \(G_0=G_k\), \(H(t)=\operatorname{KL}(r_{k,t}\nu\|\nu)\) and \(I(t)=J_\nu(r_{k,t}\nu)\).
-
-
-
-The required estimates on \(0\leq t<h\) are
-
-
-\[
-2\alpha H(t)\leq I(t),\qquad
-H'(t)\leq-\frac34I(t)+t^2L^2G_0+2tnL^2,
-\]
-\[
-G_0\leq\frac{4L^2}{\alpha}H(0)+2nL.
-\]
-
-
-Also assume \(H(0)\geq0\), entropy continuity on \([0,h]\), the indicated right derivatives, \(n\geq0\), and the numerical regime \(0<\alpha\leq L\), \(0<h\leq\alpha/(4L^2)\). The gradient-moment estimate is an explicit input in the present endpoint, for every step's current law. It is not proved by naming an integral \texttt{ulaGradientMoment}.
-
-
-
-
-Substituting LSI into production leaves \(-3\alpha H(t)/2\), plus positive forcing. Because that forcing includes the initial entropy through \(G_0\), it is not enough simply to invoke exponential decay at rate \(3\alpha/2\). The scalar OneStep theorem bounds the forcing by \((\alpha/4)H(0)+(5/2)hnL^2\), integrates at rate \(3\alpha/2\), and uses \(e^{-3x/2}+x/4\le e^{-x}\) for \(x=\alpha h\le1/4\) to absorb the extra initial-entropy coefficient.
+Define \(G_k=\int\|\nabla U(x)\|^2d\rho_k(x)\) for the actual ULA law. Since Lean's ordinary integral is totalized, later hypotheses explicitly prove integrability of the squared gradient before treating \(G_k\) as an energy. The definition itself contains no entropy-moment estimate.
 
 
 
@@ -96,17 +42,11 @@ Substituting LSI into production leaves \(-3\alpha H(t)/2\), plus positive forci
 \section{The direct endpoint constructs the recurrence from the path hypotheses}
 
 
-Supply a family \(r_{k,t}\) with \(r_{k,t}\nu=P_t\rho_k\) for every \(k\) and \(t\in[0,h]\). Positivity and spatial \(C^1\) regularity make each density admissible for the LSI test class. Probability follows from the Gaussian law identification. Finite KL and Fisher information make the real LSI inequality legitimate. Continuity, right derivatives, the production bound, and the per-step gradient-moment bound supply the scalar theorem's remaining inputs.
+Identify the entropy path's endpoints using \texttt{interpolationLaw\_zero} and \texttt{interpolationLaw\_endpoint}: its time-zero entropy is \(H_k\), and its time-\(h\) entropy is \(H_{k+1}\). The law identity and probability preservation prove that every intermediate relative density is normalized.
 
 
 
-
-The zero-time and endpoint law identities turn \(H(0)\) and \(H(h)\) into the actual \(H_k\) and \(H_{k+1}\). \texttt{ula\_kl\_one\_step\_of\_interpolation} derives the coefficient-\(6\) estimate. \texttt{ula\_kl\_bound\_of\_interpolation} then applies the proved recurrence bound and rewrites the zero-step entropy as \(H_\nu(\mu)\). No discrete entropy recurrence is among the endpoint's assumptions.
-
-
-
-
-The potential differentiability and squared-gradient integrability premises remain explicit in this interface, alongside the quantified gradient-moment estimate. Their presence should not be read as a proof of that estimate.
+Apply the real LSI inequality using the explicit positive smooth density and finite KL/Fisher guards. The scalar \texttt{one\_step\_entropy\_of\_interpolation} then combines it with the supplied entropy derivative, production, and gradient-moment estimates. Rewriting the two endpoints yields \(H_{k+1}\le e^{-\alpha h}H_k+6h^2dL^2\). Those analytic interpolation premises remain explicit in this theorem.
 
 
 
