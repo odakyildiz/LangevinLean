@@ -164,7 +164,7 @@ def home_document(lib, config, notes, sources, parsed, math):
                '<div class="math-pane"><div class="pane-label">Mathematical statement</div>'+math(result['body'])
                +'</div><div class="lean-pane"><div class="pane-label">Lean statement</div>'
                +('<p class="correspondence-note">'+config['formal_note']+'</p>' if config.get('formal_note') else '')
-               +'<details class="statement-context"><summary>Imports and notation</summary><pre class="commands">'+E(context)+'</pre></details>'
+               +'<details class="statement-context"><summary>Imports and notation</summary>'+commands(context,f'statement-context-{i}','Copy Lean')+'</details>'
                +declaration_header(result['file'],result['name'],sources,parsed,page)
                +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
     body+='</section><section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'

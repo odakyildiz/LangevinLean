@@ -143,6 +143,13 @@ process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(
                    if m[1] is not None else next(rendered), text)
 
 
+def code_block(source, language=""):
+    label = "Copy Lean" if language.strip().lower() == "lean" else "Copy"
+    return ('<div class="archive-code"><div class="archive-code-actions">'
+            '<button type="button" class="archive-copy">' + label + '</button></div>'
+            '<pre><code>' + html.escape(source) + '</code></pre></div>')
+
+
 def markdown(text):
     # Protect fenced code before math, then extract math before ordinary
     # Markdown processing so formula pipes cannot become table separators.
@@ -150,8 +157,8 @@ def markdown(text):
     def token(s):
         raw.append(s)
         return f'@@RAW{len(raw)-1}@@'
-    text = re.sub(r'```[^\n]*\n(.*?)```',
-                  lambda m: token('<pre><code>'+html.escape(m[1])+'</code></pre>'), text, flags=re.S)
+    text = re.sub(r'```([^\n]*)\n(.*?)```',
+                  lambda m: token(code_block(m[2], m[1])), text, flags=re.S)
     text = TEX.sub(lambda m: token(mathematics(m[0])), text)
     def inline(s):
         def code_link(match):
@@ -241,7 +248,7 @@ def exposition(sources):
     body = markdown((EXPO/'README.md').read_text())
     body = body.replace('<h2 id="mathematical-statement">',
                         proof_map_section(sources, mathematics, katex_css()) + '<h2 id="mathematical-statement">', 1)
-    exact = '<section id="exact-lean"><h2>Exact final Lean declaration</h2><p>This is copied directly from Theorem.lean. The proof body is omitted from this exposition.</p><pre><code>'+html.escape(statement)+'</code></pre></section>'
+    exact = '<section id="exact-lean"><h2>Exact final Lean declaration</h2><p>This is copied directly from Theorem.lean. The proof body is omitted from this exposition.</p>' + code_block(statement, 'lean') + '</section>'
     data = {p: hashlib.sha256(s.encode()).hexdigest() for p,s in sources}
     data['IPLA/Standalone.lean'] = hashlib.sha256((HERE/'Standalone.lean').read_bytes()).hexdigest()
     (EXPO/'source_manifest.json').write_text(json.dumps(data, indent=2)+'\n')

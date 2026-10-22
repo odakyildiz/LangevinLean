@@ -27,21 +27,55 @@
   search?.addEventListener('input', filter);
   if (search) filter();
   let statusTimer;
-  document.querySelectorAll('[data-copy]').forEach(button => {
+  function fallbackCopy(value) {
+    const previous = document.activeElement;
+    const selection = window.getSelection();
+    const ranges = selection ? Array.from({ length: selection.rangeCount }, (_, i) => selection.getRangeAt(i).cloneRange()) : [];
+    const input = document.createElement('textarea');
+    input.value = value;
+    input.readOnly = true;
+    input.setAttribute('aria-label', 'Lean source to copy');
+    input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.append(input);
+    try {
+      input.focus({ preventScroll: true });
+      input.select();
+      input.setSelectionRange(0, value.length);
+      return typeof document.execCommand === 'function' && document.execCommand('copy');
+    } finally {
+      input.remove();
+      previous?.focus({ preventScroll: true });
+      if (selection) {
+        selection.removeAllRanges();
+        ranges.forEach(range => selection.addRange(range));
+      }
+    }
+  }
+  async function copyText(value) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try { await navigator.clipboard.writeText(value); return true; } catch (_) { /* Local files may deny clipboard access. */ }
+    }
+    return fallbackCopy(value);
+  }
+  document.querySelectorAll('[data-copy], [data-copy-lean]').forEach(button => {
     button.addEventListener('click', async () => {
-      const value = document.getElementById(button.dataset.copy).textContent;
+      const value = button.hasAttribute('data-copy-lean')
+        ? Array.from(button.closest('.code-wrap').querySelectorAll('.line-text'), line => line.textContent).join('\n')
+        : document.getElementById(button.dataset.copy).textContent;
       const status = document.querySelector('#action-status');
+      let copied = false;
       try {
-        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
-        else {
-          const input = document.createElement('textarea');
-          input.value = value; document.body.append(input); input.select();
-          const copied = document.execCommand('copy'); input.remove();
-          if (!copied) throw Error('copy unavailable');
-        }
-        status.textContent = 'Copied.';
-      } catch (_) { status.textContent = 'Select the command text to copy it.'; }
-      clearTimeout(statusTimer); statusTimer = setTimeout(() => { status.textContent = ''; }, 3000);
+        copied = await copyText(value);
+      } catch (_) { /* Some browsers block both clipboard methods. */ }
+      const label = button.dataset.copyLabel || button.textContent;
+      button.dataset.copyLabel = label;
+      clearTimeout(button.copyResetTimer);
+      button.textContent = copied ? 'Copied' : 'Copy unavailable';
+      button.copyResetTimer = setTimeout(() => { button.textContent = label; }, 2500);
+      if (status) {
+        status.textContent = copied ? 'Copied plain text.' : 'Copy is unavailable in this browser. Open the linked source file to select its text.';
+        clearTimeout(statusTimer); statusTimer = setTimeout(() => { status.textContent = ''; }, 4000);
+      }
     });
   });
   document.querySelector('#print-page')?.addEventListener('click', () => window.print());

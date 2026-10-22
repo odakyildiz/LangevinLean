@@ -43,27 +43,70 @@
   });
   document.querySelectorAll('.full-proof').forEach(item => item.addEventListener('toggle', updateFullLabel));
   document.getElementById('print-document').addEventListener('click', () => window.print());
-  async function copyText(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      try { await navigator.clipboard.writeText(text); return true; } catch (_) { /* file URLs can deny clipboard access */ }
-    }
+  function fallbackCopy(text) {
+    const active = document.activeElement;
+    const selection = window.getSelection();
+    const ranges = selection ? Array.from({ length: selection.rangeCount }, (_, i) => selection.getRangeAt(i).cloneRange()) : [];
     const area = document.createElement('textarea');
     area.value = text;
-    area.style.cssText = 'position:fixed;left:-10000px;top:0';
+    area.readOnly = true;
+    area.setAttribute('aria-label', 'Lean code to copy');
+    Object.assign(area.style, { position: 'fixed', top: '0', left: '0', width: '1px', height: '1px', opacity: '0' });
     document.body.appendChild(area);
-    area.select();
-    const copied = document.execCommand('copy');
-    area.remove();
+    let copied = false;
+    try {
+      area.focus({ preventScroll: true });
+      area.select();
+      area.setSelectionRange(0, area.value.length);
+      copied = typeof document.execCommand === 'function' && document.execCommand('copy');
+    } finally {
+      area.remove();
+      if (active && typeof active.focus === 'function') active.focus({ preventScroll: true });
+      if (selection) {
+        selection.removeAllRanges();
+        ranges.forEach(range => selection.addRange(range));
+      }
+    }
     return copied;
   }
+  async function copyText(text) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try { await navigator.clipboard.writeText(text); return true; } catch (_) { /* file URLs can deny clipboard access */ }
+    }
+    return fallbackCopy(text);
+  }
+  const embeddedSources = JSON.parse(document.getElementById('lean-sources').textContent);
+  document.querySelectorAll('pre.note-code').forEach(code => {
+    const actions = document.createElement('div');
+    actions.className = 'code-label';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy-code';
+    button.setAttribute('data-copy-next', '');
+    button.textContent = 'Copy Lean';
+    actions.appendChild(button);
+    code.before(actions);
+  });
   document.querySelectorAll('.copy-code').forEach(button => {
+    const originalLabel = button.textContent;
+    let resetTimer;
     button.addEventListener('click', async () => {
-      const code = document.getElementById(button.dataset.code);
-      const text = [...code.querySelectorAll('.line-text')].map(line => line.textContent).join('\n');
-      announce(await copyText(text) ? 'Lean code copied.' : 'Select the Lean text to copy it.');
+      const code = button.hasAttribute('data-copy-next')
+        ? button.parentElement.nextElementSibling
+        : document.getElementById(button.dataset.code);
+      if (!code) return;
+      const lines = [...code.querySelectorAll('.line-text')];
+      const text = code.dataset.role === 'module' && Object.prototype.hasOwnProperty.call(embeddedSources, code.dataset.source)
+        ? embeddedSources[code.dataset.source]
+        : lines.length ? lines.map(line => line.textContent).join('\n') : code.textContent;
+      let copied = false;
+      try { copied = await copyText(text); } catch (_) { /* Keep a clear failure message if selection copying is unavailable. */ }
+      button.textContent = copied ? 'Copied' : 'Copy unavailable';
+      announce(copied ? 'Lean code copied.' : 'Copy is unavailable in this browser. Use Save file for the complete source.');
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { button.textContent = originalLabel; }, 2500);
     });
   });
-  const embeddedSources = JSON.parse(document.getElementById('lean-sources').textContent);
   document.querySelectorAll('[data-download]').forEach(button => {
     button.addEventListener('click', () => {
       const path = button.dataset.download;

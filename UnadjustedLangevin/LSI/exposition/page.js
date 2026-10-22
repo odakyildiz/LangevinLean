@@ -113,6 +113,7 @@
     try {
       area.focus({ preventScroll: true });
       area.select();
+      area.setSelectionRange(0, area.value.length);
       copied = typeof document.execCommand === 'function' && document.execCommand('copy');
     } finally {
       area.remove();
@@ -125,19 +126,30 @@
     return copied;
   }
 
-  async function copySource(path) {
-    const source = sourceFor(path);
+  async function copySource(path, action) {
+    let source = sourceFor(path);
     if (source === null) { announce('This module is not in the embedded source library.'); return; }
+    if (action && action.classList.contains('copy-excerpt')) {
+      const start = Number(action.dataset.start);
+      const end = Number(action.dataset.end);
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) return;
+      source = source.split(/\r?\n/).slice(start - 1, end).join('\n');
+    }
+    let copied = false;
     try {
-      let copied = false;
       if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
         try { await navigator.clipboard.writeText(source); copied = true; } catch (_) { /* Local files may need the selection fallback. */ }
       }
       if (!copied) copied = fallbackCopy(source);
-      announce(copied ? `Copied ${path}.` : 'Copy is unavailable in this browser. Use Save source to get the exact file.');
-    } catch (_) {
-      announce('Copy is unavailable in this browser. Use Save source to get the exact file.');
+    } catch (_) { /* Selection copying may be denied as well. */ }
+    if (action) {
+      const originalLabel = action.dataset.copyLabel || action.textContent;
+      action.dataset.copyLabel = originalLabel;
+      clearTimeout(action.copyResetTimer);
+      action.textContent = copied ? 'Copied' : 'Copy unavailable';
+      action.copyResetTimer = setTimeout(() => { action.textContent = originalLabel; }, 2500);
     }
+    announce(copied ? `Copied ${path}.` : 'Copy is unavailable in this browser. Use Save source to get the exact file.');
   }
 
   function saveSource(path) {
@@ -215,7 +227,7 @@
     const action = event.target.closest('button.copy-source, button.save-source');
     if (action) {
       const path = action.dataset.source;
-      if (action.classList.contains('copy-source')) void copySource(path);
+      if (action.classList.contains('copy-source')) void copySource(path, action);
       else saveSource(path);
       return;
     }

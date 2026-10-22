@@ -141,7 +141,8 @@ def code(path, start, end, sources, page, role="declaration", name=None, identif
                    for n, line in enumerate(sources[path].splitlines()[start-1:end], start))
     return (f'<div class="code-wrap"{identifier_attr}><div class="code-meta">'
             f'<a href="{relative(path,page)}">{E(path)}:{start}</a>'
-            + (f'<code>{E(name)}</code>' if name else '<span>Complete module context</span>') + '</div>'
+            + (f'<code>{E(name)}</code>' if name else '<span>Complete module context</span>')
+            + f'<button class="copy copy-lean" type="button" data-copy-lean aria-label="Copy Lean code from {E(path)}, lines {start} to {end}">Copy Lean</button></div>'
             f'<pre class="lean-code" data-source="{path}" data-start="{start}" data-end="{end}" '
             f'data-role="{role}"{attrs}><code>{rows}</code></pre></div>')
 
@@ -296,8 +297,8 @@ def module_document(path, note, sources, parsed, math):
     return page, shell(page, note['title'], body, lib)
 
 
-def commands(value, identifier):
-    return (f'<button class="copy" type="button" data-copy="{identifier}">Copy commands</button>'
+def commands(value, identifier, label="Copy commands"):
+    return (f'<button class="copy" type="button" data-copy="{identifier}">{E(label)}</button>'
             f'<pre class="commands"><code id="{identifier}">{E(value)}</code></pre>')
 
 

@@ -184,7 +184,9 @@ def code_block(path,start,end,sources,identifier="",role="excerpt"):
     lines = sources[path].splitlines()
     attr = f' id="{identifier}"' if identifier else ""
     output = [f'<span class="lean-line"><span class="line-number" aria-hidden="true">{n}</span><span class="line-text">{highlight(lines[n-1])}</span></span>' for n in range(start,end+1)]
-    return f'<pre class="lean-code"{attr} data-source="{path}" data-start="{start}" data-end="{end}" data-role="{role}" aria-label="Lean source, lines {start} to {end}"><code>'+"".join(output)+'</code></pre>'
+    actions = ('<div class="code-label"><button class="copy-code" type="button" '
+               'data-copy-next>Copy Lean</button></div>') if role == "excerpt" else ""
+    return actions + f'<pre class="lean-code"{attr} data-source="{path}" data-start="{start}" data-end="{end}" data-role="{role}" aria-label="Lean source, lines {start} to {end}"><code>'+"".join(output)+'</code></pre>'
 
 
 # Editor abbreviations verified against the installed Lean 4 extension.

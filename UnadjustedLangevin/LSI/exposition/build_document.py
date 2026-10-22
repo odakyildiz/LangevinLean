@@ -123,7 +123,9 @@ def declaration_card(declaration, step_id, index, sources, parsed, shown):
     return (f'<details class="lean-proof" open><summary>Exact Lean · '
             f'<code>{html.escape(name)}</code></summary><div class="code-label">'
             f'<a class="module-link" href="#{source_id(path, decl["start"])}">'
-            f'{location}</a><a href="{relative(path)}">Open file</a></div>' +
+            f'{location}</a><a href="{relative(path)}">Open file</a>'
+            f'<button type="button" class="copy-source copy-excerpt" data-source="{path}" '
+            f'data-start="{decl["start"]}" data-end="{decl["end"]}">Copy Lean</button></div>' +
             code_block(path, decl["start"], decl["end"], sources,
                        f"X-{step_id}-{index}", name) + '</details>')
 

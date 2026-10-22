@@ -256,15 +256,15 @@ def page_css():
 .source-toolbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:17px 22px;background:#f0f6f8;border-bottom:1px solid #dce4e8}
 .source-toolbar h2{font:600 16px/1.4 ui-monospace,monospace;margin:0;padding:0;border:0;overflow-wrap:anywhere}
 .source-actions{display:flex;align-items:center;gap:18px;white-space:nowrap;font-size:14px}
-.source-actions button{border:1px solid #819ca8;border-radius:6px;background:#fff;color:#18313f;font:inherit;padding:7px 12px;cursor:pointer}
-.source-actions button:focus-visible,a:focus-visible{outline:3px solid #007d91;outline-offset:4px}
-.source-position{margin:0;padding:8px 22px;background:#fff;font-size:13px;color:#526875}
+.archive-code-actions{display:flex;justify-content:flex-end;margin-top:1rem}.archive-code pre{margin-top:.5rem}.archive-copy,.source-actions button{border:1px solid #819ca8;border-radius:6px;background:#fff;color:#18313f;font:inherit;padding:7px 12px;cursor:pointer}
+.archive-copy:focus-visible,.source-actions button:focus-visible,a:focus-visible{outline:3px solid #007d91;outline-offset:4px}
+.archive-copy-status{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:20;background:#18313f;color:#fff;padding:.6rem 1rem;border-radius:5px;font:13px/1.5 system-ui,sans-serif}.archive-copy-status:empty{display:none}.source-copy-status{font-size:13px;margin:0;padding:0 22px}.source-copy-status:empty{display:none}.source-position{margin:0;padding:8px 22px;background:#fff;font-size:13px;color:#526875}
 .source-code{margin:0;border-radius:0;max-height:65vh;overflow:auto;padding:20px 0;font:13px/1.65 ui-monospace,monospace;tab-size:2}
 .source-line{display:block;padding:0 22px 0 0;min-width:max-content}
 .source-line:before{content:attr(data-line);display:inline-block;width:4em;padding-right:1.5em;text-align:right;color:#8aa5b3;user-select:none}
 .source-line.highlight{background:#294e60;box-shadow:inset 3px 0 #8ed8de}
 @media(max-width:700px){.source-groups{grid-template-columns:1fr 1fr}.lean-dialog{width:calc(100vw - 20px);max-width:none}.source-toolbar{align-items:flex-start;padding:14px;gap:12px;flex-direction:column}.source-code{font-size:12px}.proof-scroll{padding:8px}}
-@media print{.proof-svg{min-width:0}.proof-scroll{overflow:visible;padding:0}.proof-figure{break-inside:avoid}.lean-dialog{display:none}.source-library:not([open]){display:none}}
+@media print{.archive-code-actions,.archive-copy-status{display:none}.proof-svg{min-width:0}.proof-scroll{overflow:visible;padding:0}.proof-figure{break-inside:avoid}.lean-dialog{display:none}.source-library:not([open]){display:none}}
 """
 
 
@@ -274,25 +274,85 @@ def source_browser(sources):
 <dialog id="lean-source-dialog" class="lean-dialog" aria-labelledby="lean-source-title">
   <header class="source-toolbar">
     <h2 id="lean-source-title"></h2>
-    <div class="source-actions"><a id="lean-source-raw" target="_blank" rel="noopener">Open .lean file ↗</a><button id="lean-source-close" type="button">Close</button></div>
+    <div class="source-actions"><button id="lean-source-copy" type="button">Copy file</button><a id="lean-source-raw" target="_blank" rel="noopener">Open .lean file ↗</a><button id="lean-source-close" type="button">Close</button></div>
   </header>
   <p id="lean-source-position" class="source-position"></p>
+  <p id="lean-source-copy-status" class="source-copy-status" role="status" aria-live="polite"></p>
   <pre class="source-code" id="lean-source-code" tabindex="0" aria-label="Lean source with line numbers"><code id="lean-source-content"></code></pre>
 </dialog>
+<p id="lean-copy-status" class="archive-copy-status" role="status" aria-live="polite"></p>
 <script id="lean-source-data" type="application/json">""" + payload + """</script>
 <script>
 (() => {
   const dialog = document.getElementById('lean-source-dialog');
-  if (!dialog || typeof dialog.showModal !== 'function') return;
   const sources = JSON.parse(document.getElementById('lean-source-data').textContent);
   const content = document.getElementById('lean-source-content');
   const code = document.getElementById('lean-source-code');
+  let currentSource = null;
+  let statusTimer;
+  function fallbackCopy(text) {
+    const active = document.activeElement;
+    const selection = window.getSelection();
+    const ranges = selection ? Array.from({ length: selection.rangeCount }, (_, i) => selection.getRangeAt(i).cloneRange()) : [];
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.readOnly = true;
+    area.setAttribute('aria-label', 'Lean code to copy');
+    Object.assign(area.style, { position: 'fixed', top: '0', left: '0', width: '1px', height: '1px', opacity: '0' });
+    // A modal dialog makes the document body inert, so keep its fallback inside the dialog.
+    (dialog && dialog.open ? dialog : document.body).appendChild(area);
+    let copied = false;
+    try {
+      area.focus({ preventScroll: true });
+      area.select();
+      area.setSelectionRange(0, area.value.length);
+      copied = typeof document.execCommand === 'function' && document.execCommand('copy');
+    } finally {
+      area.remove();
+      if (active && typeof active.focus === 'function') active.focus({ preventScroll: true });
+      if (selection) {
+        selection.removeAllRanges();
+        ranges.forEach(range => selection.addRange(range));
+      }
+    }
+    return copied;
+  }
+  async function copyText(text, button) {
+    let copied = false;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try { await navigator.clipboard.writeText(text); copied = true; } catch (_) { /* File previews may need selection copying. */ }
+      }
+      if (!copied) copied = fallbackCopy(text);
+    } catch (_) { /* Report copy restrictions without losing the displayed source. */ }
+    const originalLabel = button.dataset.copyLabel || button.textContent;
+    button.dataset.copyLabel = originalLabel;
+    clearTimeout(button.copyResetTimer);
+    button.textContent = copied ? 'Copied' : 'Copy unavailable';
+    button.copyResetTimer = setTimeout(() => { button.textContent = originalLabel; }, 2500);
+    const status = document.getElementById(dialog && dialog.open ? 'lean-source-copy-status' : 'lean-copy-status');
+    clearTimeout(statusTimer);
+    status.textContent = copied ? 'Code copied.' : 'Copy is unavailable in this browser. Open the source file to copy it.';
+    statusTimer = setTimeout(() => { status.textContent = ''; }, 5000);
+  }
+  document.querySelectorAll('.archive-copy').forEach(button => {
+    button.addEventListener('click', () => {
+      const source = button.closest('.archive-code').querySelector('pre code');
+      if (source) void copyText(source.textContent, button);
+    });
+  });
+  if (!dialog || typeof dialog.showModal !== 'function') return;
+  document.getElementById('lean-source-copy').addEventListener('click', event => {
+    if (currentSource !== null) void copyText(currentSource, event.currentTarget);
+  });
   document.addEventListener('click', (event) => {
     const link = event.target.closest('a[data-lean-source]');
     if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     const path = link.dataset.leanSource;
     if (!(path in sources)) return;
     event.preventDefault();
+    currentSource = sources[path];
+    document.getElementById('lean-source-copy-status').textContent = '';
     const declaration = link.dataset.declaration;
     const lines = sources[path].split('\\n');
     const first = declaration ? lines.findIndex(line =>
