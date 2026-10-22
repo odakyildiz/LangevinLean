@@ -59,6 +59,7 @@ def verify():
     workflows=ROOT/'.github/workflows'
     assert not any(workflows.glob('*.yml')) and not any(workflows.glob('*.yaml')), 'GitHub Actions workflows are prohibited; run checks locally'
     sources,parsed,notes=load()
+    from site_content import CONFIG
     manifest=json.loads((ROOT/'docs/coverage.json').read_text())
     assert set(manifest['modules'])==set(sources),'Missing module page in coverage manifest'
     for path,checksum in manifest['inputs'].items():
@@ -71,7 +72,7 @@ def verify():
         if path not in cache:
             doc=Page();doc.feed(path.read_text());cache[path]=doc
         return cache[path]
-    outputs=[module_page(p) for p in sources]+[l+'/exposition/index.html' for l in LIBRARIES]+['index.html']
+    outputs=[module_page(p) for p in sources]+[l+'/exposition/index.html' for l in CONFIG]+['index.html']
     links=blocks=0
     for path in outputs:
         target=ROOT/path
@@ -113,21 +114,24 @@ def verify():
             assert any(b['data-role']=='module' and b['data-source']==source for b in doc.blocks),f'Missing full module: {source}'
             assert (ROOT/latex_path(source)).read_text().endswith('\\end{document}\n'),f'Incomplete LaTeX: {source}'
             assert manifest['modules'][source]['source_sha256']==digest(source),f'Stale source: {source}'
-    for lib in LIBRARIES:
+    for lib in CONFIG:
         doc=parse(ROOT/lib/'exposition/index.html')
         assert len(doc.boxes)>=8,f'Missing logical proof map: {lib}'
         assert {'main-results','verification','proof-map','modules'}<=set(doc.ids),f'Missing standard section: {lib}'
         assert any(b['data-role']=='statement' for b in doc.blocks),f'Missing exact main theorem: {lib}'
+        if '/LSI' in lib:
+            assert 'mathematical-proof' in doc.ids,f'Missing full entropy argument: {lib}'
+            assert (ROOT/'docs/latex'/lib/'Overview.tex').is_file(),f'Missing entropy LaTeX proof: {lib}'
     for path in ['UnadjustedLangevin/exposition/main_theorem.html',
                  'UnadjustedLangevin/exposition/beginner_guide.html',
                  'UnadjustedLangevin/exposition/dist/index.html',
-                 'UnadjustedLangevin/LSI/exposition/index.html',
-                 'IPLA/LSI/exposition/index.html','IPLA/exposition/proof.html',
+                 'UnadjustedLangevin/LSI/exposition/proof.html',
+                 'IPLA/LSI/exposition/proof.html','IPLA/exposition/proof.html',
                  'ProximalLangevin/exposition/proof.html']:
         assert parse(ROOT/path).robots==['noindex, nofollow, noarchive'],f'Missing legacy indexing restrictions: {path}'
     print(f'Verified {len(sources)} module pages and LaTeX exports; '
           f'{sum(len(d) for d in parsed.values())} explained declarations; '
-          f'{blocks} exact source excerpts; {links} links/resources; three standard overviews.')
+          f'{blocks} exact source excerpts; {links} links/resources; {len(CONFIG)} standard overviews.')
 
 
 if __name__=='__main__':

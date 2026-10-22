@@ -6,45 +6,82 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/GibbsScore.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/GibbsScore.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 Differentiability, an \(L\)-Lipschitz gradient, and finite Gibbs normalization suffice for \(\int\|\nabla U\|^2d\pi\le Ld\). Strong convexity is used only by the final wrapper to derive normalization.
 
 
-\section{Translate the Gibbs weight}
+\section{gibbsWeight mul exp score le}
 
 
-The smooth upper model \(U(x+v)\le U(x)+\langle\nabla U(x),v\rangle+\frac L2\|v\|^2\) rearranges to
-
-\[e^{-U(x)}e^{-\langle\nabla U(x),v\rangle}\le e^{L\|v\|^2/2}e^{-U(x+v)}.\]
-
-Integrate, translate \(x+v\), and cancel the finite positive partition function. Substitution \(v\mapsto-tv\) gives \(\mathbb E_\pi e^{t\langle\nabla U,v\rangle}\le e^{Lt^2\|v\|^2/2}\). The finite exponential bound also proves the integrability needed for the subgaussian-MGF predicate.
+The descent lemma gives \(U(x+v)\le U(x)+\langle\nabla U(x),v\rangle+(L/2)\|v\|^2\). Negate and exponentiate, then rearrange to \(e^{-U(x)}e^{-\langle\nabla U(x),v\rangle}\le e^{L\|v\|^2/2}e^{-U(x+v)}\). Lean first establishes the real inequality and then embeds it in the extended nonnegative numbers.
 
 
 
-\noindent Lean declarations: \texttt{gibbsWeight\_mul\_exp\_score\_le}, \texttt{gibbs\_score\_lmgf\_le}, \texttt{gibbs\_score\_subgaussian}.
+\noindent Lean declarations: \texttt{gibbsWeight\_mul\_exp\_score\_le}.
 
-\section{Recover a second moment from the MGF}
+\section{gibbs score lmgf le}
 
 
-The even power series of cosh yields \(a^2\le e^a+e^{-a}-2\). Apply this with \(a=\sqrt{2s}\,X\), integrate, and use the two MGF bounds to obtain
-
-\[\mathbb E X^2\le\frac{e^{cs}-1}{s}\quad(s>0).\]
-
-Taking \(s\downarrow0\) gives \(\mathbb E X^2\le c\). Subgaussian integrability supplies every moment before the integral comparisons are used.
+Integrate the pointwise exponential-score bound. Translation invariance gives \(\int e^{-U(x+v)}dx=Z_U\); normalization cancels this factor, leaving \(\mathbb E_{\pi_U}e^{-\langle\nabla U,v\rangle}\le e^{L\|v\|^2/2}\). Finiteness of \(Z_U\) is explicit because extended inverse cancellation needs it.
 
 
 
-\noindent Lean declarations: \texttt{sq\_le\_exp\_add\_exp\_neg\_sub\_two}, \texttt{integral\_sq\_le\_of\_subgaussian}.
+\noindent Lean declarations: \texttt{gibbs\_score\_lmgf\_le}.
 
-\section{Sum an orthonormal basis}
-
-
-For each orthonormal basis vector \(e_i\), the scalar score has subgaussian parameter \(L\), so \(\mathbb E\langle\nabla U,e_i\rangle^2\le L\). Parseval and the finite sum give \(\mathbb E\|\nabla U\|^2\le\sum_{i=1}^dL=Ld\), and show \(\nabla U\in L^2(\pi)\). The strong-convexity version inserts the finite-partition theorem from Gibbs. This translation argument does not assume a Hessian or use an unproved integration-by-parts formula for the score.
+\section{gibbs score subgaussian}
 
 
+Apply the preceding bound with the vector \(-tv\), for every real \(t\). The exponent becomes \(t\langle\nabla U,v\rangle\) and the right side is \(e^{t^2L\|v\|^2/2}\). This is exactly \texttt{HasSubgaussianMGF} with variance proxy \(L\|v\|^2\); the proof also establishes exponential integrability required by that structure.
 
-\noindent Lean declarations: \texttt{integral\_norm\_sq\_gradient\_gibbs\_le}, \texttt{memLp\_gradient\_gibbsMeasure}, \texttt{integral\_norm\_sq\_gradient\_gibbs\_le\_of\_strongConvex}.
+
+
+\noindent Lean declarations: \texttt{gibbs\_score\_subgaussian}.
+
+\section{sq le exp add exp neg sub two}
+
+
+The series \(\cosh a=\sum_{n\ge0}a^{2n}/(2n)!\) has nonnegative terms, so retaining its first two terms gives \(\cosh a\ge1+a^2/2\). Substitute \(2\cosh a=e^a+e^{-a}\) and rearrange to \(a^2\le e^a+e^{-a}-2\). Lean uses \texttt{Real.hasSum\_cosh} with \texttt{sum\_le\_hasSum}, explicitly proving nonnegativity of every discarded even-power term.
+
+
+
+\noindent Lean declarations: \texttt{sq\_le\_exp\_add\_exp\_neg\_sub\_two}.
+
+\section{integral sq le of subgaussian}
+
+
+Integrate \(t^2X^2\le e^{tX}+e^{-tX}-2\), giving \(t^2\mathbb EX^2\le2(e^{ct^2/2}-1)\). Subgaussianity provides the exponential integrability and hence the square integrability needed here. Divide by \(t^2\) for \(t\ne0\), and let \(t\to0\) to obtain \(\mathbb EX^2\le c\). Lean computes the scalar limit before applying closedness of order.
+
+
+
+\noindent Lean declarations: \texttt{integral\_sq\_le\_of\_subgaussian}.
+
+\section{integral norm sq gradient gibbs le}
+
+
+Choose an orthonormal basis \((e_i)_{i=1}^d\) and use Parseval: \(\|\nabla U(x)\|^2=\sum_i\langle\nabla U(x),e_i\rangle^2\). Each coordinate is subgaussian with proxy \(L\), hence has second moment at most \(L\). Finite-sum integrability permits integration term by term, yielding \(\mathbb E_{\pi_U}\|\nabla U\|^2\le Ld\).
+
+
+
+\noindent Lean declarations: \texttt{integral\_norm\_sq\_gradient\_gibbs\_le}.
+
+\section{memLp gradient gibbsMeasure}
+
+
+The coordinate subgaussian bounds prove integrability of every squared gradient coordinate. Summing over the finite orthonormal basis proves integrability of \(\|\nabla U\|^2\). Lipschitz continuity provides strong measurability, and the \texttt{MemLp} square criterion packages those facts as \(\nabla U\in L^2(\pi_U)\).
+
+
+
+\noindent Lean declarations: \texttt{memLp\_gradient\_gibbsMeasure}.
+
+\section{integral norm sq gradient gibbs le of strongConvex}
+
+
+Strong convexity with \(m>0\) supplies the finite-partition premise of the score theorem. Substitute that proof into the first-order smoothness result to obtain \(\mathbb E_{\pi_U}\|\nabla U\|^2\le Ld\). The strong convexity constant is used for normalization here; it does not appear in the sharp score bound.
+
+
+
+\noindent Lean declarations: \texttt{integral\_norm\_sq\_gradient\_gibbs\_le\_of\_strongConvex}.
 
 \end{document}

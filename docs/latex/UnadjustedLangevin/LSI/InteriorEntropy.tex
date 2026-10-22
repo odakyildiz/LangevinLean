@@ -1,0 +1,53 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Compare entropy using derivatives only at positive times}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/InteriorEntropy.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+Gaussian regularization naturally supplies derivatives for positive times. The scalar comparison here uses ordinary derivatives on \(0<t<T\) and continuity on \([0,T]\); neither endpoint needs a derivative. A second theorem computes actual KL derivatives from local relative-density data only in that open interval. The existing global ULA endpoint retains its earlier interface; these lemmas provide a more flexible route for a future positive-time construction.
+
+
+\section{Use an integrating factor without differentiating at the endpoints}
+
+
+Let \(a>0\), let \(H\) be continuous on \([0,T]\), and suppose it has derivative \(H'(t)\le-aH(t)+b\) for \(0<t<T\). Then for every \(t\in[0,T]\),
+
+\[H(t)\le e^{-at}H(0)+\frac ba(1-e^{-at}).\]
+
+Define \(F(t)=e^{at}(H(t)-b/a)\). The product and chain rules give
+
+\[F'(t)=e^{at}\bigl(a(H(t)-b/a)+H'(t)\bigr)\le0.\]
+
+The Lean proof calls the transformed function \texttt{F}, proves its endpoint continuity as \texttt{hFcont}, calculates its derivative in \texttt{hFderiv}, and proves the sign in \texttt{hFnonpos}. The division cancellation \(a(b/a)=b\) uses \(a\ne0\). The mean-value theorem \texttt{antitoneOn\_of\_deriv\_nonpos} then proves that \(F\) is nonincreasing on the closed interval. Its derivative hypotheses concern only the interior, identified with \((0,T)\) by \texttt{interior\_Icc}.
+
+
+
+Consequently \(F(t)\le F(0)=H(0)-b/a\). Multiplication by the positive factor \(e^{-at}\), together with \(e^{-at}e^{at}=1\), yields the stated affine comparison. The final arithmetic rearrangement is \texttt{nlinarith}. Endpoint continuity is essential in this proof; endpoint differentiability is unnecessary.
+
+
+
+\noindent Lean declarations: \texttt{affine\_decay\_of\_deriv\_le\_interior}.
+
+\section{Differentiate actual KL at an interior interpolation time}
+
+
+Fix \(0<t<T\). Assume that, at every interior time \(u\), \(r_u\) is positive, continuously differentiable, normalized relative to the probability target \(\nu\), and has the local dominated entropy regularity recorded in \texttt{LocalEntropyRegularity}. Then
+
+\[\frac d{dt}D_{\mathrm{KL}}(r_t\nu\Vert\nu)=\int \dot r_t(x)\bigl(\log r_t(x)+1\bigr)\,d\nu(x).\]
+
+The local regularity theorem already differentiates the ordinary integral \(\int r_u\log r_u\,d\nu\). To identify that integral with actual KL in a whole neighborhood of \(t\), the proof uses \((0,T)\in\mathcal N(t)\). For each nearby \(u\), \texttt{densityEntropy\_eq\_integral} applies using positivity, normalization, measurability, and integrability from \texttt{data u hu}. This gives the eventual equality \texttt{hnear}.
+
+
+
+\texttt{HasDerivAt.congr\_of\_eventuallyEq} transfers the already proved integral derivative to actual KL. The statement requests no density or local domination information at time zero. To combine it with the preceding scalar theorem, continuity of the actual entropy at the two endpoints still has to be justified separately.
+
+
+
+\noindent Lean declarations: \texttt{densityEntropy\_hasDerivAt\_of\_regular\_interior}.
+
+\end{document}

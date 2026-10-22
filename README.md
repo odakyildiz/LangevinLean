@@ -5,8 +5,8 @@ Lean formalizations of unadjusted Langevin (ULA), interacting particle Langevin
 paired with the exact Lean declarations, including every supporting subfile.
 The shared theory is organized for reuse by further methods.
 
-Open the [documentation homepage](index.html), then choose ULA, IPLA, or proximal
-algorithms. Each overview has standalone mathematical results beside Lean,
+Open the [documentation homepage](index.html), then choose strongly convex ULA,
+ULA under LSI, strongly convex IPLA, or proximal algorithms. Each overview has standalone mathematical results beside Lean,
 verification commands, and a proof diagram whose boxes open detailed HTML
 proof pages. Every Lean file has a module page and downloadable LaTeX exposition.
 Relative links and bundled mathematical typesetting work offline after cloning;
@@ -64,13 +64,17 @@ Then visit `http://127.0.0.1:8000/`. Serve the repository root so links from
 exposition pages to `.lean` files retain their relative paths. The committed
 HTML includes the offline fonts, formula rendering, and source viewers.
 
-- **ULA:** [theorem, workflow, and proof diagram](UnadjustedLangevin/exposition/index.html),
+- **ULA under Strong Convexity:** [theorem, workflow, and proof diagram](UnadjustedLangevin/exposition/index.html),
   [library guide](UnadjustedLangevin/README.md), and
   [canonical theorem](UnadjustedLangevin/CanonicalULA.lean).
-- **IPLA:** [theorem, workflow, and proof diagram](IPLA/exposition/index.html),
+- **ULA under LSI:** [detailed mathematical argument, Lean scope, and proof diagram](UnadjustedLangevin/LSI/exposition/index.html),
+  with a downloadable LaTeX proof and [source-by-source archive](UnadjustedLangevin/LSI/exposition/proof.html).
+- **IPLA under Strong Convexity:** [theorem, workflow, and proof diagram](IPLA/exposition/index.html),
   [statement and assumption correspondence](IPLA/exposition/README.md),
   [final theorem](IPLA/Theorem.lean), and
   [standalone Lean file](IPLA/Standalone.lean).
+  Its [LSI analogue](IPLA/LSI/exposition/index.html) has a separate full page,
+  linked as a footnote from the IPLA theorem page.
 - **Proximal algorithms:** [three main bounds, workflow, and proof diagram](ProximalLangevin/exposition/index.html),
   [detailed proofs and v3 paper audit](ProximalLangevin/exposition/proof.html),
   and [scope and module guide](ProximalLangevin/README.md). Corrected MYIPLA,
@@ -87,9 +91,14 @@ The Lean endpoint `ULA.LSI.ula_kl_bound_of_interpolation` is **conditional** on
 explicit density, interpolation, and moment hypotheses, including
 $\alpha\le L$. The guide identifies the remaining analytic work needed for a
 complete proof from only the published LSI and smoothness assumptions. The
-offline proof page explains every LSI declaration beside its exact Lean source
+offline proof pages explain every LSI declaration beside its exact Lean source
 and compares the argument with the paper; the [module guide](UnadjustedLangevin/LSI/README.md)
-lists the remaining obligations and build instructions.
+lists the remaining obligations and build instructions. The development now
+constructs the actual positive-time Gaussian mixture and Gibbs-relative density,
+the state-dependent conditional drift with its Jensen energy and flux identities,
+the coupling-to-gradient-moment estimate, and an interior-time entropy comparison.
+LSI-to-transport, entropy regularity and the admissible entropy weak equation still
+require formal proofs before the main Lean theorem becomes unconditional.
 
 The [IPLA entropy extension](IPLA/LSI/exposition/index.html) derives a general
 particle bound from the actual lifted Gibbs target's LSI constant $\beta_N$.

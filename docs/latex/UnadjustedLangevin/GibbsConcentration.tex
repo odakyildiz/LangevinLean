@@ -6,41 +6,73 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/GibbsConcentration.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/GibbsConcentration.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 For a continuous \(q\)-strongly convex potential \(F\), \(q>0\), and an explicitly supplied minimizer \(z\), this module proves the equilibrium radius \(\int\|x-z\|^2d\pi_F\le2d/q\). The proof uses dilation and convexity, so it also applies to the nonsmooth potentials used by proximal algorithms.
 
 
-\section{Quadratic growth and integrability}
+\section{strongConvex mode quadratic bound}
 
 
-Apply strong convexity at the midpoint of \(z\) and \(x\), and bound its value below by the minimum \(F(z)\). Rearranging yields \(F(x)\ge F(z)+(q/4)\|x-z\|^2\). Translation invariance of Lebesgue measure and the Gaussian integral then establish integrability of both \(e^{-F(x)}\) and \(\|x-z\|^2e^{-F(x)}\). No derivative of \(F\) occurs.
+Use strong convexity at the midpoint of \(z\) and \(x\), then use minimality \(F(z)\le F((z+x)/2)\). Rearranging yields \(F(x)\ge F(z)+(q/4)\|x-z\|^2\). This argument uses values of \(F\), not a derivative or a first-order optimality assertion at the minimizer.
 
 
 
-\noindent Lean declarations: \texttt{strongConvex\_mode\_quadratic\_bound}, \texttt{integrable\_exp\_neg\_of\_continuous\_strongConvex\_mode}, \texttt{integrable\_sq\_dist\_mul\_exp\_neg\_of\_continuous\_strongConvex\_mode}.
+\noindent Lean declarations: \texttt{strongConvex\_mode\_quadratic\_bound}.
+
+\section{integrable exp neg of continuous strongConvex mode}
+
+
+For \(q>0\), the midpoint bound gives \(e^{-F(x)}\le e^{-F(z)}e^{-(q/4)\|x-z\|^2}\). Translation invariance reduces integrability of the majorant to the centered Gaussian integral. Continuity makes the density measurable, so domination proves integrability without differentiability of \(F\).
+
+
+
+\noindent Lean declarations: \texttt{integrable\_exp\_neg\_of\_continuous\_strongConvex\_mode}.
+
+\section{integrable sq dist mul exp neg of continuous strongConvex mode}
+
+
+Multiply the translated Gaussian bound by \(\|x-z\|^2\). Translation preserves Lebesgue measure, and a quadratic times a decaying Gaussian is integrable. Lean transports that integrability through \(x\mapsto x-z\) and then applies the nonnegative domination theorem to the desired weighted moment.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_sq\_dist\_mul\_exp\_neg\_of\_continuous\_strongConvex\_mode}.
 
 \section{Contract toward the mode}
 
 
-Let \(Z=\int e^{-F}\) and \(M=\int\|x-z\|^2e^{-F(x)}dx\). For \(0<r<1\), strong convexity along \(z+r(x-z)\), the minimum property, and \(1+a\le e^a\) imply
-
-\[e^{-F(x)}\left(1+\tfrac q2r(1-r)\|x-z\|^2\right)\le e^{-F(z+r(x-z))}.\]
-
-Integrate and use the dilation Jacobian \(r^{-d}\) to obtain \(Z+\frac q2r(1-r)M\le r^{-d}Z\).
+For \(0<r<1\), compare \(F(z+r(x-z))\) with \(F(x)\) using strong convexity and \(F(z)\le F(x)\). Exponentiating and using \(e^u\ge1+u\) produces a linear correction in \(\|x-z\|^2\). The dilation \(x\mapsto z+r(x-z)\) multiplies volume by \(r^d\), hence \(Z+(q/2)r(1-r)M\le r^{-d}Z\), with \(M=\int\|x-z\|^2e^{-F(x)}dx\).
 
 
 
 \noindent Lean declarations: \texttt{gibbs\_mode\_dilation\_inequality}.
 
-\section{Differentiate the dilation inequality at one}
+\section{integral sq dist mul exp neg le of continuous strongConvex mode}
 
 
-Multiply by \(r^d\). The differentiable scalar function \(\Phi(r)=r^d[Z+(q/2)r(1-r)M]\) satisfies \(\Phi(r)\le\Phi(1)=Z\) for \(r<1\), hence its left derivative at one is nonnegative. Since \(\Phi\prime(1)=dZ-(q/2)M\), we get \(M\le(2d/q)Z\). Positivity and finiteness of \(Z\) allow division. The weighted integral formula both proves integrability under \(\pi_F\) and gives the stated normalized radius.
+Subtract \(Z\) from the dilation inequality and divide by \(1-r>0\). As \(r\uparrow1\), \((r^{-d}-1)/(1-r)\to d\), while \((q/2)rM\to(q/2)M\). The order-closed limit theorem yields \(M\le(2d/q)Z\). Lean proves the one-sided derivative limit of the scalar power before passing the inequality to the limit.
 
 
 
-\noindent Lean declarations: \texttt{integral\_sq\_dist\_mul\_exp\_neg\_le\_of\_continuous\_strongConvex\_mode}, \texttt{integrable\_sq\_dist\_gibbs\_of\_continuous\_strongConvex\_mode}, \texttt{integral\_sq\_dist\_gibbs\_le\_of\_continuous\_strongConvex\_mode}.
+\noindent Lean declarations: \texttt{integral\_sq\_dist\_mul\_exp\_neg\_le\_of\_continuous\_strongConvex\_mode}.
+
+\section{integrable sq dist gibbs of continuous strongConvex mode}
+
+
+The density-measure integrability criterion changes the desired \(\pi_F\)-integral into a constant multiple of \(\int\|x-z\|^2e^{-F(x)}dx\). Its finiteness follows from the continuous, strongly convex mode estimate. No score moment or smoothness assumption is introduced during normalization.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_sq\_dist\_gibbs\_of\_continuous\_strongConvex\_mode}.
+
+\section{integral sq dist gibbs le of continuous strongConvex mode}
+
+
+First prove \(Z>0\), \(Z<\infty\), and integrability of the weighted distance. Then write \(\int\|x-z\|^2d\pi_F=M/Z\) and apply \(M\le(2d/q)Z\). Cancellation is justified by positivity of \(Z\); the result is \(\mathbb E_{\pi_F}\|X-z\|^2\le2d/q\), including \(d=0\).
+
+
+
+\noindent Lean declarations: \texttt{integral\_sq\_dist\_gibbs\_le\_of\_continuous\_strongConvex\_mode}.
 
 \end{document}

@@ -1,6 +1,8 @@
 # LSI proof page
 
-Open [index.html](index.html) directly in a browser. The complete page works
+Open [index.html](index.html) for the theorem, detailed mathematical argument,
+Lean statements, proof roadmap, and LaTeX download. The source-by-source archive
+is [proof.html](proof.html). The archive works
 offline, including mathematical typesetting and fonts, exact Lean proofs,
 source search, and copying or saving the embedded source files. Its contents
 are also linked from the repository homepage and the strongly convex ULA page.
@@ -17,6 +19,8 @@ Regenerate and verify from the repository root:
 ```sh
 python3 -B UnadjustedLangevin/LSI/exposition/build_document.py
 python3 -B UnadjustedLangevin/LSI/exposition/verify_document.py
+python3 -B docs/build_site.py
+python3 -B docs/verify_site.py
 ```
 
 Building uses Python 3, Node.js, and the existing vendored KaTeX from the ULA

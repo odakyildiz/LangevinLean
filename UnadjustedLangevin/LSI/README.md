@@ -29,7 +29,12 @@ incomplete. The current endpoint additionally takes $\alpha\le L$ as an input.
 The wrapper `ULA.LSI.ula_kl_bound_of_regular_interpolation` in
 [RegularizedTheorem.lean](RegularizedTheorem.lean) derives the entropy
 derivatives and production estimate from density regularity and a weak equation;
-its law identification, drift-energy, and gradient-moment inputs remain explicit.
+its analytic inputs remain explicit. Additional bridge modules now construct the
+positive-time Gaussian mixture and its Gibbs-relative density, prove positivity,
+finiteness and spatial continuity, construct the conditional drift field and
+its energy estimate, and derive the gradient-moment estimate from an explicit
+entropy-cost coupling. These bridges do not yet construct all of the wrapper's
+regularity and weak-equation data from LSI alone.
 
 ## Entropy and normalization
 
@@ -72,6 +77,10 @@ then gives the coefficient $8$ in the displayed theorem.
 | [EntropyFlow.lean](EntropyFlow.lean) | Conditional continuous-time decay of actual KL at rate $2\alpha$. |
 | [ULALaw.lean](ULALaw.lean) | Actual Gaussian ULA laws, the frozen-drift interpolation, probability preservation, and endpoint identification. |
 | [GaussianDrift.lean](GaussianDrift.lean) | Exact displacement moments and the joint gradient-error energy bound for the actual independent-Gaussian interpolation. |
+| [InterpolationDensity.lean](InterpolationDensity.lean) | Explicit positive-time Gaussian mixture and Gibbs-relative densities; actual-law identification, positivity, pointwise finiteness, normalization and spatial continuity, including from singular initial laws. |
+| [ConditionalDrift.lean](ConditionalDrift.lean) | Construct the measurable conditional drift by Doob–Dynkin factorization; prove conditional Jensen, measurable-set flux and integrable inner-test identities, and the required density-weighted energy bound. |
+| [GradientMoment.lean](GradientMoment.lean) | Derive gradient square integrability and the precise entropy-dependent moment bound from a finite-cost coupling with an explicit entropy-cost estimate, using the proved target score moment. |
+| [InteriorEntropy.lean](InteriorEntropy.lean) | Affine comparison needing derivatives only at interior times; actual-KL derivative identification from positive-time local regularity. |
 | [OneStep.lean](OneStep.lean) | The coefficient-$6$ scalar estimate from explicit interpolation primitives. |
 | [DiscreteEntropy.lean](DiscreteEntropy.lean) | Exact recurrence iteration and the coefficient-$8$ envelope. |
 | [Theorem.lean](Theorem.lean) | Conditional one-step and iterated KL bounds for the actual ULA laws. |
@@ -81,39 +90,50 @@ then gives the coefficient $8$ in the displayed theorem.
 
 ## Remaining analytic obligations
 
-The endpoint requires a positive smooth density path identified with the actual
-frozen-drift law at every interpolation time, finite KL and Fisher information,
-entropy continuity and right derivatives, the entropy-production estimate, and
-a differentiable potential with an integrable squared-gradient moment satisfying
+`InterpolationDensity` constructs the actual Gaussian mixture at every
+positive time and the explicit relative density
+$r_t(y)=Z e^{U(y)}q_t(y)$. Its law identity, strict positivity, pointwise
+finiteness, normalization and spatial continuity are proved. This does not yet
+supply spatial $C^1$ regularity, time differentiation, finite Fisher information,
+or the uniform integrable domination needed for entropy differentiation.
+
+`ConditionalDrift` constructs a strongly measurable field
 
 $$
-\mathbb E_{\rho_k}\|\nabla U\|^2
-\le\frac{4L^2}{\alpha}H_\nu(\rho_k)+2nL.
+e_t(Y_t)=\mathbb E[\nabla U(Y_t)-\nabla U(X_0)\mid Y_t]
 $$
 
-`Regularity` derives actual-KL continuity and right derivatives from local
-domination and pointwise density derivatives; the KL derivative is a conclusion
-of these data. Together with `ScoreCalculus` and `DriftError`, it derives the
-Fisher/drift production bound from an admissible forced weak equation and
-integrable drift-error energy. Applying these results still needs
-the construction and regularity of the actual Gaussian interpolation density,
-and its weak equation for the noncompact entropy test. A compact-test generator
-identity alone does not supply the admissibility of this test.
+and proves its squared-energy bound by conditional Jensen. It also proves
+measurable-set flux identities and transfer of integrable noncompact
+inner-product tests between the joint law and the state law. The remaining
+weak-equation obligation is to prove the actual Gaussian interpolation's
+forced Fokker–Planck identity and justify its entropy test. A compact-test
+generator identity does not by itself establish admissibility of the
+noncompact test $\log r_t+1$.
 
-`GaussianDrift` proves the displacement and gradient-error energy estimates on
-the actual joint law $\rho_k\otimes\mathcal N(0,I)$. The remaining link is to
-identify the weak equation's drift-error field as a conditional mean of that
-joint gradient discrepancy and prove the conditional Jensen bound that
-transfers its energy estimate to the density-level error field.
+`LocalEntropyRegularity` derives actual-KL continuity and derivatives from
+local dominated density data. The existing ULA endpoint requests these data
+throughout $[0,h]$, including a two-sided neighborhood at zero.
+`InteriorEntropy` proves an alternative scalar comparison using only interior
+derivatives and endpoint continuity, together with a positive-time actual-KL
+derivative theorem. These new lemmas do not change the existing endpoint's
+initial-law interface; entropy continuity at zero and the full positive-time
+analytic construction still need to be assembled.
 
-`LocalEntropyRegularity` currently requires a two-sided time neighborhood,
-including at $t=0$. The Gaussian interpolation naturally starts at $t=0$;
-an appropriate extension or a one-sided endpoint regularity argument remains
-part of the density construction.
+`GradientMoment` proves, for any finite-cost coupling $c$ of $\rho$ with the
+normalized Gibbs target,
 
-The gradient-moment estimate and the compatibility $\alpha\le L$ remain
-explicit inputs. The LSI-to-Talagrand step used in the paper's route to the
-gradient-moment estimate is also unformalized.
+$$
+\mathbb E_\rho\|\nabla U\|^2
+\le 2L^2\int\|x-y\|^2\,dc(x,y)+2nL,
+$$
+
+and derives square integrability of the gradient under $\rho$. An explicit
+coupling estimate $\int\|x-y\|^2dc\le 2H_\nu(\rho)/\alpha$ then gives the exact
+moment bound used by the ULA proof. The LSI-to-Talagrand implication that
+provides such transport control remains unformalized, and the existing
+endpoint still displays its gradient-moment input. The compatibility
+$\alpha\le L$ also remains an explicit hypothesis.
 
 Compile the full development from the repository root:
 

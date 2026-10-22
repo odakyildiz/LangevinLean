@@ -6,41 +6,118 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/Metropolis.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/Metropolis.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 The Metropolis correction preserves the initial marginal whenever the accepted proposal flow is invariant under swapping its two states. A positive proposal-pair density makes this symmetry explicit.
 
 
-\section{Split the proposal flow}
+\section{acceptedFlow}
 
 
-For a joint proposal measure \(\nu(dx,dy)\) and a measurable acceptance \(0\le a\le1\), define accepted flow \(a\nu\), rejected flow \((1-a)\nu\), and output \((a\nu)_2+((1-a)\nu)_1\). Since \(a+(1-a)=1\), the two weighted measures sum to \(\nu\). A swap-invariant measure has equal first and second marginals. Therefore, if the accepted flow is swap invariant, its second marginal can be replaced by its first, and the output is \(\nu_1\).
-
-
-
-\noindent Lean declarations: \texttt{acceptedFlow}, \texttt{rejectedFlow}, \texttt{metropolisOutput}, \texttt{acceptedFlow\_add\_rejectedFlow}, \texttt{marginals\_eq\_of\_swap\_invariant}, \texttt{metropolisOutput\_eq\_initial}.
-
-\section{Weights commute with measurable pushforward}
-
-
-For measurable \(f\) and weight \(w\), integrating indicators and using the pushforward formula proves \(f_\#[(w\circ f)\mu]=w(f_\#\mu)\). The measurable-equivalence version specializes this identity. It allows an accept/reject rule defined in proposal-pair coordinates to be moved through a proposal-generating transformation.
+Weight the current/proposal joint measure \(\nu(dx,dy)\) by acceptance probability \(a(x,y)\). Thus \(A(dx,dy)=a(x,y)\nu(dx,dy)\), with \texttt{ofReal} embedding its real nonnegative weight. The bounds \(0\le a\le1\) are supplied in the conservation theorems below.
 
 
 
-\noindent Lean declarations: \texttt{map\_weighted\_comp}, \texttt{map\_weighted\_comp\_equiv}.
+\noindent Lean declarations: \texttt{acceptedFlow}.
 
-\section{The Metropolis minimum is symmetric}
+\section{rejectedFlow}
 
 
-For a strictly positive density \(w(x,y)\), set \(a(x,y)=\min\{1,w(y,x)/w(x,y)\}\). Then
-
-\[w(x,y)a(x,y)=\min\{w(x,y),w(y,x)\}.\]
-
-Thus the accepted flow has the symmetric minimum density. If the base measure is swap invariant, so is this weighted flow. Apply the accepted/rejected decomposition to conclude exact preservation of the initial marginal. Positivity of \(w\) justifies the ratio algebra.
+The rejected pair measure is \(R(dx,dy)=(1-a(x,y))\nu(dx,dy)\). It retains the proposed state as an auxiliary coordinate; the eventual output maps it to the original state \(x\), preserving all rejection mass.
 
 
 
-\noindent Lean declarations: \texttt{metropolisAcceptance}, \texttt{weight\_mul\_metropolisAcceptance}, \texttt{acceptedFlow\_density}, \texttt{metropolisOutput\_density\_eq\_initial}.
+\noindent Lean declarations: \texttt{rejectedFlow}.
+
+\section{metropolisOutput}
+
+
+Define the output as \(\operatorname{snd}_*A+\operatorname{fst}_*R\). Accepted moves output \(y\), while rejected moves output \(x\). This is the complete transition measure and requires no renormalization of accepted moves.
+
+
+
+\noindent Lean declarations: \texttt{metropolisOutput}.
+
+\section{acceptedFlow add rejectedFlow}
+
+
+Since \(0\le a\le1\), the two nonnegative weights add to one after embedding in extended scalars. Additivity of with-density measures then gives \(A+R=\nu\). The proof checks both nonnegativity guards before combining \texttt{ofReal} values.
+
+
+
+\noindent Lean declarations: \texttt{acceptedFlow\_add\_rejectedFlow}.
+
+\section{marginals eq of swap invariant}
+
+
+The identity \(\operatorname{fst}\circ\operatorname{swap}=\operatorname{snd}\) and pushforward composition give \(\operatorname{snd}_*\nu=\operatorname{fst}_*(\operatorname{swap}_*\nu)\). If the pair measure is swap invariant, this is \(\operatorname{fst}_*\nu\), proving equality of its marginals.
+
+
+
+\noindent Lean declarations: \texttt{marginals\_eq\_of\_swap\_invariant}.
+
+\section{metropolisOutput eq initial}
+
+
+Detailed balance makes the two marginals of the accepted flow equal. Replace its second marginal by its first, then combine the accepted and rejected first marginals using \(A+R=\nu\). The output is therefore \(\operatorname{fst}_*\nu\), exactly the original state law.
+
+
+
+\noindent Lean declarations: \texttt{metropolisOutput\_eq\_initial}.
+
+\section{map weighted comp}
+
+
+For a measurable \(f\) and weight \(w\), prove \(f_*((w\circ f)\mu)=w(f_*\mu)\). On each measurable set, the pushforward definition and nonnegative change-of-variables formula turn both sides into \(\int\mathbf1_A(f(x))w(f(x))d\mu(x)\). This is the weight-transport identity used by the actual MALA proposal map.
+
+
+
+\noindent Lean declarations: \texttt{map\_weighted\_comp}.
+
+\section{map weighted comp equiv}
+
+
+Specialize the preceding pushforward/weight identity to a measurable equivalence. Its bundled measurability supplies the required hypothesis. The application below uses the coordinate swap equivalence to prove symmetry of an accepted density.
+
+
+
+\noindent Lean declarations: \texttt{map\_weighted\_comp\_equiv}.
+
+\section{metropolisAcceptance}
+
+
+For positive joint density \(w(x,y)\), define \(a(x,y)=\min(1,w(y,x)/w(x,y))\). The ratio is reverse flow divided by forward flow; positivity ensures both its meaning and nonnegative acceptance.
+
+
+
+\noindent Lean declarations: \texttt{metropolisAcceptance}.
+
+\section{weight mul metropolisAcceptance}
+
+
+Distribute the positive factor \(w(x,y)\) through the minimum. Cancellation of the nonzero denominator gives \(w(x,y)a(x,y)=\min(w(x,y),w(y,x))\). This algebra is the reason the accepted joint density is symmetric.
+
+
+
+\noindent Lean declarations: \texttt{weight\_mul\_metropolisAcceptance}.
+
+\section{acceptedFlow density}
+
+
+Two successive changes of density multiply their weights. Combine the original positive density \(w\) and acceptance \(a\), then apply the weight/minimum identity. The accepted flow becomes the base measure weighted by \(\min(w,w\circ\operatorname{swap})\), a visibly symmetric density.
+
+
+
+\noindent Lean declarations: \texttt{acceptedFlow\_density}.
+
+\section{metropolisOutput density eq initial}
+
+
+The base measure is swap invariant, and the accepted minimum density is unchanged by swapping its arguments. The weight-transport theorem therefore proves accepted-flow detailed balance. The general accepted/rejected conservation theorem then identifies the output with the initial marginal.
+
+
+
+\noindent Lean declarations: \texttt{metropolisOutput\_density\_eq\_initial}.
 
 \end{document}

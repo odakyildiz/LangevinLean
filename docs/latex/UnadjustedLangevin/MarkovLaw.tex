@@ -6,37 +6,118 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/MarkovLaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/MarkovLaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 The path-space law of an iid-noise recursion agrees with the repeated one-step transition \(\mu\mapsto F_\#(\mu\otimes\eta)\). The proof explicitly establishes independence of the current state and the fresh innovation.
 
 
-\section{Only the finite prefix affects the current state}
+\section{finiteNoiseChain}
 
 
-Define the state after \(n\) updates using only a vector of \(n\) innovations. Induction proves equality with the full-path recursion and measurability of this finite-prefix map. Product-coordinate independence makes \((Z_0,\ldots,Z_{n-1})\) independent of \(Z_n\). This is the probabilistic fact needed to justify the Markov transition formula, rather than just an informal reading of the recursion.
-
-
-
-\noindent Lean declarations: \texttt{finiteNoiseChain}, \texttt{finiteNoiseChain\_eq}, \texttt{finiteNoiseChain\_measurable}, \texttt{iid\_prefix\_independent\_fresh}.
-
-\section{Derive the one-step law identity}
-
-
-Define \(K\mu=F_\#(\mu\otimes\eta)\), \(\mu_0=\mu\), \(\mu_{n+1}=K\mu_n\). The independent initialization and finite-prefix/fresh independence give \(\operatorname{Law}(X_n,Z_n)=\operatorname{Law}(X_n)\otimes\eta\). Push through \(F\) to derive \(\operatorname{chainLaw}_{n+1}=K(\operatorname{chainLaw}_n)\). Starting at the common initial law and inducting gives equality with the iterated Markov laws.
+Evaluate the same recursion using only a finite prefix \((w_0,\ldots,w_{n-1})\). At the successor, recurse on the first \(n\) coordinates and use the final coordinate as the next innovation. This makes finite dependence explicit for the fresh-noise independence proof.
 
 
 
-\noindent Lean declarations: \texttt{markovStep}, \texttt{markovLaws}, \texttt{chainLaw\_joint\_fresh}, \texttt{chainLaw\_succ\_iid}, \texttt{chainLaw\_eq\_markovLaws}.
+\noindent Lean declarations: \texttt{finiteNoiseChain}.
 
-\section{Preserve probability and transfer to an arbitrary source}
-
-
-A product of probability measures has total mass one, and a measurable pushforward preserves that mass. Thus every \(K\mu\) and every iterated law is a probability measure. The realization theorem from ChainLaw then identifies a recursion on any probability space with these same iterated laws, under iid noise and independence of its initialization.
+\section{finiteNoiseChain eq}
 
 
+Induct on prefix length. Restricting an infinite path to its first \(n\) entries gives the same previous state, and the final finite coordinate is \(w_n\). The successor updates thus agree, identifying finite-prefix and infinite-path implementations pointwise.
 
-\noindent Lean declarations: \texttt{markovStep\_isProbability}, \texttt{markovLaws\_isProbability}, \texttt{noiseDrivenChain\_law\_eq\_markovLaws}.
+
+
+\noindent Lean declarations: \texttt{finiteNoiseChain\_eq}.
+
+\section{finiteNoiseChain measurable}
+
+
+The zero map is the initial projection. At the successor, restriction to the earlier finite coordinates and evaluation of the last coordinate are measurable; combine them with the measurable update and the induction hypothesis. This proves the state depends measurably on a finite prefix.
+
+
+
+\noindent Lean declarations: \texttt{finiteNoiseChain\_measurable}.
+
+\section{iid prefix independent fresh}
+
+
+The index sets \(\{0,\ldots,n-1\}\) and \(\{n\}\) are disjoint. Independence of the coordinate family on the iid product source therefore gives independence of the whole prefix vector and the next coordinate. This is stronger than pairwise independence of individual past entries.
+
+
+
+\noindent Lean declarations: \texttt{iid\_prefix\_independent\_fresh}.
+
+\section{markovStep}
+
+
+Define \(M_\eta(\mu)=F_*(\mu\otimes\eta)\). Its product measure means the innovation is fresh and independent of the current state. The subsequent theorem derives that independence for the canonical recursion, rather than assuming it at each step.
+
+
+
+\noindent Lean declarations: \texttt{markovStep}.
+
+\section{markovLaws}
+
+
+Set \(\mu_0=\mu\), \(\mu_{n+1}=M_\eta(\mu_n)\). These are iterated independent-noise transition laws. The recursion alone does not yet assert that a previously defined sample-path algorithm realizes them.
+
+
+
+\noindent Lean declarations: \texttt{markovLaws}.
+
+\section{chainLaw joint fresh}
+
+
+The current state is a measurable function of initialization and the first \(n\) noises. Product-source independence and prefix/fresh independence make it independent of \(w_n\). Its marginal is \texttt{chainLaw}, and the innovation marginal is \(\eta\); their joint law is therefore the product of those actual marginals.
+
+
+
+\noindent Lean declarations: \texttt{chainLaw\_joint\_fresh}.
+
+\section{chainLaw succ iid}
+
+
+The pointwise successor is \(F(X_n,w_n)\). Push the proved product joint law of \((X_n,w_n)\) through \(F\); this yields \(\mu_{n+1}=M_\eta(\mu_n)\) for the canonical recursion laws. No later-time state/noise independence is assumed.
+
+
+
+\noindent Lean declarations: \texttt{chainLaw\_succ\_iid}.
+
+\section{chainLaw eq markovLaws}
+
+
+The canonical path law and the iterated Markov law have the same initial value and the same successor equation. Induction on \(n\) identifies them at every index. This closes the connection between sample-path and transition-law definitions.
+
+
+
+\noindent Lean declarations: \texttt{chainLaw\_eq\_markovLaws}.
+
+\section{markovStep isProbability}
+
+
+The independent product of two probability measures has mass one. A measurable pushforward preserves that total mass, so \texttt{markovStep} is again a probability measure.
+
+
+
+\noindent Lean declarations: \texttt{markovStep\_isProbability}.
+
+\section{markovLaws isProbability}
+
+
+Induct from the initial probability and apply \texttt{markovStep\_isProbability} at each successor. This proves normalization of every transition iterate and provides the probability instances used in later law comparisons.
+
+
+
+\noindent Lean declarations: \texttt{markovLaws\_isProbability}.
+
+\section{noiseDrivenChain law eq markovLaws}
+
+
+First identify the independent iid realization with the canonical product-path output law. Then apply \texttt{chainLaw\_eq\_markovLaws}. Every realization satisfying the original initialization/noise assumptions consequently has the same proved Markov iterate law.
+
+
+
+\noindent Lean declarations: \texttt{noiseDrivenChain\_law\_eq\_markovLaws}.
 
 \end{document}

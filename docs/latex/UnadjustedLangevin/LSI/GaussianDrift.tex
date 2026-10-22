@@ -6,60 +6,72 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/LSI/GaussianDrift.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/GaussianDrift.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 For \(Y_t=X-t\nabla U(X)+\sqrt{2t}Z\), independent Gaussian noise makes the cross term vanish, giving \(\mathbb E\|Y_t-X\|^2=t^2\mathbb E\|\nabla U(X)\|^2+2td\). Gradient Lipschitzness bounds the corresponding frozen-gradient error by \(L^2\) times this moment.
 
 
-\section{The Gaussian dimension factor and the vanishing cross term}
+\section{integral norm sq stdGaussian}
 
 
-The noise contribution is exactly dimension dependent: \(\mathbb E\|Z\|^2=n\). Lean proves this by expanding the squared norm in an orthonormal basis and using unit variance of each standard Gaussian coordinate. This works in every finite dimension, including zero.
-
-
-
-
-More generally, if \(g\) is square integrable under a probability law \(\mu\), independence and the zero Gaussian mean give
-
-
-\[
-\mathbb E_{\mu\otimes\mathcal N(0,I)}
-\|a\,g(X)+bZ\|^2
-=a^2\mathbb E_\mu\|g(X)\|^2+b^2n.
-\]
-
-
-The proof first establishes integrability of the squared terms and the inner-product cross term. The latter integral is \(\langle\mathbb Eg(X),\mathbb EZ\rangle=0\). Thus cancellation is an equality on the independent product law, rather than an estimate that hides a factor of two. This exact calculation is the source of the sharp \(2tn\) noise term in the displacement identity.
+Choose a finite orthonormal basis and use \(\|Z\|^2=\sum_i\langle e_i,Z\rangle^2\). Each standard Gaussian coordinate has second moment one, proved using its dual variance formula and zero mean. Gaussian \(L^2\) membership justifies integrating the finite sum, giving \(\mathbb E\|Z\|^2=d\), also when \(d=0\).
 
 
 
-\noindent Lean declarations: \texttt{integral\_norm\_sq\_stdGaussian}, \texttt{integral\_norm\_sq\_affine\_stdGaussian}.
+\noindent Lean declarations: \texttt{integral\_norm\_sq\_stdGaussian}.
 
-\section{Exact displacement, followed by a Lipschitz gradient-error bound}
-
-
-The initial position cancels from the displacement: \(Y_t-X=-t\nabla U(X)+\sqrt{2t}\,Z\). Let \(G_k=\mathbb E_{\rho_k}\|\nabla U(X)\|^2\). Provided the gradient is square integrable, the affine Gaussian identity gives
+\section{integral norm sq affine stdGaussian}
 
 
-\[
-\mathbb E\|Y_t-X\|^2=t^2G_k+2tn.
-\]
-
-
-No second moment of \(X\) itself is needed for this identity. The separate integrability proof concerns the displacement and the gradient. Applying the \(L\)-Lipschitz gradient bound pointwise, squaring, and integrating yields
-
-
-\[
-\mathbb E\|\nabla U(Y_t)-\nabla U(X)\|^2
-\leq L^2(t^2G_k+2tn).
-\]
-
-
-\texttt{frozen\_gradient\_error\_energy} proves both integrability of the joint gradient discrepancy and this bound for the actual product-law interpolation. It does not yet identify a density-level drift field or transfer the bound through conditional expectation; that bridge is a distinct remaining task.
+Expand \(\|ag(X)+bZ\|^2=a^2\|g(X)\|^2+2ab\langle g(X),Z\rangle+b^2\|Z\|^2\). The \(L^2\) hypothesis on \(g\) and Gaussian \(L^2\) membership prove all three terms integrable on the independent product.
 
 
 
-\noindent Lean declarations: \texttt{malaProposal\_sub\_initial}, \texttt{frozen\_displacement\_second\_moment}, \texttt{frozen\_gradient\_error\_energy}, \texttt{frozen\_displacement\_memLp}.
+The product bilinear-integral theorem factors the cross expectation as \(\langle\mathbb Eg(X),\mathbb EZ\rangle=0\). The product marginals identify the first energy, and \texttt{integral\_norm\_sq\_stdGaussian} identifies the noise energy. Hence the integral is \(a^2\mathbb E\|g\|^2+b^2d\).
+
+
+
+\noindent Lean declarations: \texttt{integral\_norm\_sq\_affine\_stdGaussian}.
+
+\section{malaProposal sub initial}
+
+
+Subtract \(x\) from \(T_t(x,z)=x-t\nabla U(x)+\sqrt{2t}z\). Additive cancellation leaves \(-t\nabla U(x)+\sqrt{2t}z\). This algebraic identity shows why a state second moment is unnecessary when only displacement energy is estimated.
+
+
+
+\noindent Lean declarations: \texttt{malaProposal\_sub\_initial}.
+
+\section{frozen displacement second moment}
+
+
+Apply the affine Gaussian energy formula with \(a=-t\), \(b=\sqrt{2t}\), and \(g=\nabla U\). For \(t\ge0\), \(b^2=2t\), yielding \(\mathbb E\|T_t-X\|^2=t^2\mathbb E\|\nabla U(X)\|^2+2td\). Independence and centering have already discharged the cross term.
+
+
+
+\noindent Lean declarations: \texttt{frozen\_displacement\_second\_moment}.
+
+\section{frozen gradient error energy}
+
+
+Lipschitzness gives \(\|\nabla U(T_t)-\nabla U(X)\|^2\le L^2\|T_t-X\|^2\) pointwise. Convert integrability of the squared gradient to \(L^2\) membership, so the displacement has an integrable squared norm.
+
+
+
+Continuity of the proposal and gradient proves measurability of the squared discrepancy. Domination by the integrable displacement energy proves its integrability; \texttt{integral\_mono} and the exact displacement moment then give \(L^2(t^2G_0+2td)\). This is a joint-law estimate; a state-space conditional drift is constructed separately.
+
+
+
+\noindent Lean declarations: \texttt{frozen\_gradient\_error\_energy}.
+
+\section{frozen displacement memLp}
+
+
+Pull the square-integrable initial gradient to the first product coordinate and the square-integrable Gaussian identity to the second. Their scalar multiples and sum lie in \(L^2\). The displacement identity rewrites this sum as \(T_t(X,Z)-X\).
+
+
+
+\noindent Lean declarations: \texttt{frozen\_displacement\_memLp}.
 
 \end{document}

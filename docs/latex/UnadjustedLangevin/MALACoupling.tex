@@ -6,50 +6,244 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/MALACoupling.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/MALACoupling.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 A common Gaussian proposal couples unadjusted ULA with MALA. Under a stable small step, their expected distance grows by at most the Gibbs-average rejected displacement at each step. This is an auxiliary approximation for stationarity.
 
 
-\section{Define both transitions and their joint step}
+\section{malaAcceptance}
 
 
-Set \(a(x,y)=\min(1,e^{R(x,y)})\); positivity of the exponential gives \(0\le a\le1\). The proposal and acceptance are measurable by continuity of \(U\) and its Lipschitz gradient. ULA always outputs its proposal; MALA outputs its proposal with probability \(a\) and otherwise retains its state. The coupled step proposes from \(x\) and \(y\) using the same \(\xi\), and uses only the MALA-side acceptance to decide whether the second state moves.
-
-
-
-\noindent Lean declarations: \texttt{malaAcceptance}, \texttt{malaProposalAcceptance}, \texttt{malaAcceptance\_nonneg}, \texttt{malaAcceptance\_le\_one}, \texttt{malaProposal\_measurable}, \texttt{malaProposalAcceptance\_measurable}, \texttt{ulaLawStep}, \texttt{malaOneStep}, \texttt{malaCoupledStep}.
-
-\section{Identify the two marginals}
-
-
-The accepted and rejected weights sum to one. Thus the first marginal of the coupled step is exactly the ULA step applied to the old first marginal. The second is exactly MALA applied to the old second marginal. The first marginal is a probability measure, so the whole coupled measure is one. Starting on the diagonal \(X_0=Y_0\) and iterating gives first marginal \(P_h^n\mu\); if \(\pi\) is MALA invariant, the second marginal remains \(\pi\) at every time.
+Define \(a_h(x,y)=\min(1,e^{R_h(x,y)})\), with the proved target/proposal log ratio. The minimum caps acceptance at one and the exponential ensures nonnegativity; these bounds justify the accepted/rejected measure split.
 
 
 
-\noindent Lean declarations: \texttt{weighted\_accept\_reject\_add}, \texttt{malaCoupledStep\_fst}, \texttt{malaCoupledStep\_snd}, \texttt{malaCoupledStep\_isProbability}, \texttt{malaCoupledChain}, \texttt{malaCoupledChain\_isProbability}, \texttt{malaCoupledChain\_fst}, \texttt{malaCoupledChain\_snd}.
+\noindent Lean declarations: \texttt{malaAcceptance}.
 
-\section{A pointwise distance estimate}
+\section{malaProposalAcceptance}
 
 
-Strong convexity and \(h\le2/(m+L)\) make shared-noise proposals nonexpansive. On acceptance the distance is at most \(\|x-y\|\). On rejection, the triangle inequality adds only the MALA proposal displacement. Averaging these two alternatives yields
-
-\[a\|p_h(x,\xi)-p_h(y,\xi)\|+(1-a)\|p_h(x,\xi)-y\|\le\|x-y\|+D_h(y,\xi).\]
-
-The singleton-state case is resolved directly before using \(m\le L\) in the nontrivial case.
+Compose \(a_h\) with \((x,\xi)\mapsto(x,T_h(x,\xi))\). The resulting \(a_h(x,T_h(x,\xi))\) is the acceptance weight on the original state/noise product space, prior to pushing to state/proposal pairs.
 
 
 
-\noindent Lean declarations: \texttt{malaProposal\_nonexpansive}, \texttt{malaCoupledStep\_pointwise}.
+\noindent Lean declarations: \texttt{malaProposalAcceptance}.
 
-\section{Integrate and iterate the distance bound}
-
-
-Define \(\mathcal C_1(\rho)=\int\|x-y\|d\rho\) as an extended nonnegative integral. The weighted-pushforward integral formula writes the coupled-step cost as the integral of the pointwise expression above. If the second marginal is Gibbs, its rejection term is at most \(Ch\sqrt h\), so \(\mathcal C_1(\rho^+)\le\mathcal C_1(\rho)+Ch\sqrt h\). Diagonal initialization has zero cost; induction gives \(\mathcal C_1(\rho_n)\le nCh\sqrt h\). Finiteness of this bound proves integrability of the distance, justifying its real-integral form. The premises include MALA invariance and \(0<h\le\min(1,2/(m+L))\).
+\section{malaAcceptance nonneg}
 
 
+Both entries of the minimum, one and the exponential, are nonnegative. Their minimum is nonnegative. This direct order proof is used when combining real weights through \texttt{ENNReal.ofReal}.
 
-\noindent Lean declarations: \texttt{malaL1Cost}, \texttt{lintegral\_weighted\_map}, \texttt{malaCoupledStep\_cost\_formula}, \texttt{malaCoupledStep\_cost\_le}, \texttt{malaCoupledChain\_cost\_le}, \texttt{malaCoupledChain\_distance\_integrable}, \texttt{malaCoupledChain\_distance\_integral\_le}.
+
+
+\noindent Lean declarations: \texttt{malaAcceptance\_nonneg}.
+
+\section{malaAcceptance le one}
+
+
+The minimum \(\min(1,e^{R_h})\) is at most its first entry. This proves \(a_h\le1\), so the rejection weight \(1-a_h\) is nonnegative.
+
+
+
+\noindent Lean declarations: \texttt{malaAcceptance\_le\_one}.
+
+\section{malaProposal measurable}
+
+
+The gradient is continuous by Lipschitzness. Projections, scalar multiplication, subtraction, and addition preserve continuity, so the joint proposal map \((x,\xi)\mapsto x-h\nabla U(x)+\sqrt{2h}\xi\) is measurable.
+
+
+
+\noindent Lean declarations: \texttt{malaProposal\_measurable}.
+
+\section{malaProposalAcceptance measurable}
+
+
+Differentiability makes \(U\) continuous, and Lipschitzness makes its gradient continuous. The log-ratio formula is assembled from continuous norms, inner products, and arithmetic; exponentiation and minimum preserve measurability. Composing with the measurable proposal gives the state/noise acceptance weight.
+
+
+
+\noindent Lean declarations: \texttt{malaProposalAcceptance\_measurable}.
+
+\section{ulaLawStep}
+
+
+Define \(P_h\mu\) as the pushforward of \(\mu\otimes\gamma\) by the Euler proposal \(T_h\). The product measure encodes that the fresh Gaussian is independent of the current state. This transition is the actual independent-noise ULA step on laws.
+
+
+
+\noindent Lean declarations: \texttt{ulaLawStep}.
+
+\section{malaOneStep}
+
+
+Split \(\mu\otimes\gamma\) into acceptance- and rejection-weighted measures. Map the accepted part to \(T_h(x,\xi)\), and the rejected part to \(x\), then add them. This defines one full MALA transition with all rejection mass retained.
+
+
+
+\noindent Lean declarations: \texttt{malaOneStep}.
+
+\section{malaCoupledStep}
+
+
+For a pair \((x,y)\), draw one shared Gaussian \(\xi\). ULA always moves to \(T_h(x,\xi)\); MALA moves to \(T_h(y,\xi)\) with weight \(a_h(y,T_h(y,\xi))\), otherwise stays at \(y\). The two weighted pushforwards define the explicit coupling measure.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep}.
+
+\section{weighted accept reject add}
+
+
+For a measurable \(a\in[0,1]\), combine the two with-density measures using \(a+(1-a)=1\). Nonnegativity of both terms justifies the \texttt{ofReal} addition identity, so their sum is exactly the original measure.
+
+
+
+\noindent Lean declarations: \texttt{weighted\_accept\_reject\_add}.
+
+\section{malaCoupledStep fst}
+
+
+The first-coordinate update is identical on acceptance and rejection. Combine those two weights to one before pushing forward. The remaining product marginal is the original first marginal times a fresh Gaussian, so the first output law is \(P_h(\operatorname{fst}_*\rho)\).
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep\_fst}.
+
+\section{malaCoupledStep snd}
+
+
+Project both branches of the explicit coupling to the second state. They are exactly the accepted proposal and rejected current-state branches of MALA. Product marginal identities replace \(\rho\) by its second marginal, giving \(\operatorname{snd}_*\rho'=M_h(\operatorname{snd}_*\rho)\).
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep\_snd}.
+
+\section{malaCoupledStep isProbability}
+
+
+The first marginal is a measurable pushforward of a probability product by \texttt{malaCoupledStep\_fst}. It has mass one, and a measure and its first-coordinate pushforward have the same total mass. Therefore the joint coupling also has total mass one.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep\_isProbability}.
+
+\section{malaCoupledChain}
+
+
+Initialize on the diagonal \((X_0,Y_0)=(X,X)\) with \(X\sim\mu\), then recursively apply the explicit coupled step. Equal starting states give zero initial transport cost, while subsequent first and second marginals follow ULA and MALA respectively.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain}.
+
+\section{malaCoupledChain isProbability}
+
+
+The diagonal pushforward of the initial probability is a probability. Induct on the number of transitions, using probability preservation of \texttt{malaCoupledStep} at each successor. This produces the instance needed for product noise and finite-cost arguments at every iteration.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain\_isProbability}.
+
+\section{malaCoupledChain fst}
+
+
+At zero, diagonal initialization has first marginal \(\mu\). In the successor step apply \texttt{malaCoupledStep\_fst} and the induction hypothesis. The resulting recursion is precisely the iteration \(P_h^n\mu\).
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain\_fst}.
+
+\section{malaCoupledChain snd}
+
+
+At zero the second marginal is \(\pi\). The successor marginal theorem gives \(M_h\) applied to the current second marginal; substitute the induction hypothesis and the supplied one-step invariance \(M_h\pi=\pi\). Thus the second coordinate remains stationary through the coupling.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain\_snd}.
+
+\section{malaProposal nonexpansive}
+
+
+Shared noise cancels in \(T_h(x,\xi)-T_h(y,\xi)\). The sharp strong-convexity/smoothness contraction theorem for the deterministic gradient map bounds the remaining norm by \(\|x-y\|\) when \(0\le h\le2/(m+L)\). No Gaussian moment is used in this pointwise comparison.
+
+
+
+\noindent Lean declarations: \texttt{malaProposal\_nonexpansive}.
+
+\section{malaCoupledStep pointwise}
+
+
+The accepted distance is at most \(\|x-y\|\) by nonexpansiveness. On rejection, insert \(T_h(y,\xi)\) and use the triangle inequality to bound the distance by \(\|x-y\|+\|T_h(y,\xi)-y\|\). Weight the two branches; their common old-distance coefficients add to one, and the remaining term is the rejection displacement.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep\_pointwise}.
+
+\section{malaL1Cost}
+
+
+Define \(\mathcal C(\rho)=\int\|x-y\|d\rho\) as a nonnegative extended integral. Keeping it extended avoids assuming integrability before the cost recurrence proves it. Subsequent theorems establish finiteness and then convert it to an ordinary expected distance.
+
+
+
+\noindent Lean declarations: \texttt{malaL1Cost}.
+
+\section{lintegral weighted map}
+
+
+Pull an extended nonnegative integral through a measurable pushforward, then through a with-density measure. Multiplication of the two nonnegative real factors becomes the embedded product \(a(x)b(f(x))\). This gives an exact integration formula for each branch of the coupling.
+
+
+
+\noindent Lean declarations: \texttt{lintegral\_weighted\_map}.
+
+\section{malaCoupledStep cost formula}
+
+
+Apply \texttt{lintegral\_weighted\_map} to accepted and rejected branches of the coupled measure. Their cost is the integral of the acceptance-weighted proposal distance plus rejection-weighted stay distance over \(\rho\otimes\gamma\). The formula exposes exactly the pointwise expression bounded by \texttt{malaCoupledStep\_pointwise}.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep\_cost\_formula}.
+
+\section{malaCoupledStep cost le}
+
+
+Integrate the pointwise coupling bound. The old distance integrates to \(\mathcal C(\rho)\); the error depends only on the second state and innovation. Its second marginal is Gibbs by hypothesis, so that integral is bounded by \(C_{U,L}h\sqrt h\). Thus \(\mathcal C(\rho')\le\mathcal C(\rho)+C_{U,L}h\sqrt h\), valid initially as an extended inequality.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledStep\_cost\_le}.
+
+\section{malaCoupledChain cost le}
+
+
+Induct from zero diagonal cost. The second marginal remains Gibbs by the supplied one-step MALA invariance, so the one-step cost bound applies at every iteration. Summing the same local error gives \(\mathcal C(\rho_n)\le nC_{U,L}h\sqrt h\).
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain\_cost\_le}.
+
+\section{malaCoupledChain distance integrable}
+
+
+The quantitative extended cost estimate bounds \(\int\|x-y\|d\rho_n\) by a finite embedded real number. The distance is measurable and nonnegative, so finite extended integral is equivalent to ordinary integrability. This discharges the moment condition rather than assuming it.
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain\_distance\_integrable}.
+
+\section{malaCoupledChain distance integral le}
+
+
+Convert the finite extended cost inequality to real scalars using \texttt{ENNReal.toReal}. The newly proved integrability identifies the real value of the extended integral with the ordinary expected distance. Consequently \(\mathbb E_{\rho_n}\|X-Y\|\le nC_{U,L}h\sqrt h\).
+
+
+
+\noindent Lean declarations: \texttt{malaCoupledChain\_distance\_integral\_le}.
 
 \end{document}

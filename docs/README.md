@@ -1,15 +1,21 @@
 # Parallel proof documentation
 
-The project homepage links to three matching overviews:
+The project homepage links to four theorem overviews, with the particle LSI
+analogue linked as a footnote from IPLA:
 
-- [ULA](../UnadjustedLangevin/exposition/index.html)
-- [IPLA](../IPLA/exposition/index.html)
+- [ULA under Strong Convexity](../UnadjustedLangevin/exposition/index.html)
+- [ULA under LSI](../UnadjustedLangevin/LSI/exposition/index.html)
+- [IPLA under Strong Convexity](../IPLA/exposition/index.html)
 - [Proximal algorithms](../ProximalLangevin/exposition/index.html)
+- [IPLA under LSI](../IPLA/LSI/exposition/index.html)
 
 Every overview states its results with all assumptions beside the exact Lean
 headers, provides verification commands, and has a logical proof diagram whose
 boxes open HTML proof pages. Its searchable directory includes every Lean
-subfile, including the LSI extensions, import modules, and kernel audits.
+subfile, import module, and kernel audit in that development. The LSI extensions
+have their own directories and detailed mathematical arguments. Their current
+Lean endpoints retain explicit analytic hypotheses; the pages distinguish the
+classical theorem from this remaining formalization work.
 
 `modules/` mirrors the Lean source paths. Each module page contains an authored
 mathematical statement and proof beside the full corresponding Lean declarations,
@@ -23,13 +29,16 @@ The original long teaching documents and paper audits remain available from
 “Further reading”: ULA at `UnadjustedLangevin/exposition/dist/index.html`, IPLA at
 `IPLA/exposition/proof.html`, and proximal algorithms at
 `ProximalLangevin/exposition/proof.html`. Their existing deep links remain useful.
+The LSI source-by-source archives are now `LSI/exposition/proof.html` within ULA
+and IPLA. Old section anchors are redirected from their overview automatically.
 
 ## Edit and regenerate
 
 The authored module statements and proofs live in each library's
 `exposition/module_notes.json`. Each step names the local declarations it explains;
 Lean code is read from the source at generation time. `site_content.py` contains
-the standalone theorem statements and logical diagrams; `assets/site.css` and
+the standalone theorem statements and logical diagrams; `entropy_content.py`
+contains the detailed entropy arguments and their formal scope. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
 From the repository root, with Python 3 and Node.js on `PATH`:
@@ -71,7 +80,7 @@ Optional browser QA, with Playwright and Chromium or Google Chrome installed:
 node docs/verify_browser.cjs
 ```
 
-It checks all three overviews and representative module proofs at desktop,
+It checks all five overviews and representative module proofs at desktop,
 375 px, and 320 px widths, reading modes, search, diagram navigation, LaTeX
 downloads, old section links, and offline `file://` reading. Screenshots and a
 JSON report are written to a temporary directory. Set `NODE_PATH` if Playwright

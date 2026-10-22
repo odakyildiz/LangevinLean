@@ -6,37 +6,91 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/EulerLimit.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/EulerLimit.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 This module proves a deterministic convergence theorem for additive Euler discretization. With mesh \(h=T/n\), its terminal value converges to the continuous integral solution, including when the state space itself is \(L^2(P)\).
 
 
-\section{The additive Euler recursion and solution increments}
+\section{additiveEulerChain}
 
 
-Define \(X_0=x\) and \(X_{k+1}=X_k-hg(X_k)+B((k+1)h)-B(kh)\). The zero and successor lemmas expose this definition. Subtracting the continuous equation at \(a,b\) and splitting interval integrals yields \(Y_b-Y_a=-\int_a^bg(Y_s)ds+B_b-B_a\). Thus Euler and the solution share exactly the same additive increments.
-
-
-
-\noindent Lean declarations: \texttt{additiveEulerChain}, \texttt{additiveEulerChain\_zero}, \texttt{additiveEulerChain\_succ}, \texttt{langevin\_integral\_increment}.
-
-\section{Bound the accumulated drift error}
-
-
-The explicit drift map obeys \(\|(x-hg(x))-(y-hg(y))\|\le(1+Lh)\|x-y\|\). If the oscillation of \(g(Y_\cdot)\) over distances at most \(h\) is at most \(\varepsilon\), the endpoint errors obey \(e_{k+1}\le(1+Lh)e_k+h\varepsilon\), \(e_0=0\). Induction for \(e_{k+1}\le qe_k+b\), \(q\ge1\), gives \(e_n\le nbq^n\); since \((1+Lh)^n\le e^{Lnh}\),
-
-\[\|X_n-Y_T\|\le T\varepsilon e^{LT},\qquad nh=T.\]
-
-\noindent Lean declarations: \texttt{finite\_euler\_recurrence\_bound}, \texttt{explicitEuler\_norm\_sub\_le}, \texttt{additiveEulerChain\_error\_le\_of\_drift\_modulus}.
-
-\section{Let the mesh tend to zero}
-
-
-The continuous path \(g\circ Y\) is uniformly continuous on \([0,T]\), so its mesh oscillation tends to zero for \(h_n=T/(n+1)\). The error estimate therefore gives \(X_{n+1}^{h_n}\to Y_T\). At \(T=0\) the same statement holds directly. Applying this deterministic argument to the Lipschitz lifted drift gives convergence in the \(L^2\) norm for Langevin solutions.
+Define \(X_0=x\) and \(X_{k+1}=X_k-hg(X_k)+B((k+1)h)-B(kh)\). The additive input is one fixed function evaluated at mesh endpoints; consequently the numerical chain and the integral solution can be compared with exactly matching noise increments.
 
 
 
-\noindent Lean declarations: \texttt{additiveEulerChain\_tendsto}, \texttt{lp\_langevin\_integral\_euler\_tendsto}.
+\noindent Lean declarations: \texttt{additiveEulerChain}.
+
+\section{additiveEulerChain zero}
+
+
+Evaluating the recursive definition at index zero gives \(X_0=x\). Lean proves this by definitional equality; no continuity of the input or positivity of the mesh is required for this initialization identity.
+
+
+
+\noindent Lean declarations: \texttt{additiveEulerChain\_zero}.
+
+\section{additiveEulerChain succ}
+
+
+Unfold the successor clause once to expose \(X_{k+1}=X_k-hg(X_k)+\Delta B_k\). This definitional identity is the equation used when subtracting the exact solution's increment and deriving the error recurrence.
+
+
+
+\noindent Lean declarations: \texttt{additiveEulerChain\_succ}.
+
+\section{langevin integral increment}
+
+
+Subtract the integral equations at \(b\) and \(a\). Continuity of \(g\circ Y\) makes it interval integrable, so interval-integral additivity gives \(\int_0^b-\int_0^a=\int_a^b\). Thus \(Y(b)-Y(a)=-\int_a^b g(Y(s))ds+B(b)-B(a)\), including oriented intervals when \(b<a\).
+
+
+
+\noindent Lean declarations: \texttt{langevin\_integral\_increment}.
+
+\section{finite euler recurrence bound}
+
+
+From \(e_{k+1}\le qe_k+b\), \(e_0=0\), \(q\ge1\), and \(b\ge0\), induction proves \(e_n\le nbq^n\). In the successor step bound \(q\cdot kbq^k+b\) by \((k+1)bq^{k+1}\), using \(q^{k+1}\ge1\). This coarse bound avoids dividing by \(q-1\), so it also covers \(q=1\).
+
+
+
+\noindent Lean declarations: \texttt{finite\_euler\_recurrence\_bound}.
+
+\section{explicitEuler norm sub le}
+
+
+Write the difference as \((x-y)-h(g(x)-g(y))\). The triangle inequality and Lipschitzness give \(\|\cdot\|\le\|x-y\|+hL\|x-y\|=(1+Lh)\|x-y\|\). The hypothesis \(h\ge0\) removes the absolute value in the scalar norm.
+
+
+
+\noindent Lean declarations: \texttt{explicitEuler\_norm\_sub\_le}.
+
+\section{additiveEulerChain error le of drift modulus}
+
+
+At one step the common noise cancels. The Euler map contributes \((1+Lh)e_k\), and the exact integral remainder contributes at most \(h\varepsilon\), because the drift changes by at most \(\varepsilon\) within one mesh interval. Apply the finite recurrence bound and \((1+Lh)^n\le e^{Lnh}\), then use \(nh=T\) to obtain \(e_n\le T\varepsilon e^{LT}\).
+
+
+
+\noindent Lean declarations: \texttt{additiveEulerChain\_error\_le\_of\_drift\_modulus}.
+
+\section{additiveEulerChain tendsto}
+
+
+The continuous drift path \(g\circ Y\) is uniformly continuous on \([0,T]\). Given any positive error tolerance, choose a drift modulus \(\varepsilon\) making \(T\varepsilon e^{LT}\) small, then take the mesh \(T/(n+1)\) below its continuity radius. The previous error bound gives endpoint convergence. The case \(T=0\) is separated so no division by the horizon is needed.
+
+
+
+\noindent Lean declarations: \texttt{additiveEulerChain\_tendsto}.
+
+\section{lp langevin integral euler tendsto}
+
+
+Apply the deterministic matching-input Euler convergence theorem in \(L^2(P;H)\), using the Lipschitz lifted gradient. The numerical endpoint converges in the \(L^2\) norm to the constructed solution at \(T\). This is the topology later used to pass smooth bounded tests and identify laws.
+
+
+
+\noindent Lean declarations: \texttt{lp\_langevin\_integral\_euler\_tendsto}.
 
 \end{document}

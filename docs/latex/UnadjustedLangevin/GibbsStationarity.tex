@@ -6,38 +6,78 @@
 \author{LangevinLean mathematical exposition}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{UnadjustedLangevin/GibbsStationarity.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+\noindent Source module: \texttt{UnadjustedLangevin/GibbsStationarity.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
 
 
 A Brownian Langevin integral solution started from Gibbs stays Gibbs. The proof uses convergent Euler approximations and exactly invariant MALA chains, with no weak-PDE uniqueness assumption.
 
 
-\section{Identify L\ensuremath{{}^{2}} Euler endpoints with the actual ULA laws}
+\section{hilbert lpChain coe}
 
 
-Induction identifies the representative of the lifted chain with the pointwise noise-driven recursion. The Markov-law theorem then gives \(\operatorname{Law}(X_n)=P_h^n\operatorname{Law}(X_0)\) when the innovations are iid standard Gaussian vectors and independent of the initial state. If the additive noise satisfies \(B((k+1)h)-B(kh)=\sqrt{2h}Z_k\), induction also identifies the additive Euler chain with this lifted chain.
-
-
-
-\noindent Lean declarations: \texttt{hilbert\_lpChain\_coe}, \texttt{hilbert\_lpChain\_law\_eq\_ulaLawStep}, \texttt{additiveEulerChain\_eq\_hilbert\_lpChain}.
-
-\section{Use normalized Brownian increments}
-
-
-Brownian additive increments telescope across the grid and equal \(\sqrt{2h}\) times the normalized Euler innovations. Therefore additive Euler endpoints driven by Brownian noise are the lifted ULA endpoints. The scalar coordinate normal laws and the stated joint coordinate-time independence imply iid standard Gaussian vector laws, using GaussianInnovationVectors. Independence from the initial state is retained explicitly.
+Induct over the chain recursion. The representative of the lifted gradient equals the pointwise gradient almost everywhere, and the representative formulas for addition and scalar multiplication give the same Euler successor. Intersect the finite set of null-set complements needed at each index to identify the \(L^2\) chain with the ordinary recursion.
 
 
 
-\noindent Lean declarations: \texttt{brownianLangevinNoise\_grid\_increment}, \texttt{brownian\_additiveEulerChain\_eq\_lpChain}, \texttt{brownianEulerNoise\_vectorGaussian}.
+\noindent Lean declarations: \texttt{hilbert\_lpChain\_coe}.
+
+\section{hilbert lpChain law eq ulaLawStep}
+
+
+Use the almost-everywhere pointwise-chain identification, the independent-iid realization law theorem, and the canonical path/Markov-law identity. With innovation law \(\mathcal N(0,I)\), the generic independent-noise step is exactly \texttt{ulaLawStep}. Thus the \(L^2\) implementation has law \(P_h^n(P_{X_0})\).
+
+
+
+\noindent Lean declarations: \texttt{hilbert\_lpChain\_law\_eq\_ulaLawStep}.
+
+\section{additiveEulerChain eq hilbert lpChain}
+
+
+Induct on the mesh index. Both chains start at the same \(L^2\) variable. Their successor equations agree because the supplied additive increment equals \(\sqrt{2h}W_k\), making the noise terms identical as classes.
+
+
+
+\noindent Lean declarations: \texttt{additiveEulerChain\_eq\_hilbert\_lpChain}.
+
+\section{brownianLangevinNoise grid increment}
+
+
+Apply the Brownian input cocycle at \(a=kh\), \(t=h\). The elementary identity \((k+1)h=kh+h\) matches its endpoints to the grid notation. This supplies the exact additive increment used by the normalized Euler noise.
+
+
+
+\noindent Lean declarations: \texttt{brownianLangevinNoise\_grid\_increment}.
+
+\section{brownian additiveEulerChain eq lpChain}
+
+
+The Brownian grid-increment identity and \texttt{brownianEulerNoise\_endpoint} verify the increment premise of the generic chain equality. Therefore the deterministic matching-noise Euler approximation is exactly the already defined Brownian-normalized \(L^2\) Euler chain.
+
+
+
+\noindent Lean declarations: \texttt{brownian\_additiveEulerChain\_eq\_lpChain}.
+
+\section{brownianEulerNoise vectorGaussian}
+
+
+Each normalized coordinate is standard Gaussian. The supplied joint scalar-coordinate independence lets \texttt{gaussianInnovations\_vectorLaw} and \texttt{gaussianInnovations\_vectorIndependent} assemble those coordinates into iid standard multivariate Gaussian vectors. These are the exact law hypotheses needed by the Markov-recursion theorem.
+
+
+
+\noindent Lean declarations: \texttt{brownianEulerNoise\_vectorGaussian}.
 
 \section{Pass the invariant Gibbs marginal to the continuous limit}
 
 
-Fix \(T>0\) and choose \(h_n=T/(n+1)\). The Euler theorem gives \(X_{n+1}^{h_n}\to Y_T\) in \(L^2\). Couple each Euler endpoint, started at Gibbs, to the MALA chain at the same mesh. Exact MALA invariance makes the second marginal Gibbs; the rejected-displacement bound gives
+Fix \(T>0\) and choose meshes \(h_n=T/N_n\to0\) small enough for the nonexpansive MALA coupling. Matching-noise Euler approximations converge in \(L^2\) to \(Y_T\). Their laws are exactly \(P_{h_n}^{N_n}\pi_U\), by the proved iid Brownian innovation laws and initialization independence.
 
-\[\mathbb E\|X_{n+1}^{h_n}-M_{n+1}^{h_n}\|\le(n+1)Ch_n\sqrt{h_n}=CT\sqrt{h_n}\longrightarrow0.\]
 
-For all sufficiently large \(n\), the mesh satisfies both \(h_n\le1\) and the stable-step restriction. Characteristic-function comparison between these couplings and continuity under the \(L^2\) limit identifies \(\operatorname{Law}(Y_T)=\pi\). At \(T=0\), the integral equation directly gives \(Y_0=X_0\). Strong convexity supplies Gibbs moments and the finite rejection constant; the theorem also displays Brownian increment independence for every positive mesh.
+
+Couple each Euler law to \(N_n\) MALA steps started from Gibbs. Exact MALA invariance makes the second marginal \(\pi_U\). The rejection bound gives expected coupling distance at most \(N_nC h_n\sqrt{h_n}=TC\sqrt{h_n}\to0\); integrability of this distance is proved from the finite extended-cost estimate.
+
+
+
+Apply \texttt{measure\_map\_Lp\_eq\_of\_coupling\_cost\_tendsto}: characteristic functions of the Euler endpoints converge to those of \(Y_T\) by \(L^2\) convergence, and to those of \(\pi_U\) by the vanishing coupling cost. Equality of characteristic functions proves \(P_{Y_T}=\pi_U\). The zero-horizon case follows directly from the integral equation.
 
 
 

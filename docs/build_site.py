@@ -99,9 +99,12 @@ def imports(source):
 
 
 def shell(page, title, body, active=None):
+    navigation=[('UnadjustedLangevin','ULA · strong convexity'),
+                ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
+                ('ProximalLangevin','Proximal')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
-                  for lib, label in zip(LIBRARIES, ["ULA", "IPLA", "Proximal"]))
+                  for lib,label in navigation)
     return ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<meta name="robots" content="noindex, nofollow, noarchive">'
@@ -115,9 +118,9 @@ def shell(page, title, body, active=None):
             f'<main class="container" id="main">{body}'
             '<footer class="footer"><div>'
             f'<a href="{relative("index.html",page)}">Project home</a>'
-            f'<a href="{relative("docs/coverage.json",page)}">Source and coverage manifest</a>'
+            f'<a href="{relative("docs/README.md",page)}">Reproduce the proofs</a>'
             '<a href="https://github.com/odakyildiz/LangevinLean">GitHub</a></div>'
-            '<span>Lean 4.35.0-rc3 · Mathlib · Offline mathematical exposition</span></footer></main>'
+            '<span>Lean 4.35.0-rc3 · Mathlib · Mathematical exposition and formal proofs</span></footer></main>'
             '<div id="action-status" role="status" aria-live="polite"></div></body></html>\n')
 
 
@@ -131,7 +134,9 @@ def toolbar():
 def code(path, start, end, sources, page, role="declaration", name=None, identifier=""):
     attrs = (f' data-declaration="{E(name)}"' if name else '')
     identifier_attr = f' id="{identifier}"' if identifier else ''
-    rows = ''.join(f'<span class="lean-line"><span class="line-number" aria-hidden="true">{n}</span>'
+    line_prefix = anchor(name) + ('-header' if role=='statement' else '') if name else (identifier or 'source')
+    if role=='proof-fragment': line_prefix=identifier
+    rows = ''.join(f'<span class="lean-line" id="{line_prefix}-L{n}"><span class="line-number" aria-hidden="true">{n}</span>'
                    f'<span class="line-text">{HELPERS.highlight(line)}</span></span>'
                    for n, line in enumerate(sources[path].splitlines()[start-1:end], start))
     return (f'<div class="code-wrap"{identifier_attr}><div class="code-meta">'
@@ -139,6 +144,27 @@ def code(path, start, end, sources, page, role="declaration", name=None, identif
             + (f'<code>{E(name)}</code>' if name else '<span>Complete module context</span>') + '</div>'
             f'<pre class="lean-code" data-source="{path}" data-start="{start}" data-end="{end}" '
             f'data-role="{role}"{attrs}><code>{rows}</code></pre></div>')
+
+
+def proof_source_links(prose, path, names, sources, parsed):
+    """Make authored Lean references point to the actual lines they explain."""
+    if not names:
+        return prose
+    lines = sources[path].splitlines()
+    def link(match):
+        token = html.unescape(match[1])
+        if not re.fullmatch(r"[\w'.]+",token) or len(token)<4:
+            return match[0]
+        for name in names:
+            decl=parsed[path][name]
+            for n in range(decl['start'],decl['end']+1):
+                if re.search(r"(?<![\w'])"+re.escape(token)+r"(?![\w'])",lines[n-1]):
+                    return (f'<a class="proof-source-ref" href="#{anchor(name)}-L{n}" '
+                            f'title="Corresponding Lean, line {n}">{match[0]}</a>')
+        return match[0]
+    parts=re.split(r'(<a\b[^>]*>.*?</a>)',prose,flags=re.S)
+    return ''.join(part if i%2 else re.sub(r'<code>([^<]+)</code>',link,part)
+                   for i,part in enumerate(parts))
 
 
 def resolve_prose(text, path, page):
@@ -149,9 +175,9 @@ def resolve_prose(text, path, page):
             return match[0]
         if href.startswith("#"):
             if path.startswith("UnadjustedLangevin/LSI/"):
-                legacy = "UnadjustedLangevin/LSI/exposition/index.html"
+                legacy = "UnadjustedLangevin/LSI/exposition/proof.html"
             elif path.startswith("IPLA/LSI/"):
-                legacy = "IPLA/LSI/exposition/index.html"
+                legacy = "IPLA/LSI/exposition/proof.html"
             elif path.startswith("ProximalLangevin/"):
                 legacy = "ProximalLangevin/exposition/proof.html"
             else:
@@ -220,6 +246,7 @@ def declaration_header(path, name, sources, parsed, page):
 def module_document(path, note, sources, parsed, math):
     page = module_page(path)
     lib = next(l for l in LIBRARIES if path.startswith(l))
+    if '/LSI/' in path: lib += '/LSI'
     local_imports = [p for p in imports(sources[path]) if p in sources]
     users = [p for p, source in sources.items() if path in imports(source)]
     summary = math(resolve_prose(note['summary'], path, page))
@@ -242,11 +269,11 @@ def module_document(path, note, sources, parsed, math):
         cards = ''.join(code(path, parsed[path][n]['start'], parsed[path][n]['end'], sources, page,
                              name=n, identifier=anchor(n)) for n in step['declarations'])
         if not step['declarations'] and path != 'IPLA/Standalone.lean':
-            cards = code(path,1,len(sources[path].splitlines()),sources,page,'context')
+            cards = code(path,1,len(sources[path].splitlines()),sources,page,'context',identifier=f'context-step-{i}')
         body += (f'<article class="proof-step" id="step-{i}"><h3><span class="step-number">{i:02}</span>'
                  f'{E(step["title"])} <a class="permalink" href="#step-{i}" aria-label="Link to proof step {i}">§</a></h3>'
                  '<div class="pair"><div class="math-pane"><div class="pane-label">Mathematical statement and proof</div>'
-                 + math(resolve_prose(step['body'], path, page)) + '</div><div class="lean-pane">'
+                 + math(proof_source_links(resolve_prose(step['body'], path, page),path,step['declarations'],sources,parsed)) + '</div><div class="lean-pane">'
                  '<div class="pane-label">Exact Lean · complete declarations</div>' + cards + '</div></div></article>')
     body += '</section><section class="section" id="dependencies"><h2>Proof dependencies</h2>'
     if local_imports:
@@ -258,7 +285,7 @@ def module_document(path, note, sources, parsed, math):
     if users:
         body += '<h3 style="margin-top:24px">Used by</h3><div class="dependencies">' + ''.join(f'<a href="{relative(module_page(p),page)}">{E(p)}</a>' for p in users) + '</div>'
     body += '</section><section class="section" id="verification"><h2>Verify this module</h2>'
-    command = f'lake build {lib}\nlake env lean {path}\npython3 docs/verify_site.py'
+    command = f'lake build {lib.split("/")[0]}\nlake env lean {path}\npython3 docs/verify_site.py'
     body += commands(command, 'module-commands')
     body += '<p class="small">Run from the repository root after installing elan and fetching the pinned Mathlib cache with <code>lake exe cache get</code>. Lean checks the formal proof; the documentation verifier checks source fidelity, mathematical annotation coverage, and links.</p></section>'
     body += '<details class="source-section" id="complete-source"><summary>Complete Lean file, including imports and shared variables</summary>'
@@ -327,12 +354,13 @@ def latex_document(path, note, notes):
               + r'\title{' + tex_escape(note['title']) + '}\n'
               + r'\author{LangevinLean mathematical exposition}' + '\n'
               + r'\date{}' + '\n' + r'\begin{document}\maketitle' + '\n'
-              + r'\noindent Source module: \texttt{' + tex_escape(path) + '}. '
-              + 'Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.\n'
+              + (r'\noindent Source module: \texttt{' + tex_escape(path) + '}. ' if not path.endswith('/Overview.lean') else '')
+              + 'Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.\n'
               + latex_prose(note['summary']))
     for step in note['steps']:
         result += '\n\\section{' + tex_escape(step['title']) + '}\n' + latex_prose(step['body'])
-        result += '\n\n\\noindent Lean declarations: ' + ', '.join(r'\texttt{' + tex_escape(n) + '}' for n in step['declarations']) + '.\n'
+        if step['declarations']:
+            result += '\n\n\\noindent Lean declarations: ' + ', '.join(r'\texttt{' + tex_escape(n) + '}' for n in step['declarations']) + '.\n'
     if path == 'IPLA/Standalone.lean':
         included = re.findall(r'## Included source: ([\w/.]+\.lean)', (ROOT/path).read_text())
         result += '\n\\section*{Complete mathematical dependency proofs}\nThe following sections reproduce the mathematical statements and proofs of every source module included in the generated Lean bundle, in dependency order.\n'
@@ -355,6 +383,7 @@ def main():
     prose = [note['summary'] for note in notes.values()]
     prose += [step['body'] for note in notes.values() for step in note['steps']]
     prose += [result['body'] for config in CONFIG.values() for result in config['results']]
+    prose += [part['body'] for config in CONFIG.values() for part in config.get('proof', [])]
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css()}
     for path,note in notes.items():
@@ -364,8 +393,15 @@ def main():
     for lib,config in CONFIG.items():
         page = lib + '/exposition/index.html'
         outputs[page] = home_document(lib,config,notes,sources,parsed,math)
+        if config.get('proof'):
+            overview = {'title':config['title'], 'summary':config['status'],
+                        'steps':[{'title':part['title'], 'body':part['body']+('<p><strong>Formal scope.</strong> '+part['note']+'</p>' if part.get('note') else ''),
+                                  'declarations':[reference['name'] for reference in part.get('references',[])]}
+                                 for part in config['proof']]}
+            overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
+            outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
     outputs['index.html'] = project_document(notes)
-    inputs = ['docs/build_site.py','docs/site_content.py','docs/assets/site.css','docs/assets/site.js']
+    inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py','docs/assets/site.css','docs/assets/site.js']
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += ['UnadjustedLangevin/exposition/build_document.py']
@@ -386,7 +422,7 @@ def main():
             target.parent.mkdir(parents=True,exist_ok=True); target.write_text(text)
     if stale: raise SystemExit('Stale generated pages:\n'+'\n'.join(stale))
     print(f'{"Checked" if args.check else "Built"} {len(notes)} module proof pages and LaTeX files, '
-          f'{sum(len(d) for d in parsed.values())} declarations, and three method overviews.')
+          f'{sum(len(d) for d in parsed.values())} declarations, and {len(CONFIG)} method overviews.')
 
 
 if __name__ == '__main__':

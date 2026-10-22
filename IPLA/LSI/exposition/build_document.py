@@ -7,7 +7,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-OUT = HERE / "index.html"
+OUT = HERE / "proof.html"
 SPEC = importlib.util.spec_from_file_location(
     "entropy_proof_page", ROOT / "UnadjustedLangevin/LSI/exposition/build_document.py")
 RENDERER = importlib.util.module_from_spec(SPEC)

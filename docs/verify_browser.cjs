@@ -32,6 +32,12 @@ const LIBRARIES = [
   { key: 'IPLA', label: 'ipla', search: 'Geometry.lean',
     legacy: 'IPLA/exposition/proof.html',
     modules: ['Geometry', 'StrongLogConcavity'] },
+  { key: 'UnadjustedLangevin/LSI', label: 'ula-lsi', search: 'ConditionalDrift.lean',
+    legacy: 'UnadjustedLangevin/LSI/exposition/proof.html',
+    modules: ['ConditionalDrift', 'InterpolationDensity'] },
+  { key: 'IPLA/LSI', label: 'ipla-lsi', search: 'Theorem.lean',
+    legacy: 'IPLA/LSI/exposition/proof.html',
+    modules: ['Theorem', 'Scaling'] },
   { key: 'ProximalLangevin', label: 'proximal', search: 'Moreau.lean',
     legacy: 'ProximalLangevin/exposition/proof.html',
     modules: ['Moreau', 'SplittingEndpoint'] },
@@ -312,7 +318,14 @@ async function legacyRedirect(page, library) {
 
 async function projectLinks(page) {
   await goto(page, origin + '/index.html');
-  check(await page.locator('.landing-card').count() === 3, 'Project home has the three method cards');
+  const destination = path.join(outputDir, 'project-home-' + page.viewportSize().width + '.png');
+  await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
+  screenshots.push(destination);
+  check(await page.locator('.landing-card').count() === 4, 'Project home has four theorem cards and the particle entropy footnote');
+  check((await page.locator('.landing-card h2').allTextContents()).includes('Unadjusted Langevin under Strong Convexity'),
+    'ULA card states the strong convexity assumption');
+  check((await page.locator('.landing-card h2').allTextContents()).includes('Interacting Particle Langevin under Strong Convexity'),
+    'IPLA card states the strong convexity assumption');
   for (const library of LIBRARIES) {
     const relative = library.key + '/exposition/index.html';
     await page.locator('.landing-card a[href="' + relative + '"]').click();
@@ -359,7 +372,7 @@ async function main() {
           await diagramNavigation(page, item);
         }
         await screenshot(page, item, viewport);
-        if (item.kind === 'module') await latexDownload(page, item, viewport);
+        if (item.kind === 'module' || item.library.key.includes('/LSI')) await latexDownload(page, item, viewport);
       });
     }
     for (const library of LIBRARIES) {

@@ -1,0 +1,305 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Construct the positive Gaussian mixture and Gibbs-relative density}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/InterpolationDensity.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+At positive time the actual update has an explicit Gaussian mixture density, even if its initial law is singular. Let \(c_t(x)=x-t\nabla U(x)\) and let \(C_t>0\) be the Gaussian normalizer. The Lebesgue density is \(q_t(y)=\int C_t\exp(-\|y-c_t(x)\|^2/(4t))\,d\mu(x)\). This module proves its law identity, everywhere positivity, pointwise finiteness and spatial continuity. For the normalized Gibbs target, \(r_t(y)=Z e^{U(y)}q_t(y)\) is then a positive continuous relative probability density. These results do not yet establish its spatial \(C^1\) regularity, time derivatives, entropy domination, or admissible entropy weak equation.
+
+
+\section{Define the explicit Gaussian mixture before taking real values}
+
+
+For the state-dependent center \(c_t(x)=x-t\nabla U(x)\), let
+
+\[K_t(x,y)=C_t\exp\!\left(-\frac{\|y-c_t(x)\|^2}{4t}\right),\qquad q_t^{\mathrm{ext}}(y)=\int K_t(x,y)\,d\mu(x).\]
+
+\texttt{interpolationDensity} is this mixture as an extended nonnegative integral: Lean integrates \texttt{ULA.gaussianProposalDensity t (x - t • gradient U x) y}. The normalizer \(C_t\) is the inverse of the actual radial Gaussian integral, already identified with the standard-noise proposal law in \texttt{GaussianProposalDensity.lean}.
+
+
+
+The definition is total in time and potential, but the Gaussian density interpretation is used only for \(t>0\). Keeping the integral in \(\mathbb R_{\ge0}\cup\{\infty\}\) makes nonnegativity immediate and preserves a genuine finiteness obligation before taking a real density. The later normalizer bound discharges that obligation at every proposed state.
+
+
+
+\noindent Lean declarations: \texttt{interpolationDensity}.
+
+\section{Apply measurable parameter integration to the mixture}
+
+
+If \(\nabla U\) is Lipschitz, its state-dependent center \(c_t\) is continuous and measurable. The joint Gaussian integrand \((x,y)\mapsto K_t(x,y)\) is therefore measurable: subtraction, scalar multiplication, squared norm and exponential preserve the required measurability.
+
+
+
+The theorem \texttt{Measurable.lintegral\_prod\_left} now proves that \(y\mapsto q_t^{\mathrm{ext}}(y)\) is measurable. Lean unfolds only the Gaussian proposal density, records gradient measurability as \texttt{hg}, and lets \texttt{fun\_prop} assemble the elementary operations. The mixing probability measure supplies the finite, hence sigma-finite, hypothesis for parameter integration. No positive-time assumption is needed for this measurability statement.
+
+
+
+\noindent Lean declarations: \texttt{interpolationDensity\_measurable}.
+
+\section{Prove the Gaussian mixture is the density of the actual update}
+
+
+For every \(t>0\),
+
+\[\rho_t=(Y_t)_\#(\mu\otimes\mathcal N(0,I))=q_t^{\mathrm{ext}}\,dy.\]
+
+To prove equality of measures, fix a measurable set \(A\). The pushforward formula and Tonelli express the actual proposal probability as
+
+\[\rho_t(A)=\int \mathbb P\bigl(c_t(x)+\sqrt{2t}Z\in A\bigr)\,d\mu(x).\]
+
+For each fixed \(x\), \texttt{ULA.gaussian\_proposal\_density} already identifies the affine Gaussian proposal with density \(K_t(x,\cdot)\). The local identity \texttt{hinner} therefore changes the inner probability to \(\int_AK_t(x,y)\,dy\). The joint integrand is measurable, as proved by \texttt{hd}, so \texttt{lintegral\_lintegral\_swap} interchanges the two nonnegative integrals:
+
+\[\rho_t(A)=\int_A\left(\int K_t(x,y)\,d\mu(x)\right)dy=\int_Aq_t^{\mathrm{ext}}(y)\,dy.\]
+
+The Lean proof mirrors these three steps with \texttt{Measure.map\_apply}, \texttt{Measure.prod\_apply}, the fixed-state density identity, and Tonelli under the restricted volume measure on \(A\). It assumes no density for \(\mu\).
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw\_eq\_withDensity}.
+
+\section{Use positivity of every Gaussian component}
+
+
+At every positive time and every point \(y\), the mixture density is strictly positive:
+
+\[q_t^{\mathrm{ext}}(y)>0.\]
+
+The normalizer is positive by \texttt{ULA.gaussianProposalNormalizer\_pos}, and the real exponential is positive. Thus the component density \(K_t(x,y)\) is positive for every initial point \(x\). Lean proves this as \texttt{hqpos}, using positivity of \texttt{ENNReal.ofReal}.
+
+
+
+The support of \(x\mapsto K_t(x,y)\) is consequently all of \(E\); this is \texttt{hsupp}. Its measurability is \texttt{hq}. The characterization \texttt{lintegral\_pos\_iff\_support} reduces positivity of its integral to positive mass of that support. Since \(\mu(E)=1\), the integral is positive. The assertion holds pointwise in \(y\), not only almost everywhere.
+
+
+
+\noindent Lean declarations: \texttt{interpolationDensity\_pos}.
+
+\section{Bound every mixture value by the common Gaussian peak}
+
+
+For \(t>0\), the Gaussian exponent is nonpositive, hence
+
+\[0\le K_t(x,y)\le C_t,\qquad q_t^{\mathrm{ext}}(y)\le C_t.\]
+
+Lean proves the exponential bound with \texttt{Real.exp\_le\_one\_iff}: the numerator \(-\|y-c_t(x)\|^2\) is nonpositive and the denominator \(4t\) is positive. Multiplication by the nonnegative normalizer preserves the inequality, as does \texttt{ENNReal.ofReal}.
+
+
+
+\texttt{lintegral\_mono} integrates this pointwise bound. The integral of the constant \(C_t\) equals \(C_t\mu(E)=C_t\) because \(\mu\) is a probability measure. This theorem requires no regularity of the gradient: its bound concerns the nonnegative integrand at every point, and the upper nonnegative integral remains monotone even before measurability is established.
+
+
+
+\noindent Lean declarations: \texttt{interpolationDensity\_le\_normalizer}.
+
+\section{Derive pointwise finiteness before real conversion}
+
+
+The preceding bound gives \(q_t^{\mathrm{ext}}(y)\le\operatorname{ofReal}(C_t)<\infty\) for each \(t>0\) and \(y\). The extended density therefore never equals infinity.
+
+
+
+The Lean proof is the order argument \texttt{ne\_top\_of\_le\_ne\_top}, applied to the universal fact \texttt{ENNReal.ofReal\_ne\_top} and \texttt{interpolationDensity\_le\_normalizer}. This small theorem is the explicit finiteness witness used by every later conversion from the extended mixture density to an ordinary real function. It prevents the total operation \texttt{toReal} from silently turning an infinite density into zero.
+
+
+
+\noindent Lean declarations: \texttt{interpolationDensity\_ne\_top}.
+
+\section{Choose the finite real representative of the mixture}
+
+
+The real density is defined by
+
+\[q_t(y)=\bigl(q_t^{\mathrm{ext}}(y)\bigr).\mathrm{toReal}.\]
+
+This is \texttt{interpolationLebesgueDensity U \ensuremath{\mu} t y}. The definition itself is total; its positive-time interpretation uses the pointwise finiteness theorem above. Once \(q_t^{\mathrm{ext}}(y)\ne\infty\) is supplied, converting \(q_t(y)\) back with \texttt{ENNReal.ofReal} recovers the original extended density exactly. The subsequent law identity, positivity argument, ordinary integral formula and continuity theorem all retain the positive-time hypotheses that justify this interpretation.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLebesgueDensity}.
+
+\section{Identify the actual law with the finite real density}
+
+
+For \(t>0\), the actual proposal law satisfies
+
+\[\rho_t(A)=\int_Aq_t(y)\,dy\quad\text{for every measurable }A.\]
+
+The extended-density law identity is already proved. The present proof changes only its integrand representative: \texttt{ENNReal.ofReal\_toReal} and \texttt{interpolationDensity\_ne\_top} prove \(\operatorname{ofReal}(q_t(y))=q_t^{\mathrm{ext}}(y)\) for every \(y\). Function extensionality then gives equality of the two density functions and hence of their \texttt{withDensity} measures.
+
+
+
+The separate finiteness theorem is invoked at the exact point where it is needed. This is why the real-valued representative still denotes the genuine Gaussian mixture, including from an initial law that has no Lebesgue density.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw\_eq\_real\_withDensity}.
+
+\section{Deduce absolute continuity for every positive time}
+
+
+The law identity \(\rho_t=q_t^{\mathrm{ext}}dy\) immediately implies \(\rho_t\ll dy\): every Lebesgue-null set has zero integral against the density and thus zero proposal probability.
+
+
+
+Lean rewrites the actual \texttt{interpolationLaw} using \texttt{interpolationLaw\_eq\_withDensity}, then applies the general theorem \texttt{withDensity\_absolutelyContinuous}. The result holds for any initial probability law when the gradient is Lipschitz. In particular, positive-time Gaussian smoothing produces absolute continuity from a Dirac or other singular initial law. This conclusion alone does not imply finite KL relative to a particular target, nor entropy continuity at the initial time.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLaw\_absolutelyContinuous}.
+
+\section{Convert the nonnegative mixture to its ordinary real integral}
+
+
+The real density has the expected ordinary integral formula:
+
+\[q_t(y)=\int C_t\exp\!\left(-\frac{\|y-c_t(x)\|^2}{4t}\right)d\mu(x).\]
+
+The proof records nonnegativity of the real integrand as \texttt{hnonneg} and the uniform bound by \(C_t\) as \texttt{hbound}. Because \(\mu\) is a probability measure, the constant majorant is integrable. Continuity of the Lipschitz gradient supplies measurability, and \texttt{Integrable.mono'} proves \texttt{hint}, integrability of the displayed real Gaussian integrand.
+
+
+
+\texttt{ofReal\_integral\_eq\_lintegral\_ofReal} can now identify its ordinary integral with the extended mixture integral after applying \texttt{ofReal}. Taking \texttt{toReal} reverses this conversion because the real integral is nonnegative. This proves the formula without treating a nonintegrable Bochner integral as an ordinary expectation.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLebesgueDensity\_eq\_integral}.
+
+\section{Pass spatial continuity through the probability mixture}
+
+
+At a fixed positive time, \(q_t:E\to\mathbb R\) is continuous. For every fixed initial state \(x\), the Gaussian kernel \(y\mapsto K_t(x,y)\) is continuous, and its absolute value is bounded by the same constant \(C_t\), independent of \(x\) and \(y\).
+
+
+
+The proof first replaces \texttt{interpolationLebesgueDensity} by the ordinary integral formula from the previous theorem. It applies \texttt{continuous\_of\_dominated} with constant majorant \(x\mapsto C_t\). Measurability in \(x\) follows from gradient continuity. The nonpositive Gaussian exponent proves \(\|K_t(x,y)\|=K_t(x,y)\le C_t\); probability normalization makes this majorant integrable. Pointwise continuity in \(y\) is then assembled from subtraction, norm, square and exponential.
+
+
+
+These are exactly the four inputs of dominated convergence for continuous parameters. The result proves spatial continuity of the actual mixture, but it does not yet prove spatial differentiability or differentiation with respect to time.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLebesgueDensity\_continuous}.
+
+\section{Derive finite partition from target normalization}
+
+
+Recall \(\nu=Z^{-1}(e^{-U}dy)\) with the extended partition function \(Z=\int e^{-U}dy\). If this measure is a probability measure, then \(Z\ne\infty\).
+
+
+
+Indeed, \(Z=\infty\) would give \(Z^{-1}=0\), and hence \(\nu=0\). Its mass on the whole space would then be zero, contradicting \(\nu(E)=1\). Lean names the hypothetical zero-measure equality \texttt{hzero}, rewrites the probability mass identity \texttt{hmass}, and closes the contradiction by arithmetic.
+
+
+
+No strong convexity or LSI estimate is used. This matters because LSI already includes probability normalization of its target, so its finite partition requirement can be recovered from that normalization rather than imported through a stronger convexity hypothesis.
+
+
+
+\noindent Lean declarations: \texttt{gibbsPartition\_ne\_top\_of\_probability}.
+
+\section{Write the explicit density relative to Gibbs}
+
+
+The normalized Gibbs target has Lebesgue density \(Z^{-1}e^{-U(y)}\). Therefore the relative density corresponding to the mixture \(q_t(y)dy\) is
+
+\[r_t(y)=Z e^{U(y)}q_t(y).\]
+
+\texttt{interpolationRelativeDensity} is exactly this product, with \(Z\) represented by \texttt{(ULA.gibbsPartition U).toReal} and \(q_t\) by \texttt{interpolationLebesgueDensity}. The later theorems separately prove finite partition, positivity and the density-law identity before using this expression as a normalized relative density.
+
+
+
+The definition makes the coordinate conversion explicit: the ratio to the target is obtained by multiplying the Lebesgue density by the reciprocal target density. It does not package an entropy derivative, convergence bound or weak PDE as part of the meaning of a density.
+
+
+
+\noindent Lean declarations: \texttt{interpolationRelativeDensity}.
+
+\section{Multiply measurable factors to obtain relative-density measurability}
+
+
+Differentiability of \(U\) implies continuity and measurability of \(e^U\). The extended Gaussian mixture is measurable by \texttt{interpolationDensity\_measurable}, and its real conversion remains measurable by \texttt{ennreal\_toReal}. Multiplication by the constant \(Z^{\mathrm{toReal}}\) therefore proves measurability of \(r_t\).
+
+
+
+The Lean expression follows these factors in order: \texttt{measurable\_const.mul} combines the partition scalar with \texttt{Real.measurable\_exp.comp hU.continuous.measurable}, then the final \texttt{.mul} inserts the real Gaussian mixture. This statement concerns measurability only, so it does not need a positive-time assumption or a finiteness conversion.
+
+
+
+\noindent Lean declarations: \texttt{interpolationRelativeDensity\_measurable}.
+
+\section{Obtain relative-density continuity at positive time}
+
+
+For \(t>0\), spatial continuity of \(q_t\) and continuity of \(e^U\) give continuity of \(r_t(y)=Z e^{U(y)}q_t(y)\).
+
+
+
+The proof assembles three continuous factors directly: the constant partition scalar, \texttt{Real.continuous\_exp.comp hU.continuous}, and \texttt{interpolationLebesgueDensity\_continuous}. Its two applications of \texttt{Continuous.mul} mirror the two products in the definition. The conclusion is a property of the explicit actual-law density. It supplies continuity, while the \(C^1\) test-class requirement of the declared LSI remains a further obligation.
+
+
+
+\noindent Lean declarations: \texttt{interpolationRelativeDensity\_continuous}.
+
+\section{Retain all finiteness guards when proving strict positivity}
+
+
+When the target Gibbs measure is a probability measure and \(t>0\), all three factors of \(r_t(y)=Z e^{U(y)}q_t(y)\) are strictly positive. The partition is positive by \texttt{ULA.gibbsPartition\_pos} and finite by \texttt{gibbsPartition\_ne\_top\_of\_probability}. The mixture is positive by \texttt{interpolationDensity\_pos} and finite by \texttt{interpolationDensity\_ne\_top}.
+
+
+
+For each of these two extended-valued quantities, \texttt{ENNReal.toReal\_pos} requires both nonzero value and finiteness. The Lean witnesses \texttt{hZpos}, \texttt{hZfin}, \texttt{hqpos} and \texttt{hqfin} provide exactly those hypotheses. The ordinary exponential is positive independently. Two applications of \texttt{mul\_pos} prove strict positivity of the relative density at every spatial point.
+
+
+
+\noindent Lean declarations: \texttt{interpolationRelativeDensity\_pos}.
+
+\section{Cancel the target density and identify the exact relative law}
+
+
+The constructed relative density satisfies
+
+\[r_t\nu=q_tdy=\rho_t\qquad(t>0).\]
+
+The proof first records positive finite partition and measurability of the Gibbs weight and relative density. The actual-law mixture theorem changes \(\rho_t\) to its Lebesgue density. On the left, \texttt{withDensity\_smul\_measure}, \texttt{withDensity\_mul} and \texttt{withDensity\_smul'} combine multiplication by the relative density with multiplication by the Gibbs density into one density with respect to volume.
+
+
+
+The remaining equality is pointwise. The real-to-extended conversion \texttt{hrel} proves
+
+\[\operatorname{ofReal}(r_t(y))=Z\,\operatorname{ofReal}(e^{U(y)})\,q_t^{\mathrm{ext}}(y).\]
+
+Its uses of \texttt{ofReal\_toReal} invoke the finite partition and pointwise finite mixture bounds. Next \texttt{hexp} proves \(e^{-U(y)}e^{U(y)}=1\) in the extended nonnegative representation. The full density product is rearranged into \((Z^{-1}Z)(e^{-U(y)}e^{U(y)})q_t^{\mathrm{ext}}(y)\). Both cancellation steps are justified explicitly, leaving exactly the mixture density.
+
+
+
+This theorem constructs law identification at positive times; no density is supplied as an assumption. Spatial \(C^1\) regularity, time derivatives, entropy domination and the entropy weak equation are not conclusions of this algebraic density identity.
+
+
+
+\noindent Lean declarations: \texttt{tiltedMeasure\_interpolationRelativeDensity}.
+
+\section{Transfer normalization from the actual proposal law}
+
+
+The measure induced by the constructed relative density is a probability measure:
+
+\[\int r_t\,d\nu=1\qquad(t>0).\]
+
+Lean expresses this as \texttt{IsProbabilityMeasure (tiltedMeasure ν r\_t)}. The proof rewrites that measure with \texttt{tiltedMeasure\_interpolationRelativeDensity}, reducing normalization to the already proved probability preservation of the actual independent-Gaussian update. \texttt{interpolationLaw\_isProbability} supplies the result from probability of the initial law and measurability of the Lipschitz-gradient proposal.
+
+
+
+Thus positivity, continuity, law identification and normalization all refer to the same explicitly constructed density. Normalization alone does not prove finite entropy or Fisher information, and those analytic finiteness requirements remain visible in the entropy theorems.
+
+
+
+\noindent Lean declarations: \texttt{interpolationRelativeDensity\_isProbability}.
+
+\end{document}

@@ -1,7 +1,7 @@
 """Authored standalone theorem statements and logical proof roadmaps."""
 from pathlib import Path
 from build_site import (E, LIBRARIES, relative, module_page, anchor, shell,
-                        toolbar, commands, proof_diagram, declaration_header)
+                        toolbar, commands, proof_diagram, declaration_header, code)
 
 
 def node(identifier, row, col, file, title, detail, parents=(), final=False):
@@ -84,7 +84,7 @@ MYPGD = PROX_SETUP + r'''<p>MYPGD uses the MYIPLA drift and erases its parameter
 <p>The additional \(\sqrt{2d_\theta/(Nm)}\) is a proved conservative cost of removing parameter noise. This finite-particle replacement does not assert the paper’s stronger mean-field metric or constants.</p>'''
 
 CONFIG = {
-    'UnadjustedLangevin':dict(label='ULA',title='Unadjusted Langevin',subtitle='From strongly convex geometry to the law of the Gaussian algorithm.',
+    'UnadjustedLangevin':dict(label='Wasserstein convergence',title='Unadjusted Langevin under Strong Convexity',subtitle='A quantitative sampling theorem with a constructed stationary reference.',
         status='The strongly convex convergence theorems construct their Brownian reference and prove Gibbs stationarity. The separate LSI extension retains explicit analytic interpolation hypotheses.',
         archive='UnadjustedLangevin/exposition/dist/index.html',archive_label='Extended teaching document and Lean notes',
         extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · conditional proof and reference audit')],
@@ -100,7 +100,7 @@ CONFIG = {
                  node('coupling',2,1,'UnadjustedLangevin/HilbertDalalyan.lean','Compare synchronous paths','Noise cancellation and initial infimum',('local','stationary','integral')),
                  node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Identify the Gaussian laws','Independent transitions give the chain',('brownian',)),
                  node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','Canonical ULA theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
-    'IPLA':dict(label='IPLA',title='Interacting particle Langevin',subtitle='Lift the particle system, reuse ULA, and project to the parameter.',
+    'IPLA':dict(label='Particle convergence',title='Interacting Particle Langevin under Strong Convexity',subtitle='A parameter error bound from the joint potential and the actual particle recursion.',
         status='The final strongly convex theorem derives its stationary reference, target moments, and equilibrium concentration from the joint-potential assumptions. Parameter and latent dimensions are independent. The entropy extension is conditional.',
         archive='IPLA/exposition/proof.html',archive_label='Extended statement correspondence and assumption audit',
         extra=[('IPLA/LSI/exposition/index.html','Particle entropy under a lifted-target LSI · conditional proof'),('docs/modules/IPLA/Standalone.html','Standalone Mathlib-only theorem · full dependency proofs')],
@@ -137,68 +137,95 @@ CONFIG = {
 }
 
 
+
 def home_document(lib, config, notes, sources, parsed, math):
     page = lib + '/exposition/index.html'
-    body = (f'<div id="legacy-destination" hidden data-url="{relative(config["archive"],page)}"></div>'
-            f'<header class="hero"><div class="eyebrow">Sampling algorithms · {config["label"]} proof library</div>'
-            f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}</p>'
-            f'<p class="status">{config["status"]}</p></header>'
-            '<nav class="jump-nav" aria-label="Page sections"><a href="#main-results">Main results</a>'
-            '<a href="#verification">Verification workflow</a><a href="#proof-map">Proof diagram</a>'
-            '<a href="#modules">All module proofs</a><a href="#further-reading">Further reading</a></nav>')
-    body += toolbar() + '<section class="section" id="main-results"><h2>Main results</h2>'
+    parent_library=lib.split('/')[0]
+    entropy='/LSI' in lib
+    footref='<sup><a id="entropy-note-ref" href="#entropy-note" aria-label="Entropy analogue">1</a></sup>' if lib=='IPLA' else ''
+    body=(f'<div id="legacy-destination" hidden data-url="{relative(config["archive"],page)}"></div>'
+          f'<header class="hero"><div class="eyebrow">{config["label"]}</div>'
+          f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}{footref}</p>'
+          f'<p class="status">{config["status"]}</p></header>')
+    if config.get('proof'):
+        body+='<p class="proof-download"><a href="'+relative('docs/latex/'+lib+'/Overview.tex',page)+'" download>Download the mathematical proof as LaTeX ↓</a></p>'
+    body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorem</a><a href="#proof-map">Proof roadmap</a>'
+    if config.get('proof'):body+='<a href="#mathematical-proof">Detailed proof</a>'
+    body+='<a href="#modules">Supporting proofs</a><a href="#verification">Compile and verify</a></nav>'+toolbar()
+    body+='<section class="section" id="main-results"><h2>Theorems</h2>'
     for i,result in enumerate(config['results'],1):
-        target = module_page(result['file'])
-        namespace = 'ULA.Hilbert' if lib=='UnadjustedLangevin' else lib
-        context = 'import ' + result['file'].removesuffix('.lean').replace('/','.') + '\nopen MeasureTheory Set\nopen scoped NNReal ENNReal\nnamespace ' + namespace
-        if lib=='UnadjustedLangevin': context += '\nvariable {ι : Type*} [Fintype ι]'
-        body += (f'<article id="result-{i}"><h3>{result["title"]}</h3><div class="pair">'
-                 '<div class="math-pane"><div class="pane-label">Mathematical statement · all assumptions</div>'
-                 + math(result['body']) + '</div><div class="lean-pane"><div class="pane-label">Exact Lean statement</div>'
-                 + '<p class="small">Context for the names and ambient variables in this statement:</p><pre class="commands">' + E(context) + '</pre>'
-                 + declaration_header(result['file'],result['name'],sources,parsed,page)
-                 + f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Read the complete proof alongside its mathematics →</a></p>'
-                 + '<p class="small">The statement is extracted from the current Lean source. The linked module page includes the full proof body and explains every local declaration.</p></div></div></article>')
-    body += '</section><section class="section" id="verification"><h2>Verification workflow</h2><div class="workflow"><div>'
-    command = f'lake exe cache get\nlake build {lib}\nlake env lean {lib}/Check.lean\npython3 docs/build_site.py\npython3 docs/verify_site.py'
-    if lib=='IPLA': command += '\npython3 IPLA/verify.py'
-    body += commands(command,'verification-commands')
-    body += '</div><div><h3>Run from the repository root</h3><p>Install Git and elan first. The committed <code>lean-toolchain</code> and <code>lake-manifest.json</code> pin Lean and Mathlib. The initial cache download needs internet access.</p><p><code>lake build</code> checks the formal proofs. <code>Check.lean</code> prints axiom dependencies. The Python commands regenerate the pages and check exact source excerpts, declaration coverage, LaTeX exports, and local links. Regeneration also needs Node.js; KaTeX and fonts are bundled.</p>'
-    body += f'<p><a href="{relative("README.md",page)}">Full clone and build instructions</a> · <a href="{relative(lib+"/exposition/README.md",page)}">Method guide</a></p></div></div></section>'
-    body += '<section class="section" id="proof-map"><h2>Proof diagram</h2><p class="section-intro">Follow the arrows from the assumptions to the result. Every box opens an HTML page with a mathematical statement and proof beside the complete Lean declarations. The directory below includes all supporting subfiles.</p>'
-    body += proof_diagram(config['diagram'],page,config['title']+' proof diagram') + '</section>'
-    body += '<section class="section" id="modules"><h2>All module proofs</h2><p class="section-intro">Each source file has its own proof page and downloadable LaTeX exposition. Import-only and audit modules explain their role; the generated IPLA standalone bundle links to every included proof.</p>'
-    body += '<div class="toolbar"><div><label for="module-search">Find a module </label><input class="search" id="module-search" type="search" placeholder="Name, path, or topic" aria-controls="module-directory"></div><span class="small" id="module-count" aria-live="polite"></span></div><div id="module-directory">'
-    groups = {}
+        target=module_page(result['file'])
+        namespace=config.get('namespace','ULA.Hilbert' if lib=='UnadjustedLangevin' else lib)
+        context='import '+result['file'].removesuffix('.lean').replace('/','.')+'\nopen MeasureTheory Set\nopen scoped NNReal ENNReal\nnamespace '+namespace
+        if lib=='UnadjustedLangevin':context+='\nvariable {ι : Type*} [Fintype ι]'
+        if lib=='UnadjustedLangevin/LSI':
+            context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]'
+        body+=(f'<article id="result-{i}"><h3>{result["title"]}</h3><div class="pair">'
+               '<div class="math-pane"><div class="pane-label">Mathematical statement</div>'+math(result['body'])
+               +'</div><div class="lean-pane"><div class="pane-label">Lean statement</div>'
+               +('<p class="correspondence-note">'+config['formal_note']+'</p>' if config.get('formal_note') else '')
+               +'<details class="statement-context"><summary>Imports and notation</summary><pre class="commands">'+E(context)+'</pre></details>'
+               +declaration_header(result['file'],result['name'],sources,parsed,page)
+               +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
+    body+='</section><section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
+    body+=proof_diagram(config['diagram'],page,config['title']+' proof roadmap')+'</section>'
+    if config.get('proof'):
+        body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and any remaining formalization obligations.</p>'
+        for i,part in enumerate(config['proof'],1):
+            body+=(f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair"><div class="math-pane">'+math(part['body'])+'</div><div class="lean-pane">')
+            if part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
+            for j,reference in enumerate(part.get('references',[]),1):
+                path,name=reference['file'],reference['name'];decl=parsed[path][name]
+                body+=code(path,decl['start'],decl['end'],sources,page,'proof-fragment',name,f'argument-{i}-{j}')
+                body+=f'<p class="small"><a href="{relative(module_page(path),page)}#{anchor(name)}">Detailed explanation in {E(Path(path).name)} →</a></p>'
+            body+='</div></div></article>'
+        body+='</section>'
+    body+='<section class="section" id="modules"><h2>Supporting proofs</h2><p class="section-intro">Browse the definitions and lemmas used in this development. Each page pairs the mathematical statement and proof with the corresponding Lean declarations; a LaTeX version is available for reading or printing.</p>'
+    body+='<div class="toolbar"><div><label for="module-search">Find a proof </label><input class="search" id="module-search" type="search" placeholder="Name, topic, or source file" aria-controls="module-directory"></div><span class="small" id="module-count" aria-live="polite"></span></div><div id="module-directory">'
+    groups={}
     for path,note in sorted(notes.items()):
-        if path.startswith(lib+'/') or path==lib+'.lean':
-            group = 'Entropy extension · LSI' if '/LSI/' in path else 'Analysis foundations' if '/Analysis/' in path else 'Main library'
-            groups.setdefault(group,[]).append((path,note))
-    for group, entries in groups.items():
-        body += f'<div class="module-group"><h3 class="category">{group}</h3><div class="module-grid">'
+        if not (path.startswith(lib+'/') or path==lib+'.lean'):continue
+        if not entropy and '/LSI/' in path:continue
+        group='Analysis foundations' if '/Analysis/' in path else 'Proof library'
+        groups.setdefault(group,[]).append((path,note))
+    for group,entries in groups.items():
+        body+=f'<div class="module-group"><h3 class="category">{group}</h3><div class="module-grid">'
         for path,note in entries:
-            count = len(parsed.get(path,{}))
-            body += (f'<article class="module-card"><a href="{relative(module_page(path),page)}">{E(note["title"])}</a>'
-                     f'<code>{E(path)}</code><p class="small">{len(note["steps"])} proof steps · '
-                     + (f'{count} declarations' if path!='IPLA/Standalone.lean' else 'Generated dependency bundle') + '</p></article>')
-        body += '</div></div>'
-    body += '</div></section><section class="section" id="further-reading"><h2>Further reading</h2><div class="dependencies">'
-    body += f'<a href="{relative(config["archive"],page)}">{config["archive_label"]}</a>'
-    body += ''.join(f'<a href="{relative(p,page)}">{E(label)}</a>' for p,label in config['extra'])
-    body += '</div></section>'
+            body+=(f'<article class="module-card"><a href="{relative(module_page(path),page)}">{E(note["title"])}</a>'
+                   f'<code>{E(path)}</code></article>')
+        body+='</div></div>'
+    body+='</div></section><section class="section" id="verification"><h2>Compile and verify</h2><div class="workflow"><div>'
+    audit=lib+'/Check.lean'
+    command=f'git clone https://github.com/odakyildiz/LangevinLean.git\ncd LangevinLean\nlake exe cache get\nlake build {parent_library}\nlake env lean {audit}\nbash scripts/check-local.sh'
+    body+=commands(command,'verification-commands')+'</div><div><h3>Reproduce the formal proof</h3><p>Install Git and elan, Lean’s toolchain manager, before cloning. The repository pins the Lean and Mathlib versions. The first cache download requires an internet connection.</p><p><code>lake build</code> checks the Lean proofs. The audit file prints the logical axioms used by the results. The local check script also verifies that every displayed source excerpt matches the repository and that the mathematical pages regenerate correctly. Documentation generation requires Python 3 and Node.js.</p>'
+    body+=f'<p><a href="{relative("README.md",page)}">Complete installation and update instructions</a> · <a href="{relative("docs/README.md",page)}">Regenerate the exposition</a></p></div></div></section>'
+    if lib=='IPLA':
+        body+='<aside class="footnote" id="entropy-note"><p><sup>1</sup> The entropy analogue is developed separately in <a href="'+relative('IPLA/LSI/exposition/index.html',page)+'">Interacting Particle Langevin under LSI</a>. It uses an LSI for the actual lifted target, tracks per-particle normalization, and proves the parameter-marginal consequence. <a href="#entropy-note-ref" aria-label="Back to reference">↩</a></p></aside>'
+    body+='<section class="section" id="further-reading"><h2>References and further reading</h2><div class="dependencies">'
+    body+=f'<a href="{relative(config["archive"],page)}">{config["archive_label"]}</a>'
+    body+=''.join(f'<a href="{relative(p,page)}">{E(label)}</a>' for p,label in config['extra'])+'</div></section>'
     return shell(page,config['title'],body,lib)
 
 
 def project_document(notes):
     page='index.html'
-    body='<header class="hero"><div class="eyebrow">Sampling algorithms · Lean + Mathlib</div><h1>LangevinLean</h1><p class="subtitle">Mathematical proofs and machine-checked Lean, read side by side.</p><p>Three connected developments share the same reading and verification workflow. Start with a standalone result, follow its proof diagram, then open any supporting module for the full parallel proof.</p></header><section class="cards" aria-label="Algorithm proof libraries">'
-    descriptions=['Strongly convex ULA: sharp gradient contraction, local error, constructed Brownian references, Gibbs stationarity, and both stable step-size regimes.',
-                  'The actual interacting particle algorithm, its identification with ULA, lifted geometry, marginal concentration, and independent parameter and latent dimensions.',
-                  'Actual proximal minimizers, Moreau calculus, corrected MYIPLA/PIPGLA/MYPGD guarantees, and constructed mean-field particle limits.']
-    for (lib,config),description in zip(CONFIG.items(),descriptions):
-        count=sum(p.startswith(lib+'/') or p==lib+'.lean' for p in notes)
-        body+=f'<article class="landing-card"><div class="eyebrow">{count} module proof pages</div><h2>{config["title"]}</h2><p>{description}</p><a href="{lib}/exposition/index.html">Read the theorem and proof →</a></article>'
-    body+='</section><section class="section workflow"><div><h2>Verify the proofs</h2>'
-    body+=commands('lake exe cache get\nlake build\nlake env lean UnadjustedLangevin/Check.lean\nlake env lean IPLA/Check.lean\nlake env lean ProximalLangevin/Check.lean\npython3 docs/build_site.py\npython3 docs/verify_site.py','project-commands')
-    body+='</div><div><h2>Read anywhere</h2><p>Open this page directly after cloning, or serve the repository root:</p><pre class="commands">python3 -m http.server 8000 --bind 127.0.0.1</pre><p>Mathematics is rendered at build time. Fonts and scripts are local, so the proof pages work offline without a documentation account. Every module also offers its mathematical exposition as a LaTeX source file.</p><p><a href="README.md">Clone, update, and regeneration instructions</a> · <a href="docs/README.md">Documentation architecture and coverage</a></p></div></section>'
-    return shell(page,'Proofs and exposition',body)
+    body='<header class="hero project-hero"><div class="eyebrow">LangevinLean · Mathematics and formal verification</div><h1>Convergence proofs for Langevin algorithms</h1><p class="subtitle">Theorems, detailed mathematical arguments, and the Lean code that verifies them.</p><p>Explore Wasserstein convergence under strong convexity, entropy decay under a log-Sobolev inequality, and proximal particle methods. Each result leads through a proof roadmap to the supporting definitions and lemmas.</p></header><section class="cards" aria-label="Convergence theorems">'
+    cards=[('UnadjustedLangevin','Wasserstein distance','Geometric contraction and discretization bias for Gaussian ULA, with the stationary reference constructed from the potential assumptions.'),
+           ('UnadjustedLangevin/LSI','Relative entropy','The entropy interpolation argument under a log-Sobolev inequality: drift-error control, the one-step estimate, and its iteration.'),
+           ('IPLA','Interacting particles','A finite-time parameter error bound, using the lifted ULA system and concentration of the parameter marginal.'),
+           ('ProximalLangevin','Nonsmooth models','Proximal minimizers, Moreau envelopes, corrected particle bounds, and mean-field limits.')]
+    for key,label,description in cards:
+        config=CONFIG[key]
+        body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
+               f'<a href="{key}/exposition/index.html">Theorem and proof →</a>')
+        if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The mathematical argument and current scope of its Lean formalization are stated separately.</p>'
+        if key=='IPLA':body+='<p class="small card-scope">Entropy analogue: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a>.</p>'
+        body+='</article>'
+    body+='</section><section class="section reading-guide"><div><h2>Read the proof at two levels</h2><p>Start with the mathematical theorem and its assumptions. The roadmap leads to each supporting result. Mathematical derivations sit beside Lean; named proof constructions link directly to the source lines they explain.</p><p>Use the reading selector to view mathematics alone, Lean alone, or both. LaTeX proof documents are available from every module page.</p></div><div><h2>Check it yourself</h2><p>The repository contains the source, pinned dependencies, and local verification commands. After cloning, run:</p>'
+    body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
+    body+='<p class="small"><a href="README.md">Installation, compilation, and reproducibility</a></p></div></section>'
+    return shell(page,'Convergence proofs for Langevin algorithms',body)
+
+
+from entropy_content import ENTROPY_CONFIG
+CONFIG.update(ENTROPY_CONFIG)

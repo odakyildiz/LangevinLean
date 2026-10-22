@@ -1,5 +1,5 @@
 {
-  "intro": "<p>This page develops the entropy argument for the unadjusted Langevin algorithm (ULA) under a log-Sobolev inequality. It follows Vempala and Wibisono, <a href=\"https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf\"><em>Rapid Convergence of the Unadjusted Langevin Algorithm: Isoperimetry Suffices</em> (2019)</a>, Theorem 2 and Lemma 3. The mathematical argument is explained beside the corresponding Lean declarations, including their hypotheses and proofs.</p>\n<p><strong>The formal endpoint is conditional.</strong> The repository proves the Gaussian law calculations, entropy calculus under explicit regularity and weak-equation hypotheses, the scalar one-step estimate, and its iteration. It also assembles these results into a theorem about the actual Gaussian ULA laws. Constructing all of the required interpolation data from the paper's LSI and smoothness assumptions remains unfinished. In particular, neither the existence of the Lean theorem nor its kernel axiom audit removes the hypotheses displayed in that theorem.</p>\n<p>The central mechanism is that LSI turns Fisher-information dissipation into entropy contraction. Freezing the drift for one numerical step introduces an error. Gaussian displacement moments control the joint error, Young's inequality reserves three quarters of the Fisher information, and a small-step scalar calculation yields the constants \\(6\\) and \\(8\\). The distinction between this proved mechanism and the remaining analytic bridges is maintained throughout.</p>",
+  "intro": "<p>This page develops the entropy argument for the unadjusted Langevin algorithm (ULA) under a log-Sobolev inequality. It follows Vempala and Wibisono, <a href=\"https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf\"><em>Rapid Convergence of the Unadjusted Langevin Algorithm: Isoperimetry Suffices</em> (2019)</a>, Theorem 2 and Lemma 3. The mathematical argument is explained beside the corresponding Lean declarations, including their hypotheses and proofs.</p>\n<p><strong>The formal endpoint is conditional.</strong> The repository proves the actual positive-time Gaussian-mixture density and its Gibbs-relative identification, the conditional drift construction and Jensen/flux transfer, the coupling-to-gradient-moment bound, Gaussian law calculations, entropy calculus under explicit regularity and weak-equation hypotheses, the scalar one-step estimate, and its iteration. It also assembles these results into a theorem about the actual Gaussian ULA laws. Constructing all of the required interpolation data from the paper's LSI and smoothness assumptions remains unfinished. In particular, neither the existence of the Lean theorem nor its kernel axiom audit removes the hypotheses displayed in that theorem.</p>\n<p>The central mechanism is that LSI turns Fisher-information dissipation into entropy contraction. Freezing the drift for one numerical step introduces an error. Gaussian displacement moments control the joint error, Young's inequality reserves three quarters of the Fisher information, and a small-step scalar calculation yields the constants \\(6\\) and \\(8\\). The distinction between this proved mechanism and the remaining analytic bridges is maintained throughout.</p>",
   "sections": [
     {
       "id": "statement-and-notation",
@@ -127,7 +127,7 @@
         {
           "id": "displacement-energy",
           "title": "Exact displacement, followed by a Lipschitz gradient-error bound",
-          "body": "<p>The initial position cancels from the displacement: \\(Y_t-X=-t\\nabla U(X)+\\sqrt{2t}\\,Z\\). Let \\(G_k=\\mathbb E_{\\rho_k}\\|\\nabla U(X)\\|^2\\). Provided the gradient is square integrable, the affine Gaussian identity gives</p>\n\\[\n\\mathbb E\\|Y_t-X\\|^2=t^2G_k+2tn.\n\\]\n<p>No second moment of \\(X\\) itself is needed for this identity. The separate integrability proof concerns the displacement and the gradient. Applying the \\(L\\)-Lipschitz gradient bound pointwise, squaring, and integrating yields</p>\n\\[\n\\mathbb E\\|\\nabla U(Y_t)-\\nabla U(X)\\|^2\n\\leq L^2(t^2G_k+2tn).\n\\]\n<p><code>frozen_gradient_error_energy</code> proves both integrability of the joint gradient discrepancy and this bound for the actual product-law interpolation. It does not yet identify a density-level drift field or transfer the bound through conditional expectation; that bridge is a distinct remaining task.</p>",
+          "body": "<p>The initial position cancels from the displacement: \\(Y_t-X=-t\\nabla U(X)+\\sqrt{2t}\\,Z\\). Let \\(G_k=\\mathbb E_{\\rho_k}\\|\\nabla U(X)\\|^2\\). Provided the gradient is square integrable, the affine Gaussian identity gives</p>\n\\[\n\\mathbb E\\|Y_t-X\\|^2=t^2G_k+2tn.\n\\]\n<p>No second moment of \\(X\\) itself is needed for this identity. The separate integrability proof concerns the displacement and the gradient. Applying the \\(L\\)-Lipschitz gradient bound pointwise, squaring, and integrating yields</p>\n\\[\n\\mathbb E\\|\\nabla U(Y_t)-\\nabla U(X)\\|^2\n\\leq L^2(t^2G_k+2tn).\n\\]\n<p><code>frozen_gradient_error_energy</code> proves both integrability of the joint gradient discrepancy and this bound for the actual product-law interpolation. The new <code>ConditionalDrift</code> module constructs the state-dependent conditional field and transfers this estimate by conditional Jensen. Its identification in an admissible entropy weak equation remains a separate obligation.</p>",
           "declarations": [
             {
               "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
@@ -291,7 +291,7 @@
         {
           "id": "regularity-to-production",
           "title": "Assemble an actual KL derivative from the regular density data",
-          "body": "<p><code>densityEntropy_derivative_bound_of_regular_weak_equation</code> combines the dominated time derivative, the KL density formula, the entropy test, and Young's inequality. Its result concerns actual KL, with a right derivative on the interpolation interval, and the bound \\(-3J/4+\\mathcal E\\). Its inputs include positive spatially \\(C^1\\) densities, normalization, local entropy regularity, integrability of the squared score, the error energy, and the admissible forced weak equation.</p>\n<p>The accompanying continuity theorem derives continuity of actual KL on the closed interval from the same density data. This discharges the entropy-continuity and entropy-differentiation portion of the conditional argument. It leaves the quantitative estimate on \\(\\mathcal E(t)\\) to be supplied. In the intended Gaussian application that estimate is</p>\n\\[\n\\mathcal E(t)\\leq t^2L^2G_k+2tnL^2.\n\\]\n<p>The joint Gaussian estimate established earlier has exactly the required right-hand side. Connecting it to this density-level energy requires conditional Jensen and identification of the error field.</p>\n<p>The two derivative theorems operate at different levels. <code>entropy_derivative_bound_of_regular_weak_equation</code> concerns the ordinary integral \\(\\int r_t\\log r_t\\,d\\nu\\). The <code>densityEntropy</code> version first converts between that integral and actual KL, using normalization and finite entropy, then supplies the right derivative needed on \\([0,h]\\). Keeping these interfaces distinct shows where measure identification enters an argument that would otherwise look like formal differentiation alone.</p>",
+          "body": "<p><code>densityEntropy_derivative_bound_of_regular_weak_equation</code> combines the dominated time derivative, the KL density formula, the entropy test, and Young's inequality. Its result concerns actual KL, with a right derivative on the interpolation interval, and the bound \\(-3J/4+\\mathcal E\\). Its inputs include positive spatially \\(C^1\\) densities, normalization, local entropy regularity, integrability of the squared score, the error energy, and the admissible forced weak equation.</p>\n<p>The accompanying continuity theorem derives continuity of actual KL on the closed interval from the same density data. This discharges the entropy-continuity and entropy-differentiation portion of the conditional argument. It leaves the quantitative estimate on \\(\\mathcal E(t)\\) to be supplied. In the intended Gaussian application that estimate is</p>\n\\[\n\\mathcal E(t)\\leq t^2L^2G_k+2tnL^2.\n\\]\n<p>The joint Gaussian estimate established earlier has exactly the required right-hand side. The new <code>ConditionalDrift</code> module now constructs this field, proves conditional Jensen, and transfers integrable flux tests. The weak equation itself still has to be proved for the actual density.</p>\n<p>The two derivative theorems operate at different levels. <code>entropy_derivative_bound_of_regular_weak_equation</code> concerns the ordinary integral \\(\\int r_t\\log r_t\\,d\\nu\\). The <code>densityEntropy</code> version first converts between that integral and actual KL, using normalization and finite entropy, then supplies the right derivative needed on \\([0,h]\\). Keeping these interfaces distinct shows where measure identification enters an argument that would otherwise look like formal differentiation alone.</p>",
           "declarations": [
             {
               "file": "UnadjustedLangevin/LSI/Regularity.lean",
@@ -458,6 +458,364 @@
       ]
     },
     {
+      "id": "constructed-interpolation-density",
+      "title": "Construct the positive Gaussian mixture and Gibbs-relative density",
+      "intro": "<p>At positive time the actual update has an explicit Gaussian mixture density, even if its initial law is singular. Let \\(c_t(x)=x-t\\nabla U(x)\\) and let \\(C_t&gt;0\\) be the Gaussian normalizer. The Lebesgue density is \\(q_t(y)=\\int C_t\\exp(-\\|y-c_t(x)\\|^2/(4t))\\,d\\mu(x)\\). This module proves its law identity, everywhere positivity, pointwise finiteness and spatial continuity. For the normalized Gibbs target, \\(r_t(y)=Z e^{U(y)}q_t(y)\\) is then a positive continuous relative probability density. These results do not yet establish its spatial \\(C^1\\) regularity, time derivatives, entropy domination, or admissible entropy weak equation.</p>",
+      "steps": [
+        {
+          "id": "constructed-interpolation-density-1",
+          "title": "Define the explicit Gaussian mixture before taking real values",
+          "body": "<p>For the state-dependent center \\(c_t(x)=x-t\\nabla U(x)\\), let</p>\\[K_t(x,y)=C_t\\exp\\!\\left(-\\frac{\\|y-c_t(x)\\|^2}{4t}\\right),\\qquad q_t^{\\mathrm{ext}}(y)=\\int K_t(x,y)\\,d\\mu(x).\\]<p><code>interpolationDensity</code> is this mixture as an extended nonnegative integral: Lean integrates <code>ULA.gaussianProposalDensity t (x - t • gradient U x) y</code>. The normalizer \\(C_t\\) is the inverse of the actual radial Gaussian integral, already identified with the standard-noise proposal law in <code>GaussianProposalDensity.lean</code>.</p><p>The definition is total in time and potential, but the Gaussian density interpretation is used only for \\(t&gt;0\\). Keeping the integral in \\(\\mathbb R_{\\ge0}\\cup\\{\\infty\\}\\) makes nonnegativity immediate and preserves a genuine finiteness obligation before taking a real density. The later normalizer bound discharges that obligation at every proposed state.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationDensity"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-2",
+          "title": "Apply measurable parameter integration to the mixture",
+          "body": "<p>If \\(\\nabla U\\) is Lipschitz, its state-dependent center \\(c_t\\) is continuous and measurable. The joint Gaussian integrand \\((x,y)\\mapsto K_t(x,y)\\) is therefore measurable: subtraction, scalar multiplication, squared norm and exponential preserve the required measurability.</p><p>The theorem <code>Measurable.lintegral_prod_left</code> now proves that \\(y\\mapsto q_t^{\\mathrm{ext}}(y)\\) is measurable. Lean unfolds only the Gaussian proposal density, records gradient measurability as <code>hg</code>, and lets <code>fun_prop</code> assemble the elementary operations. The mixing probability measure supplies the finite, hence sigma-finite, hypothesis for parameter integration. No positive-time assumption is needed for this measurability statement.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationDensity_measurable"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-3",
+          "title": "Prove the Gaussian mixture is the density of the actual update",
+          "body": "<p>For every \\(t&gt;0\\),</p>\\[\\rho_t=(Y_t)_\\#(\\mu\\otimes\\mathcal N(0,I))=q_t^{\\mathrm{ext}}\\,dy.\\]<p>To prove equality of measures, fix a measurable set \\(A\\). The pushforward formula and Tonelli express the actual proposal probability as</p>\\[\\rho_t(A)=\\int \\mathbb P\\bigl(c_t(x)+\\sqrt{2t}Z\\in A\\bigr)\\,d\\mu(x).\\]<p>For each fixed \\(x\\), <code>ULA.gaussian_proposal_density</code> already identifies the affine Gaussian proposal with density \\(K_t(x,\\cdot)\\). The local identity <code>hinner</code> therefore changes the inner probability to \\(\\int_AK_t(x,y)\\,dy\\). The joint integrand is measurable, as proved by <code>hd</code>, so <code>lintegral_lintegral_swap</code> interchanges the two nonnegative integrals:</p>\\[\\rho_t(A)=\\int_A\\left(\\int K_t(x,y)\\,d\\mu(x)\\right)dy=\\int_Aq_t^{\\mathrm{ext}}(y)\\,dy.\\]<p>The Lean proof mirrors these three steps with <code>Measure.map_apply</code>, <code>Measure.prod_apply</code>, the fixed-state density identity, and Tonelli under the restricted volume measure on \\(A\\). It assumes no density for \\(\\mu\\).</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationLaw_eq_withDensity"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-4",
+          "title": "Use positivity of every Gaussian component",
+          "body": "<p>At every positive time and every point \\(y\\), the mixture density is strictly positive:</p>\\[q_t^{\\mathrm{ext}}(y)&gt;0.\\]<p>The normalizer is positive by <code>ULA.gaussianProposalNormalizer_pos</code>, and the real exponential is positive. Thus the component density \\(K_t(x,y)\\) is positive for every initial point \\(x\\). Lean proves this as <code>hqpos</code>, using positivity of <code>ENNReal.ofReal</code>.</p><p>The support of \\(x\\mapsto K_t(x,y)\\) is consequently all of \\(E\\); this is <code>hsupp</code>. Its measurability is <code>hq</code>. The characterization <code>lintegral_pos_iff_support</code> reduces positivity of its integral to positive mass of that support. Since \\(\\mu(E)=1\\), the integral is positive. The assertion holds pointwise in \\(y\\), not only almost everywhere.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationDensity_pos"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-5",
+          "title": "Bound every mixture value by the common Gaussian peak",
+          "body": "<p>For \\(t&gt;0\\), the Gaussian exponent is nonpositive, hence</p>\\[0\\le K_t(x,y)\\le C_t,\\qquad q_t^{\\mathrm{ext}}(y)\\le C_t.\\]<p>Lean proves the exponential bound with <code>Real.exp_le_one_iff</code>: the numerator \\(-\\|y-c_t(x)\\|^2\\) is nonpositive and the denominator \\(4t\\) is positive. Multiplication by the nonnegative normalizer preserves the inequality, as does <code>ENNReal.ofReal</code>.</p><p><code>lintegral_mono</code> integrates this pointwise bound. The integral of the constant \\(C_t\\) equals \\(C_t\\mu(E)=C_t\\) because \\(\\mu\\) is a probability measure. This theorem requires no regularity of the gradient: its bound concerns the nonnegative integrand at every point, and the upper nonnegative integral remains monotone even before measurability is established.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationDensity_le_normalizer"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-6",
+          "title": "Derive pointwise finiteness before real conversion",
+          "body": "<p>The preceding bound gives \\(q_t^{\\mathrm{ext}}(y)\\le\\operatorname{ofReal}(C_t)&lt;\\infty\\) for each \\(t&gt;0\\) and \\(y\\). The extended density therefore never equals infinity.</p><p>The Lean proof is the order argument <code>ne_top_of_le_ne_top</code>, applied to the universal fact <code>ENNReal.ofReal_ne_top</code> and <code>interpolationDensity_le_normalizer</code>. This small theorem is the explicit finiteness witness used by every later conversion from the extended mixture density to an ordinary real function. It prevents the total operation <code>toReal</code> from silently turning an infinite density into zero.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationDensity_ne_top"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-7",
+          "title": "Choose the finite real representative of the mixture",
+          "body": "<p>The real density is defined by</p>\\[q_t(y)=\\bigl(q_t^{\\mathrm{ext}}(y)\\bigr).\\mathrm{toReal}.\\]<p>This is <code>interpolationLebesgueDensity U μ t y</code>. The definition itself is total; its positive-time interpretation uses the pointwise finiteness theorem above. Once \\(q_t^{\\mathrm{ext}}(y)\\ne\\infty\\) is supplied, converting \\(q_t(y)\\) back with <code>ENNReal.ofReal</code> recovers the original extended density exactly. The subsequent law identity, positivity argument, ordinary integral formula and continuity theorem all retain the positive-time hypotheses that justify this interpretation.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationLebesgueDensity"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-8",
+          "title": "Identify the actual law with the finite real density",
+          "body": "<p>For \\(t&gt;0\\), the actual proposal law satisfies</p>\\[\\rho_t(A)=\\int_Aq_t(y)\\,dy\\quad\\text{for every measurable }A.\\]<p>The extended-density law identity is already proved. The present proof changes only its integrand representative: <code>ENNReal.ofReal_toReal</code> and <code>interpolationDensity_ne_top</code> prove \\(\\operatorname{ofReal}(q_t(y))=q_t^{\\mathrm{ext}}(y)\\) for every \\(y\\). Function extensionality then gives equality of the two density functions and hence of their <code>withDensity</code> measures.</p><p>The separate finiteness theorem is invoked at the exact point where it is needed. This is why the real-valued representative still denotes the genuine Gaussian mixture, including from an initial law that has no Lebesgue density.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationLaw_eq_real_withDensity"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-9",
+          "title": "Deduce absolute continuity for every positive time",
+          "body": "<p>The law identity \\(\\rho_t=q_t^{\\mathrm{ext}}dy\\) immediately implies \\(\\rho_t\\ll dy\\): every Lebesgue-null set has zero integral against the density and thus zero proposal probability.</p><p>Lean rewrites the actual <code>interpolationLaw</code> using <code>interpolationLaw_eq_withDensity</code>, then applies the general theorem <code>withDensity_absolutelyContinuous</code>. The result holds for any initial probability law when the gradient is Lipschitz. In particular, positive-time Gaussian smoothing produces absolute continuity from a Dirac or other singular initial law. This conclusion alone does not imply finite KL relative to a particular target, nor entropy continuity at the initial time.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationLaw_absolutelyContinuous"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-10",
+          "title": "Convert the nonnegative mixture to its ordinary real integral",
+          "body": "<p>The real density has the expected ordinary integral formula:</p>\\[q_t(y)=\\int C_t\\exp\\!\\left(-\\frac{\\|y-c_t(x)\\|^2}{4t}\\right)d\\mu(x).\\]<p>The proof records nonnegativity of the real integrand as <code>hnonneg</code> and the uniform bound by \\(C_t\\) as <code>hbound</code>. Because \\(\\mu\\) is a probability measure, the constant majorant is integrable. Continuity of the Lipschitz gradient supplies measurability, and <code>Integrable.mono'</code> proves <code>hint</code>, integrability of the displayed real Gaussian integrand.</p><p><code>ofReal_integral_eq_lintegral_ofReal</code> can now identify its ordinary integral with the extended mixture integral after applying <code>ofReal</code>. Taking <code>toReal</code> reverses this conversion because the real integral is nonnegative. This proves the formula without treating a nonintegrable Bochner integral as an ordinary expectation.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationLebesgueDensity_eq_integral"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-11",
+          "title": "Pass spatial continuity through the probability mixture",
+          "body": "<p>At a fixed positive time, \\(q_t:E\\to\\mathbb R\\) is continuous. For every fixed initial state \\(x\\), the Gaussian kernel \\(y\\mapsto K_t(x,y)\\) is continuous, and its absolute value is bounded by the same constant \\(C_t\\), independent of \\(x\\) and \\(y\\).</p><p>The proof first replaces <code>interpolationLebesgueDensity</code> by the ordinary integral formula from the previous theorem. It applies <code>continuous_of_dominated</code> with constant majorant \\(x\\mapsto C_t\\). Measurability in \\(x\\) follows from gradient continuity. The nonpositive Gaussian exponent proves \\(\\|K_t(x,y)\\|=K_t(x,y)\\le C_t\\); probability normalization makes this majorant integrable. Pointwise continuity in \\(y\\) is then assembled from subtraction, norm, square and exponential.</p><p>These are exactly the four inputs of dominated convergence for continuous parameters. The result proves spatial continuity of the actual mixture, but it does not yet prove spatial differentiability or differentiation with respect to time.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationLebesgueDensity_continuous"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-12",
+          "title": "Derive finite partition from target normalization",
+          "body": "<p>Recall \\(\\nu=Z^{-1}(e^{-U}dy)\\) with the extended partition function \\(Z=\\int e^{-U}dy\\). If this measure is a probability measure, then \\(Z\\ne\\infty\\).</p><p>Indeed, \\(Z=\\infty\\) would give \\(Z^{-1}=0\\), and hence \\(\\nu=0\\). Its mass on the whole space would then be zero, contradicting \\(\\nu(E)=1\\). Lean names the hypothetical zero-measure equality <code>hzero</code>, rewrites the probability mass identity <code>hmass</code>, and closes the contradiction by arithmetic.</p><p>No strong convexity or LSI estimate is used. This matters because LSI already includes probability normalization of its target, so its finite partition requirement can be recovered from that normalization rather than imported through a stronger convexity hypothesis.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "gibbsPartition_ne_top_of_probability"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-13",
+          "title": "Write the explicit density relative to Gibbs",
+          "body": "<p>The normalized Gibbs target has Lebesgue density \\(Z^{-1}e^{-U(y)}\\). Therefore the relative density corresponding to the mixture \\(q_t(y)dy\\) is</p>\\[r_t(y)=Z e^{U(y)}q_t(y).\\]<p><code>interpolationRelativeDensity</code> is exactly this product, with \\(Z\\) represented by <code>(ULA.gibbsPartition U).toReal</code> and \\(q_t\\) by <code>interpolationLebesgueDensity</code>. The later theorems separately prove finite partition, positivity and the density-law identity before using this expression as a normalized relative density.</p><p>The definition makes the coordinate conversion explicit: the ratio to the target is obtained by multiplying the Lebesgue density by the reciprocal target density. It does not package an entropy derivative, convergence bound or weak PDE as part of the meaning of a density.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationRelativeDensity"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-14",
+          "title": "Multiply measurable factors to obtain relative-density measurability",
+          "body": "<p>Differentiability of \\(U\\) implies continuity and measurability of \\(e^U\\). The extended Gaussian mixture is measurable by <code>interpolationDensity_measurable</code>, and its real conversion remains measurable by <code>ennreal_toReal</code>. Multiplication by the constant \\(Z^{\\mathrm{toReal}}\\) therefore proves measurability of \\(r_t\\).</p><p>The Lean expression follows these factors in order: <code>measurable_const.mul</code> combines the partition scalar with <code>Real.measurable_exp.comp hU.continuous.measurable</code>, then the final <code>.mul</code> inserts the real Gaussian mixture. This statement concerns measurability only, so it does not need a positive-time assumption or a finiteness conversion.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationRelativeDensity_measurable"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-15",
+          "title": "Obtain relative-density continuity at positive time",
+          "body": "<p>For \\(t&gt;0\\), spatial continuity of \\(q_t\\) and continuity of \\(e^U\\) give continuity of \\(r_t(y)=Z e^{U(y)}q_t(y)\\).</p><p>The proof assembles three continuous factors directly: the constant partition scalar, <code>Real.continuous_exp.comp hU.continuous</code>, and <code>interpolationLebesgueDensity_continuous</code>. Its two applications of <code>Continuous.mul</code> mirror the two products in the definition. The conclusion is a property of the explicit actual-law density. It supplies continuity, while the \\(C^1\\) test-class requirement of the declared LSI remains a further obligation.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationRelativeDensity_continuous"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-16",
+          "title": "Retain all finiteness guards when proving strict positivity",
+          "body": "<p>When the target Gibbs measure is a probability measure and \\(t&gt;0\\), all three factors of \\(r_t(y)=Z e^{U(y)}q_t(y)\\) are strictly positive. The partition is positive by <code>ULA.gibbsPartition_pos</code> and finite by <code>gibbsPartition_ne_top_of_probability</code>. The mixture is positive by <code>interpolationDensity_pos</code> and finite by <code>interpolationDensity_ne_top</code>.</p><p>For each of these two extended-valued quantities, <code>ENNReal.toReal_pos</code> requires both nonzero value and finiteness. The Lean witnesses <code>hZpos</code>, <code>hZfin</code>, <code>hqpos</code> and <code>hqfin</code> provide exactly those hypotheses. The ordinary exponential is positive independently. Two applications of <code>mul_pos</code> prove strict positivity of the relative density at every spatial point.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationRelativeDensity_pos"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-17",
+          "title": "Cancel the target density and identify the exact relative law",
+          "body": "<p>The constructed relative density satisfies</p>\\[r_t\\nu=q_tdy=\\rho_t\\qquad(t&gt;0).\\]<p>The proof first records positive finite partition and measurability of the Gibbs weight and relative density. The actual-law mixture theorem changes \\(\\rho_t\\) to its Lebesgue density. On the left, <code>withDensity_smul_measure</code>, <code>withDensity_mul</code> and <code>withDensity_smul'</code> combine multiplication by the relative density with multiplication by the Gibbs density into one density with respect to volume.</p><p>The remaining equality is pointwise. The real-to-extended conversion <code>hrel</code> proves</p>\\[\\operatorname{ofReal}(r_t(y))=Z\\,\\operatorname{ofReal}(e^{U(y)})\\,q_t^{\\mathrm{ext}}(y).\\]<p>Its uses of <code>ofReal_toReal</code> invoke the finite partition and pointwise finite mixture bounds. Next <code>hexp</code> proves \\(e^{-U(y)}e^{U(y)}=1\\) in the extended nonnegative representation. The full density product is rearranged into \\((Z^{-1}Z)(e^{-U(y)}e^{U(y)})q_t^{\\mathrm{ext}}(y)\\). Both cancellation steps are justified explicitly, leaving exactly the mixture density.</p><p>This theorem constructs law identification at positive times; no density is supplied as an assumption. Spatial \\(C^1\\) regularity, time derivatives, entropy domination and the entropy weak equation are not conclusions of this algebraic density identity.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "tiltedMeasure_interpolationRelativeDensity"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interpolation-density-18",
+          "title": "Transfer normalization from the actual proposal law",
+          "body": "<p>The measure induced by the constructed relative density is a probability measure:</p>\\[\\int r_t\\,d\\nu=1\\qquad(t&gt;0).\\]<p>Lean expresses this as <code>IsProbabilityMeasure (tiltedMeasure ν r_t)</code>. The proof rewrites that measure with <code>tiltedMeasure_interpolationRelativeDensity</code>, reducing normalization to the already proved probability preservation of the actual independent-Gaussian update. <code>interpolationLaw_isProbability</code> supplies the result from probability of the initial law and measurability of the Lipschitz-gradient proposal.</p><p>Thus positivity, continuity, law identification and normalization all refer to the same explicitly constructed density. Normalization alone does not prove finite entropy or Fisher information, and those analytic finiteness requirements remain visible in the entropy theorems.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InterpolationDensity.lean",
+              "name": "interpolationRelativeDensity_isProbability"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "constructed-conditional-drift",
+      "title": "Construct the conditional Gaussian drift and transfer its energy",
+      "intro": "<p>The actual frozen Gaussian interpolation is \\(Y_t=X-t\\nabla U(X)+\\sqrt{2t}Z\\), where \\((X,Z)\\) has the independent law \\(P=\\mu\\otimes\\mathcal N(0,I)\\). Write \\(D_t=\\nabla U(Y_t)-\\nabla U(X)\\). This module constructs a measurable field \\(e_t\\) satisfying \\(e_t(Y_t)=\\mathbb E[D_t\\mid Y_t]\\), proves its flux identities, and derives its squared-energy bound by conditional Jensen. Thus the state-dependent error is a consequence of the joint Gaussian construction. The entropy weak equation is a separate analytic obligation.</p>",
+      "steps": [
+        {
+          "id": "constructed-conditional-drift-1",
+          "title": "Construct a conditional mean on the observed state space",
+          "body": "<p>Let \\(Y:\\Omega\\to S\\) be measurable, let \\(P\\) be a probability measure, and let the Banach-valued vector \\(D\\) satisfy \\(\\mathbb E_P\\|D\\|^2&lt;\\infty\\). The theorem constructs a strongly measurable \\(e:S\\to F\\) such that</p>\\[e(Y)=\\mathbb E_P[D\\mid\\sigma(Y)]\\quad P\\text{-almost surely},\\qquad \\int_S\\|e(y)\\|^2\\,d(Y_\\#P)(y)\\le\\int_\\Omega\\|D\\|^2\\,dP.\\]<p>The proof first applies Doob–Dynkin factorization to the strongly measurable conditional expectation. In Lean, <code>stronglyMeasurable_condExp</code> and <code>exists_eq_measurable_comp</code> produce <code>e</code>, its strong measurability <code>he</code>, and the exact factorization <code>hfactor</code>. The equality <code>hcomp</code> writes that factorization in the pointwise function form needed for later rewrites.</p><p>Next <code>hD.condExp</code> proves that the conditional expectation is in \\(L^2(P)\\). Its squared norm is therefore integrable. The pushforward integrability theorem converts this to integrability of \\(\\|e\\|^2\\) under \\(Y_\\#P\\); this is <code>hint</code>. Finally, <code>integral_map_of_stronglyMeasurable</code> identifies the left energy with \\(\\int\\|\\mathbb E[D\\mid\\sigma(Y)]\\|^2dP\\). The conditional Jensen theorem <code>integral_norm_condExp_rpow_le</code>, with exponent \\(2\\), bounds that integral by \\(\\int\\|D\\|^2dP\\). The real-power notation in that library theorem is converted to the ordinary square by <code>Real.rpow_two</code>.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "exists_conditional_mean_with_energy"
+            }
+          ]
+        },
+        {
+          "id": "constructed-conditional-drift-2",
+          "title": "Identify the vector flux on every measurable set",
+          "body": "<p>Suppose a strongly measurable field \\(e\\) satisfies the conditional-mean identity \\(e(Y)=\\mathbb E[D\\mid\\sigma(Y)]\\), with \\(D\\) integrable. For every measurable \\(A\\subseteq S\\),</p>\\[\\int_A e(y)\\,d(Y_\\#P)(y)=\\int_{Y^{-1}(A)}D(\\omega)\\,dP(\\omega).\\]<p>The first step, <code>setIntegral_map</code>, pulls the left integral back to \\(\\int_{Y^{-1}(A)}e(Y)dP\\). The almost-sure conditional-mean identity changes its integrand to the conditional expectation. Because \\(Y^{-1}(A)\\) belongs to the pulled-back sigma algebra, <code>setIntegral_condExp</code> replaces that expectation by \\(D\\) in the set integral. The probability assumption guarantees the finite-measure hypotheses for conditional expectation. This proves a vector-valued identification of the flux, extending beyond the energy estimate.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "conditional_mean_setIntegral"
+            }
+          ]
+        },
+        {
+          "id": "constructed-conditional-drift-3",
+          "title": "Transfer integrable inner-product tests through the conditional mean",
+          "body": "<p>Let \\(\\varphi:S\\to F\\) be strongly measurable and suppose \\(\\langle D,\\varphi(Y)\\rangle\\) is integrable. Then</p>\\[\\int_S\\langle e(y),\\varphi(y)\\rangle\\,d(Y_\\#P)(y)=\\int_\\Omega\\langle D,\\varphi(Y)\\rangle\\,dP.\\]<p>This is the flux identity needed when the test depends on the current interpolated state. The proof gives \\(Y\\) its pulled-back sigma algebra and observes that \\(\\varphi\\circ Y\\) is strongly measurable for that algebra; the Lean witnesses are <code>hYpull</code> and <code>hφ.comp_measurable hYpull</code>. Conditional expectation can therefore pull this factor out of the continuous bilinear inner product:</p>\\[\\mathbb E[\\langle D,\\varphi(Y)\\rangle\\mid Y]=\\langle\\mathbb E[D\\mid Y],\\varphi(Y)\\rangle.\\]<p><code>condExp_bilin_of_stronglyMeasurable_right</code> proves this equality as <code>hpull</code>, using <code>innerSL ℝ</code> as the continuous bilinear map. The pushforward integral is pulled back, <code>hcond</code> substitutes the conditional expectation, and integrating <code>hpull</code> removes the conditioning. The statement allows noncompact tests whenever its displayed product is integrable; it does not prove a Fokker–Planck equation or the integrability of an arbitrary entropy test.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "conditional_mean_inner_integral"
+            }
+          ]
+        },
+        {
+          "id": "constructed-conditional-drift-4",
+          "title": "Specify the discrepancy on the actual independent joint law",
+          "body": "<p>For \\(p=(x,z)\\), define</p>\\[D_t(p)=\\nabla U\\!\\left(x-t\\nabla U(x)+\\sqrt{2t}\\,z\\right)-\\nabla U(x).\\]<p>This is exactly <code>frozenGradientDiscrepancy U t p</code>: <code>ULA.malaProposal</code> supplies the interpolated state and the two gradient terms are subtracted in the displayed order. Its sign agrees with the additional relative-density drift \\(e_t(y)=\\nabla U(y)-\\mathbb E[\\nabla U(X)\\mid Y_t=y]\\). No conditional expectation, density, or error bound is part of this definition. For \\(t\\ge0\\), the later energy theorem uses the actual independent Gaussian product law.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "frozenGradientDiscrepancy"
+            }
+          ]
+        },
+        {
+          "id": "constructed-conditional-drift-5",
+          "title": "Record precisely what is observed at interpolation time",
+          "body": "<p>The observed variable is \\(Y_t(x,z)=x-t\\nabla U(x)+\\sqrt{2t}z\\). The sigma algebra \\(\\sigma(Y_t)\\) consists of preimages \\(Y_t^{-1}(A)\\) of measurable subsets of the state space. Lean writes it as <code>MeasurableSpace.comap</code> of the proposal map.</p><p>The abbreviation <code>frozenDriftSigmaAlgebra U t</code> makes the conditional expectation statements refer to this exact observation. Conditioning retains the interpolated position and averages out information about the starting point and Gaussian innovation that the position alone does not determine. Lipschitzness of the gradient later proves that this pulled-back sigma algebra lies inside the ambient measurable structure.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "frozenDriftSigmaAlgebra"
+            }
+          ]
+        },
+        {
+          "id": "constructed-conditional-drift-6",
+          "title": "Construct the actual interpolation error and prove its energy bound",
+          "body": "<p>Assume \\(\\nabla U\\) is \\(L\\)-Lipschitz and \\(G_0=\\int\\|\\nabla U\\|^2d\\mu&lt;\\infty\\). For each \\(t\\ge0\\), the theorem constructs a strongly measurable \\(e_t:E\\to E\\) with</p>\\[e_t(Y_t)=\\mathbb E[D_t\\mid Y_t],\\qquad \\int\\|e_t(y)\\|^2\\,d\\rho_t(y)\\le t^2L^2G_0+2tnL^2,\\]\\[\\rho_t=(Y_t)_\\#(\\mu\\otimes\\mathcal N(0,I)),\\qquad n=\\dim E.\\]<p>The proof names the actual proposal map <code>Y</code> and discrepancy <code>D</code>. <code>ULA.malaProposal_measurable</code> proves measurability of \\(Y\\). <code>frozen_gradient_error_energy</code> gives square-integrability of \\(D\\) and the joint bound \\(\\mathbb E\\|D\\|^2\\le L^2(t^2G_0+2tn)\\). The continuity of the Lipschitz gradient gives <code>hDmeas</code>, so <code>memLp_two_iff_integrable_sq_norm</code> turns that bound into the \\(L^2\\) input <code>hD</code>.</p><p>The general conditional-mean theorem now constructs <code>err</code>. Its pushforward measure is definitionally the actual <code>interpolationLaw</code>, so the field is integrable on the required marginal. Conditional Jensen followed by the joint Gaussian estimate gives the result; the final <code>ring</code> step expands \\(L^2(t^2G_0+2tn)\\) into the exact coefficient order used by the entropy interface. Neither the error field nor its numerical energy estimate is a hypothesis.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "exists_frozen_drift_error"
+            }
+          ]
+        },
+        {
+          "id": "constructed-conditional-drift-7",
+          "title": "Express the constructed error energy in relative-density coordinates",
+          "body": "<p>Suppose a measurable nonnegative \\(r\\) identifies the actual interpolation law as \\(\\rho_t=r\\nu\\). The preceding construction gives a field \\(e_t\\) satisfying both the conditional-mean identity and</p>\\[\\int r(y)\\|e_t(y)\\|^2\\,d\\nu(y)\\le t^2L^2G_0+2tnL^2.\\]<p>The weighted integrand is also proved integrable. In Lean, <code>exists_frozen_drift_error</code> first supplies the state-space field. The law identity <code>hlaw</code> changes its integrability and energy conclusions from the interpolation law to <code>tiltedMeasure ν r</code>. <code>integrable_withDensity_iff_integrable_smul'</code> then converts integrability under \\(r\\nu\\) into integrability of \\(r\\|e_t\\|^2\\) under \\(\\nu\\). Nonnegativity of \\(r\\) makes the real conversion of <code>ENNReal.ofReal r</code> equal to \\(r\\).</p><p>Finally <code>integral_tiltedMeasure</code> converts the energy integral itself. The density-law identity is a displayed input to this corollary; at positive times <code>InterpolationDensity.lean</code> constructs such a relative density explicitly for a normalized Gibbs target. This corollary does not assume entropy production or prove the remaining weak differential equation.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/ConditionalDrift.lean",
+              "name": "exists_frozen_drift_error_of_density"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "constructed-gradient-moment",
+      "title": "Transfer the Gibbs score moment through a transport coupling",
+      "intro": "<p>For any finite-cost coupling of \\(X\\sim\\mu\\) and \\(Y\\sim\\nu\\), an \\(L\\)-Lipschitz gradient gives \\(\\mathbb E_\\mu\\|\\nabla U\\|^2\\le2L^2\\mathbb E\\|X-Y\\|^2+2\\mathbb E_\\nu\\|\\nabla U\\|^2\\). This module proves that estimate together with gradient square integrability. For a normalized Gibbs target the second term is bounded by \\(2nL\\). An explicit entropy-cost coupling then supplies the exact gradient-moment bound used by the ULA proof. The implication from LSI to such transport control remains a separate formal obligation.</p>",
+      "steps": [
+        {
+          "id": "constructed-gradient-moment-1",
+          "title": "Derive both integrability and the coupling moment estimate",
+          "body": "<p>Let \\(c\\) be a joint measure with marginals \\(\\mu\\) and \\(\\nu\\). Assume \\(\\int\\|x-y\\|^2dc&lt;\\infty\\), that the gradient is \\(L\\)-Lipschitz, and that \\(\\int\\|\\nabla U\\|^2d\\nu&lt;\\infty\\). The theorem proves square integrability under \\(\\mu\\) and</p>\\[\\int\\|\\nabla U\\|^2d\\mu\\le2L^2\\int\\|x-y\\|^2\\,dc(x,y)+2\\int\\|\\nabla U\\|^2d\\nu.\\]<p>At a pair \\((x,y)\\), write \\(\\nabla U(x)=(\\nabla U(x)-\\nabla U(y))+\\nabla U(y)\\). The triangle inequality and Lipschitzness give \\(\\|\\nabla U(x)\\|\\le L\\|x-y\\|+\\|\\nabla U(y)\\|\\). Squaring and applying \\((a+b)^2\\le2a^2+2b^2\\) proves the pointwise bound <code>hpoint</code>. Lean obtains the last elementary inequality from the nonnegative square \\((a-b)^2\\).</p><p>Before integrating the inequality, the proof establishes integrability: <code>hsecond</code> pulls the target squared-gradient integrand to the second marginal, while <code>hmajor</code> combines it with the integrable coupling cost. This dominating function and continuity of the gradient prove <code>hfirst</code>, integrability of the first-coordinate squared gradient. The map-integrability equivalence and the first-marginal identity then prove <code>hμ</code>. Thus a missing moment is derived, rather than represented by a possibly undefined real integral.</p><p>Finally <code>integral_mono</code> integrates <code>hpoint</code>. The identities <code>hfirst_marginal</code> and <code>hsecond_marginal</code>, proved by the pushforward integral formula, replace the joint-coordinate integrals by their marginal integrals and give exactly the displayed estimate.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GradientMoment.lean",
+              "name": "gradient_moment_bound_of_coupling"
+            }
+          ]
+        },
+        {
+          "id": "constructed-gradient-moment-2",
+          "title": "Insert the derived target score bound",
+          "body": "<p>For the normalized Gibbs probability \\(\\nu=Z^{-1}e^{-U}dx\\), differentiability of \\(U\\) and an \\(L\\)-Lipschitz gradient imply the target estimate \\(\\int\\|\\nabla U\\|^2d\\nu\\le nL\\). Consequently every finite-cost coupling gives</p>\\[\\int\\|\\nabla U\\|^2d\\mu\\le2L^2\\int\\|x-y\\|^2dc+2nL.\\]<p>The proof first derives \\(Z&lt;\\infty\\) from probability normalization, using <code>gibbsPartition_ne_top_of_probability</code>. The shared theorem <code>ULA.memLp_gradient_gibbsMeasure</code> then supplies target square integrability; its \\(L^2\\) conclusion is converted into the integrability input for the preceding coupling theorem. The sharp target moment itself comes from <code>ULA.integral_norm_sq_gradient_gibbs_le</code>.</p><p>Those shared Gibbs results use translation invariance and a sub-Gaussian score argument under first-order smoothness, so strong convexity is unnecessary here. Substituting their target bound into the coupling estimate proves the stated result and retains the newly derived square integrability under \\(\\mu\\).</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GradientMoment.lean",
+              "name": "gibbs_gradient_moment_bound_of_coupling"
+            }
+          ]
+        },
+        {
+          "id": "constructed-gradient-moment-3",
+          "title": "Obtain the exact entropy-dependent coefficient from transport control",
+          "body": "<p>Suppose the preceding finite-cost coupling additionally satisfies</p>\\[\\int\\|x-y\\|^2dc(x,y)\\le\\frac2\\alpha D_{\\mathrm{KL}}(\\mu\\Vert\\nu),\\qquad \\alpha&gt;0,\\quad D_{\\mathrm{KL}}(\\mu\\Vert\\nu)&lt;\\infty.\\]<p>Substitution into the coupling bound gives</p>\\[\\int\\|\\nabla U\\|^2d\\mu\\le\\frac{4L^2}{\\alpha}D_{\\mathrm{KL}}(\\mu\\Vert\\nu)+2nL.\\]<p>The Lean hypothesis <code>htransport</code> is exactly the displayed cost estimate for the supplied coupling. It is multiplied by the nonnegative factor \\(2L^2\\); <code>heq</code> verifies the coefficient identity \\(2L^2(2/\\alpha)=4L^2/\\alpha\\). The result also returns gradient square integrability from the previous theorem. Separate hypotheses record positive \\(\\alpha\\) and finite extended KL before its real value is used.</p><p>This theorem completes the coupling-to-moment calculation and connects it to the already proved target score bound. It does not assert that LSI constructs this coupling or prove the LSI-to-Talagrand implication. The existing ULA endpoint still displays its gradient-moment input until that transport implication and the remaining analytic path construction are assembled.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/GradientMoment.lean",
+              "name": "gibbs_gradient_moment_bound_of_entropy_coupling"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "constructed-interior-entropy",
+      "title": "Compare entropy using derivatives only at positive times",
+      "intro": "<p>Gaussian regularization naturally supplies derivatives for positive times. The scalar comparison here uses ordinary derivatives on \\(0&lt;t&lt;T\\) and continuity on \\([0,T]\\); neither endpoint needs a derivative. A second theorem computes actual KL derivatives from local relative-density data only in that open interval. The existing global ULA endpoint retains its earlier interface; these lemmas provide a more flexible route for a future positive-time construction.</p>",
+      "steps": [
+        {
+          "id": "constructed-interior-entropy-1",
+          "title": "Use an integrating factor without differentiating at the endpoints",
+          "body": "<p>Let \\(a&gt;0\\), let \\(H\\) be continuous on \\([0,T]\\), and suppose it has derivative \\(H'(t)\\le-aH(t)+b\\) for \\(0&lt;t&lt;T\\). Then for every \\(t\\in[0,T]\\),</p>\\[H(t)\\le e^{-at}H(0)+\\frac ba(1-e^{-at}).\\]<p>Define \\(F(t)=e^{at}(H(t)-b/a)\\). The product and chain rules give</p>\\[F'(t)=e^{at}\\bigl(a(H(t)-b/a)+H'(t)\\bigr)\\le0.\\]<p>The Lean proof calls the transformed function <code>F</code>, proves its endpoint continuity as <code>hFcont</code>, calculates its derivative in <code>hFderiv</code>, and proves the sign in <code>hFnonpos</code>. The division cancellation \\(a(b/a)=b\\) uses \\(a\\ne0\\). The mean-value theorem <code>antitoneOn_of_deriv_nonpos</code> then proves that \\(F\\) is nonincreasing on the closed interval. Its derivative hypotheses concern only the interior, identified with \\((0,T)\\) by <code>interior_Icc</code>.</p><p>Consequently \\(F(t)\\le F(0)=H(0)-b/a\\). Multiplication by the positive factor \\(e^{-at}\\), together with \\(e^{-at}e^{at}=1\\), yields the stated affine comparison. The final arithmetic rearrangement is <code>nlinarith</code>. Endpoint continuity is essential in this proof; endpoint differentiability is unnecessary.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InteriorEntropy.lean",
+              "name": "affine_decay_of_deriv_le_interior"
+            }
+          ]
+        },
+        {
+          "id": "constructed-interior-entropy-2",
+          "title": "Differentiate actual KL at an interior interpolation time",
+          "body": "<p>Fix \\(0&lt;t&lt;T\\). Assume that, at every interior time \\(u\\), \\(r_u\\) is positive, continuously differentiable, normalized relative to the probability target \\(\\nu\\), and has the local dominated entropy regularity recorded in <code>LocalEntropyRegularity</code>. Then</p>\\[\\frac d{dt}D_{\\mathrm{KL}}(r_t\\nu\\Vert\\nu)=\\int \\dot r_t(x)\\bigl(\\log r_t(x)+1\\bigr)\\,d\\nu(x).\\]<p>The local regularity theorem already differentiates the ordinary integral \\(\\int r_u\\log r_u\\,d\\nu\\). To identify that integral with actual KL in a whole neighborhood of \\(t\\), the proof uses \\((0,T)\\in\\mathcal N(t)\\). For each nearby \\(u\\), <code>densityEntropy_eq_integral</code> applies using positivity, normalization, measurability, and integrability from <code>data u hu</code>. This gives the eventual equality <code>hnear</code>.</p><p><code>HasDerivAt.congr_of_eventuallyEq</code> transfers the already proved integral derivative to actual KL. The statement requests no density or local domination information at time zero. To combine it with the preceding scalar theorem, continuity of the actual entropy at the two endpoints still has to be justified separately.</p>",
+          "declarations": [
+            {
+              "file": "UnadjustedLangevin/LSI/InteriorEntropy.lean",
+              "name": "densityEntropy_hasDerivAt_of_regular_interior"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "reference-comparison-and-obligations",
       "title": "Comparison with the paper and the remaining analytic bridges",
       "intro": "<p>The published theorem and the current Lean endpoint agree on the update, LSI normalization, step restriction, entropy rate, and constants \\(6\\) and \\(8\\). Their assumption lists differ. The paper's proof supplies analytic bridges that the current formal endpoint still takes as inputs. The following comparison records that boundary explicitly.</p>",
@@ -484,7 +842,7 @@
         {
           "id": "density-and-endpoint-bridge",
           "title": "Construct the density path, including its initial endpoint",
-          "body": "<p>A complete application must construct a positive smooth relative density for each actual frozen-drift law and prove the local domination and pointwise derivative conditions. Gaussian convolution suggests a route at strictly positive times, but a definition of the law is not a proof of these properties. At \\(t=0\\), the interpolation returns the current ULA law exactly, so smooth positive density and finite-Fisher requirements at that endpoint are additional demands on the current interface.</p>\n<p>There is a further time-domain issue. <code>LocalEntropyRegularity</code> uses an ordinary two-sided neighborhood of every time, including \\(0\\) and \\(h\\), and pointwise <code>HasDerivAt</code> data there. The natural Gaussian interpolation begins at time zero. The constructor therefore needs a suitable extension of the density data, or the regularity lemmas need an appropriate one-sided endpoint version. The wrapper requires normalization only on \\([0,h]\\), but that does not remove its two-sided local differentiation requirements.</p>\n<p>These are explicit construction obligations, rather than consequences already supplied by the scalar right-derivative comparison.</p>\n<p>The paper's Section 2.1 works under a convention of smooth densities with full support; its theorem does not require Gaussian initialization. The formal issue recorded here is consequently not that the reference assumes no density regularity. It is that the current Lean theorem explicitly requests precise finite-information, domination, and endpoint regularity data, and those data have not been constructed for the stated class of initial laws and Gaussian interpolations.</p>",
+          "body": "<p><code>InterpolationDensity</code> now constructs the actual positive-time Gaussian-mixture density and its Gibbs-relative form, proves their positivity and spatial continuity, and identifies the resulting probability measure with the interpolation. The spatial C¹ and time-derivative properties, local entropy domination, entropy continuity at zero, and admissibility of the entropy weak equation remain open.</p><p>The constructed positive relative density must still be shown smooth enough for the local domination and pointwise derivative conditions; density existence alone does not prove those properties. At \\(t=0\\), the interpolation returns the current ULA law exactly, so smooth positive density and finite-Fisher requirements at that endpoint are additional demands on the current interface.</p>\n<p>There is a further time-domain issue. <code>LocalEntropyRegularity</code> uses an ordinary two-sided neighborhood of every time, including \\(0\\) and \\(h\\), and pointwise <code>HasDerivAt</code> data there. The natural Gaussian interpolation begins at time zero. The constructor therefore needs a suitable extension of the density data, or the regularity lemmas need an appropriate one-sided endpoint version. The wrapper requires normalization only on \\([0,h]\\), but that does not remove its two-sided local differentiation requirements.</p>\n<p>These are explicit construction obligations, rather than consequences already supplied by the scalar right-derivative comparison.</p>\n<p>The paper's Section 2.1 works under a convention of smooth densities with full support; its theorem does not require Gaussian initialization. The formal issue recorded here is consequently not that the reference assumes no density regularity. It is that the current Lean theorem explicitly requests precise finite-information, domination, and endpoint regularity data, and those data have not been constructed for the stated class of initial laws and Gaussian interpolations.</p><p><code>InteriorEntropy</code> separately proves scalar affine comparison from derivatives only at interior times and endpoint continuity, plus a positive-time actual-KL derivative bridge. The existing main endpoint still uses its older closed-interval regularity interface; these new lemmas do not yet remove its zero-time hypotheses.</p>",
           "declarations": [
             {
               "file": "UnadjustedLangevin/LSI/Regularity.lean",
@@ -499,7 +857,7 @@
         {
           "id": "conditional-drift-bridge",
           "title": "Transfer the joint Gaussian bound to the weak equation’s error field",
-          "body": "<p>The intended conditional field is</p>\n\\[\ne_t(y)=\\mathbb E[\\nabla U(Y_t)-\\nabla U(X)\\mid Y_t=y].\n\\]\n<p>Once this field is constructed and identified in the weak equation, conditional Jensen should give</p>\n\\[\n\\int\\|e_t\\|^2\\,d\\operatorname{Law}(Y_t)\n\\leq\\mathbb E\\|\\nabla U(Y_t)-\\nabla U(X)\\|^2\n\\leq t^2L^2G_k+2tnL^2.\n\\]\n<p>The final inequality is proved in <code>GaussianDrift</code>; the conditional-mean identification and Jensen transfer are not yet connected to the density-level field used by the endpoint. A complete construction must also prove the forced weak equation with enough integrability and approximation control to admit \\(\\log r_t+1\\). Compact-test generator identities alone do not discharge this noncompact-test requirement.</p>",
+          "body": "<p>The intended conditional field is</p>\n\\[\ne_t(y)=\\mathbb E[\\nabla U(Y_t)-\\nabla U(X)\\mid Y_t=y].\n\\]\n<p>The new <code>ConditionalDrift</code> module constructs this measurable state-space conditional mean and proves conditional Jensen, giving</p>\n\\[\n\\int\\|e_t\\|^2\\,d\\operatorname{Law}(Y_t)\n\\leq\\mathbb E\\|\\nabla U(Y_t)-\\nabla U(X)\\|^2\n\\leq t^2L^2G_k+2tnL^2.\n\\]\n<p>The final inequality is proved in <code>GaussianDrift</code>, while <code>exists_frozen_drift_error_of_density</code> transfers it to the density-level energy under the actual density-law identity. The measurable-set and integrable inner-test flux identities are also proved. A complete construction must also prove the forced weak equation with enough integrability and approximation control to admit \\(\\log r_t+1\\). Compact-test generator identities alone do not discharge this noncompact-test requirement.</p>",
           "declarations": [
             {
               "file": "UnadjustedLangevin/LSI/GaussianDrift.lean",
@@ -514,7 +872,7 @@
         {
           "id": "gradient-and-lsi-bridge",
           "title": "Prove the gradient-moment estimate and compatibility from the intended assumptions",
-          "body": "<p>The endpoint retains, for each step, squared-gradient integrability and</p>\n\\[\n\\mathbb E_{\\rho_k}\\|\\nabla U\\|^2\n\\leq\\frac{4L^2}{\\alpha}H_\\nu(\\rho_k)+2nL.\n\\]\n<p>In the paper this estimate is obtained through a transport comparison with the target, using the LSI-to-Talagrand implication together with a target gradient-moment bound. That route has not been formalized in the LSI development. Likewise, the comparison \\(\\alpha\\leq L\\) is supplied as a hypothesis in the current Lean endpoint. It is not derived there from the declared LSI and smoothness assumptions.</p>\n<p>Finally, the declared LSI test class is smooth and strictly positive; any extension or approximation needed to cover broader initial laws must be justified. These remaining tasks concern the scope and derivation of the hypotheses. The proved scalar calculations already show exactly how the desired theorem follows once those hypotheses have been established.</p>\n<p>More explicitly, for any finite-cost coupling of \\(X\\sim\\rho\\) and \\(Y\\sim\\nu\\), splitting \\(\\nabla U(X)\\) into its difference from \\(\\nabla U(Y)\\) and its target value gives</p>\n\\[\n\\mathbb E_\\rho\\|\\nabla U\\|^2\n\\leq2L^2\\mathbb E\\|X-Y\\|^2\n+2\\mathbb E_\\nu\\|\\nabla U\\|^2.\n\\]\n<p>Taking the infimum over coupling costs yields</p>\n\\[\n\\mathbb E_\\rho\\|\\nabla U\\|^2\n\\leq2L^2W_2(\\rho,\\nu)^2+2\\mathbb E_\\nu\\|\\nabla U\\|^2.\n\\]\n<p>The target estimate \\(\\mathbb E_\\nu\\|\\nabla U\\|^2\\leq nL\\) is already available in the shared library: <a href=\"../../GibbsScore.lean\"><code>ULA.integral_norm_sq_gradient_gibbs_le</code></a> proves it from differentiability of \\(U\\), Lipschitz continuity of its gradient, and finiteness of the Gibbs partition function. Thus this target moment is not a missing result throughout the repository. What remains in the LSI development is to connect the available target estimate, with the required normalization and integrability facts, to the LSI-to-Talagrand implication and the coupling argument, thereby deriving the endpoint's per-step gradient-moment input.</p>\n<p>Talagrand's consequence \\(W_2(\\rho,\\nu)^2\\leq2H_\\nu(\\rho)/\\alpha\\) then produces the required coefficient \\(4L^2/\\alpha\\). These formulas explain the paper's route; the current LSI endpoint assumes the resulting moment estimate and does not formalize that complete route. The appendix also uses \\(\\alpha\\leq L\\) in its scalar bounds. Its use there does not discharge the corresponding explicit compatibility premise in Lean.</p>\n",
+          "body": "<p>The endpoint retains, for each step, squared-gradient integrability and</p>\n\\[\n\\mathbb E_{\\rho_k}\\|\\nabla U\\|^2\n\\leq\\frac{4L^2}{\\alpha}H_\\nu(\\rho_k)+2nL.\n\\]\n<p>In the paper this estimate is obtained through a transport comparison with the target, using the LSI-to-Talagrand implication together with a target gradient-moment bound. The new <code>GradientMoment</code> module proves the coupling comparison, square integrability, and exact displayed coefficient from an explicitly supplied entropy-cost coupling. Deriving that coupling bound from LSI remains unformalized. Likewise, the comparison \\(\\alpha\\leq L\\) is supplied as a hypothesis in the current Lean endpoint. It is not derived there from the declared LSI and smoothness assumptions.</p>\n<p>Finally, the declared LSI test class is smooth and strictly positive; any extension or approximation needed to cover broader initial laws must be justified. These remaining tasks concern the scope and derivation of the hypotheses. The proved scalar calculations already show exactly how the desired theorem follows once those hypotheses have been established.</p>\n<p>More explicitly, for any finite-cost coupling of \\(X\\sim\\rho\\) and \\(Y\\sim\\nu\\), splitting \\(\\nabla U(X)\\) into its difference from \\(\\nabla U(Y)\\) and its target value gives</p>\n\\[\n\\mathbb E_\\rho\\|\\nabla U\\|^2\n\\leq2L^2\\mathbb E\\|X-Y\\|^2\n+2\\mathbb E_\\nu\\|\\nabla U\\|^2.\n\\]\n<p>Taking the infimum over coupling costs yields</p>\n\\[\n\\mathbb E_\\rho\\|\\nabla U\\|^2\n\\leq2L^2W_2(\\rho,\\nu)^2+2\\mathbb E_\\nu\\|\\nabla U\\|^2.\n\\]\n<p>The target estimate \\(\\mathbb E_\\nu\\|\\nabla U\\|^2\\leq nL\\) is already available in the shared library: <a href=\"../../GibbsScore.lean\"><code>ULA.integral_norm_sq_gradient_gibbs_le</code></a> proves it from differentiability of \\(U\\), Lipschitz continuity of its gradient, and finiteness of the Gibbs partition function. Thus this target moment is not a missing result throughout the repository. What remains in the LSI development is to connect the available target estimate, with the required normalization and integrability facts, to the LSI-to-Talagrand implication and the coupling argument, thereby deriving the endpoint's per-step gradient-moment input.</p>\n<p>Talagrand's consequence \\(W_2(\\rho,\\nu)^2\\leq2H_\\nu(\\rho)/\\alpha\\) then produces the required coefficient \\(4L^2/\\alpha\\). These formulas explain the paper's route; the current LSI endpoint assumes the resulting moment estimate and does not formalize that complete route. The appendix also uses \\(\\alpha\\leq L\\) in its scalar bounds. Its use there does not discharge the corresponding explicit compatibility premise in Lean.</p>\n",
           "declarations": [
             {
               "file": "UnadjustedLangevin/LSI/FunctionalInequality.lean",
