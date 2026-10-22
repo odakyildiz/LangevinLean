@@ -1,0 +1,110 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Scaled particle geometry and exact coordinate updates}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{IPLA/Geometry.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+Fix a particle count \(N\), independent dimensions \(d_\theta,d_x\), and a joint potential \(U\). Write \(z=(\theta,z_1,\ldots,z_N)\), where the physical particles are \(x_i=\sqrt N z_i\). The lifted potential is \(V_N(z)=\sum_iU(\theta,\sqrt N z_i)\). This module derives its dimension, strong convexity, smoothness and exact Euler coordinates; none is an additional hypothesis.
+
+
+\section{The coordinate spaces and their dimensions}
+
+
+The scaled state is the Euclidean space indexed by \(\mathrm{Fin}(d_\theta)\sqcup(\mathrm{Fin}(N)\times\mathrm{Fin}(d_x))\), and a joint pair is indexed by \(\mathrm{Fin}(d_\theta)\sqcup\mathrm{Fin}(d_x)\). Counting these orthogonal coordinates proves
+
+\[\dim(\mathrm{State})=d_\theta+Nd_x,\qquad \dim(\mathrm{Joint})=d_\theta+d_x.\]
+
+The block map extracts \(z_i\), while \(A_i z=\operatorname{joint}_i(z)=(\theta,\sqrt N z_i)\) restores the physical particle. The two coordinate evaluation identities follow directly from this definition. The definition of \(V_N\) then sums the original potential over these pairs.
+
+
+
+\noindent Lean declarations: \texttt{State}, \texttt{Joint}, \texttt{finrank\_state}, \texttt{finrank\_joint}, \texttt{block}, \texttt{joint}, \texttt{joint\_parameter}, \texttt{joint\_particle}, \texttt{potential}.
+
+\section{Replication preserves a precise quadratic identity}
+
+
+Each \(A_i\) is linear: checking a parameter coordinate and a latent coordinate separately proves preservation of addition, scalar multiplication and subtraction. Every parameter coordinate occurs \(N\) times, while each latent coordinate is multiplied by \(\sqrt N\) once. Therefore
+
+\[\sum_i\|A_i z\|^2=N\|\theta\|^2+N\sum_i\|z_i\|^2=N\|z\|^2.\]
+
+The proof expands squared Euclidean norms into finite sums and uses \((\sqrt N)^2=N\), which is valid also when \(N=0\). This exact identity supplies the constants in both the convexity and smoothness arguments.
+
+
+
+\noindent Lean declarations: \texttt{joint\_add}, \texttt{joint\_smul}, \texttt{joint\_sub}, \texttt{joint\_norm\_sq\_sum}.
+
+\section{Joint strong convexity lifts to N times the constant}
+
+
+If \(U\) is \(m\)-strongly convex, then for \(a,b\ge0\), \(a+b=1\), each pair satisfies
+
+\[U(aA_ix+bA_iy)\le aU(A_ix)+bU(A_iy)-\frac{mab}{2}\|A_i(x-y)\|^2.\]
+
+Sum over \(i\), use linearity to identify the arguments with \(A_i(ax+by)\), and use the quadratic replication identity on \(x-y\). The result is the strong-convexity inequality for \(V_N\) with constant \(Nm\). The continuous linear map \(A_i\) is obtained from its finite-dimensional linear map; its evaluation theorem is definitional. If \(U\) is differentiable, the finite sum of \(U\circ A_i\) is differentiable by the chain rule.
+
+
+
+\noindent Lean declarations: \texttt{potential\_strongConvex}, \texttt{jointCLM}, \texttt{jointCLM\_apply}, \texttt{potential\_differentiable}.
+
+\section{The gradient chain rule and the lifted Lipschitz constant}
+
+
+Differentiating in a direction \(w\) gives
+
+\[\langle\nabla V_N(z),w\rangle=\sum_i\langle\nabla U(A_i z),A_iw\rangle.\]
+
+Cauchy–Schwarz in the particle index, followed by the quadratic replication identity, proves \(\sum_i\|A_iv\|\|A_iw\|\le N\|v\|\|w\|\). If \(\nabla U\) is \(L\)-Lipschitz, subtract the two gradient identities to obtain
+
+\[\langle\nabla V_N(x)-\nabla V_N(y),w\rangle\le NL\|x-y\|\|w\|.\]
+
+Choose \(w=\nabla V_N(x)-\nabla V_N(y)\). If its norm is zero the desired bound is immediate; otherwise cancel its positive norm. Thus \(\nabla V_N\) is \(NL\)-Lipschitz, with the same particle factor as the convexity constant.
+
+
+
+\noindent Lean declarations: \texttt{inner\_gradient\_potential}, \texttt{sum\_joint\_norm\_mul}, \texttt{potential\_gradient\_lipschitz}.
+
+\section{The two gradient blocks}
+
+
+For a unit parameter basis vector \(e_j\), all \(A_i e_j\) equal the matching joint parameter vector. For a latent basis vector belonging to particle \(i\), \(A_qe_{i,j}=0\) for \(q\ne i\), and \(A_i e_{i,j}=\sqrt N e_j\). Insert these basis vectors into the directional gradient formula. The Euclidean inner product reads off coordinates, yielding
+
+\[\nabla_\theta V_N(z)=\sum_i\nabla_\theta U(\theta,\sqrt Nz_i),\qquad (\nabla V_N(z))_i=\sqrt N\nabla_xU(\theta,\sqrt Nz_i).\]
+
+This calculation supplies the parameter average and ordinary physical-particle drift after the step size is divided by \(N\).
+
+
+
+\noindent Lean declarations: \texttt{joint\_single\_parameter}, \texttt{joint\_single\_particle}, \texttt{gradient\_potential\_parameter}, \texttt{gradient\_potential\_particle}.
+
+\section{The parameter projection is a contraction}
+
+
+The continuous linear map \(p_\theta z=\theta\) simply selects the parameter coordinates. Expanding squared norms gives \(\|p_\theta z\|^2\le\|z\|^2\), since the omitted latent squared coordinates are nonnegative. Both norms are nonnegative, so taking square roots proves \(\|p_\theta z\|\le\|z\|\). The definition of operator norm then gives \(\|p_\theta\|\le1\). The coordinate evaluation theorem identifies each output coordinate directly. These inequalities permit quadratic transport to control the parameter RMS.
+
+
+
+\noindent Lean declarations: \texttt{parameterCLM}, \texttt{parameterCLM\_apply}, \texttt{norm\_parameterCLM\_apply\_le}, \texttt{norm\_parameterCLM\_le\_one}.
+
+\section{One ULA step is exactly one physical IPLA step}
+
+
+Define the scaled update with physical step \(h\) by
+
+\[z'=z-\frac hN\nabla V_N(z)+\sqrt{2h/N}\,\xi.\]
+
+Its parameter coordinate is \(\theta'=\theta-(h/N)\sum_i\nabla_\theta U(\theta,x_i)+\sqrt{2h/N}\,\xi_\theta\). For \(N>0\), multiply the \(i\)-th scaled latent coordinate by \(\sqrt N\). The drift coefficient becomes \((\sqrt N)^2h/N=h\), and \(\sqrt N\sqrt{2h/N}=\sqrt{2h}\). Consequently
+
+\[x_i'=x_i-h\nabla_xU(\theta,x_i)+\sqrt{2h}\,\xi_i.\]
+
+The square-root identity follows by multiplying radicands and cancelling positive \(N\); Lean's real square-root convention makes the algebraic identity valid for the stated arbitrary real \(h\) as well.
+
+
+
+\noindent Lean declarations: \texttt{scaledUpdate}, \texttt{scaledUpdate\_parameter}, \texttt{scaledUpdate\_particle}.
+
+\end{document}

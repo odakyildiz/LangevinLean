@@ -7,9 +7,15 @@ are assumed only for the same joint function \(U_y(\theta,x)\). The stationary r
 Gibbs invariance, marginal strong convexity, and concentration are proved facts,
 not additional hypotheses in `IPLA.theorem1`.
 
-The [main exposition page](index.html#proof-map) includes a clickable proof
-diagram and an offline Lean source viewer. Each box opens the relevant result,
-and the source library links every Lean file used by the final theorem.
+The [main exposition page](index.html) has the standalone mathematical and Lean
+statements, verification commands, a clickable proof diagram, and a searchable
+directory of every module, including the LSI subfiles. Each box opens an HTML
+page with the mathematical proof beside complete Lean declarations and a
+downloadable LaTeX exposition. The authored proofs are in `module_notes.json`;
+regenerate with `python3 docs/build_site.py` and check with
+`python3 docs/verify_site.py` from the repository root.
+The [extended correspondence and assumption audit](proof.html) retains the
+offline Lean source viewer and the source library for the final theorem.
 The diagram is also available as a [standalone SVG](proof-map.svg).
 
 The source is [Theorem 1, equation (34), and Appendix B of

@@ -1,0 +1,1733 @@
+{
+  "ProximalLangevin/Proximal.lean": {
+    "title": "Actual proximal minimizers and optimality",
+    "summary": "<p>On a real inner product space let \\(Q_{\\lambda,x}(p)=f(p)+\\|p-x\\|^2/(2\\lambda)\\). Convexity, a lower bound, finite dimension and \\(\\lambda>0\\) construct a true minimizer; the variational lemmas also apply to any supplied minimizer.</p>",
+    "steps": [
+      {
+        "title": "Quadratic objective and global support",
+        "body": "<p>The definitions mean \\(p\\in\\arg\\min Q_{\\lambda,x}\\) and \\(s\\in\\partial f(p)\\) precisely when \\(f(p)+\\langle s,y-p\\rangle\\le f(y)\\) for every \\(y\\). Apply the support inequalities at \\((p,s)\\) and \\((q,t)\\) to each other, add and cancel function values to obtain \\(\\langle s-t,p-q\\rangle\\ge0\\). No differentiability is involved.</p>",
+        "declarations": [
+          "proxObjective",
+          "IsProxPoint",
+          "IsSubgradient",
+          "IsSubgradient.monotone"
+        ]
+      },
+      {
+        "title": "The residual characterizes the minimum",
+        "body": "<p>A vector \\(s\\) is a subgradient of \\(g_2\\) at \\(p\\) when \\(g_2(p)+\\langle s,y-p\\rangle\\le g_2(y)\\) for every \\(y\\). The exact proximal optimality condition is</p>\n\\[\np=P_\\lambda(x)\\quad\\Longleftrightarrow\\quad\n\\frac{x-p}{\\lambda}\\in\\partial g_2(p).\n\\]\n<p>For necessity, compare the minimizing objective at \\(p\\) with its value along \\(p+t(y-p)\\), use convexity, and let positive \\(t\\) become arbitrarily small. For sufficiency, insert the supporting-hyperplane inequality into the difference of the two quadratic objectives. This proves the global minimum directly, without assuming differentiability of \\(g_2\\).</p><p>Apply monotonicity of subgradients to the residuals at two inputs. It gives firm nonexpansiveness,</p>\n\\[\n\\|P_\\lambda(x)-P_\\lambda(y)\\|^2\n\\le\\langle x-y,P_\\lambda(x)-P_\\lambda(y)\\rangle.\n\\]\n<p>Cauchy–Schwarz gives nonexpansiveness of \\(P_\\lambda\\). Expanding the square gives nonexpansiveness of \\(I-P_\\lambda\\) as well. Those are derived geometric facts, not premises stored in a proximal-map structure.</p>",
+        "declarations": [
+          "isProxPoint_of_subgradient",
+          "subgradient_of_isProxPoint",
+          "isProxPoint_iff_subgradient"
+        ]
+      },
+      {
+        "title": "Firmness gives uniqueness and two contractions",
+        "body": "<p>Apply subgradient monotonicity to \\((x-p)/\\lambda\\) and \\((y-q)/\\lambda\\). Multiplying by \\(\\lambda\\) gives \\(\\|p-q\\|^2\\le\\langle x-y,p-q\\rangle\\). For a common input, the right side is zero, so \\(p=q\\). Cauchy–Schwarz gives \\(\\|p-q\\|\\le\\|x-y\\|\\). Finally expand \\(\\|(x-y)-(p-q)\\|^2\\); firmness bounds its mixed term and proves \\(\\|(x-p)-(y-q)\\|\\le\\|x-y\\|\\).</p>",
+        "declarations": [
+          "IsProxPoint.firm",
+          "IsProxPoint.unique",
+          "IsProxPoint.nonexpansive",
+          "IsProxPoint.residual_nonexpansive"
+        ]
+      },
+      {
+        "title": "Compact attainment and the chosen map",
+        "body": "<p>For \\(\\lambda>0\\), define</p>\n\\[\nQ_{\\lambda,x}(p)=g_2(p)+\\frac{\\|p-x\\|^2}{2\\lambda},\\qquad\nP_\\lambda(x)=\\operatorname*{argmin}_p Q_{\\lambda,x}(p).\n\\]\n<p>A finite-valued convex function on a finite-dimensional real space is continuous. If \\(g_2\\ge b\\), then outside a sufficiently large ball the quadratic term makes \\(Q_{\\lambda,x}(p)\\) exceed \\(Q_{\\lambda,x}(x)=g_2(x)\\). A continuous function attains its minimum on that closed ball, and the same point therefore minimizes it globally. The proof explicitly constructs a suitable radius from \\(\\sqrt{2\\lambda(g_2(x)-b)}+1\\).</p><p>The Lean definition chooses a minimizer when one exists and assigns zero outside that domain. All mathematical endpoints establish existence from convexity, the lower bound, and positive \\(\\lambda\\); their conclusions do not depend on that fallback value. Strict convexity of the quadratic, expressed through the variational characterization below, gives uniqueness.</p>",
+        "declarations": [
+          "exists_proxPoint",
+          "prox",
+          "prox_isProxPoint"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Moreau.lean": {
+    "title": "Moreau envelope: gradient, smoothness and finite bias",
+    "summary": "<p>Let \\(f\\) be finite-valued, convex and bounded below on a finite-dimensional Hilbert space, and \\(\\lambda>0\\). Set \\(P=P_\\lambda\\), \\(f^\\lambda(x)=Q_{\\lambda,x}(P x)\\), and \\(r(x)=(x-Px)/\\lambda\\).</p>",
+    "steps": [
+      {
+        "title": "Value bounds and the exact residual",
+        "body": "<p>The envelope is the objective value at the actual chosen minimizer. Testing its objective with \\(p=x\\) proves \\(f^\\lambda(x)\\le f(x)\\). If \\(f\\ge b\\), the nonnegative quadratic penalty also proves \\(f^\\lambda\\ge b\\). The residual definition is at this point only a vector formula; its gradient interpretation is proved below.</p>",
+        "declarations": [
+          "moreau",
+          "residual",
+          "moreau_le",
+          "le_moreau"
+        ]
+      },
+      {
+        "title": "Global supports and quadratic upper remainder",
+        "body": "<p>Use the residual subgradient at \\(P x\\), test it at \\(P y\\), and expand the two quadratic penalties. The remaining squared norm is nonnegative, yielding \\(f^\\lambda(x)+\\langle r(x),y-x\\rangle\\le f^\\lambda(y)\\). Conversely use \\(P x\\) as a competitor in the objective at \\(y\\), giving an upper remainder \\(\\|y-x\\|^2/(2\\lambda)\\). For \\(z=ax+by\\), multiply the supports at \\(z\\) by \\(a,b\\ge0\\), \\(a+b=1\\); their linear terms cancel and prove convexity.</p>",
+        "declarations": [
+          "moreau_support",
+          "moreau_upper",
+          "moreau_convex"
+        ]
+      },
+      {
+        "title": "Nonexpansiveness and the derivative",
+        "body": "<p>Define \\(g_2^\\lambda(x)=Q_{\\lambda,x}(P_\\lambda(x))\\) and \\(r_\\lambda(x)=\\lambda^{-1}(x-P_\\lambda(x))\\). The subgradient inequality at the actual minimizer proves the lower support bound, while comparison with that same minimizer in the neighboring objective proves the upper bound:</p>\n\\[\n0\\le g_2^\\lambda(y)-g_2^\\lambda(x)\n -\\langle r_\\lambda(x),y-x\\rangle\n\\le\\frac{\\|y-x\\|^2}{2\\lambda}.\n\\]\n<p>The right side is little-o of \\(\\|y-x\\|\\), so the envelope is differentiable and \\(\\nabla g_2^\\lambda=r_\\lambda\\). The global supports imply convexity. Nonexpansiveness of \\(I-P_\\lambda\\) then yields</p>\n\\[\n\\|\\nabla g_2^\\lambda(x)-\\nabla g_2^\\lambda(y)\\|\n\\le\\lambda^{-1}\\|x-y\\|.\n\\]\n<p>The gradient is continuous, so the actual envelope is continuously differentiable. This establishes the regularity needed by the existing Langevin theorem even when the original potential has corners.</p>",
+        "declarations": [
+          "prox_lipschitz",
+          "residual_lipschitz",
+          "moreau_hasGradientAt",
+          "moreau_differentiable",
+          "gradient_moreau",
+          "moreau_contDiff"
+        ]
+      },
+      {
+        "title": "Bounded residual and a sharp uniform gap",
+        "body": "<p>If \\(g_2\\) is \\(K\\)-Lipschitz, its subgradient support at a proximal point implies \\(\\|r_\\lambda(x)\\|\\le K\\), and hence \\(\\|x-P_\\lambda(x)\\|\\le\\lambda K\\). More importantly, comparing a general displacement with the Lipschitz bound and completing the square gives</p>\n\\[\n0\\le g_2(x)-g_2^\\lambda(x)\\le\\frac{\\lambda K^2}{2}.\n\\]\n<p>The lower inequality uses proximal optimality at competitor \\(x\\). For the upper inequality, if \\(d=\\|P_\\lambda(x)-x\\|\\), then the gap is at most \\(Kd-d^2/(2\\lambda)\\), whose maximum is \\(\\lambda K^2/2\\). This estimate is uniform in \\(x\\), nonasymptotic, and requires no Hessian or interchange of a Taylor remainder with an integral.</p><p>It follows immediately that \\(V_\\lambda\\le U\\le V_\\lambda+\\lambda K^2/2\\). This finite inequality supplies the entire smoothing-bias argument in Chapter 6.</p>",
+        "declarations": [
+          "residual_norm_le",
+          "prox_displacement_le",
+          "moreau_lower_of_lipschitz",
+          "moreau_gap_of_lipschitz"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/StrongMoreau.lean": {
+    "title": "Strong convexity after full Moreau smoothing",
+    "summary": "<p>Smoothing an entire \\(m\\)-strongly convex potential changes its modulus to \\(m_\\lambda=m/(1+m\\lambda)\\). This proof needs \\(m\\ge0\\), \\(\\lambda>0\\), convex minimizer existence and a lower bound, without differentiability of the original function.</p>",
+    "steps": [
+      {
+        "title": "Two exact quadratic identities",
+        "body": "<p>For \\(a+b=1\\), expand inner products to prove \\(\\|au+bv\\|^2=a\\|u\\|^2+b\\|v\\|^2-ab\\|u-v\\|^2\\). The needed effective modulus follows from the exact square</p>\\[m\\|u\\|^2+\\frac{\\|u-v\\|^2}{\\lambda}-\\frac{m\\|v\\|^2}{1+m\\lambda}=\\frac{\\|(1+m\\lambda)u-v\\|^2}{\\lambda(1+m\\lambda)}\\ge0.\\]",
+        "declarations": [
+          "norm_convexCombo_sq",
+          "weighted_quadratic_lower"
+        ]
+      },
+      {
+        "title": "Compare actual minimizers",
+        "body": "<p>If \\(U\\) is \\(m\\)-strongly convex, its actual full Moreau envelope is</p>\n\\[\nm_\\lambda=\\frac{m}{1+m\\lambda}\\text{-strongly convex}.\n\\]\n<p>The proof evaluates the envelope at the convex combination of its two actual proximal minimizers, applies strong convexity to \\(U\\), and uses the exact square identity for that combination. The remaining comparison is the weighted quadratic inequality</p>\n\\[\n\\frac{m}{1+m\\lambda}\\|v\\|^2\n\\le m\\|u\\|^2+\\frac{\\|u-v\\|^2}{\\lambda}.\n\\]\n<p>Completing the square proves this inequality with the displayed sharp modulus. No differentiability of \\(U\\) is needed. In contrast, smoothing only \\(g_2\\) preserves the modulus of the unsmoothed \\(g_1\\); the two constructions must not share a convexity constant by notation alone.</p>",
+        "declarations": [
+          "moreau_strongConvex"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/ProximalEnergy.lean": {
+    "title": "The nonsmooth single-pair energy estimate",
+    "summary": "<p>For convex \\(f\\), a true proximal minimizer \\(p=P_\\eta(x)\\), positive \\(\\eta\\), and a genuine input subgradient \\(s\\in\\partial f(x)\\), proximity controls both squared distance and the original nonsmooth energy.</p>",
+    "steps": [
+      {
+        "title": "Expand supports and complete a square",
+        "body": "<p>Let \\(p=P_\\lambda(y)\\), \\(s\\in\\partial g_2(y)\\), and \\(a\\) be any comparator. Proximal optimality supplies the residual subgradient at \\(p\\). Combine its support inequality at \\(a\\) with the support inequality for \\(s\\) at \\(p\\), expand the squared distances, and use the nonnegative square \\(\\|(y-p)-\\lambda s\\|^2\\). The result is v3 Lemma A.8:</p>\n\\[\n\\|p-a\\|^2\\le\\|y-a\\|^2\n -2\\lambda\\bigl(g_2(y)-g_2(a)\\bigr)+\\lambda^2\\|s\\|^2.\n\\]\n<p>If \\(\\|s\\|^2\\le C\\), replace the last term by \\(\\lambda^2C\\). The proof works with any genuine subgradient satisfying that bound; it does not assume an energy estimate or a convergence statement. Taking the minimal section in C1 is one way to supply such a vector.</p>",
+        "declarations": [
+          "isProxPoint_energy_le"
+        ]
+      },
+      {
+        "title": "Instantiate the chosen point and bound the forcing",
+        "body": "<p>The existence theorem proves that the chosen \\(P_\\eta(x)\\) meets the variational premise. Substitution gives \\(\\|P_\\eta(x)-a\\|^2\\le\\|x-a\\|^2-2\\eta(f(x)-f(a))+\\eta^2\\|s\\|^2\\). If \\(\\|s\\|^2\\le C\\), multiply by the nonnegative \\(\\eta^2\\) to replace the final term by \\(\\eta^2 C\\). The vector must satisfy the true support inequality; a merely named subgradient is insufficient.</p>",
+        "declarations": [
+          "prox_energy_le",
+          "prox_energy_le_of_subgradient_bound"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/ParticleEnergy.lean": {
+    "title": "Jensen repairs the averaged pairwise energy",
+    "summary": "<p>The scaled state is \\(z=(\\theta,x_1/\\sqrt N,\\ldots,x_N/\\sqrt N)\\), with \\(N>0\\), and \\(J_i z=(\\theta,x_i)\\). The actual algorithm averages proximal parameter outputs; this module proves its energy inequality directly.</p>",
+    "steps": [
+      {
+        "title": "Averaging squares in the shared parameter",
+        "body": "<p>Cauchy–Schwarz for finite sums gives \\(N(N^{-1}\\sum_i b_i)^2\\le\\sum_i b_i^2\\). Apply it separately to each parameter coordinate of the pairwise outputs. Each latent block instead satisfies an exact equality after multiplying by \\(N\\), since \\((\\sqrt N)^2=N\\). Summing all coordinates yields</p>\\[\\|\\operatorname{Pair}_P(z)-a\\|^2\\le\\frac1N\\sum_i\\|P(J_i z)-J_i a\\|^2.\\]",
+        "declarations": [
+          "average_sq_le",
+          "pairwiseMap_sq_dist_le"
+        ]
+      },
+      {
+        "title": "Sum genuine proximal energy inequalities",
+        "body": "<p>The roadmap on v3 page 19 identifies averaged pairwise proximity with the proximal map of the lifted averaged potential. Shared parameter coordinates prevent that identity in general. The needed energy conclusion can nevertheless be proved without changing the algorithm.</p><p>For arbitrary pair outputs, Jensen's inequality for their averaged parameter gives</p>\n\\[\n\\|\\operatorname{Pair}_P(z)-a\\|^2\n\\le\\frac1N\\sum_{i=1}^N\\|P(J_i z)-J_i a\\|^2.\n\\]\n<p>The scaled latent-coordinate contribution is an exact identity; only the parameter contribution requires an inequality. Apply the single-pair proximal energy result to every summand. Using \\(\\sum_i\\|J_i(z-a)\\|^2=N\\|z-a\\|^2\\) and \\(G_2=N^{-1}\\sum_i g_2\\circ J_i\\) gives</p>\n\\[\n\\|\\operatorname{Pair}_{P_\\lambda}(z)-a\\|^2\n\\le\\|z-a\\|^2-2\\lambda\\bigl(G_2(z)-G_2(a)\\bigr)+\\lambda^2C.\n\\]\n<p>This lifted energy inequality is fully proved for actual minimizers. It repairs the deterministic proof bridge needed in Corollary A.13 while preserving the paper's particle algorithm and its original nonsmooth energy. It is still only one part of the full stochastic convergence proof.</p><p>The failure of the lifted-proximal identity has a concrete Lipschitz witness. Take \\(N=2\\), \\(g_2(\\theta,x)=|\\theta-x|\\), smoothing one, common input parameter \\(1\\) and physical particles \\((0,4)\\). The genuine pairwise proximal points are \\((1/2,1/2)\\) and \\((2,3)\\). Averaging only their parameter components gives \\((5/4,1/2,3)\\). In the lifted proximal objective with its scaled particle norm, the feasible point \\((1,1,3)\\) has value \\(3/2\\), while this pairwise output has value \\(51/32\\). The strict inequality is kernel checked below. The averaged energy proof above repairs the necessary estimate without this false identity.</p>",
+        "declarations": [
+          "pairwise_prox_energy_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Algorithms.lean": {
+    "title": "Exact maps for MYIPLA, PIPULA and PIPGLA",
+    "summary": "<p>Write \\(F_g(z)=\\sum_i g(J_i z)\\), \\(h=\\gamma/N\\), and \\(a=\\sqrt{2\\gamma/N}\\). This module first defines pointwise algorithms for an arbitrary joint map \\(P\\); probabilistic assumptions enter later modules.</p>",
+    "steps": [
+      {
+        "title": "The pair map and coordinate outputs",
+        "body": "<p>Define \\(\\operatorname{Pair}_P(z)_\\theta=N^{-1}\\sum_i(P(J_i z))_\\theta\\) and \\(\\operatorname{Pair}_P(z)_{x_i}=N^{-1/2}(P(J_i z))_x\\). The two coordinate lemmas are definitionally true: unfold the case distinction between parameter and latent indices. This averaging is part of the algorithm, and does not assert that the map minimizes a lifted objective.</p>",
+        "declarations": [
+          "pairwiseMap",
+          "pairwiseMap_parameter",
+          "pairwiseMap_particle"
+        ]
+      },
+      {
+        "title": "Where each algorithm places its noise",
+        "body": "<p>PIPGLA, v3 equations (11)–(14), first takes the noisy smooth \\(g_1\\) step and then applies the averaged pairwise proximal map. In scaled coordinates it is</p>\n\\[\ny_n=z_n-\\frac\\gamma N\\nabla\\!\\left(\\sum_i g_1(J_i z_n)\\right)\n +\\sqrt{\\frac{2\\gamma}{N}}\\xi_n,\n\\qquad z_{n+1}=\\operatorname{Pair}_{P_\\lambda}(y_n).\n\\]\n<p>PIPULA is the special MYIPLA update with \\(g_1=0\\) and \\(\\lambda=\\gamma\\), followed by Gaussian noise. Both distinctions are encoded in separate definitions and proved reduction identities. The PIPGLA proximity step occurs after the noise; its target in the v3 convergence analysis is the original nonsmooth Gibbs model. The MYIPLA theorem cannot be reused merely by renaming this composition.</p><p>For clarity, the expanded MYIPLA definition itself is</p>\\[T_{\\mathrm{MY}}(z,\\xi)=(1-\\gamma/\\eta)z-\\frac\\gamma N\\nabla F_{g_1}(z)+\\frac\\gamma\\eta\\operatorname{Pair}_P(z)+\\sqrt{2\\gamma/N}\\xi.\\]<p>These are exact definitions of pointwise maps. The residual-gradient theorem below proves when this expanded map equals a smoothed Euler step.</p>",
+        "declarations": [
+          "pipulaUpdate",
+          "myiplaUpdate",
+          "pipglaUpdate"
+        ]
+      },
+      {
+        "title": "A recursion with supplied innovations",
+        "body": "<p>For an update \\(T\\), define \\(Z_0=z_0\\) and \\(Z_{n+1}=T(Z_n,\\xi_n)\\). The zero and successor lemmas unfold these equations. Supplying the three explicit updates defines their full chains for any initial state and innovation sequence; Gaussianity, measurability and convergence are not premises of these pointwise definitions.</p>",
+        "declarations": [
+          "algorithmChain",
+          "algorithmChain_zero",
+          "algorithmChain_succ",
+          "myiplaChain",
+          "pipulaChain",
+          "pipglaChain"
+        ]
+      },
+      {
+        "title": "The PIPULA specialization is an identity",
+        "body": "<p>PIPULA has parameter update \\(N^{-1}\\sum_i(P(J_i z))_\\theta+a\\xi_\\theta\\). In MYIPLA set \\(g_1=0\\) and \\(\\eta=\\gamma\\ne0\\). The lifted gradient of the constant potential vanishes, \\(1-\\gamma/\\gamma=0\\), and \\(\\gamma/\\gamma=1\\), so the updates agree. Replacing the update in the common recursion proves equality at every iteration.</p>",
+        "declarations": [
+          "pipulaUpdate_parameter",
+          "pipulaUpdate_eq_myiplaUpdate",
+          "pipulaChain_eq_myiplaChain"
+        ]
+      },
+      {
+        "title": "Recover physical parameter and particle formulas",
+        "body": "<p>Differentiate the lifted sum: its parameter block is \\(\\sum_i\\nabla_\\theta g_1(J_i z)\\), while its scaled latent block is \\(\\sqrt N\\nabla_x g_1(J_i z)\\). Substitution gives the displayed MYIPLA coordinate equations. Multiplying a latent coordinate by \\(\\sqrt N\\) changes its noise coefficient to \\(\\sqrt{2\\gamma}\\) and its smooth force coefficient to \\(\\gamma\\), using \\(\\sqrt N\\sqrt{2\\gamma/N}=\\sqrt{2\\gamma}\\).</p>",
+        "declarations": [
+          "myiplaUpdate_parameter",
+          "myiplaUpdate_particle"
+        ]
+      },
+      {
+        "title": "Residual proximity is exactly an Euler step",
+        "body": "<p>Given any map \\(P\\) on one joint parameter-particle pair, define its particle action by applying \\(P\\) separately to each \\(J_i z\\), averaging the resulting parameter coordinates, and dividing each resulting physical particle coordinate by \\(\\sqrt N\\). The common parameter is not optimized independently for each particle and then kept as \\(N\\) separate state variables; the averaging is part of the algorithm.</p><p>With \\(P=P_\\lambda\\), MYIPLA in v3 equations (9)–(10) is exactly the noisy Euler step for \\(V_\\lambda=g_1+g_2^\\lambda\\). Indeed, the pairwise residual-gradient identity gives</p>\n\\[\n\\operatorname{Pair}_P(z)=z-\\frac\\lambda N\\nabla\\!\\left(\\sum_i g_2^\\lambda(J_i z)\\right).\n\\]\n<p>Substituting this into the expanded MYIPLA formula cancels the extra multiples of \\(z\\), leaving</p>\n\\[\nz_{n+1}=z_n-\\frac\\gamma N\\nabla\\mathcal V_\\lambda(z_n)\n +\\sqrt{\\frac{2\\gamma}{N}}\\,\\xi_n.\n\\]\n<p>The coordinate proofs also recover parameter noise \\(\\sqrt{2\\gamma/N}\\) and physical-particle noise \\(\\sqrt{2\\gamma}\\). The full recursion identity follows by induction on the iteration count.</p><p>The recursion declarations include the initial and successor identities for each supplied innovation sequence. All pointwise identities concern the explicit state update, before any stochastic convergence theorem is applied.</p>",
+        "declarations": [
+          "pairwiseMap_eq_gradient_step",
+          "gradient_add_of_differentiable",
+          "myiplaUpdate_eq_scaledUpdate",
+          "myiplaChain_eq_scaledChain"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MYIPLA.lean": {
+    "title": "Smoothed-model MYIPLA laws and finite-time convergence",
+    "summary": "<p>Let \\(V_\\eta=g_1+g_2^\\eta\\), \\(L_\\eta=L_1+\\eta^{-1}\\), where \\(g_1\\) is differentiable and \\(m\\)-strongly convex and \\(g_2\\) is convex and bounded below. The actual expanded proximal recursion is identified with Gaussian IPLA for \\(V_\\eta\\).</p>",
+    "steps": [
+      {
+        "title": "Construct the right convexity and smoothness constants",
+        "body": "<p>The scalar potential is \\(V_\\eta=g_1+g_2^\\eta\\). Its envelope is convex, so adding the two convex-combination inequalities preserves strong convexity \\(m\\). Differentiability of both terms proves \\(\\nabla V_\\eta=\\nabla g_1+\\nabla g_2^\\eta\\); the triangle inequality then adds gradient constants. The nonnegative-real constant used by Lean equals \\(L_1+\\eta^{-1}\\) when \\(\\eta>0\\).</p>",
+        "declarations": [
+          "smoothedPotential",
+          "smoothingLipschitz",
+          "smoothingLipschitz_coe",
+          "smoothed_strongConvex",
+          "smoothed_gradient_lipschitz"
+        ]
+      },
+      {
+        "title": "Identify actual laws before using convergence",
+        "body": "<p>Define \\(\\rho_n=Q\\circ Z_n^{-1}\\) from the explicitly expanded chain. The pointwise chain identity gives equality of pushforward laws with IPLA for any differentiable envelope having the stated residual gradient. The IPLA recursion is an actual \\(L^2\\) random variable. Projection by the bounded parameter map and subtraction of a constant preserve \\(L^2\\), proving finite parameter error about every fixed center without any convergence assumption.</p>",
+        "declarations": [
+          "myiplaLaws",
+          "myiplaLaws_eq_iplaLaws",
+          "myiplaLaws_parameter_memLp"
+        ]
+      },
+      {
+        "title": "Apply sharp IPLA to a general residual envelope",
+        "body": "<p>The Moreau envelope is convex. Therefore adding it to the \\(m\\)-strongly convex function \\(g_1\\) preserves the constant \\(m\\). Adding their gradient-Lipschitz estimates gives \\(L_\\lambda=L_1+1/\\lambda\\). The replicated-pair identity \\(\\sum_i\\|J_i v\\|^2=N\\|v\\|^2\\) then yields lifted strong convexity \\(Nm\\), lifted smoothness \\(NL_\\lambda\\), and lifted dimension \\(d_\\theta+Nd_x\\).</p><p>Applying the existing Gaussian ULA result at step \\(\\gamma/N\\) produces the contraction \\((1-m\\gamma)^n\\) and the discretization term</p>\n\\[\n\\frac{33}{20}\\frac{L_\\lambda}{m}\n \\sqrt{d_x+d_\\theta/N}\\sqrt\\gamma.\n\\]\n<p>The step condition \\(\\gamma\\le2/(m+L_\\lambda)\\) is the corresponding scaled ULA condition. Initial finite second moments and Gaussian-law independence are explicit. The continuous reference and finite transport quantities are constructed by the shared theorem, so no convergence estimate or invariant measure is an additional MYIPLA hypothesis.</p><p>The law-identification helpers also prove that the actual expanded recursion is probability-valued and that its parameter error about every fixed center belongs to \\(L^2\\). These guards are used before passing from extended norms to ordinary real square-root integrals in the original-center theorem.</p><p>With \\(\\theta_\\eta\\) a maximizer of the smoothed marginal and \\(\\Pi_{N,\\eta}\\) its actual Gibbs reference, the complete statement is</p>\\[\\left(\\mathbb E\\|\\theta_n-\\theta_\\eta\\|^2\\right)^{1/2}\\le\\sqrt{\\frac{d_\\theta}{Nm}}+(1-m\\gamma)^nW_2(\\rho_0,\\Pi_{N,\\eta})+\\frac{33}{20}\\frac{L_\\eta}{m}\\sqrt{d_x+d_\\theta/N}\\sqrt\\gamma.\\]<p>The generic theorem allows any convex differentiable envelope with the stated residual gradient and \\(\\eta^{-1}\\) gradient constant; the next step derives those properties for the true Moreau envelope.</p>",
+        "declarations": [
+          "myipla_parameter_rms_smoothed"
+        ]
+      },
+      {
+        "title": "Discharge the envelope and moment hypotheses",
+        "body": "<p>For the actual Moreau envelope, the proximal calculus proves all inputs: convexity, differentiability, \\(\\nabla g_2^\\eta=\\eta^{-1}(I-P_\\eta)\\), and gradient Lipschitz constant \\(\\eta^{-1}\\). Substitute these into the generic smoothed theorem and the finite-moment lemma. The output is the pushforward by an almost everywhere measurable \\(L^2\\) representative; mapping the whole probability space to the whole state space proves total mass one.</p>",
+        "declarations": [
+          "moreau_myipla_parameter_rms",
+          "moreau_myipla_parameter_memLp",
+          "moreau_myipla_isProbability"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Theorem.lean": {
+    "title": "MYIPLA about the original nonsmooth marginal maximizer",
+    "summary": "<p>Assume \\(g_1\\) is differentiable, \\(m\\)-strongly convex with \\(L_1\\)-Lipschitz gradient, and \\(g_2\\) is convex, bounded below and \\(K\\)-Lipschitz. Let \\(m,\\eta,\\gamma>0\\), \\(N>0\\), and \\(\\gamma\\le2/(m+L_1+\\eta^{-1})\\). Initialization is in \\(L^2\\), and the actual Gaussian innovations are independent across times and coordinates and independent of initialization.</p>",
+    "steps": [
+      {
+        "title": "A finite approximation creates an actual original center",
+        "body": "<p>The envelope gap gives \\(V_\\eta\\le U\\le V_\\eta+\\eta K^2/2\\), where \\(U=g_1+g_2\\). The smooth strongly convex comparison supplies Gaussian domination and decay of the original marginal \\(k_U(\\theta)=\\int e^{-U(\\theta,x)}dx\\). Its continuity and vanishing at infinity imply that it attains a positive maximum. Existence of this original center is derived, rather than added as an independent model premise.</p>",
+        "declarations": [
+          "smoothedPotential_gap",
+          "moreau_original_maximizer_exists"
+        ]
+      },
+      {
+        "title": "Compare the actual marginal centers",
+        "body": "<p>For the actual split Moreau approximation, \\(\\delta=\\lambda K^2/2\\), so</p>\n\\[\n\\|\\theta_\\star-\\theta_{\\lambda,\\star}\\|\n\\le\\sqrt{\\frac{\\lambda K^2}{m}}.\n\\]\n<p>The original and smoothed marginal maximizers exist under the primitive assumptions. The square-integrable triangle inequality then gives</p>\n\\[\n\\left(\\mathbb E\\|\\theta_n-\\theta_\\star\\|^2\\right)^{1/2}\n\\le\\left(\\mathbb E\\|\\theta_n-\\theta_{\\lambda,\\star}\\|^2\\right)^{1/2}\n +\\|\\theta_{\\lambda,\\star}-\\theta_\\star\\|.\n\\]\n<p>The finite-moment guards are proved before identifying extended norms with real square-root integrals. Substituting the smoothed-model convergence estimate proves the original-center result in Chapter 1.</p><p>This is deliberately weaker in smoothing order than Proposition A.1's claimed linear expansion. The formal theorem requires no Hessian along a parameter fiber and no uniform Taylor domination. The weaker order is a change in the formalized result, not a silently omitted term.</p>",
+        "declarations": [
+          "moreau_marginal_center_distance"
+        ]
+      },
+      {
+        "title": "Move the finite error and substitute the proved bound",
+        "body": "<p>Let \\(U=g_1+g_2\\) on \\(\\mathbb R^{d_\\theta+d_x}\\). Assume \\(g_1\\) is differentiable, \\(m\\)-strongly convex with \\(m>0\\), and has \\(L_1\\)-Lipschitz gradient. Assume \\(g_2\\) is finite-valued, convex, bounded below, and \\(K\\)-Lipschitz. For \\(\\lambda>0\\), set</p>\n\\[\nV_\\lambda=g_1+g_2^\\lambda,\\qquad L_\\lambda=L_1+\\lambda^{-1}.\n\\]\n<p>Take \\(N>0\\), an initial state with finite second moment, independent standard Gaussian innovations at every coordinate and time, independent of initialization, and</p>\n\\[\n0<\\gamma\\le\\frac{2}{m+L_\\lambda}.\n\\]\n<p>Write \\(\\mu_n\\) for the law of the actual scaled MYIPLA state and \\(\\Pi_{\\lambda,N}\\) for its continuous Gibbs target. Let \\(\\theta_\\star\\) maximize the original latent marginal \\(\\int e^{-U(\\theta,x)}dx\\). The formal estimate is</p>\n\\[\n\\begin{aligned}\n\\left(\\mathbb E\\|\\theta_n-\\theta_\\star\\|^2\\right)^{1/2}\n\\le{}&\\sqrt{\\frac{\\lambda K^2}{m}}\n +\\sqrt{\\frac{d_\\theta}{Nm}}\\\\\n&+(1-m\\gamma)^n W_2(\\mu_0,\\Pi_{\\lambda,N})\\\\\n&+\\frac{33}{20}\\frac{L_\\lambda}{m}\n \\sqrt{d_x+\\frac{d_\\theta}{N}}\\sqrt\\gamma.\n\\end{aligned}\n\\]\n<p>The target normalization, finite transport moments, stationary reference, and equilibrium concentration are derived through the existing IPLA/ULA development. Neither the displayed convergence bound nor the smoothing bias is an extra assumption. The last term retains its explicit dependence on \\(\\lambda\\); no uniformity in the smoothing scale is asserted. The paper's \\(O(\\lambda)+O(\\lambda^2)\\) smoothing expression is replaced by a finite \\(O(\\sqrt\\lambda)\\) guarantee, so this is a related proved theorem, not a verbatim reproduction of Theorem 4.1.</p><p>In Lean the proof first establishes that the actual MYIPLA law is probability-valued and its error about the smoothed center is square integrable. The center-change inequality then has valid finite real square-root integrals. Add the proved center displacement to the smoothed theorem, giving exactly the displayed four terms.</p>",
+        "declarations": [
+          "moreau_myipla_parameter_rms_original"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/ProjectionCenter.lean": {
+    "title": "Move the center of a finite projected RMS error",
+    "summary": "<p>For a probability measure \\(\\mu\\) and bounded linear map \\(T\\), write \\(R_\\mu(a)=\\|T(\\cdot)-a\\|_{L^2(\\mu)}\\), initially as an extended nonnegative number. Finiteness is checked before converting this norm to a real number.</p>",
+    "steps": [
+      {
+        "title": "Minkowski and finiteness",
+        "body": "<p>The identity \\(Tx-a=(Tx-b)+(b-a)\\) and Minkowski yield \\(R_\\mu(a)\\le R_\\mu(b)+\\|b-a\\|\\). A constant has that \\(L^2\\) norm because \\(\\mu\\) has mass one. If \\(R_\\mu(b)<\\infty\\), the right side is finite, hence the error about \\(a\\) is finite too.</p>",
+        "declarations": [
+          "projectedRMS_center_le",
+          "projectedRMS_center_finite"
+        ]
+      },
+      {
+        "title": "Pass to ordinary square-root integrals",
+        "body": "<p>Monotonicity of the extended-to-real conversion is valid once the upper bound is finite. This proves the real RMS inequality. Use the proved finite moments at both centers to identify the norms with \\(\\sqrt{\\int\\|Tx-a\\|^2d\\mu}\\) and \\(\\sqrt{\\int\\|Tx-b\\|^2d\\mu}\\). The resulting formula cannot hide an infinite moment through the totalized real integral.</p>",
+        "declarations": [
+          "projectedRMSReal_center_le",
+          "sqrt_integral_center_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Perturbation.lean": {
+    "title": "Uniform potential gaps and marginal-center displacement",
+    "summary": "<p>Let \\(V\\le U\\le V+\\delta\\), with \\(V\\) differentiable and \\(m\\)-strongly convex, \\(m>0\\), and \\(U\\) continuous. Write \\(k_W(\\theta)=\\int e^{-W(\\theta,x)}dx\\) and \\(F_W=-\\log k_W\\). This module derives positive finite marginals and actual maximizers before comparing centers.</p>",
+    "steps": [
+      {
+        "title": "Quadratic growth needs only strong convexity",
+        "body": "<p>For a globally minimizing \\(z\\) of an \\(m\\)-strongly convex function \\(F\\), apply strong convexity to \\((1-t)z+tx\\) and use \\(F(z)\\le F((1-t)z+tx)\\). For \\(t>0\\), divide the resulting inequality by \\(t\\), then let \\(t\\downarrow0\\). This gives \\(F(x)-F(z)\\ge(m/2)\\|x-z\\|^2\\) without differentiating \\(F\\).</p>",
+        "declarations": [
+          "strongConvex_minimum_growth"
+        ]
+      },
+      {
+        "title": "Integrate the gap before taking logarithms",
+        "body": "<p>For any potentials \\(V\\le U\\le V+\\delta\\), exponentiation and integration in the latent variable give</p>\n\\[\ne^{-\\delta}k_V(\\theta)\\le k_U(\\theta)\\le k_V(\\theta),\n\\qquad k_W(\\theta)=\\int e^{-W(\\theta,x)}dx.\n\\]\n<p>The smooth strongly convex comparison potential \\(V\\) supplies positive finite integrals and an integrable Gaussian bound. The original marginal is continuous and decays at infinity; hence it has an actual maximizer. Taking negative logarithms, which is justified by positivity, gives</p>\n\\[\nF_V(\\theta)\\le F_U(\\theta)\\le F_V(\\theta)+\\delta,\n\\qquad F_W=-\\log k_W.\n\\]\n<p>Let \\(\\theta_U\\) minimize \\(F_U\\) and \\(\\theta_V\\) minimize the \\(m\\)-strongly convex \\(F_V\\). Minimality and the sandwich imply \\(F_V(\\theta_U)-F_V(\\theta_V)\\le\\delta\\). Strong-convexity growth about its minimizer therefore yields</p>\n\\[\n\\frac m2\\|\\theta_U-\\theta_V\\|^2\\le\\delta.\n\\]\n<p>This argument never differentiates the original marginal and never integrates an asymptotic remainder.</p><p>The sharp quadratic-growth lemma uses strong convexity and global minimality, without differentiability of the marginal potential. The comparison model supplies an integrable Gaussian bound for the original weights, giving continuity and existence of an original marginal maximizer by dominated convergence and decay at infinity. Finite positive marginal integrals are established before logarithms and real conversions.</p>",
+        "declarations": [
+          "marginalDensity_sandwich",
+          "marginalPotential_sandwich"
+        ]
+      },
+      {
+        "title": "Establish original-marginal existence",
+        "body": "<p>The inequality \\(e^{-U}\\le e^{-V}\\) and strong-convexity Gaussian bounds prove integrability. Continuity follows by dominated convergence on parameter neighborhoods, using the comparison potential to provide an integrable latent majorant. The same Gaussian estimate proves decay at parameter infinity. A positive continuous function that vanishes at infinity attains its maximum on a sufficiently large compact ball.</p>",
+        "declarations": [
+          "integrable_original_marginal",
+          "continuous_original_marginal",
+          "exists_original_marginalMaximizer"
+        ]
+      },
+      {
+        "title": "Strong growth controls the center shift",
+        "body": "<p>Positive finite marginal densities make \\(-\\log\\) order-reversing, so an original marginal maximizer minimizes \\(F_U\\). At minimizers \\(\\theta_U,\\theta_V\\), the sandwich and minimality give \\(F_V(\\theta_U)\\le F_U(\\theta_U)\\le F_U(\\theta_V)\\le F_V(\\theta_V)+\\delta\\). The preserved marginal strong convexity yields \\(\\|\\theta_U-\\theta_V\\|^2\\le2\\delta/m\\); taking the nonnegative square root gives the distance estimate.</p>",
+        "declarations": [
+          "original_maximizer_minimizes",
+          "marginal_center_distance_sq",
+          "marginal_center_distance"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/PIPULA.lean": {
+    "title": "Full-potential PIPULA and its smoothed-center theorem",
+    "summary": "<p>Assume the full nonsmooth potential \\(U\\) is \\(m\\)-strongly convex and bounded below, with \\(m,\\gamma>0\\). Global Lipschitzness of \\(U\\) is not required. The theorem concerns the maximizer of the marginal of \\(U^\\gamma\\).</p>",
+    "steps": [
+      {
+        "title": "The actual full-envelope modulus makes the step admissible",
+        "body": "<p>Set \\(m_\\gamma=m/(1+m\\gamma)>0\\). Since \\(\\gamma m_\\gamma=m\\gamma/(1+m\\gamma)\\le1\\), we have \\(\\gamma(m_\\gamma+\\gamma^{-1})\\le2\\), equivalently \\(\\gamma\\le2/(m_\\gamma+\\gamma^{-1})\\). All multiplications and divisions have positive denominators.</p>",
+        "declarations": [
+          "fullSmoothingModulus",
+          "fullSmoothingModulus_pos",
+          "pipula_admissible_step"
+        ]
+      },
+      {
+        "title": "The proximal/noise law is the actual IPLA law",
+        "body": "<p>The law is the pushforward of the exact PIPULA recursion. Set \\(g_1=0\\) and \\(\\eta=\\gamma\\) in the pointwise MYIPLA identity. Actual proximal optimality gives \\(P_\\gamma=I-\\gamma\\nabla U^\\gamma\\), so the full chain equals IPLA for \\(U^\\gamma\\), and hence their pushforwards agree.</p>",
+        "declarations": [
+          "pipulaLaws",
+          "pipulaLaws_eq_iplaLaws"
+        ]
+      },
+      {
+        "title": "Sharp concentration and Gaussian discretization",
+        "body": "<p>The algebraic reduction \\(g_1=0\\), \\(\\lambda=\\gamma\\) is proved for the actual update and its full recursion. Together with the envelope theory, it supplies genuine proximity, smoothness, and strong-convexity facts for a full-potential scheme.</p><p>It does not reproduce v3 Corollary A.6's original-center finite-time bound. In assumption B1, the displayed proximal inner-product deficit \\(\\mu\\) gives the envelope-gradient constant \\(\\mu/\\gamma\\), since the residual is divided by \\(\\gamma\\). The code records that exact implication. A scale-uniform PIPULA discretization theorem and an original-center estimate with the paper's rate remain unproved here; substituting a \\(1/\\gamma\\) smoothness bound into a generic ULA estimate alone would not establish the claimed vanishing error.</p><p>A separate proved finite-time result is supplied for the actual PIPULA chain around the maximizer of its <em>smoothed</em> marginal. Assume the original finite-valued potential is \\(m\\)-strongly convex and bounded below; global Lipschitzness of the strongly convex potential is not imposed. For \\(\\gamma>0\\), its full envelope has modulus \\(m_\\gamma=m/(1+m\\gamma)\\) and gradient Lipschitz constant \\(1/\\gamma\\). The actual proximal/noise recursion equals IPLA for that envelope, and the admissible-step inequality holds automatically. The resulting sharp concentration and Gaussian-chain bound are fully proved. Its conservative discretization term is \\((33/20)(1/(\\gamma m_\\gamma))\\sqrt{d_x+d_\\theta/N}\\sqrt\\gamma\\), whose coefficient diverges as \\(\\gamma\\downarrow0\\). This is not a reproduction of the paper's original-center \\(O(\\sqrt\\gamma)\\) convergence rate.</p><p>Writing \\(m_\\gamma=m/(1+m\\gamma)\\), \\(\\Pi_{N,\\gamma}\\) for the full-envelope target and \\(\\theta_\\gamma\\) for its marginal maximizer, the exact bound is</p>\\[\\left(\\mathbb E\\|\\theta_n-\\theta_\\gamma\\|^2\\right)^{1/2}\\le\\sqrt{\\frac{d_\\theta}{Nm_\\gamma}}+(1-m_\\gamma\\gamma)^nW_2(\\rho_0,\\Pi_{N,\\gamma})+\\frac{33}{20}\\frac{\\gamma^{-1}}{m_\\gamma}\\sqrt{d_x+d_\\theta/N}\\sqrt\\gamma.\\]<p>Prove full-envelope convexity and differentiability, identify the exact algorithm law, apply the sharp IPLA theorem with gradient constant \\(\\gamma^{-1}\\), and use the already proved admissible-step inequality. This gives every displayed term from the actual chain.</p>",
+        "declarations": [
+          "pipula_parameter_rms_smoothed"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/PIPULAConsistency.lean": {
+    "title": "A conditional consistency test for global assumptions",
+    "summary": "<p>On a nontrivial real Hilbert space, a globally bounded field cannot be strongly monotone with a positive constant. This is used only for the literal specialization that also makes the full potential globally Lipschitz.</p>",
+    "steps": [
+      {
+        "title": "Boundedness contradicts positive global monotonicity",
+        "body": "<p>Assume \\(\\|R(x)\\|\\le K\\) and \\(c\\|x-y\\|^2\\le\\langle x-y,R(x)-R(y)\\rangle\\) with \\(c>0\\). Cauchy–Schwarz and the triangle inequality give \\(c\\|x-y\\|^2\\le2K\\|x-y\\|\\). Choose a nonzero vector and scale its norm beyond \\(2K/c\\). The two inequalities are incompatible.</p>",
+        "declarations": [
+          "bounded_field_not_stronglyMonotone"
+        ]
+      },
+      {
+        "title": "Apply the obstruction to the true proximal residual",
+        "body": "<p>This check is conditional on how the appendix’s reduction is read. If setting \\(g_1=0\\) also carries A3 onto \\(U=g_2\\), then \\(U\\) is globally \\(K\\)-Lipschitz. Its actual Moreau gradient \\(R_\\gamma=\\gamma^{-1}(I-P_\\gamma)\\) satisfies \\(\\|R_\\gamma(x)\\|\\le K\\). But B1 with positive deficit gives</p>\n\\[\n\\frac{\\mu}{\\gamma}\\|x-y\\|^2\n \\le\\langle x-y,R_\\gamma(x)-R_\\gamma(y)\\rangle\n \\le2K\\|x-y\\|.\n\\]\n<p>A nontrivial real Hilbert space contains points at arbitrarily large distance, so these global premises are incompatible. This is kernel-checked for the actual proximal minimizer. If A3 is instead retained for an independent original decomposition \\(U=g_1+g_2\\), it does not make the full \\(U\\) Lipschitz; that reading requires its own full-envelope analysis. The result here is therefore <strong>a conditional consistency check, not a blanket assertion that Corollary A.6 is false</strong>. The separate PIPULA endpoint assumes strong convexity of the full potential and does not impose global Lipschitzness on it.</p>",
+        "declarations": [
+          "lipschitz_full_potential_not_proximal_deficit"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SharpConcentration.lean": {
+    "title": "Sharp Gibbs concentration by dilation",
+    "summary": "<p>Let \\(F\\) be continuous and \\(q\\)-strongly convex on a finite-dimensional Hilbert space of dimension \\(d\\), with \\(q>0\\) and global minimizer \\(z\\). Gaussian domination supplies the integrals used below.</p>",
+    "steps": [
+      {
+        "title": "A radial contraction compares partition integrals",
+        "body": "<p>Strong convexity and minimality imply \\(F(z+r(x-z))\\le F(x)-\\frac q2(1-r^2)\\|x-z\\|^2\\) for \\(0<r<1\\). Exponentiate and use \\(e^u\\ge1+u\\). Integrating and changing variables under \\(x\\mapsto z+r(x-z)\\), whose Jacobian is \\(r^d\\), yields</p>\\[Z+\\frac q2(1-r^2)M\\le r^{-d}Z,\\qquad Z=\\int e^{-F},\\quad M=\\int\\|x-z\\|^2e^{-F}.\\]",
+        "declarations": [
+          "sharp_gibbs_mode_dilation_inequality"
+        ]
+      },
+      {
+        "title": "Take the sharp limit and normalize",
+        "body": "<p>Multiply the dilation inequality by \\(r^d\\) and define \\(\\Phi(r)=r^d[Z+(q/2)(1-r^2)M]\\). Then \\(\\Phi(r)\\le Z=\\Phi(1)\\) for \\(0<r<1\\). Its left difference quotients at one are nonnegative. Differentiating only this scalar polynomial expression gives \\(\\Phi'(1)=dZ-qM\\ge0\\), so \\(M\\le dZ/q\\). The partition function \\(Z\\) is finite and strictly positive, as proved by strong-convexity Gaussian domination. The actual Gibbs normalization gives</p>\\[\\int\\|x-z\\|^2\\pi(dx)=M/Z\\le d/q,\\qquad\\pi(dx)=Z^{-1}e^{-F(x)}dx.\\]<p>The proof differentiates no potential and remains valid for continuous nonsmooth strongly convex \\(F\\).</p>",
+        "declarations": [
+          "sharp_integral_sq_dist_mul_exp_neg_le",
+          "sharp_integral_sq_dist_gibbs_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SharpIPLA.lean": {
+    "title": "Sharp parameter concentration and the IPLA RMS bound",
+    "summary": "<p>A differentiable \\(m\\)-strongly convex pair potential \\(U\\), \\(m>0\\), has a marginal potential whose \\(N\\)-replicate target is \\(Nm\\)-strongly convex. The sharp dilation theorem improves its parameter second moment to \\(d_\\theta/(Nm)\\).</p>",
+    "steps": [
+      {
+        "title": "Concentration of the actual marginal target",
+        "body": "<p>For a continuous \\(a\\)-strongly convex potential \\(f\\) with minimizer \\(x_\\star\\), the new dilation argument proves</p>\n\\[\n\\int\\|x-x_\\star\\|^2\\,\\pi(dx)\\le\\frac d a,\n\\qquad\\pi(dx)\\propto e^{-f(x)}dx.\n\\]\n<p>The proof uses a sharp radial growth inequality and a change of variables under dilation, rather than assuming an integration-by-parts identity for a nonsmooth density. It therefore applies directly to the continuous strongly convex Gibbs potentials needed here.</p><p>The existing Prékopa argument preserves strong convexity when latent variables are integrated out. Raising the marginal density to the \\(N\\)th power multiplies that modulus by \\(N\\). Applying the sharp estimate to its actual marginal potential gives</p>\n\\[\nW_2(\\Pi_{\\lambda,N}^{\\theta},\\delta_{\\theta_{\\lambda,\\star}})\n\\le\\sqrt{\\frac{d_\\theta}{Nm}}.\n\\]\n<p>This matches the constant in v3 equation (17) and Lemma A.14. The previous IPLA theorem's \\(\\sqrt{2d_\\theta/(Nm)}\\) estimate would have been weaker; the new result proves the sharper constant rather than labeling that factor as an error in the paper.</p>",
+        "declarations": [
+          "sharp_marginalTarget_secondMoment_le",
+          "sharp_gibbsTarget_parameter_secondMoment_le",
+          "sharp_gibbsTarget_parameter_concentration"
+        ]
+      },
+      {
+        "title": "Combine sharp concentration with the actual Gaussian-chain law",
+        "body": "<p>For \\(N>0\\), \\(\\gamma>0\\), \\(\\gamma\\le2/(m+L)\\), Gaussian independent innovations and \\(L^2\\) initialization, use the scaled ULA transport theorem and the nonexpansive parameter projection. The projected triangle inequality gives</p>\\[\\operatorname{RMS}_n\\le\\sqrt{\\frac{d_\\theta}{Nm}}+(1-m\\gamma)^nW_2(\\rho_0,\\Pi_N)+\\frac{33}{20}\\frac Lm\\sqrt{d_x+d_\\theta/N}\\sqrt\\gamma.\\]<p>The private lemma handles nonempty coordinate sets. The public theorem splits off the empty-coordinate case, where the parameter norm and its error vanish, so no artificial positive-dimension assumption remains.</p>",
+        "declarations": [
+          "sharp_ipla_parameter_rms_nonempty",
+          "sharp_ipla_parameter_rms"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MYPGDNoise.lean": {
+    "title": "Orthogonal masks and the exact removed-noise cost",
+    "summary": "<p>Let \\(P_\\theta\\) retain the common parameter block of the scaled particle state, and \\(P_x=I-P_\\theta\\) retain the latent blocks. For a standard Gaussian vector \\(\\xi\\), the removed parameter noise has mean zero and second moment \\(d_\\theta\\).</p>",
+    "steps": [
+      {
+        "title": "Define the actual complementary coordinate projections",
+        "body": "<p>Set \\(P_\\theta(\\theta,x)=(\\theta,0)\\) and \\(P_x(\\theta,x)=(0,x)\\). Coordinate evaluation proves the four block identities by unfolding the definitions. These are bounded linear maps, so masking an \\(L^2\\) innovation remains an actual \\(L^2\\) random variable.</p>",
+        "declarations": [
+          "parameterNoiseCLM",
+          "parameterNoiseCLM_parameter",
+          "parameterNoiseCLM_particle",
+          "latentNoiseCLM",
+          "latentNoiseCLM_parameter",
+          "latentNoiseCLM_particle"
+        ]
+      },
+      {
+        "title": "Compute the projection geometry and Gaussian moments",
+        "body": "<p>The Euclidean square is \\(\\|P_\\theta z\\|^2=\\sum_{j=1}^{d_\\theta}z_j^2\\), hence \\(\\|P_\\theta z\\|\\le\\|z\\|\\). A bounded linear map commutes with the Gaussian expectation, giving \\(\\mathbb E P_\\theta\\xi=0\\). Each retained standard coordinate has second moment one; finite summation gives \\(\\mathbb E\\|P_\\theta\\xi\\|^2=d_\\theta\\).</p>",
+        "declarations": [
+          "parameterNoise_norm_sq",
+          "parameterNoise_lipschitz",
+          "integral_parameterNoise_stdGaussian",
+          "integral_parameterNoise_sq_stdGaussian"
+        ]
+      },
+      {
+        "title": "The product law cancels the mixed term exactly",
+        "body": "<p>For any square-integrable \\(g\\) on a probability space independent of \\(\\xi\\), expand \\(\\|g+bP_\\theta\\xi\\|^2\\). Fubini and bilinearity factor its mixed expectation as \\(\\langle\\mathbb E g,\\mathbb E P_\\theta\\xi\\rangle=0\\). Thus</p>\\[\\mathbb E\\|g+bP_\\theta\\xi\\|^2=\\mathbb E\\|g\\|^2+b^2d_\\theta.\\]<p>The proof establishes integrability of every term before distributing the integral.</p>",
+        "declarations": [
+          "integral_add_parameterNoise_sq"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MYPGDTransport.lean": {
+    "title": "A concrete latent/full Gaussian transition coupling",
+    "summary": "<p>For an \\(r\\)-Lipschitz deterministic map \\(D\\), compare \\(D(x)+aP_x\\xi\\) and \\(D(y)+a\\xi\\) using the same fresh standard Gaussian vector. Initial laws are probability measures with finite second moments.</p>",
+    "steps": [
+      {
+        "title": "Lipschitz maps and explicit pairs have finite transport cost",
+        "body": "<p>Center \\(D\\) at zero to use \\(\\|D(x)-D(0)\\|\\le r\\|x\\|\\), then add back its constant value; this proves preservation of \\(L^2\\). For two \\(L^2\\) variables on one space, their joint law is a coupling. Its cost bounds \\(W_2\\), yielding both finiteness and \\(W_2(\\mathcal L(X),\\mathcal L(Y))^2\\le\\mathbb E\\|X-Y\\|^2\\).</p>",
+        "declarations": [
+          "memLp_lipschitz_comp",
+          "wasserstein_sq_le_integral_pair"
+        ]
+      },
+      {
+        "title": "Measurable Gaussian maps preserve second moments",
+        "body": "<p>The two maps are \\(T_x(u,\\xi)=D(u)+aP_x\\xi\\) and \\(T(u,\\xi)=D(u)+a\\xi\\). Lipschitz continuity of \\(D\\), linearity of \\(P_x\\), addition and scalar multiplication prove joint measurability. On \\(\\mu\\otimes\\mathcal N(0,I)\\), each summand belongs to \\(L^2\\), so both pushforward transition laws have finite second moments.</p>",
+        "declarations": [
+          "latentGaussianUpdate",
+          "fullGaussianUpdate",
+          "latentGaussianUpdate_measurable",
+          "fullGaussianUpdate_measurable",
+          "latentGaussianStep_memLp",
+          "fullGaussianStep_memLp"
+        ]
+      },
+      {
+        "title": "Extend every input coupling by an independent Gaussian",
+        "body": "<p>For any input coupling \\(c\\) of \\(\\mu,\\nu\\), work on \\(c\\otimes\\mathcal N(0,I)\\). The two outputs have precisely the required Markov marginals, and their difference is \\(D(x)-D(y)-aP_\\theta\\xi\\). The exact removed-noise identity gives squared coupling cost \\(\\mathbb E_c\\|D(x)-D(y)\\|^2+a^2d_\\theta\\), bounded by \\(r^2\\operatorname{cost}(c)^2+a^2d_\\theta\\). This constructs the recurrence input, with no optimal-coupling assumption.</p>",
+        "declarations": [
+          "latent_full_markov_coupling_sq"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MYPGD.lean": {
+    "title": "Iterated finite-particle noise-removal comparison",
+    "summary": "<p>Finite-moment latent-only and full Gaussian chains use the same deterministic \\(r\\)-contractive map \\(D\\) and amplitude \\(a\\). Their actual Markov laws are compared at every iteration.</p>",
+    "steps": [
+      {
+        "title": "Pass from every input coupling to actual transport",
+        "body": "<p>The previous module supplies \\(W_2(T_x\\mu,T\\nu)^2\\le r^2\\operatorname{cost}(c)^2+a^2d_\\theta\\) for every finite input coupling. Finite second moments prove \\(W_2(\\mu,\\nu)<\\infty\\), so the infimum lemma yields \\(W_2(T_x\\mu,T\\nu)^2\\le r^2W_2(\\mu,\\nu)^2+a^2d_\\theta\\).</p>",
+        "declarations": [
+          "latent_full_markov_sq"
+        ]
+      },
+      {
+        "title": "Iterate from a common initialization",
+        "body": "<p>Measurability preserves probability mass, and the one-step moment lemmas preserve \\(L^2\\) by induction. Since both chains start from \\(\\mu\\), their initial transport distance is zero. For \\(0\\le r<1\\), the geometric recurrence gives \\(W_2(\\rho_n^x,\\rho_n)^2\\le a^2d_\\theta/(1-r^2)\\), along with finiteness at every time.</p>",
+        "declarations": [
+          "latent_full_markov_laws_sq"
+        ]
+      },
+      {
+        "title": "The genuine smoothed forward map contracts",
+        "body": "<p>The common deterministic smoothed step contracts by \\(r=1-m\\gamma\\) when \\(0<m\\le L_\\eta\\) and \\(0<\\gamma\\le2/(m+L_\\eta)\\). Couple any two current laws, share their latent Gaussian noise, and use the same full Gaussian vector for the MYIPLA step. The exact noise identity proves the actual one-step squared transport estimate</p>\n\\[\nW_2(\\rho^{\\mathrm{PGD}}_{k+1},\\rho^{\\mathrm{IPLA}}_{k+1})^2\n \\le r^2 W_2(\\rho^{\\mathrm{PGD}}_k,\\rho^{\\mathrm{IPLA}}_k)^2\n       +\\frac{2\\gamma d_\\theta}{N}.\n\\]\n<p>The proof constructs each output coupling, establishes its finite moments, and takes the infimum over input couplings. Starting from the same initial law, \\(0\\le r<1\\) and \\(1-r^2=m\\gamma(2-m\\gamma)\\ge m\\gamma\\) give</p>\n\\[\nW_2(\\rho^{\\mathrm{PGD}}_n,\\rho^{\\mathrm{IPLA}}_n)^2\n \\le\\frac{2d_\\theta}{Nm}.\n\\]\n<p>This is a conservative comparison radius, not a claim that removing parameter noise worsens the algorithm. The estimate follows from the two actual recursions and their genuine independent Gaussian transitions.</p>",
+        "declarations": [
+          "mypgdDriftMap",
+          "mypgd_myipla_markov_transport_sq"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MYPGDAlgorithm.lean": {
+    "title": "MYPGD pointwise recursion and its exact Markov law",
+    "summary": "<p>MYPGD is the expanded MYIPLA drift with only latent Gaussian noise retained. The source definitions use actual pairwise proximity and independent smoothing and time parameters.</p>",
+    "steps": [
+      {
+        "title": "Mask only the innovations in the pointwise chain",
+        "body": "<p>Define the update by replacing \\(\\xi\\) in MYIPLA with \\(P_x\\xi\\). The zero and successor recursion identities show inductively that the resulting MYPGD chain equals the MYIPLA pointwise chain driven by \\((P_x\\xi_k)_k\\), and equals the generic noise-driven chain for its own update. Its law is the pushforward of this actual chain.</p>",
+        "declarations": [
+          "mypgdUpdate",
+          "mypgdChain",
+          "mypgdChain_eq_myiplaChain",
+          "mypgdChain_eq_noiseDrivenChain",
+          "mypgdLaws"
+        ]
+      },
+      {
+        "title": "Recognize the shared deterministic map",
+        "body": "<p>Let \\(F_\\eta=\\sum_i(g_1+g_2^\\eta)(\\theta,x_i)\\) in scaled coordinates and \\(h=\\gamma/N\\). The displayed MYPGD step is exactly</p>\n\\[\nX_{k+1}=X_k-h\\nabla F_\\eta(X_k)+\\sqrt{2h}\\,P_x\\xi_k.\n\\]\n<p>Its common parameter coordinate has no Gaussian perturbation; each physical latent coordinate has the usual \\(\\sqrt{2\\gamma}\\) noise. The expanded proximal-residual formula is identified with this gradient step. The pointwise chain is then identified with its measurable Gaussian Markov recursion.</p><p>Initialization has finite second moment, and the standard Gaussian vectors are independent across coordinates and times and independent of initialization. The parameter coordinates of those vectors are erased in MYPGD. They remain available as auxiliary noise for the comparison with MYIPLA. No initial iid-particle hypothesis is needed for this weaker finite-particle theorem.</p><p>The auxiliary measurability estimate uses the unconditional bound \\(\\operatorname{Lip}(I-(\\gamma/N)\\nabla F_\\eta)\\le1+|\\gamma/N|\\,NL_\\eta\\). It needs no contraction restriction and supplies measurable updates even before the convergence regime is imposed.</p>",
+        "declarations": [
+          "mypgdUpdate_eq_latentGaussianUpdate",
+          "myiplaUpdate_eq_fullGaussianUpdate",
+          "smoothed_forward_lipschitz"
+        ]
+      },
+      {
+        "title": "Independent coordinate Gaussians give the Markov recursion",
+        "body": "<p>The Gaussian-innovation hypotheses imply that vector innovations have standard Gaussian law, are independent over time, and are independent of initialization. The measurable-chain law theorem therefore identifies the two pushforwards with the actual iterated Markov transitions \\(D+aP_x\\xi\\) and \\(D+a\\xi\\). This transfers coupling estimates from the canonical product space to any admissible algorithm realization.</p>",
+        "declarations": [
+          "mypgdLaws_eq_markovLaws",
+          "myiplaLaws_eq_markovLaws"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MYPGDTheorem.lean": {
+    "title": "Actual MYPGD bound about the original marginal center",
+    "summary": "<p>Under the MYIPLA primitive assumptions, also assume \\(m\\le L_\\eta=L_1+\\eta^{-1}\\). The algorithm uses genuine latent-only Gaussian updates; \\(N>0\\), \\(m,\\eta,\\gamma>0\\), and \\(\\gamma\\le2/(m+L_\\eta)\\).</p>",
+    "steps": [
+      {
+        "title": "Identify actual algorithm laws in the comparison",
+        "body": "<p>Rewrite both output laws as the Gaussian Markov recursions of the shared smoothed drift. The initialization pushforward has finite second moment because its representative belongs to \\(L^2\\). The iterated noise-removal theorem now proves finite transport distance and \\(W_2(\\rho_n^{\\rm PGD},\\rho_n^{\\rm IPLA})^2\\le2d_\\theta/(Nm)\\).</p>",
+        "declarations": [
+          "mypgd_myipla_actual_transport_sq"
+        ]
+      },
+      {
+        "title": "Transfer parameter RMS through a nonexpansive projection",
+        "body": "<p>The parameter map has operator norm at most one. The projected RMS transport inequality yields \\(\\operatorname{RMS}_{\\rm PGD}(\\theta)\\le W_2(\\rho_n^{\\rm PGD},\\rho_n^{\\rm IPLA})+\\operatorname{RMS}_{\\rm IPLA}(\\theta)\\). MYIPLA finite moments and the finite comparison imply the MYPGD moment is finite before passing to real square-root integrals. Taking the square root of the comparison gives the added radius \\(\\sqrt{2d_\\theta/(Nm)}\\).</p>",
+        "declarations": [
+          "mypgd_parameter_rms_le_myipla"
+        ]
+      },
+      {
+        "title": "Insert the proved original-center MYIPLA theorem",
+        "body": "<p>Apply the parameter-projection transport inequality to the two actual laws, then use the proved MYIPLA original-center theorem. With \\(L_\\eta=L_1+1/\\eta\\) and the assumptions above,</p>\n\\[\n\\begin{aligned}\n\\left(\\mathbb E\\|\\theta^{\\mathrm{PGD}}_n-\\theta_\\star\\|^2\\right)^{1/2}\n\\le{}&\\sqrt{\\frac{2d_\\theta}{Nm}}\n +\\sqrt{\\frac{\\eta K^2}{m}}+\\sqrt{\\frac{d_\\theta}{Nm}}\\\\\n&+(1-m\\gamma)^nW_2(\\rho_0,\\Pi_{N,\\eta})\\\\\n&+\\frac{33}{20}\\frac{L_\\eta}{m}\n \\sqrt{d_x+\\frac{d_\\theta}{N}}\\sqrt\\gamma.\n\\end{aligned}\n\\]\n<p>Every term is finite under the primitive assumptions, and every law in the statement is the actual defined algorithm law. This is a genuine finite-particle replacement for Appendix B’s Theorem B.1. It has a Gibbs initial-law transient and an explicit conservative comparison term; it does not reproduce the paper’s mean-field metric, constants, or stronger Taylor smoothing expression.</p>",
+        "declarations": [
+          "moreau_mypgd_parameter_rms_original"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingContraction.lean": {
+    "title": "Shared-noise contraction of the actual PIPGLA chain",
+    "summary": "<p>Let \\(N>0\\), let \\(g_1\\) be differentiable and \\(m\\)-strongly convex with \\(L_1\\)-Lipschitz gradient, and let \\(g_2\\) be convex and bounded below. Assume \\(0<m\\le L_1\\), \\(\\lambda>0\\), and \\(0\\le\\gamma\\le2/(m+L_1)\\). These are deterministic comparisons of two chains with the same innovations.</p>",
+    "steps": [
+      {
+        "title": "Jensen handles two independently averaged outputs",
+        "body": "<p>Apply the scalar average-square inequality to the difference of the parameter outputs. Each latent difference has its exact scaled square. Thus</p>\\[\\|\\operatorname{Pair}_P(z)-\\operatorname{Pair}_P(w)\\|^2\\le N^{-1}\\sum_i\\|P(J_i z)-P(J_i w)\\|^2.\\]<p>If \\(P\\) is nonexpansive, each summand is bounded by \\(\\|J_i(z-w)\\|^2\\). Their sum is \\(N\\|z-w\\|^2\\), proving that the actual pairwise map is also nonexpansive.</p>",
+        "declarations": [
+          "pairwiseMap_difference_sq_le",
+          "pairwiseMap_nonexpansive"
+        ]
+      },
+      {
+        "title": "A shared innovation cancels before proximity",
+        "body": "<p>The lifted smooth gradient step has strong convexity \\(Nm\\), gradient constant \\(NL_1\\), and step \\(\\gamma/N\\), so its contraction factor is \\(1-m\\gamma\\ge0\\). The same Gaussian or deterministic innovation added to both inputs cancels in their difference. Composition with the actual nonexpansive averaged proximal map gives</p>\\[\\|T_\\lambda(z,\\xi)-T_\\lambda(w,\\xi)\\|\\le(1-m\\gamma)\\|z-w\\|.\\]<p>Induction on the displayed recursion yields factor \\((1-m\\gamma)^n\\). This proves stability; a separate stationary reference and local-consistency estimate are needed for convergence to a Gibbs target.</p>",
+        "declarations": [
+          "pipglaUpdate_shared_noise_contract",
+          "pipglaChain_shared_noise_contract"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingLaw.lean": {
+    "title": "Actual splitting laws, L² realizations and iid law transfer",
+    "summary": "<p>The pointwise splitting update applies the averaged true proximal map after a noisy smooth step. Convexity and a lower bound for \\(g_2\\), positive \\(\\lambda\\), \\(N>0\\) and a Lipschitz smooth gradient make this update measurable and preserve finite quadratic moments.</p>",
+    "steps": [
+      {
+        "title": "Prove measurability of the exact pointwise update",
+        "body": "<p>Nonexpansiveness proves \\(\\operatorname{Lip}(\\operatorname{Pair}_{P_\\lambda})\\le1\\). The forward map \\((z,\\xi)\\mapsto z-(\\gamma/N)\\nabla F_{g_1}(z)+\\sqrt{2\\gamma/N}\\xi\\) is measurable by continuity of its terms; compose it with proximity. Induction proves equality of the custom pointwise chain with the generic noise-driven chain.</p>",
+        "declarations": [
+          "pairwiseMap_prox_lipschitz",
+          "pipglaUpdate_measurable",
+          "pipglaChain_eq_noiseDrivenChain"
+        ]
+      },
+      {
+        "title": "Realize the actual chain inside L²",
+        "body": "<p>Define the algorithm law as the pushforward by the explicit chain. Define an \\(L^2\\) update by applying the Lipschitz pairwise map to the \\(L^2\\) noisy Euler update. Their representatives agree almost everywhere by the composition and addition identities in \\(L^2\\). Inductively every iterate lies in \\(L^2\\) and agrees almost everywhere with its pointwise recursion. This constructs moment control without Gaussianity or equilibrium assumptions.</p>",
+        "declarations": [
+          "pipglaLaws",
+          "lpPipglaUpdate",
+          "lpPipglaUpdate_coe",
+          "lpPipglaChain",
+          "lpPipglaChain_coe"
+        ]
+      },
+      {
+        "title": "Pushforward equality proves mass one",
+        "body": "<p>Almost everywhere equal representatives have equal pushforward measures, so \\(\\rho_n=Q\\circ X_n^{-1}\\) for the constructed \\(L^2\\) iterate. Its almost everywhere measurability makes this a genuine probability law: the preimage of the whole state space has \\(Q\\)-mass one.</p>",
+        "declarations": [
+          "pipglaLaws_eq_lpLaw",
+          "pipglaLaws_isProbability"
+        ]
+      },
+      {
+        "title": "Transfer any iid realization to the canonical product law",
+        "body": "<p>Assume the initial variable is independent of the whole innovation path and the innovations form an independent family with common law \\(\\eta\\). The joint input law is \\(\\mathcal L(X_0)\\otimes\\eta^{\\otimes\\mathbb N}\\). Applying the measurable noise-driven recursion gives exactly the canonical chain law. The proof uses the actual independence and common-law hypotheses, without assuming a stochastic error estimate.</p>",
+        "declarations": [
+          "pipglaLaws_eq_canonical"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingGaussianLaw.lean": {
+    "title": "Canonical Gaussian law of the actual splitting algorithm",
+    "summary": "<p>The scalar-coordinate Gaussian hypotheses determine the complete vector innovation law and its infinite iid path. Hence every realization with a fixed initial law gives the same actual PIPGLA output law.</p>",
+    "steps": [
+      {
+        "title": "Assemble scalar coordinates into iid standard Gaussian vectors",
+        "body": "<p>The coordinate laws and their joint independence imply \\(\\xi_k\\sim\\mathcal N(0,I)\\) as a full state vector, and independence of these vectors across \\(k\\). Together with initialization/path independence, the generic iid transfer theorem gives the chain law driven by \\(\\mathcal N(0,I)^{\\otimes\\mathbb N}\\).</p>",
+        "declarations": [
+          "pipglaLaws_eq_canonicalGaussian"
+        ]
+      },
+      {
+        "title": "Use either canonical noise-path representation",
+        "body": "<p>The countable product of scalar Gaussian coordinates, grouped by iteration, has the same noise-path pushforward law as the vector product. Apply the measurable chain to this identity. Two probability-space realizations with the same initialization law therefore both equal the same canonical Gaussian chain law at time \\(n\\), proving equality of their actual output laws.</p>",
+        "declarations": [
+          "pipglaLaws_eq_canonicalNoisePath",
+          "pipglaLaws_eq_of_initialLaw_eq"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingMoments.lean": {
+    "title": "Reference drift moments uniform over smoothing scales",
+    "summary": "<p>For \\(F=f+e\\), assume \\(F\\) is \\(m\\)-strongly convex, \\(f,e\\) differentiable, \\(\\nabla f\\) is \\(L\\)-Lipschitz, and \\(\\|\\nabla e\\|\\le K\\). The goal is a Gibbs drift bound using \\(L,m,K\\), without an inverse smoothing scale.</p>",
+    "steps": [
+      {
+        "title": "The envelope preserves a global value Lipschitz constant",
+        "body": "<p>Let \\(p=P_\\lambda(y)\\). As a competitor at \\(x\\), use \\(p+x-y\\), so its quadratic penalty equals that of \\(p\\) at \\(y\\). The \\(K\\)-Lipschitz inequality for \\(f\\) changes the function value by at most \\(K\\|x-y\\|\\). Thus \\(f^\\lambda(x)\\le f^\\lambda(y)+K\\|x-y\\|\\), and reversing \\(x,y\\) proves the same global Lipschitz constant.</p>",
+        "declarations": [
+          "moreau_lipschitz_of_lipschitz"
+        ]
+      },
+      {
+        "title": "Find a true minimum and bound the smooth force there",
+        "body": "<p>Strong convexity gives quadratic coercivity. Minimize \\(F\\) on a sufficiently large closed ball, with radius \\(2\\|\\nabla F(0)\\|/m+1\\); the quadratic lower bound proves the resulting point minimizes globally. At a global minimum \\(z\\), the local-extremum derivative vanishes. Hence \\(\\nabla f(z)=-\\nabla e(z)\\) and \\(\\|\\nabla f(z)\\|\\le K\\).</p>",
+        "declarations": [
+          "gradient_eq_zero_at_minimum",
+          "exists_strongConvex_minimum",
+          "gradient_smoothPart_at_minimum"
+        ]
+      },
+      {
+        "title": "A bounded gradient remains bounded in L²",
+        "body": "<p>The norm of the derivative of a \\(K\\)-Lipschitz scalar function is at most \\(K\\); the gradient is its Riesz representative and has the same norm. For a pointwise bounded drift \\(\\|b(x)\\|\\le K\\), almost everywhere representative equality gives \\(\\|b(Y)\\|_{L^2}\\le K\\) on a probability space.</p>",
+        "declarations": [
+          "gradient_norm_le_of_lipschitz",
+          "lpDrift_norm_le_of_bounded"
+        ]
+      },
+      {
+        "title": "Integrate a sharp quadratic bound about the mode",
+        "body": "<p>Lipschitz continuity and the mode bound give \\(\\|\\nabla f(x)\\|\\le L\\|x-z\\|+K\\), so \\(\\|\\nabla f(x)\\|^2\\le2L^2\\|x-z\\|^2+2K^2\\). Sharp Gibbs concentration supplies \\(\\mathbb E_\\pi\\|x-z\\|^2\\le d/m\\), yielding</p>\\[\\mathbb E_\\pi\\|\\nabla f\\|^2\\le2L^2d/m+2K^2.\\]<p>For any \\(Y\\) with actual Gibbs law \\(\\pi\\), the pushforward integral formula transfers this estimate and taking square roots gives \\(\\|\\nabla f(Y)\\|_2\\le\\sqrt{2L^2d/m+2K^2}\\).</p>",
+        "declarations": [
+          "integral_sq_smooth_gradient_le",
+          "lpDrift_smooth_gradient_norm_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingCoupling.lean": {
+    "title": "Lipschitz energy and the averaged lifted potential",
+    "summary": "<p>Let \\(g\\) be convex, bounded below and \\(K\\)-Lipschitz, \\(\\lambda>0\\), and \\(N>0\\). The module proves energy estimates for the true pairwise proximal map and a value-Lipschitz bound for \\(G=N^{-1}\\sum_i g(J_i z)\\).</p>",
+    "steps": [
+      {
+        "title": "Obtain energy from value Lipschitzness",
+        "body": "<p>At \\(p=P_\\lambda(x)\\), the residual support at a comparator \\(a\\) controls \\(f(p)-f(a)\\). Bound \\(f(x)-f(p)\\le K\\|x-p\\|\\), expand \\(\\|x-a\\|^2\\), and use \\((\\|x-p\\|-\\lambda K)^2\\ge0\\). Thus \\(\\|p-a\\|^2\\le\\|x-a\\|^2-2\\lambda(f(x)-f(a))+\\lambda^2K^2\\). Sum over pairs, use Jensen for the shared parameter, and divide by \\(N\\) to get the exact averaged energy inequality with remainder \\(\\lambda^2K^2\\).</p>",
+        "declarations": [
+          "isProxPoint_energy_le_of_lipschitz",
+          "pairwise_prox_energy_le_lipschitz"
+        ]
+      },
+      {
+        "title": "Averaged pair distances control the physical-time potential",
+        "body": "<p>Define \\(G(z)=F_g(z)/N\\). Jensen and \\(\\sum_i\\|J_i v\\|^2=N\\|v\\|^2\\) imply \\(N^{-1}\\sum_i\\|J_i v\\|\\le\\|v\\|\\). Therefore</p>\\[|G(z)-G(w)|\\le\\frac KN\\sum_i\\|J_i(z-w)\\|\\le K\\|z-w\\|.\\]<p>The same constant survives the averaging because the latent coordinates were scaled by \\(N^{-1/2}\\).</p>",
+        "declarations": [
+          "averagedPotential",
+          "average_joint_norm_le",
+          "averagedPotential_lipschitz"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/ParticleSmoothing.lean": {
+    "title": "Uniform Moreau gaps in scaled particle coordinates",
+    "summary": "<p>Write \\(F_g(z)=\\sum_i g(J_i z)\\), with \\(N>0\\). If \\(g\\) is convex, bounded below and \\(K\\)-Lipschitz, its lifted envelope term has a bounded gradient independent of the positive Moreau scale.</p>",
+    "steps": [
+      {
+        "title": "Lift value Lipschitzness and a bounded envelope score",
+        "body": "<p>The averaged potential is \\(K\\)-Lipschitz, so multiplying it by \\(N\\) proves \\(\\operatorname{Lip}(F_g)\\le NK\\). The envelope has the same value Lipschitz constant \\(K\\), hence \\(F_{g^\\eta}\\) has constant \\(NK\\) too. Its actual gradient norm is therefore at most \\(NK\\), uniformly over \\(\\eta>0\\).</p>",
+        "declarations": [
+          "potential_lipschitz",
+          "potential_moreau_lipschitz",
+          "potential_moreau_gradient_norm_le"
+        ]
+      },
+      {
+        "title": "Sum the finite gap and preserve the split decomposition",
+        "body": "<p>Apply \\(0\\le g-g^\\eta\\le\\eta K^2/2\\) at every joint pair and add:</p>\\[0\\le F_g(z)-F_{g^\\eta}(z)\\le N\\eta K^2/2.\\]<p>Finite sum distributivity also proves \\(F_{g_1+g_2^\\eta}=F_{g_1}+F_{g_2^\\eta}\\) as an equality of functions. These exact identities supply the deterministic inputs to the stochastic splitting estimate.</p>",
+        "declarations": [
+          "potential_moreau_gap",
+          "potential_smoothed_decomposition"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingL2Energy.lean": {
+    "title": "Quadratic Hilbert identities and integrated convex energy",
+    "summary": "<p>The pointwise proximal estimate is lifted to actual \\(L^2\\) random variables. All scalar energy expectations are proved integrable before distributing integrals or comparing them.</p>",
+    "steps": [
+      {
+        "title": "Weighted Young inequality preserves a linear squared contraction",
+        "body": "<p>For \\(t>0\\), expansion and \\((t\\|v\\|-\\|r\\|)^2\\ge0\\) prove</p>\\[\\|v+r\\|^2\\le(1+t)\\|v\\|^2+(1+t^{-1})\\|r\\|^2.\\]<p>If \\(0<t\\le1\\) and \\(\\|v\\|\\le(1-t)\\|e\\|\\), use \\((1+t)(1-t)^2\\le1-t\\). The separate exact identity \\(\\|v+r+b\\|^2=\\|v+r\\|^2+2\\langle v+r+b,b\\rangle-\\|b\\|^2\\) keeps an integrated nonsmooth force inside a useful cross term.</p>",
+        "declarations": [
+          "norm_add_sq_le_weighted",
+          "norm_add_sq_le_of_contraction",
+          "norm_sum_rearranged"
+        ]
+      },
+      {
+        "title": "Justify potential and quadratic expectations",
+        "body": "<p>For a globally \\(K\\)-Lipschitz scalar \\(f\\), center at \\(f(0)\\); its growth is at most \\(K\\|X\\|\\). Hence \\(f(X)\\in L^2\\subset L^1\\) on a probability space. The actual Hilbert-space \\(L^2\\) inner product gives \\(\\|X\\|_2^2=\\int\\|X(\\omega)\\|^2dP\\), without any arbitrary representative-dependent value.</p>",
+        "declarations": [
+          "integrable_lipschitz_compLp",
+          "lp_norm_sq_eq_integral"
+        ]
+      },
+      {
+        "title": "Integrate the actual deterministic energy premise",
+        "body": "<p>Suppose \\(\\|T(x)-y\\|^2\\le\\|x-y\\|^2-2h(f(x)-f(y))+C\\), with \\(T,f\\) Lipschitz. Apply it pointwise to \\(S,Y\\in L^2\\). The composition representative agrees almost everywhere with \\(T(S)\\), and every term is integrable. Monotonicity and linearity of the integral yield</p>\\[\\|T(S)-Y\\|_2^2\\le\\|S-Y\\|_2^2-2h(\\mathbb E f(S)-\\mathbb E f(Y))+C.\\]",
+        "declarations": [
+          "lp_energy_of_pointwise"
+        ]
+      },
+      {
+        "title": "Integrate convex supports and split endpoint differences",
+        "body": "<p>Convex differentiability gives \\(\\langle S-Y,\\nabla e(Y)\\rangle\\le e(S)-e(Y)\\) pointwise. Integrate to obtain the same inequality for the \\(L^2\\) inner product. For a third variable \\(Z\\), write \\(S-Z=(S-Y)+(Y-Z)\\). This splits the cross term into the convex energy difference plus \\(\\langle Y-Z,\\nabla e(Y)\\rangle_{L^2}\\), whose future-noise part can later be canceled.</p>",
+        "declarations": [
+          "lp_convex_gradient_support",
+          "lp_convex_gradient_cross"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/IndependenceHelpers.lean": {
+    "title": "Regroup genuinely independent source blocks",
+    "summary": "<p>These measure-theoretic lemmas reorganize supplied joint independence. They do not infer joint independence from pairwise independence.</p>",
+    "steps": [
+      {
+        "title": "Two independent variables form a Boolean family",
+        "body": "<p>Given \\(X\\perp Y\\), define \\(Z_{\\rm false}=X\\), \\(Z_{\\rm true}=Y\\). The finite-family intersection criterion has four possible index subsets: the empty set, either singleton, or both indices. Probability mass one handles the empty case, the singletons are identities, and the two-element case is exactly \\(P(X\\in A,Y\\in B)=P(X\\in A)P(Y\\in B)\\).</p>",
+        "declarations": [
+          "iIndepFun_bool_of_indepFun"
+        ]
+      },
+      {
+        "title": "Regroup a jointly independent triple",
+        "body": "<p>Assume \\(X\\perp(Y,Z)\\) and \\(Y\\perp Z\\), with measurable variables. The joint pushforward is \\(\\mu_X\\otimes(\\mu_Y\\otimes\\mu_Z)\\). Use the measurable product-associativity equivalence to rewrite it as \\((\\mu_X\\otimes\\mu_Y)\\otimes\\mu_Z\\). Projection also proves \\(\\mu_{(X,Y)}=\\mu_X\\otimes\\mu_Y\\), so \\((X,Y)\\perp Z\\). The joint independence premise is essential.</p>",
+        "declarations": [
+          "indepFun_prodMk_left_of_indepFun"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingOrthogonality.lean": {
+    "title": "Derive Brownian future orthogonality from the actual past",
+    "summary": "<p>Let the scalar Brownian coordinates have independent full paths, measurable evaluations, and initialization independent of the whole Brownian family. The actual Langevin integral solution is measurable from initialization and the stopped noise past.</p>",
+    "steps": [
+      {
+        "title": "Assemble independent vector past and shifted future",
+        "body": "<p>Each scalar Brownian path has independent shifted future \\(B_i(T+s)-B_i(T)\\) and stopped past \\(B_i(\\min(t,T))\\). Encode these as a Boolean pair for each coordinate. Full-path independence makes the coordinate rows independent; flatten the rows and Boolean columns, then take the disjoint sets of past and future indices. Regrouping proves independence of the entire vector path families.</p>",
+        "declarations": [
+          "brownian_future_past_independent"
+        ]
+      },
+      {
+        "title": "Relate concrete noise to its L² representative",
+        "body": "<p>Define the pointwise vector \\(\\mathcal B_t=\\sqrt2(B(t_+)-B(0))\\), using the nonnegative-time conversion \\(t_+=\\max(t,0)\\). The \\(L^2\\) Brownian-noise construction agrees almost everywhere with this formula. Each coordinate evaluation is measurable, so finite vector assembly, subtraction and scaling prove measurability of the raw representative.</p>",
+        "declarations": [
+          "rawBrownianNoise",
+          "brownianNoise_coe",
+          "rawBrownianNoise_measurable"
+        ]
+      },
+      {
+        "title": "Add the independent initialization to the stopped past",
+        "body": "<p>The stopped noise path and a future increment are independent. Initialization is independent of their joint pair, so the regrouping lemma proves that initialization together with the stopped past is independent of the future. An auxiliary result then compares sigma-algebras: every variable almost everywhere strongly measurable for the natural initialization/noise past inherits this independence. Almost everywhere replacement transfers the result to actual \\(L^2\\) representatives.</p>",
+        "declarations": [
+          "brownian_future_independent_initial_past",
+          "naturalPast_independent_of_aestronglyMeasurable"
+        ]
+      },
+      {
+        "title": "Centering and independence imply Hilbert orthogonality",
+        "body": "<p>Every scalar Brownian coordinate has mean zero. Commute the finite coordinate projections through the Bochner integral to get \\(\\mathbb E B_t=0\\), then subtract and scale for \\(\\mathbb E\\mathcal B_t=0\\). For independent \\(L^2\\) variables \\(X,W\\), bilinear integration gives \\(\\langle X,W\\rangle_{L^2}=\\langle\\mathbb E X,\\mathbb E W\\rangle\\). If \\(W\\) is centered this is zero.</p>",
+        "declarations": [
+          "brownianCoordinates_integral_zero",
+          "brownianNoise_integral_zero",
+          "independent_centered_lp_inner_zero"
+        ]
+      },
+      {
+        "title": "Apply adaptedness of the constructed integral solution",
+        "body": "<p>The invariant-subspace construction for the actual integral equation proves that \\(Y_t\\) is measurable for the natural past. A Lipschitz observable \\(b(Y_t)\\) remains past measurable and in \\(L^2\\). The preceding independence and zero-mean results therefore prove</p>\\[\\langle b(Y_t),\\mathcal B_h-\\mathcal B_t\\rangle_{L^2}=0,\\qquad0\\le t\\le h.\\]<p>This essential cancellation is a conclusion of the Brownian and integral-equation construction.</p>",
+        "declarations": [
+          "lp_langevin_future_inner_zero"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingProcess.lean": {
+    "title": "Local smooth drift defect and the future cross term",
+    "summary": "<p>Let a continuous Hilbert-valued reference satisfy \\(Y_t-Y_0=-\\int_0^t g(Y_s)ds+B_t\\), with \\(\\|g(Y_t)\\|\\le G\\) and \\(\\|B_t\\|\\le\\sigma\\sqrt t\\). Only the smooth-part Lipschitz constant enters the local defect.</p>",
+    "steps": [
+      {
+        "title": "Integrate the smooth drift increment",
+        "body": "<p>The integral equation implies \\(\\|Y_t-Y_0\\|\\le Gt+\\sigma\\sqrt t\\). If \\(a\\) is \\(L\\)-Lipschitz and \\(0\\le t\\le h\\), then \\(\\|a(Y_t)-a(Y_0)\\|\\le L(Gh+\\sigma\\sqrt h)\\). Integrating over an interval of length \\(h\\) yields</p>\\[\\left\\|\\int_0^h(a(Y_t)-a(Y_0))dt\\right\\|\\le Lh(Gh+\\sigma\\sqrt h).\\]",
+        "declarations": [
+          "splitting_localDefect_bound"
+        ]
+      },
+      {
+        "title": "Cancel future noise before estimating the remainder",
+        "body": "<p>Subtract the reference equations at \\(t,h\\) and use adjacent-interval additivity:</p>\\[Y_t-Y_h=\\int_t^h g(Y_s)ds-(B_h-B_t).\\]<p>If \\(\\|b\\|\\le K\\) and \\(\\langle b,B_h-B_t\\rangle=0\\), the noise term cancels exactly. Cauchy–Schwarz and the drift bound give \\(\\langle Y_t-Y_h,b\\rangle\\le(h-t)GK\\). This avoids an order-\\(\\sqrt{h-t}\\) loss.</p>",
+        "declarations": [
+          "reference_future_inner_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingCrossEnergy.lean": {
+    "title": "Cancel the original nonsmooth energy in expectation",
+    "summary": "<p>Let \\(e\\) be convex and differentiable, let \\(e\\le f\\le e+\\delta\\), and let \\(Y_t\\) be a stationary reference for the smoothed energy with the actual integral equation and future-noise orthogonality. Lipschitz value bounds ensure all expectations exist.</p>",
+    "steps": [
+      {
+        "title": "Integrate a one-sided uniform value gap",
+        "body": "<p>If \\(f(x)\\le e(x)+\\delta\\) pointwise and both functions are Lipschitz, their compositions with any \\(L^2\\) variable \\(X\\) are integrable. Integral monotonicity and total mass one give \\(\\mathbb E f(X)-\\mathbb E e(X)\\le\\delta\\). This is the precise one-sided expectation lemma used in the cross-energy argument.</p>",
+        "declarations": [
+          "expectation_gap_le"
+        ]
+      },
+      {
+        "title": "Combine convex support, stationarity and the future estimate",
+        "body": "<p>The integrated convex support bounds \\(\\langle S-Y_h,\\nabla e(Y_t)\\rangle\\) by \\(\\mathbb E e(S)-\\mathbb E e(Y_t)+\\langle Y_t-Y_h,\\nabla e(Y_t)\\rangle\\). Stationarity replaces \\(\\mathbb E e(Y_t)\\) by \\(\\mathbb E e(Y_h)\\). Orthogonality and bounded drift/score give the remaining term at most \\(hGK\\). Commute the fixed inner-product functional through the time integral. Finally the gap \\(e\\le f\\le e+\\delta\\) changes the two expected energies by at most \\(\\delta\\), proving</p>\\[2\\left\\langle S-Y_h,\\int_0^h\\nabla e(Y_t)dt\\right\\rangle-2h(\\mathbb E f(S)-\\mathbb E f(Y_h))\\le2h\\delta+2h^2GK.\\]",
+        "declarations": [
+          "splitting_cross_energy_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingOneStep.lean": {
+    "title": "Derive the synchronous one-step splitting bound",
+    "summary": "<p>In a Hilbert \\(L^2\\) space, let \\(f_1\\) be \\(m\\)-strongly convex with \\(L\\)-Lipschitz gradient, and let the actual Lipschitz map \\(T\\) satisfy the nonsmooth energy inequality for \\(f\\). The reference solves the actual stationary smoothed integral equation for \\(f_1+e\\), where \\(e\\le f\\le e+\\delta\\).</p>",
+    "steps": [
+      {
+        "title": "Keep every local forcing term explicit",
+        "body": "<p>For \\(m,h>0\\), drift moment \\(G\\), noise moment factor \\(\\sigma\\), bounded nonsmooth score \\(K\\) and value gap \\(\\delta\\), define</p>\\[\\mathcal F=(1+(mh)^{-1})[Lh(Gh+\\sigma\\sqrt h)]^2+2h\\delta+2h^2GK+h^2K^2.\\]<p>The four terms are the weighted smooth local defect, the envelope value gap, the drift cross term, and the genuine proximal energy remainder.</p>",
+        "declarations": [
+          "splittingCouplingForcing"
+        ]
+      },
+      {
+        "title": "An exact decomposition makes the energy cancel",
+        "body": "<p>Let \\(S=X-h\\nabla f_1(X)+B_h\\), \\(v=(X-h\\nabla f_1(X))-(Y_0-h\\nabla f_1(Y_0))\\), \\(R=\\int_0^h[\\nabla f_1(Y_t)-\\nabla f_1(Y_0)]dt\\), and \\(H=\\int_0^h\\nabla e(Y_t)dt\\). The integral equation gives the exact identity \\(S-Y_h=v+R+H\\). Expand its square using the rearranged identity; integrate the actual proximal energy inequality for \\(T(S)\\). The cross-energy lemma cancels the resulting expected \\(f\\)-difference. Sharp smooth-step contraction and weighted Young inequality bound \\(\\|v+R\\|^2\\), while the local-defect lemma bounds \\(R\\). Discarding \\(-\\|H\\|^2\\le0\\) yields</p>\\[\\|T(S)-Y_h\\|_2^2\\le(1-mh)\\|X-Y_0\\|_2^2+\\mathcal F.\\]<p>Here \\(m\\le L\\) and \\(h\\le2/(m+L)\\) imply \\(mh\\le1\\). Every reference premise is later supplied by the canonical construction.</p>",
+        "declarations": [
+          "splitting_one_step_of_integral_solution"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingCanonical.lean": {
+    "title": "Construct a stationary Brownian coupling for one true transition",
+    "summary": "<p>The generic splitting map is \\(\\mathcal T_h(x,\\xi)=T(x-h\\nabla f_1(x)+\\sqrt{2h}\\xi)\\). The reference target is the actual Gibbs law of \\(F=f_1+e\\). Assumptions concern potentials, true energy, bounded gradients and a finite input coupling.</p>",
+    "steps": [
+      {
+        "title": "Measurable update and exact gradient additivity",
+        "body": "<p>The map is the composition of the measurable Gaussian forward update with the Lipschitz map \\(T\\). Differentiability proves \\(\\nabla(f_1+e)=\\nabla f_1+\\nabla e\\). Almost everywhere representative identities then prove additivity of the corresponding \\(L^2\\) drift maps, as an equality of actual \\(L^2\\) elements.</p>",
+        "declarations": [
+          "splittingUpdate",
+          "splittingUpdate_measurable",
+          "lpDrift_gradient_add"
+        ]
+      },
+      {
+        "title": "Extend any finite-cost coupling by canonical Brownian noise",
+        "body": "<p>Start with any coupling \\(c\\) between \\(\\mu\\) and the Gibbs target, with finite quadratic cost. Extend it by the canonical independent Brownian source. The initial reference has the exact Gibbs law and finite moments; the constructed Langevin integral solution stays stationary. Its natural-past measurability and Brownian independence prove the future orthogonality. Uniform moments give</p>\\[G=\\sqrt{2L^2d/m+2K^2}+K,\\qquad\\sigma=\\sqrt{2d}.\\]<p>Use the Brownian increment over \\([0,h]\\) as the Gaussian update noise; its independence gives the exact Markov marginal. Apply the derived analytic one-step theorem. The explicit output pair is a finite coupling and proves</p>\\[W_2(\\mu\\mathcal T_h,\\pi)^2\\le(1-mh)\\operatorname{cost}(c)^2+\\mathcal F(m,h,L,G,\\sigma,K,\\delta).\\]<p>The construction discharges stationarity, Gaussian laws, finite moments and orthogonality; they are not extra convergence hypotheses.</p>",
+        "declarations": [
+          "splitting_markov_step_coupling_bound"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingTransport.lean": {
+    "title": "Take the infimum of squared finite coupling estimates",
+    "summary": "<p>Assume \\(W_2(\\mu,\\nu)<\\infty\\), \\(q,c\\ge0\\), and \\(W_2(\\mu',\\nu')^2\\le q\\operatorname{cost}(p)^2+c\\) for every finite-cost coupling \\(p\\) of \\(\\mu,\\nu\\). No optimal coupling is needed.</p>",
+    "steps": [
+      {
+        "title": "Use the greatest lower bound characterization",
+        "body": "<p>If \\(q=0\\), one finite coupling already gives the result. If the target square is at most \\(c\\), the conclusion is immediate. Otherwise set \\(r=\\sqrt{(W_2(\\mu',\\nu')^2-c)/q}\\). Each coupling estimate implies \\(r\\le\\operatorname{cost}(p)\\); infinite-cost couplings also satisfy this extended inequality. Hence \\(r\\le\\inf_p\\operatorname{cost}(p)=W_2(\\mu,\\nu)\\). Square this nonnegative inequality and multiply by \\(q\\) to obtain</p>\\[W_2(\\mu',\\nu')^2\\le qW_2(\\mu,\\nu)^2+c.\\]<p>Finiteness justifies every extended-to-real conversion.</p>",
+        "declarations": [
+          "wasserstein2_sq_bound_of_finite_couplings"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingRate.lean": {
+    "title": "A finite coefficient for the splitting error floor",
+    "summary": "<p>The derived forcing uses no inverse envelope gradient constant. This scalar estimate turns it into an \\(O(h^2)\\) one-step squared error when the value gap is \\(\\delta\\le hK^2/2\\).</p>",
+    "steps": [
+      {
+        "title": "Define and sign the explicit coefficient",
+        "body": "<p>For \\(m>0\\), \\(G,K\\ge0\\), define</p>\\[C(m,L,G,\\sigma,K)=\\frac{4L^2}{m^2}\\left(\\frac{G^2}{m}+\\sigma^2\\right)+\\frac2m(GK+K^2).\\]<p>Squares and positive denominators prove \\(C\\ge0\\). This constant may be conservative but remains finite under its stated scalar assumptions.</p>",
+        "declarations": [
+          "splittingRMSConstant",
+          "splittingRMSConstant_nonneg"
+        ]
+      },
+      {
+        "title": "Bound the exact local forcing",
+        "body": "<p>For \\(h\\le1/m\\), use \\((Gh+\\sigma\\sqrt h)^2\\le2G^2h^2+2\\sigma^2h\\le2h(G^2/m+\\sigma^2)\\) and \\(h+1/m\\le2/m\\). The weighted defect is then at most \\(4L^2h^2(G^2/m+\\sigma^2)/m\\). The gap contributes \\(2h\\delta\\le h^2K^2\\). Adding the remaining \\(2h^2GK+h^2K^2\\) proves \\(\\mathcal F\\le mh^2C\\). Thus iteration can produce the squared floor \\(hC\\).</p>",
+        "declarations": [
+          "splittingCouplingForcing_le"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingEndpoint.lean": {
+    "title": "Actual equal-step PIPGLA transport convergence",
+    "summary": "<p>For \\(f_1\\) strongly convex and smooth, a bounded convex envelope term \\(e\\), and a genuine energy map \\(T\\), this module first proves convergence of actual Gaussian Markov laws. It then instantiates the result with the true averaged particle proximity and equal proximal/forward steps.</p>",
+    "steps": [
+      {
+        "title": "Derive the one-step transport recurrence",
+        "body": "<p>The admissibility condition and \\(m\\le L\\) give \\(mh\\le1\\). Canonical stationary coupling proves a finite output cost for every finite input coupling. Taking their infimum yields both finiteness and</p>\\[W_2(\\rho_{k+1},\\pi)^2\\le(1-mh)W_2(\\rho_k,\\pi)^2+\\mathcal F.\\]<p>The nonnegative forcing follows from \\(e\\le f\\le e+\\delta\\), which itself implies \\(\\delta\\ge0\\).</p>",
+        "declarations": [
+          "step_product_le_one",
+          "splitting_markov_step_sq_bound"
+        ]
+      },
+      {
+        "title": "Iterate and retain finite moments at every time",
+        "body": "<p>Inductively each measurable Markov law is a probability measure and remains at finite distance from the Gibbs reference. If \\(\\delta\\le hK^2/2\\), the derived forcing is at most \\(mh^2C\\). Apply the geometric recurrence with \\(q=1-mh\\in[0,1)\\):</p>\\[W_2(\\rho_n,\\pi)^2\\le(1-mh)^nW_2(\\rho_0,\\pi)^2+hC.\\]<p>The exact denominator is \\(1-q=mh>0\\).</p>",
+        "declarations": [
+          "splitting_markov_laws_sq_bound"
+        ]
+      },
+      {
+        "title": "Track the lifted particle coefficient",
+        "body": "<p>Let \\(d=d_\\theta+Nd_x\\). In lifted coordinates substitute \\(\\bar m=Nm\\), \\(\\bar L=NL_1\\), \\(\\bar K=NK\\), \\(\\sigma=\\sqrt{2d}\\), and</p>\\[G_N=\\sqrt{2(NL_1)^2d/(Nm)+2(NK)^2}+NK.\\]<p>The definition \\(C_N=C(Nm,NL_1,G_N,\\sqrt{2d},NK)\\) is exactly the transport coefficient. Its nonnegativity follows from \\(N,m>0\\) and the scalar sign lemma.</p>",
+        "declarations": [
+          "pipglaReferenceG",
+          "pipglaTransportConstant",
+          "pipglaTransportConstant_nonneg"
+        ]
+      },
+      {
+        "title": "Identify actual equal-step PIPGLA laws",
+        "body": "<p>For \\(\\lambda=\\gamma>0\\), set \\(h=\\gamma/N\\), \\(T=\\operatorname{Pair}_{P_\\gamma}\\), and \\(\\pi=\\Pi_{N,\\gamma}\\), the Gibbs target of \\(g_1+g_2^\\gamma\\). The averaged proximal energy has the exact required coefficient, and the lifted value gap \\(N\\gamma K^2/2\\) equals \\(h(NK)^2/2\\). The actual Gaussian algorithm law equals the canonical Markov law. Consequently</p>\\[W_2(\\rho_n,\\Pi_{N,\\gamma})^2\\le(1-m\\gamma)^nW_2(\\rho_0,\\Pi_{N,\\gamma})^2+\\frac\\gamma N C_N.\\]<p>The coefficient \\(C_N\\) is independent of \\(\\gamma\\); the reference target itself uses the scale \\(\\gamma\\).</p>",
+        "declarations": [
+          "pipgla_equal_step_transport_sq"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingProjection.lean": {
+    "title": "Project splitting transport to the original parameter center",
+    "summary": "<p>Let \\(\\rho_n\\) be the actual PIPGLA law with any positive proximal parameter \\(\\lambda\\), and compare it with the Gibbs target for \\(V_\\eta=g_1+g_2^\\eta\\), \\(\\eta>0\\). This module does not assume the algorithm already has a transport convergence rate.</p>",
+    "steps": [
+      {
+        "title": "Establish state and projected second moments",
+        "body": "<p>The law equals the pushforward of the constructed \\(L^2\\) chain. The map-measure criterion then proves \\(z\\mapsto z\\in L^2(\\rho_n)\\). Apply the bounded linear parameter map and subtract a constant to get \\(\\theta(z)-a\\in L^2(\\rho_n)\\) for every center \\(a\\).</p>",
+        "declarations": [
+          "pipglaLaws_state_memLp",
+          "pipglaLaws_parameter_memLp"
+        ]
+      },
+      {
+        "title": "Combine transport, equilibrium concentration and center displacement",
+        "body": "<p>Sharp marginal concentration gives target RMS at most \\(\\sqrt{d_\\theta/(Nm)}\\), and the actual uniform potential gap gives \\(\\|\\theta_U-\\theta_\\eta\\|\\le\\sqrt{\\eta K^2/m}\\). Nonexpansive parameter projection and the center triangle inequality yield</p>\\[\\operatorname{RMS}_{\\rho_n}(\\theta_U)\\le\\sqrt{\\eta K^2/m}+\\sqrt{d_\\theta/(Nm)}+W_2(\\rho_n,\\Pi_{N,\\eta}).\\]<p>State and target moment bounds establish finite transport before the real-valued projection inequality is used.</p>",
+        "declarations": [
+          "pipgla_parameter_rms_original_le_transport"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/ProxParameter.lean": {
+    "title": "Sensitivity to the proximal parameter",
+    "summary": "<p>For a convex bounded-below \\(K\\)-Lipschitz function, the actual minimizer satisfies \\(\\|P_\\lambda(x)-P_\\eta(x)\\|\\le K|\\lambda-\\eta|\\). This feeds a pathwise comparison of PIPGLA chains with different positive proximal parameters.</p>",
+    "steps": [
+      {
+        "title": "Bounded supports imply value Lipschitzness",
+        "body": "<p>Choose a genuine subgradient \\(s_x\\) at each point with \\(\\|s_x\\|\\le K\\). Its support at \\(y\\) gives \\(f(x)-f(y)\\le\\langle s_x,x-y\\rangle\\le K\\|x-y\\|\\). Reverse \\(x,y\\) to bound the absolute difference. This derives global Lipschitzness from a bounded section, without differentiability.</p>",
+        "declarations": [
+          "lipschitz_of_bounded_subgradients"
+        ]
+      },
+      {
+        "title": "Compare two actual proximal minimizers",
+        "body": "<p>Write \\(q=P_\\eta(x)\\) and \\(s=(x-q)/\\eta\\). Actual proximal optimality gives \\(s\\in\\partial f(q)\\) and \\(\\|s\\|\\le K\\). The same support condition shows that \\(q\\) is also the \\(\\lambda\\)-proximal point of the shifted input \\(q+\\lambda s\\). Nonexpansiveness at scale \\(\\lambda\\) therefore yields</p>\\[\\|P_\\lambda(x)-q\\|\\le\\|x-(q+\\lambda s)\\|=|\\eta-\\lambda|\\|s\\|\\le K|\\lambda-\\eta|.\\]<p>This proves the claimed sensitivity for every pair of positive scales.</p>",
+        "declarations": [
+          "prox_parameter_sensitivity"
+        ]
+      },
+      {
+        "title": "The averaged pair map preserves a uniform map difference",
+        "body": "<p>Coordinate linearity proves \\(\\operatorname{Pair}_{P-Q}=\\operatorname{Pair}_P-\\operatorname{Pair}_Q\\). If \\(\\sup_x\\|P(x)-Q(x)\\|\\le c\\), Jensen bounds the output square by the average of quantities at most \\(c^2\\), so the output norm is at most \\(c\\). Apply this with the single-pair proximal sensitivity to obtain the same \\(K|\\lambda-\\eta|\\) bound for the actual particle map.</p>",
+        "declarations": [
+          "pairwiseMap_sub",
+          "pairwiseMap_uniform_difference_le",
+          "pairwise_prox_parameter_sensitivity"
+        ]
+      },
+      {
+        "title": "Solve the pathwise parameter-perturbation recursion",
+        "body": "<p>Insert an intermediate update with the same parameter, then combine shared-noise contraction and the uniform parameter difference:</p>\\[e_{n+1}\\le(1-m\\gamma)e_n+K|\\lambda-\\eta|.\\]<p>Induction yields \\(e_n\\le(1-m\\gamma)^ne_0+K|\\lambda-\\eta|\\sum_{j<n}(1-m\\gamma)^j\\). For \\(\\gamma>0\\), the admissible contraction has \\(0\\le1-m\\gamma<1\\), so its sum is at most \\(1/(m\\gamma)\\). These bounds hold for every supplied innovation path.</p>",
+        "declarations": [
+          "pipglaUpdate_parameter_comparison",
+          "pipglaChain_parameter_comparison_sum",
+          "pipglaChain_parameter_comparison_bound"
+        ]
+      },
+      {
+        "title": "A proximal corridor gives an explicit scalar bound",
+        "body": "<p>If \\(0<m\\gamma<1\\) and \\(\\gamma\\le\\lambda\\le\\gamma/(1-m\\gamma)\\), then \\(|\\lambda-\\gamma|=\\lambda-\\gamma\\le m\\gamma^2/(1-m\\gamma)\\). Divide by the positive \\(m\\gamma\\) and multiply by \\(K\\) to get \\(K|\\lambda-\\gamma|/(m\\gamma)\\le K\\gamma/(1-m\\gamma)\\). This is a scalar consequence of the true sensitivity theorem.</p>",
+        "declarations": [
+          "prox_parameter_corridor_floor"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/SplittingTheorem.lean": {
+    "title": "PIPGLA about the original center for every positive proximal scale",
+    "summary": "<p>Assume the same strongly convex smooth \\(g_1\\), convex bounded-below \\(K\\)-Lipschitz \\(g_2\\), \\(N>0\\), \\(0<m\\le L_1\\), \\(\\lambda,\\gamma>0\\), and \\(\\gamma\\le2/(m+L_1)\\). Initialization is in \\(L^2\\) and the actual coordinate Gaussian innovations satisfy joint independence.</p>",
+    "steps": [
+      {
+        "title": "Convert the pathwise scale comparison into RMS",
+        "body": "<p>Drive the \\(\\lambda\\)- and \\(\\eta\\)-chains by the same initial variable and innovations. Their state distance is at most \\(K|\\lambda-\\eta|/(m\\gamma)\\). Both chains have finite second moments. The parameter projection is nonexpansive, so Minkowski gives</p>\\[\\operatorname{RMS}_\\lambda(a)\\le\\operatorname{RMS}_\\eta(a)+\\frac{K|\\lambda-\\eta|}{m\\gamma}.\\]<p>The proof works with the actual \\(L^2\\) realizations and then identifies their pushforward integrals.</p>",
+        "declarations": [
+          "pipgla_parameter_rms_prox_comparison"
+        ]
+      },
+      {
+        "title": "Combine equal-step transport and original-center projection",
+        "body": "<p>Set the comparison scale to \\(\\eta=\\gamma\\). The equal-step law theorem and the original-center projection inequality give</p>\\[\\begin{aligned}\\operatorname{RMS}_\\lambda(\\theta_U)\\le{}&\\frac{K|\\lambda-\\gamma|}{m\\gamma}+\\sqrt{\\frac{\\gamma K^2}{m}}+\\sqrt{\\frac{d_\\theta}{Nm}}\\\\&+\\sqrt{(1-m\\gamma)^nW_2(\\rho_0,\\Pi_{N,\\gamma})^2+\\frac\\gamma N C_N}.\\end{aligned}\\]<p>Here \\(C_N\\) is the explicit finite coefficient from the endpoint module. It is independent of the time step. Every positive \\(\\lambda\\) is covered, with the displayed parameter-comparison cost; a vanishing error as \\(\\gamma\\to0\\) additionally requires controlling that cost. This is the proved replacement rate, not the paper’s printed heat-flow constants.</p>",
+        "declarations": [
+          "pipgla_parameter_rms_original"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Recurrence.lean": {
+    "title": "Conditional scalar splitting recurrence and its strict endpoint",
+    "summary": "<p>This file proves scalar consequences of an explicitly supplied recurrence. It does not supply the stochastic one-step law estimate for the paper’s coefficient. The independently proved PIPGLA law theorem uses the constructed coupling route.</p>",
+    "steps": [
+      {
+        "title": "Correct coefficients and their signs",
+        "body": "<p>Set</p>\\[q=\\frac{\\lambda(1-\\mu\\gamma)}\\gamma,\\qquad c=\\lambda\\left(\\frac{2\\gamma LD}{N}+\\lambda C\\right).\\]<p>Under the displayed nonnegative scalar premises, \\(q,c\\ge0\\). When \\(\\gamma>0\\) and \\(\\mu\\gamma<1\\), multiplying by positive denominators gives \\(q<1\\iff\\lambda<\\gamma/(1-\\mu\\gamma)\\). The endpoint must be excluded from a geometric error floor. The subgradient forcing is \\(\\lambda^2C\\), without an additional division by \\(N\\).</p>",
+        "declarations": [
+          "splittingRatio",
+          "splittingForcing",
+          "splittingRatio_nonneg",
+          "splittingRatio_lt_one_iff",
+          "splittingForcing_nonneg"
+        ]
+      },
+      {
+        "title": "Sum a supplied affine recurrence",
+        "body": "<p>Assume \\(e_{n+1}\\le q e_n+c\\). For \\(q\\ge0\\), induction gives \\(e_n\\le q^ne_0+c\\sum_{j<n}q^j\\). If \\(q<1\\), the finite geometric identity gives \\(e_n\\le q^ne_0+c(1-q^n)/(1-q)\\). If also \\(c\\ge0\\), drop the nonpositive subtraction \\(-cq^n/(1-q)\\) to get \\(e_n\\le q^ne_0+c/(1-q)\\). All three conclusions retain their recurrence hypothesis.</p>",
+        "declarations": [
+          "splitting_recurrence_sum",
+          "splitting_recurrence_exact",
+          "splitting_recurrence_bound"
+        ]
+      },
+      {
+        "title": "Treat q = 1 and equal steps honestly",
+        "body": "<p>At \\(q=1\\), induction gives the finite-horizon bound \\(e_n\\le e_0+nc\\); there is no finite geometric floor. When \\(\\lambda=\\gamma\\) and the named denominators are nonzero, direct field algebra gives</p>\\[\\frac c{1-q}=\\frac\\gamma\\mu\\left(\\frac{2LD}{N}+C\\right).\\]<p>This identity preserves the unscaled \\(C\\)-term and does not assert that an actual stochastic error satisfies the input recurrence.</p>",
+        "declarations": [
+          "splitting_recurrence_endpoint",
+          "splitting_bias_equal_steps"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Corrections.lean": {
+    "title": "Exact algebraic corrections and an averaged-proximity counterexample",
+    "summary": "<p>This module contains explicit mathematical certificates. Each claim is limited to its stated algebraic example or implication; these certificates do not claim that every stronger result in the reference paper is false.</p>",
+    "steps": [
+      {
+        "title": "The quadratic proximal expansion has positive second order",
+        "body": "<p>On page 15, v3 equation (22) prints a negative second-order term in the proximal expansion. Differentiating \\(p+\\lambda\\nabla g_2(p)=x\\) gives a positive second derivative contribution. The scalar quadratic supplies an exact certificate:</p>\n\\[\n\\operatorname{prox}_{u^2/2}^\\lambda(x)\n=\\frac{x}{1+\\lambda}\n=x-\\lambda x+\\lambda^2x-\\frac{\\lambda^3x}{1+\\lambda}.\n\\]\n<p>The negative second-order expression leaves an error at least \\(\\lambda^2\\) when \\(x=1\\), so it cannot be that quadratic's third-order expansion. This diagnoses the displayed algebra; the quadratic is not globally Lipschitz and is not by itself a counterexample to the full final theorem under A3.</p><p>Separately, twice differentiability almost everywhere and the stated moment bound do not supply a uniform integrable third-order remainder. The original \\(O(\\lambda)\\) minimizer claim is therefore not reproduced here. The proved uniform-gap argument replaces it with \\(\\sqrt{\\lambda K^2/m}\\). A proof gap does not establish that the stronger conclusion is false.</p>",
+        "declarations": [
+          "quadratic_prox_minimizes",
+          "quadratic_prox_expansion",
+          "negative_second_order_residual",
+          "negative_second_order_residual_ge_sq"
+        ]
+      },
+      {
+        "title": "Squared scaling and the geometric endpoint",
+        "body": "<p>Norm homogeneity gives \\(\\|Ng\\|^2=N^2\\|g\\|^2\\). The numerical case \\(N=2,\\|g\\|=1\\) disproves linear squared-gradient scaling. Substituting \\(\\lambda=\\gamma/(1-\\mu\\gamma)\\) gives \\(1-q=0\\). Lean’s total real division has \\(1/0=0\\); the numerical certificate \\(1\\not\\le0+1/(1-1)\\) shows why an unguarded formula at that endpoint cannot express an error floor.</p>",
+        "declarations": [
+          "squared_gradient_scaling",
+          "linear_squared_gradient_scaling_fails",
+          "endpoint_denominator_zero",
+          "endpoint_error_floor_fails"
+        ]
+      },
+      {
+        "title": "The proximal deficit carries an inverse step factor",
+        "body": "<p>If \\(\\langle x-y,p(x)-p(y)\\rangle\\le(1-\\mu)\\|x-y\\|^2\\), expand the residual difference \\(R(x)-R(y)=\\gamma^{-1}[(x-y)-(p(x)-p(y))]\\). For \\(\\gamma>0\\), this proves \\(\\langle x-y,R(x)-R(y)\\rangle\\ge(\\mu/\\gamma)\\|x-y\\|^2\\). The modulus is \\(\\mu/\\gamma\\), rather than \\(\\mu\\).</p>",
+        "declarations": [
+          "proximal_displacement_strong_monotonicity"
+        ]
+      },
+      {
+        "title": "A shared parameter prevents the lifted-proximal identity",
+        "body": "<p>Use the convex pair function \\(g(\\theta,x)=|\\theta-x|\\) and unit proximal parameter. The actual pair objectives show that inputs \\((1,0)\\) and \\((1,4)\\) have minimizers \\((1/2,1/2)\\) and \\((2,3)\\). Averaging their parameter outputs gives \\((5/4,1/2,3)\\). The shared lifted objective is</p>\\[\\tfrac12(|\\theta-x_1|+|\\theta-x_2|)+\\tfrac12(\\theta-1)^2+\\tfrac14(x_1^2+(x_2-4)^2).\\]<p>Direct absolute-value inequalities certify the two pair minima. Exact arithmetic shows that the competitor \\((1,1,3)\\) has strictly smaller shared objective than the averaged output. Therefore averaged pairwise proximity is not in general the proximal map of the lifted sum.</p>",
+        "declarations": [
+          "pairAbsObjective",
+          "pairAbs_first_prox",
+          "pairAbs_second_prox",
+          "sharedAbsObjective",
+          "averaged_pair_prox_not_lifted_minimizer"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldDrift.lean": {
+    "title": "The actual mean-field force is Lipschitz in W₂",
+    "summary": "<p>For a pair potential \\(V\\) with \\(L\\)-Lipschitz gradient, define \\(b_V(\\theta,\\mu)=\\int\\nabla_\\theta V(\\theta,x)\\mu(dx)\\). The measures are probability laws with finite second moments. Every Bochner expectation and every finite real transport distance is justified.</p>",
+    "steps": [
+      {
+        "title": "A Lipschitz observable preserves L² and controls expectation differences",
+        "body": "<p>Center an observable \\(\\phi\\) at \\(\\phi(0)\\); its norm growth is bounded by \\(K\\|x\\|\\), so \\(\\phi(X)\\in L^2\\subset L^1\\). Given any finite-cost coupling \\(c\\) of \\(\\mu,\\nu\\), pushforward integration and Cauchy–Schwarz give</p>\\[\\left\\|\\int\\phi\\,d\\mu-\\int\\phi\\,d\\nu\\right\\|\\le K\\left(\\int\\|x-y\\|^2dc\\right)^{1/2}.\\]<p>Taking the actual coupling infimum yields the bound \\(K W_2(\\mu,\\nu)\\), with finiteness supplied by the second moments.</p>",
+        "declarations": [
+          "memLp_lipschitz_observable",
+          "integral_lipschitz_wasserstein2"
+        ]
+      },
+      {
+        "title": "Project the true joint gradient to its parameter block",
+        "body": "<p>The bounded linear map \\(P_\\theta\\) keeps the parameter coordinates. Its squared norm is a sub-sum of the full Euclidean square, hence \\(\\|P_\\theta z\\|\\le\\|z\\|\\). Define \\(\\phi_\\theta(x)=P_\\theta\\nabla V(\\theta,x)\\), then define the mean-field force as its actual Bochner integral. These definitions use the existing joint potential, with no arbitrary force field substituted for its gradient.</p>",
+        "declarations": [
+          "jointParameterCLM",
+          "jointParameterCLM_apply",
+          "norm_jointParameterCLM_apply_le",
+          "parameterGradient",
+          "meanFieldDrift"
+        ]
+      },
+      {
+        "title": "Control joint parameter and latent perturbations",
+        "body": "<p>Decompose a joint pair difference into its two coordinate inclusions, giving \\(\\|(\\theta,x)-(\\theta',x')\\|\\le\\|\\theta-\\theta'\\|+\\|x-x'\\|\\). Gradient Lipschitzness and the nonexpansive parameter projection imply</p>\\[\\|\\phi_\\theta(x)-\\phi_{\\theta'}(x')\\|\\le L(\\|\\theta-\\theta'\\|+\\|x-x'\\|).\\]<p>Fixing \\(\\theta=\\theta'\\) proves that the latent observable itself is \\(L\\)-Lipschitz.</p>",
+        "declarations": [
+          "pair_norm_sub_le",
+          "parameterGradient_difference_le",
+          "parameterGradient_latent_lipschitz"
+        ]
+      },
+      {
+        "title": "Separate the parameter change from the law change",
+        "body": "<p>For a differentiable potential \\(V\\), define</p>\n\\[\nb_V(\\theta,\\mu)=\\int \\nabla_\\theta V(\\theta,x)\\,\\mu(dx).\n\\]\n<p>Assume \\(\\nabla V\\) is \\(L\\)-Lipschitz and \\(\\mu,\\nu\\) are probability laws with finite second moment. Coordinate projection has norm at most one, so the integrand is Lipschitz and grows at most linearly. Its Bochner expectation is therefore integrable. For any finite-cost coupling, compare its two integrands, apply the norm-of-integral inequality, and use Cauchy–Schwarz. Taking the infimum of actual coupling costs gives</p>\n\\[\n\\|b_V(\\theta,\\mu)-b_V(\\theta',\\nu)\\|\n \\le L\\bigl(\\|\\theta-\\theta'\\|+W_2(\\mu,\\nu)\\bigr).\n\\]\n<p>With the genuine split envelope \\(V=g_1+g_2^\\eta\\), the proved constant is \\(L_1+1/\\eta\\). The paper’s \\(1/\\eta\\) constant applies to a full envelope, not to this split expression in general. This is a corrected <strong>W₂ version</strong> of Lemma C.1: its right-hand side is weaker than the paper’s W₁ statement, and the distinction is explicit. Propositions C.2–C.3 are not consequences formalized by this lemma alone.</p>",
+        "declarations": [
+          "meanFieldDrift_lipschitz_wasserstein2",
+          "moreau_meanFieldDrift_lipschitz_wasserstein2"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldProcess.lean": {
+    "title": "Construct the mean-field L² integral equations",
+    "summary": "<p>Work on a probability space \\(Q\\), with \\(H=L^2(Q;\\mathbb R^{d_\\theta+d_x})\\). A potential \\(V\\) with globally \\(L\\)-Lipschitz gradient defines the actual mean-field drift. Its continuous finite-horizon integral solution is constructed by the Banach-space Picard theorem.</p>",
+    "steps": [
+      {
+        "title": "Expectation is a bounded linear map from L²",
+        "body": "<p>The norm-of-integral inequality and \\(\\|X\\|_{L^1}\\le\\|X\\|_{L^2}\\) on a probability space give \\(\\|\\mathbb E_Q X\\|\\le\\|X\\|_2\\). Bochner additivity and scalar linearity therefore define a bounded linear map \\(\\mathcal E:H\\to E\\) with operator norm at most one. The evaluation lemma records that its value is the actual integral.</p>",
+        "declarations": [
+          "norm_lp_expectation_le",
+          "lpExpectationCLM",
+          "lpExpectationCLM_apply",
+          "lpExpectationCLM_norm_le"
+        ]
+      },
+      {
+        "title": "Coordinate projections and a parameter inclusion",
+        "body": "<p>Define \\(P_x(\\theta,x)=x\\) and \\(I_\\theta(\\theta)=(\\theta,0)\\). Their coordinate identities follow by evaluating the definitions. The Euclidean square identity \\(\\|(\\theta,0)\\|^2=\\|\\theta\\|^2\\), followed by nonnegative square-root cancellation, proves that \\(I_\\theta\\) is an isometry.</p>",
+        "declarations": [
+          "jointLatentCLM",
+          "jointLatentCLM_apply",
+          "jointParameterInclusionCLM",
+          "jointParameterInclusionCLM_parameter",
+          "jointParameterInclusionCLM_latent",
+          "jointParameterInclusionCLM_norm"
+        ]
+      },
+      {
+        "title": "A true latent mask erases all parameter coordinates",
+        "body": "<p>Set \\(M_x=I-I_\\theta P_\\theta\\). Its parameter block is zero and its latent block is unchanged. Expanding the Euclidean squared norm shows \\(\\|M_xz\\|^2\\le\\|z\\|^2\\), since the discarded parameter square is nonnegative. Thus the mask is nonexpansive and remains bounded after composition on \\(L^2\\).</p>",
+        "declarations": [
+          "jointLatentMaskCLM",
+          "jointLatentMaskCLM_parameter",
+          "jointLatentMaskCLM_latent",
+          "norm_jointLatentMaskCLM_le"
+        ]
+      },
+      {
+        "title": "Average exactly the parameter block",
+        "body": "<p>Construct the bounded linear map</p>\\[\\mathcal M X=\\operatorname{const}(I_\\theta P_\\theta\\mathbb E_QX)+M_xX.\\]<p>The expectation estimate and coordinate contractions bound each term by \\(\\|X\\|_2\\), so \\(\\|\\mathcal M X\\|_2\\le2\\|X\\|_2\\). Linearity then proves \\(\\operatorname{Lip}(\\mathcal M)\\le2\\). This is a conservative sufficient constant.</p>",
+        "declarations": [
+          "meanFieldAverageCLM",
+          "meanFieldAverageCLM_norm_le",
+          "meanFieldAverageCLM_lipschitz"
+        ]
+      },
+      {
+        "title": "Define the actual drift and apply Picard",
+        "body": "<p>Set \\(\\mathcal A_V(X)=\\mathcal M(\\nabla V(X))\\). The Nemytskii map for the actual Lipschitz gradient preserves \\(L^2\\) and has constant \\(L\\), so \\(\\operatorname{Lip}(\\mathcal A_V)\\le2L\\). For any continuous \\(H\\)-valued input \\(B\\) with \\(B_0=0\\), and any \\(T\\ge0\\), Picard constructs continuous \\(Y\\) with \\(Y_0=Y^{\\rm in}\\) and</p>\\[Y_t-Y^{\\rm in}=-\\int_0^t\\mathcal A_V(Y_s)ds+B_t,\\qquad0\\le t\\le T.\\]<p>The proof is an existence theorem in the actual complete Banach space \\(H\\).</p>",
+        "declarations": [
+          "lpMeanFieldDrift",
+          "lpMeanFieldDrift_lipschitz",
+          "exists_lp_meanField_integral"
+        ]
+      },
+      {
+        "title": "Verify the intended block formulas in L²",
+        "body": "<p>Almost everywhere representative equalities show</p>\\[(\\mathcal M X)(\\omega)=(\\mathbb E_Q P_\\theta X,\\,P_xX(\\omega)).\\]<p>Applying parameter projection gives the constant random variable \\(\\operatorname{const}(P_\\theta\\mathbb E_QX)\\); applying latent projection gives \\(P_xX\\). The proofs explicitly combine the almost everywhere addition, constant and composition identities, so they are equalities in \\(L^2\\).</p>",
+        "declarations": [
+          "meanFieldAverageCLM_coe",
+          "meanFieldAverageCLM_parameter",
+          "meanFieldAverageCLM_latent"
+        ]
+      },
+      {
+        "title": "Identify the parameter force with the true marginal integral",
+        "body": "<p>Define \\(a_V(X)=P_\\theta\\mathbb E_Q\\nabla V(X)\\), a continuous map on \\(H\\). The drift blocks are \\(\\operatorname{const}(a_V(X))\\) and \\(P_x\\nabla V(X)\\). If \\(P_\\theta X=\\operatorname{const}(\\theta)\\), reconstruct \\(X=(\\theta,P_xX)\\) almost everywhere. Commute the bounded projection through expectation and use the pushforward integral formula to prove</p>\\[a_V(X)=\\int\\nabla_\\theta V(\\theta,x)\\,\\mathcal L_Q(P_xX)(dx).\\]",
+        "declarations": [
+          "lpMeanFieldParameterForce",
+          "lpMeanFieldParameterForce_continuous",
+          "lpMeanFieldDrift_parameter",
+          "lpMeanFieldDrift_latent",
+          "lpMeanFieldParameterForce_eq_meanFieldDrift"
+        ]
+      },
+      {
+        "title": "Project the integral equation and construct a deterministic parameter",
+        "body": "<p>Suppose the initial parameter is constant \\(\\theta_0\\) and \\(P_\\theta B_t=0\\). Bounded linear maps commute with the Bochner time integral, so projecting the constructed equation gives \\(P_\\theta Y_t=\\operatorname{const}(\\theta_t)\\), where \\(\\theta_t=\\theta_0-\\int_0^t a_V(Y_s)ds\\). The continuous primitive proves continuity of \\(\\theta\\). Set \\(\\mu_t=\\mathcal L_Q(P_xY_t)\\) and insert the force identity:</p>\\[\\theta_t-\\theta_0=-\\int_0^t b_V(\\theta_s,\\mu_s)ds,\\qquad P_xY_t-P_xY_0=-\\int_0^tP_x\\nabla V(Y_s)ds+P_xB_t.\\]<p>Both identities hold in their stated deterministic or \\(L^2\\) sense on the finite horizon.</p>",
+        "declarations": [
+          "lp_meanField_parameter_equation",
+          "lp_meanField_latent_equation",
+          "exists_lp_meanField_equations"
+        ]
+      },
+      {
+        "title": "Construct a continuous latent-only Brownian input",
+        "body": "<p>Apply the latent mask to the actual coordinate Brownian \\(L^2\\) noise. Brownian second moments prove its continuity in \\(L^2\\) and its zero value at time zero. Masking makes its parameter projection zero at every time. No separate continuity assumption on a stochastic error process is used.</p>",
+        "declarations": [
+          "meanFieldBrownianNoise",
+          "meanFieldBrownianNoise_continuous",
+          "meanFieldBrownianNoise_zero",
+          "meanFieldBrownianNoise_parameter"
+        ]
+      },
+      {
+        "title": "Specialize to Brownian input and to the split envelope",
+        "body": "<p>The constructed Brownian input satisfies all hypotheses of the general integral existence theorem, so substitution gives the Brownian-driven \\(L^2\\) solution. For \\(V=g_1+g_2^\\eta\\), the actual proximal calculus supplies the Lipschitz gradient constant \\(L_1+\\eta^{-1}\\), which is included as a derived witness in the conclusion. These results establish continuous \\(L^2\\) integral equations; they do not assert a pathwise strong-SDE or a Fokker–Planck PDE theorem.</p>",
+        "declarations": [
+          "exists_lp_meanField_integral_of_brownian",
+          "exists_lp_moreau_meanField_integral"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldSmoothing.lean": {
+    "title": "Finite smoothing comparison for actual mean-field equations",
+    "summary": "<p>For this module the convex bounded-below \\(g_2\\) is additionally differentiable, with \\(L_2\\)-Lipschitz gradient and global value Lipschitz constant \\(K\\). The finite-horizon comparison uses the same initialization and additive input for the original and split-smoothed systems.</p>",
+    "steps": [
+      {
+        "title": "At differentiability points subgradients equal the gradient",
+        "body": "<p>A supporting vector \\(s\\) makes \\(x\\mapsto f(x)-\\langle s,x\\rangle\\) globally minimized at the support point \\(p\\). Its derivative there is zero, so \\(s=\\nabla f(p)\\). Apply this to the genuine proximal residual to obtain the exact identity \\(\\nabla f^\\eta(x)=\\nabla f(P_\\eta(x))\\).</p>",
+        "declarations": [
+          "IsSubgradient.eq_gradient",
+          "gradient_moreau_eq_gradient_prox"
+        ]
+      },
+      {
+        "title": "Smoothness gives a finite score defect",
+        "body": "<p>Compose \\(\\nabla f\\), which is \\(L_2\\)-Lipschitz, with the nonexpansive map \\(P_\\eta\\). The envelope gradient therefore has constant \\(L_2\\), independent of \\(\\eta\\). The actual proximal displacement bound \\(\\|x-P_\\eta(x)\\|\\le\\eta K\\) gives</p>\\[\\|\\nabla f(x)-\\nabla f^\\eta(x)\\|\\le L_2\\|x-P_\\eta(x)\\|\\le\\eta L_2K.\\]<p>This is a finite inequality, without a Taylor remainder.</p>",
+        "declarations": [
+          "smooth_moreau_gradient_lipschitz",
+          "gradient_moreau_defect_le"
+        ]
+      },
+      {
+        "title": "Recover component regularity from the regular sum",
+        "body": "<p>If \\(U=f+g\\) and \\(f\\) are differentiable, then \\(g=U-f\\) is differentiable. Gradient linearity gives \\(\\nabla g=\\nabla U-\\nabla f\\), so gradient constants add: \\(\\operatorname{Lip}(\\nabla g)\\le L_U+L_f\\). This provides a legitimate \\(L_2\\) when only the original sum and the smooth part were specified.</p>",
+        "declarations": [
+          "component_differentiable_of_sum",
+          "component_gradient_lipschitz_of_sum"
+        ]
+      },
+      {
+        "title": "Cancel the common additive input before Grönwall",
+        "body": "<p>For integral solutions with drifts \\(g,k\\), the same input \\(B\\), initial states \\(x,y\\), and \\(\\sup_z\\|g(z)-k(z)\\|\\le\\varepsilon\\), subtract their equations. The input cancels exactly and the drift difference is at most \\(L\\|Y-Z\\|+\\varepsilon\\). Integral Grönwall gives</p>\\[\\|Y_t-Z_t\\|\\le e^{Lt}\\|x-y\\|+\\varepsilon\\Psi(L,t),\\qquad\\Psi(L,t)=\\begin{cases}(e^{Lt}-1)/L,&L\\ne0,\\\\t,&L=0.\\end{cases}\\]<p>This estimate requires no differentiation of \\(B\\).</p>",
+        "declarations": [
+          "integral_drift_perturbation"
+        ]
+      },
+      {
+        "title": "Construct both actual systems and quantify the smoothing error",
+        "body": "<p>For this result, additionally assume \\(g_2\\) is differentiable with an \\(L_2\\)-Lipschitz gradient, while retaining convexity, the lower bound and the global value Lipschitz constant \\(K\\). The supporting subgradient at a differentiability point must equal the actual gradient. Proximal optimality therefore gives the exact identity</p>\n\\[\n\\nabla g_2^\\eta(v)=\\nabla g_2(P_\\eta(v)).\n\\]\n<p>Nonexpansiveness of \\(P_\\eta\\) preserves the smooth-score constant \\(L_2\\), and \\(\\|v-P_\\eta(v)\\|\\le\\eta K\\) gives the finite score defect</p>\n\\[\n\\|\\nabla g_2(v)-\\nabla g_2^\\eta(v)\\|\\le\\eta L_2K.\n\\]\n<p>No asymptotic expansion or integrated remainder is used. If the original sum \\(U=g_1+g_2\\) is differentiable with \\(L_U\\)-Lipschitz gradient and \\(g_1\\) has constant \\(L_1\\), the component regularity is derived with \\(L_2=L_U+L_1\\).</p><p>The development constructs original and split-smoothed L² integral solutions with the same initialization and additive input. Their input cancels. The actual drift operators differ by at most \\(2\\eta L_2K\\), and their common gradient constant is at most \\(L_1+L_2\\), independently of \\(\\eta\\). Grönwall gives</p>\n\\[\n\\sup_{0\\le t\\le T}\\|Y_t-Z_t\\|_{L^2}\n \\le 2\\eta L_2K\\,\\Psi(2(L_1+L_2),T),\n\\qquad\n\\Psi(a,T)=\\begin{cases}(e^{aT}-1)/a,&a>0,\\\\T,&a=0.\\end{cases}\n\\]\n<p>Specialize the shared initialization to a constant parameter and the shared input to the latent-only Brownian construction to obtain the usual deterministic-parameter mean-field systems. The proved norm is <strong>the supremum over time of L² norms</strong>. It is not the expectation of a pathwise supremum in Proposition C.3. This is a consistent split-smoothing replacement with explicit assumptions and a finite linear-in-\\(\\eta\\) norm bound.</p>",
+        "declarations": [
+          "meanFieldSmoothingConstant",
+          "exists_meanField_smoothing_comparison"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldVariance.lean": {
+    "title": "Exact iid variance and the empirical parameter force",
+    "summary": "<p>On a probability space, square-integrable Hilbert-valued variables have integrable inner products. On the actual finite product law, independent centered samples yield an exact \\(1/N\\) variance identity.</p>",
+    "steps": [
+      {
+        "title": "Cancel every off-diagonal covariance",
+        "body": "<p>Realize the supplied \\(L^2\\) functions as \\(L^2\\) elements; Cauchy–Schwarz gives integrable pairwise inner products. Expand</p>\\[\\mathbb E\\left\\|\\sum_iX_i\\right\\|^2=\\sum_{i,j}\\mathbb E\\langle X_i,X_j\\rangle.\\]<p>For \\(i\\ne j\\), independence factors the expectation into \\(\\langle\\mathbb E X_i,\\mathbb E X_j\\rangle=0\\). The diagonal terms are \\(\\mathbb E\\|X_i\\|^2\\). Finite sums and established integrability justify the expansion.</p>",
+        "declarations": [
+          "integrable_inner_of_memLp",
+          "integral_norm_sum_sq_centered_independent"
+        ]
+      },
+      {
+        "title": "Use the actual finite product for an exact sample-mean variance",
+        "body": "<p>For a square-integrable observable \\(\\phi\\) and a probability law \\(\\mu\\), the finite product measure \\(\\mu^{\\otimes N}\\) constructs the independent samples. The proof centers \\(\\phi\\), expands the squared Hilbert norm, and uses independence and zero mean to cancel every off-diagonal inner product. The exact result is</p>\n\\[\n\\mathbb E_{\\mu^{\\otimes N}}\n \\left\\|\\frac1N\\sum_{i=1}^N\\phi(X_i)-\\mathbb E_\\mu\\phi\\right\\|^2\n =\\frac1N\\mathbb E_\\mu\\|\\phi-\\mathbb E_\\mu\\phi\\|^2.\n\\]\n<p>Taking square roots proves the \\(N^{-1/2}\\) sampling factor. The actual parameter-gradient observable is square integrable under finite-P₂ latent laws, so the formula applies to the mean-field force.</p><p>The source’s exchangeability premise alone does not cancel these covariances. A quantitative chaos estimate needs controlled initialization, such as the actual iid construction used here. This exact sampling identity is a proved ingredient; by itself it is not a propagation-of-chaos theorem.</p>",
+        "declarations": [
+          "empiricalAverage",
+          "iid_empirical_variance",
+          "iid_empirical_rms"
+        ]
+      },
+      {
+        "title": "Specialize the variance to a true gradient observable",
+        "body": "<p>Fix \\(\\theta\\) and let \\(\\phi(x)=\\nabla_\\theta U(\\theta,x)\\). A Lipschitz joint gradient makes this observable Lipschitz, hence square integrable under any finite-second-moment latent law \\(\\mu\\). Its expectation is exactly \\(b_U(\\theta,\\mu)\\). Substitute into the iid formula to obtain</p>\\[\\mathbb E\\left\\|\\frac1N\\sum_i\\nabla_\\theta U(\\theta,X_i)-b_U(\\theta,\\mu)\\right\\|^2=\\frac1N\\mathbb E\\|\\nabla_\\theta U(\\theta,X)-b_U(\\theta,\\mu)\\|^2.\\]",
+        "declarations": [
+          "iid_parameterGradient_variance"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldParticleDrift.lean": {
+    "title": "Construct the physical particle drift in a coordinate L² space",
+    "summary": "<p>Let \\(H_N=L^2(P;\\Theta)\\times\\prod_{i<N}L^2(P;X)\\) with norm \\(\\|z\\|=\\max(\\|z_\\theta\\|_2,\\max_i\\|z_i\\|_2)\\). This Banach norm controls every tagged coordinate directly, with no exchangeability hypothesis.</p>",
+    "steps": [
+      {
+        "title": "Coordinate inclusions and nonexpansive projections",
+        "body": "<p>Define the coordinate product state and the latent inclusion \\(I_x(x)=(0,x)\\). The Euclidean square proves \\(\\|I_xx\\|=\\|x\\|\\), while the latent projection has norm at most one. For any bounded linear pointwise contraction \\(C\\), integrating \\(\\|C(X)\\|^2\\le\\|X\\|^2\\) proves \\(\\|C\\circ X\\|_2\\le\\|X\\|_2\\).</p>",
+        "declarations": [
+          "MeanFieldParticleState",
+          "jointLatentInclusionCLM",
+          "jointLatentInclusionCLM_norm",
+          "norm_jointLatentCLM_apply_le",
+          "lp_linear_norm_le"
+        ]
+      },
+      {
+        "title": "Assemble one actual joint random pair",
+        "body": "<p>Set \\(J(\\Theta,X)=I_\\theta\\Theta+I_xX\\). Its representative is the genuine pair \\((\\Theta(\\omega),X(\\omega))\\) almost everywhere. Linearity of the inclusions and their norm bounds give</p>\\[\\|J(\\Theta,X)-J(\\Theta',X')\\|_2\\le\\|\\Theta-\\Theta'\\|_2+\\|X-X'\\|_2.\\]",
+        "declarations": [
+          "lpJointPair",
+          "lpJointPair_coe",
+          "lpJointPair_difference_le"
+        ]
+      },
+      {
+        "title": "Define the gradient and empirical particle drift",
+        "body": "<p>Apply the actual gradient \\(\\nabla V\\) to each pair \\(J(\\Theta,X_i)\\). The parameter force is the empirical average and each latent force is its own gradient block:</p>\\[\\mathcal A_N(z)=\\left(\\frac1N\\sum_i\\nabla_\\theta V(\\Theta,X_i),\\ (\\nabla_xV(\\Theta,X_i))_i\\right).\\]<p>Almost everywhere composition and finite-sum identities verify these exact coordinate formulas. The definition does not replace the empirical parameter force by a mean-field expectation.</p>",
+        "declarations": [
+          "lpParticleGradient",
+          "lpParticleDrift",
+          "lpParticleGradient_coe",
+          "lpParticleDrift_parameter_coe",
+          "lpParticleDrift_latent_coe"
+        ]
+      },
+      {
+        "title": "Dimension-free Lipschitz control constructs the actual solution",
+        "body": "<p>Each coordinate difference is bounded by the product-state norm. The joint-pair estimate therefore gives \\(\\|\\nabla V(J_i z)-\\nabla V(J_i w)\\|_2\\le2L\\|z-w\\|\\). Averaging \\(N\\) parameter terms and dividing by \\(N>0\\) preserves this bound; the maximum of the latent terms also preserves it. Hence \\(\\operatorname{Lip}(\\mathcal A_N)\\le2L\\), independently of \\(N\\). Picard constructs continuous \\(Z\\) satisfying \\(Z_t-Z_0=-\\int_0^t\\mathcal A_N(Z_s)ds+B_t\\) for any continuous input with \\(B_0=0\\).</p>",
+        "declarations": [
+          "lpParticleGradient_difference_le",
+          "lpParticleDrift_lipschitz",
+          "exists_lp_particle_integral"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldCopies.lean": {
+    "title": "Actual iid L² copies and their exact drift residual",
+    "summary": "<p>Starting from one mean-field random pair on \\(Q\\), construct copies on the actual finite product \\(P=Q^{\\otimes N}\\). When its parameter is deterministic, all copies share that parameter and their latent coordinates are iid.</p>",
+    "steps": [
+      {
+        "title": "Measure-preserving coordinate pullback is a bounded linear copy map",
+        "body": "<p>For product coordinate \\(\\omega_i\\), define \\(C_iX=X\\circ\\omega_i\\). Evaluation is measure preserving, so pullback is an \\(L^2\\) isometry and a bounded linear map. Its representative equals \\(X(\\omega_i)\\) almost everywhere. Coordinate substitution proves \\(C_i(CX)=C(C_iX)\\) for bounded linear \\(C\\), and \\(C_i(\\operatorname{const}x)=\\operatorname{const}x\\).</p>",
+        "declarations": [
+          "iidCopyCLM",
+          "iidCopyCLM_coe",
+          "iidCopyCLM_compLp",
+          "iidCopyCLM_const"
+        ]
+      },
+      {
+        "title": "Center and compute the true empirical fluctuation norm",
+        "body": "<p>For \\(N>0\\), define \\(\\mathcal C X=X-\\operatorname{const}(\\mathbb EX)\\) and \\(\\Delta_N(X)=N^{-1}\\sum_iC_iX-\\operatorname{const}(\\mathbb EX)\\). Almost everywhere finite-sum identities identify its representative with the genuine sample mean. The exact iid variance formula gives</p>\\[\\|\\Delta_N(X)\\|_{L^2(P)}^2=\\frac1N\\|\\mathcal C X\\|_{L^2(Q)}^2,\\qquad\\|\\Delta_N(X)\\|_2=\\frac{\\|\\mathcal C X\\|_2}{\\sqrt N}.\\]",
+        "declarations": [
+          "lpCenterCLM",
+          "iidEmpiricalFluctuation",
+          "iidEmpiricalFluctuation_coe",
+          "iidEmpiricalFluctuation_norm"
+        ]
+      },
+      {
+        "title": "Build the reference particle state without altering its parameter",
+        "body": "<p>Bounded linear maps commute with actual Bochner expectation, and constants have their stated expectation on a probability space. Define</p>\\[\\mathcal R_N(X)=\\left(\\operatorname{const}(\\mathbb E P_\\theta X),\\ (P_xC_iX)_i\\right).\\]<p>If \\(P_\\theta X=\\operatorname{const}\\theta\\), the parameter block of \\(\\mathcal R_N(X)\\) is exactly \\(\\operatorname{const}\\theta\\). The coordinate lemmas are direct evaluations of this bounded linear construction.</p>",
+        "declarations": [
+          "lpExpectationCLM_compLp",
+          "lpExpectationCLM_const",
+          "iidMeanFieldCopiesCLM",
+          "iidMeanFieldCopiesCLM_parameter",
+          "iidMeanFieldCopiesCLM_latent",
+          "iidMeanFieldCopiesCLM_parameter_const"
+        ]
+      },
+      {
+        "title": "Reconstruct each reference pair and commute the true drift",
+        "body": "<p>Reassembling a variable from its parameter and latent projections returns the same \\(L^2\\) element. With deterministic parameter this proves \\(J_i\\mathcal R_N(X)=C_iX\\). A Lipschitz pointwise drift also commutes with coordinate pullback, since both representatives are the same function \\(b(X(\\omega_i))\\) almost everywhere.</p>",
+        "declarations": [
+          "lpJointPair_projections",
+          "iidMeanFieldCopies_joint",
+          "iidCopyCLM_lpDrift"
+        ]
+      },
+      {
+        "title": "Only the empirical parameter block remains in the residual",
+        "body": "<p>Apply the particle drift to \\(\\mathcal R_N(X)\\), and compare with \\(\\mathcal R_N(\\mathcal A_V(X))\\). Each latent block agrees exactly by the preceding commutation. The parameter difference is the centered empirical gradient:</p>\\[\\mathcal A_N(\\mathcal R_NX)-\\mathcal R_N(\\mathcal A_VX)=\\left(\\Delta_N(P_\\theta\\nabla V(X)),0\\right).\\]<p>The product maximum norm and exact fluctuation identity therefore give residual norm \\(\\|\\mathcal C(P_\\theta\\nabla V(X))\\|_2/\\sqrt N\\). This equality is the source of the particle comparison rate.</p>",
+        "declarations": [
+          "iidMeanFieldCopies_drift_residual",
+          "iidMeanFieldCopies_drift_residual_norm"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldForcing.lean": {
+    "title": "Grönwall comparison with an extra continuous noise input",
+    "summary": "<p>In a Banach space let \\(F\\) be \\(L\\)-Lipschitz. Compare actual integral equations with a common input \\(B\\), one extra continuous input \\(A\\), and a reference forcing \\(G\\) satisfying a finite drift defect.</p>",
+    "steps": [
+      {
+        "title": "Subtract the extra input before applying integral Grönwall",
+        "body": "<p>Suppose \\(\\|A_t\\|\\le a\\), \\(\\|F(Y_t)-G_t\\|\\le C\\), and</p>\\[X_t-x=-\\int_0^tF(X_s)ds+B_t+A_t,\\qquad Y_t-x=-\\int_0^tG_sds+B_t.\\]<p>Set \\(D_t=X_t-Y_t-A_t\\). The common input cancels and \\(\\|D_t\\|\\le\\int_0^t[L\\|D_s\\|+La+C]ds\\). Grönwall yields \\(\\|X_t-Y_t\\|\\le(C+La)\\Psi(L,T)+a\\) on \\([0,T]\\). The proof uses continuous integral equations and never differentiates the additional input.</p>",
+        "declarations": [
+          "integral_forcing_perturbation"
+        ]
+      },
+      {
+        "title": "Factor a common inverse sampling scale",
+        "body": "<p>The explicit zero-initial-error Grönwall function is linear in its forcing coefficient, including its \\(L=0\\) branch. Thus \\(\\operatorname{GB}(0,L,C/r,T)=\\operatorname{GB}(0,L,C,T)/r\\). If \\(r>0\\), \\(\\|A_t\\|\\le a/r\\) and \\(\\|F(Y_t)-G_t\\|\\le C/r\\), substitute into the preceding theorem and factor:</p>\\[\\|X_t-Y_t\\|\\le\\frac{(C+La)\\Psi(L,T)+a}{r}.\\]",
+        "declarations": [
+          "gronwallBound_zero_div",
+          "integral_forcing_perturbation_scaled"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldNoise.lean": {
+    "title": "Construct the empirical parameter Brownian input",
+    "summary": "<p>On \\(Q^{\\otimes N}\\), \\(N>0\\), use copy zero of a supplied \\(d_\\theta\\)-coordinate Brownian source for the common parameter input. The actual noise amplitude is \\(\\sqrt{2/N}\\).</p>",
+    "steps": [
+      {
+        "title": "Pull back Brownian coordinates and define their scaled L² noise",
+        "body": "<p>Coordinate evaluation on the finite product is measure preserving, so each pulled-back scalar process retains its standard Brownian law. Define \\(A_t=N^{-1/2}\\sqrt2(B_t^\\theta-B_0^\\theta)\\) as an actual \\(L^2\\) element. The Brownian-noise construction proves continuity in \\(L^2\\) and value zero at time zero; scalar multiplication preserves both facts.</p>",
+        "declarations": [
+          "empiricalParameter_preBrownian",
+          "empiricalParameterNoise",
+          "empiricalParameterNoise_continuous",
+          "empiricalParameterNoise_zero"
+        ]
+      },
+      {
+        "title": "Derive the exact norm and its N-independent horizon coefficient",
+        "body": "<p>The coordinate second moments sum to \\(d_\\theta t\\). Consequently</p>\\[\\|A_t\\|_2=\\frac{\\sqrt{2d_\\theta}\\sqrt t}{\\sqrt N}\\le\\frac{\\sqrt{2d_\\theta}\\sqrt T}{\\sqrt N},\\qquad0\\le t\\le T.\\]<p>The theorem follows by the exact Brownian norm identity and monotonicity of the square root. The canonical specialization uses the already constructed Gaussian time-indicator Brownian source, so it supplies a concrete instance rather than postulating one.</p>",
+        "declarations": [
+          "empiricalParameterNoise_norm",
+          "empiricalParameterNoise_bound",
+          "canonical_empiricalParameterNoise_bound"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldBrownianFamily.lean": {
+    "title": "An independent Brownian family for all actual particle coordinates",
+    "summary": "<p>On \\(Q^{\\otimes N}\\), choose parameter Brownian coordinates from copy zero and latent coordinate \\((i,j)\\) from copy \\(i\\). Injective selection proves independence of complete selected coordinate paths.</p>",
+    "steps": [
+      {
+        "title": "Select distinct copy/coordinate pairs",
+        "body": "<p>Map a parameter index \\(j\\) to \\((0,\\mathrm{parameter}\\ j)\\), and a latent index \\((i,j)\\) to \\((i,\\mathrm{latent}\\ j)\\). The parameter/latent tags make the two kinds disjoint, and equality within either kind forces equality of the original indices. This proves injectivity. Define the family by evaluating the corresponding source Brownian coordinate in the selected copy; the displayed coordinate identities unfold the selection.</p>",
+        "declarations": [
+          "particleBrownianIndex",
+          "particleBrownianIndex_injective",
+          "particleBrownianFamily",
+          "particleBrownianFamily_parameter",
+          "particleBrownianFamily_latent"
+        ]
+      },
+      {
+        "title": "Each selected process retains its Brownian law",
+        "body": "<p>Pullback along product evaluation is measure preserving, so every selected scalar process is standard pre-Brownian. If all source evaluations are measurable, composition with the selected coordinate map proves every new evaluation measurable as well.</p>",
+        "declarations": [
+          "particleBrownianFamily_preBrownian",
+          "particleBrownianFamily_measurable"
+        ]
+      },
+      {
+        "title": "Flatten independent rows and select an injective subfamily",
+        "body": "<p>The finite product makes the complete Brownian rows independent. Inside each row, the supplied full coordinate paths are independent. The product-family independence theorem flattens these into independent variables indexed by \\((i,j)\\). Precomposing with the injective selection proves independence of all particle coordinates, including parameter and first-particle latent blocks. The canonical Brownian source supplies both the row laws and full-path independence, yielding an explicit complete family.</p>",
+        "declarations": [
+          "particleBrownianFamily_paths_independent",
+          "canonical_particleBrownianFamily"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldInitialSource.lean": {
+    "title": "Concrete independent initialization and Brownian paths",
+    "summary": "<p>Given a latent probability law \\(\\mu\\) with finite second moment and a deterministic \\(\\theta_0\\), use the product \\(Q=\\mu\\otimes Q_B\\), where \\(Q_B\\) is the canonical joint Brownian source. This constructs all initialization and source hypotheses from primitive data.</p>",
+    "steps": [
+      {
+        "title": "Product source and its measurable Brownian evaluations",
+        "body": "<p>The source is the actual product law \\(\\mu\\otimes Q_B\\). Brownian coordinates use only its second factor, so measure-preserving second projection transfers their standard Brownian laws. Coordinate measurability assembles into full-path measurability. The joint path pushforward remains exactly its canonical product law, proving independence of the complete coordinate paths after initialization is added.</p><p>The named probability instance follows from the product measure identity \\(Q(\\Omega)=\\mu(X)Q_B(\\Omega_B)=1\\cdot1=1\\). This records normalization of the constructed source before any law or expectation is used.</p>",
+        "declarations": [
+          "meanFieldInitialSource",
+          "meanFieldInitialBrownian",
+          "meanFieldInitialBrownian_measurable",
+          "meanFieldInitialBrownian_preBrownian",
+          "meanFieldInitialBrownian_paths_independent",
+          "meanFieldInitialSource_isProbability"
+        ]
+      },
+      {
+        "title": "Build the square-integrable pair initialization",
+        "body": "<p>The map \\(x\\mapsto(\\theta_0,x)\\) is nonexpansive because its parameter difference vanishes. The latent first-factor variable has finite second moment under the product law. Lipschitz composition therefore proves that \\((\\theta_0,X_0)\\) is square integrable, and its actual \\(L^2\\) representative defines the initialization.</p>",
+        "declarations": [
+          "meanFieldInitialPair_lipschitz",
+          "meanFieldInitial_memLp",
+          "meanFieldInitialLp"
+        ]
+      },
+      {
+        "title": "Retain the exact parameter, latent law and source independence",
+        "body": "<p>The representative equals \\((\\theta_0,\\omega_1)\\) almost everywhere, so its parameter projection is \\(\\operatorname{const}\\theta_0\\), and its latent pushforward is exactly \\(\\mu\\). The whole initialization depends only on the first factor while all Brownian paths depend only on the second. Product independence, followed by the almost everywhere representative substitution, proves independence of initialization and the entire Brownian family.</p>",
+        "declarations": [
+          "meanFieldInitialLp_parameter",
+          "meanFieldInitialLp_latent_law",
+          "meanFieldInitialLp_independent_paths"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldParticles.lean": {
+    "title": "Constructed iid particle comparison with uniform timewise L² control",
+    "summary": "<p>For a potential with globally \\(L\\)-Lipschitz gradient, compare a constructed mean-field solution with actual finite-particle coordinate solutions on the iid product source. The coefficient is chosen before all particle counts and the norm is the supremum of timewise \\(L^2\\) errors.</p>",
+    "steps": [
+      {
+        "title": "The actual centered force is continuous and bounded on a finite horizon",
+        "body": "<p>Define \\(\\mathcal C_V(X)=P_\\theta\\nabla V(X)-\\operatorname{const}\\mathbb E[P_\\theta\\nabla V(X)]\\) using bounded linear centering and the actual Lipschitz drift. This composition is continuous. For continuous \\(Y_t\\), the image of compact \\([0,T]\\) is compact; its centered-force norm therefore has a finite bound \\(C\\ge0\\). This \\(C\\) depends on the reference and horizon and is chosen independently of \\(N\\).</p>",
+        "declarations": [
+          "centeredMeanFieldForce",
+          "centeredMeanFieldForce_continuous",
+          "exists_centeredMeanFieldForce_bound"
+        ]
+      },
+      {
+        "title": "Copies inherit the actual equation by bounded linearity",
+        "body": "<p>The copy map \\(\\mathcal R_N\\) is bounded linear, so it commutes with the Bochner time integral and preserves differences. Apply it to the mean-field equation to get the exact copied-reference forcing. Define</p>\\[C_T=2\\big[(C+2Lb)\\Psi(2L,T)+b\\big].\\]<p>Here \\(C\\) bounds the actual centered force and \\(b/\\sqrt N\\) bounds the extra parameter input. The factor two converts the coordinate maximum norm into the sum of parameter and one latent error.</p>",
+        "declarations": [
+          "iidMeanFieldCopies_integral_equation",
+          "meanFieldParticleConstant"
+        ]
+      },
+      {
+        "title": "Construct the particle solution and use the exact iid residual",
+        "body": "<p>For each \\(N>0\\), Picard constructs the actual particle solution \\(Z\\) with copied latent input and any continuous extra parameter input \\(A\\) bounded by \\(b/\\sqrt N\\). The copied mean-field reference has drift residual norm exactly \\(\\|\\mathcal C_V(Y_t)\\|_2/\\sqrt N\\le C/\\sqrt N\\). Apply the forcing-comparison theorem to the \\(2L\\)-Lipschitz particle drift. Both tagged coordinate errors are at most the product-state norm, hence</p>\\[\\|\\Theta_t^N-\\theta_t\\|_2+\\|X_t^{i,N}-X_t^i\\|_2\\le C_T/\\sqrt N,\\qquad0\\le t\\le T.\\]<p>The theorem retains the constructed integral equation and exact iid initial state. It does not assume the final rate.</p>",
+        "declarations": [
+          "exists_particle_comparison_of_meanField_solution"
+        ]
+      },
+      {
+        "title": "Construct both systems with actual Brownian inputs",
+        "body": "<p>The actual centered reference force is a continuous L²-valued function of time. Compactness of \\([0,T]\\) supplies a finite \\(C\\ge0\\) such that</p>\n\\[\n\\sup_{0\\le t\\le T}\\|\n \\nabla_\\theta V(Y_t)-\\mathbb E_Q\\nabla_\\theta V(Y_t)\\|_2\\le C.\n\\]\n<p>This \\(C\\) is chosen <strong>before the quantifier over all particle counts</strong>; it depends on the reference potential, initial law and horizon, not on \\(N\\). Subtract the common latent input and the extra parameter Brownian input in the actual integral equations. The proof applies Grönwall to the remaining drift integral, so it never differentiates Brownian noise. Define</p>\n\\[\n\\Psi(a,T)=\\begin{cases}(e^{aT}-1)/a,&a>0,\\\\T,&a=0,\\end{cases}\n\\qquad\nC_T=2\\big[(C+2Lb)\\Psi(2L,T)+b\\big].\n\\]\n<p>For every \\(N>0\\), the theorem constructs the actual particle integral solution with the prescribed iid initialization and proves, for every tagged particle \\(i\\),</p>\n\\[\n\\sup_{0\\le t\\le T}\\left(\n \\|\\Theta_t^N-\\theta_t\\|_2+\\|X_t^{i,N}-X_t^i\\|_2\\right)\n \\le\\frac{C_T}{\\sqrt N}.\n\\]\n<p>For the actual split-smoothed potential \\(V=g_1+g_2^\\eta\\), use the derived constant \\(L=L_1+1/\\eta\\). The coefficient can depend on \\(\\eta\\); uniformity in smoothing is not claimed. This is a constructed iid propagation-of-chaos replacement in <strong>uniform timewise L² norm</strong>. It does not move the time supremum inside the expectation, as in printed Proposition C.2; the expected path-supremum norm is stronger; the proved uniform timewise L² estimate does not establish it.</p>",
+        "declarations": [
+          "exists_brownian_meanField_particle_comparison"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldCanonical.lean": {
+    "title": "Canonical finite-particle comparison from primitive latent data",
+    "summary": "<p>Given a finite-second-moment latent law \\(\\mu\\), deterministic \\(\\theta_0\\), globally Lipschitz \\(\\nabla V\\), and \\(T\\ge0\\), the initialized canonical product source supplies concrete independent Brownian inputs and actual integral solutions for all \\(N>0\\).</p>",
+    "steps": [
+      {
+        "title": "Discharge every scalar Brownian law and full-path independence",
+        "body": "<p>The initialized source already has the true Brownian coordinate laws and independent full paths. The injective particle-coordinate selection on its finite product preserves both properties. Thus the parameter coordinates and every particle’s latent coordinates form one independent standard Brownian family, including the first-copy overlap resolved by distinct coordinate tags.</p>",
+        "declarations": [
+          "initialized_particleBrownianFamily"
+        ]
+      },
+      {
+        "title": "Construct the reference once, then every particle process",
+        "body": "<p>Use the actual initial pair \\((\\theta_0,X_0)\\) on \\(\\mu\\otimes Q_B\\), whose square integrability and deterministic parameter projection were proved. Substitute this source and the actual Brownian coordinate process into the Brownian comparison theorem. It constructs continuous \\(Y,\\theta\\), a finite \\(C\\ge0\\), and for every \\(N>0\\) a continuous actual particle solution \\(Z^N\\) with exact iid initialization. The equations retain latent noise \\(\\sqrt2 B^{x,i}\\) and parameter noise \\(\\sqrt{2/N}B^\\theta\\), and prove</p>\\[\\sup_{0\\le t\\le T}\\big(\\|\\Theta_t^N-\\theta_t\\|_2+\\|X_t^{i,N}-X_t^i\\|_2\\big)\\le\\frac{C_T}{\\sqrt N}.\\]<p>The coefficient is selected before the quantifier over \\(N\\). This controls the supremum of \\(L^2\\) norms, without claiming an expected path supremum.</p>",
+        "declarations": [
+          "exists_canonical_meanField_particle_comparison"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/MeanFieldParticleLaw.lean": {
+    "title": "One-time Wasserstein convergence for actual tagged particles",
+    "summary": "<p>The constructed particle/reference pair supplies an actual finite-cost coupling of tagged one-time laws. This module transfers the proved timewise \\(L^2\\) rate to \\(W_2\\), keeping the original integral equations and initialization.</p>",
+    "steps": [
+      {
+        "title": "A measure-preserving copy has exactly the reference law",
+        "body": "<p>The copy representative equals \\(X(\\omega_i)\\) almost everywhere. Product-coordinate evaluation pushes \\(Q^{\\otimes N}\\) to \\(Q\\), so the pushforward composition formula proves \\(\\mathcal L_{Q^{\\otimes N}}(C_iX)=\\mathcal L_Q(X)\\). The almost everywhere change of representative does not affect the law.</p>",
+        "declarations": [
+          "iidCopyCLM_law"
+        ]
+      },
+      {
+        "title": "Use the actual tagged joint pair as a coupling",
+        "body": "<p>On the product space couple the actual pair \\((\\Theta^N,X_i^N)\\) with the genuine iid copy of \\((\\theta,X)\\). Both are \\(L^2\\), so the coupling has finite cost. The joint-pair norm bound gives</p>\\[W_2(\\mathcal L(\\Theta^N,X_i^N),\\mathcal L(\\theta,X))\\le\\|\\Theta^N-\\theta\\|_2+\\|X_i^N-X_i\\|_2.\\]<p>Finiteness is established before converting the extended transport value to a real number.</p>",
+        "declarations": [
+          "tagged_particle_wasserstein_le"
+        ]
+      },
+      {
+        "title": "Retain the true Brownian input in the final law theorem",
+        "body": "<p>The joint pair \\((\\Theta_t^N,X_t^{i,N})\\) has finite second moment, and each reference copy has exactly the actual law of \\(Y_t=(\\theta_t,X_t)\\). Their constructed joint distribution is an admissible coupling. The pair L² norm is at most the sum of its coordinate norms, giving</p>\n\\[\nW_2\\!\\left(\\mathcal L(\\Theta_t^N,X_t^{i,N}),\\mathcal L(\\theta_t,X_t)\\right)\n \\le\\frac{C_T}{\\sqrt N},\\qquad 0\\le t\\le T.\n\\]\n<p>The final endpoint retains the particle integral equation, the exact iid initial law and the actual Brownian input alongside this bound. The Wasserstein distance is proved finite before converting it to a real number. This proves convergence of actual tagged one-time laws; pathwise strong-SDE, expected path-supremum and gradient-flow PDE statements remain outside the formalized result.</p><p>The named particle input is the copied latent-only Brownian input plus the separately scaled parameter Brownian input. The final existential theorem retains that exact input and the actual empirical-gradient integral equation, while the tagged coupling converts the previously proved coordinate estimate to the displayed law bound for every \\(N\\), tag and time.</p>",
+        "declarations": [
+          "particleBrownianInput",
+          "exists_canonical_meanField_particle_law_comparison"
+        ]
+      }
+    ]
+  },
+  "ProximalLangevin/Check.lean": {
+    "title": "Kernel-checked declaration and axiom audit",
+    "summary": "<p>This module imports the proximal development and asks Lean to print the axioms used by its principal analytic, algorithmic and stochastic declarations. It is an audit entry point rather than a new mathematical assumption.</p>",
+    "steps": [
+      {
+        "title": "Rebuild the theorems and inspect their dependency axioms",
+        "body": "<p>Run <code>lake build ProximalLangevin +ProximalLangevin.Check</code> from the repository root. Each <code>#print axioms</code> command reports the dependency closure of an already checked declaration, including proximal optimality, the three actual algorithm bounds, Brownian coupling and mean-field constructions. The file introduces no new theorem or definition. The audit complements compilation; it does not strengthen any theorem’s stated assumptions or turn conditional scalar statements into algorithm convergence results.</p>",
+        "declarations": []
+      }
+    ]
+  },
+  "ProximalLangevin.lean": {
+    "title": "Proximal Langevin library entry point",
+    "summary": "<p>The root module gathers proximal calculus, actual particle algorithms, corrected original-center bounds and constructed mean-field comparisons into one importable Lean library. Its imported theorems retain their exact assumptions and scope.</p>",
+    "steps": [
+      {
+        "title": "Follow the imported proof families and reproduce the build",
+        "body": "<p>Importing <code>ProximalLangevin</code> makes the checked public development available. The mathematical chain is true proximal minimization, residual/Moreau calculus, exact algorithm identities, genuine finite-moment Gaussian laws, concentration and transport, then the original-center comparison. The splitting chain additionally constructs Brownian stationarity and orthogonality; the mean-field branch constructs continuous \\(L^2\\) integral equations and actual iid comparisons. Run <code>lake build ProximalLangevin +ProximalLangevin.Check</code>. This umbrella has no local declarations; its proof content is in the linked imported modules.</p>",
+        "declarations": []
+      }
+    ]
+  }
+}

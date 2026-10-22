@@ -15,7 +15,6 @@ OUT = HERE / "dist" / "index.html"
 VENDOR = HERE / "vendor" / "katex"
 TEMPLATES = HERE / "templates"
 ENTRY_POINTS = {
-    "index.html": "dist/index.html",
     "main_theorem.html": "dist/index.html#main-theorem",
     "beginner_guide.html": "dist/index.html#lean-beginner-guide",
 }
@@ -264,6 +263,7 @@ def write_entry_points():
         url = html.escape(target,quote=True)
         page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width, initial-scale=1">'
+                '<meta name="robots" content="noindex, nofollow, noarchive">'
                 '<title>Open the Langevin proof document</title>'
                 f'<meta http-equiv="refresh" content="0;url={url}">'
                 '<style>body{max-width:42rem;margin:4rem auto;padding:0 1.25rem;font:18px/1.7 Georgia,serif}a{color:#38604c}</style>'
@@ -352,8 +352,8 @@ def build():
     appendix = '<section class="chapter appendix" id="complete-sources" data-number="A" data-title="Complete sources"><h2><span class="chapter-number">Appendix</span>Complete Lean sources</h2><p>These are the unabridged modules used above, followed by the library import, kernel audit, and pinned build configuration. Every file is embedded in this document.</p><p>From the repository root, run <code>lake build</code>, then <code>lake env lean UnadjustedLangevin/Check.lean</code>. The audit lists the logical axioms used by the final results.</p>'+"".join(modules)+'</section>'
     embedded = json.dumps(sources,ensure_ascii=False).replace("<","\\u003c").replace("\u2028","\\u2028").replace("\u2029","\\u2029")
     manifest = dict(format=2,declarations=decl_count,steps=step_count,sources={p:hashlib.sha256(v.encode()).hexdigest() for p,v in sources.items()})
-    page = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>The unadjusted Langevin algorithm — a proof with Lean</title><meta name="description" content="A sequential mathematical proof with exact Lean source beside every step."><style>'+katex_css()+'\n'+(HERE/"document.css").read_text()+'</style></head><body>'
-    page += '<header class="running-head"><div class="running-title"><a href="#main-theorem">Main theorem</a> / <span id="current-section">A sequential proof</span></div><div class="controls"><label><span>Read</span><select id="reading-mode" aria-label="Reading mode"><option value="paired">Mathematics + Lean</option><option value="math">Mathematics only</option></select></label><button type="button" id="toggle-notes" aria-expanded="false">Open Lean notes</button><button type="button" id="toggle-full" aria-expanded="true">Fold full proofs</button><button type="button" id="print-document">Print</button></div><div class="progress" id="reading-progress" aria-hidden="true"></div></header>'
+    page = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>The unadjusted Langevin algorithm — a proof with Lean</title><meta name="description" content="A sequential mathematical proof with exact Lean source beside every step."><style>'+katex_css()+'\n'+(HERE/"document.css").read_text()+'</style></head><body>'
+    page += '<header class="running-head"><div class="running-title"><a href="../../../index.html">Project home</a> / <a href="../index.html">ULA overview</a> / <a href="#main-theorem">Main theorem</a> / <span id="current-section">A sequential proof</span></div><div class="controls"><label><span>Read</span><select id="reading-mode" aria-label="Reading mode"><option value="paired">Mathematics + Lean</option><option value="math">Mathematics only</option></select></label><button type="button" id="toggle-notes" aria-expanded="false">Open Lean notes</button><button type="button" id="toggle-full" aria-expanded="true">Fold full proofs</button><button type="button" id="print-document">Print</button></div><div class="progress" id="reading-progress" aria-hidden="true"></div></header>'
     page += '<main id="top"><header class="title-page">'+math(INTRO)+main_overview+math(READING_NOTE)+math(guide)+'<details class="contents" open><summary>Contents</summary><p><a href="#main-theorem">Main theorem and proof roadmap</a></p><ol>'+"".join(toc)+'<li><a href="#complete-sources">Complete sources</a></li></ol></details></header>'+"".join(chapters)+math(CLOSING)+appendix+'</main><div class="status" id="status" role="status" aria-live="polite"></div>'
     page += '<script type="application/json" id="lean-sources">'+embedded+'</script><script type="application/json" id="source-manifest">'+json.dumps(manifest,ensure_ascii=False)+'</script><script>'+(HERE/"document.js").read_text()+'</script></body></html>\n'
     OUT.parent.mkdir(parents=True,exist_ok=True)

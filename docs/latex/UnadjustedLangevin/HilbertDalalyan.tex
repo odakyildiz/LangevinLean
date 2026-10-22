@@ -1,0 +1,209 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The shared Hilbert-space proof and both step regimes}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/HilbertDalalyan.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+Work on a probability space with \(\mathcal H=L^2(P;H)\), and write \(g=\widehat{\nabla U}\). This is the single analytic proof used by both Euclidean ULA and the lifted IPLA system. The reference record exposes the integral equation, stationary laws, and moment bounds used at this stage. \texttt{CanonicalULA.lean} constructs these inputs from strong convexity, a Lipschitz gradient, and independent Gaussian innovations.
+
+
+\section{The common L\ensuremath{{}^{2}} algorithm}
+
+
+For an initial \(X_0\in L^2(P;H)\) and innovations \(\xi_k\in L^2(P;H)\), set \(X_{k+1}=X_k-h\widehat{\nabla U}(X_k)+\sqrt{2h}\,\xi_k\).
+
+
+
+The initial iterate is the supplied random vector.
+
+
+
+Each successor uses the actual-gradient Euler update.
+
+
+
+\noindent Lean declarations: \texttt{lpChain}.
+
+\section{Unfolding one step}
+
+
+The next iterate is exactly one L\ensuremath{{}^{2}} ULA update of the current iterate.
+
+
+
+Evaluate the successor clause of the definition.
+
+
+
+\noindent Lean declarations: \texttt{lpChain\_succ}.
+
+\section{The continuous reference assumptions}
+
+
+For an \(L\)-Lipschitz gradient, step \(h\), noise vectors \(\xi_k\in\mathcal H\), and a measure \(\pi\), a reference consists of segments \(Y_{k,t}\in\mathcal H\) and increments \(B_{k,t}\in\mathcal H\) satisfying the following conditions.
+
+
+
+Supply the two families \((Y_{k,t})\) and \((B_{k,t})\) in the Hilbert space \(\mathcal H\).
+
+
+
+Require continuity of \(t\mapsto Y_{k,t}\) in the \(L^2\) norm for every \(k\).
+
+
+
+Require compatible endpoints, common endpoint noise, and stationary grid laws:
+
+\[Y_{k,h}=Y_{k+1,0},\qquad B_{k,h}=\sqrt{2h}\,\xi_k,\qquad(Y_{k,0})_\#P=\pi.\]
+
+For \(0\le t\le h\), require
+
+\[Y_{k,t}-Y_{k,0}=-\int_0^t g(Y_{k,s})\,ds+B_{k,t}.\]
+
+Require the score moment bound \(\|g(Y_{k,t})\|_2\le\sqrt{Ld}\) throughout each closed step interval.
+
+
+
+Require the increment moment bound \(\|B_{k,t}\|_2\le\sqrt{2d}\sqrt t\) on the same interval.
+
+
+
+\noindent Lean declarations: \texttt{L2Reference}.
+
+\section{Full convergence calculation from the integral reference}
+
+
+Suppose a reference with the preceding properties is supplied, \(h\ge0\), and \(Lh\le2\). Let \(0\le q<1\), and assume the lifted Euler map contracts:
+
+\[\|(X-hg(X))-(Y-hg(Y))\|_2\le q\|X-Y\|_2.\]
+
+For any initial vector \(X_0\in\mathcal H\), the \(L^2\) chain driven by the reference endpoint noise satisfies
+
+\[W_2^{\mathbb R}((X_n)_\#P,\pi)\le q^n\|X_0-Y_{0,0}\|_2+\frac{(33/20)Lh\sqrt{hd}}{1-q}.\]
+
+The statement is conditional on the supplied reference, and the initial term is the cost of the chosen coupling.
+
+
+
+Set \(g=\widehat{\nabla U}\), name the actual iterates \(X_k\), and define
+
+\[b=\frac{33}{20}Lh\sqrt{hd},\qquad D_k=\int_0^h\bigl(g(Y_{k,t})-g(Y_{k,0})\bigr)\,dt.\]
+
+The bound \(b\) is nonnegative. Apply the local-defect theorem to the actual lifted gradient and the supplied equation and moment bounds, deriving \(\|D_k\|_2\le b\).
+
+
+
+We claim the reference endpoints obey
+
+\[Y_{k+1,0}=Y_{k,0}-hg(Y_{k,0})+\sqrt{2h}\,\xi_k-D_k.\]
+
+The lifted gradient is Lipschitz and the reference segment is continuous, so their composition is continuous and Bochner integrable on \([0,h]\).
+
+
+
+Apply the Euler-defect identity at \(t=h\), then substitute the segment join and endpoint noise identities. This proves the claimed reference update. Its defect has a minus sign.
+
+
+
+Fix \(k\) and compare the actual update with the reference endpoint equation, both using the same \(\xi_k\).
+
+
+
+Cancel their identical noise terms. Because the reference subtracts \(D_k\),
+
+\[X_{k+1}-Y_{k+1,0}=\bigl(X_k-hg(X_k)\bigr)-\bigl(Y_{k,0}-hg(Y_{k,0})\bigr)+D_k.\]
+
+Apply the triangle inequality, Euler contraction, and the defect bound. Setting \(e_k=\|X_k-Y_{k,0}\|_2\) gives \(e_{k+1}\le qe_k+b\).
+
+
+
+The actual pair supplies a finite-cost coupling, so its transport distance is at most \(e_n\). The second marginal is \(\pi\) by the stationary grid-law assumption.
+
+
+
+Apply the scalar recurrence bound to the derived inequality and compose it with the transport comparison.
+
+
+
+\noindent Lean declarations: \texttt{l2\_reference\_bound}.
+
+\section{The small-step bound}
+
+
+Suppose \(U\) is differentiable and \(m\)-strongly convex on \(H\), \(\nabla U\) is \(L\)-Lipschitz, and \(0<m\le L\). Let \(0<h\le2/(m+L)\), and supply a reference with the preceding properties. For any initial vector \(X_0\in\mathcal H\),
+
+\[W_2^{\mathbb R}((X_n)_\#P,\pi)\le(1-mh)^n\|X_0-Y_{0,0}\|_2+\frac{33}{20}\frac Lm\sqrt{hd}.\]
+
+This uses a chosen initial coupling and a supplied stationary reference. Replacing the initial cost by \(W_2(\mathcal L(X_0),\pi)\) needs the additional uniform family of reference couplings explained in the final section.
+
+
+
+Since \(m+L>0\), clear the positive denominator in the step hypothesis to obtain \(h(m+L)\le2\).
+
+
+
+Use \(m\le L\) to get \(2mh\le h(m+L)\le2\), hence \(mh\le1\).
+
+
+
+The same threshold gives \(Lh\le2\). Thus \(q=1-mh\ge0\); since \(mh>0\), also \(q<1\).
+
+
+
+The sharp small-step contraction of the lifted Euler map gives the contraction hypothesis with \(q=1-mh\). Apply the integral-reference theorem.
+
+
+
+Because \(m,h>0\), simplify the bias term:
+
+\[\frac{(33/20)Lh\sqrt{hd}}{1-(1-mh)}=\frac{(33/20)Lh\sqrt{hd}}{mh}=\frac{33}{20}\frac Lm\sqrt{hd}.\]
+
+Substitute the bias identity into the integral-reference bound.
+
+
+
+\noindent Lean declarations: \texttt{dalalyan\_small\_step\_of\_integral\_reference}.
+
+\section{The large-step bound}
+
+
+Suppose \(U\) is differentiable and \(m\)-strongly convex on \(H\), \(\nabla U\) is \(L\)-Lipschitz, and \(0<m\le L\). Let \(h>0\), \(h\ge2/(m+L)\), and \(Lh<2\), and supply a reference with the stated properties. For any initial vector \(X_0\in\mathcal H\),
+
+\[W_2^{\mathbb R}((X_n)_\#P,\pi)\le(Lh-1)^n\|X_0-Y_{0,0}\|_2+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]
+
+The denominator is positive by strict stability. The reference remains an input, and the initial term remains the chosen coupling cost.
+
+
+
+Since \(m+L>0\), clear the denominator in the lower step threshold to obtain \(2\le h(m+L)\).
+
+
+
+Use \(m\le L\) and \(h\ge0\): \(2\le h(m+L)\le2Lh\). Thus \(Lh\ge1\) and \(q=Lh-1\ge0\).
+
+
+
+Strict stability \(Lh<2\) gives \(q=Lh-1<1\).
+
+
+
+Apply the sharp large-step Euler contraction with \(q=Lh-1\), then invoke the integral-reference theorem.
+
+
+
+Use \(1-(Lh-1)=2-Lh\) and factor out \(\sqrt{hd}\):
+
+\[\frac{(33/20)Lh\sqrt{hd}}{1-(Lh-1)}=\left(\frac{(33/20)Lh}{2-Lh}\right)\sqrt{hd}.\]
+
+Substitute this identity into the integral-reference bound to obtain the large-step formula.
+
+
+
+\noindent Lean declarations: \texttt{dalalyan\_large\_step\_of\_integral\_reference}.
+
+\end{document}

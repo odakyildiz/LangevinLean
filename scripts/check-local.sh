@@ -29,6 +29,10 @@ do
   python3 -B "$verifier"
 done
 
+printf '\nChecking the complete module proof atlas\n'
+python3 -B docs/build_site.py --check
+python3 -B docs/verify_site.py
+
 printf '\nChecking the isolated Mathlib-only IPLA standalone\n'
 python3 -B IPLA/verify.py
 printf '\nAll local checks passed.\n'

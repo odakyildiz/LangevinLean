@@ -1,0 +1,299 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The actual gradient on square-integrable random variables}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LpDrift.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+Let \(P\) be a finite measure on \(\Omega\). The first five results need only a normed additive commutative group \(H\); all Lipschitz constants \(L\) are nonnegative. When \(H\) is a real Banach space, \(L^2(P;H)\) provides the Banach space needed for the local-defect estimate. For a Lipschitz vector field \(g:H\to H\), construct the operator \(\mathcal G[X]=[g\circ X]\), including the case \(g(0)\ne0\). Finiteness of \(P\) ensures the constant offset is square integrable.
+
+
+
+The gradient results use a real Hilbert space \(H\). The two score-moment lemmas need only a real inner-product space, without completeness. Whenever \(g=\nabla U\), this is the potential’s actual gradient, and the resulting \(L^2\) recursion is proved to represent the original pointwise ULA chain.
+
+
+\section{Center a Lipschitz vector field}
+
+
+In a normed additive group \(H\), if \(g:H\to H\) is \(L\)-Lipschitz, then so is
+
+\[\widetilde g(x):=g(x)-g(0).\]
+
+For arbitrary \(x,y\), the common offset cancels:
+
+\[\|\widetilde g(x)-\widetilde g(y)\|=\|g(x)-g(y)\|\le L\|x-y\|.\]
+
+This is precisely the required Lipschitz inequality.
+
+
+
+\noindent Lean declarations: \texttt{centered\_lipschitz}.
+
+\section{Construct the lifted drift}
+
+
+Let \(P\) be finite and \(g\) be \(L\)-Lipschitz. For \(X\in L^2(P;H)\), define
+
+\[\mathcal G[X]:=[\widetilde g\circ X]+[g(0)].\]
+
+The centered function satisfies \(\widetilde g(0)=0\) and \(\|\widetilde g(x)\|\le L\|x\|\), so composition produces an \(L^2\) class. Add the constant class \([g(0)]\), which belongs to \(L^2\) because \(P\) is finite.
+
+
+
+\noindent Lean declarations: \texttt{lpDrift}.
+
+\section{The lift agrees with the original vector field}
+
+
+For finite \(P\), Lipschitz \(g\), and \(X\in L^2(P;H)\),
+
+\[\mathcal G[X](\omega)=g(X(\omega))\quad\text{for }P\text{-almost every }\omega.\]
+
+Expand \(\mathcal G\) into the centered composition class plus the constant class.
+
+
+
+Intersect the full-measure sets on which the representative of the sum, the composition, and the constant class agree with their pointwise formulas.
+
+
+
+On this set the value is \((g(X(\omega))-g(0))+g(0)\). Cancel the offset to recover \(g(X(\omega))\).
+
+
+
+\noindent Lean declarations: \texttt{lpDrift\_coe}.
+
+\section{The actual pointwise drift is square integrable}
+
+
+For finite \(P\), Lipschitz \(g\), and \(X\in L^2(P;H)\),
+
+\[g\circ X\in L^2(P;H).\]
+
+The constructed class \(\mathcal G[X]\) has an \(L^2\) representative. Transfer its square integrability to \(g\circ X\) using their almost-everywhere equality.
+
+
+
+\noindent Lean declarations: \texttt{lpDrift\_memLp}.
+
+\section{The drift keeps its Lipschitz constant in L\ensuremath{{}^{2}}}
+
+
+For finite \(P\) and \(L\)-Lipschitz \(g\), the lifted drift is \(L\)-Lipschitz:
+
+\[\|\mathcal G[X]-\mathcal G[Y]\|_{L^2}\le L\|X-Y\|_{L^2}.\]
+
+Fix \(X,Y\). The two constant classes cancel in their drift difference. For the remaining centered compositions, the pointwise Lipschitz estimate passes to the \(L^2\) norm, giving the same constant \(L\).
+
+
+
+\noindent Lean declarations: \texttt{lpDrift\_lipschitz}.
+
+\section{Lift the small-step gradient contraction}
+
+
+Let \(H\) be a real Hilbert space, \(P\) finite, and \(U:H\to\mathbb R\) differentiable and \(m\)-strongly convex on \(H\), with \(L\)-Lipschitz gradient. Assume \(m\le L\), \(m+L>0\), and \(0\le h\le2/(m+L)\). Write \(\mathcal G[X]=[\nabla U\circ X]\). Then, for all \(X,Y\in L^2(P;H)\),
+
+\[\|(X-h\mathcal G[X])-(Y-h\mathcal G[Y])\|_{L^2}\le(1-mh)\|X-Y\|_{L^2}.\]
+
+It suffices to prove the corresponding norm inequality almost everywhere between representatives: integrating the squared pointwise inequality gives the \(L^2\) bound.
+
+
+
+Work on a common full-measure set where the outer difference and both Euler-step differences have their ordinary pointwise subtraction formulas.
+
+
+
+Also require the scalar multiples, both lifted gradients, and \(X-Y\) to have their pointwise formulas. The two drift terms are then \(\nabla U(X(\omega))\) and \(\nabla U(Y(\omega))\).
+
+
+
+Substitute these representative identities and apply the deterministic sharp contraction to \(x=X(\omega)\), \(y=Y(\omega)\):
+
+\[\|(x-h\nabla U(x))-(y-h\nabla U(y))\|\le(1-mh)\|x-y\|.\]
+
+\noindent Lean declarations: \texttt{lpDrift\_gradient\_contract}.
+
+\section{Lift the second step-size regime}
+
+
+Let \(H\) be a real Hilbert space, \(P\) finite, and \(U\) differentiable, \(m\)-strongly convex, with \(L\)-Lipschitz gradient. Assume \(m\le L\), \(m+L>0\), \(h\ge0\), and \(h\ge2/(m+L)\). Then
+
+\[\|(X-h\mathcal G[X])-(Y-h\mathcal G[Y])\|_{L^2}\le(Lh-1)\|X-Y\|_{L^2}.\]
+
+The inequality holds in this whole regime; it is a strict contraction when its factor is less than one.
+
+
+
+Reduce the \(L^2\) inequality to its almost-everywhere pointwise counterpart with factor \(Lh-1\).
+
+
+
+Choose a full-measure set on which the outer subtraction and each Euler-step subtraction agree with the pointwise vector formulas.
+
+
+
+On the same set identify scalar multiplication, both lifted gradient representatives, and the representative of \(X-Y\).
+
+
+
+After substitution, invoke the deterministic second-regime estimate at \(X(\omega),Y(\omega)\):
+
+\[\|(x-h\nabla U(x))-(y-h\nabla U(y))\|\le(Lh-1)\|x-y\|.\]
+
+\noindent Lean declarations: \texttt{lpDrift\_gradient\_contract\_large}.
+
+\section{The local defect for the actual L\ensuremath{{}^{2}} gradient}
+
+
+Let \(P\) be finite, \(H\) a real Hilbert space, and \(\nabla U\) be \(L\)-Lipschitz. Let \(Y,B:\mathbb R\to L^2(P;H)\), let \(h,d\in\mathbb R\), and assume \(h,d\ge0\), \(Lh\le2\). For every \(0\le t\le h\), suppose
+
+\[\|\mathcal G[Y_t]\|_{L^2}\le\sqrt{Ld},\quad\|B_t\|_{L^2}\le\sqrt{2d}\sqrt t,\quad Y_t-Y_0=-\int_0^t\mathcal G[Y_s]\,ds+B_t.\]
+
+Then
+
+\[\|D_h(\mathcal G,Y)\|_{L^2}\le\frac{33}{20}Lh\sqrt{hd}.\]
+
+Apply the Banach-space local-defect theorem to \(\mathcal G\). Its required Lipschitz property is the one just proved for the actual lifted gradient; the reference equation and moment-scale bounds are the displayed hypotheses.
+
+
+
+\noindent Lean declarations: \texttt{lpDrift\_localDefect\_bound}.
+
+\section{Identify the drift norm with the score moment}
+
+
+For finite \(P\), a real inner-product space \(H\), Lipschitz \(g:H\to H\), and \(X\in L^2(P;H)\),
+
+\[\|\mathcal G[X]\|_{L^2}^2=\int_\Omega\|g(X(\omega))\|^2\,dP(\omega).\]
+
+Write the squared \(L^2\) norm as a self-inner-product and expand the \(L^2\) inner product into the integral of the pointwise inner product.
+
+
+
+Almost everywhere, \(\mathcal G[X](\omega)=g(X(\omega))\). Replace the representative under the integral and use \(\langle v,v\rangle=\|v\|^2\).
+
+
+
+\noindent Lean declarations: \texttt{lpDrift\_norm\_sq}.
+
+\section{A second-moment bound gives the drift bound}
+
+
+Under the preceding finite-measure and inner-product assumptions, if
+
+\[\int_\Omega\|g(X(\omega))\|^2\,dP(\omega)\le C,\]
+
+then
+
+\[\|\mathcal G[X]\|_{L^2}\le\sqrt C.\]
+
+For \(g=\nabla U\) and \(C=Ld\), the moment inequality is an explicit input, not a consequence of this lemma.
+
+
+
+The norm-square identity turns the assumed moment bound into \(\|\mathcal G[X]\|^2\le C\). Taking the nonnegative square root yields the conclusion.
+
+
+
+\noindent Lean declarations: \texttt{lpDrift\_norm\_le\_sqrt}.
+
+\section{Define one ULA update in L\ensuremath{{}^{2}}}
+
+
+For finite \(P\), a real Hilbert space \(H\), a Lipschitz gradient \(\nabla U\), step \(h\in\mathbb R\), and \(X,Z\in L^2(P;H)\), define
+
+\[\mathsf T_h(X,Z):=X-h\mathcal G[X]+\sqrt{2h}\,Z.\]
+
+Form the drift step and add the scaled noise inside \(L^2\). All terms are already equivalence classes of square-integrable variables, so the vector-space operations produce another such class.
+
+
+
+\noindent Lean declarations: \texttt{lpUlaUpdate}.
+
+\section{The L\ensuremath{{}^{2}} update is the pointwise ULA formula}
+
+
+For finite \(P\), a real Hilbert space \(H\), Lipschitz \(\nabla U\), and arbitrary \(X,Z\in L^2(P;H)\),
+
+\[\mathsf T_h(X,Z)(\omega)=X(\omega)-h\nabla U(X(\omega))+\sqrt{2h}\,Z(\omega)\quad\text{a.e.}\]
+
+This identity needs no Gaussian or independence assumption on \(Z\).
+
+
+
+Expand the definition of \(\mathsf T_h\) into its subtraction, drift, and scaled-noise terms.
+
+
+
+Intersect the full-measure sets on which addition, subtraction, both scalar multiples, and the lifted gradient agree with their pointwise formulas.
+
+
+
+Substitute these identities. The representative is exactly \(X(\omega)-h\nabla U(X(\omega))+\sqrt{2h}\,Z(\omega)\).
+
+
+
+\noindent Lean declarations: \texttt{lpUlaUpdate\_coe}.
+
+\section{Define the genuine L\ensuremath{{}^{2}} ULA chain}
+
+
+For a finite measure \(P\), a Lipschitz gradient on \(E_d\), an initial class \(X_0\in L^2(P;E_d)\), and noise classes \(Z_n\in L^2(P;E_d)\), define recursively, with the supplied initial class at index zero,
+
+\[X_{n+1}:=\mathsf T_h(X_n,Z_n).\]
+
+The initial class is the supplied \(X_0\). At the successor index, apply the \(L^2\) ULA update to the preceding iterate and the next noise class \(Z_n\).
+
+
+
+\noindent Lean declarations: \texttt{lpUlaChain}.
+
+\section{The initial iterate}
+
+
+The recursively defined chain satisfies \(X_0=\mathrm{initial}\).
+
+
+
+This is the zero branch of the recursion, so both sides reduce to the same class.
+
+
+
+\noindent Lean declarations: \texttt{lpUlaChain\_zero}.
+
+\section{The successor iterate}
+
+
+For every \(n\ge0\), the same finite-measure, Lipschitz-gradient, initial-class and noise-class data give
+
+\[X_{n+1}=\mathsf T_h(X_n,Z_n).\]
+
+This is the successor branch of the defining recursion; unfold that branch to obtain the equality.
+
+
+
+\noindent Lean declarations: \texttt{lpUlaChain\_succ}.
+
+\section{Identify the chain with the original algorithm}
+
+
+For finite \(P\), Lipschitz gradient \(\nabla U:E_d\to E_d\), square-integrable initial and noise classes, and every \(n\ge0\),
+
+\[X_n(\omega)=\operatorname{ulaChain}\bigl(U,h,X_0(\omega),(Z_k(\omega))_{k\ge0},n\bigr)\quad\text{for }P\text{-a.e. }\omega.\]
+
+Induct on \(n\). At \(n=0\), both recursions return the same initial representative, so equality holds for every outcome. For the successor case, assume the representatives agree at index \(n\).
+
+
+
+On a common full-measure set, combine the one-step representative identity with the induction hypothesis. Replace \(X_n(\omega)\) by the pointwise chain’s preceding iterate and apply the two successor recursion equations. Both next iterates are the same ULA update.
+
+
+
+\noindent Lean declarations: \texttt{lpUlaChain\_coe}.
+
+\end{document}

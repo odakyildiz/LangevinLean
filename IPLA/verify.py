@@ -81,7 +81,7 @@ def main():
     if not imports or any(not x.startswith('Mathlib.') for x in imports):
         raise SystemExit('Standalone has a non-Mathlib import')
     theorem = 'theorem theorem1' + (HERE/'Theorem.lean').read_text().split('theorem theorem1',1)[1].split(' := by',1)[0]
-    if html.escape(theorem) not in (HERE/'exposition/index.html').read_text():
+    if html.escape(theorem) not in (HERE/'exposition/proof.html').read_text():
         raise SystemExit('Exposition theorem differs from source')
     if source.count(theorem) != 1:
         raise SystemExit('Standalone theorem differs from source')
