@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 from urllib.parse import unquote, urlsplit
 from build_site import ROOT, LIBRARIES, load, module_page, latex_path
+from references import DEVELOPMENTS, PAPERS
 
 
 class Page(HTMLParser):
@@ -20,8 +21,11 @@ class Page(HTMLParser):
         self.styles = self.scripts = 0
         self.boxes = []
         self.robots = []
+        self.references = []
     def handle_starttag(self, tag, attributes):
         attrs = dict(attributes)
+        if 'data-reference' in attrs:
+            self.references.append((attrs['data-reference'], attrs.get('data-publication-status')))
         if tag=='meta' and attrs.get('name','').lower()=='robots':
             self.robots.append(attrs.get('content',''))
         if 'id' in attrs: self.ids.append(attrs['id'])
@@ -83,6 +87,22 @@ def verify():
         assert len(doc.ids)==len(set(doc.ids)),f'Duplicate HTML IDs: {path}'
         assert 'katex-error' not in text,f'Invalid rendered formula: {path}'
         assert not re.search(r'\\[\[(]',''.join(doc.text)),f'Unrendered mathematics: {path}'
+        if path!='index.html':
+            if path.startswith('docs/modules/'):
+                source_path=path.removeprefix('docs/modules/').removesuffix('.html')+'.lean'
+                library=next(lib for lib in LIBRARIES if source_path.startswith(lib))
+                if '/LSI/' in source_path: library+='/LSI'
+            else:
+                library=path.removesuffix('/exposition/index.html')
+            development=DEVELOPMENTS[library]
+            assert doc.references==[(library,development['status'])],f'Missing or incorrect reference/publication notice: {path}'
+            content=''.join(doc.text)
+            for identifier in development['papers']:
+                paper=PAPERS[identifier]
+                assert paper['title'] in content and paper['authors'] in content and paper['venue'] in content,f'Incomplete citation: {path}: {identifier}'
+                assert paper['url'] in doc.links,f'Missing paper link: {path}: {identifier}'
+            if library in ('IPLA/LSI','ProximalLangevin'):
+                assert 'unpublished' in content.lower(),f'Missing unpublished-proof notice: {path}'
         for href in doc.links+doc.resources:
             links+=1
             link=urlsplit(href)

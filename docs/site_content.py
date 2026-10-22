@@ -1,5 +1,6 @@
 """Authored standalone theorem statements and logical proof roadmaps."""
 from pathlib import Path
+from references import reference_notice, reference_card
 from build_site import (E, LIBRARIES, relative, module_page, anchor, shell,
                         toolbar, commands, proof_diagram, declaration_header, code)
 
@@ -146,6 +147,7 @@ def home_document(lib, config, notes, sources, parsed, math):
     body=(f'<div id="legacy-destination" hidden data-url="{relative(config["archive"],page)}"></div>'
           f'<header class="hero"><div class="eyebrow">{config["label"]}</div>'
           f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}{footref}</p>'
+          + reference_notice(lib) +
           f'<p class="status">{config["status"]}</p></header>')
     if config.get('proof'):
         body+='<p class="proof-download"><a href="'+relative('docs/latex/'+lib+'/Overview.tex',page)+'" download>Download the mathematical proof as LaTeX ↓</a></p>'
@@ -217,9 +219,10 @@ def project_document(notes):
     for key,label,description in cards:
         config=CONFIG[key]
         body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
+               + reference_card(key) +
                f'<a href="{key}/exposition/index.html">Theorem and proof →</a>')
         if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The actual Gaussian ULA theorem includes finite KL at every iterate.</p>'
-        if key=='IPLA':body+='<p class="small card-scope">Entropy analogue: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a>.</p>'
+        if key=='IPLA':body+='<p class="small card-scope">Unpublished proof: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a>.</p>'
         body+='</article>'
     body+='</section><section class="section reading-guide"><div><h2>Read the proof at two levels</h2><p>Start with the mathematical theorem and its assumptions. The roadmap leads to each supporting result. Mathematical derivations sit beside Lean; named proof constructions link directly to the source lines they explain.</p><p>Use the reading selector to view mathematics alone, Lean alone, or both. LaTeX proof documents are available from every module page.</p></div><div><h2>Check it yourself</h2><p>The repository contains the source, pinned dependencies, and local verification commands. After cloning, run:</p>'
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
