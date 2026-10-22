@@ -240,7 +240,7 @@ def exposition(sources):
     statement = 'theorem theorem1' + statement
     body = markdown((EXPO/'README.md').read_text())
     body = body.replace('<h2 id="mathematical-statement">',
-                        proof_map_section(sources) + '<h2 id="mathematical-statement">', 1)
+                        proof_map_section(sources, mathematics, katex_css()) + '<h2 id="mathematical-statement">', 1)
     exact = '<section id="exact-lean"><h2>Exact final Lean declaration</h2><p>This is copied directly from Theorem.lean. The proof body is omitted from this exposition.</p><pre><code>'+html.escape(statement)+'</code></pre></section>'
     data = {p: hashlib.sha256(s.encode()).hexdigest() for p,s in sources}
     data['IPLA/Standalone.lean'] = hashlib.sha256((HERE/'Standalone.lean').read_bytes()).hexdigest()

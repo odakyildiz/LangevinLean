@@ -17,6 +17,11 @@ have their own directories and detailed mathematical arguments. Their complete L
 moment bounds from smoothness, the target LSI, and finite initial KL. Output
 finiteness is included in the convergence conclusions.
 
+Mathematical labels in the proof diagrams are written in LaTeX and typeset with
+the same vendored KaTeX used by the statements. Typesetting is generated locally,
+so diagram formulas and proof links work offline without browser-side rendering.
+The downloadable IPLA SVG also embeds its mathematical fonts.
+
 `modules/` mirrors the Lean source paths. Each module page contains an authored
 mathematical statement and proof beside the full corresponding Lean declarations,
 links to imported proofs and users, the complete module context, and a downloadable
