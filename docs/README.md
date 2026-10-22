@@ -22,6 +22,14 @@ the same vendored KaTeX used by the statements. Typesetting is generated locally
 so diagram formulas and proof links work offline without browser-side rendering.
 The downloadable IPLA SVG also embeds its mathematical fonts.
 
+Every overview, supporting module page, and archived proof document identifies
+its paper references and publication status near the top. Full citations include
+all authors, the title, publication venue, year, volume and pages, and paper links.
+The IPLA LSI proof and corrected proximal proofs are explicitly unpublished;
+the IPLA overview also identifies its unpublished independent-dimension extension.
+Background papers are distinguished from sources of the displayed result.
+The shared metadata and notice styles are authored in `references.py`.
+
 `modules/` mirrors the Lean source paths. Each module page contains an authored
 mathematical statement and proof beside the full corresponding Lean declarations,
 links to imported proofs and users, the complete module context, and a downloadable

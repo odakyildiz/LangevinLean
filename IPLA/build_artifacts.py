@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import html
+import importlib.util
 import json
 import re
 import subprocess
@@ -16,6 +17,10 @@ from exposition.proof_map import lean_link, page_css, proof_map_section, source_
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+REFERENCE_SPEC = importlib.util.spec_from_file_location(
+    "langevin_references", ROOT / "docs/references.py")
+REFERENCES = importlib.util.module_from_spec(REFERENCE_SPEC)
+REFERENCE_SPEC.loader.exec_module(REFERENCES)
 EXPO = HERE / 'exposition'
 AUDIT_THEOREMS = [
     'IPLA.theorem1',
@@ -253,8 +258,8 @@ def exposition(sources):
     data['IPLA/Standalone.lean'] = hashlib.sha256((HERE/'Standalone.lean').read_bytes()).hexdigest()
     (EXPO/'source_manifest.json').write_text(json.dumps(data, indent=2)+'\n')
     config = '''body{margin:0;color:#182b39;background:#f3f6f7;font:17px/1.65 system-ui,sans-serif}main{max-width:1050px;margin:36px auto;background:#fff;padding:46px 54px;border:1px solid #dce4e8;border-radius:14px}h1{font-size:34px;line-height:1.2}h2{font-size:25px;margin-top:2.5em;border-top:1px solid #dce4e8;padding-top:1em}h3{font-size:21px;margin-top:2em}a{color:#006c7a}a:focus-visible{outline:3px solid #b8781a;outline-offset:3px;border-radius:2px}code{font:0.88em ui-monospace,monospace;background:#eef3f5;padding:2px 4px;border-radius:3px}pre{background:#102c3b;color:#edf6f7;padding:22px;border-radius:8px;overflow-x:auto;line-height:1.55}pre code{background:none;padding:0}table{border-collapse:collapse;width:100%;min-width:600px;font-size:15px;line-height:1.5}th,td{text-align:left;border:1px solid #d7e1e5;padding:12px;vertical-align:top}th{background:#eaf2f4}tbody tr:nth-child(even){background:#f8fbfc}td code{overflow-wrap:anywhere}.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.math{overflow-x:auto;margin:1.5em 0}.katex{font-size:1.08em}.topnav{display:flex;gap:20px;flex-wrap:wrap;font-size:15px}.notice{padding:18px 22px;border-left:5px solid #b8781a;background:#fff6e4;margin:25px 0}.footer{font-size:13px;color:#526875;margin-top:40px}@media(max-width:700px){main{margin:0;padding:24px 18px;border:0;border-radius:0}h1{font-size:28px}body{font-size:16px}}@media print{body{background:white}main{border:0;margin:0;padding:0}.topnav{display:none}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f4f4;color:black}table{font-size:11px;min-width:0}}'''
-    config += page_css()
-    result = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>IPLA — theorem and assumption audit</title><style>'+katex_css()+config+'</style></head><body><main><nav class="topnav"><a href="../../index.html">Project home</a><a href="index.html">IPLA overview</a><a href="#proof-map">Proof map</a><a href="#mathematical-statement">Mathematical statement</a><a href="#complete-assumption-audit">Assumption audit</a><a href="#lean-files">Lean files</a><a href="#what-the-generator-argument-establishes">Generator identities</a><a href="#exact-lean">Exact Lean statement</a><a href="../Standalone.lean" download>Download standalone Lean</a></nav><div class="notice"><strong>Complete formalization from the joint assumptions.</strong> The IPLA algorithm with independent standard Gaussian innovations satisfies the general-dimension extension of equation (34), with independent parameter and latent dimensions. The Appendix B correspondence and source smoothness clarification are described below. Gibbs stationarity and sharp marginal concentration are proved. The final declaration has no additional analytic premises.</div>'+body+exact+'<p class="footer">Generated from repository sources by IPLA/build_artifacts.py. Equations, fonts and the Lean source viewer are embedded; this page works offline. KaTeX licensing: <a href="katex-LICENSE.txt">license</a>. Source hashes: <a href="source_manifest.json">manifest</a>.</p></main>'+source_browser(sources)+'</body></html>'
+    config += page_css() + REFERENCES.REFERENCE_CSS
+    result = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>IPLA — theorem and assumption audit</title><style>'+katex_css()+config+'</style></head><body><main><nav class="topnav"><a href="../../index.html">Project home</a><a href="index.html">IPLA overview</a><a href="#proof-map">Proof map</a><a href="#mathematical-statement">Mathematical statement</a><a href="#complete-assumption-audit">Assumption audit</a><a href="#lean-files">Lean files</a><a href="#what-the-generator-argument-establishes">Generator identities</a><a href="#exact-lean">Exact Lean statement</a><a href="../Standalone.lean" download>Download standalone Lean</a></nav>'+REFERENCES.reference_notice("IPLA")+'<div class="notice"><strong>Complete formalization from the joint assumptions.</strong> The IPLA algorithm with independent standard Gaussian innovations satisfies the general-dimension extension of equation (34), with independent parameter and latent dimensions. The Appendix B correspondence and source smoothness clarification are described below. Gibbs stationarity and sharp marginal concentration are proved. The final declaration has no additional analytic premises.</div>'+body+exact+'<p class="footer">Generated from repository sources by IPLA/build_artifacts.py. Equations, fonts and the Lean source viewer are embedded; this page works offline. KaTeX licensing: <a href="katex-LICENSE.txt">license</a>. Source hashes: <a href="source_manifest.json">manifest</a>.</p></main>'+source_browser(sources)+'</body></html>'
     (EXPO/'proof.html').write_text(result)
     (EXPO/'katex-LICENSE.txt').write_text((VENDOR/'LICENSE').read_text())
 

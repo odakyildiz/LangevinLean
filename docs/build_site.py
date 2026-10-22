@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 from html.parser import HTMLParser
+from references import REFERENCE_CSS, reference_notice
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
@@ -111,6 +112,7 @@ def shell(page, title, body, active=None):
             f'<title>{E(title)} · LangevinLean</title>'
             f'<link rel="stylesheet" href="{relative("docs/assets/katex.css",page)}">'
             f'<link rel="stylesheet" href="{relative("docs/assets/site.css",page)}">'
+            f'<link rel="stylesheet" href="{relative("docs/assets/references.css",page)}">'
             f'<script defer src="{relative("docs/assets/site.js",page)}"></script></head><body>'
             '<a class="skip" href="#main">Skip to content</a><header class="site-nav">'
             f'<a class="brand" href="{relative("index.html",page)}">LangevinLean</a>'
@@ -257,7 +259,7 @@ def module_document(path, note, sources, parsed, math):
     body = (f'<div class="breadcrumb"><a href="{relative(lib+"/exposition/index.html",page)}">'
             f'{lib} proof overview</a> / {E(path)}</div><header class="hero module-hero">'
             '<div class="eyebrow">Module proof · Mathematics alongside Lean</div>'
-            f'<h1>{E(note["title"])}</h1>{summary}'
+            f'<h1>{E(note["title"])}</h1>' + reference_notice(lib, supporting=True) + summary +
             f'<p class="small"><a href="{relative(path,page)}">Open Lean source</a> · '
             f'<a href="{relative(latex_path(path),page)}" download>Download LaTeX proof</a> · '
             '<a href="#verification">Verify this module</a></p></header>')
@@ -391,7 +393,7 @@ def main():
     prose += [node[key] for config in CONFIG.values() for node in config['diagram']
               for key in ('title', 'detail')]
     math = HELPERS.render_mathematics(prose)
-    outputs = {'docs/assets/katex.css':HELPERS.katex_css()}
+    outputs = {'docs/assets/katex.css':HELPERS.katex_css(), 'docs/assets/references.css':REFERENCE_CSS}
     for path,note in notes.items():
         page, text = module_document(path,note,sources,parsed,math)
         outputs[page] = text
@@ -407,7 +409,7 @@ def main():
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
             outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
     outputs['index.html'] = project_document(notes)
-    inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py','docs/assets/site.css','docs/assets/site.js']
+    inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py','docs/references.py','docs/assets/site.css','docs/assets/site.js']
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += ['UnadjustedLangevin/exposition/build_document.py']

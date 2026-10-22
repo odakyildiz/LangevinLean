@@ -81,6 +81,8 @@ def verify():
     assert embedded == sources, "Embedded sources differ from repository files"
     manifest = json.loads(doc.scripts["source-manifest"])
     assert manifest["sources"] == {p:hashlib.sha256(v.encode()).hexdigest() for p,v in sources.items()}
+    for path,digest in manifest["inputs"].items():
+        assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest() == digest, f"Stale input: {path}"
     for block in doc.excerpts:
         path = block["data-source"]
         start, end = int(block["data-start"]), int(block["data-end"])

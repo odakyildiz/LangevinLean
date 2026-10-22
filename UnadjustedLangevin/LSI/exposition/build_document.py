@@ -241,7 +241,8 @@ def build():
         "inputs": {name: hashlib.sha256((HERE / name).read_bytes()).hexdigest()
                    for name in ["chapters.json", "reference_audit.json",
                                 Path(os.path.relpath(style_path, HERE)).as_posix(),
-                                Path(os.path.relpath(script_path, HERE)).as_posix()]},
+                                Path(os.path.relpath(script_path, HERE)).as_posix(),
+                                Path(os.path.relpath(ROOT / "docs/references.py", HERE)).as_posix()]},
     }
     embedded = json.dumps(sources, ensure_ascii=False).replace('<', '\\u003c').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
     page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
@@ -249,7 +250,8 @@ def build():
             '<meta name="robots" content="noindex, nofollow, noarchive">'
             '<title>' + html.escape(title) + '</title>'
             '<meta name="description" content="' + html.escape(description, quote=True) + '">'
-            '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() + '</style></head>'
+            '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() +
+            SHARED.REFERENCES.REFERENCE_CSS + '</style></head>'
             '<body data-mode="paired"><header class="running-head"><a href="' + relative('index.html') + '">'
             'LangevinLean</a><div class="controls"><label for="reading-mode">Read </label>'
             '<select id="reading-mode"><option value="paired">Mathematics + Lean</option>'
@@ -259,6 +261,7 @@ def build():
             '<header class="hero"><div class="eyebrow">' + html.escape(eyebrow) + '</div>'
             '<h1>' + html.escape(heading) + '</h1>'
             '<p class="subtitle">' + html.escape(subtitle) + '</p>'
+            + SHARED.REFERENCES.reference_notice(LSI.relative_to(ROOT).as_posix()) +
             '<div class="status-note"><strong>' + html.escape(status_label) + '</strong> ' +
             html.escape(status) + '</div>' +
             math(content["intro"]) +
