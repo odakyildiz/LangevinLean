@@ -91,6 +91,9 @@ checks. The repository contains no GitHub Actions workflows.
 All generated HTML carries `noindex, nofollow, noarchive` metadata, including
 module pages and archived expositions. Publication uses the existing `gh-pages`
 branch with `.nojekyll`; generation and verification run locally.
+The `papers/` directory is kept on `main` only and must be excluded from every
+`gh-pages` publication. Publish documentation commits separately from paper-source
+commits and check that no files under `papers/` are tracked on `gh-pages`.
 
 Optional browser QA, with Playwright and Chromium or Google Chrome installed:
 

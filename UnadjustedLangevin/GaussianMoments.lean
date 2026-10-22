@@ -1,4 +1,4 @@
-import UnadjustedLangevin.ULAupdate
+import UnadjustedLangevin.ULAStep
 import Mathlib.Probability.BrownianMotion.Basic
 import Mathlib.MeasureTheory.SpecificCodomains.WithLp
 import Mathlib.MeasureTheory.Function.L2Space

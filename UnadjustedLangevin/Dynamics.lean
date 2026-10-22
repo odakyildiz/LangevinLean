@@ -1,4 +1,4 @@
-import UnadjustedLangevin.ULAupdate
+import UnadjustedLangevin.ULAStep
 import Mathlib.MeasureTheory.Function.StronglyMeasurable.Basic
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Metric
 import Mathlib.Analysis.Normed.Lp.MeasurableSpace

@@ -1,6 +1,6 @@
 import UnadjustedLangevin.Analysis.Smooth
 import UnadjustedLangevin.StrongConvexity
-import UnadjustedLangevin.ULAupdate
+import UnadjustedLangevin.ULAStep
 import Mathlib.Tactic.Module
 import Mathlib.Tactic.Positivity
 

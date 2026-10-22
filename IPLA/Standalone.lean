@@ -460,7 +460,7 @@ end
 section
 
 /-! Supporting-plane inequalities and strong gradient monotonicity.
-See `StrongConvexity.tex` for the corresponding mathematical proof. -/
+The corresponding mathematical proof appears in the generated exposition. -/
 
 noncomputable section
 
@@ -584,11 +584,11 @@ end ULA
 end
 
 
-/-! ## Included source: UnadjustedLangevin/ULAupdate.lean -/
+/-! ## Included source: UnadjustedLangevin/ULAStep.lean -/
 section
 
 /-! Shared-noise bounds for one step of the unadjusted Langevin algorithm.
-See `ULAupdate.tex` for the corresponding mathematical proof. -/
+The corresponding mathematical proof appears in the generated exposition. -/
 
 noncomputable section
 

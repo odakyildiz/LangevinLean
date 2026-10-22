@@ -4,7 +4,7 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Topology.MetricSpace.Lipschitz
 
 /-! Shared-noise bounds for one step of the unadjusted Langevin algorithm.
-See `ULAupdate.tex` for the corresponding mathematical proof. -/
+The corresponding mathematical proof appears in the generated exposition. -/
 
 noncomputable section
 

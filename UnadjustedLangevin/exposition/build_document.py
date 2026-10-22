@@ -26,7 +26,7 @@ ENTRY_POINTS = {
 NOTES = ["notes_analytic.json", "notes_probability.json", "notes_assembly.json"]
 ORDER = ["UnadjustedLangevin/StrongConvexity.lean",
          "UnadjustedLangevin/Analysis/Smooth.lean", "UnadjustedLangevin/GradientStep.lean",
-         "UnadjustedLangevin/ULAupdate.lean", "UnadjustedLangevin/SharpContraction.lean",
+         "UnadjustedLangevin/ULAStep.lean", "UnadjustedLangevin/SharpContraction.lean",
          "UnadjustedLangevin/Dynamics.lean", "UnadjustedLangevin/Coupling.lean",
          "UnadjustedLangevin/Integrability.lean", "UnadjustedLangevin/LocalError.lean",
          "UnadjustedLangevin/GaussianMoments.lean", "UnadjustedLangevin/LpDrift.lean",
