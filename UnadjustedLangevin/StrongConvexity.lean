@@ -5,7 +5,7 @@ import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.Tactic.Linarith
 
 /-! Supporting-plane inequalities and strong gradient monotonicity.
-See `StrongConvexity.tex` for the corresponding mathematical proof. -/
+The corresponding mathematical proof appears in the generated exposition. -/
 
 noncomputable section
 

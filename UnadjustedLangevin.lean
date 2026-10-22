@@ -1,7 +1,7 @@
 import UnadjustedLangevin.GradientStep
 import UnadjustedLangevin.StrongConvexity
 import UnadjustedLangevin.Analysis.Smooth
-import UnadjustedLangevin.ULAupdate
+import UnadjustedLangevin.ULAStep
 import UnadjustedLangevin.SharpContraction
 import UnadjustedLangevin.Dynamics
 import UnadjustedLangevin.Coupling
