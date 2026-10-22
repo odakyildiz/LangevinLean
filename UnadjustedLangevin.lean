@@ -66,3 +66,4 @@ import UnadjustedLangevin.LSI.ConditionalDrift
 import UnadjustedLangevin.LSI.InterpolationDensity
 import UnadjustedLangevin.LSI.InteriorEntropy
 import UnadjustedLangevin.LSI.GradientMoment
+import UnadjustedLangevin.LSI.UnconditionalTheorem

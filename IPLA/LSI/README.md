@@ -1,12 +1,12 @@
 # IPLA under a lifted log-Sobolev inequality
 
-Read the [detailed proof page](exposition/index.html) for the full statement,
-the coordinate reduction, the entropy calculation, and the exact Lean proofs.
-This is a derivation in this repository from the shared ULA entropy result.
+Read the [proof page](exposition/index.html) for the standalone theorem,
+its mathematical proof, and the corresponding Lean declarations. The
+[source archive](exposition/proof.html) also retains the reusable interpolation
+data interfaces.
 
-Let $N>0$ be the particle count, with independent parameter dimension $d_\theta$
-and latent dimension $d_x$. In scaled coordinates
-$z=(\theta,x_1/\sqrt N,\ldots,x_N/\sqrt N)$, define
+Let $N>0$, and write the scaled state as
+$z=(\theta,x_1/\sqrt N,\ldots,x_N/\sqrt N)$. Define
 
 $$
 V_N(z)=\sum_{i=1}^N U(\theta,\sqrt N z_i),\qquad
@@ -14,60 +14,62 @@ D_N=d_\theta+Nd_x,\qquad \Pi_N\propto e^{-V_N}.
 $$
 
 Assume $U$ is differentiable with $L$-Lipschitz gradient, the **actual lifted
-target** $\Pi_N$ satisfies LSI with constant $\beta_N>0$, and
-$\beta_N\le NL$. The lifted gradient is $NL$-Lipschitz and IPLA is exactly ULA
-for $V_N$ with step $\gamma/N$.
-
-Under the explicit regular interpolation data of the shared ULA theorem, for
-$0<\gamma\le\beta_N/(4NL^2)$, the actual Gaussian IPLA laws satisfy
+target** $\Pi_N$ satisfies LSI with constant $\beta>0$, and the initial
+probability law has finite joint KL, $H_0=\operatorname{KL}(\mu_0\Vert\Pi_N)<\infty$.
+For
 
 $$
-H_{\Pi_N}(\rho_k)
-\le e^{-\beta_N\gamma k/N}H_{\Pi_N}(\rho_0)
-  +\frac{8\gamma N D_N L^2}{\beta_N}.
+0<\gamma\le\frac{\beta}{4NL^2},
 $$
 
-The theorem proves finite actual KL before using its real value. Dividing
-the full joint entropy by $N$ gives the per-particle version. If the lifted
-target has the admissible LSI constant $N\alpha$, with $0<\alpha\le L$, this is
+the actual Gaussian IPLA laws have finite KL at every step and satisfy
 
 $$
-\frac{H_{\Pi_N}(\rho_k)}{N}
-\le e^{-\alpha\gamma k}\frac{H_{\Pi_N}(\rho_0)}{N}
+H_k\le e^{-\beta\gamma k/N}H_0+
+  \frac{8\gamma N D_N L^2}{\beta}.
+$$
+
+[`particle_kl_bound_of_finite_kl`](UnconditionalTheorem.lean) proves this
+statement from these assumptions. The scaled system is exactly ULA for
+$V_N$ with step $\gamma/N$ and smoothness $NL$. The shared ULA development
+constructs its Gaussian density, differentiates its entropy, proves the
+initial entropy boundary and gradient moments, and derives compatibility
+of LSI with smoothness. No interpolation data, entropy recurrence, extra
+moment, or compatibility premise is required. Zero-dimensional state spaces
+are handled separately by equality of their probability laws.
+
+If the actual lifted target has LSI constant $\beta=N\alpha$, then
+[`particle_kl_bound_linear_lsi_of_finite_kl`](UnconditionalTheorem.lean) gives
+
+$$
+\frac{H_k}{N}\le e^{-\alpha\gamma k}\frac{H_0}{N}
  +\frac{8\gamma L^2}{\alpha}
    \left(d_x+\frac{d_\theta}{N}\right),\qquad
 0<\gamma\le\frac{\alpha}{4L^2}.
 $$
 
-**Status and scope.** The coordinate reduction, scaling, Gaussian law
-identification, and KL projection inequalities are proved. The entropy
-endpoint remains conditional on the explicit density, weak-equation,
-drift-energy and gradient-moment inputs in
-[`RegularInterpolationData`](../../UnadjustedLangevin/LSI/InterpolationData.lean).
-No entropy recurrence or convergence bound is a field of that structure.
-Constructing all these inputs from LSI and smoothness alone remains unfinished
-in the shared ULA development.
-
-An LSI for one parameter–latent pair is not the lifted-target hypothesis of
-this theorem. The shared parameter prevents a direct product tensorization;
-in particular, the development does not infer the scaling $N\alpha$ from a
-pair-target LSI. Parameter projection bounds its KL by the **full** joint KL.
-Consequently, using a per-particle bound for unscaled parameter KL requires
-multiplication by $N$. This result asserts no concentration around an
-optimizer or marginal-likelihood maximizer.
+The lifted-target LSI is the functional-inequality assumption. An LSI for one
+parameter–latent pair does not by itself establish the $N\alpha$ scaling for
+the system with a shared parameter. Parameter projection bounds its KL by
+full joint KL; an estimate for $H_k/N$ therefore gives an unnormalized
+parameter bound after multiplication by $N$. The unconditional parameter
+wrapper also proves its KL finite before taking a real value.
 
 | Module | Content |
 | --- | --- |
-| [Scaling.lean](Scaling.lean) | Step restrictions, rates, biases, dimensions and one-step forcing after the exact IPLA substitutions. |
-| [Theorem.lean](Theorem.lean) | Actual particle laws, Gaussian implementation identity, finite KL and conditional entropy bounds. |
-| [Marginal.lean](Marginal.lean) | Actual parameter target, extended KL data processing, finiteness and real bound transfer. |
-| [Corollaries.lean](Corollaries.lean) | Parameter-marginal consequences of the particle entropy theorem. |
+| [UnconditionalTheorem.lean](UnconditionalTheorem.lean) | Full joint, normalized, linear-LSI, and parameter-marginal bounds from finite initial KL and the actual lifted-target LSI. |
+| [Scaling.lean](Scaling.lean) | Exact step, rate, dimension, forcing, and bias substitutions. |
+| [Theorem.lean](Theorem.lean) | Actual particle laws and Gaussian implementation identity; reusable theorems accepting regular interpolation data. |
+| [Marginal.lean](Marginal.lean) | Parameter target, KL data processing, finiteness, and real bound transfer. |
+| [Corollaries.lean](Corollaries.lean) | Parameter consequences through the reusable interpolation interface. |
 | [Check.lean](Check.lean) | Kernel dependency audit. |
+
+From the repository root, compile and audit locally:
 
 ```sh
 lake build UnadjustedLangevin IPLA +IPLA.LSI.Check
 lake env lean IPLA/LSI/Check.lean
 ```
 
-The [page build guide](exposition/README.md) describes regeneration and source
-verification.
+The [page build guide](exposition/README.md) describes local regeneration and
+source verification. GitHub Actions is not needed.

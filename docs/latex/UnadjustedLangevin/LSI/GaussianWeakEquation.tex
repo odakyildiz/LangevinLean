@@ -1,0 +1,171 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Derive the actual Gaussian weak equation for bounded finite-energy tests}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/GaussianWeakEquation.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+Write \(g(x)=\nabla U(x)\), \(c_t(x)=x-tg(x)\), and \(K_t(x,y)=N_t e^{-\|y-c_t(x)\|^2/(4t)}\). The spatial flux \(F_{t,x}(y)=K_t(x,y)(g(x)-(y-c_t(x))/(2t))\) has divergence equal to the actual Gaussian kernel time derivative. Global integration by parts therefore gives \(\int\dot p_t\psi=-\int F_{t,x}\cdot\nabla\psi\,d\mu\,dy\) for every bounded \(C^1\) test with \(\nabla\psi\in L^2(\rho_t)\). This module proves all integrability and boundary-product obligations from finite initial gradient energy and Gaussian second moments. It differentiates no Hessian of \(U\) and assumes no weak equation.
+
+
+\section{Choose the spatial flux with the correct Fokker–Planck sign}
+
+
+The component density evolves under frozen drift \(-g(x)\). Its time derivative is \(\Delta_yK_t+\operatorname{div}_y(K_tg(x))\), so define
+
+\[F_{t,x}(y)=\nabla_yK_t(x,y)+K_t(x,y)g(x)=K_t(x,y)\left(g(x)-\frac{y-c_t(x)}{2t}\right).\]
+
+\texttt{frozenGaussianFlux} is the last expression. Its divergence equals the density's time derivative, while the weak equation consequently carries a minus sign after integration by parts. The frozen gradient \(g(x)\) is constant in the spatial variable \(y\), which avoids differentiating the possibly merely Lipschitz gradient field.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianFlux}.
+
+\section{Differentiate each coordinate of the flux explicitly}
+
+
+Let \(r=y-c_t(x)\). For a direction \(v\), differentiating the kernel and the affine residual gives
+
+\[D_v\langle F_{t,x}(y),v\rangle=K_t(x,y)\left(\frac{\langle r,v\rangle^2}{4t^2}-\frac{\langle r,v\rangle\langle g(x),v\rangle}{2t}-\frac{\|v\|^2}{2t}\right).\]
+
+The Lean proof constructs the derivative of the affine vector factor as \texttt{hlin}, pairs it with the constant vector \(v\) as \texttt{hi}, and multiplies it by the already certified derivative of the real Gaussian kernel. The function equality \texttt{heq} moves the scalar density outside the inner product. Evaluation of the resulting linear map at \(v\), the inner-product rules, and scalar algebra give exactly the three displayed terms. This identity is valid without assuming the potential has a second derivative.
+
+
+
+\noindent Lean declarations: \texttt{fderiv\_frozenGaussianFlux\_coord}.
+
+\section{Sum the directional derivatives to obtain a coordinate-free divergence}
+
+
+Sum over an orthonormal basis \((b_i)_{i=1}^d\). Parseval gives \(\sum_i\langle r,b_i\rangle^2=\|r\|^2\), completeness gives \(\sum_i\langle r,b_i\rangle\langle g,b_i\rangle=\langle r,g\rangle\), and \(\sum_i\|b_i\|^2=d\). Thus
+
+\[\operatorname{div}F_{t,x}=K_t\left(-\frac d{2t}+\frac{\|r\|^2}{4t^2}-\frac{\langle r,g\rangle}{2t}\right)=K_t\left(-\frac d{2t}+\frac{\|y-x\|^2}{4t^2}-\frac{\|g\|^2}{4}\right).\]
+
+Lean records the two basis identities as \texttt{hsq} and \texttt{hcross}. The residual equality \texttt{hres} is \(r=y-x+tg\); expanding its squared norm cancels the mixed term. The explicit nonzero-time assumption justifies the denominator algebra. This is the same coefficient as the independently derived kernel time derivative.
+
+
+
+\noindent Lean declarations: \texttt{sum\_fderiv\_frozenGaussianFlux}.
+
+\section{Transport the actual independent pair to its Gaussian Lebesgue density}
+
+
+The pair \((X,Y_t)\), constructed from independent initial state and standard noise, satisfies
+
+\[\mathcal L(X,Y_t)(dx,dy)=K_t(x,y)\,\mu(dx)\,dy.\]
+
+The theorem \texttt{ULA.gaussian\_proposal\_pair\_density} already proves this transport for a measurable center map. Lean applies it to \(x\mapsto x-t\nabla U(x)\), whose measurability follows from the Lipschitz gradient. It then checks that the real kernel here is exactly the previously normalized proposal density. This identity is essential: it lets the proof establish integrability under a simple independent probability law and transfer the result to the Lebesgue pair integrals needed for integration by parts.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianJointLaw\_eq\_density}.
+
+\section{Prove flux pairings integrable by transporting two L2 factors}
+
+
+For a continuous scalar field \(\varphi\in L^2(\rho_t)\), the coordinate flux pairing is integrable:
+
+\[\int K_t(x,y)\left|\left\langle g(x)-\frac{y-c_t(x)}{2t},v\right\rangle\varphi(y)\right|\,d\mu(x)\,dy<\infty.\]
+
+Under the independent pair \((X,Z)\), the vector factor becomes \(g(X)-(\sqrt{2t}/(2t))Z\). Both terms are in \(L^2\), by the initial gradient hypothesis and the Gaussian second moment. Pulling back \(\varphi\) through the actual update preserves its \(L^2\) property. Lean's \texttt{hflux} and \texttt{htest} are these two facts; \texttt{MemLp.mul} puts their scalar product in \(L^1\). The pair-law density identity and the density-integrability equivalence then yield the displayed weighted Lebesgue integrability. No unproved decay of the test at infinity is used.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianFlux\_mul\_integrable}.
+
+\section{Admit the gradient pairing of a C1 finite-energy test}
+
+
+Choose the scalar field \(\varphi(y)=D\psi(y)[v]=\langle\nabla\psi(y),v\rangle\). For \(\psi\in C^1\), this field is continuous. If \(\nabla\psi\in L^2(\rho_t)\), its coordinate pairing is also in \(L^2\).
+
+
+
+Lean applies the preceding general flux-pairing theorem. Continuity follows from continuity of the Fréchet derivative of a \(C^1\) function, evaluated at \(v\). The equality \texttt{inner\_gradient\_left} identifies the coordinate derivative with the inner product, and \texttt{MemLp.inner\_const} supplies its square integrability. This establishes the \(F_i\partial_i\psi\) integrability premise of global integration by parts.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianFlux\_test\_gradient\_integrable}.
+
+\section{Control the boundary product from boundedness of the test}
+
+
+A bounded continuous test satisfies \(|\psi|\le M\), hence belongs to \(L^2(\rho_t)\) because \(\rho_t\) is a probability measure. The general flux-pairing result therefore gives integrability of \(\langle F_{t,x}(y),v\rangle\psi(y)\).
+
+
+
+Lean installs the actual interpolation probability instance, uses \texttt{MemLp.of\_bound}, and applies \texttt{frozenGaussianFlux\_mul\_integrable}. This is precisely the product \(F_i\psi\) required by the integration-by-parts theorem on the whole Euclidean space. Boundedness and finite-energy flux replace a separate compact-support assumption.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianFlux\_bounded\_test\_integrable}.
+
+\section{Match the divergence to the independently differentiated Gaussian kernel}
+
+
+The explicit time derivative from \texttt{GaussianTimeDerivative.lean} is
+
+\[\dot K_t(x,y)=K_t(x,y)\left(-\frac d{2t}+\frac{\|y-x\|^2}{4t^2}-\frac{\|\nabla U(x)\|^2}{4}\right).\]
+
+The divergence calculation gives exactly this expression. Lean rewrites the sum of coordinate derivatives with \texttt{sum\_fderiv\_frozenGaussianFlux}, unfolds the independently defined \texttt{frozenGaussianKernelDot}, and matches the real kernel definitions. Thus the time/spatial relation used in the PDE is an equality between actual derivatives, not an asserted Fokker–Planck premise.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianKernelDot\_eq\_sum\_fderiv\_flux}.
+
+\section{Dominate each unit-coordinate flux derivative by a quadratic Gaussian energy}
+
+
+For \(\|v\|=1\), Cauchy–Schwarz bounds \(|\langle r,v\rangle|\le\|r\|\) and \(|\langle g,v\rangle|\le\|g\|\). The inequality \(\|r\|\|g\|\le\|r\|^2+\|g\|^2\) then gives
+
+\[\left|D_v\langle F_{t,x},v\rangle\right|\le\left(\frac1{4t^2}+\frac1{2t}\right)K_t(x,y)(1+\|g(x)\|^2+\|r\|^2).\]
+
+Lean records the coordinate, square, and mixed-product bounds as \texttt{hi}, \texttt{hg}, \texttt{hsq}, and \texttt{hcross}. The local \texttt{hbound} applies the triangle inequality to the three derivative terms and dominates their coefficients by the displayed envelope. Multiplication by the nonnegative Gaussian density preserves the bound. Only quadratic energies occur, so no fourth moment of the initial gradient is introduced.
+
+
+
+\noindent Lean declarations: \texttt{norm\_fderiv\_frozenGaussianFlux\_coord\_le\_energy}.
+
+\section{Integrate the coordinate derivative envelope under the actual pair measure}
+
+
+The common envelope \(K_t(1+\|g(X)\|^2+\|Y-c_t(X)\|^2)\) is jointly integrable: its integral is \(1+G_0+2td\), where \(G_0=\int\|\nabla U\|^2d\mu\). The preceding pointwise bound therefore proves joint integrability of every unit-coordinate flux derivative.
+
+
+
+Lean obtains this envelope from \texttt{integrable\_frozenGaussianEnergy} and scales it by the finite time coefficient. To supply measurability, \texttt{heq} rewrites the derivative as its explicit polynomial-Gaussian formula; continuity of the gradient then lets \texttt{fun\_prop} prove the required measurability. \texttt{Integrable.mono'} finishes using the coordinate energy bound. These are the actual derivative integrals needed before applying Fubini or integration by parts.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_fderiv\_frozenGaussianFlux\_coord}.
+
+\section{Apply global integration by parts after proving all three product integrabilities}
+
+
+For one unit coordinate \(v\), global integration by parts gives
+
+\[\int D_v\langle F_{t,x}(y),v\rangle\,\psi(y)\,d\mu(x)\,dy=-\int\langle F_{t,x}(y),v\rangle D_v\psi(y)\,d\mu(x)\,dy.\]
+
+The proof first constructs all three required integrable products: \texttt{hDf} is the derivative of the flux times the bounded test, \texttt{hFg} is the flux times the finite-energy test derivative, and \texttt{hFf} is the boundary product. Fubini gives the corresponding section integrability for almost every initial state. At each such state, the Gaussian flux coordinate is differentiable and the test is differentiable because it is \(C^1\). Lean applies \texttt{integral\_mul\_fderiv\_eq\_neg\_fderiv\_mul\_of\_integrable} on the whole space, then integrates the section identity back over the initial law. The theorem's boundary condition is integrability of the actual product, not an unproved pointwise decay statement.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianFlux\_coord\_weak\_identity}.
+
+\section{Derive the actual weak PDE for every bounded C1 finite-energy test}
+
+
+Sum the coordinate identities over an orthonormal basis. The divergence identity turns the sum on the left into \(\dot K_t\), while completeness of the basis turns the sum on the right into \(\langle F_{t,x},\nabla\psi\rangle\). Fubini then yields
+
+\[\int\dot p_t(y)\psi(y)\,dy=-\int\langle F_{t,x}(y),\nabla\psi(y)\rangle\,d\mu(x)\,dy.\]
+
+Lean calls the coordinate integrands \texttt{A} and \texttt{B}. Their integrability is \texttt{hA} and \texttt{hB}; their integral equality is \texttt{hEq}. The identities \texttt{hsumA} and \texttt{hsumB} perform the two basis sums pointwise. Kernel time-derivative integrability times boundedness of the test gives \texttt{hDot}, which justifies exchanging its initial-state and proposed-state integrals. Finally \texttt{integral\_finsetSum} commutes the finite sums and integrals. Every premise has been derived from the explicit Gaussian law, initial gradient energy, and the ordinary bounded finite-energy test conditions.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLebesgueDensity\_weak\_identity}.
+
+\end{document}

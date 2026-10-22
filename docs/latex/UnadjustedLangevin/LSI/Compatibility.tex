@@ -1,0 +1,125 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Why the LSI constant cannot exceed smoothness}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/Compatibility.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+Write \(\nu(dx)=Z^{-1}e^{-U(x)}dx\), with \(\nabla U\) globally \(L\)-Lipschitz, in a nonzero finite-dimensional real Hilbert space. The original positive \(C^1\) density formulation of LSI implies \(\alpha\le L\). The proof first derives a variance inequality for bounded smooth tests, then combines bounded sinusoidal tests with Gibbs integration by parts and the previously proved score bound. No position moment, transport inequality, Hessian, or strong convexity is assumed.
+
+
+\section{integrable exp mul bounded}
+
+
+If \(|f|\le B\), then \(tf\le |t|B\), so \(0<e^{tf}\le e^{|t|B}\). The right side is an integrable constant under every finite measure. Measurability follows from that of \(f\); \texttt{mono'} then proves actual integrability of the exponential. This establishes the whole real line as the domain of the moment generating function used below.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_exp\_mul\_bounded}.
+
+\section{exponential test}
+
+
+Let \(M(t)=\int e^{tf}\,d\nu\), \(\psi(t)=\log M(t)\), and \(r_t=e^{tf}/M(t)\). Boundedness of \(f\) proves \(0<M(t)<\infty\); the normalized tilt is therefore a probability measure. The proof constructs strict positivity and \(C^1\) regularity of \texttt{r} before testing the original LSI definition.
+
+
+
+The logarithmic identity \texttt{hl} is \(\log r_t=tf-\psi(t)\). Integration against the tilted law and Mathlib's identity \(\int f\,r_t\,d\nu=\psi'(t)\) give the actual KL value \(H(r_t\nu\mid\nu)=t\psi'(t)-\psi(t)\); boundedness proves its finiteness first. The gradient identity \texttt{hgrad} gives \(\nabla\log r_t=t\nabla f\). If \(\|\nabla f\|\le D\), its squared norm is at most \(t^2D^2\). This is integrable under the probability tilt, so Fisher information is finite. LSI now yields \(2\alpha(t\psi'(t)-\psi(t))\le t^2D^2\). Both finiteness guards are retained when converting the extended-valued inequality to real numbers.
+
+
+
+\noindent Lean declarations: \texttt{IsLogSobolev.exponential\_test}.
+
+\section{tendsto entropy quotient}
+
+
+For a \(C^3\) scalar function \(\psi\) with \(\psi(0)=0\), both numerator and denominator of \((t\psi'(t)-\psi(t))/t^2\) tend to zero as \(t\downarrow0\). The product rule cancels the two copies of \(\psi'(t)\), leaving numerator derivative \(t\psi''(t)\); the denominator derivative is \(2t\). On the punctured right neighborhood, their quotient equals \(\psi''(t)/2\). Continuity of the second derivative and one application of l'Hopital's rule prove the limit \(\psi''(0)/2\). The proof explicitly supplies the nonzero denominator derivative and both zero limits.
+
+
+
+\noindent Lean declarations: \texttt{tendsto\_entropy\_quotient}.
+
+\section{variance le of bounded}
+
+
+For bounded \(f\), its moment and cumulant generating functions are analytic on all real parameters. Mathlib's second derivative formula at zero is \(\psi''(0)=\int f^2\,d\nu-(\int f\,d\nu)^2\), since \(M(0)=1\). Thus no unproved assertion that LSI implies a spectral gap is inserted.
+
+
+
+Divide the exponential-test inequality by \(t^2>0\), for \(t>0\), and use \texttt{tendsto\_entropy\_quotient}. The left side tends to \(\alpha\operatorname{Var}_\nu(f)\), while the right side remains \(D^2\). Passing to the limit gives \(\alpha\operatorname{Var}_\nu(f)\le D^2\). The boundedness and gradient-bound hypotheses here describe this test function; they are not additional assumptions on the target.
+
+
+
+\noindent Lean declarations: \texttt{IsLogSobolev.variance\_le\_of\_bounded}.
+
+\section{integral gibbs weighted}
+
+
+Unfold \(\nu=Z^{-1}(e^{-U}dx)\). Scalar multiplication of a measure multiplies its real Bochner integral by \((Z^{-1})^{\mathrm{real}}\). The with-density integral formula then gives \(\int g\,d\nu=(Z^{-1})^{\mathrm{real}}\int e^{-U}g\,dx\). Continuity of \(U\) makes the weight measurable, and its pointwise value is finite. This equality concerns total integrals; integrability for its later uses is established separately.
+
+
+
+\noindent Lean declarations: \texttt{integral\_gibbs\_weighted}.
+
+\section{integrable gibbs weighted}
+
+
+Strict positivity of the Gibbs partition follows from differentiability of \(U\); the hypothesis here also excludes an infinite partition. Consequently multiplication of the weighted Lebesgue measure by \(Z^{-1}\) preserves integrability in both directions. The with-density integrability equivalence then gives \(g\in L^1(\nu)\) exactly when \(e^{-U}g\in L^1(dx)\). This is the justification for moving the bounded-test integration-by-parts calculation to Lebesgue measure.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_gibbs\_weighted}.
+
+\section{gibbs stein bounded}
+
+
+For bounded \(C^1\) \(\psi\) with bounded gradient and any fixed \(v\), prove \(\mathbb E_\nu[\psi\langle\nabla U,v\rangle]=\mathbb E_\nu\langle\nabla\psi,v\rangle\). The already established score MGF implies integrability of \(\langle\nabla U,v\rangle\). Multiplying it by bounded \(\psi\) preserves integrability. Bounded \(\nabla\psi\) also makes its directional derivative integrable.
+
+
+
+The three weighted functions required by Mathlib's global integration-by-parts theorem are therefore integrable: \(\psi e^{-U}\), \((D_v\psi)e^{-U}\), and \(\psi D_v(e^{-U})\). The explicit derivative \texttt{hw} is \(D_v(e^{-U})=-e^{-U}\langle\nabla U,v\rangle\). Integration by parts cancels the two minus signs; multiplying by the same Gibbs normalizer on both sides gives the identity. Boundary vanishing and coordinate moments are not separate hypotheses.
+
+
+
+\noindent Lean declarations: \texttt{gibbs\_stein\_bounded}.
+
+\section{integral mul sq le}
+
+
+For real \(L^2\) functions \(f,g\), Holder's inequality proves \(fg\in L^1\); their squares are integrable as well. For every real \(c\), integrate \((cf+g)^2\ge0\) to obtain the quadratic \((\int f^2)c^2+2(\int fg)c+\int g^2\ge0\). Its discriminant is nonpositive. Dividing the resulting algebraic inequality by four gives \((\int fg)^2\le(\int f^2)(\int g^2)\). This elementary squared Cauchy-Schwarz form avoids square roots in the compatibility argument.
+
+
+
+\noindent Lean declarations: \texttt{integral\_mul\_sq\_le}.
+
+\section{logSobolev constant le smoothness}
+
+
+Choose \(\|v\|=1\), possible because the space is nontrivial. Put \(s(x)=\langle\nabla U(x),v\rangle\). The score MGF gives \(\mathbb E s^2\le L\); the bounded Stein identity with \(\psi=1\) gives \(\mathbb E s=0\).
+
+
+
+For \(t>0\), use the bounded test \(f_t(x)=\sin(t\langle v,x\rangle)\). Its gradient is \(t\cos(t\langle v,x\rangle)v\), so its norm is at most \(|t|\). The bounded-test variance theorem gives \(\alpha\operatorname{Var}(f_t)\le t^2\). Stein's identity and score centering give \(\mathbb E[s(f_t-\mathbb Ef_t)]=t\mathbb E\cos(t\langle v,X\rangle)\). Squared Cauchy-Schwarz now yields \(t^2(\mathbb E\cos(t\langle v,X\rangle))^2\le L\operatorname{Var}(f_t)\).
+
+
+
+Multiply by \(\alpha\ge0\), insert the variance bound, and cancel \(t^2>0\). This proves \(\alpha(\mathbb E\cos(t\langle v,X\rangle))^2\le L\). Dominated convergence applies because cosine is bounded by one and tends pointwise to one as \(t\downarrow0\). Its expectation tends to one, proving \(\alpha\le L\). No integrability of \(X\) itself is needed.
+
+
+
+\noindent Lean declarations: \texttt{logSobolev\_constant\_le\_smoothness}.
+
+\section{constant le smoothness}
+
+
+This wrapper removes two temporary restrictions from the previous proof. If \(\alpha<0\), then \(\alpha\le0\le L\) immediately. Otherwise, LSI includes the assertion that the Gibbs law is a probability measure. An infinite partition would make its normalizing scalar zero and hence make the Gibbs measure zero, contradicting mass one. Thus the partition is finite internally, and the nonnegative-constant compatibility theorem applies. The final hypotheses are precisely LSI, differentiability, Lipschitz gradient, finite dimension, and a nontrivial state space.
+
+
+
+\noindent Lean declarations: \texttt{IsLogSobolev.constant\_le\_smoothness}.
+
+\end{document}

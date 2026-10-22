@@ -87,34 +87,30 @@ The [ULA proof under LSI](UnadjustedLangevin/LSI/exposition/index.html) follows
 [Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf):
 for $0<h\le\alpha/(4L^2)$, the KL bound is
 $H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+8hnL^2/\alpha$.
-The Lean endpoint `ULA.LSI.ula_kl_bound_of_interpolation` is **conditional** on
-explicit density, interpolation, and moment hypotheses, including
-$\alpha\le L$. The guide identifies the remaining analytic work needed for a
-complete proof from only the published LSI and smoothness assumptions. The
-offline proof pages explain every LSI declaration beside its exact Lean source
-and compares the argument with the paper; the [module guide](UnadjustedLangevin/LSI/README.md)
-lists the remaining obligations and build instructions. The development now
-constructs the actual positive-time Gaussian mixture and Gibbs-relative density,
-the state-dependent conditional drift with its Jensen energy and flux identities,
-the coupling-to-gradient-moment estimate, and an interior-time entropy comparison.
-LSI-to-transport, entropy regularity and the admissible entropy weak equation still
-require formal proofs before the main Lean theorem becomes unconditional.
+The complete Lean endpoint `ULA.LSI.ula_kl_bound` in
+[UnconditionalTheorem.lean](UnadjustedLangevin/LSI/UnconditionalTheorem.lean)
+proves this bound from differentiability, Lipschitz gradient, LSI, the step
+restriction, and finite initial KL. Its conclusion includes finite KL at every
+actual Gaussian ULA iterate. The proof derives compatibility $\alpha\le L$,
+the score moment, positive-time density and entropy calculus, the actual weak
+equation, and the initial endpoint. It uses a direct score-exponential argument,
+so no LSI-to-transport premise is needed. The offline pages and downloadable
+LaTeX explain these arguments beside their exact Lean declarations.
 
 The [IPLA entropy extension](IPLA/LSI/exposition/index.html) derives a general
 particle bound from the actual lifted Gibbs target's LSI constant $\beta_N$.
 When that target has the admissible constant $N\alpha$, the per-particle KL
 bias is $(8\gamma L^2/\alpha)(d_x+d_\theta/N)$ and the contraction factor is
-$e^{-\alpha\gamma k}$. This conclusion retains the shared interpolation
-assumptions. A pair-target LSI is not substituted for the lifted-target
+$e^{-\alpha\gamma k}$. The new finite-KL endpoint derives all shared interpolation estimates. A pair-target LSI is not substituted for the lifted-target
 hypothesis, and parameter KL is controlled by the full joint entropy.
 
 | Location | Purpose |
 | --- | --- |
 | [`UnadjustedLangevin/`](UnadjustedLangevin/README.md) | Reusable analysis, Gaussian and Brownian constructions, Gibbs measures and stationarity, transport estimates, and the ULA convergence theorem. |
 | [`UnadjustedLangevin/Analysis/`](UnadjustedLangevin/Analysis/) | Shared smoothness estimates; convexity support is in [`StrongConvexity.lean`](UnadjustedLangevin/StrongConvexity.lean). |
-| [`UnadjustedLangevin/LSI/`](UnadjustedLangevin/LSI/README.md) | KL/Fisher calculus, Gaussian interpolation laws, and conditional ULA entropy bounds under LSI. |
+| [`UnadjustedLangevin/LSI/`](UnadjustedLangevin/LSI/README.md) | KL/Fisher calculus, Gaussian interpolation laws, and the full ULA entropy theorem under LSI. |
 | [`IPLA/`](IPLA/exposition/README.md) | Lifted particle geometry, identification of IPLA with ULA, the parameter marginal and its log-concavity and concentration, and the final IPLA theorem. |
-| [`IPLA/LSI/`](IPLA/LSI/README.md) | Conditional particle entropy bounds, exact normalization and parameter KL projection under a lifted-target LSI. |
+| [`IPLA/LSI/`](IPLA/LSI/README.md) | Particle entropy bounds from finite initial KL, exact normalization and parameter KL projection under a lifted-target LSI. |
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Actual proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |

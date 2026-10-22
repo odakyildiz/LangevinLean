@@ -85,9 +85,9 @@ MYPGD = PROX_SETUP + r'''<p>MYPGD uses the MYIPLA drift and erases its parameter
 
 CONFIG = {
     'UnadjustedLangevin':dict(label='Wasserstein convergence',title='Unadjusted Langevin under Strong Convexity',subtitle='A quantitative sampling theorem with a constructed stationary reference.',
-        status='The strongly convex convergence theorems construct their Brownian reference and prove Gibbs stationarity. The separate LSI extension retains explicit analytic interpolation hypotheses.',
+        status='The strongly convex convergence theorems construct their Brownian reference and prove Gibbs stationarity. The LSI extension derives its entropy bound from smoothness, LSI, and finite initial KL.',
         archive='UnadjustedLangevin/exposition/dist/index.html',archive_label='Extended teaching document and Lean notes',
-        extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · conditional proof and reference audit')],
+        extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · full proof and reference audit')],
         results=[dict(title='Small-step Gaussian ULA',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan',body=ULA_SETUP+r'''<p>If \(0&lt;h\le2/(m+L)\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(1-mh)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac Lm\sqrt{hd}.\]<p>The rational coefficient \(33/20\) is exactly \(1.65\). The initial term uses the true Wasserstein infimum over couplings.</p>'''),
                  dict(title='The other stable step-size regime',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The strict upper endpoint ensures the denominator is positive. Both regimes follow from the same scalar recurrence, using their respective contraction factors.</p>''')],
         diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contract the gradient step','q = 1 − mh or Lh − 1'),
@@ -101,9 +101,9 @@ CONFIG = {
                  node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Identify the Gaussian laws','Independent transitions give the chain',('brownian',)),
                  node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','Canonical ULA theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
     'IPLA':dict(label='Particle convergence',title='Interacting Particle Langevin under Strong Convexity',subtitle='A parameter error bound from the joint potential and the actual particle recursion.',
-        status='The final strongly convex theorem derives its stationary reference, target moments, and equilibrium concentration from the joint-potential assumptions. Parameter and latent dimensions are independent. The entropy extension is conditional.',
+        status='The final strongly convex theorem derives its stationary reference, target moments, and equilibrium concentration from the joint-potential assumptions. Parameter and latent dimensions are independent. The entropy extension proves its bound from a lifted-target LSI and finite initial joint KL.',
         archive='IPLA/exposition/proof.html',archive_label='Extended statement correspondence and assumption audit',
-        extra=[('IPLA/LSI/exposition/index.html','Particle entropy under a lifted-target LSI · conditional proof'),('docs/modules/IPLA/Standalone.html','Standalone Mathlib-only theorem · full dependency proofs')],
+        extra=[('IPLA/LSI/exposition/index.html','Particle entropy under a lifted-target LSI · full proof'),('docs/modules/IPLA/Standalone.html','Standalone Mathlib-only theorem · full dependency proofs')],
         results=[dict(title='Parameter error for the actual IPLA recursion',file='IPLA/Theorem.lean',name='theorem1',body=IPLA_STATEMENT)],
         diagram=[node('geometry',0,0,'IPLA/Geometry.lean','Lift and rescale particles','Dimension dθ + N dx; curvature Nm'),
                  node('gibbs',0,1,'IPLA/Foundations.lean','Normalize the lifted target','Derived probability and finite moments'),
@@ -170,7 +170,7 @@ def home_document(lib, config, notes, sources, parsed, math):
     body+='</section><section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
     body+=proof_diagram(config['diagram'],page,config['title']+' proof roadmap')+'</section>'
     if config.get('proof'):
-        body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and any remaining formalization obligations.</p>'
+        body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and explain their role in the proof.</p>'
         for i,part in enumerate(config['proof'],1):
             body+=(f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair"><div class="math-pane">'+math(part['body'])+'</div><div class="lean-pane">')
             if part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
@@ -218,7 +218,7 @@ def project_document(notes):
         config=CONFIG[key]
         body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
                f'<a href="{key}/exposition/index.html">Theorem and proof →</a>')
-        if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The mathematical argument and current scope of its Lean formalization are stated separately.</p>'
+        if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The actual Gaussian ULA theorem includes finite KL at every iterate.</p>'
         if key=='IPLA':body+='<p class="small card-scope">Entropy analogue: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a>.</p>'
         body+='</article>'
     body+='</section><section class="section reading-guide"><div><h2>Read the proof at two levels</h2><p>Start with the mathematical theorem and its assumptions. The roadmap leads to each supporting result. Mathematical derivations sit beside Lean; named proof constructions link directly to the source lines they explain.</p><p>Use the reading selector to view mathematics alone, Lean alone, or both. LaTeX proof documents are available from every module page.</p></div><div><h2>Check it yourself</h2><p>The repository contains the source, pinned dependencies, and local verification commands. After cloning, run:</p>'
