@@ -157,11 +157,10 @@ def diagram_svg(sources):
         parts.append(f'<path class="proof-edge" data-from="{start}" data-to="{end}" d="{route}"/>')
     for node in NODES:
         x, y = node["x"], node["y"]
-        href = posixpath.relpath(node["file"], "IPLA/exposition")
+        href = posixpath.relpath("docs/modules/" + node["file"].removesuffix(".lean") + ".html", "IPLA/exposition")
         parts.append(
             '<a class="proof-node ' + node["kind"] + '" id="proof-' + node["id"] +
-            '" href="' + html.escape(href, quote=True) + '" data-lean-source="' +
-            html.escape(node["file"], quote=True) + '" data-declaration="' +
+            '" href="' + html.escape(href, quote=True) + '" data-declaration="' +
             html.escape(node["declaration"], quote=True) + '" tabindex="0" '
             'aria-label="' + html.escape(node["title"] + ". Open " + node["file"], quote=True) +
             f'"><title>{html.escape(node["file"] + " · " + node["declaration"])}</title>'

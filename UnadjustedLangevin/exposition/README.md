@@ -1,11 +1,19 @@
 # Langevin proof document
 
-Open `dist/index.html` directly in a browser. It is a single self-contained file:
+Open [index.html](index.html) for the common ULA overview: standalone statements
+beside Lean, verification commands, a clickable proof diagram, and a searchable
+directory of every module and subfile. Each module has a parallel mathematical
+proof and complete Lean source, plus a downloadable LaTeX exposition.
+Regenerate this complete proof site with `python3 docs/build_site.py` and verify
+it with `python3 docs/verify_site.py` from the repository root. Its authored
+proofs live in `module_notes.json`; see [the common documentation guide](../../docs/README.md).
+
+The extended teaching document remains at `dist/index.html`. It is a single self-contained file:
 the mathematical typesetting, fonts, exact Lean excerpts, complete source files,
 and interactions all work offline.
 
-`index.html`, `main_theorem.html`, and `beginner_guide.html` in this directory
-are shortcuts to that finished document. The editable fragments live under
+`main_theorem.html` and `beginner_guide.html` in this directory
+are shortcuts to that teaching document. The editable fragments live under
 `templates/` with `.html.inc` extensions; they are build inputs, not pages to
 open. Running the builder also recreates the shortcuts, including their section
 anchors and a visible link if automatic redirection is disabled.

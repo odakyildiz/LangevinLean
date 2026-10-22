@@ -1,0 +1,245 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Gaussian and Brownian noise moments}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/GaussianMoments.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+Fix a natural-number dimension \(d\in\mathbb N\), write \(E_d=\mathbb R^d\) with its Euclidean norm, and let \(P\) be a measure on \(\Omega\). A law statement \(X_i\sim\mathcal N(0,v)\) below means that the coordinate is almost everywhere measurable and has the stated pushforward measure. We prove the required \(L^2\) norms from these laws. Coordinate independence is unnecessary for second moments because \(\|X\|^2=\sum_iX_i^2\) has no cross terms.
+
+
+
+For Brownian processes the input is mathlib’s actual scalar pre-Brownian law predicate, whose marginal and increment laws supply the Gaussian hypotheses. These facts establish the noise moments; existence and stationarity of a coupled Langevin reference require separate inputs.
+
+
+\section{Second moment of a centered Gaussian}
+
+
+For nonnegative variance \(v\), the centered Gaussian law has second moment
+
+\[\int_{\mathbb R}x^2\,d\mathcal N(0,v)(x)=v.\]
+
+The known Gaussian variance is \(v\). Expand variance as \(\int(x-\mathbb E[x])^2\), and insert the Gaussian mean \(\mathbb E[x]=0\).
+
+
+
+Simplify \(x-0=x\). The variance integral is now exactly the required second moment.
+
+
+
+\noindent Lean declarations: \texttt{centered\_gaussian\_second\_moment}.
+
+\section{Gaussian coordinates give a square-integrable vector}
+
+
+Let \(X:\Omega\to E_d\), and suppose every coordinate satisfies \(X_i\sim\mathcal N(0,v)\) under \(P\), with \(v\ge0\). Then \(X\in L^2(P;E_d)\).
+
+
+
+In finite-dimensional Euclidean space, square integrability is equivalent to square integrability of each coordinate. Each coordinate belongs to \(L^2\) because its Gaussian law has a finite second moment; transfer that membership along the equality of laws.
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_vector\_memLp}.
+
+\section{Sum the coordinate moments}
+
+
+Under the same coordinate Gaussian laws,
+
+\[\int_\Omega\|X(\omega)\|^2\,dP(\omega)=dv.\]
+
+For each coordinate \(i\), retain the proved square integrability \(X_i\in L^2(P)\). It will justify integrating the finite sum of squared coordinates.
+
+
+
+Change variables using the law of \(X_i\), then apply the scalar Gaussian moment:
+
+\[\int_\Omega X_i^2\,dP=\int_{\mathbb R}x^2\,d\mathcal N(0,v)=v.\]
+
+Expand the squared Euclidean norm and interchange the finite sum and integral:
+
+\[\int_\Omega\|X\|^2\,dP=\sum_{i=0}^{d-1}\int_\Omega X_i^2\,dP.\]
+
+Every summand is integrable by its \(L^2\) membership.
+
+
+
+Each of the \(d\) summands equals \(v\); hence their sum is \(dv\).
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_vector\_second\_moment}.
+
+\section{The Gaussian vector as an L\ensuremath{{}^{2}} class}
+
+
+Let \([X]\) be the \(L^2\) equivalence class constructed from \(X\), whose coordinates have laws \(\mathcal N(0,v)\). Then
+
+\[\|[X]\|_{L^2}^2=dv.\]
+
+Express the squared \(L^2\) norm as the self-inner-product, then use the definition of the \(L^2\) inner product as an integral.
+
+
+
+The chosen representative of \([X]\) equals \(X\) almost everywhere. Therefore the integrand \(\langle[X](\omega),[X](\omega)\rangle\) agrees almost everywhere with \(\|X(\omega)\|^2\), so the two integrals agree.
+
+
+
+Substitute the integral identity and the vector second-moment calculation \(\int\|X\|^2\,dP=dv\).
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_vector\_toLp\_norm\_sq}.
+
+\section{The square-root Gaussian norm}
+
+
+For the same Gaussian coordinate laws,
+
+\[\|[X]\|_{L^2}=\sqrt{dv}.\]
+
+This includes \(d=0\) and \(v=0\).
+
+
+
+Replace \(dv\) by \(\|[X]\|^2\). Since norms are nonnegative, \(\sqrt{\|[X]\|^2}=\|[X]\|\).
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_vector\_toLp\_norm}.
+
+\section{Include the Langevin diffusion factor}
+
+
+If every coordinate of \(X\) has law \(\mathcal N(0,v)\), then the Langevin-scaled vector satisfies
+
+\[\|\sqrt2[X]\|_{L^2}=\sqrt{2d}\sqrt v.\]
+
+Norm homogeneity gives \(\|\sqrt2[X]\|=\sqrt2\|[X]\|\), because \(\sqrt2\ge0\). Insert \(\|[X]\|=\sqrt{dv}\), then split the square roots of the nonnegative products.
+
+
+
+Rearrange \(\sqrt2\sqrt d\sqrt v\) into \(\sqrt{2d}\sqrt v\).
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_vector\_scaled\_l2\_norm}.
+
+\section{Assemble Brownian coordinates}
+
+
+For scalar processes \(W_i:[0,\infty)\times\Omega\to\mathbb R\), define the Euclidean vector
+
+\[W_t(\omega):=(W_0(t,\omega),\ldots,W_{d-1}(t,\omega))\in E_d.\]
+
+Collect the coordinates at the fixed time \(t\) and outcome \(\omega\), using the finite-dimensional \(\ell^2\) norm.
+
+
+
+\noindent Lean declarations: \texttt{brownianVector}.
+
+\section{Brownian marginals are Gaussian}
+
+
+Assume each scalar \(W_i\) satisfies \(\mathrm{IsPreBrownianReal}\) under \(P\). For each \(t\ge0\) and coordinate \(i\),
+
+\[W_t^{(i)}\sim\mathcal N(0,t).\]
+
+Apply the scalar Brownian marginal-law theorem at time \(t\). The \(i\)-th coordinate of the assembled vector is definitionally the original scalar process.
+
+
+
+\noindent Lean declarations: \texttt{brownianVector\_coordinate\_law}.
+
+\section{Brownian vectors belong to L\ensuremath{{}^{2}}}
+
+
+Under the scalar pre-Brownian assumptions, for every \(t\ge0\),
+
+\[W_t\in L^2(P;E_d).\]
+
+Apply Gaussian vector square integrability with variance \(v=t\), using the just-proved marginal laws of all coordinates.
+
+
+
+\noindent Lean declarations: \texttt{brownianVector\_memLp}.
+
+\section{The exact Brownian noise norm}
+
+
+For scalar pre-Brownian coordinates and \(t\ge0\),
+
+\[\|\sqrt2[W_t]\|_{L^2}=\sqrt{2d}\sqrt t.\]
+
+Specialize the scaled Gaussian vector norm to the Brownian vector, whose coordinate variance is \(t\). This derives the square-root noise scale from the Brownian laws.
+
+
+
+\noindent Lean declarations: \texttt{brownianVector\_scaled\_l2\_norm}.
+
+\section{Define an increment from any starting time}
+
+
+For \(a,t\ge0\), define the vector increment over the interval \([a,a+t]\) by
+
+\[\Delta_aW_t(\omega):=W_{a+t}(\omega)-W_a(\omega).\]
+
+Subtract the two Euclidean vectors at the interval endpoints. Each coordinate is the corresponding scalar Brownian increment.
+
+
+
+\noindent Lean declarations: \texttt{brownianVectorIncrement}.
+
+\section{Increment variance is elapsed time}
+
+
+Under the scalar pre-Brownian assumptions, for every \(a,t\ge0\) and every coordinate \(i\),
+
+\[W_i(a+t)-W_i(a)\sim\mathcal N(0,t).\]
+
+Expand the vector increment to its scalar coordinate. Apply the Brownian difference-law theorem at times \(a+t\) and \(a\); its variance is the nonnegative distance between those times.
+
+
+
+It remains to identify that variance. As real numbers,
+
+\[|(a+t)-a|=|t|=t,\]
+
+because \(t\ge0\). Thus the increment law is exactly \(\mathcal N(0,t)\).
+
+
+
+\noindent Lean declarations: \texttt{brownianVectorIncrement\_coordinate\_law}.
+
+\section{Increments are square integrable}
+
+
+For pre-Brownian coordinates and any \(a,t\ge0\),
+
+\[\Delta_aW_t\in L^2(P;E_d).\]
+
+Each increment coordinate has the centered Gaussian law of variance \(t\), so the Gaussian vector integrability theorem applies.
+
+
+
+\noindent Lean declarations: \texttt{brownianVectorIncrement\_memLp}.
+
+\section{The same noise norm on every reference segment}
+
+
+For scalar pre-Brownian coordinates and every \(a,t\ge0\),
+
+\[\boxed{\|\sqrt2[W_{a+t}-W_a]\|_{L^2}=\sqrt{2d}\sqrt t.}\]
+
+Apply the scaled Gaussian vector norm to the increment coordinate laws. The answer depends only on elapsed time \(t\), so every reference interval has the same moment bound.
+
+
+
+\noindent Lean declarations: \texttt{brownianVector\_increment\_scaled\_l2\_norm}.
+
+\end{document}

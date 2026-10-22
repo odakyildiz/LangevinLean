@@ -1,13 +1,15 @@
 # LangevinLean
 
-An early research project for Lean formalizations of sampling algorithms,
-starting with strongly convex unadjusted Langevin (ULA) and interacting particle
-Langevin (IPLA). Mathematical exposition links directly to the Lean sources.
-The shared theory is organized for reuse by further methods as they are added.
+Lean formalizations of unadjusted Langevin (ULA), interacting particle Langevin
+(IPLA), and proximal particle algorithms. Mathematical statements and proofs are
+paired with the exact Lean declarations, including every supporting subfile.
+The shared theory is organized for reuse by further methods.
 
-Open the [documentation homepage](index.html), then follow the ULA or IPLA links.
-The IPLA main page includes a clickable proof diagram and an embedded source
-viewer. Relative links and bundled mathematical typesetting work after cloning;
+Open the [documentation homepage](index.html), then choose ULA, IPLA, or proximal
+algorithms. Each overview has standalone mathematical results beside Lean,
+verification commands, and a proof diagram whose boxes open detailed HTML
+proof pages. Every Lean file has a module page and downloadable LaTeX exposition.
+Relative links and bundled mathematical typesetting work offline after cloning;
 no website account or documentation build is needed to read the pages.
 
 ## Clone and compile
@@ -32,6 +34,9 @@ Check the theorem dependencies and compile the standalone IPLA theorem:
 ```sh
 lake env lean UnadjustedLangevin/Check.lean
 lake env lean IPLA/Check.lean
+lake env lean ProximalLangevin/Check.lean
+lake env lean UnadjustedLangevin/LSI/Check.lean
+lake env lean IPLA/LSI/Check.lean
 lake env lean IPLA/Standalone.lean
 ```
 
@@ -59,14 +64,15 @@ Then visit `http://127.0.0.1:8000/`. Serve the repository root so links from
 exposition pages to `.lean` files retain their relative paths. The committed
 HTML includes the offline fonts, formula rendering, and source viewers.
 
-- **ULA:** [proof document](UnadjustedLangevin/exposition/dist/index.html),
+- **ULA:** [theorem, workflow, and proof diagram](UnadjustedLangevin/exposition/index.html),
   [library guide](UnadjustedLangevin/README.md), and
   [canonical theorem](UnadjustedLangevin/CanonicalULA.lean).
-- **IPLA:** [statement, proof diagram, and source viewer](IPLA/exposition/index.html),
+- **IPLA:** [theorem, workflow, and proof diagram](IPLA/exposition/index.html),
   [statement and assumption correspondence](IPLA/exposition/README.md),
   [final theorem](IPLA/Theorem.lean), and
   [standalone Lean file](IPLA/Standalone.lean).
-- **Proximal algorithms:** [proofs and v3 paper audit](ProximalLangevin/exposition/index.html)
+- **Proximal algorithms:** [three main bounds, workflow, and proof diagram](ProximalLangevin/exposition/index.html),
+  [detailed proofs and v3 paper audit](ProximalLangevin/exposition/proof.html),
   and [scope and module guide](ProximalLangevin/README.md). Corrected MYIPLA,
   PIPGLA and MYPGD actual-law bounds and corrected mean-field results are proved;
   the ledger identifies remaining results.
@@ -102,7 +108,8 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`IPLA/LSI/`](IPLA/LSI/README.md) | Conditional particle entropy bounds, exact normalization and parameter KL projection under a lifted-target LSI. |
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Actual proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
-| [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/dist/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html) | Offline exposition, source viewers, and verification reports. |
+| [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
+| [`docs/`](docs/README.md) | Complete module proof atlas, mathematical LaTeX exports, shared renderer, and documentation integrity checks. |
 
 The dependency runs from IPLA to `UnadjustedLangevin`; the ULA library has no
 IPLA imports. IPLA applies the existing ULA estimate to its lifted potential,
@@ -127,10 +134,33 @@ Reading the committed pages needs only a browser. Regeneration needs Python 3
 and Node.js; the formula typesetter is vendored, so no npm installation is needed.
 
 ```sh
+python3 docs/build_site.py
+python3 docs/verify_site.py
+```
+
+The hand-authored `exposition/module_notes.json` files explain every native
+declaration and probability instance. The common builder rejects missing
+modules, missing explanations, and malformed formulas. The verifier compares
+all excerpts against Lean, checks source/input/output hashes, validates local
+HTML links and diagram destinations, and checks every LaTeX export. See the
+[documentation guide](docs/README.md) for the file structure and reading controls.
+
+To regenerate the extended teaching documents, reference audits, and standalone
+IPLA artifact as well:
+
+```sh
 python3 UnadjustedLangevin/exposition/build_document.py
 python3 UnadjustedLangevin/exposition/verify_document.py
 python3 IPLA/build_artifacts.py
 python3 IPLA/verify.py
+python3 ProximalLangevin/exposition/build_document.py
+python3 ProximalLangevin/exposition/verify_document.py
+python3 UnadjustedLangevin/LSI/exposition/build_document.py
+python3 UnadjustedLangevin/LSI/exposition/verify_document.py
+python3 IPLA/LSI/exposition/build_document.py
+python3 IPLA/LSI/exposition/verify_document.py
+python3 docs/build_site.py
+python3 docs/verify_site.py
 ```
 
 The verifiers compare embedded Lean source and theorem statements with the

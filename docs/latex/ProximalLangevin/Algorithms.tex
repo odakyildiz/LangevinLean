@@ -1,0 +1,112 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Exact maps for MYIPLA, PIPULA and PIPGLA}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{ProximalLangevin/Algorithms.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+Write \(F_g(z)=\sum_i g(J_i z)\), \(h=\gamma/N\), and \(a=\sqrt{2\gamma/N}\). This module first defines pointwise algorithms for an arbitrary joint map \(P\); probabilistic assumptions enter later modules.
+
+
+\section{The pair map and coordinate outputs}
+
+
+Define \(\operatorname{Pair}_P(z)_\theta=N^{-1}\sum_i(P(J_i z))_\theta\) and \(\operatorname{Pair}_P(z)_{x_i}=N^{-1/2}(P(J_i z))_x\). The two coordinate lemmas are definitionally true: unfold the case distinction between parameter and latent indices. This averaging is part of the algorithm, and does not assert that the map minimizes a lifted objective.
+
+
+
+\noindent Lean declarations: \texttt{pairwiseMap}, \texttt{pairwiseMap\_parameter}, \texttt{pairwiseMap\_particle}.
+
+\section{Where each algorithm places its noise}
+
+
+PIPGLA, v3 equations (11)–(14), first takes the noisy smooth \(g_1\) step and then applies the averaged pairwise proximal map. In scaled coordinates it is
+
+
+\[
+y_n=z_n-\frac\gamma N\nabla\!\left(\sum_i g_1(J_i z_n)\right)
+ +\sqrt{\frac{2\gamma}{N}}\xi_n,
+\qquad z_{n+1}=\operatorname{Pair}_{P_\lambda}(y_n).
+\]
+
+
+PIPULA is the special MYIPLA update with \(g_1=0\) and \(\lambda=\gamma\), followed by Gaussian noise. Both distinctions are encoded in separate definitions and proved reduction identities. The PIPGLA proximity step occurs after the noise; its target in the v3 convergence analysis is the original nonsmooth Gibbs model. The MYIPLA theorem cannot be reused merely by renaming this composition.
+
+
+
+For clarity, the expanded MYIPLA definition itself is
+
+\[T_{\mathrm{MY}}(z,\xi)=(1-\gamma/\eta)z-\frac\gamma N\nabla F_{g_1}(z)+\frac\gamma\eta\operatorname{Pair}_P(z)+\sqrt{2\gamma/N}\xi.\]
+
+These are exact definitions of pointwise maps. The residual-gradient theorem below proves when this expanded map equals a smoothed Euler step.
+
+
+
+\noindent Lean declarations: \texttt{pipulaUpdate}, \texttt{myiplaUpdate}, \texttt{pipglaUpdate}.
+
+\section{A recursion with supplied innovations}
+
+
+For an update \(T\), define \(Z_0=z_0\) and \(Z_{n+1}=T(Z_n,\xi_n)\). The zero and successor lemmas unfold these equations. Supplying the three explicit updates defines their full chains for any initial state and innovation sequence; Gaussianity, measurability and convergence are not premises of these pointwise definitions.
+
+
+
+\noindent Lean declarations: \texttt{algorithmChain}, \texttt{algorithmChain\_zero}, \texttt{algorithmChain\_succ}, \texttt{myiplaChain}, \texttt{pipulaChain}, \texttt{pipglaChain}.
+
+\section{The PIPULA specialization is an identity}
+
+
+PIPULA has parameter update \(N^{-1}\sum_i(P(J_i z))_\theta+a\xi_\theta\). In MYIPLA set \(g_1=0\) and \(\eta=\gamma\ne0\). The lifted gradient of the constant potential vanishes, \(1-\gamma/\gamma=0\), and \(\gamma/\gamma=1\), so the updates agree. Replacing the update in the common recursion proves equality at every iteration.
+
+
+
+\noindent Lean declarations: \texttt{pipulaUpdate\_parameter}, \texttt{pipulaUpdate\_eq\_myiplaUpdate}, \texttt{pipulaChain\_eq\_myiplaChain}.
+
+\section{Recover physical parameter and particle formulas}
+
+
+Differentiate the lifted sum: its parameter block is \(\sum_i\nabla_\theta g_1(J_i z)\), while its scaled latent block is \(\sqrt N\nabla_x g_1(J_i z)\). Substitution gives the displayed MYIPLA coordinate equations. Multiplying a latent coordinate by \(\sqrt N\) changes its noise coefficient to \(\sqrt{2\gamma}\) and its smooth force coefficient to \(\gamma\), using \(\sqrt N\sqrt{2\gamma/N}=\sqrt{2\gamma}\).
+
+
+
+\noindent Lean declarations: \texttt{myiplaUpdate\_parameter}, \texttt{myiplaUpdate\_particle}.
+
+\section{Residual proximity is exactly an Euler step}
+
+
+Given any map \(P\) on one joint parameter-particle pair, define its particle action by applying \(P\) separately to each \(J_i z\), averaging the resulting parameter coordinates, and dividing each resulting physical particle coordinate by \(\sqrt N\). The common parameter is not optimized independently for each particle and then kept as \(N\) separate state variables; the averaging is part of the algorithm.
+
+
+
+With \(P=P_\lambda\), MYIPLA in v3 equations (9)–(10) is exactly the noisy Euler step for \(V_\lambda=g_1+g_2^\lambda\). Indeed, the pairwise residual-gradient identity gives
+
+
+\[
+\operatorname{Pair}_P(z)=z-\frac\lambda N\nabla\!\left(\sum_i g_2^\lambda(J_i z)\right).
+\]
+
+
+Substituting this into the expanded MYIPLA formula cancels the extra multiples of \(z\), leaving
+
+
+\[
+z_{n+1}=z_n-\frac\gamma N\nabla\mathcal V_\lambda(z_n)
+ +\sqrt{\frac{2\gamma}{N}}\,\xi_n.
+\]
+
+
+The coordinate proofs also recover parameter noise \(\sqrt{2\gamma/N}\) and physical-particle noise \(\sqrt{2\gamma}\). The full recursion identity follows by induction on the iteration count.
+
+
+
+The recursion declarations include the initial and successor identities for each supplied innovation sequence. All pointwise identities concern the explicit state update, before any stochastic convergence theorem is applied.
+
+
+
+\noindent Lean declarations: \texttt{pairwiseMap\_eq\_gradient\_step}, \texttt{gradient\_add\_of\_differentiable}, \texttt{myiplaUpdate\_eq\_scaledUpdate}, \texttt{myiplaChain\_eq\_scaledChain}.
+
+\end{document}

@@ -1,0 +1,141 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Marginal partitions, existence and the exact parameter target}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{IPLA/MarginalConcentration.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+For differentiable jointly \(m\)-strongly convex \(U\), \(m>0\), this module proves finite positive latent partitions, continuity and vanishing parameter tails, existence of a maximizer, and the exact parameter projection of \(\Pi_N\). It establishes these facts before any logarithm, real conversion or concentration estimate is used.
+
+
+\section{Pair coordinates split the squared norm}
+
+
+The pairing map has parameter coordinates \(\theta_j\) and latent coordinates \(x_j\). Expanding the Euclidean squared norm over the disjoint index sets gives
+
+\[\|\operatorname{pair}(\theta,x)\|^2=\|\theta\|^2+\|x\|^2.\]
+
+Every output coordinate of pairing is a continuous product projection; the finite coordinate-to-Euclidean identification is continuous as well. Hence \((\theta,x)\mapsto\operatorname{pair}(\theta,x)\) is jointly continuous. These elementary identities justify the orthogonal Gaussian domination and later dominated convergence.
+
+
+
+\noindent Lean declarations: \texttt{pair\_parameter}, \texttt{pair\_particle}, \texttt{norm\_pair\_sq}, \texttt{continuous\_pair}.
+
+\section{Strong convexity supplies uniform Gaussian domination}
+
+
+The shared strong-convexity lower bound, obtained by bounding the linear term at zero, is
+
+\[U(v)\ge U(0)-\frac{\|\nabla U(0)\|^2}{m}+\frac m4\|v\|^2.\]
+
+Set \(C=\exp(\|\nabla U(0)\|^2/m-U(0))\) and \(a=m/4>0\). Exponentiation and the norm splitting yield
+
+\[e^{-U(\theta,x)}\le Ce^{-a\|\theta\|^2}e^{-a\|x\|^2}\le Ce^{-a\|x\|^2}.\]
+
+The final majorant is independent of \(\theta\) and integrable over the latent Euclidean space. Continuity supplies measurability, so domination proves integrability of every latent slice. No bounded parameter neighborhood is needed.
+
+
+
+\noindent Lean declarations: \texttt{marginal\_weight\_gaussian\_bound}, \texttt{marginal\_weight\_uniform\_bound}, \texttt{integrable\_marginal\_weight}.
+
+\section{The marginal is positive, finite and continuous}
+
+
+Let \(M(\theta)=\int e^{-U(\theta,x)}dx\). Slice integrability and nonnegativity identify the extended marginal with \(\operatorname{ofReal}(M(\theta))\). This excludes infinity. The integrand is strictly positive everywhere, and Lebesgue measure is nonzero, so \(M(\theta)>0\) and the extended marginal is strictly positive as well. If \(\theta_n\to\theta\), the integrands converge pointwise by continuity of \(U\), and the preceding common Gaussian majorant permits dominated convergence. Thus \(M\) is continuous; composing with the continuous \(\operatorname{ofReal}\) map proves continuity of the extended marginal.
+
+
+
+\noindent Lean declarations: \texttt{marginalDensity\_eq\_ofReal\_integral}, \texttt{marginalDensity\_ne\_top}, \texttt{marginalDensity\_pos}, \texttt{continuous\_marginal\_integral}, \texttt{continuous\_marginalDensity}.
+
+\section{Gaussian parameter tails force existence of a maximizer}
+
+
+Integrating the stronger Gaussian domination gives
+
+\[0<M(\theta)\le C\left(\int e^{-a\|x\|^2}dx\right)e^{-a\|\theta\|^2}.\]
+
+The finite constant is independent of \(\theta\), and the right-hand side tends to zero as \(\theta\) leaves compact sets. The squeeze theorem proves \(M(\theta)\to0\) at infinity. Since \(M(0)>0\), outside a sufficiently large compact region the values are below \(M(0)\). Continuity then attains a global maximum within a compact region. Monotonicity of \(\operatorname{ofReal}\) transfers that maximum to the extended marginal predicate. Uniqueness is proved later from Prékopa strong convexity.
+
+
+
+\noindent Lean declarations: \texttt{marginal\_integral\_gaussian\_bound}, \texttt{tendsto\_marginal\_integral\_cocompact}, \texttt{exists\_marginalMaximizer}.
+
+\section{Product integration and the particle-scaling Jacobian}
+
+
+Tonelli induction over \(n\) proves the extended-integral identity
+
+\[\int\prod_{i=1}^nf(x_i)\,d\mu^{\otimes n}=\left(\int f\,d\mu\right)^n.\]
+
+The base case is the mass-one empty product; the successor case separates one coordinate and multiplies the remaining integral. This statement records divergence correctly because no real conversion is used. For a nonzero real dilation \(r\) in dimension \(d\), Haar measure scaling gives \(\int f(rx)dx=|r^d|^{-1}\int f(x)dx\). Applying these two identities at \(r=\sqrt N\), with \(N>0\), yields
+
+\[\int\prod_i e^{-U(\theta,\sqrt N z_i)}\,dz_1\cdots dz_N=\left(N^{-d_x/2}M(\theta)\right)^N.\]
+
+The formal statement retains the absolute-value inverse-power Jacobian, which is equal to the displayed factor.
+
+
+
+\noindent Lean declarations: \texttt{lintegral\_fin\_prod\_eq\_pow}, \texttt{lintegral\_comp\_smul\_eq}, \texttt{scaled\_particle\_partition}.
+
+\section{A coordinate equivalence groups the state into \ensuremath{\theta} and particle blocks}
+
+
+The configuration map \(C(\theta,(z_i)_i)\) inserts the parameter coordinates first and then all particle coordinates. Its coordinate evaluation theorems follow directly from insertion. The inverse is \(z\mapsto(p_\theta z,(\operatorname{block}_iz)_i)\); checking each coordinate proves both inverse identities and linearity, hence a finite-dimensional continuous linear equivalence. The evaluation theorem identifies this equivalence with the configuration definition, while \(p_\theta C(\theta,z)=\theta\) and \(A_iC(\theta,z)=\operatorname{pair}(\theta,\sqrt N z_i)\). These identities give the exact arguments of the fiber integrals.
+
+
+
+\noindent Lean declarations: \texttt{configuration}, \texttt{configuration\_parameter}, \texttt{configuration\_particle}, \texttt{configurationCLE}, \texttt{configurationCLE\_apply}, \texttt{parameter\_configuration}, \texttt{joint\_configuration}.
+
+\section{The weight factors and its parameter projection integrates each fiber}
+
+
+In grouped coordinates, exponentiation converts the sum in \(V_N\) into a product:
+
+\[e^{-V_N(C(\theta,z))}=\prod_i e^{-U(\theta,\sqrt N z_i)}.\]
+
+Two measure identities justify using this pointwise formula. First, for a measurable equivalence \(e\), pushing \(\mu\) with weight \(w\circ e\) through \(e\) gives \((e_\#\mu)\) with weight \(w\); prove this by evaluating any measurable set and the pushforward integral formula. Second, projecting \(w(\theta,z)d\mu(\theta)d\nu(z)\) to its first coordinate gives density \(\int w(\theta,z)d\nu(z)\) relative to \(\mu\), by Tonelli on the indicator of an arbitrary measurable parameter set.
+
+
+
+\noindent Lean declarations: \texttt{weight\_configuration}, \texttt{map\_withDensity\_comp\_equiv}, \texttt{map\_fst\_withDensity}.
+
+\section{All finite positive volume constants cancel on normalization}
+
+
+A continuous linear equivalence carries Euclidean volume to a Haar measure, hence to \(c\) times the target volume for a finite positive \(c\). This proves the required coordinate-volume relation without assuming its scalar is one. For any measure \(\mu\) and \(0<c<\infty\), extended-real inverse multiplication gives
+
+\[\frac{c\mu}{(c\mu)(E)}=\frac{\mu}{\mu(E)}.\]
+
+Thus both the coordinate-grouping scalar and the particle-dilation Jacobian cancel in a normalized law. The formal normalization lemma proves this algebra for arbitrary \(\mu\), keeping the nonzero and finite conditions on \(c\) explicit.
+
+
+
+\noindent Lean declarations: \texttt{normalize\_smul\_eq}, \texttt{configuration\_map\_volume}.
+
+\section{The actual parameter marginal is the powered likelihood target}
+
+
+Define the normalized power target \(\pi_N^\theta(d\theta)=Z_\theta^{-1}M(\theta)^N d\theta\). To identify it, let \(\mu=e^{-V_N}dz\) and \(\rho=M(\theta)^Nd\theta\). Grouping coordinates changes volume by \(c\), and the fiber calculation contributes \(J^N\), \(J=N^{-d_x/2}\). The preceding pushforward identities prove \(c\,p_{\theta\#}\mu=J^N\rho\). Both scalars are finite and positive. Normalize this equality, cancel both scalars, and use preservation of total mass under measurable projection to conclude
+
+\[p_{\theta\#}\Pi_N=\pi_N^\theta.\]
+
+Every change of variables and normalization factor in this identity is proved; no formula for the marginal is assumed.
+
+
+
+\noindent Lean declarations: \texttt{marginalTarget}, \texttt{gibbsTarget\_parameter\_marginal}.
+
+\section{Normalize the power target and guard its moments}
+
+
+The established projection identity and the probability property of \(\Pi_N\) prove that \(\pi_N^\theta\) is a probability measure. Its unnormalized density \(M^N\) is everywhere positive, so its extended partition is strictly positive. If that partition were infinite, the definition of the normalized target would be the zero measure, contradicting mass one; thus it is also finite. Finally the lifted Gibbs law has a finite second moment and \(p_\theta\) is a bounded linear map. The pushforward integral identity therefore gives \(\theta\mapsto\theta\in L^2(\pi_N^\theta)\). This supplies finite marginal moments before the later sharp bound is applied.
+
+
+
+\noindent Lean declarations: \texttt{marginalTarget\_isProbability}, \texttt{marginalPartition\_pos}, \texttt{marginalPartition\_ne\_top}, \texttt{marginalTarget\_memLp}.
+
+\end{document}

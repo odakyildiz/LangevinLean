@@ -1,0 +1,121 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Construct the mean-field L\ensuremath{{}^{2}} integral equations}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{ProximalLangevin/MeanFieldProcess.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML places the complete Lean declarations beside every proof.
+
+
+Work on a probability space \(Q\), with \(H=L^2(Q;\mathbb R^{d_\theta+d_x})\). A potential \(V\) with globally \(L\)-Lipschitz gradient defines the actual mean-field drift. Its continuous finite-horizon integral solution is constructed by the Banach-space Picard theorem.
+
+
+\section{Expectation is a bounded linear map from L\ensuremath{{}^{2}}}
+
+
+The norm-of-integral inequality and \(\|X\|_{L^1}\le\|X\|_{L^2}\) on a probability space give \(\|\mathbb E_Q X\|\le\|X\|_2\). Bochner additivity and scalar linearity therefore define a bounded linear map \(\mathcal E:H\to E\) with operator norm at most one. The evaluation lemma records that its value is the actual integral.
+
+
+
+\noindent Lean declarations: \texttt{norm\_lp\_expectation\_le}, \texttt{lpExpectationCLM}, \texttt{lpExpectationCLM\_apply}, \texttt{lpExpectationCLM\_norm\_le}.
+
+\section{Coordinate projections and a parameter inclusion}
+
+
+Define \(P_x(\theta,x)=x\) and \(I_\theta(\theta)=(\theta,0)\). Their coordinate identities follow by evaluating the definitions. The Euclidean square identity \(\|(\theta,0)\|^2=\|\theta\|^2\), followed by nonnegative square-root cancellation, proves that \(I_\theta\) is an isometry.
+
+
+
+\noindent Lean declarations: \texttt{jointLatentCLM}, \texttt{jointLatentCLM\_apply}, \texttt{jointParameterInclusionCLM}, \texttt{jointParameterInclusionCLM\_parameter}, \texttt{jointParameterInclusionCLM\_latent}, \texttt{jointParameterInclusionCLM\_norm}.
+
+\section{A true latent mask erases all parameter coordinates}
+
+
+Set \(M_x=I-I_\theta P_\theta\). Its parameter block is zero and its latent block is unchanged. Expanding the Euclidean squared norm shows \(\|M_xz\|^2\le\|z\|^2\), since the discarded parameter square is nonnegative. Thus the mask is nonexpansive and remains bounded after composition on \(L^2\).
+
+
+
+\noindent Lean declarations: \texttt{jointLatentMaskCLM}, \texttt{jointLatentMaskCLM\_parameter}, \texttt{jointLatentMaskCLM\_latent}, \texttt{norm\_jointLatentMaskCLM\_le}.
+
+\section{Average exactly the parameter block}
+
+
+Construct the bounded linear map
+
+\[\mathcal M X=\operatorname{const}(I_\theta P_\theta\mathbb E_QX)+M_xX.\]
+
+The expectation estimate and coordinate contractions bound each term by \(\|X\|_2\), so \(\|\mathcal M X\|_2\le2\|X\|_2\). Linearity then proves \(\operatorname{Lip}(\mathcal M)\le2\). This is a conservative sufficient constant.
+
+
+
+\noindent Lean declarations: \texttt{meanFieldAverageCLM}, \texttt{meanFieldAverageCLM\_norm\_le}, \texttt{meanFieldAverageCLM\_lipschitz}.
+
+\section{Define the actual drift and apply Picard}
+
+
+Set \(\mathcal A_V(X)=\mathcal M(\nabla V(X))\). The Nemytskii map for the actual Lipschitz gradient preserves \(L^2\) and has constant \(L\), so \(\operatorname{Lip}(\mathcal A_V)\le2L\). For any continuous \(H\)-valued input \(B\) with \(B_0=0\), and any \(T\ge0\), Picard constructs continuous \(Y\) with \(Y_0=Y^{\rm in}\) and
+
+\[Y_t-Y^{\rm in}=-\int_0^t\mathcal A_V(Y_s)ds+B_t,\qquad0\le t\le T.\]
+
+The proof is an existence theorem in the actual complete Banach space \(H\).
+
+
+
+\noindent Lean declarations: \texttt{lpMeanFieldDrift}, \texttt{lpMeanFieldDrift\_lipschitz}, \texttt{exists\_lp\_meanField\_integral}.
+
+\section{Verify the intended block formulas in L\ensuremath{{}^{2}}}
+
+
+Almost everywhere representative equalities show
+
+\[(\mathcal M X)(\omega)=(\mathbb E_Q P_\theta X,\,P_xX(\omega)).\]
+
+Applying parameter projection gives the constant random variable \(\operatorname{const}(P_\theta\mathbb E_QX)\); applying latent projection gives \(P_xX\). The proofs explicitly combine the almost everywhere addition, constant and composition identities, so they are equalities in \(L^2\).
+
+
+
+\noindent Lean declarations: \texttt{meanFieldAverageCLM\_coe}, \texttt{meanFieldAverageCLM\_parameter}, \texttt{meanFieldAverageCLM\_latent}.
+
+\section{Identify the parameter force with the true marginal integral}
+
+
+Define \(a_V(X)=P_\theta\mathbb E_Q\nabla V(X)\), a continuous map on \(H\). The drift blocks are \(\operatorname{const}(a_V(X))\) and \(P_x\nabla V(X)\). If \(P_\theta X=\operatorname{const}(\theta)\), reconstruct \(X=(\theta,P_xX)\) almost everywhere. Commute the bounded projection through expectation and use the pushforward integral formula to prove
+
+\[a_V(X)=\int\nabla_\theta V(\theta,x)\,\mathcal L_Q(P_xX)(dx).\]
+
+\noindent Lean declarations: \texttt{lpMeanFieldParameterForce}, \texttt{lpMeanFieldParameterForce\_continuous}, \texttt{lpMeanFieldDrift\_parameter}, \texttt{lpMeanFieldDrift\_latent}, \texttt{lpMeanFieldParameterForce\_eq\_meanFieldDrift}.
+
+\section{Project the integral equation and construct a deterministic parameter}
+
+
+Suppose the initial parameter is constant \(\theta_0\) and \(P_\theta B_t=0\). Bounded linear maps commute with the Bochner time integral, so projecting the constructed equation gives \(P_\theta Y_t=\operatorname{const}(\theta_t)\), where \(\theta_t=\theta_0-\int_0^t a_V(Y_s)ds\). The continuous primitive proves continuity of \(\theta\). Set \(\mu_t=\mathcal L_Q(P_xY_t)\) and insert the force identity:
+
+\[\theta_t-\theta_0=-\int_0^t b_V(\theta_s,\mu_s)ds,\qquad P_xY_t-P_xY_0=-\int_0^tP_x\nabla V(Y_s)ds+P_xB_t.\]
+
+Both identities hold in their stated deterministic or \(L^2\) sense on the finite horizon.
+
+
+
+\noindent Lean declarations: \texttt{lp\_meanField\_parameter\_equation}, \texttt{lp\_meanField\_latent\_equation}, \texttt{exists\_lp\_meanField\_equations}.
+
+\section{Construct a continuous latent-only Brownian input}
+
+
+Apply the latent mask to the actual coordinate Brownian \(L^2\) noise. Brownian second moments prove its continuity in \(L^2\) and its zero value at time zero. Masking makes its parameter projection zero at every time. No separate continuity assumption on a stochastic error process is used.
+
+
+
+\noindent Lean declarations: \texttt{meanFieldBrownianNoise}, \texttt{meanFieldBrownianNoise\_continuous}, \texttt{meanFieldBrownianNoise\_zero}, \texttt{meanFieldBrownianNoise\_parameter}.
+
+\section{Specialize to Brownian input and to the split envelope}
+
+
+The constructed Brownian input satisfies all hypotheses of the general integral existence theorem, so substitution gives the Brownian-driven \(L^2\) solution. For \(V=g_1+g_2^\eta\), the actual proximal calculus supplies the Lipschitz gradient constant \(L_1+\eta^{-1}\), which is included as a derived witness in the conclusion. These results establish continuous \(L^2\) integral equations; they do not assert a pathwise strong-SDE or a Fokker–Planck PDE theorem.
+
+
+
+\noindent Lean declarations: \texttt{exists\_lp\_meanField\_integral\_of\_brownian}, \texttt{exists\_lp\_moreau\_meanField\_integral}.
+
+\end{document}
