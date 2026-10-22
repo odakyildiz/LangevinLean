@@ -13,19 +13,19 @@ HERE = Path(__file__).resolve().parent
 NODES = [
     dict(id="assumptions", x=355, y=24, kind="input",
          title="Joint potential + Gaussian noise",
-         detail="m-strong convexity · L-Lipschitz gradient",
+         detail=r"\(m\)-strong convexity · \(L\)-Lipschitz gradient",
          file="IPLA/Model.lean", declaration="GaussianInnovations"),
     dict(id="geometry", x=25, y=210, kind="ipla",
          title="Lift and rescale the particles",
-         detail="Nm, NL · dimension dθ + N dx",
+         detail=r"\(Nm,NL\) · dimension \(d_\theta+Nd_x\)",
          file="IPLA/Geometry.lean", declaration="potential_strongConvex"),
     dict(id="algorithm", x=25, y=360, kind="ipla",
          title="Identify the actual algorithm",
-         detail="IPLA law = ULA law, step γ/N",
+         detail=r"IPLA law = ULA law, step \(\gamma/N\)",
          file="IPLA/ULAAdapter.lean", declaration="laws_eq_ulaLawStep"),
     dict(id="gibbs", x=355, y=210, kind="ula",
          title="Gibbs normalization and moments",
-         detail="Positive finite partition · finite L² moments",
+         detail=r"Positive finite partition · finite \(L^2\) moments",
          file="UnadjustedLangevin/Gibbs.lean",
          declaration="isProbabilityMeasure_gibbsMeasure"),
     dict(id="mala", x=355, y=360, kind="ula",
@@ -40,42 +40,42 @@ NODES = [
          declaration="lp_langevin_gibbs_stationary"),
     dict(id="dalalyan", x=355, y=660, kind="ula",
          title="Dalalyan’s coupling estimate",
-         detail="Contraction · local error · W₂ infimum",
+         detail=r"Contraction · local error · \(W_2\) infimum",
          file="UnadjustedLangevin/HilbertDalalyan.lean",
          declaration="dalalyan_small_step_of_integral_reference"),
     dict(id="canonical", x=355, y=810, kind="ula",
          title="Shared Gaussian ULA theorem",
-         detail="Actual Gaussian chain · initial W₂ derived",
+         detail=r"Actual Gaussian chain · initial \(W_2\) derived",
          file="UnadjustedLangevin/GaussianULA.lean",
          declaration="dalalyan_of_gaussian_innovations"),
     dict(id="marginal", x=685, y=210, kind="concentration",
          title="Compute the parameter marginal",
-         detail="πN projected to θ has density ∝ ℓy(θ)ᴺ",
+         detail=r"\(\Pi_N\) projected to \(\theta\): density \(\propto\ell_y(\theta)^N\)",
          file="IPLA/MarginalConcentration.lean",
          declaration="gibbsTarget_parameter_marginal"),
     dict(id="log-concavity", x=685, y=360, kind="concentration",
          title="Derive marginal strong convexity",
-         detail="Prékopa: F(θ) = −log ℓy(θ) is m-convex",
+         detail=r"Prékopa: \(F(\theta)=-\log\ell_y(\theta)\) is \(m\)-convex",
          file="IPLA/StrongLogConcavity.lean",
          declaration="marginalPotential_strongConvex"),
     dict(id="gibbs-moment", x=685, y=510, kind="ula",
          title="Shared Gibbs moment estimate",
-         detail="Dimension dθ · curvature Nm · mode θ★",
+         detail=r"Dimension \(d_\theta\) · curvature \(Nm\) · mode \(\theta_\star\)",
          file="UnadjustedLangevin/GibbsConcentration.lean",
          declaration="integral_sq_dist_gibbs_le_of_continuous_strongConvex_mode"),
     dict(id="concentration", x=685, y=810, kind="concentration",
          title="Prove the equilibrium radius",
-         detail="Parameter RMS ≤ √(2 dθ / (Nm))",
+         detail=r"Parameter RMS \(\le\sqrt{2d_\theta/(Nm)}\)",
          file="IPLA/Concentration.lean",
          declaration="gibbsTarget_parameter_concentration"),
     dict(id="projection", x=25, y=1000, kind="ula",
-         title="Project to θ and substitute constants",
-         detail="Norm ≤ 1 · exact dimension and step factors",
+         title="Project the parameter and constants",
+         detail=r"Norm \(\le1\) · exact dimension and step factors",
          file="UnadjustedLangevin/Projection.lean",
          declaration="projectedRMSReal_le_wasserstein2Real_add"),
     dict(id="theorem", x=355, y=1150, kind="final",
          title="General-dimension IPLA bound",
-         detail="Independent dθ, dx · zero dimensions included",
+         detail=r"Independent \(d_\theta,d_x\) · zero dimensions included",
          file="IPLA/Theorem.lean", declaration="theorem1"),
 ]
 
@@ -111,6 +111,12 @@ SVG_CSS = """
 .proof-node .node-detail{font-size:11.5px;fill:#4f6674}
 .proof-node .node-file{font:11.5px ui-monospace,monospace;fill:#006c7a;text-decoration:underline}
 .proof-node.final text{fill:#fff}
+.proof-node-label{height:100%;display:flex;flex-direction:column;justify-content:space-between;gap:3px;font:14px/1.25 system-ui,sans-serif;color:#18313f;pointer-events:none}
+.proof-node-label .node-title{font-size:14px;overflow-wrap:anywhere}
+.proof-node-label .node-detail{font-size:11.5px;line-height:1.4;color:#4f6674}
+.proof-node-label .node-file{font:10.5px/1.3 ui-monospace,monospace;color:#006c7a;text-decoration:underline;overflow-wrap:anywhere}
+.proof-node-label .katex{font-size:1em}
+.proof-node.final .proof-node-label,.proof-node.final .node-detail,.proof-node.final .node-file{color:#fff}
 .proof-node:hover rect,.proof-node:focus-visible rect{stroke:#00596b;stroke-width:3}
 .proof-node:focus-visible{outline:none}
 .proof-lane{font:600 12px system-ui,sans-serif;letter-spacing:1.1px;fill:#49606e}
@@ -126,7 +132,7 @@ def lean_link(path, label=None, declaration=None):
             html.escape(label or path) + '</a>')
 
 
-def diagram_svg(sources):
+def diagram_svg(sources, math):
     files = dict(sources)
     ids = {node["id"] for node in NODES}
     for node in NODES:
@@ -139,12 +145,12 @@ def diagram_svg(sources):
         raise ValueError("Unknown proof-map endpoint")
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1030 1274" '
-        'class="proof-svg" aria-labelledby="proof-map-title proof-map-description">',
+        'class="proof-svg" role="group" aria-labelledby="proof-map-title proof-map-description">',
         '<title id="proof-map-title">Proof of the general-dimension IPLA theorem</title>',
         '<desc id="proof-map-description">Fourteen linked boxes trace the joint assumptions '
         'through IPLA geometry, the shared ULA theorem and Gibbs stationarity, and '
         'marginal concentration. These branches meet in projection and exact scaling, '
-        'then the final theorem. Every box links its Lean source.</desc>',
+        'then the final theorem. Every box opens an HTML proof page with its Lean source.</desc>',
         '<style>' + SVG_CSS + '</style>',
         '<defs><marker id="proof-arrow" viewBox="0 0 10 10" refX="9" refY="5" '
         'markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
@@ -164,17 +170,20 @@ def diagram_svg(sources):
             html.escape(node["declaration"], quote=True) + '" tabindex="0" '
             'aria-label="' + html.escape(node["title"] + ". Open " + node["file"], quote=True) +
             f'"><title>{html.escape(node["file"] + " · " + node["declaration"])}</title>'
-            f'<rect x="{x}" y="{y}" width="300" height="100" rx="10"/>'
-            f'<text class="node-title" x="{x+16}" y="{y+26}">{html.escape(node["title"])}</text>'
-            f'<text class="node-detail" x="{x+16}" y="{y+50}">{html.escape(node["detail"])}</text>'
-            f'<text class="node-file" x="{x+16}" y="{y+81}">'
-            f'{html.escape(Path(node["file"]).name)} ↗</text></a>')
-    return "\n".join(parts) + "\n</svg>"
+            f'<rect x="{x}" y="{y}" width="300" height="112" rx="10"/>'
+            f'<foreignObject x="{x+14}" y="{y+10}" width="272" height="92">'
+            '<div xmlns="http://www.w3.org/1999/xhtml" class="proof-node-label">'
+            f'<div class="node-title">{html.escape(node["title"])}</div>'
+            f'<div class="node-detail">{html.escape(node["detail"])}</div>'
+            f'<div class="node-file">{html.escape(Path(node["file"]).name)} ↗</div>'
+            '</div></foreignObject></a>')
+    return math("\n".join(parts) + "\n</svg>")
 
 
-def proof_map_section(sources):
-    svg = diagram_svg(sources)
-    (HERE / "proof-map.svg").write_text(svg)
+def proof_map_section(sources, math, katex_styles):
+    svg = diagram_svg(sources, math)
+    # Embed fonts in the downloadable SVG as well as in the enclosing HTML.
+    (HERE / "proof-map.svg").write_text(svg.replace('<style>', '<style>'+katex_styles, 1))
     groups = [
         ("IPLA", "IPLA geometry and concentration"),
         ("UnadjustedLangevin", "Shared ULA"),
@@ -202,15 +211,15 @@ def proof_map_section(sources):
         '<h2 id="proof-map-heading">Proof map — follow the Lean files</h2>'
         '<p>Read downward from the joint assumptions. The blue boxes are the shared ULA '
         'results; the green and purple boxes supply the IPLA geometry and statistical '
-        'marginal argument. Select any box to inspect its actual Lean file. '
+        'marginal argument. Select any box to open its proof page and exact Lean source. '
         'The arrows describe the mathematical argument, rather than every import.</p>'
         '<div class="proof-legend"><span class="legend-ipla">IPLA geometry and laws</span>'
         '<span class="legend-ula">Shared ULA</span>'
         '<span class="legend-concentration">Parameter concentration</span></div>'
         '<figure class="proof-figure"><div class="proof-scroll" tabindex="0" '
         'aria-label="Scrollable, linked proof diagram">' + svg +
-        '</div><figcaption>Boxes open the source at the named result; the source viewer '
-        'also has a direct .lean file link. On narrow screens, scroll the diagram horizontally. '
+        '</div><figcaption>Boxes open the mathematical proof and Lean declarations; '
+        'each proof page also links the .lean file. On narrow screens, scroll the diagram horizontally. '
         '<a href="proof-map.svg" target="_blank" rel="noopener">Open the SVG diagram</a>.'
         '</figcaption></figure>'
         '<p class="proof-support"><strong>Supporting files:</strong> ' + extra_links + '.</p>'

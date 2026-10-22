@@ -101,6 +101,7 @@ def imports(source):
 def shell(page, title, body, active=None):
     navigation=[('UnadjustedLangevin','ULA · strong convexity'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
+                ('IPLA/LSI','IPLA · LSI'),
                 ('ProximalLangevin','Proximal')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
@@ -194,11 +195,12 @@ def resolve_prose(text, path, page):
     return re.sub(r'href="([^"]+)"', link, text)
 
 
-def proof_diagram(nodes, page, label="Proof workflow"):
+def proof_diagram(nodes, page, math, label="Proof workflow"):
     """Explicit logical graph, with source-checked HTML destinations."""
-    width, height = 960, (max(n['row'] for n in nodes) + 1) * 128 + 12
-    coords = {n['id']: (n['col'] * 316 + 12, n['row'] * 128 + 12) for n in nodes}
-    parts = [f'<div class="diagram"><svg viewBox="0 0 {width} {height}" role="img" aria-label="{E(label)}">',
+    row_height, box_height = 148, 112
+    width, height = 960, (max(n['row'] for n in nodes) + 1) * row_height + 12
+    coords = {n['id']: (n['col'] * 316 + 12, n['row'] * row_height + 12) for n in nodes}
+    parts = [f'<div class="diagram"><svg viewBox="0 0 {width} {height}" role="group" aria-label="{E(label)}">',
              f'<title>{E(label)}</title><desc>Follow the arrows. Every box opens an HTML proof page with mathematics and exact Lean.</desc>',
              '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9aafa4"/></marker></defs>']
     lane_counts = {}
@@ -208,28 +210,30 @@ def proof_diagram(nodes, page, label="Proof workflow"):
             px, py = coords[parent]
             lane = lane_counts.get(py,0)
             lane_counts[py] = lane+1
-            middle = py+98+4*(lane%7)
+            middle = py+box_height+8+3*(lane%6)
             if py == y:
                 # A same-row dependency travels through the gap, never through
                 # the body of either box (proximal → Moreau calculus).
-                route = f'M {px+290} {py+47} H {x}' if px<x else f'M {px} {py+47} H {x+290}'
-            elif y-py == 128:
-                route = f'M {px+145} {py+94} V {middle} H {x+145} V {y}'
+                route = f'M {px+290} {py+box_height/2:g} H {x}' if px<x else f'M {px} {py+box_height/2:g} H {x+290}'
+            elif y-py == row_height:
+                route = f'M {px+145} {py+box_height} V {middle} H {x+145} V {y}'
             else:
                 # Dependencies that skip a layer use the outside gutter.
                 gutter = 944+4*(lane%3)
-                route = f'M {px+145} {py+94} V {middle} H {gutter} V {y-12-4*(lane%4)} H {x+145} V {y}'
+                route = f'M {px+145} {py+box_height} V {middle} H {gutter} V {y-12-4*(lane%4)} H {x+145} V {y}'
             parts.append(f'<path class="edge" marker-end="url(#arrow)" d="{route}"/>')
     for node in nodes:
         x, y = coords[node['id']]
         path = node['file']
         if path not in inventory():
             raise ValueError(f"Unknown proof diagram module: {path}")
-        parts.append(f'<a class="box{" final" if node.get("final") else ""}" href="{relative(module_page(path),page)}" aria-label="Read proof: {E(node["title"])}">'
-                     f'<rect x="{x}" y="{y}" width="290" height="94" rx="7"/>'
-                     f'<text class="title" x="{x+15}" y="{y+28}">{E(node["title"])}</text>'
-                     f'<text class="detail" x="{x+15}" y="{y+51}">{E(node["detail"])}</text>'
-                     f'<text class="detail" x="{x+15}" y="{y+75}">{E(Path(path).name)} →</text></a>')
+        parts.append(f'<a class="box{" final" if node.get("final") else ""}" href="{relative(module_page(path),page)}" tabindex="0" aria-label="Read proof: {E(node["title"])}">'
+                     f'<rect x="{x}" y="{y}" width="290" height="{box_height}" rx="7"/>'
+                     f'<foreignObject x="{x+14}" y="{y+11}" width="262" height="90">'
+                     '<div xmlns="http://www.w3.org/1999/xhtml" class="diagram-node-label">'
+                     '<div class="diagram-node-title">'+math(E(node['title']))+'</div>'
+                     '<div class="diagram-node-detail">'+math(E(node['detail']))+'</div>'
+                     f'<div class="diagram-node-file">{E(Path(path).name)} →</div></div></foreignObject></a>')
     return ''.join(parts) + '</svg></div>'
 
 
@@ -279,7 +283,7 @@ def module_document(path, note, sources, parsed, math):
     if local_imports:
         body += '<p class="section-intro">The proof imports these local modules. Each box opens its complete parallel proof.</p>'
         nodes = [dict(id=str(i), row=i//3, col=i%3, file=p, title=Path(p).stem, detail='Imported proof module') for i,p in enumerate(local_imports)]
-        body += proof_diagram(nodes, page, "Imported mathematical proof modules")
+        body += proof_diagram(nodes, page, math, "Imported mathematical proof modules")
     else:
         body += '<p>This module has no local imports; its external dependencies are Mathlib.</p>'
     if users:
@@ -384,6 +388,8 @@ def main():
     prose += [step['body'] for note in notes.values() for step in note['steps']]
     prose += [result['body'] for config in CONFIG.values() for result in config['results']]
     prose += [part['body'] for config in CONFIG.values() for part in config.get('proof', [])]
+    prose += [node[key] for config in CONFIG.values() for node in config['diagram']
+              for key in ('title', 'detail')]
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css()}
     for path,note in notes.items():

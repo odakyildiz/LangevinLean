@@ -1,0 +1,243 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Time derivatives and spacetime integrability of the Gaussian mixture}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/GaussianTimeDerivative.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+Let \(g_x=\nabla U(x)\), \(c_t(x)=x-tg_x\), \(d=\dim E\), and \(K_t(x,y)=(4\pi t)^{-d/2}\exp(-\|y-c_t(x)\|^2/(4t))\). This module differentiates the actual normalized proposal, constructs \(\dot p_t(y)=\int\partial_tK_t(x,y)\,\mu(dx)\), and proves its local spacetime integrability. The only initial moment used is \(G_0=\int\|g_x\|^2d\mu<\infty\); this is derived from finite initial KL elsewhere.
+
+
+\section{gaussianProposalNormalizer eq rpow}
+
+
+The proposal normalizer is defined as the reciprocal of an actual Gaussian integral, not as a free scalar parameter. Gaussian Fourier integration evaluates \(\int e^{-a\|z\|^2}dz=(\pi/a)^{d/2}\) for \(a>0\). Substitute \(a=1/(4t)\), simplify \(\pi/a=4\pi t\), and invert the real power to obtain \(N_t=(4\pi t)^{-d/2}\). Positivity of \(t\) justifies the Gaussian formula and the real-power inversion.
+
+
+
+\noindent Lean declarations: \texttt{gaussianProposalNormalizer\_eq\_rpow}.
+
+\section{hasDerivAt gaussianProposalNormalizer}
+
+
+On a neighborhood of \(t>0\), all times remain positive, so the actual normalizer agrees locally with \((4\pi s)^{-d/2}\). The real-power chain rule gives derivative \((-d/2)(4\pi t)^{-d/2-1}(4\pi)\). Use \((4\pi t)^{p-1}=(4\pi t)^p/(4\pi t)\) to rewrite this as \(-dN_t/(2t)\). The local equality \texttt{heq} transfers the derivative back to the normalizer defined by the Gaussian integral.
+
+
+
+\noindent Lean declarations: \texttt{hasDerivAt\_gaussianProposalNormalizer}.
+
+\section{frozenGaussianKernel}
+
+
+The real component kernel is \(K_t(x,y)=N_t\exp(-\|y-x+tg_x\|^2/(4t))\). The gradient \(g_x\) is evaluated at the initial state \(x\), and is constant when differentiating in \(t\) or \(y\). Its integral over \(y\) is one at positive time by the previously proved Gaussian proposal normalization.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianKernel}.
+
+\section{frozenGaussianKernelDot}
+
+
+Define the explicit candidate derivative \(\dot K_t=K_t[-d/(2t)+\|y-x\|^2/(4t^2)-\|g_x\|^2/4]\). The dimension term comes from the normalizer; the remaining terms come from differentiating the exponent. In the expanded exponent, the mixed inner-product term is independent of time, which explains its absence from this expression. The following theorem verifies that this formula is the derivative.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianKernelDot}.
+
+\section{frozen exponent eq}
+
+
+Set \(z=y-x\). The squared-norm identity gives \(\|z+sg_x\|^2=\|z\|^2+2s\langle z,g_x\rangle+s^2\|g_x\|^2\). For \(s\ne0\), division by \(-4s\) yields \(-\|z+sg_x\|^2/(4s)=-\|z\|^2/(4s)-\langle z,g_x\rangle/2-s\|g_x\|^2/4\). The vector identity and scalar denominator cancellation are proved separately in the Lean calculation.
+
+
+
+\noindent Lean declarations: \texttt{frozen\_exponent\_eq}.
+
+\section{hasDerivAt frozenGaussianKernel}
+
+
+Write the expanded exponent as \(-A/s-B-sC\), where \(A=\|y-x\|^2/4\), \(B=\langle y-x,g_x\rangle/2\), and \(C=\|g_x\|^2/4\). Its derivative at positive \(t\) is \(A/t^2-C\). The expansion agrees with the original exponent on a neighborhood avoiding zero, so this is also the derivative of the original expression.
+
+
+
+Apply the exponential chain rule and multiply by the actual normalizer. Its derivative contributes \(-dK_t/(2t)\); the exponential derivative contributes \(K_t(A/t^2-C)\). Collecting terms gives exactly \texttt{frozenGaussianKernelDot}. No derivative of \(g_x\), and therefore no Hessian, is taken.
+
+
+
+\noindent Lean declarations: \texttt{hasDerivAt\_frozenGaussianKernel}.
+
+\section{norm frozenGaussianKernelDot le}
+
+
+Put \(r=y-x+tg_x\) and \(e=e^{-\|r\|^2/(4t)}\). The triangle inequality and \((a+b)^2\le2a^2+2b^2\) give \(\|y-x\|^2\le2\|r\|^2+2t^2\|g_x\|^2\). The Gaussian envelope gives \(\|r\|^2e\le4t\), while \(e\le1\). Consequently \(\|y-x\|^2e\le8t+2t^2\|g_x\|^2\).
+
+
+
+Bound the absolute value of each derivative-coefficient term by their nonnegative sum, multiply by \(e\), and insert these bounds. The resulting convenient envelope is \(|\dot K_t(x,y)|\le N_t[(d+4)/t+\|g_x\|^2]\). It is uniform in \(y\), and is integrable in the initial variable whenever \(G_0<\infty\). Its purpose is time differentiation under the initial-state integral, rather than output-space integration.
+
+
+
+\noindent Lean declarations: \texttt{norm\_frozenGaussianKernelDot\_le}.
+
+\section{gaussianProposalNormalizer measurable}
+
+
+The map \((t,z)\mapsto\exp(-(1/(4t))\|z\|^2)\) is jointly measurable. Parameter integration makes its real Gaussian integral measurable, even at parameters where the total integral takes its default value. Taking its reciprocal preserves measurability and gives the actual proposal normalizer. The all-time measurable extension is used only to form measurable parameter integrals; positive-time analysis uses the genuine finite normalization.
+
+
+
+\noindent Lean declarations: \texttt{gaussianProposalNormalizer\_measurable}.
+
+\section{frozenGaussianKernelDot measurable}
+
+
+Lipschitzness makes \(x\mapsto g_x\) continuous and measurable. Combine this with the measurable normalizer and the explicit algebraic formula for \(\dot K_t\). Products, norms, scalar inverses, and exponentials preserve measurability, giving joint measurability in \((t,y,x)\). This is the input needed to integrate out the initial variable while retaining measurable time-space dependence.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianKernelDot\_measurable}.
+
+\section{interpolationLebesgueDensityTimeDerivative}
+
+
+Define \(\dot p_t(y)=\int\dot K_t(x,y)\,d\mu(x)\). At this point it is an ordinary parameter integral. The subsequent differentiation theorem proves it is the actual derivative of \(p_t(y)\), and the energy estimates prove its integrability, so no analytic assertion is built into this definition.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLebesgueDensityTimeDerivative}.
+
+\section{interpolationLebesgueDensityTimeDerivative measurable}
+
+
+The component derivative is jointly measurable in \((t,y,x)\). Its strongly measurable parameter integral over the probability measure \(\mu\) is therefore measurable in \((t,y)\). This gives a single measurable version of \(\dot p\) for spacetime Fubini and the entropy chain rule.
+
+
+
+\noindent Lean declarations: \texttt{interpolationLebesgueDensityTimeDerivative\_measurable}.
+
+\section{hasDerivAt interpolationLebesgueDensity time}
+
+
+Fix \(t>0\). Continuity of \(N_t\) supplies a common neighborhood \(S\) on which \(s>t/2\) and \(N_s<N_t+1\). The pointwise derivative envelope then gives \(|\dot K_s(x,y)|\le(N_t+1)[2(d+4)/t+\|g_x\|^2]\) for every \(s\in S\). This bound is integrable in \(x\) by the initial gradient-energy hypothesis, and the component kernel at \(t\) is integrable because it is bounded by \(N_t\).
+
+
+
+The parameter-integral derivative theorem now supplies both integrability of \(\dot K_t(\cdot,y)\) and the derivative of \(\int K_s(x,y)d\mu(x)\). On a positive-time neighborhood this integral equals the real density of the actual interpolation law. The local equality \texttt{heq} transfers the derivative to that density, proving \(\partial_t p_t(y)=\dot p_t(y)\) for every output state. No invertibility of the Euler map or step-size restriction is needed.
+
+
+
+\noindent Lean declarations: \texttt{hasDerivAt\_interpolationLebesgueDensity\_time}.
+
+\section{frozenGaussianKernel eq realGaussianKernel}
+
+
+The spatial Fisher calculation uses precision notation \(q_a(c,y)=Z_a^{-1}e^{-a\|y-c\|^2}\). Substitute \(a=1/(4t)\) and \(c=x-tg_x\). The normalizers agree by definition, and \(-a\|y-c\|^2=-\|y-c\|^2/(4t)\). This pointwise identity makes the time and spatial calculations use precisely the same normalized Gaussian kernel.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianKernel\_eq\_realGaussianKernel}.
+
+\section{norm frozenGaussianKernelDot le weighted}
+
+
+Retain the Gaussian factor instead of replacing it by its supremum. With \(r=y-x+tg_x\), the bound \(\|y-x\|^2\le2\|r\|^2+2t^2\|g_x\|^2\) implies that the absolute derivative coefficient is at most \(d/(2t)+\|r\|^2/(2t^2)+\|g_x\|^2\). Multiplication by \(K_t\ge0\) yields \(|\dot K_t|\le K_t[d/(2t)+\|r\|^2/(2t^2)+\|g_x\|^2]\). Unlike the initial-variable envelope, this bound remains integrable in the output variable.
+
+
+
+\noindent Lean declarations: \texttt{norm\_frozenGaussianKernelDot\_le\_weighted}.
+
+\section{frozenGaussianEnergy}
+
+
+Use the common nonnegative envelope \(\mathcal E_t(x,y)=K_t(x,y)(1+\|g_x\|^2+\|y-c_t(x)\|^2)\). Its three terms correspond to Gaussian mass, initial gradient energy, and Gaussian displacement energy. This envelope can dominate the derivative with a time-dependent scalar coefficient and can also be reused in spatial integration by parts.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianEnergy}.
+
+\section{frozenGaussianEnergy nonneg}
+
+
+At positive time the actual normalizer and the Gaussian exponential are positive, so \(K_t\ge0\). Every term in \(1+\|g_x\|^2+\|y-c_t(x)\|^2\) is nonnegative. Their product is nonnegative; this identifies its norm with itself in the Fubini integrability proof.
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianEnergy\_nonneg}.
+
+\section{frozenGaussianEnergy integral}
+
+
+For fixed \(x\), Gaussian normalization gives \(\int K_t(x,y)dy=1\), and the centered Gaussian covariance gives \(\int K_t(x,y)\|y-c_t(x)\|^2dy=2td\). Both integrands are genuinely integrable. The initial gradient factor is constant in \(y\), so its integral is \(\|g_x\|^2\). Expand the common energy into these three integrable terms to obtain \(\int\mathcal E_t(x,y)dy=1+\|g_x\|^2+2td\).
+
+
+
+\noindent Lean declarations: \texttt{frozenGaussianEnergy\_integral}.
+
+\section{integrable frozenGaussianEnergy}
+
+
+The common energy is jointly measurable. For every initial \(x\), its output section is integrable by the component energy theorem. Since the energy is nonnegative, the integral of its norm is exactly \(1+\|g_x\|^2+2td\), an integrable function of \(x\) under the probability law \(\mu\). The product integrability criterion therefore proves \(\mathcal E_t\in L^1(\mu\otimes dy)\).
+
+
+
+\noindent Lean declarations: \texttt{integrable\_frozenGaussianEnergy}.
+
+\section{integral frozenGaussianEnergy}
+
+
+Joint integrability allows Fubini, giving \(\int\mathcal E_t\,d(\mu\otimes dy)=\int(1+\|g_x\|^2+2td)d\mu(x)\). Probability normalization and the definition of \(G_0\) reduce this to \(1+G_0+2td\). The displayed equality supplies a finite quantitative bound, rather than relying on an unspecified integrability witness.
+
+
+
+\noindent Lean declarations: \texttt{integral\_frozenGaussianEnergy}.
+
+\section{gaussianTimeCoefficient}
+
+
+Set \(C_t=d/(2t)+1/(2t^2)+1\). It is positive for \(t>0\), and is bounded above on any interval \([a,b]\) with \(a>0\) by \(C_a\). The coefficient is deliberately coarse: only local spacetime integrability, rather than a sharp density-derivative estimate, is needed for the entropy chain rule.
+
+
+
+\noindent Lean declarations: \texttt{gaussianTimeCoefficient}.
+
+\section{norm frozenGaussianKernelDot le energy}
+
+
+In the weighted derivative bound, denote the three nonnegative coefficients by \(A=d/(2t)\), \(B=1/(2t^2)\), and \(1\). Each is at most \(C_t=A+B+1\). Therefore \(A+B\|r\|^2+\|g_x\|^2\le C_t(1+\|g_x\|^2+\|r\|^2)\). Multiply by \(K_t\ge0\) to prove \(|\dot K_t|\le C_t\mathcal E_t\).
+
+
+
+\noindent Lean declarations: \texttt{norm\_frozenGaussianKernelDot\_le\_energy}.
+
+\section{integrable frozenGaussianKernelDot}
+
+
+The component time derivative is jointly measurable, and its norm is bounded by \(C_t\mathcal E_t\). The common energy is integrable on \(\mu\otimes dy\), and \(C_t\) is a finite scalar at positive time. Domination therefore proves joint integrability of \(\dot K_t\), which licenses the changes of integration order used in the time weak equation.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_frozenGaussianKernelDot}.
+
+\section{integrable interpolationLebesgueDensityTimeDerivative}
+
+
+Fubini applied to the jointly integrable component derivative first gives \(\dot p_t\in L^1(dy)\). The norm inequality for Bochner integration gives \(|\dot p_t(y)|\le\int|\dot K_t(x,y)|d\mu(x)\). Integrate in \(y\), exchange the two integrals, and dominate by \(C_t\mathcal E_t\). The exact envelope integral yields \(\int|\dot p_t(y)|dy\le C_t(1+G_0+2td)\).
+
+
+
+\noindent Lean declarations: \texttt{integrable\_interpolationLebesgueDensityTimeDerivative}.
+
+\section{integrable interpolationLebesgueDensityTimeDerivative spacetime}
+
+
+Joint measurability of \(\dot p\) permits the product integrability criterion on \([a,b]\times E\), where \(a>0\). Every time section is in \(L^1(dy)\). For times in the interval, \(C_t\le C_a\) and \(1+G_0+2td\le1+G_0+2bd\), giving the common finite scalar bound \(\int|\dot p_t|dy\le C_a(1+G_0+2bd)\). The time interval has finite measure, so the section norms are integrable. Hence \(\dot p\in L^1(dt\,dy)\) locally away from zero. If \(a>b\), the restricted time measure is zero and the same argument remains valid.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_interpolationLebesgueDensityTimeDerivative\_spacetime}.
+
+\end{document}

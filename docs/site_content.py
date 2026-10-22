@@ -85,35 +85,35 @@ MYPGD = PROX_SETUP + r'''<p>MYPGD uses the MYIPLA drift and erases its parameter
 
 CONFIG = {
     'UnadjustedLangevin':dict(label='Wasserstein convergence',title='Unadjusted Langevin under Strong Convexity',subtitle='A quantitative sampling theorem with a constructed stationary reference.',
-        status='The strongly convex convergence theorems construct their Brownian reference and prove Gibbs stationarity. The separate LSI extension retains explicit analytic interpolation hypotheses.',
+        status='The strongly convex convergence theorems construct their Brownian reference and prove Gibbs stationarity. The LSI extension derives its entropy bound from smoothness, LSI, and finite initial KL.',
         archive='UnadjustedLangevin/exposition/dist/index.html',archive_label='Extended teaching document and Lean notes',
-        extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · conditional proof and reference audit')],
+        extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · full proof and reference audit')],
         results=[dict(title='Small-step Gaussian ULA',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan',body=ULA_SETUP+r'''<p>If \(0&lt;h\le2/(m+L)\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(1-mh)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac Lm\sqrt{hd}.\]<p>The rational coefficient \(33/20\) is exactly \(1.65\). The initial term uses the true Wasserstein infimum over couplings.</p>'''),
                  dict(title='The other stable step-size regime',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The strict upper endpoint ensures the denominator is positive. Both regimes follow from the same scalar recurrence, using their respective contraction factors.</p>''')],
-        diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contract the gradient step','q = 1 − mh or Lh − 1'),
-                 node('gibbs',0,1,'UnadjustedLangevin/Gibbs.lean','Construct the Gibbs target','Positive normalization and L² moments'),
+        diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contract the gradient step',r'\(q=1-mh\) or \(Lh-1\)'),
+                 node('gibbs',0,1,'UnadjustedLangevin/Gibbs.lean','Construct the Gibbs target',r'Positive normalization and \(L^2\) moments'),
                  node('brownian',0,2,'UnadjustedLangevin/CanonicalBrownian.lean','Construct Brownian noise','Independent Gaussian coordinates'),
                  node('local',1,0,'UnadjustedLangevin/LocalError.lean','Bound the local Euler defect','Integrate the Lipschitz drift error',('geometry',)),
                  node('stationary',1,1,'UnadjustedLangevin/GibbsStationarity.lean','Prove Gibbs stationarity','Metropolis invariance and Euler limit',('gibbs','brownian')),
-                 node('integral',1,2,'UnadjustedLangevin/LangevinIntegral.lean','Solve the integral equation','L² Picard construction',('brownian',)),
-                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','Solve the scalar recurrence','a[k+1] ≤ q a[k] + b',('local',)),
+                 node('integral',1,2,'UnadjustedLangevin/LangevinIntegral.lean','Solve the integral equation',r'\(L^2\) Picard construction',('brownian',)),
+                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','Solve the scalar recurrence',r'\(a_{k+1}\le q a_k+b\)',('local',)),
                  node('coupling',2,1,'UnadjustedLangevin/HilbertDalalyan.lean','Compare synchronous paths','Noise cancellation and initial infimum',('local','stationary','integral')),
                  node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Identify the Gaussian laws','Independent transitions give the chain',('brownian',)),
                  node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','Canonical ULA theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
     'IPLA':dict(label='Particle convergence',title='Interacting Particle Langevin under Strong Convexity',subtitle='A parameter error bound from the joint potential and the actual particle recursion.',
-        status='The final strongly convex theorem derives its stationary reference, target moments, and equilibrium concentration from the joint-potential assumptions. Parameter and latent dimensions are independent. The entropy extension is conditional.',
+        status='The final strongly convex theorem derives its stationary reference, target moments, and equilibrium concentration from the joint-potential assumptions. Parameter and latent dimensions are independent. The entropy extension proves its bound from a lifted-target LSI and finite initial joint KL.',
         archive='IPLA/exposition/proof.html',archive_label='Extended statement correspondence and assumption audit',
-        extra=[('IPLA/LSI/exposition/index.html','Particle entropy under a lifted-target LSI · conditional proof'),('docs/modules/IPLA/Standalone.html','Standalone Mathlib-only theorem · full dependency proofs')],
+        extra=[('IPLA/LSI/exposition/index.html','Particle entropy under a lifted-target LSI · full proof'),('docs/modules/IPLA/Standalone.html','Standalone Mathlib-only theorem · full dependency proofs')],
         results=[dict(title='Parameter error for the actual IPLA recursion',file='IPLA/Theorem.lean',name='theorem1',body=IPLA_STATEMENT)],
-        diagram=[node('geometry',0,0,'IPLA/Geometry.lean','Lift and rescale particles','Dimension dθ + N dx; curvature Nm'),
+        diagram=[node('geometry',0,0,'IPLA/Geometry.lean','Lift and rescale particles',r'Dimension \(d_\theta+Nd_x\); curvature \(Nm\)'),
                  node('gibbs',0,1,'IPLA/Foundations.lean','Normalize the lifted target','Derived probability and finite moments'),
-                 node('marginal',0,2,'IPLA/MarginalConcentration.lean','Compute the parameter marginal','Density proportional to ℓ(θ)ᴺ'),
-                 node('algorithm',1,0,'IPLA/ULAAdapter.lean','Identify IPLA with ULA','Exact algorithm law; step γ/N',('geometry',)),
+                 node('marginal',0,2,'IPLA/MarginalConcentration.lean','Compute the parameter marginal',r'Density proportional to \(\ell_y(\theta)^N\)'),
+                 node('algorithm',1,0,'IPLA/ULAAdapter.lean','Identify IPLA with ULA',r'Exact algorithm law; step \(\gamma/N\)',('geometry',)),
                  node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','Apply the shared ULA theorem','Stationarity and Gaussian law proved',('geometry','gibbs')),
                  node('convex',1,2,'IPLA/StrongLogConcavity.lean','Prove marginal strong convexity','Prékopa–Leindler and tensorization',('marginal',)),
-                 node('scaling',2,0,'IPLA/Scaling.lean','Simplify particle constants','Exact N, step, and dimension factors',('algorithm',)),
-                 node('projection',2,1,'IPLA/Transport.lean','Project the transport estimate','Parameter projection has norm ≤ 1',('ula',)),
-                 node('concentration',2,2,'IPLA/Concentration.lean','Derive the equilibrium radius','Parameter RMS ≤ √(2dθ/(Nm))',('convex','marginal')),
+                 node('scaling',2,0,'IPLA/Scaling.lean','Simplify particle constants',r'Exact \(N\), step, and dimension factors',('algorithm',)),
+                 node('projection',2,1,'IPLA/Transport.lean','Project the transport estimate',r'Parameter projection: \(\|P_\theta\|\le1\)',('ula',)),
+                 node('concentration',2,2,'IPLA/Concentration.lean','Derive the equilibrium radius',r'RMS \(\le\sqrt{2d_\theta/(Nm)}\)',('convex','marginal')),
                  node('theorem',3,1,'IPLA/Theorem.lean','Final IPLA parameter bound','General independent dimensions',('scaling','projection','concentration'),True)]),
     'ProximalLangevin':dict(label='Proximal',title='Proximal particle Langevin',subtitle='Actual proximal minimizers, finite-time algorithm bounds, and mean-field limits.',
         status='Corrected MYIPLA, PIPGLA, and MYPGD original-center bounds are proved. This is a partial formalization of arXiv:2406.14292v3: exact published constants and several appendix claims remain outside the proved results. The reference audit records the differences.',
@@ -125,12 +125,12 @@ CONFIG = {
         diagram=[node('prox',0,0,'ProximalLangevin/Proximal.lean','Construct actual proximal maps','Existence, optimality, nonexpansiveness'),
                  node('moreau',0,1,'ProximalLangevin/Moreau.lean','Prove Moreau calculus','Gradient, smoothness, and value gap',('prox',)),
                  node('bias',0,2,'ProximalLangevin/Perturbation.lean','Control the marginal center shift','Finite value sandwich, then convexity'),
-                 node('myipla',1,0,'ProximalLangevin/MYIPLA.lean','Identify the smoothed IPLA law','Reuse ULA with Lη = L₁ + 1/η',('prox','moreau')),
+                 node('myipla',1,0,'ProximalLangevin/MYIPLA.lean','Identify the smoothed IPLA law',r'Reuse ULA with \(L_\eta=L_1+\eta^{-1}\)',('prox','moreau')),
                  node('splitting',1,1,'ProximalLangevin/SplittingOneStep.lean','Prove the splitting coupling step','Energy cancellation and Brownian terms',('prox','moreau')),
-                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Construct mean-field dynamics','L² integral equation and uniqueness',('moreau',)),
+                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Construct mean-field dynamics',r'\(L^2\) integral equation and uniqueness',('moreau',)),
                  node('mytheorem',2,0,'ProximalLangevin/Theorem.lean','MYIPLA original-center theorem','Smoothing + concentration + ULA',('myipla','bias'),True),
                  node('endpoint',2,1,'ProximalLangevin/SplittingEndpoint.lean','Derive the actual-law recurrence','Construct references, then take infima',('splitting',)),
-                 node('particles',2,2,'ProximalLangevin/MeanFieldParticles.lean','Couple iid particles to the limit','Uniform timewise L² error O(N⁻¹ᐟ²)',('meanfield',)),
+                 node('particles',2,2,'ProximalLangevin/MeanFieldParticles.lean','Couple iid particles to the limit',r'Uniform \(L^2\) error \(O(N^{-1/2})\)',('meanfield',)),
                  node('mypgd',3,0,'ProximalLangevin/MYPGDTheorem.lean','MYPGD original-center theorem','Proved Gaussian noise-removal cost',('mytheorem',),True),
                  node('pitheorem',3,1,'ProximalLangevin/SplittingTheorem.lean','PIPGLA original-center theorem','Arbitrary positive proximal parameter',('endpoint','bias'),True),
                  node('particlelaw',3,2,'ProximalLangevin/MeanFieldParticleLaw.lean','Actual tagged-law limit','Constructed one-time Wasserstein bound',('particles',),True)])
@@ -168,9 +168,9 @@ def home_document(lib, config, notes, sources, parsed, math):
                +declaration_header(result['file'],result['name'],sources,parsed,page)
                +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
     body+='</section><section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
-    body+=proof_diagram(config['diagram'],page,config['title']+' proof roadmap')+'</section>'
+    body+=proof_diagram(config['diagram'],page,math,config['title']+' proof roadmap')+'</section>'
     if config.get('proof'):
-        body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and any remaining formalization obligations.</p>'
+        body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and explain their role in the proof.</p>'
         for i,part in enumerate(config['proof'],1):
             body+=(f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair"><div class="math-pane">'+math(part['body'])+'</div><div class="lean-pane">')
             if part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
@@ -218,7 +218,7 @@ def project_document(notes):
         config=CONFIG[key]
         body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
                f'<a href="{key}/exposition/index.html">Theorem and proof →</a>')
-        if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The mathematical argument and current scope of its Lean formalization are stated separately.</p>'
+        if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The actual Gaussian ULA theorem includes finite KL at every iterate.</p>'
         if key=='IPLA':body+='<p class="small card-scope">Entropy analogue: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a>.</p>'
         body+='</article>'
     body+='</section><section class="section reading-guide"><div><h2>Read the proof at two levels</h2><p>Start with the mathematical theorem and its assumptions. The roadmap leads to each supporting result. Mathematical derivations sit beside Lean; named proof constructions link directly to the source lines they explain.</p><p>Use the reading selector to view mathematics alone, Lean alone, or both. LaTeX proof documents are available from every module page.</p></div><div><h2>Check it yourself</h2><p>The repository contains the source, pinned dependencies, and local verification commands. After cloning, run:</p>'

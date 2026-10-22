@@ -1,0 +1,125 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Finite entropy supplies the gradient moment directly}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{UnadjustedLangevin/LSI/EntropyMoment.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+A finite initial KL divergence already controls the squared Gibbs score when \(\nabla U\) is Lipschitz. Gaussian averaging of the directional score MGF gives \(\mathbb E_\nu e^{\|\nabla U\|^2/(4L)}\le e^{d/2}\). The entropy inequality then proves both integrability and \(G_\mu\le4L H(\mu\mid\nu)+2dL\). This direct argument closes the moment input to ULA without assuming an entropy-cost coupling or a transport inequality.
+
+
+\section{mul le klFun add exp sub one}
+
+
+Let \(\Phi(a)=a\log a-a+1\), with its continuous value \(\Phi(0)=1\). For \(a>0\), the elementary inequality \(e^u\ge1+u\), applied to \(u=b-\log a\), gives \(e^b\ge a+ab-a\log a\). Rearranging proves \(ab\le\Phi(a)+e^b-1\). The zero-density case is handled separately: its left side is zero, and its right side is \(e^b\ge0\). Thus this entropy/exponential Young inequality remains valid at zero Radon-Nikodym density.
+
+
+
+\noindent Lean declarations: \texttt{mul\_le\_klFun\_add\_exp\_sub\_one}.
+
+\section{integrable of finite kl of integrable exp}
+
+
+Write \(a=d\mu/d\nu\). Finite KL supplies absolute continuity \(\mu\ll\nu\) and integrability of the actual log likelihood; equivalently \(\Phi(a)\) is integrable under \(\nu\). For a measurable nonnegative observable \(f\), the Young inequality gives \(0\le af\le\Phi(a)+e^f\). Both terms on the right are integrable by the finite-KL and exponential-moment hypotheses.
+
+
+
+Domination proves \(af\in L^1(\nu)\). The Radon-Nikodym weighted-integrability equivalence then gives \(f\in L^1(\mu)\). In particular, the moment conclusion is derived before any ordinary expectation is manipulated; it is not an extra assumption hidden in the entropy inequality.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_of\_finite\_kl\_of\_integrable\_exp}.
+
+\section{integral le kl add of integral exp le}
+
+
+Assume \(\int e^f d\nu\le e^c\). First derive \(f\in L^1(\mu)\) with the preceding theorem. Apply the Young inequality to \(a=d\mu/d\nu\) and \(f-c\), and integrate: \(\int(f-c)d\mu\le\int\Phi(a)d\nu+\int e^{f-c}d\nu-1\).
+
+
+
+Probability normalization identifies \(\int\Phi(a)d\nu\) with the genuine finite KL divergence and \(\int(f-c)d\mu=\int f d\mu-c\). The MGF hypothesis makes \(\int e^{f-c}d\nu\le1\), canceling the final two terms. Thus \(\int f d\mu\le H(\mu\mid\nu)+c\), together with the integrability witness used in its derivation. The proof explicitly justifies each weighted integral and subtraction.
+
+
+
+\noindent Lean declarations: \texttt{integral\_le\_kl\_add\_of\_integral\_exp\_le}.
+
+\section{integrable radial gaussian}
+
+
+For \(b>0\), the real radial Gaussian \(e^{-b\|v\|^2}\) is integrable on every finite-dimensional real Hilbert space. The proof specializes the complex Gaussian Fourier integrability theorem to real positive precision and takes its norm; the complex norm is exactly the displayed real exponential. This supplies the finite integral needed in the Gaussian linearization argument.
+
+
+
+\noindent Lean declarations: \texttt{integrable\_radial\_gaussian}.
+
+\section{lintegral radial gaussian}
+
+
+Because the radial Gaussian is nonnegative and integrable, its nonnegative Lebesgue integral equals the embedded ordinary integral. The Gaussian Fourier formula evaluates the latter as \((\pi/b)^{d/2}\). Hence \(\int^- e^{-b\|v\|^2}dv=\operatorname{ofReal}((\pi/b)^{d/2})\), a positive finite normalization factor that can safely be canceled later.
+
+
+
+\noindent Lean declarations: \texttt{lintegral\_radial\_gaussian}.
+
+\section{lintegral radial gaussian mul exp inner}
+
+
+Complete the square in \(-b\|v\|^2+\langle g,v\rangle\): it equals \(\|g\|^2/(4b)-b\|v-g/(2b)\|^2\). Exponentiating separates the constant factor \(e^{\|g\|^2/(4b)}\) from a translated radial Gaussian. Translation invariance of Lebesgue measure and the radial normalization give \(\int^- e^{-b\|v\|^2}e^{\langle g,v\rangle}dv=e^{\|g\|^2/(4b)}(\pi/b)^{d/2}\). The identity is proved for nonnegative integrals before any integrability of a random score is assumed.
+
+
+
+\noindent Lean declarations: \texttt{lintegral\_radial\_gaussian\_mul\_exp\_inner}.
+
+\section{lintegral exp norm sq le of directional mgf}
+
+
+Suppose \(\mathbb E e^{\langle g,v\rangle}\le e^{L\|v\|^2/2}\) for every direction \(v\). Multiply by \(e^{-L\|v\|^2}\) and integrate in \(v\). Tonelli applies to the nonnegative jointly measurable integrand, so the order of integration can be exchanged without assuming the desired exponential moment in advance.
+
+
+
+Gaussian linearization identifies the left side with \((\pi/L)^{d/2}\mathbb E e^{\|g\|^2/(4L)}\). The directional MGF bound controls the right side by \(\int e^{-(L/2)\|v\|^2}dv=(2\pi/L)^{d/2}\). Cancel the positive finite factor \((\pi/L)^{d/2}\) in the extended nonnegative reals to obtain \(\mathbb E e^{\|g\|^2/(4L)}\le2^{d/2}\).
+
+
+
+\noindent Lean declarations: \texttt{lintegral\_exp\_norm\_sq\_le\_of\_directional\_mgf}.
+
+\section{gibbs score exponential moment}
+
+
+The smooth Gibbs score has the previously proved directional MGF bound \(\mathbb E_\nu e^{\langle\nabla U,v\rangle}\le e^{L\|v\|^2/2}\), obtained from translation invariance and first-order smoothness. Apply Gaussian averaging with \(g=\nabla U\). This gives a finite nonnegative exponential integral bounded by \(2^{d/2}\); measurability and this finiteness prove ordinary integrability.
+
+
+
+Convert the nonnegative integral back to its real expectation. Since \(\log2\le1\), \(2^{d/2}\le e^{d/2}\), giving the convenient bound \(\mathbb E_\nu e^{\|\nabla U\|^2/(4L)}\le e^{d/2}\). Only differentiability, Lipschitz gradient, positive \(L\), and finite Gibbs normalization are used; neither convexity nor LSI enters this exponential-moment theorem.
+
+
+
+\noindent Lean declarations: \texttt{gibbs\_score\_exponential\_moment}.
+
+\section{gibbs gradient moment bound of finite kl}
+
+
+Apply the entropy inequality with \(f(x)=\|\nabla U(x)\|^2/(4L)\) and \(c=d/2\). The Gibbs exponential-moment theorem provides both exponential integrability and the MGF bound; finite initial KL provides the absolute-continuity and entropy inputs. Therefore \(\mathbb E_\mu[\|\nabla U\|^2/(4L)]\le H(\mu\mid\nu)+d/2\), with this observable integrable under \(\mu\).
+
+
+
+Multiply by \(4L>0\), proving \(G_\mu\le4L H(\mu\mid\nu)+2dL\) and actual square integrability of the score. The proof also derives finite Gibbs partition from its assumed probability normalization. This replaces the previously missing LSI-to-transport route by a stronger direct entropy/score estimate.
+
+
+
+\noindent Lean declarations: \texttt{gibbs\_gradient\_moment\_bound\_of\_finite\_kl}.
+
+\section{gibbs gradient moment bound of finite kl of alpha le}
+
+
+If \(0<\alpha\le L\), then \(4L\le4L^2/\alpha\). Finite KL is nonnegative, so replacing the direct estimate's coefficient \(4L\) by \(4L^2/\alpha\) preserves the inequality. Thus \(G_\mu\le(4L^2/\alpha)H(\mu\mid\nu)+2dL\), the coefficient used in the ULA one-step calculation. Integrability is inherited from the stronger direct theorem. Compatibility \(\alpha\le L\) is proved from LSI in a separate module.
+
+
+
+\noindent Lean declarations: \texttt{gibbs\_gradient\_moment\_bound\_of\_finite\_kl\_of\_alpha\_le}.
+
+\end{document}

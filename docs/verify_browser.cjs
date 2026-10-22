@@ -32,18 +32,19 @@ const LIBRARIES = [
   { key: 'IPLA', label: 'ipla', search: 'Geometry.lean',
     legacy: 'IPLA/exposition/proof.html',
     modules: ['Geometry', 'StrongLogConcavity'] },
-  { key: 'UnadjustedLangevin/LSI', label: 'ula-lsi', search: 'ConditionalDrift.lean',
+  { key: 'UnadjustedLangevin/LSI', label: 'ula-lsi', search: 'UnconditionalTheorem.lean',
     legacy: 'UnadjustedLangevin/LSI/exposition/proof.html',
-    modules: ['ConditionalDrift', 'InterpolationDensity'] },
-  { key: 'IPLA/LSI', label: 'ipla-lsi', search: 'Theorem.lean',
+    modules: ['GaussianEntropyIdentity', 'UnconditionalTheorem'] },
+  { key: 'IPLA/LSI', label: 'ipla-lsi', search: 'UnconditionalTheorem.lean',
     legacy: 'IPLA/LSI/exposition/proof.html',
-    modules: ['Theorem', 'Scaling'] },
+    modules: ['UnconditionalTheorem', 'Scaling'] },
   { key: 'ProximalLangevin', label: 'proximal', search: 'Moreau.lean',
     legacy: 'ProximalLangevin/exposition/proof.html',
     modules: ['Moreau', 'SplittingEndpoint'] },
 ];
 const VIEWPORTS = [
   { label: 'desktop', width: 1440, height: 1000 },
+  { label: 'tablet', width: 768, height: 1024 },
   { label: 'mobile-375', width: 375, height: 812 },
   { label: 'mobile-320', width: 320, height: 760 },
 ];
@@ -225,7 +226,21 @@ async function mathematicalPage(page, item) {
       'Expected source-derived main theorem headers');
     check(await page.locator('#verification .commands').count() > 0, 'Expected a verification workflow');
     check(await page.locator('#proof-map svg a.box').count() > 0, 'Expected navigable proof diagram boxes');
+    await diagramTypesetting(page, '#proof-map', '.diagram-node-label');
   }
+}
+
+async function diagramTypesetting(page, selector, labelSelector) {
+  const diagram = page.locator(selector);
+  check(await diagram.locator('.katex').count() > 0, 'Diagram contains typeset mathematical formulas');
+  const layout = await diagram.locator(labelSelector).evaluateAll(labels => labels.map(label => ({
+    text: label.textContent.slice(0, 100),
+    clipped: label.scrollWidth > label.clientWidth + 1 || label.scrollHeight > label.clientHeight + 1,
+    rawTeX: /\\[\[(]/.test(label.textContent),
+    scrollingFormulas: [...label.querySelectorAll('.katex')].some(formula =>
+      ['auto', 'scroll', 'hidden', 'clip'].includes(getComputedStyle(formula).overflowX)),
+  })).filter(label => label.clipped || label.rawTeX || label.scrollingFormulas));
+  check(layout.length === 0, 'Diagram labels fit their boxes without raw TeX or inline scrollbars', layout);
 }
 
 async function readingModes(page) {
@@ -389,12 +404,25 @@ async function main() {
       await goto(local, pathToFileURL(path.join(ROOT, item.file)).href);
       check(await local.locator('.katex').count() > 0, 'Offline local file contains rendered mathematics');
       check(await local.locator('.katex-error').count() === 0, 'Offline local math renders without errors');
+      if (item.kind === 'home') await diagramTypesetting(local, '#proof-map', '.diagram-node-label');
       await local.locator('#reading-mode').selectOption('math');
       check(await local.locator('body.reading-math').count() === 1, 'Offline local file runs its reading controls');
       await local.locator('#reading-mode').selectOption('paired');
       await noPageOverflow(local);
     });
   }
+  await runCase('offline-file:archived-ipla-diagram', async () => {
+    await goto(local, pathToFileURL(path.join(ROOT, 'IPLA/exposition/proof.html')).href);
+    await diagramTypesetting(local, '#proof-map', '.proof-node-label');
+    check(await local.locator('#proof-map a.proof-node').count() === 14, 'Archived diagram retains all proof links');
+  });
+  await runCase('offline-file:standalone-ipla-svg', async () => {
+    await goto(local, pathToFileURL(path.join(ROOT, 'IPLA/exposition/proof-map.svg')).href);
+    await diagramTypesetting(local, 'svg.proof-svg', '.proof-node-label');
+    check(await local.locator('.katex-error').count() === 0, 'Standalone SVG math renders without errors');
+    check(await local.evaluate(() => [...document.fonts].every(font => font.status !== 'error')),
+      'Standalone SVG embeds working mathematical fonts');
+  });
   await offline.close();
 }
 

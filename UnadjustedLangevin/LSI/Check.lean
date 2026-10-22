@@ -7,10 +7,11 @@ import UnadjustedLangevin.LSI.ConditionalDrift
 import UnadjustedLangevin.LSI.InterpolationDensity
 import UnadjustedLangevin.LSI.InteriorEntropy
 import UnadjustedLangevin.LSI.GradientMoment
+import UnadjustedLangevin.LSI.UnconditionalTheorem
 
-/-! Kernel dependency audit for the conditional LSI development.
-The analytic assumptions are visible in the theorem statements; none is
-introduced as an axiom. Every audited theorem uses only Lean's standard
+/-! Kernel dependency audit for the complete actual Gaussian ULA LSI proof.
+The final theorem derives its interpolation estimates from the original
+potential and LSI assumptions. Every audited theorem uses only Lean's standard
 logical axioms, with no `sorryAx` or added mathematical axiom. -/
 
 #print axioms ULA.LSI.IsLogSobolev.entropy_le_fisher
@@ -55,3 +56,20 @@ logical axioms, with no `sorryAx` or added mathematical axiom. -/
 #print axioms ULA.LSI.gradient_moment_bound_of_coupling
 #print axioms ULA.LSI.gibbs_gradient_moment_bound_of_coupling
 #print axioms ULA.LSI.gibbs_gradient_moment_bound_of_entropy_coupling
+
+#print axioms ULA.LSI.IsLogSobolev.constant_le_smoothness
+#print axioms ULA.LSI.gibbs_gradient_moment_bound_of_finite_kl
+#print axioms ULA.LSI.interpolationLebesgueDensity_contDiff
+#print axioms ULA.LSI.hasDerivAt_interpolationLebesgueDensity_time
+#print axioms ULA.LSI.integrable_interpolationRelativeScoreField_energy_spacetime
+#print axioms ULA.LSI.interpolationLebesgueDensity_weak_identity
+#print axioms ULA.LSI.integral_frozenGaussianScore_pairing_independent
+#print axioms ULA.LSI.interpolationEntropy_integral_identity
+#print axioms ULA.LSI.interpolationEntropy_local_chain_rule
+#print axioms ULA.LSI.interpolationEntropy_derivative_bound_ae
+#print axioms ULA.LSI.interpolationLaw_entropy_eventually_le_majorant
+#print axioms ULA.LSI.one_step_entropy_of_ae_interpolation
+#print axioms ULA.LSI.ula_kl_finite
+#print axioms ULA.LSI.interpolation_kl_one_step
+#print axioms ULA.LSI.ula_kl_one_step
+#print axioms ULA.LSI.ula_kl_bound
