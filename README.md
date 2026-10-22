@@ -66,6 +66,10 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   [statement and assumption correspondence](IPLA/exposition/README.md),
   [final theorem](IPLA/Theorem.lean), and
   [standalone Lean file](IPLA/Standalone.lean).
+- **Proximal algorithms:** [proofs and v3 paper audit](ProximalLangevin/exposition/index.html)
+  and [scope and module guide](ProximalLangevin/README.md). Corrected MYIPLA,
+  PIPGLA and MYPGD actual-law bounds and corrected mean-field results are proved;
+  the ledger identifies remaining results.
 
 ## Repository structure and reuse
 
@@ -96,6 +100,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`UnadjustedLangevin/LSI/`](UnadjustedLangevin/LSI/README.md) | KL/Fisher calculus, Gaussian interpolation laws, and conditional ULA entropy bounds under LSI. |
 | [`IPLA/`](IPLA/exposition/README.md) | Lifted particle geometry, identification of IPLA with ULA, the parameter marginal and its log-concavity and concentration, and the final IPLA theorem. |
 | [`IPLA/LSI/`](IPLA/LSI/README.md) | Conditional particle entropy bounds, exact normalization and parameter KL projection under a lifted-target LSI. |
+| [`ProximalLangevin/`](ProximalLangevin/README.md) | Actual proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/dist/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html) | Offline exposition, source viewers, and verification reports. |
 

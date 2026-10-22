@@ -96,7 +96,8 @@ def verify():
     assert 'url(fonts/' not in text and 'url(http' not in text, "Fonts are not embedded"
     assert 'katex-error' not in text, "Failed mathematical rendering"
     assert not re.search(r'\\[\[(]', ''.join(doc.prose)), "Unrendered math delimiters"
-    assert 'Conditional Lean formalization.' in ''.join(doc.prose), "Missing conditional status"
+    status_label = content.get("page", {}).get("status_label", "Conditional Lean formalization.")
+    assert status_label in ''.join(doc.prose), "Missing formalization status"
     assert json.loads(doc.scripts["lean-sources"]) == sources, "Embedded source differs from repository"
     manifest = json.loads(doc.scripts["source-manifest"])
     assert manifest == json.loads((HERE / 'source_manifest.json').read_text()), "Manifest differs from page"

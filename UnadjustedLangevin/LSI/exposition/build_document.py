@@ -179,6 +179,11 @@ def build():
     status = metadata.get("status", "The displayed bound matches the paper. The current Lean endpoints "
                           "require additional analytic interpolation hypotheses. The page identifies "
                           "exactly which steps are proved and which remain open.")
+    status_label = metadata.get("status_label", "Conditional Lean formalization.")
+    source_intro = metadata.get("source_intro", "Every LSI module and its local Lean dependencies are embedded "
+                                "below, together with the pinned build configuration. Excerpts above are read directly "
+                                "from these files. The audit module checks the logical axioms used by the results.")
+    eyebrow = metadata.get("eyebrow", "Sampling algorithms · Entropy analysis")
     audit_title = audit.get("title", "What matches the paper")
     related = metadata.get("related_links", [{"path": "UnadjustedLangevin/exposition/dist/index.html",
                                               "label": "Strongly convex ULA proof"}])
@@ -218,9 +223,7 @@ def build():
                        code_block(path, 1, len(sources[path].splitlines()), sources) + '</details>')
     appendix = ('<section class="chapter" id="sources"><h2>'
                 '<span class="chapter-number">Source appendix</span>Complete sources</h2>'
-                '<div class="chapter-intro"><p>Every LSI module and its local Lean dependencies are embedded '
-                'below, together with the pinned build configuration. Excerpts above are read directly '
-                'from these files. The audit module checks the logical axioms used by the results.</p>'
+                '<div class="chapter-intro"><p>' + html.escape(source_intro) + '</p>'
                 '<pre><code>' + html.escape(commands) + '</code></pre></div>'
                 '<div class="source-toolbar"><label for="source-search">Find a source file</label> '
                 '<input id="source-search" type="search" placeholder="e.g. LSI/OneStep" '
@@ -244,16 +247,16 @@ def build():
             '<title>' + html.escape(title) + '</title>'
             '<meta name="description" content="' + html.escape(description, quote=True) + '">'
             '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() + '</style></head>'
-            '<body data-mode="paired"><header class="running-head"><a href="../../../index.html">'
+            '<body data-mode="paired"><header class="running-head"><a href="' + relative('index.html') + '">'
             'LangevinLean</a><div class="controls"><label for="reading-mode">Read </label>'
             '<select id="reading-mode"><option value="paired">Mathematics + Lean</option>'
             '<option value="math">Mathematics only</option></select>'
             '<button type="button" id="toggle-proofs" aria-expanded="true">Fold Lean proofs</button>'
             '<button type="button" id="print-document">Print</button></div></header><main>'
-            '<header class="hero"><div class="eyebrow">Sampling algorithms · Entropy analysis</div>'
+            '<header class="hero"><div class="eyebrow">' + html.escape(eyebrow) + '</div>'
             '<h1>' + html.escape(heading) + '</h1>'
             '<p class="subtitle">' + html.escape(subtitle) + '</p>'
-            '<div class="status-note"><strong>Conditional Lean formalization.</strong> ' +
+            '<div class="status-note"><strong>' + html.escape(status_label) + '</strong> ' +
             html.escape(status) + '</div>' +
             math(content["intro"]) +
             '<p class="hero-actions"><a href="#reference-audit">' + html.escape(audit_title) + '</a> · '
