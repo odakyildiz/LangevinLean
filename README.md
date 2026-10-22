@@ -117,9 +117,10 @@ more than one method. Add the library to [lakefile.toml](lakefile.toml), its
 theorem audits, and a link from the documentation homepage.
 
 The GitHub Actions workflow runs the Lean build, theorem audits, and exposition
-checks. To publish the committed pages with GitHub Pages, use `main` at
-`/ (root)`; [index.html](index.html) is the entry point. The checked-in
-`.nojekyll` preserves the static directory layout and source links.
+checks. GitHub Pages publishes this deployment branch, `gh-pages`, at
+`/ (root)`; [index.html](index.html) is the entry point. Every HTML page
+requests exclusion from search-engine indexing. See [publication details](PUBLISHING.md).
+The checked-in `.nojekyll` preserves the static directory layout and source links.
 
 ## Regenerate and verify documentation
 
