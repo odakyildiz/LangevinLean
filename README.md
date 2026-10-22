@@ -116,10 +116,28 @@ that method's directory; extend the common layer when a result is useful to
 more than one method. Add the library to [lakefile.toml](lakefile.toml), its
 theorem audits, and a link from the documentation homepage.
 
-The GitHub Actions workflow runs the Lean build, theorem audits, and exposition
-checks. To publish the committed pages with GitHub Pages, use `main` at
-`/ (root)`; [index.html](index.html) is the entry point. The checked-in
-`.nojekyll` preserves the static directory layout and source links.
+## Local checks and publication
+
+Run all proof and exposition checks locally before pushing or publishing:
+
+```sh
+bash scripts/check-local.sh
+```
+
+This builds all three Lean libraries, runs the five theorem dependency audits,
+checks all four proof documents, and compiles the IPLA standalone in isolation
+with only Mathlib available. The standalone verifier refreshes its committed
+diagnostic reports; review any changes before committing.
+
+The repository has no GitHub Actions workflow files. Keep verification local
+to avoid paid hosted-runner use; do not add remote build, release, or dependency
+update workflows without an explicit request.
+
+Develop on `main`. Publish a locally verified snapshot to `gh-pages` at
+`/ (root)`, retaining `noindex, nofollow, noarchive` metadata on every HTML page,
+the publication's `robots.txt`, and `.nojekyll`. [index.html](index.html) is the
+entry point. GitHub Pages handles serving the already generated static files;
+Lean compilation and documentation generation run locally.
 
 ## Regenerate and verify documentation
 
