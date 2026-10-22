@@ -99,9 +99,8 @@ def imports(source):
 
 
 def shell(page, title, body, active=None):
-    navigation=[('UnadjustedLangevin','ULA · strong convexity'),
+    navigation=[('UnadjustedLangevin','ULA · SC'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
-                ('IPLA/LSI','IPLA · LSI'),
                 ('ProximalLangevin','Proximal')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
