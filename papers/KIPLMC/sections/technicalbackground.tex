@@ -1,0 +1,37 @@
+\section{Technical Background}\label{sec:background}
+
+Before presenting our proposed diffusion and algorithms, we introduce some concepts that will be useful to us in this paper. We first introduce the kinetic Langevin diffusion and its associated algorithms, which are the building blocks of our proposed methods. Then, we present the \gls*{ipla} algorithm, which is the closest method to our proposed algorithms and serves as a starting point for our developments.
+
+\subsection{Kinetic Langevin Monte Carlo}
+In recent years, the Langevin diffusion and its associated algorithms have been widely used in statistics and machine learning to sample from complex distributions. The overdamped Langevin diffusion is given by the \gls*{sde}
+\begin{equation}\label{eq:LangevinDiffusion}
+\mathrm{d}\Z_t = -\nabla U(\Z_t) \mathrm{d}t + \sqrt{2}\mathrm{d}\B_t,
+\end{equation}
+where $U:\bR^d \to \bR$ is a potential function and $(\B_t)_{t\geq 0}$ is a Brownian motion. Under certain regularity conditions, this system is known to be invariant w.r.t. the measure $\pi(\md z) \propto \exp(-U(z))\md z$ \citep{Pavliotis_2014}. Under the strongly convex and Lipschitz-gradient setting, a standard Euler-Maruyama discretisation of this diffusion, called \gls*{ula}, is known to attain at most $\mathcal{O}(\varepsilon)$ error in Wasserstein-2 distance to the stationary measure in $\widetilde{\mathcal{O}}(d \varepsilon^{-2})$ steps \citep{dalalyan2017theoretical, durmus2019high}.
+
+An alternative to the \textit{overdamped} Langevin diffusions given in \eqref{eq:LangevinDiffusion}, is another class of diffusions called \textit{underdamped} Langevin diffusions \citep{Pavliotis_2014}. This class of diffusions is akin to second-order differential equations and defined over position and momentum variables. In particular, for a $d$-dimensional target measure $\pi(\md z) \propto \exp(-U(z))\md z$, the underdamped (kinetic) Langevin diffusion is given by the \gls*{sde}
+\begin{equation}\label{eq:underdamped}
+\begin{aligned}
+\mathrm{d}\Z_t &= \V_t \mathrm{d}t  \\
+\mathrm{d}\V_t &= - \gamma \V_t \mathrm{d}t - \nabla_z U(\Z_t)\mathrm{d}t + \sqrt{2\gamma}\mathrm{d}\B_t, 
+\end{aligned}
+\end{equation}
+where $\gamma > 0$ is called the friction coefficient and $(\B_t)_{t \geq 0}$ is a Brownian motion. Under certain regularity conditions \citep{Pavliotis_2014}, this system is known to be invariant w.r.t. an extended stationary measure of the form
+\begin{equation}\label{eq:underdamped_invariant}
+\bar{\pi}(\md z, \md v) \propto \exp\left(-U(z) - \frac{1}{2}\|v\|^2\right) \md z \md v.
+\end{equation}
+This means that we can recover the samples from our target measure $\pi(\md z) \propto \exp(-U(z))\md z$ by sampling from \eqref{eq:underdamped_invariant} and then marginalising out the velocity variable.
+
+The structure in \eqref{eq:underdamped} allows for smoother sample paths and faster convergence to the stationary measure compared to the overdamped case \citep{cheng2018underdamped}. This has motivated the development of algorithms based on discretisations of the underdamped Langevin diffusion, termed \gls*{klmc} \citep{dalalyan2018sampling}. These methods have been shown to achieve improved convergence rates compared to their overdamped counterparts, making them a competitive alternative for sampling from complex distributions. In particular, under the strongly convex and Lipschitz-gradient setting, \gls*{klmc} is known to attain at most $\mathcal{O}(\varepsilon)$ error in Wasserstein-2 distance to the stationary measure in $\widetilde{\mathcal{O}}(\sqrt{d} \varepsilon^{-1})$ steps \citep{dalalyan2018sampling}. In this paper, we build on the framework of \gls*{klmc} methods to develop algorithms for the \gls*{mmle} problem.
+
+\subsection{MMLE via Interacting Particle Langevin Algorithm}
+Consider the \gls*{mmle} problem given in \eqref{eq:max}, that is, to find the parameter $\theta$ that maximises the marginal likelihood $p_\theta(y)$. As summarised in the introduction, this problem is often solved with the \gls*{em} algorithm, typically implemented with a double-loop structure consisting of \gls*{mcmc} techniques for the E-step and numerical optimisation techniques for the M-step \citep{atchade2017,de2021efficient}.
+\glsreset{pgd}
+\glsreset{ipla}
+
+In contrast to this approach, \citep{kuntz2023particle} propose an interacting particle system, the \gls*{pgd} algorithm, to approximate the gradient of the $\theta$-dynamics by running independent particles to integrate out latent variables. Inspired by this, \citep{akyildiz2025interacting} attempt to solve the \gls*{mmle} problem with a similar system, termed the \gls*{ipla}, which is a modification of \gls*{pgd} where $\theta$-dynamics contain a carefully scaled noise. This approach produces a system that is akin to the \gls*{ula} and makes the theoretical analysis streamlined using the analysis produced for \gls*{ula} \citep{dalalyan2017theoretical, durmus2019high}. The proposed algorithm is a discretisation of a system of interacting Langevin \glspl*{sde} which evolves in $\bR^{d_\theta} \times \bR^{N d_x}$ where $N$ distinct particles are retained for latent variables. More precisely, \gls*{ipla} recursions are based on the \gls*{sde}:
+\begin{align}
+    \mathrm{d}\bm{\theta}_t &= -\frac{1}{N} \sum_{i=1}^N \nabla_\theta U(\bm{\theta}_t, \X_t^{i}) \mathrm{d}t + \sqrt{\frac{2}{N}}\mathrm{d}\B_t^0, \label{eq:ipla1}\\
+    \mathrm{d}\X_t^{i} &= -\nabla_x U(\bm{\theta}_t, \X^i_t)\mathrm{d}t + \sqrt{2}\mathrm{d}\B_t^i, \label{eq:ipla2}
+\end{align}
+for $i \in [N]$, where $(\B_t^0)_{t\geq 0}$ is a Brownian motion evolving on $\bR^{d_\theta}$ and $(\B_t^i)_{t\geq 0}$ for $i \in [N]$ are Brownian motions evolving on $\mathbb{R}^{d_x}$. In this case, \citep{akyildiz2025interacting} observe that the $\theta$-marginal of the stationary measure of this system takes the form $\pi_\Theta(\md \theta) \propto \exp(N \log p_\theta(y)) \md \theta$ which concentrates on the \gls*{mmle} $\bar{\theta}_\star$ as $N$ grows, where $N$ plays the role of inverse temperature \citep{hwang1980laplace}. The authors then identify the convergence rate to the joint stationary measure, as well as an error bound for the discretisation error, from which an error can be determined between the $\theta$-iterate of the algorithm and the \gls*{mmle}.

@@ -1,0 +1,242 @@
+
+\section{Kinetic Interacting Particle Langevin Monte Carlo}\label{sec:algorithms}
+
+To develop our methodology, we start with the following diffusion process:
+\small
+\begin{align}
+\mathrm{d} \bm{\theta}_t &= \V^\theta_t \mathrm{d}t \nonumber \\
+\mathrm{d} \X^i_t &= \V^{x_i}_t \mathrm{d}t, \tag{\text{\small\textsc{KIPLD}}}\label{eq:KIPLD}\\
+\mathrm{d} \V^{\theta}_t &= -\gamma \V^{\theta}_t \mathrm{d}t - \frac{1}{N}\sum_{i=1}^N \nabla_\theta U(\bm{\theta}_t, \X^{i}_t) \mathrm{d} t + \sqrt{\frac{2\gamma}{N}}\mathrm{d}\B^0_t \nonumber\\
+\mathrm{d} \V^{x_i}_t &= -\gamma \V_t^{x_i} \mathrm{d}t - \nabla_x U(\bm{\theta}_t, \X_t^i) \mathrm{d}t + \sqrt{2\gamma} \mathrm{d}\B_t^i, \nonumber
+\end{align}
+\normalsize
+for $ i\in [N]$, where $\{(\B_t^i)_{t\geq 0}\}_{i\in [N]}$ is a family of $\bR^{d_x}$-valued Brownian motions and $(\B_t^0)_{t\geq 0}$ is an $\mathbb{R}^{d_\theta}$-valued Brownian motion. This diffusion has the property that its $\theta$-marginal at stationarity concentrates around the global maximisers of $\log p_\theta(y)$ (see Section~\ref{sec:nonasymp}).
+
+
+Next, we introduce two numerical integrators for the \gls*{kipld}: firstly, we consider an Exponential Integrator, as discussed in \citep{dalalyan2018sampling}; secondly, a splitting scheme is applied, as described in \citep{monmarche2021high}.
+
+\subsection{Exponential Integrator (KIPLMC1)}\label{subsec:kiplmc1}
+
+In order to derive the exponential integrator discretisation of \gls*{kipld}, following \citep{dalalyan2018sampling}, we begin by defining the functions
+\begin{align*}
+\psi_0^t &= e^{-\gamma t},\\
+\psi_1^t &= \int_0^t e^{-\gamma s} \md s = \frac{1}{\gamma}(1-e^{-\gamma t}),\\
+\psi_2^t &= \int_0^t \psi_1^s \md s
+= \frac{1}{\gamma^2}(e^{-\gamma t}-1) + \frac{t}{\gamma}.
+\end{align*}
+The exponential integrator is obtained by freezing the nonlinear drift terms $\nabla_\theta U(\theta_t,X_t^i)$ and $\nabla_x U(\theta_t,X_t^i)$ at the beginning of each time step and solving exactly the resulting linear stochastic differential equation.
+
+More precisely, let $t_n=n\eta$. Over the interval $[t_n,t_{n+1}]$ we approximate the dynamics \eqref{eq:KIPLD} by freezing the gradients at $(\theta_n,X_n^i)$,
+\[
+F_n^\theta = \frac{1}{N}\sum_{i=1}^N \nabla_\theta U(\theta_n,X_n^i),
+\quad
+F_n^{x_i} = \nabla_x U(\theta_n,X_n^i),
+\]
+which yields the linear system
+\begin{align*}
+\mathrm{d}\bm{\theta}_t &= \V_t^\theta \mathrm{d}t, \\
+\mathrm{d}\X_t^i &= \V_t^{x_i} \mathrm{d}t,\\
+\mathrm{d}\V_t^\theta &= -\gamma \V_t^\theta \mathrm{d}t - F_n^\theta \mathrm{d}t
++ \sqrt{\frac{2\gamma}{N}}\mathrm{d}\B_t^0,\\
+\mathrm{d}\V_t^{x_i} &= -\gamma \V_t^{x_i} \mathrm{d}t - F_n^{x_i} \mathrm{d}t
++ \sqrt{2\gamma}\mathrm{d}\B_t^i,
+\end{align*}
+for $i\in[N]$, with initial condition
+\[
+(\bm{\theta}_{t_n},\X_{t_n}^i,\V_{t_n}^\theta,\V_{t_n}^{x_i})
+=
+(\theta_n,X_n^i,V_n^\theta,V_n^{x_i}).
+\]
+Since the system is linear with constant coefficients, it can be solved explicitly. Using an integrating factor for the velocity equation gives, for $s\in[0,\eta]$,
+\small
+\begin{align*}
+V_{t_n+s}^\theta
+&= \psi_0^s V_n^\theta - \psi_1^s F_n^\theta
++ \sqrt{\frac{2\gamma}{N}}
+\int_0^s \psi_0^{\,s-\tau}\,\mathrm{d}\B_{t_n+\tau}^0,\\
+V_{t_n+s}^{x_i}
+&= \psi_0^s V_n^{x_i} - \psi_1^s F_n^{x_i}
++ \sqrt{2\gamma}
+\int_0^s \psi_0^{\,s-\tau}\,\mathrm{d}\B_{t_n+\tau}^i.
+\end{align*}
+\normalsize
+Integrating once more yields the updates for the positions
+\small
+\begin{align*}
+\theta_{t_n+s}
+&= \theta_n + \psi_1^s V_n^\theta - \psi_2^s F_n^\theta
++ \sqrt{\frac{2\gamma}{N}}
+\int_0^s \psi_1^{\,s-\tau}\,\mathrm{d}\B_{t_n+\tau}^0,\\
+X_{t_n+s}^i
+&= X_n^i + \psi_1^s V_n^{x_i} - \psi_2^s F_n^{x_i}
++ \sqrt{2\gamma}
+\int_0^s \psi_1^{\,s-\tau}\,\mathrm{d}\B_{t_n+\tau}^i.
+\end{align*}
+\normalsize
+Evaluating these expressions at $s=\eta$ gives the one-step update of the discretised process. The stochastic integrals appearing above are jointly Gaussian random variables. For each $i\in\{0,\ldots,N\}$ we define
+\begin{align*}
+\varepsilon_n^i = \int_0^\eta \psi_0^{\,\eta-s}\,\mathrm{d}B_{t_n+s}^i, \quad \varepsilon_n^{i,\prime} = \int_0^\eta \psi_1^{\,\eta-s}\,\mathrm{d}B_{t_n+s}^i.
+\end{align*}
+\begin{algorithm}[b!]
+\caption{\gls*{kiplmc1}}\label{alg:KIPLMC1}
+\begin{algorithmic}[1]
+\Require $\gamma, \eta > 0$, $N, M \in \bN$
+\State Compute the covariance matrix $C$ given in \eqref{eq:covariancemat} and its Cholesky decomposition $C = H H^\top$.
+\State Draw $\theta_0, X^i_0, V^\theta_0, V^{x_i}_0$, for $i\in [N]$
+    \For{$n = 0:M-1$}
+    \State Draw: $\xi_n^0,\xi_n^{0,\prime}\in\mathbb{R}^{d_\theta}$ and $\xi_n^i, \xi_n^{i,\prime}\in\mathbb{R}^{d_x}$, for $i=1,\dots, N$, from standard Gaussians and define
+    \begin{align*}
+    \varepsilon_n^{i} &= H_{11} \xi_n^{i}, &
+    \varepsilon_n^{i,\prime} = H_{21} \xi_n^i + H_{22}  \xi_n^{i,\prime}
+\end{align*}
+for $i = 0, \ldots, N$.
+    \State Compute the average gradient of the potential:
+    \begin{align*}
+    F_{n}^{\theta} &= \frac{1}{N} \sum_{i=1}^N \nabla_\theta U(\theta_n, X^i_n), & 
+    F_{n}^{x_i} = \nabla_x U(\theta_n, X^i_n).
+    \end{align*}
+    Update the parameters, particles and their momenta:
+    \small
+    \begin{align}
+    \theta_{n+1} &= \theta_n + \psi_1^\eta V^{\theta}_n - {\psi_2^\eta} F_{n}^{\theta} + \sqrt{\frac{2\gamma}{N}} \varepsilon^{0, \prime}_{n} \nonumber \\
+    X^i_{n+1} &= X^i_n + \psi_1^\eta V^{x_i}_n - \psi_2^\eta F_{n}^{x_i} + \sqrt{2\gamma}\varepsilon_{n}^{i,\prime} \tag{KIPLMC1} \label{eq:KIPLMC1} \\
+    V^{\theta}_{n+1} &= \psi_0^\eta V^{\theta}_n - \psi_1^\eta F_{n}^{\theta} + \sqrt{\frac{2\gamma}{N}} \varepsilon^0_{n} \nonumber \\
+    V^{x_i}_{n+1} &= \psi_0^\eta V^{x_i}_n - \psi_1^\eta F_{n}^{x_i} + \sqrt{2\gamma} \varepsilon^i_{n} \nonumber
+    \end{align}
+    for $i\in [N]$.
+    \normalsize
+    \EndFor
+\State Output: $(\theta_{M}, X^1_M, \ldots, X^N_M)$
+\end{algorithmic}
+\end{algorithm}
+Now note that $(\varepsilon_n^0, \varepsilon_n^{0,\prime}) \in \mathbb{R}^{d_\theta} \times \mathbb{R}^{d_\theta}$ and $(\varepsilon_n^i, \varepsilon_n^{i,\prime}) \in \mathbb{R}^{d_x} \times \mathbb{R}^{d_x}$ for $i=1,\ldots,N$. Consider each coordinate of these pairs:
+\begin{align*}
+\varepsilon_{n,j}^i &= \int_0^\eta \psi_0^{\,\eta-s}\,\mathrm{d}B_{t_n+s,j}^i,\qquad
+\varepsilon_{n,j}^{i,\prime} = \int_0^\eta \psi_1^{\,\eta-s}\,\mathrm{d}B_{t_n+s,j}^i.
+\end{align*}
+For every $(i,j)$, using It\^o isometry \citep{oksendal2013stochastic}, we can obtain $C = \mathrm{Cov}(\varepsilon_{n,j}^i, \varepsilon_{n,j}^{i,\prime})$ as
+\begin{equation}\label{eq:covariancemat}
+C =
+\int_0^\eta
+\begin{pmatrix}
+(\psi_0^{t})^2 & \psi_0^t\psi_1^t\\
+\psi_0^t\psi_1^t & (\psi_1^{t})^2
+\end{pmatrix}
+\mathrm{d}t.
+\end{equation}
+We note that $C\in\mathbb{R}^{2\times2}$ and denote its Cholesky decomposition by $C=H H^\top$. Hence the Gaussian pair $(\varepsilon_{n,j}^i, \varepsilon_{n,j}^{i,\prime})$ can be sampled by setting
+\begin{align*}
+\begin{pmatrix}\varepsilon_{n,j}^i\\
+\varepsilon_{n,j}^{i,\prime}\end{pmatrix}
+&= H
+\begin{pmatrix}\xi_{n,j}^i\\
+\xi_{n,j}^{i,\prime}\end{pmatrix},
+\end{align*}
+where $\xi_{n,j}^i$ and $\xi_{n,j}^{i,\prime}$ are independent standard Gaussian random variables.
+
+Substituting these expressions for $s = \eta$ yields the \gls*{kiplmc1} scheme. The full algorithm is given in Algorithm~\ref{alg:KIPLMC1} and a more explicit derivation in Appendix~\ref{app:algderiv}.
+
+\subsection{A Splitting Scheme (KIPLMC2)}
+
+We next introduce \gls*{kiplmc2}, an adaptation of the underdamped Langevin sampler introduced by \citep{HOROWITZ1991247} and extensively studied by \citep{monmarche2021high}. This splitting scheme is termed OBABO and it is a second order scheme, only requiring the first order derivatives of $U$. The idea is to split the numerical scheme into simpler subflows that can be solved explicitly. More precisely, in our \gls*{kipld} case, we decompose the flow into a Ornstein-Uhlenbeck step (O), a velocity drift step (B) and a particle update step (A). 
+
+In the OBABO case, over a full time-step $\eta$, the (O) step is applied over a $\eta/2$ half-step, the (B) step is also applied to a $\eta/2$ half-step, (A) is applied as a full time-step $\eta$, followed by a reversed application of (B) and (O) for half-steps. We denote these intermediate time-steps by $n+\frac{1}{4}$, $n+\frac{1}{2}$ and $n+\frac{3}{4}$, though we note that these time-steps do not correspond to simulated time. The order in which these steps are taken is critical \citep{monmarche2021high} and in our case we will limit ourselves to considering the OBABO ordering.
+
+More precisely, the Ornstein-Uhlenbeck half-step (O) flow is given as
+\begin{align*}
+\mathrm{d} \V_t^\theta &= -\gamma \V_t^\theta \mathrm{d}t + \sqrt{\frac{2\gamma}{N}} \mathrm{d}\B_t^0,\\
+\mathrm{d} \V_t^{x_i} &= - \gamma \V_t^{x_i} \mathrm{d} t + \sqrt{2\gamma}\mathrm{d}\B_t^i,
+\end{align*}
+over a half-step of duration $\eta/2$, for $i\in[N]$, where the parameters $\bm{\theta}_t$ and $\X_t^i$ are frozen and we initialise at $(\V_{n\eta}^\theta, \V_{n\eta}^{x_i})= (V_n^\theta, V_n^{x_i})$. Using the classic analytic solution to the Ornstein-Uhlenbeck equation and the It\^{o} Isometry we obtain,
+\begin{equation}
+\begin{aligned}
+V_{n+\frac{1}{4}}^\theta &= \delta V_n^\theta + \frac{1}{\sqrt{N}} \sqrt{1-\delta^2} \xi_n^0,\\
+V_{n+\frac{1}{4}}^{x_i} &= \delta V_n^{x_i} + \sqrt{1-\delta^2} \xi_n^i,
+\end{aligned}\tag{O}
+\end{equation}
+with $\delta=e^{-\eta\gamma/2}$ and i.i.d. standard Gaussians $\xi_n^0$ and $\xi_n^i$, in $\mathbb{R}^{d_\theta}$ and $\mathbb{R}^{d_x}$, respectively.
+
+The momentum drift update (B) updates $V^\theta$ and $V^{x_i}$ by exactly integrating the flow with frozen gradients $N^{-1} \sum_{i=1}^N \nabla_\theta U(\theta, X^i)$ and $\nabla_{x_i}U(\theta, X^i)$, i.e. we consider the flow to be given as
+\begin{align*}
+\mathrm{d} \V_t^\theta &= - F_n^\theta \mathrm{d}t,\\
+\mathrm{d} \V_t^{x_i} &= - F_n^{x_i} \mathrm{d}t,
+\end{align*}
+\begin{algorithm}[b!]
+\caption{KIPLMC2 Algorithm}\label{alg:KIPLMC2}
+\begin{algorithmic}[1]
+\Require $\gamma, \eta > 0$, $N, M \in \bN$
+\State Draw $\theta_0, X^i_0, V^\theta_0, V^{x_i}_0$, for $i\in [N]$
+    \For{$n = 0:M-1$}
+    \State Draw $\xi_n^0, \xi^{0,\prime}_n$ from a $d_\theta$-dimensional Gaussian and for $i\in [N]$, draw $\xi_n^i, \xi^{i,\prime}_n$ from $d_x$-dimensional Gaussians.
+
+    \State Compute the gradients of the potential:
+    \small
+    \begin{align*}
+        F_n^\theta &= \frac{1}{N} \sum_{i=1}^N \nabla_\theta U(\theta_n, X_n^i),\quad
+        F_n^{x_i} = \nabla_x U(\theta_n, X_n^i).
+    \end{align*}
+    \normalsize
+    \State Update the momenta via (O)+(B) steps:
+    \small
+    \begin{align*}
+    V_{n+\frac{1}{2}}^\theta &= \delta V_n^\theta + \sqrt{\frac{1-\delta^2}{N}} \xi_n^0 - \frac{\eta}{2} F_n^\theta,\\
+    V_{n+\frac{1}{2}}^{x_i} &= \delta V_n^{x_i} + \sqrt{1-\delta^2} \xi_n^i - \frac{\eta}{2} F_n^{x_i},
+    \end{align*}
+    \normalsize
+    \State Update parameters and particles via (A):
+    \small
+    \begin{align*}
+    \theta_{n+1} &= \theta_n + \eta V_{n+\frac{1}{2}}^\theta,\quad
+    X_{n+1}^i = X_n^i + \eta V_{n+\frac{1}{2}}^{x_i},
+    \end{align*}
+    \normalsize
+    for $i\in [N]$.
+    \State Re-compute the gradient potentials 
+    \small
+    \begin{align*}
+    F_{n+1}^\theta &= \frac{1}{N} \sum_{i=1}^N \nabla_\theta U(\theta_{n+1}, X_{n+1}^i), &
+    F_{n+1}^{x_i} = \nabla_x U(\theta_{n+1}, X_{n+1}^i).
+    \end{align*}
+    \normalsize
+    \State Update the momenta via the (B)+(O) steps:
+    \small
+    \begin{align*}
+    V_{n+1}^\theta &= \delta V_{n+\frac{1}{2}}^\theta - \frac{\delta \eta}{2}F_{n+1}^\theta +\sqrt{\frac{1-\delta^2}{N}} \xi_n^{0,\prime},\\
+    V_{n+1}^{x_i} &= \delta V_{n+\frac{1}{2}}^{x_i} - \frac{\delta\eta}{2} F_{n+1}^{x_i} + \sqrt{1-\delta^2} \xi_n^{i,\prime},
+    \end{align*}
+    \normalsize
+    for $i\in[N]$.
+    \EndFor
+    
+\Return $\theta_{M}$
+\end{algorithmic}
+\end{algorithm}
+over a half-step of duration $\eta/2$, where we recall the definitions of $F_n^\theta$ and $F_n^{x_i}$ from Sec.~\ref{subsec:kiplmc1} and initialise at $(V_{n+\frac{1}{4}}^\theta,V_{n+\frac{1}{4}}^{x_i})$, the output of the (O) half-step. This yields the exact update:
+\begin{equation}
+\begin{aligned}
+V_{n+\frac{1}{2}}^\theta &= V_{n+\frac{1}4}^\theta - \frac{\eta}{2} F_n^\theta,\\
+V_{n+\frac{1}2}^{x_i} &= V_{n+\frac{1}4}^{x_i} - \frac{\eta}{2} F_n^{x_i}.
+\end{aligned}\tag{B}
+\end{equation}
+Finally, the (A) update considers the partial flow,
+\begin{align*}
+\mathrm{d} \bm{\theta}_t &= \V_t^\theta \mathrm{d}t,\\
+\mathrm{d} \X_t^i &= \V_t^{x_i}\mathrm{d}t,
+\end{align*}
+over $t\in [t_n, t_{n+1}]$, where we consider $(\V_t^\theta,\V_t^{x_i})$ is frozen at $(V_{n+1/2}^\theta, V_{n+1/2}^{x_i})$ and we initialise at $(\bm{\theta}_{n\eta}, \X_{n\eta}^i)=(\theta_n, X_n^i)$. Hence, the (A) update is given as,
+\begin{equation}
+\begin{aligned}
+\theta_{n+1} &= \theta_n + \eta V_{n+\frac{1}{2}}^\theta,\\
+X_{n+1}^i &= X_n^i + \eta V_{n+\frac{1}{2}}^{x_i}.
+\end{aligned}\tag{A}
+\end{equation}
+The algorithm is then completed by repeating steps (B) and (O),
+\begin{equation}
+\begin{aligned}
+V_{n+1}^\theta &= \delta \left(V_{n+\frac{1}{2}}^\theta -\frac{\eta}{2} F_{n+1}^\theta\right)+ \sqrt{\frac{1-\delta^2}{N}} \xi_n^{0,\prime},\\
+V_{n+1}^{x_i} &= \delta\left(V_{n+\frac{1}{2}}^{x_i} - \frac{\eta}{2} F_{n+1}^{x_i}\right)+ \sqrt{1-\delta^2} \xi_n^{i,\prime},
+\end{aligned}\tag{B+O}
+\end{equation}
+where the (B) and (O) subflows are each applied over a half-step of duration $\eta/2$, and where $\xi_n^{0,\prime}$ and $\xi_n^{i,\prime}$ are standard Gaussians in $\mathbb{R}^{d_\theta}$ and $\mathbb{R}^{d_x}$, respectively.
+
+The full updates are given in Algorithm~\ref{alg:KIPLMC2} and a full derivation of the \gls*{kiplmc2} algorithm is given in Appendix~\ref{app:algderiv}. 
