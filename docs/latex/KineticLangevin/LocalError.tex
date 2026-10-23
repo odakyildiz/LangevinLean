@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Derive the actual frozen-force local defect}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/LocalError.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The velocity defect is an explicit exponentially weighted integral of the changing force; the position defect is its primitive. Bounds follow from a Lipschitz force and a kinematic identity, not from a built-in defect hypothesis. The ambient norm may represent a deterministic Banach path or an L\ensuremath{{}^{2}} random-vector norm. A kinetic stationarity theorem supplying the required velocity-moment bound remains separate.
+
+
+\section{Define the force-freezing remainder as an integral}
+
+
+Set \(D_v(t)=\int_0^te^{-\gamma(t-s)}(g(x_s)-g(x_0))ds\), and \(D_x(t)=\int_0^tD_v(s)ds\). These are exactly the terms left when one compares an exact kinetic equation with a frozen-force interpolation driven by the same additive noise. \texttt{velocityDefect} and \texttt{positionDefect} define those vector-valued interval integrals. The definitions impose no desired error estimate. Interpreting them as a numerical-process difference additionally requires deriving the variation-of-constants identity for that process.
+
+
+
+\noindent Lean declarations: \texttt{velocityDefect}, \texttt{positionDefect}.
+
+\section{Integrating velocity gives a linear position increment}
+
+
+Assume \(x_t-x_0=\int_0^tv_sds\), with \(\|v_s\|\le C\) on the horizon. The norm-of-integral bound gives \(\|x_t-x_0\|\le C|t|=Ct\) for nonnegative time. Lean rewrites with the actual kinematic identity, applies the constant bound on the interval integral, and translates membership in the unoriented integration interval into \(0\le s\le t\le T\). This is the extra position regularity that kinetic Langevin gains from integrating velocity instead of receiving direct Brownian position noise.
+
+
+
+\noindent Lean declarations: \texttt{kinematic\_increment\_bound}.
+
+\section{Integrate a linear force increment to obtain the quadratic velocity defect}
+
+
+Lipschitzness gives \(\|g(x_s)-g(x_0)\|\le MCs\). With \(\gamma\ge0\) and \(s\le t\), the exponential kernel is between zero and one, so the norm of the weighted integrand is still at most \(MCs\). The proof derives this pointwise estimate from the preceding increment theorem, explicit exponential positivity and the norm of scalar multiplication. A continuous scalar majorant provides the required interval integrability. Integrating the bound gives \(\|D_v(t)\|\le\int_0^tMCsds=MCt^2/2\); Lean evaluates the integral and normalizes its coefficients with \texttt{ring}.
+
+
+
+\noindent Lean declarations: \texttt{velocityDefect\_bound}.
+
+\section{Integrate once more to obtain the cubic position defect}
+
+
+Apply the proved velocity-defect bound at each intermediate time \(s\): \(\|D_v(s)\|\le MCs^2/2\). Its continuous scalar majorant is integrable, so the norm of the position-defect integral is bounded by \(\int_0^tMCs^2/2\,ds=MCt^3/6\). Lean first verifies that every intermediate time stays in the original horizon, rewrites the scalar coefficient into the majorant's form, applies norm-integral comparison, and uses \texttt{integral\_pow}. The integration variable inside the bound is \(s\), preserving the correct cubic constant. No stationarity or Gaussian moment is assumed implicitly by this deterministic estimate.
+
+
+
+\noindent Lean declarations: \texttt{positionDefect\_bound}.
+
+\section{Recover the paper’s three-quarter transformed local constant}
+
+
+Put \(B=MCh^2\). The component bounds give \(\|D_v\|\le B/2\) and \(\|D_x\|\le Bh/6\). If \(\gamma h\le1/4\), then \(\|D_v+\gamma D_x\|\le B/2+B/24=13B/24\). The transformed energy at parameter zero is \(\|D_v+\gamma D_x\|^2+\|D_v\|^2\), which is at most \(((13/24)^2+1/4)B^2\le(3B/4)^2\). Lean keeps all quantities nonnegative, squares each norm bound with \texttt{sq\_le\_sq₀}, unfolds the transformed energy and verifies the rational comparison by \texttt{nlinarith}. This derives the constant for the explicit defect integrals; identifying them with an actual stationary-chain coupling still requires the kinetic process construction and moment estimates.
+
+
+
+\noindent Lean declarations: \texttt{localDefect\_energy\_bound}.
+
+\end{document}

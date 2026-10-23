@@ -1,12 +1,14 @@
 # LangevinLean
 
 Lean formalizations of unadjusted Langevin (ULA), interacting particle Langevin
-(IPLA), and proximal particle algorithms. Mathematical statements and proofs are
+(IPLA), proximal particle algorithms, kinetic Langevin, and kinetic interacting
+particle Langevin Monte Carlo (KIPLMC). Mathematical statements and proofs are
 paired with the exact Lean declarations, including every supporting subfile.
 The shared theory is organized for reuse by further methods.
 
 Open the [documentation homepage](index.html), then choose strongly convex ULA,
-ULA under LSI, strongly convex IPLA, or proximal algorithms. Each overview has standalone mathematical results beside Lean,
+ULA under LSI, strongly convex IPLA, proximal algorithms, kinetic Langevin,
+or KIPLMC. Each overview has standalone mathematical results beside Lean,
 verification commands, and a proof diagram whose boxes open detailed HTML
 proof pages. Every Lean file has a module page and downloadable LaTeX exposition.
 Relative links and bundled mathematical typesetting work offline after cloning;
@@ -37,6 +39,8 @@ lake env lean IPLA/Check.lean
 lake env lean ProximalLangevin/Check.lean
 lake env lean UnadjustedLangevin/LSI/Check.lean
 lake env lean IPLA/LSI/Check.lean
+lake env lean KineticLangevin/Check.lean
+lake env lean KIPLMC/Check.lean
 lake env lean IPLA/Standalone.lean
 ```
 
@@ -80,6 +84,50 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   and [scope and module guide](ProximalLangevin/README.md). Corrected MYIPLA,
   PIPGLA and MYPGD actual-law bounds and corrected mean-field results are proved;
   the ledger identifies remaining results.
+- **Kinetic Langevin:** [continuous mixing, KLMC, and KLMC2 proofs](KineticLangevin/exposition/index.html),
+  including actual Brownian integral-solution laws, Gibbs stationarity,
+  correlated Gaussian samplers, and both unconditional Wasserstein bounds.
+  The [source coverage audit](KineticLangevin/exposition/reference_audit.json)
+  records every source result and the corrections required by the supplied draft.
+- **KIPLMC:** [diffusion, both particle sampler bounds, and concentration](KIPLMC/exposition/index.html).
+  KIPLMC1 calls the shared kinetic exponential integrator; KIPLMC2 calls the
+  shared OBABO composition. Actual Gaussian-chain parameter RMS bounds,
+  exact clock changes, sharp MMLE concentration, and finite accuracy budgets
+  are proved. The [source coverage audit](KIPLMC/exposition/reference_audit.json)
+  distinguishes the analytic statements from the empirical experiments.
+
+The two kinetic developments prove their complete actual-law convergence
+endpoints. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:
+the unshifted continuous prefactor is $\sqrt{2}$; the second-order local proof
+uses a stationary reference; and the comparison must retain fresh stochastic
+Hessian-difference terms. KLMC2 retains $\sqrt{p^2+2p}$ in every dimension,
+including $p=1$; the printed coarser simplification is checked with $p\ge2$
+stated explicitly. The sharper inverse-step-square tail is also proved.
+The audits preserve the source statements and explain these differences.
+The draft's additional tail-free condition-number budget needs a factor
+$\sqrt{\kappa/\rho}$, where $\kappa=M/m$ and
+$\rho=\kappa_2=(M_2/m^{3/2})^{2/3}+\kappa p^{-1/3}$; its printed form is
+justified when $\rho\ge\kappa$, or with $\rho$ replaced by
+$\max(\kappa,\rho)$. This correction concerns an informal algebraic budget
+that neglects the exponential tail; the proved all-tail accuracy guarantee
+remains separate.
+
+Continuous dynamics are constructed as selected solutions continuous in L² on
+each finite horizon, driven by actual canonical Brownian coordinate laws. Their
+integral equations, independence, fixed-time laws, and stationarity are checked.
+A separate almost-surely continuous sample-path modification theorem is not
+asserted. The numerical convergence bounds use the actual Gaussian Markov laws.
+
+Verify the source correspondence and require every full endpoint and auxiliary
+coverage gate with:
+
+```sh
+python3 scripts/verify-kinetic-coverage.py
+python3 scripts/verify-kinetic-coverage.py --require-complete
+```
+
+The strict command rejects an open endpoint or a missing required proof;
+inventory entries and conditional scalar recurrences cannot satisfy those gates.
 
 ## Repository structure and reuse
 
@@ -112,6 +160,9 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`IPLA/`](IPLA/exposition/README.md) | Lifted particle geometry, identification of IPLA with ULA, the parameter marginal and its log-concavity and concentration, and the final IPLA theorem. |
 | [`IPLA/LSI/`](IPLA/LSI/README.md) | Particle entropy bounds from finite initial KL, exact normalization and parameter KL projection under a lifted-target LSI. |
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Actual proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
+| [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Actual kinetic mixing and Gibbs stationarity, literal Cholesky Gaussian sampling, complete KLMC/KLMC2 Wasserstein proofs, accuracy guarantees, and an explicit source-correction ledger. |
+| [`KIPLMC/`](KIPLMC/exposition/README.md) | Actual KIPLD mixing, complete KIPLMC1/KIPLMC2 parameter RMS bounds, exact diffusion and algorithm scaling, sharp target concentration, and the logistic analytic example. |
+| `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
 | [`docs/`](docs/README.md) | Complete module proof atlas, mathematical LaTeX exports, shared renderer, and documentation integrity checks. |
@@ -134,9 +185,10 @@ Run all proof and exposition checks locally before pushing or publishing:
 
 ```sh
 bash scripts/check-local.sh
+python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
-This builds all three Lean libraries, runs the five theorem dependency audits,
+This builds all five Lean libraries, runs the seven theorem dependency audits,
 checks all four proof documents and the complete module proof atlas, and compiles
 the IPLA standalone in isolation with only Mathlib available. The standalone verifier refreshes its committed
 diagnostic reports; review any changes before committing.
@@ -145,11 +197,24 @@ The repository has no GitHub Actions workflow files. Keep verification local
 to avoid paid hosted-runner use; do not add remote build, release, or dependency
 update workflows without an explicit request.
 
-Develop on `main`. Publish a locally verified snapshot to `gh-pages` at
+Develop and review on `main`. This two-paper review is pushed only to `main`;
+updating `gh-pages` requires the repository owner's publication approval.
+After that approval, publish a locally verified snapshot to `gh-pages` at
 `/ (root)`, retaining `noindex, nofollow, noarchive` metadata on every HTML page,
 the publication's `robots.txt`, and `.nojekyll`. [index.html](index.html) is the
 entry point. GitHub Pages handles serving the already generated static files;
 Lean compilation and documentation generation run locally.
+
+Do not publish `papers/` or merge `main` wholesale into `gh-pages`. After local
+verification and a committed review snapshot, a publication export can be
+prepared in a new directory outside the checkout:
+
+```sh
+python3 scripts/prepare-publication.py /tmp/langevin-publication-review
+```
+
+This exports committed files with `papers/` excluded. It never changes a branch
+or publishes a site. The new kinetic pages remain unpublished pending review.
 
 ## Regenerate and verify documentation
 

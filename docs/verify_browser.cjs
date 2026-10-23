@@ -41,6 +41,10 @@ const LIBRARIES = [
   { key: 'ProximalLangevin', label: 'proximal', search: 'Moreau.lean',
     legacy: 'ProximalLangevin/exposition/proof.html',
     modules: ['Moreau', 'SplittingEndpoint'] },
+  { key: 'KineticLangevin', label: 'kinetic', search: 'PotentialContraction.lean',
+    modules: ['PotentialContraction', 'Gaussian'] },
+  { key: 'KIPLMC', label: 'kiplmc', search: 'Exponential.lean',
+    modules: ['Exponential', 'Splitting'] },
 ];
 const VIEWPORTS = [
   { label: 'desktop', width: 1440, height: 1000 },
@@ -336,7 +340,7 @@ async function projectLinks(page) {
   const destination = path.join(outputDir, 'project-home-' + page.viewportSize().width + '.png');
   await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
   screenshots.push(destination);
-  check(await page.locator('.landing-card').count() === 4, 'Project home has four theorem cards and the particle entropy footnote');
+  check(await page.locator('.landing-card').count() === 6, 'Project home has six theorem cards and the particle entropy footnote');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Unadjusted Langevin under Strong Convexity'),
     'ULA card states the strong convexity assumption');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Interacting Particle Langevin under Strong Convexity'),
@@ -357,7 +361,7 @@ async function projectLinks(page) {
 
 async function main() {
   const required = ['index.html', 'docs/assets/site.css', 'docs/assets/site.js',
-    ...CASES.map(item => item.file), ...LIBRARIES.map(library => library.legacy)];
+    ...CASES.map(item => item.file), ...LIBRARIES.map(library => library.legacy).filter(Boolean)];
   for (const file of required) {
     if (!fs.existsSync(path.join(ROOT, file))) throw new Error('Missing generated page/resource ' + file +
       '. Run python3 docs/build_site.py and the legacy builders before browser QA.');
@@ -390,7 +394,7 @@ async function main() {
         if (item.kind === 'module' || item.library.key.includes('/LSI')) await latexDownload(page, item, viewport);
       });
     }
-    for (const library of LIBRARIES) {
+    for (const library of LIBRARIES.filter(library => library.legacy)) {
       await runCase(viewport.label + ':' + library.label + ':legacy-anchor', () => legacyRedirect(page, library));
     }
     await context.close();

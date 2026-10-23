@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Exponential response kernels and valid Gaussian covariance matrices}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/Coefficients.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The functions \(\psi_0(t)=e^{-\gamma t}\), \(\psi_{k+1}(t)=\int_0^t\psi_k(s)ds\) encode exactly integrated friction. The Hessian method also uses \(\varphi_{k+1}(t)=\int_0^te^{-\gamma(t-s)}\psi_k(s)ds\). Integral definitions avoid division by friction, so zero friction is handled exactly. The module proves their calculus and constructs positive semidefinite Gram covariances; it does not yet construct the corresponding Gaussian random variables.
+
+
+\section{Define iterated response coefficients and prove their calculus}
+
+
+The recursive definition chooses an exponential at index zero and an interval integral at a successor index; the two \texttt{rfl} lemmas expose these cases to rewriting. Continuity follows by induction: exponential continuity handles zero, while continuity of the primitive handles the successor. The fundamental theorem of calculus then proves \(\psi'_{k+1}(t)=\psi_k(t)\), using interval integrability and continuity of the integrand. The separate zero-index derivative is \(\psi'_0=-\gamma\psi_0\), obtained from the exponential chain rule; \texttt{convert} and simplification reconcile its scalar expression with the recursive notation.
+
+
+
+\noindent Lean declarations: \texttt{psi}, \texttt{psi\_zero}, \texttt{psi\_succ}, \texttt{continuous\_psi}, \texttt{hasDerivAt\_psi\_succ}, \texttt{hasDerivAt\_psi\_zero}.
+
+\section{Derive friction balance before dividing by friction}
+
+
+Differentiate \(1-\psi_0(t)\): its derivative is \(\gamma\psi_0(t)\), and its value at zero is zero. Integrating gives \(\gamma\psi_1(t)=1-\psi_0(t)\). Integrating this identity once more gives \(\gamma\psi_2(t)=t-\psi_1(t)\). Lean first applies the integral form of the fundamental theorem, then commutes a scalar through the integral. The second proof integrates equality of two functions, distributes the integral over subtraction with its integrability proofs, and evaluates the constant integral. Only after establishing these division-free identities do \texttt{psi\_one\_closed} and \texttt{psi\_two\_closed} use \(\gamma\ne0\) to derive the familiar quotient formulas.
+
+
+
+\noindent Lean declarations: \texttt{friction\_mul\_psi\_one}, \texttt{friction\_mul\_psi\_two}, \texttt{psi\_one\_closed}, \texttt{psi\_two\_closed}.
+
+\section{Prove exact time scaling of every primitive}
+
+
+For \(c\ne0\), substitution \(r=cs\) gives \(\psi_{c\gamma,k}(t)=c^{-k}\psi_{\gamma,k}(ct)\). At index zero this is the scalar identity \(-(c\gamma)t=-\gamma(ct)\). At a successor, use the induction hypothesis inside the integral, pull out \(c^{-k}\), and change variables in the remaining primitive; one additional inverse factor appears. Lean uses \texttt{integral\_comp\_mul\_left}, so oriented interval integrals also cover negative \(c\). Substituting \(t=h/c\) yields \(\psi_{c\gamma,k}(h/c)=\psi_{\gamma,k}(h)/c^k\). This is the exact coefficient identity used in mass and particle rescalings.
+
+
+
+\noindent Lean declarations: \texttt{psi\_scale}, \texttt{psi\_scale\_div}.
+
+\section{Establish initial values, signs and polynomial upper bounds}
+
+
+At time zero the exponential coefficient is one and every primitive is zero. For \(t\ge0\), induction and nonnegative integration show every coefficient is nonnegative, even without a sign restriction on \(\gamma\). If also \(\gamma\ge0\), then \(e^{-\gamma t}\le1\). Integrating once gives \(\psi_1(t)\le t\), and integrating again gives \(\psi_2(t)\le t^2/2\). Lean's comparison theorem receives continuous, hence interval-integrable, functions and the pointwise inequality on the interval. These elementary estimates control the local time-step error without approximating the exponential by an unproved series.
+
+
+
+\noindent Lean declarations: \texttt{psi\_at\_zero}, \texttt{psi\_nonneg}, \texttt{psi\_zero\_le\_one}, \texttt{psi\_one\_le}, \texttt{psi\_two\_le}.
+
+\section{Check the zero-friction limit exactly}
+
+
+Putting \(\gamma=0\) in the integral definition yields \(\psi_0=1\), \(\psi_1=t\), and \(\psi_2=t^2/2\). The first two proofs simplify the exponential and constant integral. The third uses the integral of the first power. These are identities at zero, not limits inferred from quotient formulas, so no removable-singularity argument is needed. They later turn the kinetic exponential step into the constant-acceleration position–velocity update.
+
+
+
+\noindent Lean declarations: \texttt{psi\_friction\_zero\_zero}, \texttt{psi\_friction\_zero\_one}, \texttt{psi\_friction\_zero\_two}.
+
+\section{Define the Hessian response and its useful factorization}
+
+
+\texttt{phi} assigns zero to index zero as an explicit convention and defines positive indices by exponential convolution. Its rewrite lemmas expose those cases. Nonnegativity follows from positivity of the exponential and nonnegativity of \(\psi_k\). Factoring \(e^{-\gamma t}\) out of the integral gives \(\varphi_{k+1}(t)=e^{-\gamma t}\int_0^te^{\gamma s}\psi_k(s)ds\). Lean proves the integrands agree by the exponential addition identity and scalar arithmetic. This factorization expresses the convolution as a product of a continuous exponential and a continuous primitive, proving continuity even though the upper limit and the kernel both depend on time. Every \(\varphi_k(0)\) is zero.
+
+
+
+\noindent Lean declarations: \texttt{phi}, \texttt{phi\_zero}, \texttt{phi\_succ}, \texttt{phi\_nonneg}, \texttt{phi\_factor}, \texttt{continuous\_phi}, \texttt{phi\_at\_zero}.
+
+\section{Compare convolution coefficients in the correct direction}
+
+
+For \(\gamma,t\ge0\), the factor \(e^{-\gamma(t-s)}\le1\) on \(0\le s\le t\), and \(\psi_k(s)\ge0\). Thus \(\varphi_{k+1}(t)\le\int_0^t\psi_k(s)ds=\psi_{k+1}(t)\). The proof explicitly establishes integrability of the convolution and primitive before applying integral comparison. At zero friction the exponential factor is one, so equality holds. In particular \(\varphi_2\le\psi_2\), correcting the opposite ordering printed in the supplied Proposition 3; both coefficients can still be bounded above by \(t^2/2\).
+
+
+
+\noindent Lean declarations: \texttt{phi\_le\_psi}, \texttt{phi\_friction\_zero}.
+
+\section{A Gram quadratic form is an integral of a square}
+
+
+Given continuous scalar kernels \(k_i\), define \(C_{ij}=\int_0^hk_i(t)k_j(t)dt\). Commutativity proves symmetry. For a finite coefficient vector \(z\), expand the quadratic form and interchange its finite sums with integrals:
+
+\[\sum_{i,j}z_iC_{ij}z_j=\int_0^h\left(\sum_i z_ik_i(t)\right)^2dt.\]
+
+Lean supplies interval-integrability witnesses for each product, pulls scalar factors inside, applies \texttt{integral\_finsetSum} twice, and normalizes the finite-sum expansion. For \(h\ge0\) the integral is nonnegative. Combining symmetry with this quadratic-form bound proves positive semidefiniteness. This is a matrix property, not yet an identification with Itô covariance.
+
+
+
+\noindent Lean declarations: \texttt{gramCovariance}, \texttt{gramCovariance\_symmetric}, \texttt{gramCovariance\_quadratic}, \texttt{gramCovariance\_posSemidef}.
+
+\section{Instantiate the first- and second-order noise covariances}
+
+
+The first integrator uses kernels \((\psi_0,\psi_1)\); the Hessian integrator uses \((\psi_0,\psi_1,\varphi_2,\varphi_3)\). \texttt{klmcKernels} and \texttt{klmc2Kernels} list them on \(\mathrm{Fin}(2)\) and \(\mathrm{Fin}(4)\). Their covariance definitions apply the same Gram construction. Finite case splits reduce kernel continuity to the proved coefficient continuity. Each final positive-semidefinite theorem is then a direct application of the general Gram result. In the stochastic algorithm the noise is additionally required to be centered jointly Gaussian with these covariances, independent across time and coordinates; those law properties are not encoded by matrix positivity alone.
+
+
+
+\noindent Lean declarations: \texttt{klmcKernels}, \texttt{klmc2Kernels}, \texttt{klmcCovariance}, \texttt{klmc2Covariance}, \texttt{continuous\_klmcKernels}, \texttt{continuous\_klmc2Kernels}, \texttt{klmcCovariance\_posSemidef}, \texttt{klmc2Covariance\_posSemidef}.
+
+\section{Strict positivity of every positive-time response}
+
+
+For \(t>0\), every response coefficient \(\psi_k(t)\) is strictly positive. The exponential base case is positive at every time. At a successor, the integrand is continuous and nonnegative on the interval, and the induction hypothesis makes it strictly positive at the right endpoint. Mathlib's positive-integral theorem then gives a positive primitive. The proof explicitly supplies both the pointwise nonnegative bound and an endpoint witnessing positivity. No positive-friction hypothesis is needed because an exponential remains positive even when its exponent grows.
+
+
+
+\noindent Lean declarations: \texttt{psi\_pos}.
+
+\section{All higher responses are bounded by their frictionless Taylor coefficient}
+
+
+At zero friction induction gives \(\psi_{0,k}(t)=t^k/k!\). Integrating the induction hypothesis uses \(\int_0^ts^kds=t^{k+1}/(k+1)\), and the factorial recursion \((k+1)!=(k+1)k!\) matches the denominator. For nonnegative friction and time, compare each \(\psi_{\gamma,k}\) with its zero-friction counterpart. The exponential comparison starts the induction, and integral monotonicity preserves it at each successor. Substitution of the exact zero-friction identity yields \(0\le\psi_{\gamma,k}(t)\le t^k/k!\). These estimates provide every higher-order coefficient bound without a formal power-series approximation.
+
+
+
+\noindent Lean declarations: \texttt{psi\_friction\_zero}, \texttt{psi\_le\_taylor}.
+
+\section{Evaluate the first Hessian response without division}
+
+
+The convolution of the two exponential responses has a constant integrand: \(e^{-\gamma(t-s)}\psi_0(s)=e^{-\gamma t}\). Hence \(\varphi_1(t)=t\psi_0(t)\). Reversing the integration variable also gives \(\int_0^te^{-\gamma(t-s)}ds=\psi_1(t)\). To compute the next balance, multiply the \(\varphi_2\) integrand by \(\gamma\), substitute \(\gamma\psi_1(s)=1-\psi_0(s)\), and simplify the exponential product. Integrating yields \(\gamma\varphi_2(t)=\psi_1(t)-t\psi_0(t)\). Lean proves equality of the integrand functions, commutes constants through integrals, and evaluates the constant integral. These identities remain valid at zero friction.
+
+
+
+\noindent Lean declarations: \texttt{phi\_one}, \texttt{integral\_reverse\_exponential}, \texttt{friction\_mul\_phi\_two}.
+
+\section{Compute covariance entries and the exact friction–noise balance}
+
+
+The velocity variance coefficient is \(C_{00}=\int_0^he^{-2\gamma t}dt=\psi_{2\gamma,1}(h)\), proved by combining exponentials. Since \((\psi_1^2/2)'=\psi_0\psi_1\) and \(\psi_1(0)=0\), the fundamental theorem gives \(C_{01}=\psi_1(h)^2/2\). Finally the friction identity at rate \(2\gamma\) yields \(2\gamma C_{00}=1-e^{-2\gamma h}\). Therefore \(\psi_0(h)^2+2\gamma C_{00}=1\), the exact stationary velocity variance balance. Lean proves the exponential square identity and reduces the final expression with \texttt{ring}. An independent unit-variance input velocity and the specified Gaussian noise consequently retain unit variance after the linear thermostat part.
+
+
+
+\noindent Lean declarations: \texttt{klmcCovariance\_velocity}, \texttt{klmcCovariance\_cross}, \texttt{velocity\_variance\_balance}.
+
+\section{Relate the second-order coefficients with an exact integrated balance}
+
+
+The derivative of \((t-s)\psi_1(s)+\psi_2(s)\), with \(t\) fixed, is \((t-s)\psi_0(s)\). Integrating and reversing the variable yields \(\int_0^te^{-\gamma(t-s)}s\,ds=\psi_2(t)\). Next put the defining integrals for \(\varphi_2\) and \(\varphi_3\) under one integral. The identity \(\psi_1(s)+\gamma\psi_2(s)=s\) simplifies their integrand, giving \(\varphi_2(t)+\gamma\varphi_3(t)=\psi_2(t)\). Lean explicitly supplies interval-integrability before combining the integrals and uses \texttt{linear\_combination} for the scalar integrand equality. For nonnegative friction and time, \(\gamma\varphi_3(t)\ge0\), hence \(\varphi_2(t)\le\psi_2(t)\). This provides a direct corrected coefficient relation, rather than the reversed intermediate inequality printed in the supplied manuscript.
+
+
+
+\noindent Lean declarations: \texttt{integral\_reverse\_exponential\_mul}, \texttt{phi\_two\_add\_friction\_phi\_three}, \texttt{phi\_two\_le\_psi\_two}.
+
+\end{document}

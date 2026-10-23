@@ -1,0 +1,68 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The actual Gaussian-times-Gibbs phase target}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/GibbsTarget.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The normalized kinetic target is the independent product of a standard Gaussian velocity and the intended Gibbs position measure. This module identifies that product with an explicit scalar normalization of the actual Hamiltonian weighted measure, transfers the proved Hamiltonian invariance, and proves exact Gaussian thermostat invariance on the correct independent-noise product. Its position and velocity marginals are exact pushforward identities. These two invariant substeps are ingredients for kinetic Gibbs stationarity; passage to the continuous kinetic limit is a separate theorem.
+
+
+\section{Identify the Gaussian thermal density by its actual law}
+
+
+The already checked Gaussian proposal density at step \(h=1/2\) and center zero is exactly the standard Gaussian. Its scalar precision is \(1/(4h)=1/2\), and its affine map is the identity. Consequently its density is \(c_Ge^{-\|v\|^2/2}\), where \(c_G\) is the inverse of the actual finite Gaussian integral. Lean first normalizes the precision and the identity pushforward, then factors the positive normalizer out of the density using \texttt{withDensity\_smul} and \texttt{ENNReal.ofReal\_mul}. The remaining real exponential identity follows by scalar algebra. This is an equality with the existing probability measure \texttt{stdGaussian}, not an informal naming of a radial weight.
+
+
+
+\noindent Lean declarations: \texttt{stdGaussian\_hamiltonian\_density}.
+
+\section{Normalize the Hamiltonian weighted measure explicitly}
+
+
+Define \(\Pi=\varphi\otimes\pi\), velocity first, with \(\varphi\) the actual standard Gaussian and \(\pi\) the normalized Gibbs measure of \(f\). The Gaussian density identity and the existing definition of \(\pi\) give
+
+\[\Pi=(c_G/Z_f)\,e^{-f(x)-\|v\|^2/2}\,dv\,dx.\]
+
+Lean distributes the two scalar normalizers through the product of measures, then rewrites the previously proved factorization of the Hamiltonian Gibbs weight. Strong convexity with \(m>0\) makes the position normalization positive and finite, so the product is a probability measure. Its probability proof invokes the already derived Gibbs probability theorem; normalization is not an assumption about a stationary process.
+
+
+
+\noindent Lean declarations: \texttt{kineticGibbsTarget}, \texttt{kineticGibbsTarget\_eq\_scaled}, \texttt{kineticGibbsTarget\_probability}.
+
+\section{Transfer the proved Hamiltonian invariance to the canonical target}
+
+
+The actual selected Hamiltonian flow already preserves the unnormalized Hamiltonian weighted measure, by the corrected-Verlet approximation and its proved numerical limit. Multiplying a measure by a fixed scalar commutes with a measurable pushforward. The explicit normalization identity therefore gives \((H_t)_\#\Pi=\Pi\). Lean supplies measurability from continuous dependence of the endpoint on its initial phase state, uses \texttt{Measure.map\_smul}, and applies the proved Hamiltonian invariance theorem. This statement has only the potential assumptions and finite-dimensional setting; no invariant-target hypothesis remains.
+
+
+
+\noindent Lean declarations: \texttt{hamiltonianFlow\_preserves\_target}.
+
+\section{Prove the thermostat identity with fresh independent Gaussian noise}
+
+
+Let \(X\) have any probability position law, independently of a standard Gaussian velocity \(V\), and let \(\xi\) be a fresh independent standard Gaussian. If \(a^2+b^2=1\), then \((aV+b\xi,X)\) again has the original independent velocity-position law. The input is explicitly \((\varphi\otimes\pi_X)\otimes\varphi\). A measure-preserving reassociation and swap reorder its three coordinates to \((V,\xi),X\). The previously proved Gaussian linear-combination law acts on the first pair; the position coordinate is unchanged. Lean verifies both the coordinate permutation and its product-measure pushforward before applying \texttt{Measure.map\_prod\_map}. Thus independence and the output marginal are derived, not supplied.
+
+
+
+Specializing the arbitrary position law to the actual normalized Gibbs target proves thermostat invariance of \(\Pi\). Exact OU evolution chooses \(a=e^{-\gamma h}\) and \(b=\sqrt{1-e^{-2\gamma h}}\); an OBABO half-step uses the corresponding half-interval coefficients. The theorem admits both choices through the explicit variance balance.
+
+
+
+\noindent Lean declarations: \texttt{thermostat\_preserves\_independent\_position}, \texttt{thermostat\_preserves\_target}.
+
+\section{Recover the two equilibrium marginals exactly}
+
+
+Projecting the independent product \(\varphi\otimes\pi\) to position integrates out a unit-mass Gaussian and leaves \(\pi\). Projecting to velocity integrates out the normalized position measure and leaves \(\varphi\). Lean installs the derived Gibbs probability instance and applies the two product-projection identities, simplifying their unit total-mass factors. These equalities supply the target position marginal and Gaussian velocity marginal used by the later L\ensuremath{{}^{2}} coupling theorem once stationarity of the full kinetic dynamics is proved.
+
+
+
+\noindent Lean declarations: \texttt{kineticGibbsTarget\_position}, \texttt{kineticGibbsTarget\_velocity}.
+
+\end{document}

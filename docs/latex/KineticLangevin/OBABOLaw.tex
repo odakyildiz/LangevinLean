@@ -1,0 +1,51 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Actual independent-noise OBABO laws contract in Wasserstein distance}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/OBABOLaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The preceding pathwise energy contraction now becomes a theorem about the actual Markov laws. An explicit invertible change of coordinates turns the modified energy into Euclidean squared distance. Measurability, the commuting law identity, independent source extension, and passage to the Wasserstein infimum are all proved. The result holds for every probability law of the two thermostat inputs, including the independent Gaussian law used by the sampler.
+
+
+\section{Build and verify the weighted-coordinate inverse}
+
+
+The weighted Hilbert coordinates are \(T(v,x)=(x+bv,c v)\), where \(c=\sqrt{a-b^2}\). For \(b^2<a\), the inverse is \(T^{-1}(u,w)=(w/c,u-bw/c)\). Lean first proves \(c\ne0\), then uses the inverse cancellation identities for real scalars to check both compositions. The transform commutes with subtraction by direct module algebra. Its continuity follows from continuity of scalar multiplication, coordinate projections, addition, and the Euclidean-product identification. The local measurable structure on \texttt{WithLp 2} is explicitly its Borel structure, so these continuous maps supply the measurable changes of variables required for the measure arguments.
+
+
+
+\noindent Lean declarations: \texttt{phaseLp\_measurable}, \texttt{phaseLp\_borel}, \texttt{weightedPhaseInverse}, \texttt{weightedPhaseTransform\_sub}, \texttt{weightedPhaseTransform\_inverse}, \texttt{weightedPhaseInverse\_transform}, \texttt{weightedPhaseTransform\_continuous}, \texttt{weightedPhaseInverse\_continuous}.
+
+\section{Conjugate the actual noisy step and prove its Lipschitz bound}
+
+
+Define the transformed update by the actual conjugation \(\widetilde P_\xi=T\circ P_\xi\circ T^{-1}\), retaining the original two noise arguments and their damping and amplitude. Continuity is a composition of the verified inverse, the actual O-B-A-B-O formulas, and the verified transform. The condition \(\gamma^2\ge4M>0\) makes \(b^2<a\). Apply the actual nonlinear energy contraction to \(T^{-1}y,T^{-1}z\); replace each energy by the square of its transformed norm and use the two inverse identities. The nonnegative square comparison yields \(\|\widetilde P_\xi y-\widetilde P_\xi z\|\le\sqrt{1-mh/(3\gamma)}\|y-z\|\). Every geometric fact needed for this estimate is derived explicitly.
+
+
+
+\noindent Lean declarations: \texttt{weightedObaboStep}, \texttt{weightedObaboStep\_continuous}, \texttt{obabo\_metric\_strict}, \texttt{weightedObaboStep\_contract}.
+
+\section{Prove that Markov iteration commutes with the coordinate change}
+
+
+\texttt{obaboLaws} is the repeated independent-noise product-and-pushforward transition of the original implemented step; \texttt{weightedObaboLaws} uses its transformed implementation. A generic induction proves the commuting diagram for any measurable maps satisfying \(T(F(x,\xi))=G(Tx,\xi)\). At each step, \texttt{Measure.map\_prod\_map} proves that transforming the current state commutes with adjoining an independent innovation. Two applications of \texttt{Measure.map\_map} reduce the law identity to the actual pointwise conjugacy. Instantiating with the verified inverse gives \(T_\#\mathcal L_n(\mu)=\widetilde{\mathcal L}_n(T_\#\mu)\), so the contracting measures are the genuine transformed sampler laws.
+
+
+
+\noindent Lean declarations: \texttt{markovLaws\_map\_conjugacy}, \texttt{obaboLaws}, \texttt{weightedObaboLaws}, \texttt{obaboLaws\_weighted\_map}.
+
+\section{Take the true coupling infimum and iterate the actual laws}
+
+
+Let \(r=\sqrt{1-mh/(3\gamma)}\). For every coupling of two current laws, append one common innovation independently. Its two output marginals are the actual Markov outputs, and the pointwise bound gives output transport cost at most r times the input coupling cost. The previously proved random-map theorem takes the infimum over all input couplings; it assumes no optimal coupling exists. Induction, with probability of each actual iterated law proved internally, yields \(W_2(\widetilde{\mathcal L}_n\mu,\widetilde{\mathcal L}_n\nu)\le r^nW_2(\mu,\nu)\). The commuting law identity transfers this to the original laws measured in the modified geometry. The extended-real theorem is unconditional on transport finiteness. If the initial weighted transport distance is finite, the proved upper bound first establishes finiteness of the output and then permits conversion to the real-valued Wasserstein estimate. Stationarity and numerical target bias are separate claims, not hidden inputs to this law contraction.
+
+
+
+\noindent Lean declarations: \texttt{obaboContractionRate}, \texttt{weightedObaboLaws\_wasserstein2}, \texttt{obaboLaws\_weighted\_wasserstein2}, \texttt{obaboLaws\_weighted\_wasserstein2Real}.
+
+\end{document}

@@ -1,0 +1,105 @@
+import KineticLangevin
+
+/-! Kernel axiom audit of the checked kinetic constructions.
+No claim of complete paper coverage follows from this dependency audit. -/
+
+#print axioms KineticLangevin.friction_mul_psi_one
+#print axioms KineticLangevin.friction_mul_psi_two
+#print axioms KineticLangevin.psi_scale_div
+#print axioms KineticLangevin.gramCovariance_posSemidef
+#print axioms KineticLangevin.klmcCovariance_posSemidef
+#print axioms KineticLangevin.klmc2Covariance_posSemidef
+#print axioms KineticLangevin.BrownianConvolution.klmc_jointLaw
+#print axioms KineticLangevin.BrownianConvolution.klmc2_jointLaw
+#print axioms KineticLangevin.BrownianConvolution.velocityLp_eq_brownian_sub_convolution
+#print axioms KineticLangevin.BrownianConvolution.positionLp_eq_integral_velocityLp
+#print axioms KineticLangevin.BrownianConvolution.gridConvolutionLp_euclidean_independent
+#print axioms KineticLangevin.BrownianConvolution.gridConvolutionLp_jointLaw
+#print axioms KineticLangevin.spectral_identity
+#print axioms KineticLangevin.transformed_energy_decay
+#print axioms KineticLangevin.potential_synchronous_position_decay
+#print axioms KineticLangevin.exists_kinetic_integral
+#print axioms KineticLangevin.integral_solution_unique
+#print axioms KineticLangevin.velocityDefect_bound
+#print axioms KineticLangevin.positionDefect_bound
+#print axioms KineticLangevin.localDefect_energy_bound
+#print axioms KineticLangevin.kinetic_firstOrder_projected_bound
+#print axioms KineticLangevin.exponentialStep_coupling_bound
+#print axioms KineticLangevin.kinetic_integral_position_decay
+#print axioms KineticLangevin.kineticPositionLaw_wasserstein2Real
+#print axioms KineticLangevin.potential_general_force_dissipativity
+#print axioms KineticLangevin.kinetic_integral_position_decay_general
+#print axioms KineticLangevin.kineticPositionLaw_wasserstein2Real_general
+#print axioms KineticLangevin.contractionExponent_low_optimal
+#print axioms KineticLangevin.contractionExponent_middle_optimal
+#print axioms KineticLangevin.contractionExponent_high_optimal
+#print axioms KineticLangevin.firstOrder_accuracy_budget
+#print axioms KineticLangevin.lp_klmc_reference_wasserstein_bound
+#print axioms KineticLangevin.product_klmcChain_outputLaw
+#print axioms KineticLangevin.productKLMCLaw_probability
+#print axioms KineticLangevin.klmc2Step_zero_hessian
+#print axioms KineticLangevin.exponentialStep_sub
+#print axioms KineticLangevin.obaboStep_synchronous
+#print axioms KineticLangevin.obaboStep_synchronous_contraction
+#print axioms KineticLangevin.obabo_synchronous_iteration
+#print axioms KineticLangevin.obaboLaws_weighted_wasserstein2
+#print axioms KineticLangevin.obabo_thermostat_variance
+#print axioms KineticLangevin.obabo_thermostat_preserves_standardGaussian
+#print axioms KineticLangevin.hamiltonianFlow_energy
+#print axioms KineticLangevin.verletProposal_measurePreserving
+#print axioms KineticLangevin.metropolis_verlet_preserves_gibbs
+#print axioms KineticLangevin.verlet_iterate_tendsto_hamiltonianFlow
+#print axioms KineticLangevin.hamiltonianFlow_preserves_gibbs
+#print axioms KineticLangevin.hamiltonianFlow_preserves_target
+#print axioms KineticLangevin.thermostat_preserves_target
+#print axioms KineticLangevin.markovLaws_weak_error
+#print axioms KineticLangevin.obabo_hamiltonian_local_bound
+#print axioms KineticLangevin.CanonicalProduct.initial_innovation_jointLaw
+#print axioms KineticLangevin.CanonicalProduct.splitChain_law
+#print axioms KineticLangevin.lpHamiltonianFlow_preserves_target
+#print axioms KineticLangevin.lp_obabo_target_local_bound
+#print axioms KineticLangevin.canonicalGibbsFlow_stationary
+#print axioms KineticLangevin.CanonicalCoupling.initial_ouInput_jointLaw
+#print axioms KineticLangevin.CanonicalCoupling.globalReferenceFlow_stationary
+#print axioms KineticLangevin.CanonicalCoupling.klmc_wasserstein_bound
+#print axioms KineticLangevin.exactObaboStep_preserves_target
+#print axioms KineticLangevin.exactObabo_lp_source
+#print axioms KineticLangevin.gaussian_vector_fourth_moment
+#print axioms KineticLangevin.gaussian_norm_square_positivePart_le
+#print axioms KineticLangevin.obabo_wasserstein_bound
+#print axioms KineticLangevin.obabo_position_sampling_bound
+#print axioms KineticLangevin.CanonicalContinuous.wasserstein2_general
+#print axioms KineticLangevin.GenericCanonicalCoupling.klmc_wasserstein_bound
+#print axioms KineticLangevin.gaussian_truncation_Lp
+
+#print axioms KineticLangevin.CanonicalContinuous.phaseFlow_gibbs_stationary
+
+#print axioms KineticLangevin.CanonicalContinuous.wasserstein2_gibbs_general
+
+#print axioms KineticLangevin.CanonicalContinuous.theorem1_exp2
+
+#print axioms KineticLangevin.kinetic_mass_integral
+
+#print axioms KineticLangevin.hessian_bounds_firstOrder
+
+#print axioms KineticLangevin.klmcCovariance_posDef
+
+#print axioms KineticLangevin.klmc_cholesky_independent_normals
+
+#print axioms KineticLangevin.klmc_accuracy_explicit
+
+#print axioms KineticLangevin.SecondOrderSource.klmc2_wasserstein_bound_exact
+
+#print axioms KineticLangevin.SecondOrderSource.klmc2_wasserstein_bound_sharp_tail
+
+#print axioms KineticLangevin.SecondOrderSource.klmc2_accuracy_explicit
+
+#print axioms KineticLangevin.secondOrderTailFreeInverse_normalized_work
+
+#print axioms KineticLangevin.secondOrderTailFree_iterationCount_conditionNumber
+
+#print axioms KineticLangevin.secondOrderNormalizedWork_physical_bound
+
+#print axioms KineticLangevin.secondOrderNormalizedWork_physical_regime
+
+#print axioms KineticLangevin.secondOrderSourceRefinement_no_uniform_constant

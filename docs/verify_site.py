@@ -112,6 +112,7 @@ def verify():
                 continue
             destination=(target.parent/unquote(link.path)).resolve() if link.path else target
             assert destination.is_relative_to(ROOT) and destination.is_file(),f'Broken link {path}: {href}'
+            assert destination.relative_to(ROOT).parts[0] != 'papers',f'Publication must not depend on main-only paper sources: {path}: {href}'
             if link.fragment and destination.suffix=='.html':
                 assert unquote(link.fragment) in parse(destination).ids,f'Broken anchor {path}: {href}'
         for href in doc.boxes:

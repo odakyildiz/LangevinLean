@@ -1,0 +1,73 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Actual KLMC output laws on concrete initial-coupling extensions}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/ProductLaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+An estimate for one coupling must eventually be optimized over all initial couplings. Its numerical output law must therefore be independent of that choice. This module proves that independence for the actual KLMC chain. For every coupling \(c\) of the initial position law \(\mu\) and reference law \(\pi\), the sample measure is explicitly \(c\otimes Q\), where \(Q\) supplies the common initial velocity and all phase innovations. The velocity and position components of each innovation stay together, so their correlation is preserved. No convergence or stationary-reference assumption enters these law identities.
+
+
+\section{Build velocity and innovations on each actual product extension}
+
+
+The initial coupling has a probability first marginal, hence its joint measure is a probability measure. Its product with the fixed probability source \(Q\) is therefore a probability measure; the local instance records this derived fact. Pull the source velocity \(V\) back through the second projection and take its canonical L\ensuremath{{}^{2}} class. Do the same separately for the two components of each supplied phase innovation \(W_n\). Both use the same source point. This gives the pair of L\ensuremath{{}^{2}} classes needed by the kinetic analysis without assuming that velocity and position noise are independent. The implementation reuses the existing checked product-noise construction.
+
+
+
+\noindent Lean declarations: \texttt{extensionProbability}, \texttt{extensionVelocity}, \texttt{extensionInnovation}.
+
+\section{Identify the chosen L\ensuremath{{}^{2}} representatives almost everywhere}
+
+
+The canonical Lp representative equals the original pulled-back random variable almost everywhere. For velocity this is the existing product-noise representative theorem. For a phase innovation, intersect the two full-measure sets for its components and apply pair extensionality. Thus the L\ensuremath{{}^{2}} pair represents precisely \(W_n(s)\), including all its correlation. This is an almost-everywhere equality of actual random variables, not a comparison of moments or covariances.
+
+
+
+\noindent Lean declarations: \texttt{extensionVelocity\_coe}, \texttt{extensionInnovation\_coe}.
+
+\section{Define one numerical output law from initialization and fixed source}
+
+
+Given a position \(x\) and source point \(s\), start the original pointwise KLMC recursion at \((V(s),x)\), use its phase innovations \(W_n(s)\), and project the final phase state to position. This is \texttt{productKLMCMap}. Its law is the pushforward of \(\mu\otimes Q\), recorded by \texttt{productKLMCLaw}. The definition contains no reference coupling. In particular, it is the same candidate output law for every coupling used to estimate its transport error.
+
+
+
+\noindent Lean declarations: \texttt{productKLMCMap}, \texttt{productKLMCLaw}.
+
+\section{Prove the L\ensuremath{{}^{2}} numerical chain is exactly the pointwise chain}
+
+
+On \(c\otimes Q\), the L\ensuremath{{}^{2}} numerical start consists of the pulled-back common velocity and first initial-position coordinate. The reference position's finite second moment together with finite coupling cost supplies a square-integrable first coordinate. Apply the shared L\ensuremath{{}^{2}}-to-pointwise KLMC chain theorem. A countable intersection supplies agreement of every phase innovation on one full-measure set; intersect it with the initial velocity and position agreements. Pair extensionality identifies the exact initial phase state, function extensionality identifies the entire innovation sequence, and projection to the position coordinate finishes the equality. Equal initial velocities arise by using the same constructed L\ensuremath{{}^{2}} variable; no separate velocity coupling cost is inserted.
+
+
+
+\noindent Lean declarations: \texttt{product\_klmcChain\_coe}.
+
+\section{Derive law independence with almost-everywhere measurable data}
+
+
+The projection \(((x,y),s)\mapsto(x,s)\) sends \(c\otimes Q\) exactly to \(\mu\otimes Q\). Consequently every almost-everywhere measurable function of \((x,s)\) has the same law on both spaces. Lean proves this using the actual projection marginal and the almost-everywhere version of the composition rule for pushforwards. This avoids an unnecessary assumption that arbitrarily selected Lp representatives are everywhere measurable.
+
+
+
+The output map is indeed almost-everywhere measurable: the source L\ensuremath{{}^{2}} assumptions give that property for velocity and both innovation components. The force is continuous by Lipschitz regularity, so the KLMC update is measurable. Induction propagates measurability through every phase iterate, and projection gives the position output. The final output-law theorem rewrites the L\ensuremath{{}^{2}} chain with its proved representative equality, then applies the projection-law identity. Both its initial marginal and its numerical law are derived rather than supplied as fields of a reference interface.
+
+
+
+\noindent Lean declarations: \texttt{initialExtension\_map\_ae}, \texttt{productKLMCMap\_aemeasurable}, \texttt{product\_klmcChain\_outputLaw}.
+
+\section{Check that the common output has total mass one}
+
+
+The independent product of the initial probability law and source law is a probability measure. The preceding almost-everywhere measurability theorem ensures its pushforward remains a probability measure. Lean applies \texttt{Measure.isProbabilityMeasure\_map\_iff}. This establishes an actual numerical output law before any Wasserstein estimate is attached to it. Canonical Gaussian source construction and the stationary continuous reference are additional layers needed for the final unconditional sampler theorem.
+
+
+
+\noindent Lean declarations: \texttt{productKLMCLaw\_probability}.
+
+\end{document}

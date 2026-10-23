@@ -8,6 +8,24 @@ from html import escape
 
 
 PAPERS = {
+    "monmarche-obabo": dict(
+        authors="Pierre Monmarché", year="2021",
+        title="High-dimensional MCMC with a standard splitting scheme for the underdamped Langevin diffusion",
+        venue="Electronic Journal of Statistics 15(2), 4117–4166",
+        url="https://arxiv.org/abs/2007.05455v4",
+        links=[("Full paper", "https://arxiv.org/pdf/2007.05455v4")]),
+    "dalalyan-riou-durand": dict(
+        authors="Arnak S. Dalalyan and Lionel Riou-Durand", year="2020",
+        title="On sampling from a log-concave density using kinetic Langevin diffusions",
+        venue="Bernoulli 26(3), 1956–1988",
+        url="https://doi.org/10.3150/19-BEJ1178",
+        links=[("arXiv", "https://arxiv.org/abs/1807.09382")]),
+    "kinetic-ipla": dict(
+        authors="Paul Valsecchi Oliva and Ö. Deniz Akyildiz", year="2026",
+        title="Kinetic interacting particle Langevin Monte Carlo",
+        venue="Statistics and Computing 36, article 221",
+        url="https://doi.org/10.1007/s11222-026-10980-z",
+        links=[("arXiv", "https://arxiv.org/abs/2407.05790")]),
     "dalalyan-karagulyan": dict(
         authors="Arnak S. Dalalyan and Avetik G. Karagulyan",
         year="2019",
@@ -42,6 +60,16 @@ PAPERS = {
 
 
 DEVELOPMENTS = {
+    "KineticLangevin": dict(
+        label="Published source; corrected checked proofs", status="corrected",
+        papers=["dalalyan-riou-durand"],
+        scope="The audit follows the supplied mainDR_dec_18.tex manuscript. Actual canonical Brownian integral-solution mixing, full Gibbs stationarity, both correlated-Gaussian KLMC/KLMC2 Wasserstein bounds, literal Cholesky sampling, and explicit accuracy guarantees are proved. The corrected proofs checked here are unpublished: the audit records the continuous prefactor correction, the stationary local reference, and the retained stochastic Hessian-difference terms. KLMC2 keeps the exact fourth-moment factor in every dimension and states p≥2 for the printed coarser simplification; its sharper inverse-step-square tail is proved. Continuous solutions are continuous in L² on finite horizons; no separate almost-surely continuous sample-path modification theorem is claimed.",
+        card="Actual kinetic mixing, Gibbs stationarity, KLMC and KLMC2 sampling bounds, and accuracy guarantees are checked, with the supplied source corrections stated explicitly."),
+    "KIPLMC": dict(
+        label="Published source; checked diffusion and sampler proofs", status="extended",
+        papers=["kinetic-ipla", "dalalyan-riou-durand", "monmarche-obabo"],
+        scope="The audit uses the supplied KIPLMC main.tex and sections, including the stated particle-dependent OBABO rate. KIPLMC1 reuses the shared kinetic exponential integrator with its exact Cholesky-generated correlated Gaussian law; KIPLMC2 uses the checked O-B-A-B-O scheme. Physical-time Brownian integral-solution mixing, full Gibbs stationarity, both actual Gaussian parameter RMS theorems, exact clock and algorithm conjugacies, sharp MMLE concentration, explicit accuracy budgets, and the logistic analytic example are proved. The internal OBABO proof gives a stronger direct estimate and recovers the supplied coarse rate with an explicit uniform constant. Continuous solutions use the canonical continuous-L² model; empirical experiments are recorded separately.",
+        card="Actual KIPLD mixing, both Gaussian particle sampler RMS bounds, sharp MMLE concentration, exact integrator reuse, and explicit accuracy guarantees are checked."),
     "UnadjustedLangevin": dict(
         label="Paper references", status="published",
         papers=["dalalyan-karagulyan", "dalalyan"],

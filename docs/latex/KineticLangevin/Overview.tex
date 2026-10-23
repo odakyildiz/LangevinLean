@@ -1,0 +1,761 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Kinetic Langevin Monte Carlo}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+The actual Brownian kinetic mixing theorem, first-order KLMC sampler theorem, Hessian-corrected KLMC2 theorem, Gibbs stationarity, exact Gaussian and Cholesky constructions, and explicit accuracy corollaries are checked. The source audit records the supplied manuscript corrections and the continuous-L\ensuremath{{}^{2}} Brownian model.
+\section{Theorem}
+
+
+Let \(E\) be a complete real inner product space with its Borel
+structure and a countable topological base. Suppose \(f:E\to\mathbb R\) is
+differentiable and \(m\)-strongly convex with \(M\)-Lipschitz gradient,
+\(m\le M\). Fix \(\gamma\ge0\), \(a<\gamma/2\), and \(0\le t\le T\).
+Let \(\mu,\nu\) be probability laws of the initial position with
+\(W_2(\mu,\nu)<\infty\). Let \(Q\) be any probability law of the initial
+velocity and continuous velocity forcing on \([0,T]\), independent of the
+initial position in each process.
+
+
+
+
+The selected flow solves the actual integral equation, with normalized
+forcing \(b_t-b_0\),
+
+
+\[Y_t-Y_0=-\int_0^t(\gamma V_s+\nabla f(X_s),-V_s)ds+(b_t-b_0,0).\]
+
+
+Denote its position law by \(P_t^Q\mu\). Then
+
+
+\[\boxed{W_2(P_t^Q\mu,P_t^Q\nu)\le A_a e^{k_at}W_2(\mu,\nu),}\]
+\[A_a=\frac{\sqrt{2((\gamma-a)^2+a^2)}}{\gamma-2a},\]
+\[k_a=\frac{\max\{a^2-m,M-(\gamma-a)^2\}}{\gamma-2a}.\]
+
+
+This is the explicit prefactor and exponent of the manuscript's equation
+(exp2), proved for the actual independent-product laws and the infimum over
+initial couplings. No continuous Hessian assumption is needed. Choosing
+\(a=0\) and \(\gamma^2\ge m+M\) gives
+\(\sqrt2e^{-mt/\gamma}W_2(\mu,\nu)\).
+
+
+
+
+The proof first cancels the common forcing in two integral solutions.
+Strong-smooth gradient interpolation controls the transformed energy
+\(\|V-V'+(\gamma-a)(X-X')\|^2+\|-(V-V')-a(X-X')\|^2\).
+Gronwall gives the path estimate. Each initial coupling is then extended by
+an independent copy of \(Q\); both output marginals and its cost are proved
+before taking the Wasserstein infimum. The canonical Brownian source and
+its Gibbs-stationary solution are also constructed in the supporting modules;
+the separate KLMC theorem below combines them with the numerical analysis.
+\section{From a density to a position–velocity system}
+
+
+A sampling problem starts with a potential \(f\): lower values should be
+visited more often, in proportion to \(e^{-f}\). An overdamped trajectory moves
+according to its current force and immediately receives Brownian noise. A
+kinetic trajectory carries a velocity. Force changes the velocity, and velocity
+changes position:
+
+
+\[dV_t=-(\gamma V_t+\nabla f(L_t))dt+\sqrt{2\gamma}\,dW_t,
+\qquad dL_t=V_tdt.\]
+
+
+The friction \(\gamma V_t\) removes kinetic energy. The noise adds it back
+at exactly the strength needed for a standard Gaussian equilibrium velocity.
+The candidate equilibrium has density
+
+
+\[\Pi(dx,dv)=\pi(dx)\,\varphi(dv)
+\propto e^{-f(x)-\|v\|^2/2}dx\,dv.\]
+
+
+Position and velocity are independent under this law. Integrating out velocity
+therefore leaves precisely the desired target. The extra variable changes how
+the sampler moves without changing the position distribution at equilibrium.
+
+
+
+
+Strong convexity supplies a quadratic lower bound on \(f\), so the partition
+function is finite and all polynomial position moments exist. A proof of
+stationarity still needs an actual solution process and a valid invariance
+argument; checking that a formal generator integrates to zero is one component
+of that argument.
+
+
+
+\textbf{Formal scope.} The actual canonical Brownian kinetic flow and its full Gaussian-times-Gibbs stationarity are proved. The proof uses exact Hamiltonian invariance and a controlled splitting limit.
+
+
+
+\noindent Lean declarations: \texttt{phaseFlow\_gibbs\_stationary}, \texttt{positionLaw\_gibbs}.
+
+\section{Inverse mass changes the clock}
+
+
+The general paper equation includes inverse mass \(u>0\):
+\(dV=-(\gamma V+u\nabla f(L))dt+\sqrt{2\gamma u}\,dW\).
+Its equilibrium velocity has covariance \(uI\). Normalize both the velocity
+and the time variable:
+
+
+\[\bar V_t=u^{-1/2}V_{t/\sqrt u},\qquad
+\bar L_t=L_{t/\sqrt u},\qquad \bar\gamma=\gamma/\sqrt u.\]
+
+
+The position equation becomes \(d\bar L_t=\bar V_tdt\). Brownian scaling
+turns \(u^{1/4}W_{t/\sqrt u}\) into a standard Brownian motion; substitution
+in the velocity equation gives the same kinetic system with \(u=1\) and
+friction \(\bar\gamma\). This is Lemma 1 in the supplied manuscript.
+
+
+
+
+The scaling explains why the rest of the paper fixes \(u=1\): it removes
+a redundant clock parameter. When transferring a theorem back to another mass,
+the step size, friction, Gaussian velocity law and physical time must all be
+transformed together.
+
+
+
+\textbf{Formal scope.} The complete inverse-mass integral equation, transformed noise coefficient, Brownian finite-dimensional laws, and independent changed-clock coordinates are proved.
+
+
+
+\noindent Lean declarations: \texttt{kinetic\_mass\_integral}, \texttt{kinetic\_mass\_noise\_amplitude}, \texttt{clockBrownian\_isPreBrownian}.
+
+\section{Drive two trajectories with the same noise}
+
+
+To understand mixing, start two copies at different positions and feed them
+the same Brownian path. The random forcing cancels in their difference. Put
+\(q_t=L_t-L'_t\), \(r_t=V_t-V'_t\). Then
+
+
+\[q'_t=r_t,\qquad r'_t=-\gamma r_t-H_tq_t,\qquad
+H_t=\int_0^1\nabla^2f(L'_t+s(L_t-L'_t))\,ds.\]
+
+
+The averaged Hessian is symmetric and obeys \(mI\preceq H_t\preceq MI\).
+The problem has become a deterministic differential inequality along each pair
+of paths. No independent-noise variance is added to this comparison.
+
+
+
+
+The usual Euclidean norm of \((r,q)\) need not decrease monotonically:
+energy can move between position and velocity. The paper instead chooses a
+coordinate system that follows this transfer. This is the main reason the
+mixing proof achieves useful constants.
+
+
+
+\textbf{Formal scope.} Common forcing cancels in the actual integral solutions. The final theorem applies this argument to the constructed Brownian laws and the true Wasserstein coupling infimum.
+
+
+
+\noindent Lean declarations: \texttt{kinetic\_integral\_position\_decay}, \texttt{wasserstein2\_gibbs\_general}.
+
+\section{A transformed energy makes the mixed terms cancel}
+
+
+Choose \(0\le v<\gamma/2\), set \(\lambda_-=v\),
+\(\lambda_+=\gamma-v\), and define
+
+
+\[a_t=r_t+\lambda_+q_t,\qquad b_t=-r_t-\lambda_-q_t,
+\qquad \mathcal E_t=\|a_t\|^2+\|b_t\|^2.\]
+
+
+The change of variables is invertible because \(\lambda_+-\lambda_->0\).
+Differentiate \(\mathcal E\), use the equations for \(q,r\), and exploit
+symmetry of \(H_t\). The two off-diagonal inner products cancel exactly:
+
+
+\[\mathcal E'_t=
+\frac{2}{\lambda_+-\lambda_-}
+\bigl(\langle a_t,(\lambda_-^2I-H_t)a_t\rangle
++\langle b_t,(H_t-\lambda_+^2I)b_t\rangle\bigr).\]
+
+
+Consequently \(\mathcal E'_t\le2c(v)\mathcal E_t\), where
+
+
+\[c(v)=\frac{\max\{v^2-m,\ M-(\gamma-v)^2\}}{\gamma-2v}.\]
+
+
+Gronwall gives \(\sqrt{\mathcal E_t}\le e^{c(v)t}\sqrt{\mathcal E_0}\).
+If the initial velocities agree, then
+\(\mathcal E_0=((\gamma-v)^2+v^2)\|q_0\|^2\). Since
+\(q_t=(a_t+b_t)/(\gamma-2v)\), the position estimate becomes
+
+
+\[\|q_t\|\le
+\frac{\sqrt{2((\gamma-v)^2+v^2)}}{\gamma-2v}
+e^{c(v)t}\|q_0\|.\]
+
+
+This is the explicit form of Proposition 1 and Theorem 1. Squaring,
+integrating, and taking the infimum over initial position couplings turns it
+into a Wasserstein estimate.
+
+
+
+\textbf{Formal scope.} The transformed energy and general shifted dissipation are proved from the actual strong-convexity and gradient-Lipschitz assumptions.
+
+
+
+\noindent Lean declarations: \texttt{transform}, \texttt{spectral\_identity}, \texttt{potential\_general\_force\_dissipativity}.
+
+\section{How to read the friction regimes}
+
+
+At \(v=0\) the transformed energy is particularly simple:
+\(\|r+\gamma q\|^2+\|r\|^2\). If \(\gamma^2\ge m+M\), then
+\(c(0)=-m/\gamma\), so
+
+
+\[W_2(\mu P_t^L,\mu'P_t^L)
+\le\sqrt2e^{-mt/\gamma}W_2(\mu,\mu').\]
+
+
+Here the two initial phase-space laws share the same independent velocity
+marginal. The prefactor is \(\sqrt2\); this follows directly by substituting
+\(v=0\) in the explicit formula. The supplied source's earlier
+\(\sqrt2/\gamma\) prefactor in its equation \texttt{exp1} does not match
+that substitution.
+
+
+
+
+Friction that is very large makes the rate \(m/\gamma\) small: velocities
+are damped before they transport position very far. The smallest friction
+allowed by this simple estimate is \(\sqrt{m+M}\). The full table in the
+paper improves the rate in other regimes by optimizing \(v\). For sufficiently
+large friction it recovers
+
+
+\[\beta=\frac{\gamma-\sqrt{\gamma^2-4m}}2,\]
+
+
+the slow characteristic rate of a quadratic potential with curvature \(m\).
+This explains the sharpness example. Singular prefactors at a repeated
+characteristic root require separate limiting estimates.
+
+
+
+\textbf{Formal scope.} All three scalar optimality regimes are proved on the admissible nonsingular shift interval. The actual Brownian theorem retains the complete prefactor and exponent.
+
+
+
+\noindent Lean declarations: \texttt{contractionExponent\_low\_optimal}, \texttt{contractionExponent\_middle\_optimal}, \texttt{contractionExponent\_high\_optimal}.
+
+\section{Integrate the frozen force exactly}
+
+
+On an interval of length \(h\), replace the changing force
+\(\nabla f(L_t)\) by its value at the current position \(x\). The remaining
+velocity equation is linear and can be solved exactly. Define
+
+
+\[\psi_0(h)=e^{-\gamma h},\qquad
+\psi_1(h)=\frac{1-e^{-\gamma h}}\gamma,\qquad
+\psi_2(h)=\frac h\gamma-\frac{1-e^{-\gamma h}}{\gamma^2}.\]
+
+
+With the phase ordered as position and velocity, the update is
+
+
+\[v^+=\psi_0(h)v-\psi_1(h)\nabla f(x)+\sqrt{2\gamma}\,\xi,
+\quad x^+=x+\psi_1(h)v-\psi_2(h)\nabla f(x)+\sqrt{2\gamma}\,\xi'.\]
+
+
+The exponential terms handle friction at its exact continuous-time rate.
+The coefficients of the force are its first and second time integrals. For
+small \(h\), \(\psi_1(h)\approx h\) and \(\psi_2(h)\approx h^2/2\),
+which are the familiar first-order velocity and second-order position changes
+under a constant force.
+
+
+
+
+The only approximation here is freezing the nonlinear force. The linear
+friction and its associated Gaussian forcing have already been integrated.
+This is the KLMC exponential integrator reused by KIPLMC1.
+
+
+
+\textbf{Formal scope.} These are the actual deterministic update definitions reused directly by KIPLMC1.
+
+
+
+\noindent Lean declarations: \texttt{exponentialStep}, \texttt{klmcStep}.
+
+\section{Position and velocity noise must be correlated}
+
+
+The two random increments come from the same Brownian motion:
+
+
+\[\xi=\int_0^h\psi_0(h-s)dW_s,
+\qquad \xi'=\int_0^h\psi_1(h-s)dW_s.\]
+
+
+For each spatial coordinate their covariance is the two-by-two Gram matrix
+
+
+\[C=\int_0^h
+\begin{pmatrix}\psi_0(t)^2&\psi_0(t)\psi_1(t)\\
+\psi_0(t)\psi_1(t)&\psi_1(t)^2\end{pmatrix}dt.\]
+
+
+The off-diagonal entry is positive: a random impulse to velocity also moves
+position during the remainder of the step. Replacing these increments with
+two independent Gaussians changes the algorithm. Different spatial coordinates
+and different time intervals use independent Gaussian pairs.
+
+
+
+
+For any real \(a,b\),
+
+
+\[(a,b)C(a,b)^T=\int_0^h(a\psi_0(t)+b\psi_1(t))^2dt\ge0.\]
+
+
+This proves positive semidefiniteness. When \(h>0\), the two coefficient
+functions are linearly independent, which gives strict positivity. One may
+therefore sample a pair using a Cholesky factor \(C=HH^T\) and two independent
+standard normals. A complete law proof identifies this construction with the
+Brownian integrals and establishes independence from the current state.
+
+
+
+\textbf{Formal scope.} The actual Brownian convolutions have the specified joint Gaussian Gram law, with independent spatial and time blocks. No matching-law assumption is supplied to the sampler endpoint. The paper’s explicit positive-diagonal Cholesky factor maps two genuinely independent standard normals to exactly this same innovation law.
+
+
+
+\noindent Lean declarations: \texttt{klmc\_jointLaw}, \texttt{canonicalKLMCInnovation\_independent}, \texttt{kernelNoisePath\_independent}, \texttt{klmc\_cholesky\_independent\_normals}.
+
+\section{Smooth position paths give a smaller local defect}
+
+
+Compare one frozen-force step with the exact kinetic process started at
+the same phase-space state. Their Brownian terms cancel. Gradient Lipschitzness
+bounds the velocity defect by
+
+
+\[\|\Delta v_t\|_{L^2}
+\le M\int_0^t\|L_s-L_0\|_{L^2}ds
+\le\frac{Mt^2}{2}\sup_{0\le r\le h}\|V_r\|_{L^2}.\]
+
+
+Position is the integral of velocity, so its defect has an additional time
+factor:
+
+
+\[\|\Delta x_h\|_{L^2}\le\frac{Mh^3}{6}
+\sup_{0\le r\le h}\|V_r\|_{L^2}.\]
+
+
+At stationarity \(\|V_r\|_{L^2}=\sqrt p\). For the auxiliary exact path
+started from the numerical state, contraction against the stationary exact
+path controls its velocity norm by \(\sqrt p+A_k\), where \(A_k\) is the
+current error in transformed coordinates. This prevents the initialization
+error from reappearing in every step as a fixed additive penalty.
+
+
+
+
+Under the paper's step restriction, combining the two coordinate defects
+gives the transformed local estimate
+\(\tfrac34Mh^2(\sqrt p+A_k)\). Constructing the auxiliary process, its
+moments and the synchronous Gaussian law is part of the analytic proof behind
+this estimate.
+
+
+
+\textbf{Formal scope.} The local integrals are bounded in L\ensuremath{{}^{2}}, and the actual constructed reference supplies the required stationary Gaussian velocity moments.
+
+
+
+\noindent Lean declarations: \texttt{velocityDefect\_bound}, \texttt{positionDefect\_bound}, \texttt{globalReferenceFlow\_stationary}.
+
+\section{Contract, add the local defect, and sum}
+
+
+Let
+\(A_k=\| (\Delta V_k+\gamma\Delta L_k,-\Delta V_k)\|_{L^2}\).
+Exact kinetic evolution contracts this transformed norm. A triangle inequality
+with the one-step defect gives
+
+
+\[A_{k+1}\le\left(e^{-mh/\gamma}+\frac34Mh^2\right)A_k
++\frac34Mh^2\sqrt p.\]
+
+
+For \(0<h\le m/(4\gamma M)\), the quadratic correction is small enough
+to retain most of the continuous contraction:
+
+
+\[A_{k+1}\le qA_k+b,\qquad
+q=1-\frac{3mh}{4\gamma},\quad b=\frac34Mh^2\sqrt p.\]
+
+
+Induction gives the finite geometric sum
+\(A_k\le q^kA_0+b\sum_{j=0}^{k-1}q^j\). Because \(0\le q<1\),
+
+
+\[A_k\le q^kA_0+\frac{Mh\gamma\sqrt p}m.\]
+
+
+Equal initial velocities give \(A_0=\gamma W_2(\nu_0,\pi)\) for an
+optimal initial coupling; approximate couplings and a limiting infimum work as
+well. The position projection costs \(\sqrt2/\gamma\), yielding the displayed
+KLMC theorem. The recurrence itself is elementary. The substantive stochastic
+claim is that the actual chain admits the coupling from which it was derived.
+
+
+
+\textbf{Formal scope.} The actual sampler theorem constructs the reference, derives the numerical local inequality, identifies both output laws, and takes the true initial-coupling infimum internally.
+
+
+
+\noindent Lean declarations: \texttt{firstOrder\_coupling\_recurrence\_bound}, \texttt{klmc\_wasserstein\_bound}.
+
+\section{The Hessian-corrected method follows the changing force}
+
+
+If the Hessian is \(M_2\)-Lipschitz in operator norm, a first-order
+Taylor expansion of the gradient leaves a quadratic position remainder:
+
+
+\[\|\nabla f(y)-\nabla f(x)-\nabla^2f(x)(y-x)\|
+\le\frac{M_2}{2}\|y-x\|^2.\]
+
+
+The paper inserts the leading velocity and Brownian contributions to
+\(L_s-L_0\) into this expansion. Define
+\(\varphi_{j+1}(h)=\int_0^he^{-\gamma(h-s)}\psi_j(s)ds\). The resulting
+KLMC2 update subtracts \(\varphi_2(h)H v\) from velocity and
+\(\varphi_3(h)H v\) from position, where \(H=\nabla^2f(x)\). Its random
+increments are also corrected by multiplying two additional correlated
+Gaussian blocks by \(H\).
+
+
+
+
+The joint covariance is the Gram integral of
+\((\psi_0,\psi_1,\varphi_2,\varphi_3)\). This avoids a matrix exponential:
+the operations involving the Hessian are matrix–vector products. The second
+algorithm is therefore more elaborate than the frozen-force integrator, but
+still explicit.
+
+
+
+
+The name KLMC2 here refers to a Hessian method. KIPLMC2 in the particle
+paper uses the OBABO splitting and first derivatives; its definition and proof
+are separate.
+
+
+
+\textbf{Formal scope.} The four-kernel Hessian update and its exact Brownian Gaussian innovation law are constructed. The separate completion audit tracks the assembled chain endpoint.
+
+
+
+\noindent Lean declarations: \texttt{klmc2Step}, \texttt{klmc2\_jointLaw}.
+
+\section{Fourth moments and the complete stochastic Hessian correction}
+
+
+The Taylor remainder contains \(\|L_s-L_0\|^2\). Its
+\(L^2\) norm therefore uses fourth moments. Under the actual stationary
+kinetic law, each \(V_s\) is standard Gaussian and
+
+
+\[\mathbb E\|V_s\|^2=p,\qquad
+\mathbb E\|V_s\|^4=p^2+2p.\]
+
+
+The actual kinematic equation \(L_s-L_0=\int_0^sV_rdr\) gives
+\(\|L_s-L_0\|_{L^4}\le s(p^2+2p)^{1/4}\), without independence
+between velocities at different times. The formal proof applies closed-convex
+averaging to the existing \(L^2\) time integral. The genuine Taylor forcing
+is consequently bounded by \(M_2s^2\sqrt{p^2+2p}/2\).
+
+
+
+
+Its damped integral gives the cubic velocity defect. A further force-memory
+term uses the actual stationary score bound
+\(\mathbb E_\pi\|\nabla f\|^2\le Mp\). Integrating the velocity error
+once more gives the quartic position defect. Proposition 2 is thus checked
+for the implemented four-kernel step:
+
+
+\[\|P^{-1}(V_h-\hat V_h,L_h-\hat L_h)\|_{L^2}
+\le\frac{h^3}{4}\bigl(M_2\sqrt{p^2+2p}+M\sqrt{Mp}\bigr),
+\qquad \gamma h\le\tfrac15.\]
+
+
+Proposition 3 requires an additional repair: the source's displayed
+subtraction omits the Hessian difference multiplying the fresh
+\(\varphi_2\) and \(\varphi_3\) noise. The formal proof keeps both terms.
+Write \(D_H=H(L_0)-H(\widetilde L_0)\), and define the actual free-OU velocity
+and complete Hessian responses on the same Brownian interval:
+
+
+\[U_r=\psi_0(r)V_0+\sqrt{2\gamma}\int_0^r\psi_0(r-s)dB_s,\]
+\[C_j(t)=\varphi_j(t)V_0+\sqrt{2\gamma}
+\int_0^t\varphi_j(t-s)dB_s,\qquad j=2,3.\]
+
+
+Actual kernel identities, proved by Hilbert-space Fubini and the Brownian
+isonormal map, give
+
+
+\[C_2(t)=\int_0^te^{-\gamma(t-s)}\int_0^sU_rdrds,
+\qquad C_2(t)+\gamma C_3(t)=\int_0^t\int_0^sU_rdrds.\]
+
+
+Each \(U_r\) has the standard Gaussian marginal, proved from the actual
+stationary reference velocity and its independent future Brownian interval.
+The random operator \(D_H\) can depend on the coupled positions and velocity;
+the cutoff argument below requires no independence from \(U_r\). The complete
+correction therefore satisfies, for \(a\ge5p\),
+
+
+\[\|P^{-1}(D_HC_2(h),D_HC_3(h))\|_{L^2}
+\le\frac{h^2}{\sqrt2}\left[
+M_2\sqrt a\,\|L_0-\widetilde L_0\|_{L^2}
++2(M-m)e^{-(a-p)/8}\right].\]
+
+
+This retains the source constants while accounting for every stochastic
+Hessian term. The frozen-linear part contracts by \(1-mh/(2\gamma)\)
+under \(\gamma^2\ge m+M\) and \(5\gamma Mh\le m\); adding the complete
+correction gives the repaired actual one-step comparison.
+
+
+
+\textbf{Formal scope.} The actual four-kernel local error and repaired synchronous comparison are proved. Both fresh stochastic Hessian terms are retained through the full free-OU response, whose Gaussian marginals follow from the constructed canonical past/future law.
+
+
+
+\noindent Lean declarations: \texttt{stdGaussian\_norm\_fourth\_moment}, \texttt{klmc2Step\_stationary\_local\_bound}, \texttt{klmc2SourceStep\_comparison\_bound}, \texttt{referenceChain\_freeOUResponse\_hasLaw}.
+
+\section{Gaussian truncation and the actual second-order sampling theorem}
+
+
+A Gaussian reference velocity need not be independent of the accumulated
+position error. For any actual standard Gaussian vector and \(a\ge5p\),
+the checked Gaussian exponential moment gives
+
+
+\[\|V\|^2\le a+(\|V\|^2-a)_+,\qquad
+\mathbb E(\|V\|^2-a)_+\le4e^{-(a-p)/4}.\]
+
+
+The actual Hessian difference satisfies both
+\(\|H(x)-H(y)\|\le M-m\) and
+\(\|H(x)-H(y)\|\le M_2\|x-y\|\). On the bounded-velocity part use
+the Lipschitz bound; on the tail use the curvature-width bound. Taking the
+square root of the integrated estimate gives
+
+
+\[\|D_HV\|_{L^2}\le M_2\sqrt a\,\|L_0-\widetilde L_0\|_{L^2}
++2(M-m)e^{-(a-p)/8}.\]
+
+
+Apply this estimate to each actual free-OU velocity in the complete
+correction, then combine the repaired comparison with the genuine cubic local
+defect. Choose
+
+
+\[a=\left(\frac{m}{4M_2h}\right)^2,\qquad
+h\le\frac{m}{5\gamma M}\wedge\frac{m}{4M_2\sqrt{5p}}.\]
+
+
+Assume \(m,M_2>0\), \(\gamma^2\ge m+M\), and initial phase law
+\(\mathcal N(0,I_p)\otimes\nu_0\), with finite \(W_2(\nu_0,\pi)\).
+The second step restriction ensures \(a\ge5p\), and the first enforces the
+frozen-linear stability bound. The position-dependent comparison term is
+absorbed into \(q=1-mh/(4\gamma)\). Iterating on the constructed common
+Brownian source and taking the true infimum over initial couplings proves
+for the actual independently initialized, iid four-kernel Gaussian KLMC2 chain
+
+
+\[W_2(\nu_n^{\rm KLMC2},\pi)\le
+\sqrt2q^n W_2(\nu_0,\pi)
++\frac{\sqrt2h^2}{m}\left(M_2\sqrt{p^2+2p}+M\sqrt{Mp}\right)
++\frac{8(M-m)h}{m}e^{-(a-p)/8}.\]
+
+
+The actual output transport distance is finite; the real-valued expression
+does not conceal an infinite distance. No stationary-law, local-error,
+independence, Gaussian-innovation or optimal-coupling premise is supplied to
+this final sampler theorem.
+
+
+
+
+The cutoff gives both \(e^{-(a-p)/8}\le e^{-p/2}\) and the stronger
+\(e^{-(a-p)/8}\le e^{-m^2/(160M_2^2h^2)}\). The printed simplification
+of the first bias term uses \(p^2+2p\le2p^2\), which requires
+\(p\ge2\). Under that explicit restriction the checked bound implies
+
+
+\[W_2(\nu_n^{\rm KLMC2},\pi)\le
+\sqrt2q^n W_2(\nu_0,\pi)
++\frac{2h^2M_2p}{m}+\frac{h^2M\sqrt{2Mp}}m
++\frac{8Mh}{m}e^{-p/2}.\]
+
+
+For \(p=1\), the exact fourth-moment expression in the preceding
+sampling theorem remains the valid conclusion. The source's silently used
+higher-dimensional simplification is not applied.
+
+
+
+\textbf{Formal scope.} The exact-dimensional theorem is proved for the actual KLMC2 Gaussian Markov chain, with all reference, noise, local-error and coupling-infimum obligations discharged internally. The printed coefficient is provided with its necessary dimension restriction p at least two; the one-dimensional exact-moment bound is retained.
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_norm\_square\_positivePart\_le}, \texttt{gaussian\_truncation\_Lp}, \texttt{secondOrderCutoff\_tail}, \texttt{klmc2\_wasserstein\_bound\_exact}, \texttt{klmc2\_wasserstein\_bound}.
+
+\section{Turn an error floor into a computational budget}
+
+
+A bound of the form \(q^kD+Bh\) gives a simple design rule. Choose
+\(h\) small enough that \(Bh\) receives one part of an error budget
+\(\varepsilon\), and choose \(k\) large enough for the decaying initial
+term to receive the rest. The admissible \(h\) is the minimum of this accuracy
+choice and the stability restriction.
+
+
+
+
+For the first integrator, the bias scales as \(h\sqrt p\), giving
+\(h\) of order \(\varepsilon/\sqrt p\), and a step count of order
+\(\sqrt p/\varepsilon\) up to logarithmic and curvature factors.
+For the Hessian method the leading bias scales as \(h^2p\), giving
+\(h\) of order \(\sqrt{\varepsilon/p}\), and a step count of order
+\(\sqrt{p/\varepsilon}\). These are asymptotic consequences of actual
+algorithmic estimates, with fixed geometry constants.
+
+
+
+
+The paper's comparisons keep track of condition numbers as well. A kinetic
+method gains from smooth position paths, but poor conditioning can make its
+allowed step size small. This is why neither KLMC nor overdamped LMC uniformly
+wins across every dimension, accuracy and curvature regime. A precise
+complexity theorem also specifies integer rounding and the treatment of
+already-small initialization error.
+
+
+
+
+The source also gives a finer condition-number comparison after explicitly
+omitting the Gaussian tail. We can audit that calculation without an asymptotic
+shortcut. For target error \(\varepsilon/\sqrt m\), allocate
+\(\varepsilon/(2\sqrt m)\) to the printed quadratic bias and set
+
+
+\[h_0=\min\left\{\frac m{5\gamma M},\;
+\frac m{4\sqrt{5p}M_2},\;
+\sqrt{\frac{\varepsilon\sqrt m}{4M_2p+2M\sqrt{2Mp}}}\right\}.\]
+
+
+Every denominator is positive. This step meets both source stability
+restrictions and the stated quadratic-bias allocation. Its reciprocal is
+exactly
+
+
+\[Q=\max\left\{\frac{5\gamma M}m,\;
+\frac{4\sqrt{5p}M_2}m,\;
+\sqrt{\frac{4M_2p+2M\sqrt{2Mp}}{\varepsilon\sqrt m}}\right\}.\]
+
+
+There is no hidden dimension or curvature factor in this identity. For
+initial distance \(D\), the rounded logarithmic iteration prescription satisfies
+
+
+\[n\le1+\frac{4\gamma}{m}Q\,
+\max\left\{0,\log\frac{24D\sqrt m}{\varepsilon}\right\}.\]
+
+
+This calculation concerns the source comparison with the tail omitted.
+The actual sampler accuracy theorem retains the tail and chooses its step
+using the complete quadratic envelope proved earlier.
+
+
+
+
+To understand the refinement, write
+\(\kappa=M/m\), \(\eta=M_2/m^{3/2}\), and
+
+
+\[\rho=\kappa_2=\eta^{2/3}+\kappa p^{-1/3}
+=\frac{M_2^{2/3}+Mp^{-1/3}}m.\]
+
+
+With \(\gamma=\sqrt{m+M}\), the source tries to simplify the count
+coefficient to \(\sqrt p\,\rho^2+\sqrt{p/\varepsilon}\,\rho^{5/4}\).
+That simplification drops a factor. A valid refinement is
+
+
+\[\sqrt{\frac\kappa\rho}\left[
+\sqrt p\,\rho^2+\sqrt{p/\varepsilon}\,\rho^{5/4}\right]\]
+
+
+up to a universal multiplicative constant and the displayed logarithm.
+A convenient checked uniform upper bound uses
+\(\widehat\kappa_2=\max\{\kappa,\rho\}\):
+
+
+\[\mathcal C\le64\left[\sqrt p\,\widehat\kappa_2^2+
+\sqrt{p/\varepsilon}\,\widehat\kappa_2^{5/4}\right],\]
+
+
+where \(\mathcal C=(4\gamma/m)Q\) is the exact count coefficient
+above. The natural count is therefore less than one plus this bound times
+the visible nonnegative logarithm. If \(\rho\ge\kappa\), the maximum
+is simply \(\rho\), so the printed shape follows with the same explicit
+constant.
+
+
+
+
+The distinction matters because the modified number discounts gradient
+curvature by \(p^{-1/3}\), while the actual stability restriction still
+contains \(M/m\). Take a natural \(t\ge2\), dimension \(p=t^6\),
+and the valid constants \(m=1\), \(M=t^2\), \(M_2=1\),
+\(\varepsilon=1\). A diagonal quadratic potential can have smallest
+curvature one and largest curvature \(t^2\); its constant Hessian satisfies
+the stated Hessian-Lipschitz bound. Here \(\kappa=t^2\),
+\(\eta=1\), and \(\rho=2\) exactly. The normalized iteration
+coefficient is at least \(20t^4\), whereas the source expression is at most
+\(8t^3\). No universal constant multiplying that expression can cover all
+natural \(t\). This diagnoses the source's algebraic budget simplification;
+it asserts no lower bound on the best possible behavior of the algorithm.
+
+
+
+\textbf{Formal scope.} Both actual samplers now have explicit epsilon guarantees, positive minimum steps, and rounded natural logarithmic counts. The second-order prescription uses the exact dimension term and the proved inverse-step-square tail envelope. The source paragraph that omits the Gaussian tail is also audited: its exact step and natural count are proved, the corrected condition-number envelope has constant 64, and a formal natural-dimension counterexample rules out the unqualified printed budget.
+
+
+
+\noindent Lean declarations: \texttt{klmc\_accuracy\_explicit}, \texttt{firstOrderIterationCount\_spec}, \texttt{klmc2\_accuracy\_explicit}, \texttt{secondOrderAccuracyStep\_spec}, \texttt{secondOrderTailFreeStep\_spec}, \texttt{secondOrderTailFreeStep\_inverse}, \texttt{secondOrderTailFree\_iterationCount\_conditionNumber}, \texttt{secondOrderNormalizedWork\_physical\_regime}, \texttt{secondOrderSourceRefinement\_no\_uniform\_constant}.
+
+\end{document}

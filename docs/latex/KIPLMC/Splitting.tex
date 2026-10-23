@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{KIPLMC2 is exactly the shared OBABO composition}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KIPLMC/Splitting.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+In scaled physical-time particle coordinates every velocity block has temperature \(1/N\). The parameter coordinates stay unchanged. Multiplying a latent coordinate by \(\sqrt N\) recovers the physical latent position and velocity and the unit-temperature latent noise used in Algorithm 2. The module proves these coordinate identities for the actual five-subflow map; no OBABO contraction theorem is hidden in the definitions.
+
+
+\section{Define the scaled thermostat and half velocity}
+
+
+Let \(\delta=e^{-\gamma h/2}\) and \(\sigma_N=\sqrt{(1-\delta^2)/N}\). \texttt{thermalAmplitude} defines \(\sigma_N\), \texttt{kiplmc2Step} passes it and the actual force \(F\) to the shared OBABO map, and \texttt{halfVelocity} records \(v_{1/2}=\delta v+\sigma_N\xi-hF(x)/2\). The algorithm uses this newly formed half velocity for its full position drift. The second force kick is evaluated at the new position, and the final OU half step receives the distinct noise \(\xi'\). Both the position and velocity projection formulas are definitional equalities, proved by \texttt{rfl}.
+
+
+
+\noindent Lean declarations: \texttt{thermalAmplitude}, \texttt{kiplmc2Step}, \texttt{halfVelocity}, \texttt{kiplmc2Step\_position}, \texttt{kiplmc2Step\_velocity}.
+
+\section{The parameter half velocity contains the average gradient}
+
+
+Evaluating the half velocity on parameter index \(j\) gives
+
+\[(v_{1/2})_{\theta,j}=\delta v_{\theta,j}+\sigma_N\xi_{\theta,j}
+-\frac{h}{2N}\sum_i\nabla_\theta U(\theta,X^i)_j.\]
+
+Lean unfolds the half-velocity definition, distributes coordinate evaluation over vector addition, subtraction and scalar multiplication, then substitutes \texttt{force\_parameter}. The remaining equality is scalar rational algebra, discharged by \texttt{ring}. This proof keeps the particle mean in the actual force rather than adding an assumed algorithm-equivalence premise.
+
+
+
+\noindent Lean declarations: \texttt{halfVelocity\_parameter}.
+
+\section{Undo latent scaling in the first O and B substeps}
+
+
+The thermostat identity is \(\sqrt N\sigma_N=\sqrt{1-\delta^2}\). Its proof combines square roots and cancels the positive \(N\) inside the argument. Multiplying the latent half velocity by \(\sqrt N\) then gives
+
+\[\sqrt N(v_{1/2})_i=\delta(\sqrt Nv_i)+\sqrt{1-\delta^2}\xi_i-\frac h2\nabla_xU(\theta,X^i).\]
+
+The coordinate proof expands multiplication through the three terms, applies the proved thermostat and force-unscaling identities, and normalizes multiplication order with \texttt{ring}. This yields exactly the physical latent OU refresh and unaveraged force kick.
+
+
+
+\noindent Lean declarations: \texttt{unscale\_thermalAmplitude}, \texttt{halfVelocity\_particle}.
+
+\section{Recover physical parameter and latent position drifts}
+
+
+The common position formula is \(z^+=z+h v_{1/2}\). Its parameter coordinate reads \(\theta^+=\theta+hV^\theta_{1/2}\) directly because that coordinate was not scaled; its theorem is definitional. In a latent coordinate, multiply both sides by \(\sqrt N\) and distribute: \(X^{i+}=X^i+hV^{x_i}_{1/2}\). Lean rewrites the shared position identity, simplifies Euclidean coordinate operations and closes the scalar distributive equality with \texttt{ring}. Together with the half-velocity and final-velocity identities, these are the paper's complete pointwise OBABO stages. Gaussian transition laws and their numerical bias remain separate analytic assertions.
+
+
+
+\noindent Lean declarations: \texttt{kiplmc2Step\_parameter\_position}, \texttt{kiplmc2Step\_particle\_position}.
+
+\end{document}

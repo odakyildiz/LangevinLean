@@ -1,0 +1,51 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Explicit Verlet energy and rejection estimates}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/HamiltonianError.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The exact Hamiltonian defect proved earlier becomes quantitative under a globally Lipschitz gradient. The proof uses only first derivatives: two-sided Taylor control bounds the trapezoidal force work, while a norm factorization bounds the force-square correction. These estimates concern the actual algebraic Verlet map and can control the rejection mass of the invariant corrected approximation.
+
+
+\section{Obtain the two-sided Taylor remainder}
+
+
+The shared smooth upper bound gives \(f(y)-f(x)-\langle\nabla f(x),y-x\rangle\le M\|y-x\|^2/2\). Apply the same theorem to \(-f\). Its gradient is \(-\nabla f\), proved by rewriting the Fréchet derivative and the linear Riesz inverse, and its Lipschitz constant remains \(M\). The second application gives the reverse inequality, so the absolute remainder has the same bound. Lean explicitly rewrites the negative gradient and combines the upper and lower scalar inequalities with \texttt{abs\_le}.
+
+
+
+\noindent Lean declarations: \texttt{smooth\_taylor\_abs}.
+
+\section{Average Taylor errors from both endpoints}
+
+
+Write \(d=y-x\), \(r_x=f(y)-f(x)-\langle\nabla f(x),d\rangle\), and \(r_y=f(x)-f(y)+\langle\nabla f(y),d\rangle\). The trapezoidal force-work error is exactly \((r_x-r_y)/2\). Both remainders have absolute value at most \(M\|d\|^2/2\). The triangle inequality therefore gives \[\left|f(y)-f(x)-\tfrac12\langle\nabla f(x)+\nabla f(y),d\rangle\right|\le\tfrac M2\|d\|^2.\] Lean proves the algebraic average identity after expanding the inner product, reverses the displacement in the second Taylor bound, and applies the absolute-value triangle inequality.
+
+
+
+\noindent Lean declarations: \texttt{smooth\_trapezoid\_abs}.
+
+\section{Control the squared-force correction}
+
+
+Factor \(\|g(y)\|^2-\|g(x)\|^2=(\|g(y)\|-\|g(x)\|)(\|g(y)\|+\|g(x)\|)\). The reverse triangle inequality and Lipschitz continuity bound the first factor by \(M\|y-x\|\). The ordinary triangle inequality bounds the second by \(2\|g(x)\|+M\|y-x\|\). Multiplying these nonnegative estimates proves the displayed force-square bound. Lean derives the endpoint-force growth estimate before applying \texttt{mul\_le\_mul}, so every sign condition is checked.
+
+
+
+\noindent Lean declarations: \texttt{force\_norm\_sq\_sub\_abs}.
+
+\section{Bound the complete Verlet energy defect}
+
+
+Set \(w=v-h\nabla f(x)/2\), \(y=x+hw\). The exact identity from the Hamiltonian module writes the defect as a trapezoidal work error plus \(h^2(\|\nabla f(y)\|^2-\|\nabla f(x)\|^2)/8\). Since \(\|y-x\|=|h|\|w\|\), the preceding two lemmas give \[|H(V_hz)-H(z)|\le\frac M2h^2\|w\|^2+\frac{h^2}{8}M|h|\|w\|\bigl(2\|\nabla f(x)\|+M|h|\|w\|\bigr).\] Lean substitutes the actual intermediate stage, changes the inner product to the displacement form, applies the triangle inequality to the two exact defect terms, and simplifies \(|h|^2=h^2\). The leading term is quadratic in the step under only gradient Lipschitz regularity.
+
+
+
+\noindent Lean declarations: \texttt{verlet\_energy\_defect\_abs}.
+
+\end{document}
