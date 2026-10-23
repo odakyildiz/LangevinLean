@@ -220,7 +220,8 @@ def project_document(notes):
            ('IPLA','Interacting particles','A finite-time parameter error bound, using the lifted ULA system and concentration of the parameter marginal.'),
            ('ProximalLangevin','Nonsmooth models','Proximal minimizers, Moreau envelopes, corrected particle bounds, and mean-field limits.'),
            ('KineticLangevin','Kinetic sampling','Exponential integrators, transformed-energy contraction, Gaussian innovations, and a source-by-source coverage audit.'),
-           ('KIPLMC','Kinetic interacting particles','Shared exponential integration for KIPLMC1, OBABO for KIPLMC2, scaled geometry, chain laws, and parameter concentration.')]
+           ('KIPLMC','Kinetic interacting particles','Shared exponential integration for KIPLMC1, OBABO for KIPLMC2, scaled geometry, chain laws, and parameter concentration.'),
+           ('AverageLMC','Average smoothness · incomplete','Checked deterministic lemmas and scalar recurrences, with a Gaussian design counterexample that prevents exact full-paper formalization.')]
     for key,label,description in cards:
         config=CONFIG[key]
         body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
@@ -240,3 +241,6 @@ CONFIG.update(ENTROPY_CONFIG)
 
 from kinetic_overviews import KINETIC_CONFIG
 CONFIG.update(KINETIC_CONFIG)
+
+from average_content import AVERAGE_CONFIG
+CONFIG.update(AVERAGE_CONFIG)

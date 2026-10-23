@@ -21,7 +21,7 @@ from theme import theme_head, theme_control
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
-LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC"]
+LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC", "AverageLMC"]
 SPEC = importlib.util.spec_from_file_location("proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
@@ -415,10 +415,10 @@ def main():
             outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
     outputs['index.html'] = project_document(notes)
     inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py',
-              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
+              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']
-    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
+    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC', 'AverageLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += ['UnadjustedLangevin/exposition/build_document.py']

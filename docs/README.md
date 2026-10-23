@@ -10,6 +10,15 @@ analogue is also linked as a footnote from IPLA:
 - [IPLA under LSI](../IPLA/LSI/exposition/index.html)
 - [Kinetic Langevin](../KineticLangevin/exposition/index.html)
 - [KIPLMC](../KIPLMC/exposition/index.html)
+- [Average smoothness LMC: incomplete proofs and source obstruction](../AverageLMC/exposition/index.html)
+
+The AverageLMC pages use the same statement, proof-map and module templates.
+They explicitly report incomplete coverage: the supplied Gaussian design
+proposition is false under its printed assumptions. Checked deterministic and
+conditional scalar results are separated from the actual-potential Gaussian
+counterexample and the unproved sampler endpoints. Run
+`python3 scripts/verify-average-lmc-coverage.py` for source integrity;
+its `--require-complete` mode correctly rejects this incomplete development.
 
 The two kinetic developments prove the actual continuous mixing and Gaussian
 sampler endpoints. Kinetic Langevin includes Gibbs stationarity, the KLMC and
@@ -118,6 +127,8 @@ lake env lean UnadjustedLangevin/LSI/Check.lean
 lake env lean IPLA/LSI/Check.lean
 lake env lean KineticLangevin/Check.lean
 lake env lean KIPLMC/Check.lean
+lake env lean AverageLMC/Check.lean
+python3 scripts/verify-average-lmc-coverage.py
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
@@ -146,7 +157,7 @@ node docs/verify_copy.cjs
 node docs/verify_theme.cjs
 ```
 
-It checks all seven overviews and representative module proofs at desktop,
+It checks all eight overviews and representative module proofs at desktop,
 375 px, and 320 px widths, reading modes, search, diagram navigation, LaTeX
 downloads, old section links, and offline `file://` reading. Screenshots and a
 JSON report are written to a temporary directory. Set `NODE_PATH` if Playwright

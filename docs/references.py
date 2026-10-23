@@ -8,6 +8,12 @@ from html import escape
 
 
 PAPERS = {
+    "average-lmc": dict(
+        authors="Arnak S. Dalalyan and Avetik Karagulyan", year="undated manuscript",
+        title="Improved Guarantees for Langevin Monte Carlo with Average Smoothness",
+        venue="Supplied Arxiv_version_May_26.tex; publication status not established",
+        url="https://github.com/odakyildiz/LangevinLean/blob/b42a1459e2e8f19f3135893291699bcb9d6b6235/papers/Average_LMC/Arxiv_version_May_26.tex",
+        links=[]),
     "monmarche-obabo": dict(
         authors="Pierre Monmarché", year="2021",
         title="High-dimensional MCMC with a standard splitting scheme for the underdamped Langevin diffusion",
@@ -60,6 +66,11 @@ PAPERS = {
 
 
 DEVELOPMENTS = {
+    "AverageLMC": dict(
+        label="Supplied manuscript; incomplete formalization and source obstruction",
+        status="incomplete", papers=["average-lmc"],
+        scope="The exact supplied manuscript is the correspondence authority. Deterministic smoothness and gradient lemmas and conditional scalar recurrences are checked. An allowed quadratic-plus-sine GLM contradicts the dimension independent isotropic Hessian Lipschitz bound in Proposition 2. The Gaussian probability obstruction is checked using exact moments. The actual-law LMC, Laplacian-smooth LMC and SGLD convergence theorems remain unproved; a full formalization with the printed hypotheses and conclusions is impossible without correcting Proposition 2.",
+        card="Incomplete: checked deterministic lemmas, conditional scalar rates, and a counterexample to the printed Gaussian-design proposition. No new actual-law sampler bound is claimed."),
     "KineticLangevin": dict(
         label="Published source; corrected checked proofs", status="corrected",
         papers=["dalalyan-riou-durand"],
