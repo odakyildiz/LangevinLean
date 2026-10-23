@@ -1,44 +1,15 @@
-# Average-smoothness LMC source audit
+# Average-smoothness sampling proofs and source audit
 
-The reference is the supplied source
-[`Arxiv_version_May_26.tex`](../../papers/Average_LMC/Arxiv_version_May_26.tex),
-**Improved Guarantees for Langevin Monte Carlo with Average Smoothness**.
-The exact source hash and a statement-by-statement coverage report appear in
-[`reference_audit.json`](reference_audit.json).
+[**Mistakes and separate counterexample pages**](mistakes.html)
 
-Full formalization under exactly the paper's hypotheses is impossible: the
-numbered GLM proposition asserts a false isotropic Hessian-Lipschitz estimate
-when its only dimension/sample restriction is `p ≤ n`.
+The [standard proof overview](index.html) pairs each main mathematical statement with its exact Lean header and links the complete module proofs. The source is the repository's `Arxiv_version_May_26.tex`, *Improved Guarantees for Langevin Monte Carlo with Average Smoothness*. Its exact hash, all 12 numbered statements and all 78 labels appear in [`reference_audit.json`](reference_audit.json).
 
-Take `n = p`, `g₁(t) = t² − sin t`, and `gᵢ(t) = t²` for `i > 1`.
-Every component is smooth and convex, its second derivative is at least one,
-and `|gᵢ″| + |gᵢ‴| ≤ 4`. Writing `a = X₁`, the full potential has Hessian
+The main review scope consists of Theorem 1 (average-smoothness LMC), Proposition 1 (decreasing steps), Theorem 2 with source label `th:3` (Laplacian-smooth LMC), and Theorem 3 together with Proposition 3 (SGLD). Their laws are the actual independent Gaussian and finite-index recursions. Their analytic estimates, moments and recurrences are derived from the source hypotheses.
 
-```
-H(θ) = 2 Σᵢ Xᵢ Xᵢᵀ + sin(aᵀθ) aaᵀ.
-```
+The Laplacian argument constructs a weighted Dynkin identity through actual Gaussian Euler steps and their uniform L² limit. Compact C² score approximations keep the potential's source C³ regularity. Stationarity transfers their approximation errors without a dimension loss, and bounded radial clipping allows every square-integrable initial coupling error.
 
-Its Hessian Lipschitz constant is at least `‖a‖³`, whereas the isotropic table
-requires it to be at most `C n = C p`, with `C` depending only on the fixed
-component bound. A standard Gaussian row has squared norm of order `p`.
-For every proposed `C ≥ 0`, choosing `p > 16` and `p > 8 C²` makes the
-probability of `‖a‖³ ≤ C p` strictly less than one half. Thus the claimed
-simultaneous table event cannot have probability at least one half.
-The same example exposes the false uniform fourth-moment event in that
-proposition's proof. It does not refute every other result in the paper.
+Three separate pages contain checked source-error certificates: the false isotropic Hessian entry of the GLM proposition, its false uniform empirical fourth-moment event, and the false intermediate reciprocal-transient comparison in the SGLD discussion. These errors do not invalidate the independently proved sampler bounds.
 
-`AverageLMC/GLMObstruction.lean` proves the exact component derivative formulas,
-the uniform derivative bound, and the cubic lower bound for the explicit
-rank-one sinusoidal Hessian. `AverageLMC/GaussianObstruction.lean` proves the
-Gaussian norm probability obstruction from exact norm moments. Consult those
-sources for the precise checked theorem statements; the audit distinguishes
-these certificates from the remaining unproved analytic sampling results.
+The source inventory also records auxiliary statements whose full standalone generality is outside the main review scope. In particular, the broader Gaussian perturbation and two pathwise comparison inequalities are not silently labelled proved using stronger main-theorem hypotheses. An open formalization obligation is not a counterexample.
 
-The source's local/global LMC theorems, Laplacian theorem, Gaussian perturbation
-lemma, SGLD law inequalities, and all remaining probabilistic GLM estimates are
-not advertised as completed merely because scalar recurrence consequences or
-counterexample components compile. Repairing the sample-size assumptions or
-changing a bound would produce a different theorem.
-
-Only `main` is intended for review. This work does not request or perform a
-`gh-pages` update.
+Use `python3 scripts/verify-average-lmc-coverage.py --require-resolved` for the main-theorem and counterexample review gate. Literal full-paper coverage is reported separately and remains false. Review is on `main` only; this work does not publish or update `gh-pages`.

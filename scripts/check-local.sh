@@ -25,8 +25,8 @@ done
 printf '\nChecking kinetic paper correspondence and reporting full-proof coverage\n'
 python3 -B scripts/verify-kinetic-coverage.py --require-complete
 
-printf '\nChecking average-smoothness source correspondence and reporting incomplete coverage\n'
-python3 -B scripts/verify-average-lmc-coverage.py
+printf '\nChecking average-smoothness main theorems and source counterexamples\n'
+python3 -B scripts/verify-average-lmc-coverage.py --require-resolved
 
 for verifier in \
   UnadjustedLangevin/exposition/verify_document.py \

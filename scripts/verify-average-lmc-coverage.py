@@ -3,7 +3,9 @@
 
 The default verifies exact source statements, their full inventory, checked
 declaration references, and absence of proof holes. --require-complete rejects
-both unproved endpoints and a refuted source result.
+both unproved endpoints and a refuted source result. --require-resolved checks
+the revised review scope: proved main statements and linked, checked
+counterexamples to false source statements.
 """
 from __future__ import annotations
 
@@ -23,7 +25,7 @@ KINDS = "theorem|proposition|lemma|remark|corollary|condition|defin"
 ENVIRONMENT = re.compile(r"\\begin\{(" + KINDS + r")\}(.*?)\\end\{\1\}", re.S)
 
 
-def verify(require_complete=False):
+def verify(require_complete=False, require_resolved=False):
     audit = json.loads((ROOT / "AverageLMC/exposition/reference_audit.json").read_text())
     sources = {}
     for entry in audit["source"]["files"]:
@@ -75,6 +77,9 @@ def verify(require_complete=False):
         for proof in proofs:
             assert proof["declaration"] in parsed[proof["file"]], \
                 f"Missing result proof correspondence: {result['id']}"
+        for proof in result.get("counterexamples", []):
+            assert proof["declaration"] in parsed[proof["file"]], \
+                f"Missing counterexample certificate: {result['id']}"
         if result["status"] != "proved" or not proofs:
             unfinished_results.append(result["id"])
     labels = {entry["label"] for entry in audit["source_labels"]}
@@ -89,17 +94,42 @@ def verify(require_complete=False):
     refuted = [entry["id"] for entry in audit["results"] if entry["status"] == "refuted"]
     complete = not missing and not unfinished_results and not refuted
     assert audit["formalization_complete"] == complete, "Incorrect completion flag"
+    from average_content import AVERAGE_PAGES
+    scope = audit["review_scope"]
+    by_id = {result["id"]: result for result in audit["results"]}
+    unresolved = []
+    for identifier in scope["results"]:
+        result = by_id[identifier]
+        proved = result["status"] == "proved" and result.get("proofs")
+        counterexample = (result["status"] == "refuted" and result.get("counterexamples")
+                          and result.get("counterexample_page") in AVERAGE_PAGES)
+        if not (proved or counterexample):
+            unresolved.append(identifier)
+    for page in scope["counterexample_pages"]:
+        assert page in AVERAGE_PAGES, f"Missing separate counterexample page: {page}"
+        references = [ref for section in AVERAGE_PAGES[page]["sections"]
+                      for ref in section.get("references", [])]
+        assert references, f"Counterexample page has no checked certificate: {page}"
+        for ref in references:
+            assert ref["name"] in parsed[ref["file"]], f"Missing page certificate: {page}"
+    resolved = not unresolved
+    assert scope["complete"] == resolved, "Incorrect review-scope completion flag"
     print(f"AverageLMC: {sum(audit['counts'].values())} exact source results and "
           f"{len(recorded_labels)} labels verified; checked certificates present.")
     print("Full-paper formalization: " + ("COMPLETE" if complete else "INCOMPLETE"))
+    print("Main-theorem and counterexample review scope: " + ("COMPLETE" if resolved else "INCOMPLETE"))
     if refuted:
         print("Refuted source results: " + ", ".join(refuted))
     if require_complete and not complete:
         raise SystemExit("Exact full-paper coverage cannot pass. Open/refuted results: " +
                          ", ".join(unfinished_results) + "; endpoints: " + ", ".join(missing))
+    if require_resolved and not resolved:
+        raise SystemExit("Main-theorem review scope is unfinished: " + ", ".join(unresolved))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--require-complete", action="store_true")
-    verify(parser.parse_args().require_complete)
+    parser.add_argument("--require-resolved", action="store_true")
+    args = parser.parse_args()
+    verify(args.require_complete, args.require_resolved)

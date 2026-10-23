@@ -1,74 +1,38 @@
 # Langevin Monte Carlo with average smoothness
 
-**Incomplete formalization. The exact full-paper request cannot be completed:
-the supplied Gaussian design proposition is false.**
+[**Mistakes in the supplied manuscript and separate counterexample pages**](exposition/mistakes.html)
 
-The authoritative source is
-`papers/Average_LMC/Arxiv_version_May_26.tex`, titled *Improved Guarantees for
-Langevin Monte Carlo with Average Smoothness*, by Arnak S. Dalalyan and Avetik
-Karagulyan. The [standard proof overview](exposition/index.html) pairs the
-checked results with exact Lean statements, module proofs, and LaTeX exports.
-The [source audit](exposition/reference_audit.json) preserves the manuscript's
-statements and records their individual status.
+The reference is *Improved Guarantees for Langevin Monte Carlo with Average Smoothness*, by Arnak S. Dalalyan and Avetik Karagulyan, supplied as `papers/Average_LMC/Arxiv_version_May_26.tex`. The [proof overview](exposition/index.html) uses the repository's paired mathematics and exact Lean template. Every module has a complete proof page and downloadable LaTeX exposition.
 
-## Obstruction to the exact printed proposition
+The review scope is the three main sampling theorems, the decreasing-step proposition, the supporting SGLD proposition, and verified source mistakes. The [source audit](exposition/reference_audit.json) preserves all 12 numbered results and all 78 labels, including broader auxiliary statements whose full standalone generality is outside this scope.
 
-In Proposition 2 (`prop:glm-constants`), take `n = p`, identity covariance,
-`g₁(t) = t² − sin(t)` and `gᵢ(t) = t²` for `i > 1`. All components are convex,
-infinitely differentiable, and satisfy `|gᵢ''| + |gᵢ'''| ≤ 4`. The resulting
-potential is
+## Main sampling statements
 
-$$f(\theta)=\sum_{i=1}^p(X_i^\top\theta)^2-\sin(X_1^\top\theta).$$
+- **Theorem 1 (`th:1`):** the actual Gaussian LMC one-step bound with the exact coordinate-average smoothness and signed score correction, and its exponential constant-step convergence estimate.
+- **Proposition 1 (`prop:VSS`):** the actual decreasing-step chain with the literal warmup ceiling, positive-part schedule and accuracy iteration count.
+- **Theorem 2 (`th:3`):** the actual LMC bound under precisely C³ regularity and the stated gradient-of-Laplacian condition, with persistent error `(2 M_infinity sqrt(M_av) + M_Delta) h sqrt(p) / m`.
+- **Theorem 3 (`th:sgld`) and Proposition 3 (`prop:th:sgld`):** the actual independent Gaussian/uniform-index control-variate SGLD law, exact estimator variance, component RMS recurrence and printed constant-step error bound.
 
-The Hessian's derivative at zero in direction `X₁ / ‖X₁‖` implies
-`M₂ ≥ ‖X₁‖³`. For a standard Gaussian vector `Z` in dimension `p`, its squared
-norm has mean `p` and variance `2p`. Chebyshev gives
-`Pr(‖Z‖² < p/2) ≤ 8/p`. Thus, for any constant `C ≥ 0`, if `p > 16` and
-`p > 8C²`, then
+The constants are defined from the actual potentials. The main endpoints derive their recurrences, Gibbs stationarity, Gaussian freshness, coordinate smoothing, moments and gradient-generator estimate. They introduce no Hessian Lipschitz assumption, C⁴ regularity or convexity assumption on individual SGLD components. Extended-nonnegative main bounds cover every probability initialization. The local signed-energy formula uses its finite-transport interpretation; bounded initial errors in the variable-step statement themselves provide the required finiteness.
 
-$$\Pr(\|Z\|^3\le Cp)<\frac12.$$
+## Separate source mistakes
 
-The table requires `M₂√p ≤ Cn√p`, equivalently `M₂ ≤ Cp` in this setting,
-with `C` depending only on the fixed derivative bound `C_g = 4`.
-Its asserted probability of at least one half is impossible uniformly in
-dimension. This is a counterexample to a numbered proposition, rather than
-only an error in its proof. It does not disprove the sampler convergence
-theorems. The exact Lean scope of the counterexample is documented in the
-module pages and audit.
+- [The isotropic GLM Hessian entry in Proposition 2](exposition/counterexamples/glm-hessian.html) fails for a smooth convex quadratic-plus-sine potential at `n = p`.
+- [The empirical fourth-moment event in its proof](exposition/counterexamples/glm-fourth-moment.html) fails in a direction chosen parallel to a Gaussian design row.
+- [An intermediate SGLD transient comparison](exposition/counterexamples/sgld-transient.html) fails under only the immediately stated one-third step restriction.
 
-## Checked components
-
-- Exact coordinate Taylor supremum and global gradient seminorm definitions,
-  their comparisons, and the actual Hessian, Laplacian and C³ trace condition.
-- The gradient-step lemma and deterministic smooth-descent inequality under
-  the paper's differentiability, strong convexity and gradient smoothness
-  assumptions.
-- Conditional scalar constant-step and variable-step bounds, including the
-  exact ceiling warmup and iteration envelope of Proposition 1. Their
-  stochastic recurrence is an explicit premise, and remains unproved for
-  actual LMC laws.
-- The GLM obstruction and the actual Gaussian probability estimates described
-  above, using the existing exact fourth-moment theorem.
-
-No new actual-law LMC, Laplacian-smooth LMC, SGLD, or GLM upper-bound endpoint
-is claimed. There are no proof holes or new axioms in these modules.
+Each page links its checked Lean certificate. The last example concerns an intermediate implication, not the main SGLD bound or its later stricter step choice. Unfinished auxiliary coverage is recorded as such, never presented as a counterexample. Literal full-paper proof coverage remains false because the source contains a false numbered proposition.
 
 ## Verification
 
 ```sh
 lake build AverageLMC
 lake env lean AverageLMC/Check.lean
-python3 scripts/verify-average-lmc-coverage.py
+python3 scripts/verify-average-lmc-coverage.py --require-resolved
 python3 docs/build_site.py --check
 python3 docs/verify_site.py
 ```
 
-The following completion gate deliberately fails while required endpoints
-remain unproved or a source statement is refuted:
+`--require-resolved` checks the main-theorem and counterexample review scope. The separate `--require-complete` flag rejects any false or uncovered source result. The kernel audits use only Lean's standard `propext`, `Classical.choice` and `Quot.sound` axioms; no proof holes or added axioms are permitted.
 
-```sh
-python3 scripts/verify-average-lmc-coverage.py --require-complete
-```
-
-Passing the ordinary integrity checks does not certify full-paper coverage.
-This work is for review on `main`; it does not publish or update `gh-pages`.
+This work is for review on `main`. It does not update `gh-pages`.

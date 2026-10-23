@@ -67,10 +67,10 @@ PAPERS = {
 
 DEVELOPMENTS = {
     "AverageLMC": dict(
-        label="Supplied manuscript; incomplete formalization and source obstruction",
-        status="incomplete", papers=["average-lmc"],
-        scope="The exact supplied manuscript is the correspondence authority. Deterministic smoothness and gradient lemmas and conditional scalar recurrences are checked. An allowed quadratic-plus-sine GLM contradicts the dimension independent isotropic Hessian Lipschitz bound in Proposition 2. The Gaussian probability obstruction is checked using exact moments. The actual-law LMC, Laplacian-smooth LMC and SGLD convergence theorems remain unproved; a full formalization with the printed hypotheses and conclusions is impossible without correcting Proposition 2.",
-        card="Incomplete: checked deterministic lemmas, conditional scalar rates, and a counterexample to the printed Gaussian-design proposition. No new actual-law sampler bound is claimed."),
+        label="Supplied manuscript; checked sampling proofs and separate source mistakes",
+        status="corrected", papers=["average-lmc"],
+        scope="The exact supplied manuscript is the correspondence authority. Its main average-smoothness LMC, decreasing-step, Laplacian-smooth LMC and fixed-point control-variate SGLD statements are proved for actual Gaussian sampling laws with the source constants. Extended transport endpoints cover arbitrary probability initializations. The Laplacian proof uses exactly C3 regularity and the gradient-of-Laplacian condition. Verified counterexamples to the false Gaussian-design proposition, its empirical fourth-moment event and an intermediate SGLD transient comparison have separate pages linked from the top of the overview. The complete source inventory distinguishes this main-theorem review scope from broader auxiliary statements not reproduced in full standalone generality; literal full-paper proof coverage is not claimed.",
+        card="Actual average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds, with separate checked counterexamples to manuscript mistakes."),
     "KineticLangevin": dict(
         label="Published source; corrected checked proofs", status="corrected",
         papers=["dalalyan-riou-durand"],

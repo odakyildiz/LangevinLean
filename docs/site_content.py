@@ -147,6 +147,7 @@ def home_document(lib, config, notes, sources, parsed, math):
     body=(f'<div id="legacy-destination" hidden data-url="{relative(config["archive"],page)}"></div>'
           f'<header class="hero"><div class="eyebrow">{config["label"]}</div>'
           f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}{footref}</p>'
+          + (f'<p class="status">{config["top_notice"]}</p>' if config.get('top_notice') else '')
           + reference_notice(lib) +
           f'<p class="status">{config["status"]}</p></header>')
     if config.get('proof'):

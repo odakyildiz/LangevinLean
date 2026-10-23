@@ -5,16 +5,18 @@ import AverageLMC.Complexity
 import AverageLMC.GLMObstruction
 import AverageLMC.GaussianObstruction
 import AverageLMC.GLMCounterexample
+import AverageLMC.OtherCounterexamples
+import AverageLMC.Theorem
+import AverageLMC.SGLDTheorem
+import AverageLMC.LaplacianTheorem
 
 set_option linter.style.header false
 
-/-! # Average smoothness LMC: partial development and a source obstruction
+/-! # Average-smoothness sampling laws and verified manuscript errors
 
-This library does not claim a complete formalization of the supplied paper.
-The deterministic lemmas and conditional scalar recurrences are checked.
-The quadratic-plus-sine GLM and its Gaussian norm obstruction explain why
-the printed isotropic Hessian Lipschitz bound cannot hold with the stated
-dimension independent constants. See `AverageLMC/exposition/reference_audit.json`.
-
-The actual-law convergence endpoints of Theorems 1, 2 and 3 remain unproved.
+The main convergence statements are developed for the actual Gaussian LMC
+and finite-index control-variate SGLD laws, using the exact source constants.
+The source audit records their individual status and the separate scope of
+auxiliary lemmas. Counterexample pages explain the false GLM proposition and
+two false intermediate comparisons without changing the sampler hypotheses.
 -/

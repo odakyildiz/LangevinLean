@@ -46,7 +46,7 @@ const LIBRARIES = [
   { key: 'KIPLMC', label: 'kiplmc', search: 'Exponential.lean',
     modules: ['Exponential', 'Splitting'] },
   { key: 'AverageLMC', label: 'average-lmc', search: 'GLMCounterexample.lean',
-    modules: ['GLMObstruction', 'GLMCounterexample'] },
+    modules: ['Theorem', 'LaplacianTheorem', 'SGLDTheorem', 'GLMCounterexample'] },
 ];
 const VIEWPORTS = [
   { label: 'desktop', width: 1440, height: 1000 },
@@ -60,7 +60,11 @@ const CASES = LIBRARIES.flatMap(library => [
   ...library.modules.map(module => ({ library, kind: 'module',
     label: library.label + '-' + module,
     file: 'docs/modules/' + library.key + '/' + module + '.html' })),
-]);
+]).concat(['mistakes', 'counterexamples/glm-hessian', 'counterexamples/glm-fourth-moment',
+  'counterexamples/sgld-transient'].map(name => ({
+    library: LIBRARIES.find(library => library.key === 'AverageLMC'), kind: 'supplement',
+    label: 'average-lmc-' + name.replaceAll('/', '-'), file: 'AverageLMC/exposition/' + name + '.html',
+  })));
 const failures = [];
 const screenshots = [];
 const downloads = [];
@@ -165,6 +169,8 @@ function watchPage(page) {
     // Chromium may report the navigation request as aborted when handing it
     // to its download manager; the actual download result is checked below.
     if (expectedDownloadURLs.has(request.url()) && request.failure()?.errorText === 'net::ERR_ABORTED') return;
+    // The tested legacy redirect deliberately cancels pending overview resources.
+    if (activeCase.endsWith(':legacy-anchor') && request.failure()?.errorText === 'net::ERR_ABORTED') return;
     check(false, 'Page resource request failed', { url: request.url(), error: request.failure() });
   });
   page.on('response', response => {
@@ -227,12 +233,21 @@ async function mathematicalPage(page, item) {
     const source = await page.locator('#complete-source .lean-code').textContent();
     check(source.includes('import ') && source.includes('theorem ') && source.includes(':='),
       'Complete module source includes imports, theorem statements, and proof bodies');
-  } else {
+  } else if (item.kind === 'home') {
     check(await page.locator('#main-results .lean-code[data-role="statement"]').count() > 0,
       'Expected source-derived main theorem headers');
     check(await page.locator('#verification .commands').count() > 0, 'Expected a verification workflow');
     check(await page.locator('#proof-map a.box').count() > 0, 'Expected navigable proof diagram boxes');
     await diagramTypesetting(page, '#proof-map', '.diagram-node-label');
+    if (item.library.key === 'AverageLMC') {
+      check(await page.locator('a[href="mistakes.html"]').count() > 0,
+        'Main overview links to the separate mistakes page at the top');
+    }
+  } else {
+    check(await page.locator('.lean-code[data-declaration]').count() > 0,
+      'Separate source-error page contains its checked Lean certificate');
+    check(await page.locator('a[href*="docs/modules/"]').count() > 0,
+      'Source-error certificate links to its complete module proof');
   }
 }
 
@@ -319,7 +334,8 @@ async function latexDownload(page, item, viewport) {
 }
 
 async function screenshot(page, item, viewport) {
-  const target = item.kind === 'home' ? '#main-results' : '.proof-step';
+  const target = item.kind === 'home' ? '#main-results' :
+    item.kind === 'module' ? '.proof-step' : '.section';
   await page.locator(target).first().evaluate(element => window.scrollTo(0,
     Math.max(0, window.scrollY + element.getBoundingClientRect().top - 18)));
   const destination = path.join(outputDir, viewport.label + '-' + item.label + '.png');

@@ -96,14 +96,12 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   exact clock changes, sharp MMLE concentration, and finite accuracy budgets
   are proved. The [source coverage audit](KIPLMC/exposition/reference_audit.json)
   distinguishes the analytic statements from the empirical experiments.
-- **Average smoothness LMC — incomplete:** [checked components and source obstruction](AverageLMC/exposition/index.html).
-  Deterministic smoothness lemmas and conditional scalar recurrences are proved.
-  The supplied Gaussian design proposition is false under its printed
-  assumptions: a smooth convex GLM has Hessian Lipschitz constant at least
-  `‖X₁‖³`, contradicting the claimed uniform order-`n` bound at `n = p`.
-  The actual-potential Gaussian probability obstruction is checked in Lean.
-  The three new sampler convergence theorems remain unproved; see the
-  [scope and counterexample](AverageLMC/README.md) and
+- **Average smoothness LMC:** [main sampling proofs](AverageLMC/exposition/index.html).
+  The actual-law LMC, decreasing-step, Laplacian LMC and control-variate SGLD
+  bounds use the source's exact smoothness constants and regularity.
+  [Separate mistakes pages](AverageLMC/exposition/mistakes.html) contain
+  checked counterexamples to the false Gaussian-design proposition and two
+  intermediate claims. See the [review scope](AverageLMC/README.md) and
   [exact source audit](AverageLMC/exposition/reference_audit.json).
 
 The two kinetic developments prove their complete actual-law convergence
@@ -172,7 +170,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Actual proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Actual kinetic mixing and Gibbs stationarity, literal Cholesky Gaussian sampling, complete KLMC/KLMC2 Wasserstein proofs, accuracy guarantees, and an explicit source-correction ledger. |
 | [`KIPLMC/`](KIPLMC/exposition/README.md) | Actual KIPLD mixing, complete KIPLMC1/KIPLMC2 parameter RMS bounds, exact diffusion and algorithm scaling, sharp target concentration, and the logistic analytic example. |
-| [`AverageLMC/`](AverageLMC/README.md) | Incomplete average-smoothness paper development: exact deterministic lemmas, conditional scalar bounds, and an actual-potential Gaussian design counterexample to the printed GLM proposition. |
+| [`AverageLMC/`](AverageLMC/README.md) | Actual average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds, with separate checked manuscript counterexamples. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
@@ -204,10 +202,10 @@ checks all four proof documents and the complete module proof atlas, and compile
 the IPLA standalone in isolation with only Mathlib available. The standalone verifier refreshes its committed
 diagnostic reports; review any changes before committing.
 
-The AverageLMC integrity check reports its incomplete coverage explicitly.
-`python3 scripts/verify-average-lmc-coverage.py --require-complete` rejects
-the open sampling endpoints and the refuted source proposition. Successful
-builds and documentation checks do not certify full-paper formalization.
+The AverageLMC `--require-resolved` gate verifies its main-theorem and
+counterexample review scope. The separate `--require-complete` gate rejects
+the false source proposition and broader uncovered auxiliary statements.
+Successful compilation and these two coverage notions remain distinct.
 
 The repository has no GitHub Actions workflow files. Keep verification local
 to avoid paid hosted-runner use; do not add remote build, release, or dependency
