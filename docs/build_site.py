@@ -20,7 +20,7 @@ from references import REFERENCE_CSS, reference_notice
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
-LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin"]
+LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC"]
 SPEC = importlib.util.spec_from_file_location("proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
@@ -102,7 +102,7 @@ def imports(source):
 def shell(page, title, body, active=None):
     navigation=[('UnadjustedLangevin','ULA · SC'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
-                ('ProximalLangevin','Proximal')]
+                ('ProximalLangevin','Proximal'), ('KineticLangevin','Kinetic'), ('KIPLMC','KIPLMC')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
                   for lib,label in navigation)
@@ -409,7 +409,10 @@ def main():
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
             outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
     outputs['index.html'] = project_document(notes)
-    inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py','docs/references.py','docs/assets/site.css','docs/assets/site.js']
+    inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py',
+              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
+              'docs/assets/site.css','docs/assets/site.js']
+    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += ['UnadjustedLangevin/exposition/build_document.py']

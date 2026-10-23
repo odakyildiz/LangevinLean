@@ -1,0 +1,55 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The OBABO metric and a rigorous nonlinear average-force estimate}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/OBABOEnergy.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The OBABO source metric is \(E(v,x)=\|x\|^2+2\langle x,v\rangle/\gamma+\|v\|^2/L\). Its continuous drift is contractive when \(\gamma^2\ge4L\). OBABO evaluates the force at two different position pairs; the proof below controls their average by an explicit centered-sector error. This avoids selecting a single Hessian point in a vector-valued mean-value theorem. The higher-order discrete remainder still has to be bounded separately.
+
+
+\section{Prove that the mixed energy defines the correct geometry}
+
+
+Write \(E_{a,b}(v,x)=\|x\|^2+2b\langle x,v\rangle+a\|v\|^2\), and let \(E_{a,0}\) be its diagonal part. Cauchy–Schwarz bounds the mixed inner product in both directions. The nonnegative square \((\|x\|-2b\|v\|)^2\), together with \(4b^2\le a\), gives \(|2b\langle x,v\rangle|\le E_{a,0}/2\). Lean records the two scalar inner-product comparisons, multiplies them by nonnegative \(2b\), and combines them with the squared difference using \texttt{nlinarith}. Thus \(E_{a,0}/2\le E_{a,b}\le3E_{a,0}/2\), and energy is nonnegative. For \(a=1/L,b=1/\gamma\), the positive-denominator division rules show that the coefficient condition is exactly \(\gamma^2\ge4L\).
+
+
+
+\noindent Lean declarations: \texttt{weightedPhaseEnergy}, \texttt{weightedBaseEnergy}, \texttt{weightedPhaseEnergy\_equiv}, \texttt{weightedPhaseEnergy\_nonneg}, \texttt{obabo\_metric\_condition}.
+
+\section{Derive the source drift with an explicit sector error}
+
+
+Along \(x'=v,v'=-\gamma v-F\), the energy derivative has common-denominator numerator \(-2L\langle x,F\rangle+(2L-2\gamma^2)\|v\|^2-2\gamma\langle v,F\rangle\). Suppose the force obeys \(\langle x,F\rangle\ge m\|x\|^2-e\|x\|\) and \(\|F\|^2\le L\langle x,F\rangle+Le\|x\|+e^2\). The nonnegative square \(\|\gamma v+F\|^2\) controls the velocity-force mixed term. Insert these inequalities, use the metric's upper equivalence, and use \(\gamma^2\ge4L\), \(0\le m\le L\) to discard the remaining nonpositive velocity term. Clearing the positive denominator \(\gamma L\) proves
+
+\[E'\le-\frac{2m}{3\gamma}E+\frac{2e\|x\|}{\gamma}+\frac{e^2}{\gamma L}.\]
+
+The error is explicit and vanishes when the average force satisfies the exact sector at the original position difference.
+
+
+
+\noindent Lean declarations: \texttt{obaboEnergyDerivative}, \texttt{obabo\_perturbed\_dissipativity}.
+
+\section{Control the actual average of the two nonlinear force evaluations}
+
+
+Let \(F,F'\) satisfy the strong-smooth centered bounds at differences \(x,x'\), and set \(S=(F+F')/2\). With \(\mu=(m+L)/2\) and \(R=(L-m)/2\), decompose \(S-\mu x\) into half of each centered force residual plus \(\mu(x'-x)/2\). The triangle inequality and \(\|x'\|\le\|x\|+\|x'-x\|\) yield \(\|S-\mu x\|\le R\|x\|+(L/2)\|x'-x\|\). Thus the sector error is precisely \(e=(L/2)\|x'-x\|\). A centered residual controls monotonicity by Cauchy–Schwarz. Moving its center from \(\mu x\) to \(Lx/2\) and squaring yields the approximate cocoercivity bound needed above. Lean proves both consequences from the explicit norm inequality.
+
+
+
+\noindent Lean declarations: \texttt{average\_force\_centered}, \texttt{perturbed\_sector\_bounds}.
+
+\section{Apply the sector proof to the original potential}
+
+
+For two arbitrary position pairs, use the project's proved strong-smooth interpolation and centered-ball theorem to obtain the two force residual bounds directly from differentiability, strong convexity and Lipschitz gradient. Their average is exactly the average of the two gradient differences used by the two OBABO kicks. The preceding average-sector lemma supplies the explicit position-increment error, and the perturbed dissipativity theorem supplies the source drift bound. No Hessian regularity, invented secant matrix, or assumed contraction inequality appears in this nonlinear step. The remaining discrete proof must bound the displayed error and the actual integrator remainder using its step-size restrictions.
+
+
+
+\noindent Lean declarations: \texttt{obabo\_average\_force\_dissipativity}.
+
+\end{document}

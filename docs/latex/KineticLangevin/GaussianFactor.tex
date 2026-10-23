@@ -1,0 +1,42 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The actual Cholesky implementation of the Gaussian innovations}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/GaussianFactor.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+A Gaussian law specified through its covariance must agree with the paper’s concrete instruction to multiply independent standard normals by a Cholesky factor. This module proves that exact identity, constructs the actual positive-diagonal lower-triangular 2×2 factor, and applies it to the strictly positive exponential Gram covariance.
+
+
+\section{Identify every genuine covariance factor by mean and covariance}
+
+
+If \(AA^\mathsf T=S\), then applying \(A\) to a standard Gaussian gives a centered Gaussian with covariance \(S\). Lean uses the matrix-to-continuous-linear-map star-algebra equivalence: transpose becomes adjoint and matrix multiplication becomes operator composition. The mean passes through the continuous linear map and remains zero. The covariance pushforward is \(\langle A^\mathsf Tx,A^\mathsf Ty\rangle=\langle x,AA^\mathsf Ty\rangle\), which is the actual target covariance. Uniqueness of Gaussian measures with equal mean and covariance proves equality of measures, not only equality of moments.
+
+
+
+\noindent Lean declarations: \texttt{gaussian\_factor\_hasLaw}.
+
+\section{Construct and verify the positive-diagonal Cholesky factor}
+
+
+For a positive definite symmetric 2×2 matrix with entries \(a=S_{00}\), \(b=S_{10}\), \(d=S_{11}\), define \(L=\begin{pmatrix}\sqrt a&0\\b/\sqrt a&\sqrt{d-b^2/a}\end{pmatrix}\). Positive definiteness gives \(a>0\) and \(ad-b^2>0\), hence a strictly positive Schur complement. The factor is lower triangular with positive diagonal. Expanding its four matrix entries, using the two square-root-square identities and symmetry, gives \(LL^\mathsf T=S\). The general Gaussian-factor theorem therefore proves that this concrete factor generates exactly the target Gaussian measure.
+
+
+
+\noindent Lean declarations: \texttt{choleskyTwo}, \texttt{choleskyTwo\_schur\_pos}, \texttt{choleskyTwo\_triangular}, \texttt{choleskyTwo\_factor}, \texttt{choleskyTwo\_hasLaw}.
+
+\section{Generate the actual exponential innovation from independent normals}
+
+
+The two response kernels \(\psi_0,\psi_1\) have a strictly positive Gram covariance on every positive-length interval. Apply the explicit Cholesky construction to that actual matrix. The resulting output law is precisely \texttt{klmcGaussian}, already identified with the Brownian convolution pair used by the sampler. Finally, the product of two real standard Gaussian measures pushes forward to the Euclidean standard Gaussian under the coordinate identification. Composing the two exact laws proves the paper’s implementation starting from two independent scalar normal draws. This closes the computational covariance-factor step used by the shared exponential integrator and its particle specialization.
+
+
+
+\noindent Lean declarations: \texttt{klmc\_cholesky\_hasLaw}, \texttt{klmc\_cholesky\_independent\_normals}.
+
+\end{document}

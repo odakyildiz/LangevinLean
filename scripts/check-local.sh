@@ -13,11 +13,16 @@ for audit in \
   IPLA/Check.lean \
   ProximalLangevin/Check.lean \
   UnadjustedLangevin/LSI/Check.lean \
-  IPLA/LSI/Check.lean
+  IPLA/LSI/Check.lean \
+  KineticLangevin/Check.lean \
+  KIPLMC/Check.lean
 do
   printf '\nAuditing %s\n' "$audit"
   lake env lean "$audit"
 done
+
+printf '\nChecking kinetic paper correspondence and reporting full-proof coverage\n'
+python3 -B scripts/verify-kinetic-coverage.py --require-complete
 
 for verifier in \
   UnadjustedLangevin/exposition/verify_document.py \

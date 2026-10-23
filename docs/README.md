@@ -1,13 +1,44 @@
 # Parallel proof documentation
 
-The project homepage links to four theorem overviews, with the particle LSI
-analogue linked as a footnote from IPLA:
+The project homepage links to the theorem overviews below; the particle LSI
+analogue is also linked as a footnote from IPLA:
 
 - [ULA under Strong Convexity](../UnadjustedLangevin/exposition/index.html)
 - [ULA under LSI](../UnadjustedLangevin/LSI/exposition/index.html)
 - [IPLA under Strong Convexity](../IPLA/exposition/index.html)
 - [Proximal algorithms](../ProximalLangevin/exposition/index.html)
 - [IPLA under LSI](../IPLA/LSI/exposition/index.html)
+- [Kinetic Langevin](../KineticLangevin/exposition/index.html)
+- [KIPLMC](../KIPLMC/exposition/index.html)
+
+The two kinetic developments prove the actual continuous mixing and Gaussian
+sampler endpoints. Kinetic Langevin includes Gibbs stationarity, the KLMC and
+Hessian-corrected KLMC2 Wasserstein bounds, and explicit accuracy guarantees.
+KIPLMC includes physical-time KIPLD mixing, both actual Gaussian-chain parameter
+RMS bounds, sharp MMLE concentration, exact algorithm scaling, and the logistic
+analytic example. KIPLMC1 reuses the shared exponential integrator; KIPLMC2 has
+its own checked OBABO contraction and direct sampling-error proof.
+
+The source audits preserve every statement and identify the supplied draft's
+corrections. In particular, KLMC2 retains the exact $\sqrt{p^2+2p}$ moment
+factor for all dimensions, uses $p\ge2$ for the printed coarser formula, and
+proves the stronger inverse-step-square tail. The complete comparison includes
+the stochastic Hessian-difference terms omitted from the displayed source proof.
+The informal tail-free refined condition-number budget also needs the factor
+$\sqrt{\kappa/\rho}$, with $\kappa=M/m$ and
+$\rho=\kappa_2=(M_2/m^{3/2})^{2/3}+\kappa p^{-1/3}$; the printed form is
+valid under $\rho\ge\kappa$, or after using $\max(\kappa,\rho)$.
+This algebraic budget correction is distinct from the proved accuracy guarantee
+that retains every exponential tail term.
+Continuous dynamics use actual canonical Brownian coordinate laws and selected
+solutions continuous in L² on finite horizons. A separate almost-surely continuous
+sample-path modification theorem is not asserted. Empirical experiment results
+remain observations, separate from the analytic guarantees.
+
+Run `python3 scripts/verify-kinetic-coverage.py --require-complete` to require
+every full endpoint and auxiliary proof gate. The verifier checks actual
+declarations; an inventory entry or conditional scalar recurrence cannot replace
+the proved stochastic-law conclusion.
 
 Every overview states its results with all assumptions beside the exact Lean
 headers, provides verification commands, and has a logical proof diagram whose
@@ -28,7 +59,8 @@ all authors, the title, publication venue, year, volume and pages, and paper lin
 The IPLA LSI proof and corrected proximal proofs are explicitly unpublished;
 the IPLA overview also identifies its unpublished independent-dimension extension.
 Background papers are distinguished from sources of the displayed result.
-The shared metadata and notice styles are authored in `references.py`.
+The kinetic pages identify their published sources and the corrected proofs
+checked here. The shared metadata and notice styles are authored in `references.py`.
 
 `modules/` mirrors the Lean source paths. Each module page contains an authored
 mathematical statement and proof beside the full corresponding Lean declarations,
@@ -56,7 +88,10 @@ The authored module statements and proofs live in each library's
 `exposition/module_notes.json`. Each step names the local declarations it explains;
 Lean code is read from the source at generation time. `site_content.py` contains
 the standalone theorem statements and logical diagrams; `entropy_content.py`
-contains the detailed entropy arguments and their formal scope. `assets/site.css` and
+contains the detailed entropy arguments and their formal scope. `kinetic_content.py`
+and `kinetic_overviews.py` contain the two kinetic paper arguments, exact endpoint
+statements, and diagrams; their source correspondence is recorded in each
+development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
 From the repository root, with Python 3 and Node.js on `PATH`:
@@ -81,6 +116,9 @@ lake env lean IPLA/Check.lean
 lake env lean ProximalLangevin/Check.lean
 lake env lean UnadjustedLangevin/LSI/Check.lean
 lake env lean IPLA/LSI/Check.lean
+lake env lean KineticLangevin/Check.lean
+lake env lean KIPLMC/Check.lean
+python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
 `python3 docs/build_site.py --check` independently rerenders the entire site and
@@ -91,9 +129,14 @@ checks. The repository contains no GitHub Actions workflows.
 All generated HTML carries `noindex, nofollow, noarchive` metadata, including
 module pages and archived expositions. Publication uses the existing `gh-pages`
 branch with `.nojekyll`; generation and verification run locally.
-The `papers/` directory is kept on `main` only and must be excluded from every
-`gh-pages` publication. Publish documentation commits separately from paper-source
-commits and check that no files under `papers/` are tracked on `gh-pages`.
+The current two-paper review is pushed only to `main`; publication on `gh-pages`
+waits for the repository owner's approval. The `papers/` directory stays on
+`main` and must be excluded from every publication. Use
+`python3 scripts/prepare-publication.py /tmp/langevin-publication-review` after
+verification and committing the review snapshot. It exports committed files to
+a new directory, excludes `papers/`, and never changes a branch or publishes.
+Check that no files under `papers/` are tracked on `gh-pages` before any approved
+publication update.
 
 Optional browser QA, with Playwright and Chromium or Google Chrome installed:
 
@@ -102,7 +145,7 @@ node docs/verify_browser.cjs
 node docs/verify_copy.cjs
 ```
 
-It checks all five overviews and representative module proofs at desktop,
+It checks all seven overviews and representative module proofs at desktop,
 375 px, and 320 px widths, reading modes, search, diagram navigation, LaTeX
 downloads, old section links, and offline `file://` reading. Screenshots and a
 JSON report are written to a temporary directory. Set `NODE_PATH` if Playwright

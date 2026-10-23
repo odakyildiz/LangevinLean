@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Nonlinear kinetic contraction directly from strong convexity and smoothness}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/PotentialContraction.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The spectral proof can be replaced by a sector inequality for an actual gradient difference. This avoids selecting a time-varying averaged Hessian and only needs a differentiable strongly convex potential with Lipschitz gradient. The module proves the simple \(\sqrt2e^{-mt/\gamma}\) pathwise position estimate from the concrete noise-cancelled equations. Stochastic solution construction and Wasserstein law comparison are separate steps.
+
+
+\section{Write the concrete energy derivative and the gradient sector inequality}
+
+
+For velocity difference \(v\), position difference \(x\), and force difference \(g\), define \(D=2\langle v+\gamma x,-g\rangle+2\langle-v,\gamma v+g\rangle\). The strong-smooth interpolation inequality is \(mM\|x\|^2+\|g\|^2\le(m+M)\langle g,x\rangle\). Subtract the linear part \(mx\), expand its squared norm, and rearrange to obtain \(\|g-mx\|^2\le(M-m)\langle x,g-mx\rangle\). Lean performs this expansion with the Hilbert norm-square and inner-product identities, then uses \texttt{nlinarith}. This sector estimate contains the joint lower–upper curvature information needed for contraction.
+
+
+
+\noindent Lean declarations: \texttt{forceEnergyDerivative}, \texttt{interpolation\_sector}.
+
+\section{Complete a square to prove dissipativity}
+
+
+Put \(k=g-mx\). Expanding the transformed energy yields
+
+\[\gamma D+2m\mathcal E
+=2\bigl[-(\gamma^2-2m)\|v\|^2-2\gamma\langle v,k\rangle-\gamma^2\langle x,k\rangle\bigr].\]
+
+When \(M=m\), the sector inequality forces \(k=0\); friction gives \(\gamma^2\ge2m\), proving nonpositivity. When \(M>m\), combine the sector estimate with \(\|\gamma k+(M-m)v\|^2\ge0\) and \((M-m)(\gamma^2-m-M)\|v\|^2\ge0\). These imply \(\gamma D+2m\mathcal E\le0\). Lean handles the equal-curvature case separately, expands the square in the strict case, and combines the scalar inequalities. Positive \(\gamma\) then permits division, giving \(D\le-2m\mathcal E/\gamma\).
+
+
+
+\noindent Lean declarations: \texttt{force\_dissipativity}.
+
+\section{Obtain the sector condition from the actual potential}
+
+
+For \(g=\nabla f(x)-\nabla f(y)\) and displacement \(x-y\), the shared ULA library has already proved the strong-smooth interpolation inequality from differentiability, strong convexity and gradient Lipschitzness. \texttt{potential\_force\_dissipativity} applies that theorem, converts it to the sector condition, and feeds it into the completed-square estimate. Consequently no Hessian, sector bound, or contraction conclusion is assumed in this potential theorem. The explicit hypotheses retain \(m\le M\), \(\gamma>0\), and \(\gamma^2\ge m+M\).
+
+
+
+\noindent Lean declarations: \texttt{potential\_force\_dissipativity}.
+
+\section{Differentiate the noise-cancelled path energy}
+
+
+Assume \(v'=-\gamma v-g\) and \(x'=v\). Then \((v+\gamma x)'=-g\), while \((-v)'=\gamma v+g\). Lean obtains these two derivative formulas by addition, negation and constant scalar multiplication, normalizes them with \texttt{module}, and applies the squared-norm derivative rule to each coordinate. Their sum is precisely \texttt{forceEnergyDerivative}. The theorem assumes differentiability of the difference paths; it does not incorrectly differentiate an individual Brownian velocity path.
+
+
+
+\noindent Lean declarations: \texttt{hasDerivAt\_forceEnergy}.
+
+\section{Integrate energy decay and take the position square root}
+
+
+For two continuous position paths \(x,y\), set \(F(t)=\mathcal E(v_t,x_t-y_t)\). The derivative theorem and potential dissipativity give \(F'\le-2mF/\gamma\). Closed-interval continuity and the explicit derivative witnesses allow the same Gronwall theorem as in the spectral proof, giving \(F(t)\le F(0)e^{-2mt/\gamma}\). If \(v_0=0\), then \(F(0)=\gamma^2\|x_0-y_0\|^2\). Combine with the position projection bound, cancel the positive \(\gamma^2\), and compare nonnegative squares. The exponential square identity \((e^{-mt/\gamma})^2=e^{-2mt/\gamma}\) yields \(\|x_t-y_t\|\le\sqrt2e^{-mt/\gamma}\|x_0-y_0\|\). This is a proved nonlinear pathwise estimate with the paper's correct prefactor.
+
+
+
+\noindent Lean declarations: \texttt{potential\_synchronous\_energy\_decay}, \texttt{potential\_synchronous\_position\_decay}.
+
+\section{Use right derivatives at the initial time}
+
+
+A finite-horizon integral solution is constrained only for nonnegative time. Its extension to negative time need not have the same derivative. The correct initial derivative is therefore the derivative within the right half-line. The product and squared-norm derivative rules remain valid in this form, so differentiating the transformed energy gives the same force-energy expression. Lean applies those within-derivative rules to both transformed coordinates, cancels the opposing friction terms, and transfers the resulting derivative to the energy expression. The right-slope form of Gronwall requires exactly these hypotheses, and gives the same exponential energy decay throughout the closed interval. This is the version used by the actual integral-flow theorem.
+
+
+
+\noindent Lean declarations: \texttt{hasDerivWithinAt\_forceEnergy}, \texttt{potential\_synchronous\_energy\_decay\_right}.
+
+\end{document}

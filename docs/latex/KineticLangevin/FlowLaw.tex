@@ -1,0 +1,87 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Actual independent-source kinetic laws and their Wasserstein infimum}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/FlowLaw.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The position law is an explicit pushforward of an independent product of the initial position law and a fixed source law for common initial velocity and continuous forcing. Every initial coupling is extended by that same source. The proof computes the two output marginals, preserves the initial cost, derives a coupling estimate and takes the infimum. The kinetic pointwise contraction is separately proved from the actual integral equation and the potential hypotheses; it is not an assumed convergence field.
+
+
+\section{Define the independent random-map law and compute both output marginals}
+
+
+For a measurable endpoint \(F(x,s)\), set \(\mathcal T_Q\mu=F_\#(\mu\otimes Q)\). Given any coupling \(c\) of \(\mu,\nu\), extend it to \(c\otimes Q\). Projecting to \((y,s)\) produces \(\nu\otimes Q\), because the second marginal of \(c\) is \(\nu\). Pushing further by \(F\) therefore gives \(\mathcal T_Q\nu\). Lean proves this with the product-map identity, the coupling's marginal equality, and pushforward composition. The corresponding first marginal uses the existing \texttt{initialExtension\_map}. Both output-law identities are derived from the concrete product construction and are independent of which coupling was chosen.
+
+
+
+\noindent Lean declarations: \texttt{randomMapLaw}, \texttt{initialExtension\_reference\_map}.
+
+\section{Lift pathwise contraction through L\ensuremath{{}^{2}} and take all initial couplings}
+
+
+Suppose the actual endpoint obeys \(\|F(x,s)-F(y,s)\|\le q\|x-y\|\) for each common source. On \(c\otimes Q\), the two outputs form a measurable coupling of \(\mathcal T_Q\mu,\mathcal T_Q\nu\). Pointwise contraction passes to the extended L\ensuremath{{}^{2}} norm. The initial difference depends only on \(c\), so its norm on the product is exactly the original coupling cost. Thus \(W_2(\mathcal T_Q\mu,\mathcal T_Q\nu)\le q\,\operatorname{cost}(c)\) for every \(c\). Lean then applies the infimum theorem, using the independent product \(\mu\otimes\nu\) as a witness that couplings exist. No optimal-coupling attainment and no supplied output-law independence are required.
+
+
+
+\noindent Lean declarations: \texttt{randomMapLaw\_wasserstein2\_le}.
+
+\section{Retain probability and justify the real-valued distance}
+
+
+A measurable pushforward of \(\mu\otimes Q\) has total mass one when both inputs are probability measures; \texttt{randomMapLaw\_probability} records this. The primary distance bound lives in the extended nonnegative reals, so infinite distances are preserved. If the initial Wasserstein distance is finite, the finite coefficient \(q\) makes its upper bound finite, and monotonicity of \texttt{ENNReal.toReal} gives the real-valued estimate. Lean proves that finiteness before converting the inequality, then rewrites the real value of the product. This avoids accidentally converting an infinite output distance to zero.
+
+
+
+\noindent Lean declarations: \texttt{randomMapLaw\_probability}, \texttt{randomMapLaw\_wasserstein2Real\_le}.
+
+\section{Make the concrete kinetic endpoint a measurable random map}
+
+
+The compact forcing space receives its Borel measurable structure. The source \(s=(v,B)\) contains initial velocity and a continuous forcing path; the separate input is initial position \(x\). \texttt{kineticPositionMap} evaluates the actual selected flow at phase \((v,x)\) and takes its position coordinate. The coordinate rearrangement \((x,(v,B))\mapsto((v,x),B)\) is continuous. Composing it with the proved joint endpoint continuity and projecting position gives continuity, hence measurability, of the actual map. Independence of source and position is implemented later by the explicit product measure rather than encoded as an unspecified output-law premise.
+
+
+
+\noindent Lean declarations: \texttt{velocityForcing\_measurable}, \texttt{velocityForcing\_borel}, \texttt{kineticPositionMap}, \texttt{kineticPositionMap\_continuous}, \texttt{kineticPositionMap\_measurable}.
+
+\section{Derive pointwise contraction from actual integral solutions}
+
+
+Take two values of the selected kinetic flow with phases \((v,x)\) and \((v,y)\) and the same forcing path. Their specification gives the actual integral equations and equal initial velocities. The proved integral-synchronous theorem cancels their common forcing, derives the right-derivative difference equation, and applies the nonlinear potential energy estimate. Under differentiability, \(m\)-strong convexity, \(M\)-Lipschitz gradient and \(\gamma^2\ge m+M\), this yields \(\|F_t(x,s)-F_t(y,s)\|\le\sqrt2e^{-mt/\gamma}\|x-y\|\). Lean obtains the integral premises by rewriting the flow's initial-value specification, then simplifies the initial position and velocity projections. No differential equation or contraction conclusion is assumed of the chosen flow.
+
+
+
+\noindent Lean declarations: \texttt{kineticPositionMap\_contract}.
+
+\section{Conclude the actual law-to-law kinetic theorem}
+
+
+\texttt{kineticPositionLaw} is the explicit independent-product pushforward for this concrete endpoint. Its probability theorem follows from endpoint measurability. Substituting the derived coefficient \(q=\sqrt2e^{-mt/\gamma}\) in the general random-map transport theorem gives
+
+\[W_2(\mu_t,\nu_t)\le\sqrt2e^{-mt/\gamma}W_2(\mu_0,\nu_0).\]
+
+The source law may be any fixed probability law of initial velocity and continuous forcing, independent of initial position. The statement therefore applies to any such stochastic realization; a stationary Gibbs law is unnecessary for comparing two evolving laws. The extended-valued theorem retains infinite initial costs, and the real-valued theorem explicitly requires finite initial Wasserstein distance. The full all-friction spectral prefactor and a canonical Brownian-source identification are separate refinements beyond this simple-friction law theorem.
+
+
+
+\noindent Lean declarations: \texttt{kineticPositionLaw}, \texttt{kineticPositionLaw\_wasserstein2}, \texttt{kineticPositionLaw\_probability}, \texttt{kineticPositionLaw\_wasserstein2Real}.
+
+\section{The full shifted prefactor and exponent pass to actual output laws}
+
+
+The actual-integral general contraction theorem uses the centered gradient sector estimate, so it requires differentiability, strong convexity and a Lipschitz gradient without adding Hessian continuity. For \(d=\gamma-2a>0\), its coefficient is
+
+\[q_a(t)=\frac{\sqrt{2((\gamma-a)^2+a^2)}}{\gamma-2a}
+\exp\!\left(\frac{\max\{a^2-m,M-(\gamma-a)^2\}}{\gamma-2a}t\right).\]
+
+The proof instantiates that actual-integral theorem with the same two selected flows and their proved specifications. The coefficient is nonnegative, so it can be bundled as an \(\mathbb R_{\ge0}\) scalar in the already proved random-map transport theorem. This yields \(W_2(\mu_t,\nu_t)\le q_a(t)W_2(\mu_0,\nu_0)\), with the genuine coupling infimum and internally derived output marginals. The real-valued version uses the same finite-initial-cost conversion. The theorem holds for every independent continuous-forcing source law; tying a constructed Brownian source and its required independence to the paper’s named diffusion remains separate, and no Gibbs invariant law is assumed.
+
+
+
+\noindent Lean declarations: \texttt{kineticPositionMap\_contract\_general}, \texttt{kineticPositionLaw\_wasserstein2\_general}, \texttt{kineticPositionLaw\_wasserstein2Real\_general}.
+
+\end{document}

@@ -1,0 +1,46 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The actual nonlinear OBABO map contracts with the source constants}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/OBABOContraction.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+For a differentiable, m-strongly convex potential with M-Lipschitz gradient, the actual OBABO step driven by common thermostat vectors contracts the modified energy whenever \(\gamma^2\ge4M\) and \(33\gamma^3h\le m\). The thermostat amplitude is arbitrary: it disappears through synchronous cancellation. This proves a property of the implemented map and its actual iterates, rather than postulating a contractive transition.
+
+
+\section{Derive the small-step and exponential damping bounds}
+
+
+The source restrictions imply \(\gamma h\le1/132\): multiply by the positive \(\gamma^2\) and use \(33\gamma^3h\le m\le M\le\gamma^2/4\). Squaring gives the weaker estimates \(\gamma h\le1\), \(12\gamma^2h^2\le1\) used by the residual budget. With \(\delta=e^{-\gamma h/2}\), positivity and monotonicity of the exponential give \(0\le\delta\le1\). The global tangent inequality \(e^{-u}\ge1-u\) gives \(1-\delta\le\gamma h/2\) and \(\delta^2-1+\gamma h\ge0\). The proved quadratic exponential bound gives its upper bound \(\gamma^2h^2/2\). These are scalar facts about the exact damping used in the code.
+
+
+
+\noindent Lean declarations: \texttt{obabo\_step\_size\_consequences}, \texttt{obabo\_damping\_bounds}.
+
+\section{Apply the complete remainder estimate to the actual two-kick step}
+
+
+For two states driven by the same noises, set \(x=x_0-y_0\), \(v=v_0-w_0\), \(F_0=\nabla f(x_0)-\nabla f(y_0)\), and let \(x_1,y_1\) be the actual drift-stage positions. The average second-kick force is \(S=(F_0+\nabla f(x_1)-\nabla f(y_1))/2\). Its sector error is exactly \(e=M\|(x_1-y_1)-x\|/2\). Lipschitzness bounds \(F_0\), while the actual position update bounds the change in difference by \(h\|v\|+h^2M\|x\|/2\). The centered interpolation inequality for the original potential at both pairs yields the average-force sector estimate and then \(\|S\|\le M\|x\|+e\).
+
+
+
+The source-metric drift estimate and all damping bounds now satisfy the preceding module’s explicit algebra theorem. Finally \texttt{module} checks that the exact difference of the two implemented O-B-A-B-O steps equals that algebraic map, including both noisy intermediate positions. The result is \(E(z_+-w_+)\le(1-mh/(3\gamma))E(z-w)\). No Gaussian assumption is needed for this pathwise theorem, because the same additive vectors cancel exactly.
+
+
+
+\noindent Lean declarations: \texttt{obaboStep\_synchronous\_contraction}.
+
+\section{Iterate and project to the physical position}
+
+
+The small-step restrictions ensure the factor \(q=1-mh/(3\gamma)\) is nonnegative. Induction then applies the actual one-step theorem and multiplies the preceding energy inequality by q, giving \(E(Z_n-W_n)\le q^nE(Z_0-W_0)\) for any two actual recursions with the same two input vectors at every step. When the initial velocities agree, the initial mixed energy is exactly the squared initial position distance. The lower metric equivalence gives \(\|X_n-Y_n\|^2\le2q^n\|X_0-Y_0\|^2\). Both sides are nonnegative, so Lean applies the square comparison and the nonnegative square-root identity to obtain \(\|X_n-Y_n\|\le\sqrt{2q^n}\|X_0-Y_0\|\). This is a direct statement about numerical iterates; identifying an invariant law and quantifying discretization bias are separate analytic steps.
+
+
+
+\noindent Lean declarations: \texttt{obabo\_contraction\_factor\_nonneg}, \texttt{obabo\_synchronous\_iteration}, \texttt{obabo\_synchronous\_position\_decay}.
+
+\end{document}

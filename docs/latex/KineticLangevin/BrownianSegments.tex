@@ -1,0 +1,88 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Construct independent correlated innovations on Brownian time intervals}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/BrownianSegments.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The one-step Gaussian covariance is only part of the algorithm: innovations at different iterations must be independent and must come from increments of the same Brownian source used by the exact reference. This module translates deterministic time kernels onto successive intervals of that source. Translation preserves the within-step Gram covariance. Disjoint time supports give zero cross covariances, and joint Gaussianity turns this orthogonality into independence of the entire innovation blocks. Correlations among coordinates within a block are retained.
+
+
+\section{Translate a time kernel without changing its L\ensuremath{{}^{2}} geometry}
+
+
+For an interval beginning at \(a\), translate the original response kernel by \((S_aK)(r)=K(r-a)\). Lebesgue measure is invariant under translation, so \(S_a\) is a real linear isometry of the deterministic time Hilbert space. The translated response is
+
+\[K^{a,t}_k(r)=1_{(a,a+t]}(r)k(a+t-r).\]
+
+Its inner product with another response on the same interval remains \(\int_0^t k(s)\ell(s)\,ds\).
+
+
+
+Lean constructs the isometry with \texttt{Lp.compMeasurePreservingₗᵢ} and \texttt{measurePreserving\_sub\_right}. The representative theorem combines the almost-everywhere composition formula with the previously proved kernel representative. Elementary inequalities identify \(r-a\in(0,t]\) with \(r\in(a,a+t]\); scalar algebra identifies the two elapsed-time expressions. Inner-product preservation of the linear isometry then reduces the covariance geometry to the unshifted kernel identity.
+
+
+
+\noindent Lean declarations: \texttt{timeShift}, \texttt{segmentKernelLp}, \texttt{segmentKernelLp\_coe}, \texttt{segmentKernelLp\_inner}.
+
+\section{Prove that disjoint time segments are orthogonal}
+
+
+If \(a+t\le b\), the intervals \((a,a+t]\) and \((b,b+u]\) are disjoint. At every time coordinate, at least one of their indicators is zero. Their L\ensuremath{{}^{2}} inner product is therefore zero, regardless of the two continuous response functions.
+
+
+
+The Lean proof unfolds the L\ensuremath{{}^{2}} inner product as an integral, substitutes the explicit almost-everywhere segment representatives, and splits on membership in the first interval. Membership implies \(r\le a+t\le b\), which excludes the strict lower bound \(b<r\) of the second interval. Thus the integrand vanishes almost everywhere, and \texttt{integral\_eq\_zero\_of\_ae} concludes. The half-open convention makes adjacent segments disjoint exactly, including their common endpoint.
+
+
+
+\noindent Lean declarations: \texttt{segmentKernelLp\_inner\_zero}.
+
+\section{Apply the same isonormal map to every time segment}
+
+
+Define \(Z_k^{a,t}=I(K_k^{a,t})\) using the same isonormal map and Gaussian product sample space as the original Brownian motion. Each response is centered, and every finite family of responses on an interval is jointly Gaussian. The covariance on one interval is the same Gram integral as before. Responses on separated intervals have covariance zero by the deterministic support calculation.
+
+
+
+Lean proves these assertions by composing the translation's linear map with the existing Gaussian isonormal map. The finite-family Gaussian theorem applies to that actual composite linear map. For covariances, \texttt{isonormal\_covariance} reduces the probability calculation to the deterministic inner product, where the within-interval and disjoint-interval theorems apply. Independence is not assumed at this stage; zero covariance alone would not imply independence without the jointly Gaussian property proved next.
+
+
+
+\noindent Lean declarations: \texttt{segmentConvolutionLp}, \texttt{segmentConvolutionLp\_mean}, \texttt{segmentConvolutionLp\_jointlyGaussian}, \texttt{segmentConvolutionLp\_covariance}, \texttt{segmentConvolutionLp\_covariance\_zero}.
+
+\section{Identify the full Gaussian block law on every interval}
+
+
+For finitely many response functions \((k_i)\), the Euclidean vector \((Z_{k_i}^{a,t})_i\) has exactly the centered Gaussian law with covariance \(C_{ij}=\int_0^t k_i(s)k_j(s)\,ds\). The starting time \(a\) does not appear in this law, because deterministic translation preserves all inner products.
+
+
+
+Lean assembles the actual L\ensuremath{{}^{2}} representatives into a Euclidean random vector and proves its Gaussianity via the continuous linear equivalence from finite function space. Coordinate projections commute with the Bochner integral, giving the zero vector mean. The covariance bilinear form expands into a finite double sum; each entry is rewritten by the proved segment covariance formula. Equality with the Gram Gaussian's bilinear form, together with equality of means, lets \texttt{IsGaussian.ext} identify the two probability measures. No distributional equality is supplied as a hypothesis.
+
+
+
+\noindent Lean declarations: \texttt{segmentConvolutionLp\_jointLaw}.
+
+\section{Derive independence of all successive Brownian innovation blocks}
+
+
+On the uniform grid, the \(n\)-th block uses the interval \((nh,(n+1)h]\). \texttt{gridConvolutionLp} places every response function on that interval. The family indexed by both iteration and response coordinate is a Gaussian process because every member is obtained by applying one Gaussian linear map to a deterministic Hilbert vector.
+
+
+
+For \(n<m\), the elementary inequality \((n+1)h\le mh\) proves disjoint support and therefore zero cross covariance between every coordinate of the two blocks. The Gaussian-process independence theorem converts these coordinate covariance equalities into independence of the entire block-valued random variables, over all iteration numbers simultaneously. Packing a finite coordinate family into Euclidean space is a measurable map, so time independence survives that packing.
+
+
+
+Lean constructs the jointly Gaussian process with \texttt{isGaussianProcess\_of\_linearMap\_Lp}. It uses \texttt{iIndepFun\_of\_covariance\_eq\_zero}, proves the disjoint-segment inequality from \texttt{Nat.succ\_le\_of\_lt}, and handles the reversed ordering through symmetry of covariance. Finally, \texttt{iIndepFun.comp} transports independence through \texttt{WithLp.toLp}. The per-block law is the segment joint-law theorem, so the actual Brownian-derived Euclidean blocks are identically distributed with the required correlated Gram-Gaussian law.
+
+
+
+\noindent Lean declarations: \texttt{gridConvolutionLp}, \texttt{gridConvolutionLp\_isGaussianProcess}, \texttt{gridConvolutionLp\_independent}, \texttt{gridConvolutionLp\_euclidean\_independent}, \texttt{gridConvolutionLp\_jointLaw}.
+
+\end{document}

@@ -1,0 +1,68 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The actual kinetic solution depends continuously on its initial state and noise path}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/Flow.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+Picard existence alone does not ensure a selected solution can be used as a measurable random process. This module proves stability when both the initial condition and continuous forcing vary, then constructs the actual kinetic flow by selection from the existing existence theorem. The stability estimate proves that the selected endpoint, and indeed the whole compact solution path, is jointly Lipschitz. No measurability, output-law identity or contraction conclusion is postulated.
+
+
+\section{Subtract the rough forcing before differentiating}
+
+
+Let \(Y_t-x=-\int_0^tg(Y_s)ds+B_t\) and \(Z_t-y=-\int_0^tg(Z_s)ds+C_t\). The inputs \(B,C\) are continuous and may be nowhere differentiable. Set \(F_t=Y_t-Z_t-(B_t-C_t)\). Subtract the integral equations to obtain \(F_t=x-y-\int_0^t(g(Y_s)-g(Z_s))ds\). This expression is differentiable from the right, including at the initial endpoint. If \(\|B_t-C_t\|\le D\), then \(\|Y_t-Z_t\|\le\|F_t\|+D\), and an \(L\)-Lipschitz drift gives \(\|F'_t\|\le(L+1)\|F_t\|+(L+1)D\). Gronwall and the initial equality \(F_0=x-y\) yield \(\|Y_t-Z_t\|\le(\|x-y\|+D)e^{(L+1)t}\). Lean proves equality with the differentiable integral expression on a right neighborhood and uses the within-derivative Gronwall theorem. The harmless extra one makes the coefficient strictly positive and avoids a special zero-Lipschitz case.
+
+
+
+\noindent Lean declarations: \texttt{additive\_integral\_input\_stability}.
+
+\section{Use compact paths with a uniform norm}
+
+
+\texttt{VelocityForcing T} is the Banach space of continuous velocity-forcing paths on \([0,T]\), equipped with the supremum norm. The extension \(\widehat B_t=B(\operatorname{clip}_{[0,T]}t)-B(0)\) is continuous on the whole real line and starts at zero. This permits direct use of the proved finite-horizon Picard construction. Two normalized extensions satisfy \(\|\widehat B_t-\widehat C_t\|\le2\|B-C\|_\infty\): each of the two evaluation differences is bounded by the uniform norm. Lean uses continuity of the interval projection, evaluates at zero, and applies the norm triangle inequality to the two differences. No derivative of a forcing path is taken.
+
+
+
+\noindent Lean declarations: \texttt{VelocityForcing}, \texttt{normalizedForcing}, \texttt{continuous\_normalizedForcing}, \texttt{normalizedForcing\_zero}, \texttt{normalizedForcing\_sub\_le}.
+
+\section{Select an actual solution from proved existence}
+
+
+\texttt{kineticFlow} uses classical choice on \texttt{exists\_kinetic\_integral}, supplying the normalized forcing \((\widehat B_t,0)\). Its specification theorem retains all conclusions of that construction: the path is globally continuous, its initial phase is exactly the supplied phase, and it satisfies the concrete kinetic integral equation at every time on the horizon. Classical selection is justified because existence was proved analytically. It does not add a solution axiom. Subsequent stability between any two solutions makes every selected representative agree on the horizon and provides continuous parameter dependence.
+
+
+
+\texttt{kineticFlow\_eq\_of\_integral} applies the proved Lipschitz integral-equation uniqueness theorem to identify the selection with any other continuous solution driven by the same normalized forcing and initial phase. Thus a concrete Brownian realization can be identified with this canonical flow without assuming equality of endpoint laws.
+
+
+
+\noindent Lean declarations: \texttt{kineticFlow}, \texttt{kineticFlow\_spec}, \texttt{kineticFlow\_eq\_of\_integral}.
+
+\section{Prove joint endpoint continuity quantitatively}
+
+
+The kinetic negative drift has Lipschitz constant \(K_0=\gamma+uL+1\) in the product maximum norm. Apply the two-input estimate with forcing difference \(D=2\|B-C\|_\infty\). This gives
+
+\[\|Y_t^{z,B}-Y_t^{w,C}\|\le(\|z-w\|+2\|B-C\|_\infty)e^{(K_0+1)t}.\]
+
+In the product parameter norm both input differences are bounded by the same distance, so the endpoint is Lipschitz with constant \(3e^{(K_0+1)t}\). Lean derives the estimate from the actual selected paths and their specifications, then bounds each coordinate by the product norm. \texttt{kineticFlow\_endpoint\_continuous} follows from the Lipschitz theorem. Thus the eventual random endpoint map is measurable for a proved reason, even though its original existence definition used classical choice.
+
+
+
+\noindent Lean declarations: \texttt{kineticFlow\_input\_stability}, \texttt{kineticFlow\_endpoint\_lipschitz}, \texttt{kineticFlow\_endpoint\_continuous}.
+
+\section{Control the entire solution as a compact continuous path}
+
+
+\texttt{kineticFlowPath} restricts the selected solution to \([0,T]\), retaining its proved continuity. At each time its difference has the endpoint bound. Since \(K_0+1\ge0\), \(e^{(K_0+1)t}\le e^{(K_0+1)T}\) on the horizon. The supremum-norm characterization then bounds the whole path difference by \(3e^{(K_0+1)T}\) times the initial-state/forcing-path distance. Lean applies \texttt{ContinuousMap.norm\_le}, proves the pointwise exponential comparison, and uses the endpoint Lipschitz estimate. The resulting path-valued Lipschitz and continuity theorems support pushforwards into a genuine space of continuous trajectories, not merely separate endpoint choices.
+
+
+
+\noindent Lean declarations: \texttt{kineticFlowPath}, \texttt{kineticFlowPath\_lipschitz}, \texttt{kineticFlowPath\_continuous}.
+
+\end{document}

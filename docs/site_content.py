@@ -157,11 +157,14 @@ def home_document(lib, config, notes, sources, parsed, math):
     body+='<section class="section" id="main-results"><h2>Theorems</h2>'
     for i,result in enumerate(config['results'],1):
         target=module_page(result['file'])
-        namespace=config.get('namespace','ULA.Hilbert' if lib=='UnadjustedLangevin' else lib)
+        namespace=result.get('namespace',config.get('namespace','ULA.Hilbert' if lib=='UnadjustedLangevin' else lib))
         context='import '+result['file'].removesuffix('.lean').replace('/','.')+'\nopen MeasureTheory Set\nopen scoped NNReal ENNReal\nnamespace '+namespace
         if lib=='UnadjustedLangevin':context+='\nvariable {ι : Type*} [Fintype ι]'
         if lib=='UnadjustedLangevin/LSI':
             context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]'
+        if lib=='KineticLangevin':
+            context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E]\nlocal instance (T : ℝ) : MeasurableSpace (VelocityForcing (E := E) T) := borel _\nlocal instance (T : ℝ) : BorelSpace (VelocityForcing (E := E) T) := ⟨rfl⟩'
+        if result.get('context'):context+='\n'+result['context']
         body+=(f'<article id="result-{i}"><h3>{result["title"]}</h3><div class="pair">'
                '<div class="math-pane"><div class="pane-label">Mathematical statement</div>'+math(result['body'])
                +'</div><div class="lean-pane"><div class="pane-label">Lean statement</div>'
@@ -215,7 +218,9 @@ def project_document(notes):
     cards=[('UnadjustedLangevin','Wasserstein distance','Geometric contraction and discretization bias for Gaussian ULA, with the stationary reference constructed from the potential assumptions.'),
            ('UnadjustedLangevin/LSI','Relative entropy','The entropy interpolation argument under a log-Sobolev inequality: drift-error control, the one-step estimate, and its iteration.'),
            ('IPLA','Interacting particles','A finite-time parameter error bound, using the lifted ULA system and concentration of the parameter marginal.'),
-           ('ProximalLangevin','Nonsmooth models','Proximal minimizers, Moreau envelopes, corrected particle bounds, and mean-field limits.')]
+           ('ProximalLangevin','Nonsmooth models','Proximal minimizers, Moreau envelopes, corrected particle bounds, and mean-field limits.'),
+           ('KineticLangevin','Kinetic sampling','Exponential integrators, transformed-energy contraction, Gaussian innovations, and a source-by-source coverage audit.'),
+           ('KIPLMC','Kinetic interacting particles','Shared exponential integration for KIPLMC1, OBABO for KIPLMC2, scaled geometry, chain laws, and parameter concentration.')]
     for key,label,description in cards:
         config=CONFIG[key]
         body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
@@ -232,3 +237,6 @@ def project_document(notes):
 
 from entropy_content import ENTROPY_CONFIG
 CONFIG.update(ENTROPY_CONFIG)
+
+from kinetic_overviews import KINETIC_CONFIG
+CONFIG.update(KINETIC_CONFIG)

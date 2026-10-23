@@ -1,0 +1,55 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The actual Verlet–OU chain converges to the kinetic integral solution}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/KineticSplittingConvergence.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+This module proves the missing numerical limit directly in a Banach space, including the intended space of square-integrable random variables. The actual scheme uses explicit Verlet stages, exact exponential damping, and the filtered increments of the same continuous additive input as the actual kinetic equation. Compact continuity supplies every local modulus used in the proof. No stationary solution, local-error contract, or numerical-convergence hypothesis is assumed.
+
+
+\section{Construct the splitting on the actual grid input}
+
+
+Starting from \(X_0=z_0\), the next state is \(X_{k+1}=S_h(X_k,N_{kh,h})\), where \(S_h\) is the explicit Verlet–OU step and \(N_{a,h}\) is the actual filtered increment of the supplied continuous input \(B\). Lean defines this recursion directly. Each stage uses the correct grid time \(kh\); the forcing is not replaced by an unrelated Gaussian with the same marginal variance.
+
+
+
+\noindent Lean declarations: \texttt{kineticSplitChain}.
+
+\section{Compare one numerical increment with the exact kinetic path}
+
+
+Let the actual path satisfy \(Y_t-z_0=-\int_0^t d(Y_s)\,ds+(B_t,0)\), where \(d(v,x)=(\gamma v+g(x),-v)\). Subtract its equations at \(a\) and \(a+h\). Freezing its drift gives an exact Euler identity with remainder \(D_{a,h}=\int_0^h[d(Y_{a+s})-d(Y_a)]\,ds\). A drift oscillation bound \(\eta\) gives \(\|D_{a,h}\|\le h\eta\). The matching OU input differs from \(B_{a+h}-B_a\) by at most \(\gamma h\eta\) when the input oscillation is also at most \(\eta\). Finally, the proved explicit splitting defect contributes at most \(h^2C(R+\|g(0)\|)\), where \(\|Y_t\|\le R\) and \(C=(M+1)(M+2)+\gamma^2/2+\gamma(M+1)\). Lean constructs the grid and interval-membership facts, derives the exact increment equation through adjacent-interval integration, proves the local-defect identity, and bounds each of these three genuine terms.
+
+
+
+For \(e_k=\|X_k-Y_{kh}\|\), synchronous numerical stability then gives \[e_{k+1}\le[1+(M+1)^2h]e_k+h\{hC(R+\|g(0)\|)+(1+\gamma)\eta\}.\] The actual initial equation and \(B_0=0\) prove \(e_0=0\). The checked finite recurrence estimate and \((1+ah)^n\le e^{aT}\), with \(nh=T\), yield the displayed finite-horizon bound. Every modulus premise belongs to this intermediate estimate and is derived from continuity in the next theorem.
+
+
+
+\noindent Lean declarations: \texttt{kineticSplitChain\_error\_of\_modulus}.
+
+\section{Derive all moduli and prove convergence}
+
+
+The continuous exact path is bounded on \([0,T]\). Its drift path is continuous by global Lipschitz continuity of \(g\), and the additive input \(B\) is continuous. Compactness makes both uniformly continuous. Given any target error \(\varepsilon>0\), choose a common oscillation tolerance \(\eta=\varepsilon/(D+1)\), where the explicit finite horizon constant \(D\) contains the state bound, the splitting defect coefficient, friction, and the stability exponential. Since \(h_n=T/(n+1)\to0\), the mesh is eventually at most one, at most \(\eta\), and below both continuity radii. The finite error estimate is then at most \(\eta D<\varepsilon\). Lean obtains the two compact uniform-continuity radii, combines the four eventual mesh bounds, instantiates the actual finite estimate, and checks this final scalar comparison. Thus the concrete scheme converges to every actual continuous kinetic integral solution driven by the same input.
+
+
+
+\noindent Lean declarations: \texttt{kineticSplitChain\_tendsto}.
+
+\section{Identify the limit with the constructed kinetic flow}
+
+
+The earlier Picard construction supplies a continuous solution for every initial state and every compact continuous forcing path, with its actual kinetic integral identity already proved. Its normalized forcing is globally continuous and vanishes at zero. Substituting these checked facts into the generic Banach convergence theorem proves that the splitting limit is exactly \texttt{kineticFlow} at the requested horizon. This ties the approximation to the existing jointly continuous solution map, not to an unspecified solution chosen by a new contract.
+
+
+
+\noindent Lean declarations: \texttt{kineticSplitChain\_tendsto\_kineticFlow}.
+
+\end{document}

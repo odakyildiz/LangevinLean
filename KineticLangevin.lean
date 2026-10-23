@@ -1,0 +1,172 @@
+import KineticLangevin.AuxiliaryVelocity
+import KineticLangevin.CanonicalFreeOU
+import KineticLangevin.CanonicalKLMC2Bound
+import KineticLangevin.CanonicalSecondOrderSegments
+import KineticLangevin.CorrectedStep
+import KineticLangevin.FreeOU
+import KineticLangevin.FreeOUCorrection
+import KineticLangevin.FreeOUCorrectionBound
+import KineticLangevin.GramPositive
+import KineticLangevin.HessianAssumptions
+import KineticLangevin.HessianDifference
+import KineticLangevin.HessianRemainder
+import KineticLangevin.KernelConvolution
+import KineticLangevin.LpHessian
+import KineticLangevin.LpMomentBounds
+import KineticLangevin.LpMomentIntegral
+import KineticLangevin.QuadraticSharpness
+import KineticLangevin.RandomOperatorLp
+import KineticLangevin.ScalarConvolution
+import KineticLangevin.SecondOrderComparison
+import KineticLangevin.SecondOrderLinear
+import KineticLangevin.SecondOrderLocal
+import KineticLangevin.SecondOrderLpLocal
+import KineticLangevin.SecondOrderOneStep
+import KineticLangevin.SecondOrderAccuracy
+import KineticLangevin.CanonicalKLMC2
+import KineticLangevin.GaussianFactor
+import KineticLangevin.SecondOrderBudget
+import KineticLangevin.SecondOrderRecurrence
+import KineticLangevin.Accuracy
+import KineticLangevin.MassScaling
+import KineticLangevin.BrownianScaling
+import KineticLangevin.ContinuousGibbs
+import KineticLangevin.Coefficients
+import KineticLangevin.Geometry
+import KineticLangevin.Contraction
+import KineticLangevin.PotentialContraction
+import KineticLangevin.GeneralContraction
+import KineticLangevin.Friction
+import KineticLangevin.Hessian
+import KineticLangevin.Dynamics
+import KineticLangevin.IntegralCoupling
+import KineticLangevin.SynchronousFlow
+import KineticLangevin.Flow
+import KineticLangevin.FlowLaw
+import KineticLangevin.Integrator
+import KineticLangevin.Gaussian
+import KineticLangevin.BrownianConvolution
+import KineticLangevin.BrownianSegments
+import KineticLangevin.CanonicalVectorSegments
+import KineticLangevin.VectorSegmentEquations
+import KineticLangevin.MildEquation
+import KineticLangevin.LocalError
+import KineticLangevin.MildError
+import KineticLangevin.Recurrence
+import KineticLangevin.Complexity
+import KineticLangevin.OneStep
+import KineticLangevin.LpContraction
+import KineticLangevin.LpOneStep
+import KineticLangevin.LpConvergence
+import KineticLangevin.LpDynamics
+import KineticLangevin.ProductLaw
+import KineticLangevin.OBABO
+import KineticLangevin.OBABOEnergy
+import KineticLangevin.OBABORemainder
+import KineticLangevin.OBABOContraction
+import KineticLangevin.OBABOLaw
+import KineticLangevin.Thermostat
+import KineticLangevin.Hamiltonian
+import KineticLangevin.HamiltonianMetropolis
+import KineticLangevin.HamiltonianError
+import KineticLangevin.HamiltonianWeak
+import KineticLangevin.HamiltonianTests
+import KineticLangevin.HamiltonianConvergence
+import KineticLangevin.HamiltonianIteration
+import KineticLangevin.HamiltonianRejection
+import KineticLangevin.HamiltonianMoments
+import KineticLangevin.HamiltonianStationarity
+import KineticLangevin.GibbsTarget
+import KineticLangevin.KineticSplitting
+import KineticLangevin.KineticSplittingConvergence
+
+import KineticLangevin.MarkovTests
+
+import KineticLangevin.KineticSplittingLp
+
+import KineticLangevin.CanonicalSplitting
+
+import KineticLangevin.VerletLocal
+
+import KineticLangevin.CoupledSegments
+
+import KineticLangevin.LpPhaseLaw
+
+import KineticLangevin.OUMarginal
+
+import KineticLangevin.SplittingLaw
+
+import KineticLangevin.CanonicalProduct
+
+import KineticLangevin.SegmentGlobal
+
+import KineticLangevin.CanonicalCoupledSegments
+
+import KineticLangevin.LpHamiltonianLaw
+
+import KineticLangevin.SplittingTarget
+
+import KineticLangevin.StationarityTransfer
+
+import KineticLangevin.CanonicalStationarity
+
+import KineticLangevin.CanonicalGlobalSegments
+
+import KineticLangevin.CanonicalReferenceNoise
+
+import KineticLangevin.CanonicalKLMCBound
+
+import KineticLangevin.CanonicalKLMC
+
+import KineticLangevin.LpWeightedGeometry
+
+import KineticLangevin.OBABOLocalCost
+
+import KineticLangevin.RandomMapPerturbation
+
+import KineticLangevin.ExactOBABO
+
+import KineticLangevin.GaussianFourth
+
+import KineticLangevin.GaussianTail
+
+import KineticLangevin.OBABOBiasScalar
+
+import KineticLangevin.OBABOBias
+
+import KineticLangevin.OBABOPosition
+
+import KineticLangevin.TransportMap
+
+import KineticLangevin.GaussianTruncation
+
+import KineticLangevin.GenericCanonicalSource
+
+import KineticLangevin.GenericCanonicalKLMC
+
+import KineticLangevin.ProductMarkovLaw
+
+import KineticLangevin.FlowPullback
+
+import KineticLangevin.ProductContinuousFlow
+
+import KineticLangevin.CanonicalContinuousMixing
+
+import KineticLangevin.BrownianSegmentEquations
+import KineticLangevin.LpGeneralContraction
+import KineticLangevin.PastFutureIndependence
+import KineticLangevin.CanonicalPastFuture
+import KineticLangevin.CanonicalKLMC2Noise
+import KineticLangevin.LpKLMC2
+import KineticLangevin.KLMC2ProductLaw
+import KineticLangevin.CanonicalKLMC2Law
+
+import KineticLangevin.PhaseInitialTransport
+
+import KineticLangevin.CanonicalKLMC2Recurrence
+
+import KineticLangevin.ConditionNumber
+import KineticLangevin.SecondOrderComplexity
+
+/-! Kinetic Brownian integral dynamics and both actual Gaussian sampler theorems.
+The source audit records exact correspondence, source corrections and the formal model. -/

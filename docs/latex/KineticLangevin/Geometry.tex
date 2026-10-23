@@ -1,0 +1,87 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{The transformed kinetic energy}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/Geometry.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The phase convention is \((v,x)\), velocity first. The paper's transformation is \(T_{\gamma,a}(v,x)=(v+(\gamma-a)x,-v-ax)\). Its squared energy is the sum of the two squared Hilbert norms. This explicit sum matters: Lean's default norm on a product is a maximum norm, not the Euclidean phase norm used in the paper. The identities below also apply with the underlying Hilbert space equal to an L\ensuremath{{}^{2}} space of random vectors.
+
+
+\section{Define the change of variables and its nonnegative energy}
+
+
+Set \(y=v+(\gamma-a)x\), \(z=-v-ax\), and \(\mathcal E=\|y\|^2+\|z\|^2\). These are the two coordinates used to expose cancellation in the kinetic drift. The definition \texttt{transform} constructs the pair; \texttt{transformEnergy} explicitly sums their squares. Unfolding the latter leaves a sum of nonnegative terms, which \texttt{positivity} proves without any sign restriction on \(\gamma\) or \(a\). Thus the energy construction is valid before selecting the admissible friction regime.
+
+
+
+\noindent Lean declarations: \texttt{transform}, \texttt{transformEnergy}, \texttt{transformEnergy\_nonneg}.
+
+\section{Recover position and velocity}
+
+
+Adding the new coordinates gives \(y+z=(\gamma-2a)x\). The proof expands the scalar difference with \texttt{sub\_smul} and uses \texttt{module} to normalize the vector-space expression. If \(\gamma-2a\ne0\), multiply by its inverse to recover position. A second identity is \(ay+(\gamma-a)z=-(\gamma-2a)v\), giving \(v=-(\gamma-2a)^{-1}(ay+(\gamma-a)z)\). Lean first proves this vector identity, then rewrites nested scalar multiplication and cancels the nonzero denominator. The hypothesis excludes the singular coordinate choice \(a=\gamma/2\).
+
+
+
+\noindent Lean declarations: \texttt{transform\_add}, \texttt{transform\_inverse\_position}, \texttt{transform\_inverse\_velocity}.
+
+\section{Bound the position projection}
+
+
+The triangle inequality and \((\|y\|-\|z\|)^2\ge0\) give \(\|y+z\|^2\le2(\|y\|^2+\|z\|^2)\). Substituting \(y+z=(\gamma-2a)x\) yields \((\gamma-2a)^2\|x\|^2\le2\mathcal E\). In Lean, \texttt{norm\_add\_le} supplies the triangle bound; \texttt{nlinarith} combines it with nonnegative norms and the square of their difference. The final rewrite uses \texttt{norm\_smul} and \(|c|^2=c^2\), so the squared result does not need a sign assumption on the denominator.
+
+
+
+\noindent Lean declarations: \texttt{position\_sq\_le\_energy}.
+
+\section{Initialize a coupling with equal velocities}
+
+
+If the velocity difference is zero, the transformed pair is \(((\gamma-a)x,-ax)\). Its energy is therefore \(((\gamma-a)^2+a^2)\|x\|^2\). The proof unfolds both definitions, removes zero and negation, converts scalar multiplication norms to absolute scalar factors, and uses \texttt{sq\_abs} before \texttt{ring}. This is the exact initialization coefficient in the synchronous-position contraction theorem.
+
+
+
+\noindent Lean declarations: \texttt{transformEnergy\_zero\_velocity}.
+
+\section{Read off velocity control and phase energy}
+
+
+At \(a=0\), the second transformed coordinate is \(-v\), so \(\|v\|^2\le\|v+\gamma x\|^2+\|v\|^2=\mathcal E\). Lean simplifies the zero scalar terms and invokes nonnegativity of the other square. \texttt{phaseEnergy} separately records \(\|v\|^2+\|x\|^2\), the ordinary squared Euclidean phase norm. Both definitions avoid relying on the product's maximum norm; only the transformed energy contains the mixed position–velocity geometry needed for contraction.
+
+
+
+\noindent Lean declarations: \texttt{velocity\_sq\_le\_energy}, \texttt{phaseEnergy}.
+
+\section{Use the actual Euclidean transformed norm}
+
+
+Define \(\|s\|_T\) as the norm of \(T_{\gamma,a}s\) in \texttt{WithLp 2 (E × E)}. This mathlib type equips the two components with the Euclidean product norm. Its square is exactly \texttt{transformEnergy}, by \texttt{WithLp.prod\_norm\_sq\_eq\_of\_L2}. Thus the norm, squared-energy calculations, and later triangle inequalities all describe the same geometry. Nonnegativity comes directly from \texttt{norm\_nonneg}. The construction applies to a Hilbert space of vectors or a Hilbert space of square-integrable random vectors.
+
+
+
+\noindent Lean declarations: \texttt{transformNorm}, \texttt{transformNorm\_nonneg}, \texttt{transformNorm\_sq}.
+
+\section{Prove the triangle and velocity-projection bounds}
+
+
+The transformation is additive: expand the two coordinates and let \texttt{module} normalize the vector identities. After this identity, \texttt{WithLp.toLp\_add} turns the transformed sum into a sum in an actual normed space, so \texttt{norm\_add\_le} gives its triangle inequality. Rewriting \(s-t=(s-r)+(r-t)\) gives the three-point bound needed to insert an auxiliary exact path. To pass from an energy bound \(\mathcal E(s)\le B^2\) to \(\|s\|_T\le B\), use nonnegativity and \texttt{sq\_le\_sq₀}, then replace the norm square by energy. Applying the same argument to the already proved velocity-square projection gives \(\|v\|\le\|(v,x)\|_T\) at \(a=0\).
+
+
+
+\noindent Lean declarations: \texttt{transform\_add\_states}, \texttt{transformNorm\_add\_le}, \texttt{transformNorm\_sub\_triangle}, \texttt{transformNorm\_le\_of\_energy\_le}, \texttt{velocity\_le\_transformNorm}.
+
+\section{Project position only at the final endpoint}
+
+
+The squared position bound is \(\gamma^2\|x\|^2\le2\|s\|_T^2\). Both sides are squares of nonnegative quantities, so \texttt{sq\_le\_sq₀} gives \(\gamma\|x\|\le\sqrt2\|s\|_T\). Division by positive friction yields the exact projection factor \(\sqrt2/\gamma\). If the velocity difference initially vanishes, the energy identity gives \(\|(0,x)\|_T^2=\gamma^2\|x\|^2\). Comparing squares with nonnegative \(\gamma\) proves \(\|(0,x)\|_T=\gamma\|x\|\). These two identities explain why the eventual position theorem loses only one factor \(\sqrt2\), while friction cancels out of its bias floor.
+
+
+
+\noindent Lean declarations: \texttt{position\_le\_transformNorm}, \texttt{transformNorm\_zero\_velocity}.
+
+\end{document}

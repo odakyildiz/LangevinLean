@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Measurable transitions and actual iterated particle laws}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KIPLMC/Laws.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The pathwise algorithm maps become probability transitions by integrating them against independent fresh-noise measures. This module reuses the generic Markov-law construction and independence argument already proved for ULA. For KIPLMC1 it accepts a specified correlated phase innovation law; KIPLMC2 uses an explicit pair of independent standard Gaussian vectors for its two OU half steps. Law equality is kept distinct from convergence rates.
+
+
+\section{Construct the OBABO noise law and prove both step maps measurable}
+
+
+\texttt{obaboNoise} is the product of two standard Gaussian measures on the particle Euclidean space. Its product probability instance gives total mass one. Lipschitzness of the actual particle force implies continuity. Unfolding the exponential or OBABO map shows that each is built from this continuous force, coordinate projections, addition and scalar multiplication, so each uncurried state–noise map is continuous and hence measurable. Lean supplies force continuity first, applies \texttt{Continuous.measurable}, and discharges the finite composition with \texttt{fun\_prop}.
+
+
+
+\noindent Lean declarations: \texttt{obaboNoise}, \texttt{obaboNoise\_probability}, \texttt{kiplmc1Step\_measurable}, \texttt{kiplmc2Step\_measurable}.
+
+\section{Define numerical laws by independent-noise pushforwards}
+
+
+\texttt{kiplmc1Laws} applies the shared Markov recursion with the actual exponential step, an initial phase measure \(\mu\), and a supplied innovation measure \(\eta\). \texttt{kiplmc2Laws} uses the actual OBABO step and its fixed two-Gaussian noise measure. Each successor law is the pushforward of the product of the current-state law and the fresh-noise law. The probability theorems invoke the proved step measurability and probability of the initial and innovation measures, so every iterate is a genuine probability measure. For KIPLMC1 the covariance specification of \(\eta\) remains explicit and separate; probability alone does not identify the intended correlated Gaussian law.
+
+
+
+\noindent Lean declarations: \texttt{kiplmc1Laws}, \texttt{kiplmc2Laws}, \texttt{kiplmc1Laws\_probability}, \texttt{kiplmc2Laws\_probability}.
+
+\section{Prove the explicit exponential recursion has the Markov law}
+
+
+First show that \texttt{kiplmc1Chain} equals the generic noise-driven recursion. Induction is exact: both start at the same phase and their successor expressions use the same step and innovation number. The law theorem then assumes a measurable initial random phase, a jointly independent innovation sequence with common law \(\eta\), and independence of initialization from the whole sequence. The shared generic result derives the law at every step; no additional per-step state–noise independence premise is inserted. Rewriting the explicit recursion by the proved equality yields the pushforward identity with \texttt{kiplmc1Laws}. This theorem establishes actual-law correspondence, while a quantitative sampling estimate still requires moment and coupling analysis for the specified Gaussian innovation.
+
+
+
+\noindent Lean declarations: \texttt{kiplmc1Chain\_eq\_noiseDrivenChain}, \texttt{kiplmc1Chain\_law}.
+
+\section{The independent-Gaussian OBABO trajectory has the constructed transition law}
+
+
+\texttt{kiplmc2Chain} iterates the actual OBABO map with the two thermostat vectors from each supplied noise pair. If these pairs are independent across time, have the product-standard-Gaussian law \texttt{obaboNoise}, and are independent of initialization, then the pushforward of the pathwise recursion equals \texttt{kiplmc2Laws} at every step. The generic independence theorem derives independence of the current state from the fresh pair from these global assumptions. The proof is a direct reuse of that theorem with the established measurable OBABO map. Independence within each pair is encoded by its product Gaussian law; it is not confused with the independent sequence of pairs. This completes the actual algorithm-law correspondence, while contraction and the discrete invariant-measure bias remain separate quantitative obligations.
+
+
+
+\noindent Lean declarations: \texttt{kiplmc2Chain}, \texttt{kiplmc2Chain\_law}.
+
+\section{Choose the constructed kinetic Gaussian for Algorithm 1}
+
+
+The generic law identity accepts a specified iid innovation measure. \texttt{kiplmc1GaussianLaws} supplies the actual correlated Gaussian measure constructed in \texttt{Noise.lean}, whose spatial pairs have the shared kinetic Gram covariance. Thus the transition and its particle scaling are explicit. The earlier iid realization theorem specializes to this measure, with ordinary independence of initialization and fresh innovations. A convergence theorem must still derive a target comparison for these laws; the definition does not encode one.
+
+
+
+\noindent Lean declarations: \texttt{kiplmc1GaussianLaws}.
+
+\end{document}

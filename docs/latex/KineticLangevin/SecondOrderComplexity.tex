@@ -1,0 +1,78 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}
+\usepackage[margin=1in]{geometry}
+\setlength{\emergencystretch}{3em}
+\title{Exact tail-free KLMC2 step and rounded complexity}
+\author{LangevinLean mathematical exposition}
+\date{}
+\begin{document}\maketitle
+\noindent Source module: \texttt{KineticLangevin/SecondOrderComplexity.lean}. Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.
+
+
+The manuscript's final complexity paragraph first drops its exponentially small persistent tail and chooses the remaining quadratic bias at normalized precision \(\varepsilon/\sqrt m\). This chapter formalizes that scalar prescription exactly. It retains every active step restriction as a minimum, computes its reciprocal as a maximum, and rounds the logarithmic time threshold to a natural iteration count. These identities do not replace the actual sampler's full-tail accuracy theorem, which uses \texttt{secondOrderAccuracyStep} and keeps the proved persistent floor. The separate condition-number chapter analyzes the manuscript's further informal simplification.
+
+
+\section{Choose the exact source minimum at normalized precision}
+
+
+Let \(A=2M_2p+M\sqrt{2Mp}\). The two printed quadratic terms add to \(A h^2/m\). To allocate at most half of the normalized target \(\varepsilon/\sqrt m\) to these terms, impose \(h^2\le\varepsilon\sqrt m/(2A)\). The source also requires \(5\gamma Mh\le m\) and \(4\sqrt{5p}M_2h\le m\). Thus define \[h_0=\min\!\left\{\frac{m}{5\gamma M},\;\frac{m}{4\sqrt{5p}M_2},\;\sqrt{\frac{\varepsilon\sqrt m}{4M_2p+2M\sqrt{2Mp}}}\right\}.\] With positive \(m,M,\gamma,M_2,p,\varepsilon\), all three entries are positive, so \(h_0>0\). Lean projects the three inequalities from the minimum, squares the last one using positivity, and multiplies by its positive denominator. It then rewrites the quadratic sum as \((4M_2p+2M\sqrt{2Mp})h_0^2/(2m)\), obtaining exactly \(2h_0^2M_2p/m+h_0^2M\sqrt{2Mp}/m\le\varepsilon/(2\sqrt m)\). This statement concerns the printed quadratic terms and imposes no unproved small-tail conclusion.
+
+
+
+\noindent Lean declarations: \texttt{secondOrderTailFreeStep}, \texttt{secondOrderTailFreeStep\_spec}.
+
+\section{Invert the minimum without losing a parameter regime}
+
+
+For two positive numbers, inversion reverses order, so \((\min(a,b))^{-1}=\max(a^{-1},b^{-1})\). Lean proves this by the two possible order cases, applying the reciprocal order inequality in each case. Apply it twice to the three entries of \(h_0\). The inverse square-root term is simplified with the exact identity \((\sqrt x)^{-1}=\sqrt{x^{-1}}\). The result is \[h_0^{-1}=Q:=\max\!\left\{\frac{5\gamma M}{m},\;\frac{4\sqrt{5p}M_2}{m},\;\sqrt{\frac{4M_2p+2M\sqrt{2Mp}}{\varepsilon\sqrt m}}\right\}.\] Each branch has a distinct role: numerical stability, the Hessian cutoff restriction, or the quadratic bias budget. Keeping the maximum makes the statement valid when any of them dominates.
+
+
+
+\noindent Lean declarations: \texttt{secondOrderTailFreeInverse}, \texttt{inverse\_min\_of\_pos}, \texttt{secondOrderTailFreeStep\_inverse}.
+
+\section{Recover the exact reciprocal-step prefactor}
+
+
+Immediately before introducing its refined condition-number shorthand, the manuscript writes the work scale as \(\sqrt M/(m h_\varepsilon)\). The formal equality is \[\frac{\sqrt M}{m h_0}=\frac{\sqrt M}{m}\,Q.\] Its proof substitutes the reciprocal identity and normalizes the field expression. This is an exact identity for the explicit selected step. It keeps all parameters and contains no big-O convention or hidden uniformity assumption. When \(\gamma=\sqrt{m+M}\) and \(m\le M\), the actual geometric iteration prefactor \(4\gamma/(m h_0)\) differs from this displayed scale only by the familiar universal factors relating \(\sqrt{m+M}\) and \(\sqrt M\).
+
+
+
+\noindent Lean declarations: \texttt{secondOrderTailFreeStep\_work}.
+
+\section{Connect the exact step to the dimensionless condition-number theorem}
+
+
+Set \(\kappa=M/m\), \(\eta=M_2/(m\sqrt m)\), and choose the least admissible source friction \(\gamma=\sqrt{m+M}\). The exact normalization is \[\frac{4\sqrt{m+M}}{m}\,Q=\operatorname{Work}(\kappa,\eta,p,\varepsilon),\] where \texttt{secondOrderNormalizedWork} is the concrete maximum analyzed in the condition-number chapter. Lean proves \(\sqrt{m+M}=\sqrt m\sqrt{1+\kappa}\), then factors \(\sqrt m\) from every branch of \(Q\). For the accuracy branch it uses \(\sqrt{2Mp}=\sqrt2\sqrt M\sqrt p\) and \(\sqrt{M/m}=\sqrt M/\sqrt m\); its radicand becomes \(m(4\eta p+2\sqrt2\kappa\sqrt\kappa\sqrt p)/\varepsilon\). Multiplication by the outer rate factor cancels \(m=(\sqrt m)^2\). This is the semantic bridge between the selected scalar step and the corrected condition-number comparison: the two chapters bound the same quantity, without an additional asymptotic premise.
+
+
+
+\noindent Lean declarations: \texttt{secondOrderTailFreeInverse\_normalized\_work}.
+
+\section{Round logarithmic time to an actual integer count}
+
+
+The existing iteration count is \(N(\alpha,D,\delta)=\lceil\max(0,\log(24D/\delta)/\alpha)\rceil\), with a natural-number ceiling. For \(\alpha>0\), division commutes with the maximum against zero. The ceiling inequality therefore gives \[N(\alpha,D,\delta)<1+\frac{\max\{0,\log(24D/\delta)\}}{\alpha}.\] The maximum is essential when the initial discrepancy is already small; it prevents a negative logarithmic threshold from being interpreted as a negative iteration count. Substitute \(\alpha=mh_0/(4\gamma)\), \(\delta=\varepsilon/\sqrt m\), and \(h_0^{-1}=Q\) to obtain the exact bound \[N\!\left(\frac{mh_0}{4\gamma},D,\frac{\varepsilon}{\sqrt m}\right)<1+\frac{4\gamma}{m}\,Q\,\max\!\left\{0,\log\frac{24D\sqrt m}{\varepsilon}\right\}.\] Lean explicitly rewrites the normalized logarithm argument, applies the positive-rate ceiling estimate, and uses the proved reciprocal identity. In an application \(D\) is the initial Wasserstein discrepancy. This scalar upper bound does not discard any term from the separate full-tail sampler theorem.
+
+
+
+\noindent Lean declarations: \texttt{firstOrderIterationCount\_lt}, \texttt{secondOrderTailFree\_iterationCount\_lt}.
+
+\section{Check the friction choice directly}
+
+
+At fixed positive step and nonnegative initial error, increasing positive friction decreases \(mh/(4\gamma)\), hence increases the geometric factor \((1-mh/(4\gamma))^n\). Lean proves the reciprocal inequality for the two friction values, uses the lower-friction stability condition to keep the base nonnegative, and applies monotonicity of a natural power. Thus the transient upper bound is smallest at the smallest admissible friction. For the explicit minimum prescription, increasing friction decreases its stability branch \(m/(5\gamma M)\), while leaving the cutoff and bias branches unchanged; the chosen step can only decrease. This proves the two concrete monotonicity statements behind the manuscript's choice of the least permitted \(\gamma\).
+
+
+
+\noindent Lean declarations: \texttt{secondOrderTailFreeStep\_antitone\_friction}, \texttt{secondOrder\_transient\_monotone\_friction}.
+
+\section{Bound the actual rounded count by the corrected physical condition numbers}
+
+
+The final corollary applies to the very natural-number count selected by the explicit step \(h_0\), with \(\gamma=\sqrt{m+M}\). Assume \(m>0\), \(m\le M\), \(M_2>0\), \(p\ge1\), and \(\varepsilon>0\). Write \(\kappa=M/m\), \(\kappa_2=(M_2^{2/3}+Mp^{-1/3})/m\), and \(R=\max(\kappa,\kappa_2)\). The proved integer-count bound becomes \[N\!\left(\frac{mh_0}{4\sqrt{m+M}},D,\frac{\varepsilon}{\sqrt m}\right)<1+64\left[\sqrt p\,R^2+\sqrt{p/\varepsilon}\,R^{5/4}\right]\max\!\left\{0,\log\frac{24D\sqrt m}{\varepsilon}\right\}.\] Lean first uses the exact ceiling-count theorem. It rewrites the work prefactor through the normalization identity, then invokes \texttt{secondOrderNormalizedWork\_physical\_bound}, whose hypotheses follow from these physical parameters. Multiplication by the nonnegative maximum-logarithm preserves that upper bound. This assembles the explicit step, the rounded integer count, and the corrected condition-number refinement into one theorem; it does not assume a comparison between the two condition numbers.
+
+
+
+\noindent Lean declarations: \texttt{secondOrderTailFree\_iterationCount\_conditionNumber}.
+
+\end{document}
