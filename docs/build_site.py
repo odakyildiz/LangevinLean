@@ -17,6 +17,7 @@ from pathlib import Path
 import re
 from html.parser import HTMLParser
 from references import REFERENCE_CSS, reference_notice
+from theme import theme_head, theme_control
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
@@ -113,10 +114,12 @@ def shell(page, title, body, active=None):
             f'<link rel="stylesheet" href="{relative("docs/assets/katex.css",page)}">'
             f'<link rel="stylesheet" href="{relative("docs/assets/site.css",page)}">'
             f'<link rel="stylesheet" href="{relative("docs/assets/references.css",page)}">'
-            f'<script defer src="{relative("docs/assets/site.js",page)}"></script></head><body>'
+            + theme_head(relative("docs/assets/theme.css", page), relative("docs/assets/theme.js", page)) +
+            f'<script defer src="{relative("docs/assets/site.js",page)}"></script>'
+            f'<script defer src="{relative("docs/assets/diagrams.js",page)}"></script></head><body data-theme-family="modern">'
             '<a class="skip" href="#main">Skip to content</a><header class="site-nav">'
             f'<a class="brand" href="{relative("index.html",page)}">LangevinLean</a>'
-            f'<nav aria-label="Main navigation">{nav}</nav></header>'
+            f'<nav aria-label="Main navigation">{nav}</nav>' + theme_control() + '</header>'
             f'<main class="container" id="main">{body}'
             '<footer class="footer"><div>'
             f'<a href="{relative("index.html",page)}">Project home</a>'
@@ -198,45 +201,47 @@ def resolve_prose(text, path, page):
 
 
 def proof_diagram(nodes, page, math, label="Proof workflow"):
-    """Explicit logical graph, with source-checked HTML destinations."""
-    row_height, box_height = 148, 112
-    width, height = 960, (max(n['row'] for n in nodes) + 1) * row_height + 12
-    coords = {n['id']: (n['col'] * 316 + 12, n['row'] * row_height + 12) for n in nodes}
-    parts = [f'<div class="diagram"><svg viewBox="0 0 {width} {height}" role="group" aria-label="{E(label)}">',
-             f'<title>{E(label)}</title><desc>Follow the arrows. Every box opens an HTML proof page with mathematics and exact Lean.</desc>',
-             '<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9aafa4"/></marker></defs>']
-    lane_counts = {}
-    for node in nodes:
-        x, y = coords[node['id']]
-        for parent in node.get('parents', []):
-            px, py = coords[parent]
-            lane = lane_counts.get(py,0)
-            lane_counts[py] = lane+1
-            middle = py+box_height+8+3*(lane%6)
-            if py == y:
-                # A same-row dependency travels through the gap, never through
-                # the body of either box (proximal → Moreau calculus).
-                route = f'M {px+290} {py+box_height/2:g} H {x}' if px<x else f'M {px} {py+box_height/2:g} H {x+290}'
-            elif y-py == row_height:
-                route = f'M {px+145} {py+box_height} V {middle} H {x+145} V {y}'
-            else:
-                # Dependencies that skip a layer use the outside gutter.
-                gutter = 944+4*(lane%3)
-                route = f'M {px+145} {py+box_height} V {middle} H {gutter} V {y-12-4*(lane%4)} H {x+145} V {y}'
-            parts.append(f'<path class="edge" marker-end="url(#arrow)" d="{route}"/>')
-    for node in nodes:
-        x, y = coords[node['id']]
+    """A responsive logical graph whose typeset labels stay in native HTML.
+
+    SVG foreignObject mispositions KaTeX in some iOS/WebKit versions. Native
+    cards also let text grow with the user's font size; linked prerequisite
+    numbers preserve every edge when the three-column graph becomes a list.
+    """
+    ordered = sorted(nodes, key=lambda node: (node['row'], node['col']))
+    by_id = {node['id']: node for node in ordered}
+    numbers = {node['id']: i for i, node in enumerate(ordered, 1)}
+    prefix = 'diagram-' + hashlib.sha256((page + label).encode()).hexdigest()[:8]
+    if len(by_id) != len(nodes):
+        raise ValueError("Repeated proof diagram node")
+    parts = [f'<div class="diagram" data-proof-diagram role="group" aria-label="{E(label)}">',
+             '<p class="diagram-guide">Read from top to bottom. Each box opens its proof and Lean source. '
+             '“Uses” links identify the prerequisite steps.</p><ol class="diagram-grid" data-proof-grid>']
+    for node in ordered:
         path = node['file']
         if path not in inventory():
             raise ValueError(f"Unknown proof diagram module: {path}")
-        parts.append(f'<a class="box{" final" if node.get("final") else ""}" href="{relative(module_page(path),page)}" tabindex="0" aria-label="Read proof: {E(node["title"])}">'
-                     f'<rect x="{x}" y="{y}" width="290" height="{box_height}" rx="7"/>'
-                     f'<foreignObject x="{x+14}" y="{y+11}" width="262" height="90">'
-                     '<div xmlns="http://www.w3.org/1999/xhtml" class="diagram-node-label">'
-                     '<div class="diagram-node-title">'+math(E(node['title']))+'</div>'
-                     '<div class="diagram-node-detail">'+math(E(node['detail']))+'</div>'
-                     f'<div class="diagram-node-file">{E(Path(path).name)} →</div></div></foreignObject></a>')
-    return ''.join(parts) + '</svg></div>'
+        parents = node.get('parents', [])
+        if any(parent not in by_id for parent in parents):
+            raise ValueError(f"Unknown parent in proof diagram: {node['id']}")
+        dependencies = ''.join(
+            f'<a href="#{prefix}-{E(parent)}" title="{E(by_id[parent]["title"])}" '
+            f'aria-label="Uses step {numbers[parent]}: {E(by_id[parent]["title"])}">{numbers[parent]:02}</a>'
+            for parent in parents)
+        parts.append(
+            f'<li class="diagram-node{" final" if node.get("final") else ""}" '
+            f'id="{prefix}-{E(node["id"])}" data-node="{E(node["id"])}" '
+            f'data-parents="{E(" ".join(parents))}" '
+            f'style="--diagram-row:{node["row"]+1};--diagram-col:{node["col"]+1}">'
+            + f'<a class="box" href="{relative(module_page(path),page)}" '
+            f'aria-label="Read proof: {E(node["title"])}">'
+            '<div class="diagram-node-label">'
+            f'<div class="diagram-node-step">Step {numbers[node["id"]]:02}</div>'
+            '<div class="diagram-node-title">'+math(E(node['title']))+'</div>'
+            '<div class="diagram-node-detail">'+math(E(node['detail']))+'</div>'
+            f'<div class="diagram-node-file">{E(Path(path).name)} →</div></div></a>'
+            + (f'<div class="diagram-dependencies"><span>Uses</span>{dependencies}</div>' if parents else '')
+            + '</li>')
+    return ''.join(parts) + '</ol></div>'
 
 
 def declaration_header(path, name, sources, parsed, page):
@@ -411,7 +416,8 @@ def main():
     outputs['index.html'] = project_document(notes)
     inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py',
               'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
-              'docs/assets/site.css','docs/assets/site.js']
+              'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
+              'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']
     inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']

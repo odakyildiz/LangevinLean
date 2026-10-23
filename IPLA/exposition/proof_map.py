@@ -180,6 +180,46 @@ def diagram_svg(sources, math):
     return math("\n".join(parts) + "\n</svg>")
 
 
+def diagram_html(math):
+    """Native HTML math remains readable and correctly positioned on iOS."""
+    ordered = sorted(NODES, key=lambda node: (node['y'], node['x']))
+    numbers = {node['id']: i for i, node in enumerate(ordered, 1)}
+    by_id = {node['id']: node for node in ordered}
+    rows = {y: i for i, y in enumerate(sorted({node['y'] for node in ordered}), 1)}
+    columns = {25: 1, 355: 2, 685: 3}
+    parts = ['<ol class="proof-card-grid" data-proof-grid>']
+    for node in ordered:
+        parents = [start for start, end, _ in EDGES if end == node['id']]
+        href = posixpath.relpath('docs/modules/' + node['file'].removesuffix('.lean') + '.html', 'IPLA/exposition')
+        parts.append(
+            f'<li class="proof-card {node["kind"]}" id="proof-step-{node["id"]}" '
+            f'data-node="{node["id"]}" data-parents="{" ".join(parents)}" '
+            f'style="--proof-row:{rows[node["y"]]};--proof-col:{columns[node["x"]]}">'
+            + f'<a class="proof-node" href="{html.escape(href, quote=True)}" '
+            f'data-declaration="{html.escape(node["declaration"], quote=True)}" '
+            f'aria-label="{html.escape(node["title"] + ". Open " + node["file"], quote=True)}">'
+            '<div class="proof-node-label">'
+            f'<div class="node-step">Step {numbers[node["id"]]:02}</div>'
+            f'<div class="node-title">{math(html.escape(node["title"]))}</div>'
+            f'<div class="node-detail">{math(html.escape(node["detail"]))}</div>'
+            f'<div class="node-file">{html.escape(Path(node["file"]).name)} ↗</div></div></a>')
+        if parents:
+            parts.append('<div class="proof-card-parents"><span>Uses</span>')
+            for parent in parents:
+                title = html.escape(by_id[parent]['title'], quote=True)
+                parts.append(f'<a href="#proof-step-{parent}" title="{title}" '
+                             f'aria-label="Uses step {numbers[parent]}: {title}">{numbers[parent]:02}</a>')
+            parts.append('</div>')
+        parts.append('</li>')
+    return ''.join(parts) + '</ol>'
+
+
+def diagram_script():
+    # Keep the archived document self-contained, including local file:// use.
+    script = (Path(__file__).resolve().parents[2] / 'docs/assets/diagrams.js').read_text()
+    return '<script>' + script + '</script>'
+
+
 def proof_map_section(sources, math, katex_styles):
     svg = diagram_svg(sources, math)
     # Embed fonts in the downloadable SVG as well as in the enclosing HTML.
@@ -216,10 +256,11 @@ def proof_map_section(sources, math, katex_styles):
         '<div class="proof-legend"><span class="legend-ipla">IPLA geometry and laws</span>'
         '<span class="legend-ula">Shared ULA</span>'
         '<span class="legend-concentration">Parameter concentration</span></div>'
-        '<figure class="proof-figure"><div class="proof-scroll" tabindex="0" '
-        'aria-label="Scrollable, linked proof diagram">' + svg +
+        '<figure class="proof-figure"><div class="proof-scroll" data-proof-diagram role="group" '
+        'aria-label="Linked proof diagram">' + diagram_html(math) +
         '</div><figcaption>Boxes open the mathematical proof and Lean declarations; '
-        'each proof page also links the .lean file. On narrow screens, scroll the diagram horizontally. '
+        'each proof page also links the .lean file. The diagram reflows on smaller screens; '
+        '“Uses” links identify the exact prerequisite steps. '
         '<a href="proof-map.svg" target="_blank" rel="noopener">Open the SVG diagram</a>.'
         '</figcaption></figure>'
         '<p class="proof-support"><strong>Supporting files:</strong> ' + extra_links + '.</p>'
@@ -228,7 +269,7 @@ def proof_map_section(sources, math, katex_styles):
         'continuous solution. Generator integration is documented separately below.</p>'
         '<details id="lean-files" class="source-library"><summary>Browse all ' +
         str(len(sources)) + ' Lean source files</summary><div class="source-groups">' +
-        ''.join(catalog) + '</div></details></section>'
+        ''.join(catalog) + '</div></details></section>' + diagram_script()
     )
 
 
@@ -240,7 +281,29 @@ def page_css():
 .legend-ula{background:#edf7fa;border-color:#82aebc!important}
 .legend-concentration{background:#f6f0fc;border-color:#ad94c1!important}
 .proof-figure{margin:0;border:1px solid #dce4e8;border-radius:12px;background:#fbfdfe;overflow:hidden}
-.proof-scroll{overflow-x:auto;padding:15px}
+.proof-scroll{position:relative;isolation:isolate;padding:20px;min-width:0}
+.proof-card-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 20px;list-style:none;padding:0;margin:0}
+.proof-card{position:relative;grid-row:var(--proof-row);grid-column:var(--proof-col);min-width:0;display:flex;flex-direction:column;border:1px solid var(--diagram-line,#b7c6ce);border-radius:9px;background:var(--diagram-node-bg,#fff);scroll-margin-top:24px}
+.proof-card>.proof-node{display:block;flex:1;min-width:0;padding:16px;color:var(--diagram-node-ink,#18313f);text-decoration:none;border-radius:8px}
+.proof-card>.proof-node:hover{background:var(--wash,#edf7fa)}
+.proof-card .proof-node-label{display:flex;flex-direction:column;gap:9px;font:14px/1.5 system-ui,sans-serif;min-width:0}
+.proof-card .node-step{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--diagram-muted,#4f6674)}
+.proof-card .node-title{font-weight:650;overflow-wrap:anywhere}
+.proof-card .node-detail{font-size:13px;line-height:1.6;color:var(--diagram-muted,#4f6674);overflow-wrap:anywhere}
+.proof-card .node-file{font:11px/1.5 ui-monospace,monospace;color:var(--accent,#006c7a);overflow-wrap:anywhere}
+.proof-card .katex{font-size:1em}
+.proof-card-parents{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:9px 16px;border-top:1px solid var(--diagram-line,#b7c6ce);font-size:11px;color:var(--diagram-muted,#4f6674)}
+.proof-card-parents a{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;border:1px solid var(--diagram-line,#b7c6ce);border-radius:4px;background:var(--diagram-node-bg,#fff);font-variant-numeric:tabular-nums;text-decoration:none}
+.proof-card.ipla{border-top:3px solid #86aa80}.proof-card.ula{border-top:3px solid #82aebc}.proof-card.concentration{border-top:3px solid #ad94c1}.proof-card.final{border:2px solid var(--accent,#006c7a);background:var(--wash,#edf7fa)}
+.proof-card:target{outline:3px solid var(--gold,#b47c30);outline-offset:4px}
+@media(max-width:1000px){.proof-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.proof-card{grid-row:auto;grid-column:auto}}
+@media(max-width:600px){.proof-card-grid{grid-template-columns:minmax(0,1fr)}.proof-card .proof-node-label{font-size:15px}.proof-card .node-detail{font-size:14px}.proof-card .node-file{font-size:12px}}
+@media(pointer:coarse){.proof-card-parents a{min-height:44px;min-width:44px}}
+.proof-scroll>.diagram-connectors{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+.proof-scroll .diagram-connector{fill:none;stroke:var(--diagram-muted,#63716b);stroke-width:1.6;stroke-linejoin:round;opacity:.9}
+.proof-scroll .diagram-arrowhead{fill:var(--diagram-muted,#63716b)}
+@media(max-width:600px){.proof-scroll>.diagram-connectors{display:none}}
+@media print{.proof-scroll>.diagram-connectors{display:none}}
 .proof-svg{display:block;width:100%;min-width:840px;height:auto}
 .proof-figure figcaption{padding:14px 20px;border-top:1px solid #dce4e8;color:#4f6674;font-size:13px}
 .proof-support{font-size:14px;line-height:1.9}
