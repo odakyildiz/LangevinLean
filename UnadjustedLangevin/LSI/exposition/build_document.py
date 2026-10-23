@@ -242,7 +242,10 @@ def build():
                    for name in ["chapters.json", "reference_audit.json",
                                 Path(os.path.relpath(style_path, HERE)).as_posix(),
                                 Path(os.path.relpath(script_path, HERE)).as_posix(),
-                                Path(os.path.relpath(ROOT / "docs/references.py", HERE)).as_posix()]},
+                                Path(os.path.relpath(ROOT / "docs/references.py", HERE)).as_posix(),
+                                Path(os.path.relpath(ROOT / "docs/theme.py", HERE)).as_posix(),
+                                Path(os.path.relpath(ROOT / "docs/assets/theme.css", HERE)).as_posix(),
+                                Path(os.path.relpath(ROOT / "docs/assets/theme.js", HERE)).as_posix()]},
     }
     embedded = json.dumps(sources, ensure_ascii=False).replace('<', '\\u003c').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
     page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
@@ -251,9 +254,9 @@ def build():
             '<title>' + html.escape(title) + '</title>'
             '<meta name="description" content="' + html.escape(description, quote=True) + '">'
             '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() +
-            SHARED.REFERENCES.REFERENCE_CSS + '</style></head>'
-            '<body data-mode="paired"><header class="running-head"><a href="' + relative('index.html') + '">'
-            'LangevinLean</a><div class="controls"><label for="reading-mode">Read </label>'
+            SHARED.REFERENCES.REFERENCE_CSS + '</style>' + SHARED.THEME.theme_head() + '</head>'
+            '<body data-mode="paired" data-theme-family="lsi"><header class="running-head"><a href="' + relative('index.html') + '">'
+            'LangevinLean</a><div class="controls">' + SHARED.THEME.theme_control() + '<label for="reading-mode">Read </label>'
             '<select id="reading-mode"><option value="paired">Mathematics + Lean</option>'
             '<option value="math">Mathematics only</option></select>'
             '<button type="button" id="toggle-proofs" aria-expanded="true">Fold Lean proofs</button>'

@@ -24,7 +24,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { chromium } = require('playwright');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(process.env.BROWSER_QA_ROOT || path.join(__dirname, '..'));
 const LIBRARIES = [
   { key: 'UnadjustedLangevin', label: 'ula', search: 'CanonicalULA.lean',
     legacy: 'UnadjustedLangevin/exposition/dist/index.html',
@@ -229,7 +229,7 @@ async function mathematicalPage(page, item) {
     check(await page.locator('#main-results .lean-code[data-role="statement"]').count() > 0,
       'Expected source-derived main theorem headers');
     check(await page.locator('#verification .commands').count() > 0, 'Expected a verification workflow');
-    check(await page.locator('#proof-map svg a.box').count() > 0, 'Expected navigable proof diagram boxes');
+    check(await page.locator('#proof-map a.box').count() > 0, 'Expected navigable proof diagram boxes');
     await diagramTypesetting(page, '#proof-map', '.diagram-node-label');
   }
 }
@@ -285,7 +285,7 @@ async function searchModules(page, item) {
 }
 
 async function diagramNavigation(page, item) {
-  const box = page.locator('#proof-map svg a.box').first();
+  const box = page.locator('#proof-map a.box').first();
   const target = await box.getAttribute('href');
   check(target.endsWith('.html'), 'Diagram destination is an HTML proof page', target);
   await box.click();

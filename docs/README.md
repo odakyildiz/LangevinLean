@@ -143,6 +143,7 @@ Optional browser QA, with Playwright and Chromium or Google Chrome installed:
 ```sh
 node docs/verify_browser.cjs
 node docs/verify_copy.cjs
+node docs/verify_theme.cjs
 ```
 
 It checks all seven overviews and representative module proofs at desktop,
@@ -154,6 +155,21 @@ The separate copy check compares clipboard payloads against the Lean sources and
 checks Unicode, indentation, local files, clipboard rejection fallbacks, and
 focus and selection restoration. Its clipboard stubs leave the system clipboard
 untouched.
+
+Proof diagrams use native HTML cards so equations retain their normal typesetting
+on phones and tablets. Cards reflow into two columns and then one column.
+A separate SVG layer draws only dependency paths and adapts when cards resize;
+all labels and equations stay in HTML. On phones, numbered “Uses” links replace
+the connecting paths and identify each exact prerequisite. The separate
+downloadable SVG remains available.
+
+Every page and archived exposition offers a Theme selector. System follows the
+device's light/dark preference, including changes while a page is open. Light and
+Dark override it and persist in local storage across pages; selecting System
+restores automatic behavior. If storage is unavailable, the selector still works
+for the current page. Archives embed the shared theme assets for offline use.
+The theme browser check covers these behaviors, label contrast and clipping at
+phone, tablet and desktop widths, local files, source dialogs, and print styling.
 
 Open `../index.html` directly, or serve the repository root with
 `python3 -m http.server 8000 --bind 127.0.0.1`. Pages, mathematics, fonts, source

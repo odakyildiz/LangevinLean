@@ -16,6 +16,10 @@ REFERENCE_SPEC = importlib.util.spec_from_file_location(
     "langevin_references", ROOT / "docs/references.py")
 REFERENCES = importlib.util.module_from_spec(REFERENCE_SPEC)
 REFERENCE_SPEC.loader.exec_module(REFERENCES)
+THEME_SPEC = importlib.util.spec_from_file_location(
+    "langevin_theme", ROOT / "docs/theme.py")
+THEME = importlib.util.module_from_spec(THEME_SPEC)
+THEME_SPEC.loader.exec_module(THEME)
 OUT = HERE / "dist" / "index.html"
 VENDOR = HERE / "vendor" / "katex"
 TEMPLATES = HERE / "templates"
@@ -274,7 +278,8 @@ def write_entry_points():
                 '<title>Open the Langevin proof document</title>'
                 f'<meta http-equiv="refresh" content="0;url={url}">'
                 '<style>body{max-width:42rem;margin:4rem auto;padding:0 1.25rem;font:18px/1.7 Georgia,serif}a{color:#38604c}</style>'
-                '</head><body><p>The proof document is ready.</p>'
+                + THEME.theme_head() + '</head><body data-theme-family="ula">' + THEME.theme_control() +
+                '<p>The proof document is ready.</p>'
                 f'<p><a href="{url}">Open the fully rendered Langevin proof document</a>.</p>'
                 '</body></html>\n')
         (HERE/name).write_text(page)
@@ -360,9 +365,11 @@ def build():
     embedded = json.dumps(sources,ensure_ascii=False).replace("<","\\u003c").replace("\u2028","\\u2028").replace("\u2029","\\u2029")
     manifest = dict(format=2,declarations=decl_count,steps=step_count,
                     sources={p:hashlib.sha256(v.encode()).hexdigest() for p,v in sources.items()},
-                    inputs={"docs/references.py":hashlib.sha256((ROOT/"docs/references.py").read_bytes()).hexdigest()})
-    page = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>The unadjusted Langevin algorithm — a proof with Lean</title><meta name="description" content="A sequential mathematical proof with exact Lean source beside every step."><style>'+katex_css()+'\n'+(HERE/"document.css").read_text()+REFERENCES.REFERENCE_CSS+'</style></head><body>'
-    page += '<header class="running-head"><div class="running-title"><a href="../../../index.html">Project home</a> / <a href="../index.html">ULA overview</a> / <a href="#main-theorem">Main theorem</a> / <span id="current-section">A sequential proof</span></div><div class="controls"><label><span>Read</span><select id="reading-mode" aria-label="Reading mode"><option value="paired">Mathematics + Lean</option><option value="math">Mathematics only</option></select></label><button type="button" id="toggle-notes" aria-expanded="false">Open Lean notes</button><button type="button" id="toggle-full" aria-expanded="true">Fold full proofs</button><button type="button" id="print-document">Print</button></div><div class="progress" id="reading-progress" aria-hidden="true"></div></header>'
+                    inputs={path:hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
+                            for path in ["docs/references.py", "docs/theme.py",
+                                         "docs/assets/theme.css", "docs/assets/theme.js"]})
+    page = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>The unadjusted Langevin algorithm — a proof with Lean</title><meta name="description" content="A sequential mathematical proof with exact Lean source beside every step."><style>'+katex_css()+'\n'+(HERE/"document.css").read_text()+REFERENCES.REFERENCE_CSS+'</style>'+THEME.theme_head()+'</head><body data-theme-family="ula">'
+    page += '<header class="running-head"><div class="running-title"><a href="../../../index.html">Project home</a> / <a href="../index.html">ULA overview</a> / <a href="#main-theorem">Main theorem</a> / <span id="current-section">A sequential proof</span></div><div class="controls">'+THEME.theme_control()+'<label><span>Read</span><select id="reading-mode" aria-label="Reading mode"><option value="paired">Mathematics + Lean</option><option value="math">Mathematics only</option></select></label><button type="button" id="toggle-notes" aria-expanded="false">Open Lean notes</button><button type="button" id="toggle-full" aria-expanded="true">Fold full proofs</button><button type="button" id="print-document">Print</button></div><div class="progress" id="reading-progress" aria-hidden="true"></div></header>'
     page += '<main id="top"><header class="title-page">'+math(INTRO)+REFERENCES.reference_notice("UnadjustedLangevin")+main_overview+math(READING_NOTE)+math(guide)+'<details class="contents" open><summary>Contents</summary><p><a href="#main-theorem">Main theorem and proof roadmap</a></p><ol>'+"".join(toc)+'<li><a href="#complete-sources">Complete sources</a></li></ol></details></header>'+"".join(chapters)+math(CLOSING)+appendix+'</main><div class="status" id="status" role="status" aria-live="polite"></div>'
     page += '<script type="application/json" id="lean-sources">'+embedded+'</script><script type="application/json" id="source-manifest">'+json.dumps(manifest,ensure_ascii=False)+'</script><script>'+(HERE/"document.js").read_text()+'</script></body></html>\n'
     OUT.parent.mkdir(parents=True,exist_ok=True)
