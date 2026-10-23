@@ -8,12 +8,6 @@ from html import escape
 
 
 PAPERS = {
-    "average-lmc": dict(
-        authors="Arnak S. Dalalyan and Avetik Karagulyan", year="undated manuscript",
-        title="Improved Guarantees for Langevin Monte Carlo with Average Smoothness",
-        venue="Supplied Arxiv_version_May_26.tex; publication status not established",
-        url="https://github.com/odakyildiz/LangevinLean/blob/b42a1459e2e8f19f3135893291699bcb9d6b6235/papers/Average_LMC/Arxiv_version_May_26.tex",
-        links=[]),
     "monmarche-obabo": dict(
         authors="Pierre Monmarché", year="2021",
         title="High-dimensional MCMC with a standard splitting scheme for the underdamped Langevin diffusion",
@@ -66,11 +60,6 @@ PAPERS = {
 
 
 DEVELOPMENTS = {
-    "AverageLMC": dict(
-        label="Supplied manuscript; checked sampling proofs and separate source mistakes",
-        status="corrected", papers=["average-lmc"],
-        scope="The exact supplied manuscript is the correspondence authority. Its main average-smoothness LMC, decreasing-step, Laplacian-smooth LMC and fixed-point control-variate SGLD statements are proved for actual Gaussian sampling laws with the source constants. Extended transport endpoints cover arbitrary probability initializations. The Laplacian proof uses exactly C3 regularity and the gradient-of-Laplacian condition. Verified counterexamples to the false Gaussian-design proposition, its empirical fourth-moment event and an intermediate SGLD transient comparison have separate pages linked from the top of the overview. The complete source inventory distinguishes this main-theorem review scope from broader auxiliary statements not reproduced in full standalone generality; literal full-paper proof coverage is not claimed.",
-        card="Actual average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds, with separate checked counterexamples to manuscript mistakes."),
     "KineticLangevin": dict(
         label="Published source; corrected checked proofs", status="corrected",
         papers=["dalalyan-riou-durand"],

@@ -21,7 +21,7 @@ from theme import theme_head, theme_control
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
-LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC", "AverageLMC"]
+LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC"]
 SPEC = importlib.util.spec_from_file_location("proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
@@ -309,29 +309,6 @@ def commands(value, identifier, label="Copy commands"):
             f'<pre class="commands"><code id="{identifier}">{E(value)}</code></pre>')
 
 
-def supplement_document(page, config, sources, parsed, math):
-    """Source corrections use the same paired mathematics and Lean template."""
-    library = config['library']
-    body = (f'<header class="hero"><div class="eyebrow">{E(config["label"])}</div>'
-            f'<h1>{E(config["title"])}</h1>' + reference_notice(library) +
-            math(config['intro']) + '</header>' + toolbar())
-    for index, section in enumerate(config['sections'], 1):
-        body += (f'<section class="section" id="section-{index}"><h2>{E(section["title"])}</h2>'
-                 '<div class="pair"><div class="math-pane">' + math(section['body']) +
-                 '</div><div class="lean-pane">')
-        for reference in section.get('references', []):
-            path, name = reference['file'], reference['name']
-            decl = parsed[path][name]
-            body += code(path, decl['start'], decl['end'], sources, page,
-                         name=name, identifier=anchor(name))
-            body += (f'<p><a href="{relative(module_page(path),page)}#{anchor(name)}">'
-                     'Complete module proof and commentary →</a></p>')
-        body += '</div></div></section>'
-    body += (f'<p><a href="{relative(library+"/exposition/index.html",page)}">'
-             'Return to the main theorem overview</a></p>')
-    return shell(page, config['title'], body, library)
-
-
 class LatexProse(HTMLParser):
     """Translate the small prose HTML vocabulary; preserve TeX math verbatim."""
     def __init__(self):
@@ -414,15 +391,12 @@ def main():
     args = parser.parse_args()
     sources, parsed, notes = load()
     from site_content import CONFIG, home_document, project_document
-    from average_content import AVERAGE_PAGES
     prose = [note['summary'] for note in notes.values()]
     prose += [step['body'] for note in notes.values() for step in note['steps']]
     prose += [result['body'] for config in CONFIG.values() for result in config['results']]
     prose += [part['body'] for config in CONFIG.values() for part in config.get('proof', [])]
     prose += [node[key] for config in CONFIG.values() for node in config['diagram']
               for key in ('title', 'detail')]
-    prose += [page['intro'] for page in AVERAGE_PAGES.values()]
-    prose += [section['body'] for page in AVERAGE_PAGES.values() for section in page['sections']]
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css(), 'docs/assets/references.css':REFERENCE_CSS}
     for path,note in notes.items():
@@ -440,13 +414,11 @@ def main():
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
             outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
     outputs['index.html'] = project_document(notes)
-    for page, config in AVERAGE_PAGES.items():
-        outputs[page] = supplement_document(page, config, sources, parsed, math)
     inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py',
-              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/references.py',
+              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']
-    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC', 'AverageLMC')]
+    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += ['UnadjustedLangevin/exposition/build_document.py']
