@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`fe920b06b23863e637b9d0e5bb2b27cd7a9ae4f1`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`b967a171ff4977e85b2a8493c9d7e5bfb1d087c6`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -26,3 +26,8 @@ branch. Before publishing, `git ls-files papers` must return no files.
 The kinetic Langevin and KIPLMC pages were approved for publication on
 23 October 2026 with their documented source corrections and scope qualifications.
 The local proof suite and 131 browser cases passed before publication.
+
+The responsive diagram and automatic theme update was checked locally on
+23 October 2026: 167 theme/layout cases, 65 connector and live-resize cases,
+131 existing browser cases, and 49 code-copy cases passed. All documentation
+checks passed. This update changes no Lean sources.
