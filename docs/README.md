@@ -129,9 +129,9 @@ checks. The repository contains no GitHub Actions workflows.
 All generated HTML carries `noindex, nofollow, noarchive` metadata, including
 module pages and archived expositions. Publication uses the existing `gh-pages`
 branch with `.nojekyll`; generation and verification run locally.
-The current two-paper review is pushed only to `main`; publication on `gh-pages`
-waits for the repository owner's approval. The `papers/` directory stays on
-`main` and must be excluded from every publication. Use
+The repository owner approved publication of the reviewed kinetic and KIPLMC
+pages with their documented scope qualifications on 23 October 2026. The `papers/`
+directory stays on `main` and must be excluded from every publication. Use
 `python3 scripts/prepare-publication.py /tmp/langevin-publication-review` after
 verification and committing the review snapshot. It exports committed files to
 a new directory, excludes `papers/`, and never changes a branch or publishes.
