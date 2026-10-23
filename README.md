@@ -197,9 +197,9 @@ The repository has no GitHub Actions workflow files. Keep verification local
 to avoid paid hosted-runner use; do not add remote build, release, or dependency
 update workflows without an explicit request.
 
-Develop and review on `main`. This two-paper review is pushed only to `main`;
-updating `gh-pages` requires the repository owner's publication approval.
-After that approval, publish a locally verified snapshot to `gh-pages` at
+Develop and review on `main`. The repository owner approved publication of the
+reviewed kinetic Langevin and KIPLMC pages with their documented scope
+qualifications on 23 October 2026. Publish locally verified snapshots to `gh-pages` at
 `/ (root)`, retaining `noindex, nofollow, noarchive` metadata on every HTML page,
 the publication's `robots.txt`, and `.nojekyll`. [index.html](index.html) is the
 entry point. GitHub Pages handles serving the already generated static files;
@@ -214,7 +214,8 @@ python3 scripts/prepare-publication.py /tmp/langevin-publication-review
 ```
 
 This exports committed files with `papers/` excluded. It never changes a branch
-or publishes a site. The new kinetic pages remain unpublished pending review.
+or publishes a site. Publication retains the documented initialization, dimension,
+continuous-model, and full-paper coverage qualifications.
 
 ## Regenerate and verify documentation
 
