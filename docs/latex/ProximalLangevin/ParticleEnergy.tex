@@ -1,22 +1,23 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Jensen repairs the averaged pairwise energy}{Jensen repairs the averaged pairwise energy}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Proximal\allowbreak{}Langevin/\allowbreak{}Particle\allowbreak{}Energy.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-The scaled state is \(z=(\theta,x_1/\sqrt N,\ldots,x_N/\sqrt N)\), with \(N>0\), and \(J_i z=(\theta,x_i)\). The actual algorithm averages proximal parameter outputs; this module proves its energy inequality directly.
+The common parameter is averaged after independent pairwise proximal calculations. This averaging is generally different from minimizing one shared-state proximal objective. The valid lifted energy estimate is obtained by Jensen's inequality for the parameter output, exact scaling of latent output squares, and a sum of genuine single-pair energy inequalities.
+
 
 
 \section{\texorpdfstring{Averaging squares in the shared parameter}{Averaging squares in the shared parameter}}
@@ -25,36 +26,16 @@ The scaled state is \(z=(\theta,x_1/\sqrt N,\ldots,x_N/\sqrt N)\), with \(N>0\),
 Cauchy–Schwarz for finite sums gives \(N(N^{-1}\sum_i b_i)^2\le\sum_i b_i^2\). Apply it separately to each parameter coordinate of the pairwise outputs. Each latent block instead satisfies an exact equality after multiplying by \(N\), since \((\sqrt N)^2=N\). Summing all coordinates yields
 
 \[\|\operatorname{Pair}_P(z)-a\|^2\le\frac1N\sum_i\|P(J_i z)-J_i a\|^2.\]
-
-
-The first declaration is the scalar Jensen inequality \(N\bar b^2\le\sum_i b_i^2\), with \(\bar b=N^{-1}\sum_i b_i\). It follows by multiplying the average-of-squares inequality by positive \(N\); \texttt{hn} supplies exactly that sign and the nonzero denominator.
-
-
-
-For the state-space comparison, write \(p_i=P(A_i z)\), with \(A_i z=(\theta,\sqrt N z_i)\), and let the comparison state be \(a\). In parameter coordinate \(j\), the discrepancy is the average of \(p_{i,\theta,j}-a_{\theta,j}\), since the common comparison parameter is the same for every pair. The local identity \texttt{hid} inside \texttt{h\ensuremath{\theta}} moves that constant through the average, and scalar Jensen gives
-
 \[N\left|\frac1N\sum_i p_{i,\theta,j}-a_{\theta,j}\right|^2\le\sum_i|p_{i,\theta,j}-a_{\theta,j}|^2.\]
 
 For particle coordinate \((i,j)\), unscaling instead gives the exact identity
 
 \[N|N^{-1/2}p_{i,x,j}-a_{i,j}|^2=|p_{i,x,j}-\sqrt N a_{i,j}|^2.\]
 
-This is \texttt{hx}, using \((\sqrt N)^2=N\). Expand the two Euclidean squared norms into finite coordinate sums, exchange the parameter and particle summations, and add the parameter inequalities to the exact latent identities. The result is \(N\|\operatorname{pairwiseMap}P(z)-a\|^2\le\sum_i\|p_i-A_i a\|^2\); division by \(N>0\) proves the displayed bound. No convexity or proximal property of \(P\) is used at this geometric stage.
 
 
+For vectors \(b_i\), Jensen says \(\|N^{-1}\sum_i b_i\|^2\le N^{-1}\sum_i\|b_i\|^2\). Here \(b_i\) is the parameter component of the \(i\)-th output minus the common comparator parameter. Each latent component instead contributes exactly \(N^{-1}\|p_{i,x}-\sqrt N a_i\|^2\). Adding both blocks gives the displayed inequality for completely arbitrary pair maps, independently of their convex or proximal properties.
 
-
-\textbf{Correspondence with the displayed declarations.}
-
-
-\begin{itemize}
-
-\item \texttt{average\_\allowbreak{}sq\_\allowbreak{}le}: Jensen's inequality for an average of real coordinates.
-\item \texttt{pairwise\allowbreak{}Map\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}le}: Squared distance of the actual averaged output is bounded by the average of the separate pairwise squared distances. This holds for every joint map.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{average\_\allowbreak{}sq\_\allowbreak{}le}, \texttt{pairwise\allowbreak{}Map\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}le}.\par}
 
 \section{\texorpdfstring{Sum genuine proximal energy inequalities}{Sum genuine proximal energy inequalities}}
 
@@ -95,15 +76,8 @@ Apply the preceding true proximal energy inequality separately at \(A_i z\), com
 
 
 
-\textbf{Correspondence with the displayed declarations.}
 
+After applying the single-pair inequality, the initial squared distances sum to \(N\|z-a\|^2\). The potential differences sum to \(N[G_2(z)-G_2(a)]\), and the squared subgradient bounds average to the stated forcing constant. Dividing by \(N>0\) therefore gives the required state estimate. The argument uses only a comparison inequality for the actual averaged output; it does not claim that this output solves a shared-parameter minimization problem.
 
-\begin{itemize}
-
-\item \texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}energy\_\allowbreak{}le}: The actual averaged pairwise proximal update satisfies the lifted energy estimate for the original nonsmooth potential. This proves the bridge needed in v3 Corollary A.13 directly, without a false \texttt{prox}-of-a-sum identity. The bound only needs one bounded subgradient at each pair input. In particular the paper's bound on the least-norm subgradient supplies this hypothesis whenever that minimal section is available.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}energy\_\allowbreak{}le}.\par}
 
 \end{document}

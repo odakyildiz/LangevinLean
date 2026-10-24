@@ -1,50 +1,57 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{The first-\allowbreak{}order scalar accumulation and its exact scope}{The first-order scalar accumulation and its exact scope}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Kinetic\allowbreak{}Langevin/\allowbreak{}Recurrence.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-The numerical accumulation part of the KLMC proof begins with an explicit one-step coupling inequality. This module derives the stable contraction coefficient and sums its affine recurrence, retaining the coupling inequality and reference velocity norm as visible hypotheses. It therefore checks the numerical implication without claiming the still-open Gibbs stationarity and actual Gaussian-chain Wasserstein endpoint.
+The numerical accumulation part of the KLMC proof begins with an explicit one-step coupling inequality. This section derives the stable contraction coefficient and sums its affine recurrence, retaining the coupling inequality and reference velocity norm as visible hypotheses. It therefore checks the numerical implication without claiming the still-open Gibbs stationarity and Gaussian-chain Wasserstein endpoint.
+
+
+
+The scalar proof explains the transition from a local quadratic error to a global linear bias. Its hypotheses retain the coupling-dependent part of the local error, which must be absorbed into contraction.
 
 
 \section{\texorpdfstring{Prove the one-\allowbreak{}sided exponential quadratic estimate}{Prove the one-sided exponential quadratic estimate}}
 
 
-For \(x\ge0\), let \(F(x)=1-x+x^2/2-e^{-x}\). Its derivative is \(-1+x+e^{-x}\), nonnegative because \(e^{-x}\ge1-x\). Therefore \(F\) is nondecreasing and \(F(x)\ge F(0)=0\), proving \(e^{-x}\le1-x+x^2/2\). Lean constructs the derivative through the polynomial and exponential derivative rules, proves its sign with \texttt{Real.\allowbreak{}add\_\allowbreak{}one\_\allowbreak{}le\_\allowbreak{}exp}, applies the derivative monotonicity criterion, and evaluates the zero endpoint. The estimate is proved analytically rather than introduced as an unchecked Taylor remainder.
+For \(x\ge0\), let \(F(x)=1-x+x^2/2-e^{-x}\). Its derivative is \(-1+x+e^{-x}\), nonnegative because \(e^{-x}\ge1-x\). Therefore \(F\) is nondecreasing and \(F(x)\ge F(0)=0\), proving \(e^{-x}\le1-x+x^2/2\). The argument constructs the derivative through the polynomial and exponential derivative rules, proves its sign with the inequality \(1+s\le e^s\), applies the derivative monotonicity criterion, and evaluates the zero endpoint. The estimate is proved analytically rather than introduced as an unchecked Taylor remainder.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}quadratic}.\par}
+The scalar estimate is applied only for a nonnegative step parameter. Its quadratic remainder quantifies how much the exact exponential contraction differs from its linear approximation. That remainder is later paid for using the small-step restriction, rather than silently discarded.
+
 
 \section{\texorpdfstring{Keep most of the exact-\allowbreak{}flow contraction after the local correction}{Keep most of the exact-flow contraction after the local correction}}
 
 
-Set \(r=m/\gamma\). Suppose \(r,M,h\ge0\), \(2r^2\le M\), and \(4Mh\le r\). The quadratic exponential estimate gives \(e^{-rh}+3Mh^2/4\le1-rh+r^2h^2/2+3Mh^2/4\). Since \(r^2/2\le M/4\), the positive correction is at most \(Mh^2\le rh/4\). Thus the total is at most \(1-3rh/4\). Lean multiplies the curvature and step inequalities by the nonnegative time powers and combines them with \texttt{nlinarith}. The next theorem derives both scalar conditions from \(m>0\), \(m\le M\), \(\gamma^2\ge m+M\) and \(4\gamma Mh\le m\), dividing only by positive \(\gamma\) or \(\gamma^2\).
+Set \(r=m/\gamma\). Suppose \(r,M,h\ge0\), \(2r^2\le M\), and \(4Mh\le r\). The quadratic exponential estimate gives \(e^{-rh}+3Mh^2/4\le1-rh+r^2h^2/2+3Mh^2/4\). Since \(r^2/2\le M/4\), the positive correction is at most \(Mh^2\le rh/4\). Thus the total is at most \(1-3rh/4\). The proof multiplies the curvature and step inequalities by the nonnegative time powers and combines them with elementary real inequalities. The next theorem derives both scalar conditions from \(m>0\), \(m\le M\), \(\gamma^2\ge m+M\) and \(4\gamma Mh\le m\), dividing only by positive \(\gamma\) or \(\gamma^2\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{first\allowbreak{}Order\_\allowbreak{}coefficient\_\allowbreak{}bound}, \texttt{kinetic\_\allowbreak{}scalar\_\allowbreak{}conditions}.\par}
+The local error contains a term proportional to the old coupling discrepancy as well as a stationary forcing term. The step restriction keeps the proportional correction small enough to retain a fixed fraction of the continuous contraction. Only the remaining stationary term contributes to the persistent bias.
+
 
 \section{\texorpdfstring{Sum the affine recurrence with the visible local-\allowbreak{}coupling premise}{Sum the affine recurrence with the visible local-coupling premise}}
 
 
-Assume nonnegative errors satisfy \(e_{n+1}\le e^{-rh}e_n+3Mh^2(C+e_n)/4\), with \(r,h>0\), \(C\ge0\), and the scalar restrictions above. Put \(q=1-3rh/4\). The coefficient bound and positivity of the exponential prove \(0\le q<1\), and multiplying that bound by \(e_n\ge0\) yields \(e_{n+1}\le qe_n+3Mh^2C/4\). The shared affine-recurrence theorem gives \(e_n\le q^ne_0+(3Mh^2C/4)/(1-q)\). Positive \(r,h\) permit denominator cancellation, leaving \(e_n\le q^ne_0+MhC/r\). Lean uses \texttt{field\_\allowbreak{}simp} and \texttt{ring} only for that final quotient. The one-step coupling inequality is an explicit assumption, so this result must not be presented as the full actual-law KLMC theorem.
+Assume nonnegative errors satisfy \(e_{n+1}\le e^{-rh}e_n+3Mh^2(C+e_n)/4\), with \(r,h>0\), \(C\ge0\), and the scalar restrictions above. Put \(q=1-3rh/4\). The coefficient bound and positivity of the exponential prove \(0\le q<1\), and multiplying that bound by \(e_n\ge0\) yields \(e_{n+1}\le qe_n+3Mh^2C/4\). The shared affine-recurrence theorem gives \(e_n\le q^ne_0+(3Mh^2C/4)/(1-q)\). Positive \(r,h\) permit denominator cancellation, leaving \(e_n\le q^ne_0+MhC/r\). The argument uses cancellation of nonzero denominators and expansion of the scalar polynomials only for that final quotient. The one-step coupling inequality is an explicit assumption, so this result must not be presented as the full actual-law KLMC theorem.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{first\allowbreak{}Order\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound}.\par}
+If \(A_{n+1}\le qA_n+b\) and \(0\le q<1\), induction gives \(A_n\le q^nA_0+b\sum_{j=0}^{n-1}q^j\). The sum is at most \((1-q)^{-1}\). A local defect of order \(h^2\) therefore produces a global floor of order \(h\).
+
 
 \section{\texorpdfstring{Restore the paper’s physical parameters and position coefficient}{Restore the paper’s physical parameters and position coefficient}}
 
@@ -53,10 +60,11 @@ Substitute \(r=m/\gamma\) into the scalar recurrence theorem. The derived scalar
 
 \[d_n\le\sqrt2(1-3mh/(4\gamma))^nd_0+Mh\sqrt2C/m.\]
 
-Lean explicitly proves the projection factor and contraction coefficient nonnegative before transporting inequalities, then uses \texttt{field\_\allowbreak{}simp} for the scalar cancellations. Setting \(C=\sqrt p\) matches the paper’s numerical expression. The local coupling, projection and initialization bounds remain explicit hypotheses on sequences; neither declaration identifies \(d_n\) with actual Wasserstein error or constructs a stationary reference.
+The argument explicitly proves the projection factor and contraction coefficient nonnegative before transporting inequalities, then uses cancellation of nonzero denominators for the scalar cancellations. Setting \(C=\sqrt p\) matches the paper’s numerical expression. The local coupling, projection and initialization bounds remain explicit hypotheses on sequences; neither theorem identifies \(d_n\) with Wasserstein error or constructs a stationary reference.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{kinetic\_\allowbreak{}first\allowbreak{}Order\_\allowbreak{}coupling\_\allowbreak{}bound}, \texttt{kinetic\_\allowbreak{}first\allowbreak{}Order\_\allowbreak{}projected\_\allowbreak{}bound}.\par}
+The physical substitution identifies the dimension-dependent stationary velocity radius and the curvature-dependent contraction gap. The transformed initial error contributes a factor \(\gamma\), while endpoint position projection contributes \(1/\gamma\). Their cancellation leaves the stated first-order position bias.
+
 
 \end{document}

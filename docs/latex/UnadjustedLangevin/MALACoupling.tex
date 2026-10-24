@@ -1,256 +1,286 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Couple ULA to an invariant Metropolis chain}{Couple ULA to an invariant Metropolis chain}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Unadjusted\allowbreak{}Langevin/\allowbreak{}MALACoupling.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
 A common Gaussian proposal couples unadjusted ULA with MALA. Under a stable small step, their expected distance grows by at most the Gibbs-average rejected displacement at each step. This is an auxiliary approximation for stationarity.
 
 
-\section{\texorpdfstring{mala\allowbreak{}Acceptance}{malaAcceptance}}
+
+Use the same Gaussian proposal noise for both coordinates and one uniform accept/\allowbreak{}reject variable for the corrected coordinate. If accepted, compare the two common-noise proposals; if rejected, compare the unadjusted proposal with the retained state. The discrepancy is bounded by the previous distance plus the rejected displacement. Integrating gives an affine cost estimate, and iterating accumulates the expected rejection correction. Every transition remains a probability law because acceptance and rejection weights are nonnegative and sum to one.
+
+
+\section{\texorpdfstring{The Metropolis acceptance function}{The Metropolis acceptance function}}
 
 
 Define \(a_h(x,y)=\min(1,e^{R_h(x,y)})\), with the proved target/\allowbreak{}proposal log ratio. The minimum caps acceptance at one and the exponential ensures nonnegativity; these bounds justify the accepted/\allowbreak{}rejected measure split.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Acceptance}.\par}
+Acceptance is a measurable weight in \([0,1]\), so the two alternatives define nonnegative masses. For a pair already favorable in the forward/\allowbreak{}reverse comparison, the exponential ratio is at least one and the move is accepted with full weight.
 
-\section{\texorpdfstring{mala\allowbreak{}Proposal\allowbreak{}Acceptance}{malaProposalAcceptance}}
+
+\section{\texorpdfstring{Acceptance of the Langevin proposal}{Acceptance of the Langevin proposal}}
 
 
 Compose \(a_h\) with \((x,\xi)\mapsto(x,T_h(x,\xi))\). The resulting \(a_h(x,T_h(x,\xi))\) is the acceptance weight on the original state/\allowbreak{}noise product space, prior to pushing to state/\allowbreak{}proposal pairs.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Proposal\allowbreak{}Acceptance}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Acceptance nonneg}{malaAcceptance nonneg}}
+Using the original innovation variable preserves the Gaussian product representation. This is useful when estimating rejection displacement: the state and Gaussian moments can be controlled before changing variables from innovations to proposed positions.
 
 
-Both entries of the minimum, one and the exponential, are nonnegative. Their minimum is nonnegative. This direct order proof is used when combining real weights through \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}.
+\section{\texorpdfstring{Nonnegativity of acceptance}{Nonnegativity of acceptance}}
+
+
+Both entries of the minimum, one and the exponential, are nonnegative. Their minimum is nonnegative. This direct order proof is used when combining real weights through a nonnegative scalar.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Acceptance\_\allowbreak{}nonneg}.\par}
+The lower bound remains valid when the log ratio is very negative: the exponential stays strictly positive even though it may be small. In combination with the upper bound, it guarantees that acceptance and rejection weights are both legitimate probabilities.
 
-\section{\texorpdfstring{mala\allowbreak{}Acceptance le one}{malaAcceptance le one}}
+
+\section{\texorpdfstring{Acceptance is at most one}{Acceptance is at most one}}
 
 
 The minimum \(\min(1,e^{R_h})\) is at most its first entry. This proves \(a_h\le1\), so the rejection weight \(1-a_h\) is nonnegative.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Acceptance\_\allowbreak{}le\_\allowbreak{}one}.\par}
+Together the two bounds yield \(a_h+(1-a_h)=1\). Therefore any mixture formed with these weights has the total mass of its input, including when its accepted part alone has mass strictly below one.
 
-\section{\texorpdfstring{mala\allowbreak{}Proposal measurable}{malaProposal measurable}}
+
+\section{\texorpdfstring{Measurability of the Gaussian proposal}{Measurability of the Gaussian proposal}}
 
 
 The gradient is continuous by Lipschitzness. Projections, scalar multiplication, subtraction, and addition preserve continuity, so the joint proposal map \((x,\xi)\mapsto x-h\nabla U(x)+\sqrt{2h}\xi\) is measurable.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Proposal\_\allowbreak{}measurable}.\par}
+Joint measurability, rather than measurability for each frozen state alone, is needed to push forward a state/\allowbreak{}innovation product measure. Continuity of the full formula supplies that joint property directly and avoids a separate kernel measurability assumption.
 
-\section{\texorpdfstring{mala\allowbreak{}Proposal\allowbreak{}Acceptance measurable}{malaProposalAcceptance measurable}}
+
+\section{\texorpdfstring{Measurability of proposal acceptance}{Measurability of proposal acceptance}}
 
 
 Differentiability makes \(U\) continuous, and Lipschitzness makes its gradient continuous. The log-ratio formula is assembled from continuous norms, inner products, and arithmetic; exponentiation and minimum preserve measurability. Composing with the measurable proposal gives the state/\allowbreak{}noise acceptance weight.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Proposal\allowbreak{}Acceptance\_\allowbreak{}measurable}.\par}
+The operation \(\min(1,\cdot)\) is continuous, as is the exponential. Their composition therefore preserves the regularity already obtained for the log ratio. No discontinuous indicator of an acceptance event is introduced in the weighted transition representation.
 
-\section{\texorpdfstring{ula\allowbreak{}Law\allowbreak{}Step}{ulaLawStep}}
+
+\section{\texorpdfstring{One Gaussian ULA transition}{One Gaussian ULA transition}}
 
 
 Define \(P_h\mu\) as the pushforward of \(\mu\otimes\gamma\) by the Euler proposal \(T_h\). The product measure encodes that the fresh Gaussian is independent of the current state. This transition is the actual independent-noise ULA step on laws.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{ula\allowbreak{}Law\allowbreak{}Step}.\par}
+For a bounded test \(f\), \(\int f\,d(P_h\mu)=\iint f(T_h(x,\xi))d\mu(x)d\gamma(\xi)\). This formula identifies exactly the usual fresh-Gaussian transition and is independent of any auxiliary coupling used to analyze its error.
 
-\section{\texorpdfstring{mala\allowbreak{}One\allowbreak{}Step}{malaOneStep}}
+
+\section{\texorpdfstring{One Metropolis-\allowbreak{}adjusted transition}{One Metropolis-adjusted transition}}
 
 
 Split \(\mu\otimes\gamma\) into acceptance- and rejection-weighted measures. Map the accepted part to \(T_h(x,\xi)\), and the rejected part to \(x\), then add them. This defines one full MALA transition with all rejection mass retained.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}One\allowbreak{}Step}.\par}
+The expectation formula is \(\iint[a_h f(T_h)+(1-a_h)f(x)]d\mu d\gamma\). It retains the full rejected mass at the original state. Consequently invariance can be proved through weighted pair symmetry, without adding an acceptance random variable to the notation.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step}{malaCoupledStep}}
+
+\section{\texorpdfstring{The common-\allowbreak{}noise coupled transition}{The common-noise coupled transition}}
 
 
 For a pair \((x,y)\), draw one shared Gaussian \(\xi\). ULA always moves to \(T_h(x,\xi)\); MALA moves to \(T_h(y,\xi)\) with weight \(a_h(y,T_h(y,\xi))\), otherwise stays at \(y\). The two weighted pushforwards define the explicit coupling measure.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step}.\par}
-
-\section{\texorpdfstring{weighted accept reject add}{weighted accept reject add}}
+On acceptance, the distance between outputs is controlled by contraction of the common-noise proposal. On rejection, insert and subtract the MALA proposal to separate the same contraction term from the distance lost by rejection. This is the origin of the one-step affine cost bound.
 
 
-For a measurable \(a\in[0,1]\), combine the two with-density measures using \(a+(1-a)=1\). Nonnegativity of both terms justifies the \texttt{of\allowbreak{}Real} addition identity, so their sum is exactly the original measure.
+\section{\texorpdfstring{Acceptance and rejection weights sum to one}{Acceptance and rejection weights sum to one}}
+
+
+For a measurable \(a\in[0,1]\), combine the two weighted-density measures using \(a+(1-a)=1\). Nonnegativity of both terms justifies the a nonnegative scalar addition identity, so their sum is exactly the original measure.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{weighted\_\allowbreak{}accept\_\allowbreak{}reject\_\allowbreak{}add}.\par}
+This identity can be tested against any nonnegative function, not just the constant one. It will therefore be used both to prove total mass and to combine two weighted expectations into the unweighted proposal contribution in the cost calculation.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step fst}{malaCoupledStep fst}}
+
+\section{\texorpdfstring{The first marginal of the coupled transition}{The first marginal of the coupled transition}}
 
 
 The first-coordinate update is identical on acceptance and rejection. Combine those two weights to one before pushing forward. The remaining product marginal is the original first marginal times a fresh Gaussian, so the first output law is \(P_h(\operatorname{fst}_*\rho)\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}fst}.\par}
+The first component moves by ULA in both acceptance branches. Their weights add to one, so its marginal is the unweighted ULA transition of the first input marginal. It does not depend on the second component's acceptance decisions.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step snd}{malaCoupledStep snd}}
+
+\section{\texorpdfstring{The second marginal of the coupled transition}{The second marginal of the coupled transition}}
 
 
 Project both branches of the explicit coupling to the second state. They are exactly the accepted proposal and rejected current-state branches of MALA. Product marginal identities replace \(\rho\) by its second marginal, giving \(\operatorname{snd}_*\rho'=M_h(\operatorname{snd}_*\rho)\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}snd}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step is\allowbreak{}Probability}{malaCoupledStep isProbability}}
+The second component accepts or rejects exactly according to its own current state and common Gaussian proposal. Integrating out the first state therefore leaves the ordinary MALA transition of the second input marginal, regardless of their dependence under the input coupling.
 
 
-The first marginal is a measurable pushforward of a probability product by \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}fst}. It has mass one, and a measure and its first-coordinate pushforward have the same total mass. Therefore the joint coupling also has total mass one.
+\section{\texorpdfstring{Normalization of the coupled transition}{Normalization of the coupled transition}}
+
+
+The first marginal is a measurable pushforward of a probability product by the first-marginal identity for the coupled transition. It has mass one, and a measure and its first-coordinate pushforward have the same total mass. Therefore the joint coupling also has total mass one.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}is\allowbreak{}Probability}.\par}
+The product input has mass one and the two nonnegative branch weights sum to one. Pushforward preserves each branch mass, so their sum is a probability. This legitimizes interpreting all later first-moment cost integrals as expectations under a coupling.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain}{malaCoupledChain}}
+
+\section{\texorpdfstring{The iterated coupled chain}{The iterated coupled chain}}
 
 
 Initialize on the diagonal \((X_0,Y_0)=(X,X)\) with \(X\sim\mu\), then recursively apply the explicit coupled step. Equal starting states give zero initial transport cost, while subsequent first and second marginals follow ULA and MALA respectively.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain is\allowbreak{}Probability}{malaCoupledChain isProbability}}
+Each step applies the same coupled transition to the current pair distribution. This construction retains the dependence needed for the common-noise comparison while allowing each marginal to follow its own algorithm. It is a sequence of joint laws, rather than an independence assertion about the pair.
 
 
-The diagonal pushforward of the initial probability is a probability. Induct on the number of transitions, using probability preservation of \texttt{mala\allowbreak{}Coupled\allowbreak{}Step} at each successor. This produces the instance needed for product noise and finite-cost arguments at every iteration.
+\section{\texorpdfstring{Normalization at every coupled iterate}{Normalization at every coupled iterate}}
 
 
-
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}is\allowbreak{}Probability}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain fst}{malaCoupledChain fst}}
-
-
-At zero, diagonal initialization has first marginal \(\mu\). In the successor step apply \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}fst} and the induction hypothesis. The resulting recursion is precisely the iteration \(P_h^n\mu\).
+The diagonal pushforward of the initial probability is a probability. Induct on the number of transitions, using probability preservation of the common-noise coupled transition at each successor. This gives the normalized law needed for product noise and finite-cost arguments at every iteration.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}fst}.\par}
+Induction uses normalization of one coupled transition at each successor. The initial diagonal coupling is already a probability, so every finite-time joint distribution is normalized before any marginal or integrability argument is applied.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain snd}{malaCoupledChain snd}}
+
+\section{\texorpdfstring{The first iterated marginal}{The first iterated marginal}}
+
+
+At zero, diagonal initialization has first marginal \(\mu\). In the successor step apply the first-marginal identity for the coupled transition and the induction hypothesis. The resulting recursion is precisely the iteration \(P_h^n\mu\).
+
+
+
+The one-step first-marginal identity closes the induction: if the first marginal at step \(k\) is the ULA law, its successor is the next ULA law. Thus the constructed coupling represents the actual numerical chain at every iteration.
+
+
+\section{\texorpdfstring{The second iterated marginal}{The second iterated marginal}}
 
 
 At zero the second marginal is \(\pi\). The successor marginal theorem gives \(M_h\) applied to the current second marginal; substitute the induction hypothesis and the supplied one-step invariance \(M_h\pi=\pi\). Thus the second coordinate remains stationary through the coupling.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}snd}.\par}
+The same induction applies to the second marginal with the MALA transition. When initialized at Gibbs and combined with detailed-balance invariance, this marginal remains Gibbs at every step, even while its first component evolves by unadjusted Euler proposals.
 
-\section{\texorpdfstring{mala\allowbreak{}Proposal nonexpansive}{malaProposal nonexpansive}}
+
+\section{\texorpdfstring{Nonexpansion of common-\allowbreak{}noise proposals}{Nonexpansion of common-noise proposals}}
 
 
 Shared noise cancels in \(T_h(x,\xi)-T_h(y,\xi)\). The sharp strong-convexity/\allowbreak{}smoothness contraction theorem for the deterministic gradient map bounds the remaining norm by \(\|x-y\|\) when \(0\le h\le2/(m+L)\). No Gaussian moment is used in this pointwise comparison.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Proposal\_\allowbreak{}nonexpansive}.\par}
+Use the sharp gradient-step estimate before taking expectations. In the admissible small-step regime its factor is at most one, and the common additive Gaussian cancels. This yields the pointwise nonexpansiveness required to accumulate rejection errors additively.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step pointwise}{malaCoupledStep pointwise}}
+
+\section{\texorpdfstring{The pointwise coupled-\allowbreak{}step discrepancy}{The pointwise coupled-step discrepancy}}
 
 
 The accepted distance is at most \(\|x-y\|\) by nonexpansiveness. On rejection, insert \(T_h(y,\xi)\) and use the triangle inequality to bound the distance by \(\|x-y\|+\|T_h(y,\xi)-y\|\). Weight the two branches; their common old-distance coefficients add to one, and the remaining term is the rejection displacement.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}pointwise}.\par}
+On rejection, \(\|T_h(x,\xi)-y\|\le\|T_h(x,\xi)-T_h(y,\xi)\|+\|T_h(y,\xi)-y\|\). On acceptance only the first term remains. Weighting both alternatives gives the old distance plus the rejection-weighted displacement at the second state.
 
-\section{\texorpdfstring{mala\allowbreak{}L1\allowbreak{}Cost}{malaL1Cost}}
+
+\section{\texorpdfstring{The mean separation of a coupled pair}{The mean separation of a coupled pair}}
 
 
 Define \(\mathcal C(\rho)=\int\|x-y\|d\rho\) as a nonnegative extended integral. Keeping it extended avoids assuming integrability before the cost recurrence proves it. Subsequent theorems establish finiteness and then convert it to an ordinary expected distance.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}L1\allowbreak{}Cost}.\par}
-
-\section{\texorpdfstring{lintegral weighted map}{lintegral weighted map}}
+The cost here is a first moment, \(\int\|x-y\|\), suited to comparing characteristic functions. It is different from the square-root second-moment cost defining \(W_2\). The stationarity argument needs only that this first-moment separation tends to zero.
 
 
-Pull an extended nonnegative integral through a measurable pushforward, then through a with-density measure. Multiplication of the two nonnegative real factors becomes the embedded product \(a(x)b(f(x))\). This gives an exact integration formula for each branch of the coupling.
+\section{\texorpdfstring{Integrating a mapped weighted measure}{Integrating a mapped weighted measure}}
 
 
-
-{\raggedright\noindent Lean declarations: \texttt{lintegral\_\allowbreak{}weighted\_\allowbreak{}map}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step cost formula}{malaCoupledStep cost formula}}
-
-
-Apply \texttt{lintegral\_\allowbreak{}weighted\_\allowbreak{}map} to accepted and rejected branches of the coupled measure. Their cost is the integral of the acceptance-weighted proposal distance plus rejection-weighted stay distance over \(\rho\otimes\gamma\). The formula exposes exactly the pointwise expression bounded by \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}pointwise}.
+Pull an extended nonnegative integral through a measurable pushforward, then through a weighted-density measure. Multiplication of the two nonnegative real factors becomes the embedded product \(a(x)b(f(x))\). This gives an exact integration formula for each branch of the coupling.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}cost\_\allowbreak{}formula}.\par}
+For a nonnegative test, the weighted pushforward change-of-variables formula is valid without a prior finiteness assumption. This permits an exact calculation of coupled cost before proving that its rejection envelope has a finite ordinary expectation.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Step cost le}{malaCoupledStep cost le}}
+
+\section{\texorpdfstring{The exact coupled-\allowbreak{}step cost formula}{The exact coupled-step cost formula}}
+
+
+Apply the change-of-variables formula for the weighted pushforward to accepted and rejected branches of the coupled measure. Their cost is the integral of the acceptance-weighted proposal distance plus rejection-weighted stay distance over \(\rho\otimes\gamma\). The formula exposes exactly the pointwise expression bounded by the pointwise common-noise discrepancy inequality.
+
+
+
+Expand the two weighted pushforwards against the distance test. The accepted distance is between the two proposals; the rejected distance is between the ULA proposal and the old MALA state. Both use the same Gaussian variable, so the common-noise estimate applies inside the integral.
+
+
+\section{\texorpdfstring{A one-\allowbreak{}step cost bound}{A one-step cost bound}}
 
 
 Integrate the pointwise coupling bound. The old distance integrates to \(\mathcal C(\rho)\); the error depends only on the second state and innovation. Its second marginal is Gibbs by hypothesis, so that integral is bounded by \(C_{U,L}h\sqrt h\). Thus \(\mathcal C(\rho')\le\mathcal C(\rho)+C_{U,L}h\sqrt h\), valid initially as an extended inequality.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}cost\_\allowbreak{}le}.\par}
+After integration, the proposal-contraction term contributes at most the old expected distance. The rejection term depends only on the second marginal and fresh Gaussian noise; if that marginal is Gibbs, the uniform local bound contributes at most \(C_{U,L}h^{3/2}\).
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain cost le}{malaCoupledChain cost le}}
+
+\section{\texorpdfstring{The accumulated coupled-\allowbreak{}chain cost}{The accumulated coupled-chain cost}}
 
 
 Induct from zero diagonal cost. The second marginal remains Gibbs by the supplied one-step MALA invariance, so the one-step cost bound applies at every iteration. Summing the same local error gives \(\mathcal C(\rho_n)\le nC_{U,L}h\sqrt h\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}cost\_\allowbreak{}le}.\par}
+Starting from a diagonal pair, the initial cost is zero. Repeatedly applying \(c_{k+1}\le c_k+b_h\) gives \(c_n\le n b_h\), with \(b_h=C_{U,L}h^{3/2}\). On a fixed horizon this vanishes as the mesh tends to zero.
 
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain distance integrable}{malaCoupledChain distance integrable}}
+
+\section{\texorpdfstring{Integrability of the coupled-\allowbreak{}chain distance}{Integrability of the coupled-chain distance}}
 
 
 The quantitative extended cost estimate bounds \(\int\|x-y\|d\rho_n\) by a finite embedded real number. The distance is measurable and nonnegative, so finite extended integral is equivalent to ordinary integrability. This discharges the moment condition rather than assuming it.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}distance\_\allowbreak{}integrable}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Coupled\allowbreak{}Chain distance integral le}{malaCoupledChain distance integral le}}
+The nonnegative cost has a finite extended integral by the preceding explicit bound. Since the distance is measurable, this is precisely finiteness of its ordinary first moment. The signed characteristic-function calculation can therefore use ordinary integral subtraction legitimately.
 
 
-Convert the finite extended cost inequality to real scalars using \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real}. The newly proved integrability identifies the real value of the extended integral with the ordinary expected distance. Consequently \(\mathbb E_{\rho_n}\|X-Y\|\le nC_{U,L}h\sqrt h\).
+\section{\texorpdfstring{The ordinary integral cost estimate}{The ordinary integral cost estimate}}
+
+
+The coupled distance is nonnegative and integrable by the preceding finite-cost argument. Its nonnegative cost integral therefore equals its ordinary expectation. The accumulated bound becomes \(\mathbb E_{\rho_n}\|X-Y\|\le nC_{U,L}h\sqrt h\), with every quantity finite.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}distance\_\allowbreak{}integral\_\allowbreak{}le}.\par}
+Identifying the ordinary expected distance with the finite nonnegative cost transfers the same bound to real expectations. This is the last bridge needed for the characteristic-function estimate that passes Gibbs invariance to the continuous solution.
+
 
 \end{document}

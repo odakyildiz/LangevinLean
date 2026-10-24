@@ -1,103 +1,116 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Euler approximations converge to the integral solution}{Euler approximations converge to the integral solution}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Unadjusted\allowbreak{}Langevin/\allowbreak{}Euler\allowbreak{}Limit.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
 This module proves a deterministic convergence theorem for additive Euler discretization. With mesh \(h=T/n\), its terminal value converges to the continuous integral solution, including when the state space itself is \(L^2(P)\).
 
 
-\section{\texorpdfstring{additive\allowbreak{}Euler\allowbreak{}Chain}{additiveEulerChain}}
+
+The numerical approximation uses the increments of the same additive input as the exact integral solution. Noise consequently cancels in the comparison, leaving only the error from freezing the drift on each mesh interval. Uniform continuity of the drift along the exact compact-time trajectory makes that local error smaller than \(h\varepsilon\) on a fine mesh. The bound \((1+Lh)^n\le e^{Lnh}\) keeps accumulation uniformly controlled over a fixed horizon, so the final error tends to zero.
+
+
+\section{\texorpdfstring{The Euler chain for a fixed additive input}{The Euler chain for a fixed additive input}}
 
 
 Define \(X_0=x\) and \(X_{k+1}=X_k-hg(X_k)+B((k+1)h)-B(kh)\). The additive input is one fixed function evaluated at mesh endpoints; consequently the numerical chain and the integral solution can be compared with exactly matching noise increments.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{additive\allowbreak{}Euler\allowbreak{}Chain}.\par}
-
-\section{\texorpdfstring{additive\allowbreak{}Euler\allowbreak{}Chain zero}{additiveEulerChain zero}}
+Using increments of one fixed input makes the discrete and continuous equations directly comparable. The numerical error is caused by drift freezing, rather than by approximating the noise itself.
 
 
-Evaluating the recursive definition at index zero gives \(X_0=x\). Lean proves this by definitional equality; no continuity of the input or positivity of the mesh is required for this initialization identity.
+\section{\texorpdfstring{Its initial value}{Its initial value}}
 
 
-
-{\raggedright\noindent Lean declarations: \texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}zero}.\par}
-
-\section{\texorpdfstring{additive\allowbreak{}Euler\allowbreak{}Chain succ}{additiveEulerChain succ}}
-
-
-Unfold the successor clause once to expose \(X_{k+1}=X_k-hg(X_k)+\Delta B_k\). This definitional identity is the equation used when subtracting the exact solution's increment and deriving the error recurrence.
+Evaluating the recursive definition at index zero gives \(X_0=x\). The proof establishes this by the defining identity; no continuity of the input or positivity of the mesh is required for this initialization identity.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}succ}.\par}
+The zero index uses no input increment, so the chain starts exactly at its prescribed point. This supplies the zero initial error when the exact solution is initialized at the same point.
 
-\section{\texorpdfstring{langevin integral increment}{langevin integral increment}}
+
+\section{\texorpdfstring{Its successor update}{Its successor update}}
+
+
+Unfold the successor clause once to expose \(X_{k+1}=X_k-hg(X_k)+\Delta B_k\). This defining identity is the equation used when subtracting the exact solution's increment and deriving the error recurrence.
+
+
+
+Writing \(\Delta B_k=B((k+1)h)-B(kh)\) isolates the common additive increment. It cancels when this equation is subtracted from the exact integral increment over the same mesh interval.
+
+
+\section{\texorpdfstring{The exact integral increment}{The exact integral increment}}
 
 
 Subtract the integral equations at \(b\) and \(a\). Continuity of \(g\circ Y\) makes it interval integrable, so interval-integral additivity gives \(\int_0^b-\int_0^a=\int_a^b\). Thus \(Y(b)-Y(a)=-\int_a^b g(Y(s))ds+B(b)-B(a)\), including oriented intervals when \(b<a\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{langevin\_\allowbreak{}integral\_\allowbreak{}increment}.\par}
+The drift integral over \([a,b]\) is the difference of the two integrals starting at zero. This interval-additivity identity is the step that aligns the exact solution with the numerical mesh.
 
-\section{\texorpdfstring{finite euler recurrence bound}{finite euler recurrence bound}}
+
+\section{\texorpdfstring{A finite-\allowbreak{}horizon recurrence estimate}{A finite-horizon recurrence estimate}}
 
 
 From \(e_{k+1}\le qe_k+b\), \(e_0=0\), \(q\ge1\), and \(b\ge0\), induction proves \(e_n\le nbq^n\). In the successor step bound \(q\cdot kbq^k+b\) by \((k+1)bq^{k+1}\), using \(q^{k+1}\ge1\). This coarse bound avoids dividing by \(q-1\), so it also covers \(q=1\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{finite\_\allowbreak{}euler\_\allowbreak{}recurrence\_\allowbreak{}bound}.\par}
+The bound \(nbq^n\) is deliberately coarse and remains valid at \(q=1\). It avoids a division by \(q-1\), making the Euler convergence estimate uniform as the mesh tends to zero.
 
-\section{\texorpdfstring{explicit\allowbreak{}Euler norm sub le}{explicitEuler norm sub le}}
+
+\section{\texorpdfstring{Stability of the explicit Euler map}{Stability of the explicit Euler map}}
 
 
 Write the difference as \((x-y)-h(g(x)-g(y))\). The triangle inequality and Lipschitzness give \(\|\cdot\|\le\|x-y\|+hL\|x-y\|=(1+Lh)\|x-y\|\). The hypothesis \(h\ge0\) removes the absolute value in the scalar norm.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{explicit\allowbreak{}Euler\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}.\par}
+This estimate uses only Lipschitzness and a triangle inequality, so its factor is \(1+Lh\). It controls finite-time stability of the approximation without requiring strong convexity or a contractive Euler step.
 
-\section{\texorpdfstring{additive\allowbreak{}Euler\allowbreak{}Chain error le of drift modulus}{additiveEulerChain error le of drift modulus}}
+
+\section{\texorpdfstring{The error from a drift continuity modulus}{The error from a drift continuity modulus}}
 
 
 At one step the common noise cancels. The Euler map contributes \((1+Lh)e_k\), and the exact integral remainder contributes at most \(h\varepsilon\), because the drift changes by at most \(\varepsilon\) within one mesh interval. Apply the finite recurrence bound and \((1+Lh)^n\le e^{Lnh}\), then use \(nh=T\) to obtain \(e_n\le T\varepsilon e^{LT}\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}error\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}drift\_\allowbreak{}modulus}.\par}
+Within each mesh cell, a drift variation at most \(\varepsilon\) contributes at most \(h\varepsilon\) to the local remainder. Multiplying by the finite-time stability factor and using \(nh=T\) gives the stated uniform horizon bound.
 
-\section{\texorpdfstring{additive\allowbreak{}Euler\allowbreak{}Chain tendsto}{additiveEulerChain tendsto}}
+
+\section{\texorpdfstring{Convergence of the matching-\allowbreak{}input Euler approximation}{Convergence of the matching-input Euler approximation}}
 
 
 The continuous drift path \(g\circ Y\) is uniformly continuous on \([0,T]\). Given any positive error tolerance, choose a drift modulus \(\varepsilon\) making \(T\varepsilon e^{LT}\) small, then take the mesh \(T/(n+1)\) below its continuity radius. The previous error bound gives endpoint convergence. The case \(T=0\) is separated so no division by the horizon is needed.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}tendsto}.\par}
+Uniform continuity of the exact drift curve supplies a single mesh size that controls every cell of the horizon. Sending that mesh size to zero makes the remainder tolerance arbitrarily small, and hence the endpoint error tends to zero.
 
-\section{\texorpdfstring{lp langevin integral euler tendsto}{lp langevin integral euler tendsto}}
+
+\section{\texorpdfstring{Euler convergence in square mean}{Euler convergence in square mean}}
 
 
 Apply the deterministic matching-input Euler convergence theorem in \(L^2(P;H)\), using the Lipschitz lifted gradient. The numerical endpoint converges in the \(L^2\) norm to the constructed solution at \(T\). This is the topology later used to pass smooth bounded tests and identify laws.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}euler\_\allowbreak{}tendsto}.\par}
+Convergence is in the norm of the random-vector Hilbert space. It therefore controls expectations of bounded Lipschitz tests by Cauchy–Schwarz, which is the form later used to identify the limiting marginal law.
+
 
 \end{document}

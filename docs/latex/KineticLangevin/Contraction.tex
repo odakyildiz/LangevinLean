@@ -1,98 +1,110 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Spectral cancellation and pathwise exponential decay}{Spectral cancellation and pathwise exponential decay}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Kinetic\allowbreak{}Langevin/\allowbreak{}Contraction.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-This module proves a deterministic theorem for a kinetic difference equation \(v'=-\gamma v-H_tx\), \(x'=v\). The continuous linear operator \(H_t\) is allowed to vary with time but must be self-adjoint and satisfy quadratic-form bounds \(mI\preceq H_t\preceq MI\). The theorem derives energy decay from this differential equation. Constructing stochastic solutions whose difference has these properties and taking an infimum over probability couplings are separate layers.
+This section proves a deterministic theorem for a kinetic difference equation \(v'=-\gamma v-H_tx\), \(x'=v\). The continuous linear operator \(H_t\) is allowed to vary with time but must be self-adjoint and satisfy quadratic-form bounds \(mI\preceq H_t\preceq MI\). The theorem derives energy decay from this differential equation. Constructing stochastic solutions whose difference has these properties and taking an infimum over probability couplings are separate layers.
+
+
+
+The main calculation turns spectral information into a differential inequality with an exact coefficient. Keeping the shift explicit separates decay of the dynamics from conditioning of the coordinate transformation.
 
 
 \section{\texorpdfstring{Write the derivative and prove exact spectral cancellation}{Write the derivative and prove exact spectral cancellation}}
 
 
-The transformed derivatives are \(y'=-av-Hx\), \(z'=(\gamma-a)v+Hx\). Thus \(\mathcal E'=2\langle y,y'\rangle+2\langle z,z'\rangle\), which \texttt{energy\allowbreak{}Derivative} records. Multiplying by \(d=\gamma-2a\) gives
+The transformed derivatives are \(y'=-av-Hx\), \(z'=(\gamma-a)v+Hx\). Thus \(\mathcal E'=2\langle y,y'\rangle+2\langle z,z'\rangle\), which the energy derivative records. Multiplying by \(d=\gamma-2a\) gives
 
 \[d\mathcal E'=2\bigl(a^2\|y\|^2-\langle y,Hy\rangle+\langle z,Hz\rangle-(\gamma-a)^2\|z\|^2\bigr).\]
 
-The proof expands linear-map applications, scalar multiplication and inner products. Self-adjointness rewrites \(\langle v,Hx\rangle\) as \(\langle x,Hv\rangle\), so cross terms cancel. \texttt{ring} verifies the remaining scalar polynomial identity. Clearing the denominator keeps the identity valid even at singular parameter values.
+The proof expands linear-map applications, scalar multiplication and inner products. Self-adjointness rewrites \(\langle v,Hx\rangle\) as \(\langle x,Hv\rangle\), so cross terms cancel. expansion of the scalar polynomials verifies the remaining scalar polynomial identity. Clearing the denominator keeps the identity valid even at singular parameter values.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{energy\allowbreak{}Derivative}, \texttt{spectral\_\allowbreak{}identity}.\par}
+To see why symmetry matters, expand \(\langle v+cx,Hx\rangle\) and its partner containing \(Hv\). The terms involving \(\langle v,Hx\rangle\) have equal and opposite coefficients after using \(\langle v,Hx\rangle=\langle Hv,x\rangle\). Without this identity the curvature bounds alone would not yield the displayed diagonal expression.
+
 
 \section{\texorpdfstring{Use lower and upper curvature on different coordinates}{Use lower and upper curvature on different coordinates}}
 
 
-Apply the lower bound \(\langle y,Hy\rangle\ge m\|y\|^2\) and upper bound \(\langle z,Hz\rangle\le M\|z\|^2\). Let \(k=\max\{a^2-m,M-(\gamma-a)^2\}\). Both coefficients are at most \(k\); multiply these scalar bounds by the nonnegative coordinate squares. The spectral identity then yields \(d\mathcal E'\le2k\mathcal E\). The explicit premise \(d>0\) permits division without reversing the inequality. Lean names each quadratic-form and maximum comparison, combines them with \texttt{nlinarith}, then uses \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}}. This proves the dissipativity estimate from spectral bounds rather than assuming contraction.
+Apply the lower bound \(\langle y,Hy\rangle\ge m\|y\|^2\) and upper bound \(\langle z,Hz\rangle\le M\|z\|^2\). Let \(k=\max\{a^2-m,M-(\gamma-a)^2\}\). Both coefficients are at most \(k\); multiply these scalar bounds by the nonnegative coordinate squares. The spectral identity then yields \(d\mathcal E'\le2k\mathcal E\). The explicit premise \(d>0\) permits division without reversing the inequality. Combining the quadratic-form and maximum inequalities and dividing by the positive denominator gives the result. This proves the dissipativity estimate from spectral bounds rather than assuming contraction.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{spectral\_\allowbreak{}dissipativity}.\par}
+The maximum is needed because the energy splits into two nonnegative coordinate contributions. Each contribution can be bounded by its own curvature coefficient, and a common coefficient must dominate both. One must divide only after checking \(\gamma-2a>0\); reversing that sign would reverse the dissipativity conclusion.
+
 
 \section{\texorpdfstring{Specialize to the simple friction regime}{Specialize to the simple friction regime}}
 
 
-At \(a=0\), the maximum becomes \(\max\{-m,M-\gamma^2\}\). The assumption \(m+M\le\gamma^2\) gives \(M-\gamma^2\le-m\), so the maximum equals \(-m\). With \(\gamma>0\), the differential bound becomes \(\mathcal E'\le-2m\mathcal E/\gamma\). Lean obtains the general bound, proves the scalar comparison by \texttt{linarith}, and simplifies the maximum. This is the energy exponent; taking a square root later gives the norm exponent \(-m/\gamma\).
+At \(a=0\), the maximum becomes \(\max\{-m,M-\gamma^2\}\). The assumption \(m+M\le\gamma^2\) gives \(M-\gamma^2\le-m\), so the maximum equals \(-m\). With \(\gamma>0\), the differential bound becomes \(\mathcal E'\le-2m\mathcal E/\gamma\). The argument obtains the general bound, proves the scalar comparison by linear inequalities, and simplifies the maximum. This is the energy exponent; taking a square root later gives the norm exponent \(-m/\gamma\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{spectral\_\allowbreak{}dissipativity\_\allowbreak{}zero}.\par}
-
-\section{\texorpdfstring{Differentiate the actual transformed energy along a path}{Differentiate the actual transformed energy along a path}}
+For \(m>0\) this yields strict exponential decay. Smoothness enters through the condition ensuring that the second transformed coordinate dissipates at least as fast as the first. The conclusion is uniform over all time-varying symmetric operators with the prescribed spectral interval.
 
 
-Assume \texttt{Has\allowbreak{}Deriv\allowbreak{}At} witnesses the two kinetic equations at time \(t\). The linear combinations \(v+(\gamma-a)x\) and \(-v-ax\) inherit derivatives by addition, negation and constant scalar multiplication. The vector normalization tactic \texttt{module} reduces them to \(-av-Hx\) and \((\gamma-a)v+Hx\). The Hilbert-space squared-norm chain rule gives derivative \(2\langle y,y'\rangle\), and adding the two rules produces \texttt{energy\allowbreak{}Derivative}. No derivative of \(H_t\) is needed: only the value at the current time enters the first-order kinetic equation.
+\section{\texorpdfstring{Differentiate the transformed energy along a path}{Differentiate the transformed energy along a path}}
+
+
+Assume ordinary differentiability witnesses the two kinetic equations at time \(t\). The linear combinations \(v+(\gamma-a)x\) and \(-v-ax\) inherit derivatives by addition, negation and constant scalar multiplication. The vector normalization calculation vector-space algebra reduces them to \(-av-Hx\) and \((\gamma-a)v+Hx\). The Hilbert-space squared-norm chain rule gives derivative \(2\langle y,y'\rangle\), and adding the two rules produces the energy derivative. No derivative of \(H_t\) is needed: only the value at the current time enters the first-order kinetic equation.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}transform\allowbreak{}Energy}.\par}
+The calculation needs differentiability of the trajectories, not differentiability of the operator-valued path. This distinction is useful for averaged Hessians, which depend on both trajectories and may have limited temporal regularity. The kinetic equations already give every derivative used in the energy calculation.
+
 
 \section{\texorpdfstring{Apply Gronwall with an explicitly proved derivative bound}{Apply Gronwall with an explicitly proved derivative bound}}
 
 
-Define scalar functions \(F(t)=\mathcal E(v_t,x_t)\) and \(F'(t)=\texttt{energyDerivative}(H_t,v_t,x_t)\), with \(K=2k/(\gamma-2a)\). Continuous paths make \(F\) continuous on the closed horizon, and the preceding derivative theorem gives its derivative on the half-open interval. Spectral dissipativity proves \(F'\le KF+0\). Lean feeds these facts to Mathlib's right-slope Gronwall theorem and simplifies its zero-forcing formula, obtaining \(F(t)\le F(0)e^{Kt}\). The zero additive term is significant: this is exact synchronous-flow contraction rather than a numerical defect estimate.
+Define scalar functions \(F(t)=\mathcal E(v_t,x_t)\) and \(F'(t)=\mathcal D(H_t,v_t,x_t)\), with \(K=2k/(\gamma-2a)\). Continuous paths make \(F\) continuous on the closed horizon, and the preceding derivative theorem gives its derivative on the half-open interval. Spectral dissipativity proves \(F'\le KF+0\). The right-slope Grönwall theorem and its zero-forcing formula give \(F(t)\le F(0)e^{Kt}\). The zero additive term is significant: this is exact synchronous-flow contraction rather than a numerical defect estimate.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{transformed\_\allowbreak{}energy\_\allowbreak{}decay}.\par}
+An integrating factor makes the argument transparent: the derivative of \(e^{-Kt}F(t)\) is at most zero. Its value at any later time is therefore bounded by its initial value. The proof uses a right-derivative version to accommodate the endpoint of the time interval.
+
 
 \section{\texorpdfstring{Project the energy estimate to the position difference}{Project the energy estimate to the position difference}}
 
 
-Suppose \(v_0=0\). Substitute the exact initial energy \(((\gamma-a)^2+a^2)\|x_0\|^2\) into the Gronwall estimate. The position projection theorem gives \((\gamma-2a)^2\|x_t\|^2\le2F(t)\). Combining the two inequalities yields the stated squared version of Proposition 1. The final \texttt{nlinarith} only assembles already proved bounds. Its square root, under \(\gamma-2a>0\), is the paper's prefactor \(\sqrt{2((\gamma-a)^2+a^2)}/(\gamma-2a)\). This theorem concerns paths satisfying the explicit ODE; it is not yet a probability-law mixing result.
+Suppose \(v_0=0\). Substitute the exact initial energy \(((\gamma-a)^2+a^2)\|x_0\|^2\) into the Gronwall estimate. The position projection theorem gives \((\gamma-2a)^2\|x_t\|^2\le2F(t)\). Combining the two inequalities yields the stated squared version of Proposition 1. The final elementary real inequalities only assembles already proved bounds. Its square root, under \(\gamma-2a>0\), is the paper's prefactor \(\sqrt{2((\gamma-a)^2+a^2)}/(\gamma-2a)\). This theorem concerns paths satisfying the explicit ODE; it is not yet a probability-law mixing result.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{synchronous\_\allowbreak{}position\_\allowbreak{}sq\_\allowbreak{}decay}.\par}
+Every coefficient is retained when position is recovered. This is important because the change of variables can be poorly conditioned even when its energy decays rapidly. The final prefactor measures that conditioning, whereas the exponential describes contraction over time.
+
 
 \section{\texorpdfstring{Include the initial time through right derivatives}{Include the initial time through right derivatives}}
 
 
-Finite-horizon integral solutions naturally provide a derivative within \([t,\infty)\), including at \(t=0\). The coordinate differentiation proof works unchanged with \texttt{Has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At}: add the two right derivatives, normalize their vector coefficients, apply the squared-norm derivative rule, and sum. The resulting derivative is still \texttt{energy\allowbreak{}Derivative}. The right-slope Grönwall theorem therefore gives the same exponential energy bound under the spectral hypotheses, without imposing a differentiable extension of the stochastic paths to negative time.
+Finite-horizon integral solutions naturally provide a derivative within \([t,\infty)\), including at \(t=0\). The coordinate differentiation proof works unchanged with right differentiability: add the two right derivatives, normalize their vector coefficients, apply the squared-norm derivative rule, and sum. The resulting derivative is still the energy derivative. The right-slope Grönwall theorem therefore gives the same exponential energy bound under the spectral hypotheses, without imposing a differentiable extension of the stochastic paths to negative time.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At\_\allowbreak{}transform\allowbreak{}Energy}, \texttt{transformed\_\allowbreak{}energy\_\allowbreak{}decay\_\allowbreak{}right}.\par}
+The stochastic forcing itself need not be differentiable. It has already disappeared from the difference of two common-input solutions. The resulting difference is an integral of a continuous drift, so its right derivative exists even though neither individual Brownian-driven velocity is differentiable.
+
 
 \section{\texorpdfstring{Recover the full arbitrary-\allowbreak{}shift prefactor}{Recover the full arbitrary-shift prefactor}}
 
 
-Write \(d=\gamma-2a>0\) and \(k=\max\{a^2-m,M-(\gamma-a)^2\}/d\). The energy estimate and equal initial velocities give \(d^2\|x_t\|^2\le2((\gamma-a)^2+a^2)e^{2kt}\|x_0\|^2\). Lean proves \((e^{kt})^2=e^{2kt}\) using \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}, proves the square-root square identity from nonnegativity of its argument, and compares the squares of two nonnegative quantities. This first yields \(d\|x_t\|\le\sqrt{2((\gamma-a)^2+a^2)}e^{kt}\|x_0\|\). Dividing by the positive \(d\) gives precisely Proposition 1's prefactor and exponent.
+Write \(d=\gamma-2a>0\) and \(k=\max\{a^2-m,M-(\gamma-a)^2\}/d\). The energy estimate and equal initial velocities give \(d^2\|x_t\|^2\le2((\gamma-a)^2+a^2)e^{2kt}\|x_0\|^2\). One proves \((e^{kt})^2=e^{2kt}\) using the exponential addition formula, proves the square-root square identity from nonnegativity of its argument, and compares the squares of two nonnegative quantities. This first yields \(d\|x_t\|\le\sqrt{2((\gamma-a)^2+a^2)}e^{kt}\|x_0\|\). Dividing by the positive \(d\) gives precisely Proposition 1's prefactor and exponent.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{synchronous\_\allowbreak{}position\_\allowbreak{}decay\_\allowbreak{}right}.\par}
+If the maximum curvature coefficient is negative, the displayed exponent is a decay rate. If it is positive, theorem remains a valid finite-time stability estimate. Optimizing the shift is therefore a separate scalar problem whose admissible domain must preserve the positive denominator.
+
 
 \end{document}

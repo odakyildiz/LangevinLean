@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`c1faa74885a4046e451052088117094f281cea28`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`af7d9e0ec07df3074d8f479b8aa7cf0d0fb5b89a`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -54,3 +54,9 @@ include theorem assumptions and statements, overview arguments, and all authored
 local supporting proofs in dependency order. IPLA includes its unpublished LSI
 extension. Individual proof boxes have no PDF downloads. Compiled output, source
 coverage, internal links, page layout and download behavior were checked locally.
+
+On 24 October 2026, the publication was synchronized with main after the
+expanded mathematical exposition, rebuilt proof volumes and project authorship
+update. Paper-facing prose, source coverage, all six PDF hashes, legacy documents
+and offline resource links passed the local documentation checks. The publication
+continues to exclude paper sources and private documents. No Lean sources changed.

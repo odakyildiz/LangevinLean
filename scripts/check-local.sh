@@ -36,6 +36,8 @@ done
 
 printf '\nChecking the complete module proof atlas\n'
 python3 -B docs/build_site.py --check
+python3 -B docs/test_paper_prose.py
+python3 -B docs/verify_exposition.py
 python3 -B docs/verify_site.py
 
 printf '\nChecking the isolated Mathlib-only IPLA standalone\n'

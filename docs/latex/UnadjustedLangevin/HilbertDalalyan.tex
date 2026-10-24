@@ -1,26 +1,26 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{The shared Hilbert-\allowbreak{}space proof and both step regimes}{The shared Hilbert-space proof and both step regimes}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Unadjusted\allowbreak{}Langevin/\allowbreak{}Hilbert\allowbreak{}Dalalyan.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-Work on a probability space with \(\mathcal H=L^2(P;H)\), and write \(g=\widehat{\nabla U}\). This is the single analytic proof used by both Euclidean ULA and the lifted IPLA system. The reference record exposes the integral equation, stationary laws, and moment bounds used at this stage. \texttt{Canonical\allowbreak{}ULA.\allowbreak{}lean} constructs these inputs from strong convexity, a Lipschitz gradient, and independent Gaussian innovations.
+Work on a probability space in \(\mathcal H=L^2(P;H)\), with lifted gradient \(\mathcal G[X]=[\nabla U\circ X]\). Supply continuous reference segments satisfying the drift integral equation, joining at their endpoints, and having the stationary target law at grid times. Their endpoint innovations are the same as those driving the numerical chain. The drift and noise moment bounds yield the local defect; sharp deterministic Euler contraction and Minkowski then yield the error recurrence. At this stage the reference is supplied; the independent Brownian construction later supplies its existence and stationary laws.
 
 
 
-\texttt{L2\allowbreak{}Reference} stores a stationary reference path in the same \(L^2\) space and with the same innovations as the numerical chain. The analytic theorem derives its recurrence and final transport estimate. The reference is a supplied argument at this layer; the canonical Brownian construction later proves its fields from the potential assumptions.
+The reference lives in the Hilbert space of square-integrable random vectors, so its drift equation uses a Bochner time integral in that space. Its grid endpoints share the numerical noise, have the prescribed stationary law, and join successive continuous segments. These assumptions supply the local defect estimate with constant \(33/20\). Summing the error recurrence gives the floor by dividing that defect by \(1-q\); the division is valid only after proving \(0\le q<1\).
 
 
 \section{\texorpdfstring{The common L\ensuremath{{}^{2}} algorithm}{The common L² algorithm}}
@@ -38,7 +38,8 @@ Each successor uses the actual-gradient Euler update.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{lp\allowbreak{}Chain}.\par}
+The drift lift evaluates the original gradient almost everywhere, so this recursion represents the ordinary ULA method on random inputs. Its Hilbert-space formulation is useful because the reference equation and defect integral then live in the same space. Each step stays square-integrable by the Lipschitz growth estimate for the gradient.
+
 
 \section{\texorpdfstring{Unfolding one step}{Unfolding one step}}
 
@@ -51,7 +52,8 @@ Evaluate the successor clause of the definition.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{lp\allowbreak{}Chain\_\allowbreak{}succ}.\par}
+Exposing one successor step identifies which innovation must be shared with the reference endpoint. Subtracting a reference equation using that same innovation removes the stochastic increment exactly. This is the algebraic reason that the later error recurrence contains only the deterministic Euler difference and the local defect.
+
 
 \section{\texorpdfstring{The continuous reference assumptions}{The continuous reference assumptions}}
 
@@ -84,7 +86,8 @@ Require the increment moment bound \(\|B_{k,t}\|_2\le\sqrt{2d}\sqrt t\) on the s
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{L2\allowbreak{}Reference}.\par}
+The segment-joining condition makes the local initial point of segment \(k+1\) equal to the endpoint of segment \(k\). The stationary grid-law condition identifies each comparison marginal with \(\pi\), while the endpoint-noise condition identifies the reference's final increment with the algorithm innovation. The two moment assumptions have different roles: drift controls the deterministic segment increment, and noise controls its square-root growth.
+
 
 \section{\texorpdfstring{Full convergence calculation from the integral reference}{Full convergence calculation from the integral reference}}
 
@@ -95,7 +98,7 @@ Suppose a reference with the preceding properties is supplied, \(h\ge0\), and \(
 
 For any initial vector \(X_0\in\mathcal H\), the \(L^2\) chain driven by the reference endpoint noise satisfies
 
-\[W_2^{\mathbb R}((X_n)_\#P,\pi)\le q^n\|X_0-Y_{0,0}\|_2+\frac{(33/20)Lh\sqrt{hd}}{1-q}.\]
+\[W_2((X_n)_\#P,\pi)\le q^n\|X_0-Y_{0,0}\|_2+\frac{(33/20)Lh\sqrt{hd}}{1-q}.\]
 
 The statement is conditional on the supplied reference, and the initial term is the cost of the chosen coupling.
 
@@ -141,14 +144,15 @@ Apply the scalar recurrence bound to the derived inequality and compose it with 
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound}.\par}
+The defect has size \(b=(33/20)Lh\sqrt{hd}\), and this size is uniform in \(k\) because the supplied moment bounds hold on every segment. The recurrence is consequently homogeneous in its constants. Its initial value remains the norm of the supplied pair, explaining why this theorem is a chosen-coupling statement before a later infimum argument is applied.
+
 
 \section{\texorpdfstring{The small-\allowbreak{}step bound}{The small-step bound}}
 
 
 Suppose \(U\) is differentiable and \(m\)-strongly convex on \(H\), \(\nabla U\) is \(L\)-Lipschitz, and \(0<m\le L\). Let \(0<h\le2/(m+L)\), and supply a reference with the preceding properties. For any initial vector \(X_0\in\mathcal H\),
 
-\[W_2^{\mathbb R}((X_n)_\#P,\pi)\le(1-mh)^n\|X_0-Y_{0,0}\|_2+\frac{33}{20}\frac Lm\sqrt{hd}.\]
+\[W_2((X_n)_\#P,\pi)\le(1-mh)^n\|X_0-Y_{0,0}\|_2+\frac{33}{20}\frac Lm\sqrt{hd}.\]
 
 This uses a chosen initial coupling and a supplied stationary reference. Replacing the initial cost by \(W_2(\mathcal L(X_0),\pi)\) needs the additional uniform family of reference couplings explained in the final section.
 
@@ -178,14 +182,15 @@ Substitute the bias identity into the integral-reference bound.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}.\par}
+The factor \(q=1-mh\) lies in \([0,1)\) under the positive-curvature small-step assumptions. Its gap is exactly \(mh\), so dividing the local \(h^{3/2}\) error by that gap produces the global \(\sqrt h\) bias. The remaining factor \(L/m\) is the condition-number dependence of this estimate.
+
 
 \section{\texorpdfstring{The large-\allowbreak{}step bound}{The large-step bound}}
 
 
 Suppose \(U\) is differentiable and \(m\)-strongly convex on \(H\), \(\nabla U\) is \(L\)-Lipschitz, and \(0<m\le L\). Let \(h>0\), \(h\ge2/(m+L)\), and \(Lh<2\), and supply a reference with the stated properties. For any initial vector \(X_0\in\mathcal H\),
 
-\[W_2^{\mathbb R}((X_n)_\#P,\pi)\le(Lh-1)^n\|X_0-Y_{0,0}\|_2+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]
+\[W_2((X_n)_\#P,\pi)\le(Lh-1)^n\|X_0-Y_{0,0}\|_2+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]
 
 The denominator is positive by strict stability. The reference remains an input, and the initial term remains the chosen coupling cost.
 
@@ -215,6 +220,7 @@ Substitute this identity into the integral-reference bound to obtain the large-s
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}.\par}
+Here \(q=Lh-1\) and the gap is \(1-q=2-Lh>0\). Dividing the same local-defect estimate by that gap gives the displayed large-step floor. The denominator records deterioration near the explicit-Euler stability boundary; the local error itself remains bounded, but too little contraction is available to damp its repeated insertion.
+
 
 \end{document}

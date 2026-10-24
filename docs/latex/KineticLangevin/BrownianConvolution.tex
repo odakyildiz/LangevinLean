@@ -1,22 +1,26 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Construct the correlated innovations from the same Brownian source}{Construct the correlated innovations from the same Brownian source}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Kinetic\allowbreak{}Langevin/\allowbreak{}Brownian\allowbreak{}Convolution.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-The exponential schemes use correlated Brownian integrals, for example \(\xi_v=\int_0^t e^{-\gamma(t-s)}\,dB_s\) and \(\xi_x=\int_0^t\psi_1(t-s)\,dB_s\). Drawing two independent Gaussians would give the wrong algorithm. This module constructs these random variables on the explicit Gaussian probability space already used for the canonical Brownian motion. Their joint Gaussian law, all covariances, and continuity in L\ensuremath{{}^{2}} are proved from the deterministic time kernels. The construction uses the existing isonormal isometry, which is the deterministic-kernel Wiener integral, rather than adding a hypothesis asserting that an unspecified noise has the required law.
+The exponential schemes use correlated Brownian integrals, for example \(\xi_v=\int_0^t e^{-\gamma(t-s)}\,dB_s\) and \(\xi_x=\int_0^t\psi_1(t-s)\,dB_s\). Drawing two independent Gaussians would give the wrong algorithm. This section constructs these random variables on the explicit Gaussian probability space already used for the canonical Brownian motion. Their joint Gaussian law, all covariances, and continuity in L\ensuremath{{}^{2}} are proved from the deterministic time kernels. The construction uses the existing isonormal isometry, which is the deterministic-kernel Wiener integral, rather than adding a hypothesis asserting that an unspecified noise has the required law.
+
+
+
+One isonormal source simultaneously realizes all response kernels. This gives exact covariance, temporal continuity, primitive identities, and the common-noise equations needed by both continuous and numerical kinetic constructions.
 
 
 \section{\texorpdfstring{Reuse the existing Brownian probability space}{Reuse the existing Brownian probability space}}
@@ -26,20 +30,22 @@ The time Hilbert space is \(H=L^2(\mathbb R,ds)\). The existing canonical Browni
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{Time\allowbreak{}Hilbert}, \texttt{Sample}, \texttt{probability}.\par}
+An isonormal Gaussian map assigns a centered Gaussian random variable to every deterministic square-integrable time function. Its covariance is the time-function inner product. This single source realizes all response integrals together and makes their cross covariances available automatically.
 
-\section{\texorpdfstring{Turn a continuous response into a genuine L\ensuremath{{}^{2}} time kernel}{Turn a continuous response into a genuine L² time kernel}}
+
+\section{\texorpdfstring{Turn a continuous response into a L\ensuremath{{}^{2}} time kernel}{Turn a continuous response into a L² time kernel}}
 
 
 For a continuous scalar response \(k\), define \(K_{k,t}(s)=1_{(0,t]}(s)k(t-s)\). The time reversal is essential: a Brownian fluctuation arriving at time \(s\) has \(t-s\) units of damping before the endpoint. Continuity of \(k\) gives a finite bound on the compact interval \([0,t]\). Since \((0,t]\) has finite Lebesgue measure, this bound proves square integrability.
 
 
 
-Lean first uses \texttt{mem\allowbreak{}Lp\_\allowbreak{}indicator\_\allowbreak{}iff\_\allowbreak{}restrict} to work on the finite interval measure. \texttt{Is\allowbreak{}Compact.\allowbreak{}exists\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}continuous\allowbreak{}On} provides an actual bound, and \texttt{Mem\allowbreak{}Lp.\allowbreak{}of\_\allowbreak{}bound} proves membership in L\ensuremath{{}^{2}}. \texttt{time\allowbreak{}Kernel\allowbreak{}Lp} then uses \texttt{Mem\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp} to form the equivalence class. Its selected representative agrees almost everywhere with the explicit indicator function, recorded by \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}coe}. Subsequent pointwise calculations therefore apply to the actual L\ensuremath{{}^{2}} object.
+First, the argument uses square integrability on the kernel support to work on the finite interval measure. boundedness of a continuous function on a compact interval provides an bound, and square integrability of bounded variables proves membership in L\ensuremath{{}^{2}}. the square-integrable time kernel then uses the square-integrable equivalence class to form the equivalence class. Its selected representative agrees almost everywhere with the explicit indicator function, recorded by the pointwise time-kernel representative. Subsequent pointwise calculations therefore apply to the L\ensuremath{{}^{2}} object.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{time\allowbreak{}Kernel}, \texttt{time\allowbreak{}Kernel\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{time\allowbreak{}Kernel\allowbreak{}Lp}, \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}coe}.\par}
+The response kernel is supported on the finite interval preceding the endpoint. Its boundedness and continuity give a finite square integral there. Extending it by zero creates a element of the time Hilbert space to which the Gaussian map can be applied.
+
 
 \section{\texorpdfstring{Compute the time-\allowbreak{}kernel inner product exactly}{Compute the time-kernel inner product exactly}}
 
@@ -48,11 +54,12 @@ The fundamental identity is
 
 \[\langle K_{k,t},K_{\ell,t}\rangle_H=\int_0^t k(s)\ell(s)\,ds.\]
 
-Start with the definition of the L\ensuremath{{}^{2}} inner product as an integral. Replace both chosen representatives using their almost-everywhere formulas. Their product is zero outside \((0,t]\), and inside it equals \(k(t-s)\ell(t-s)\). Integrating the indicator restricts the integral to that interval. The substitution \(u=t-s\) reverses the endpoints and gives the displayed expression. Lean implements exactly these steps with \texttt{L2.\allowbreak{}inner\_\allowbreak{}def}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{integral\_\allowbreak{}indicator}, and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}sub\_\allowbreak{}left}. This identity is the source of the covariance matrix, including its off-diagonal entries.
+Start with the definition of the L\ensuremath{{}^{2}} inner product as an integral. Replace both chosen representatives using their almost-everywhere formulas. Their product is zero outside \((0,t]\), and inside it equals \(k(t-s)\ell(t-s)\). Integrating the indicator restricts the integral to that interval. The substitution \(u=t-s\) reverses the endpoints and gives the displayed expression. These steps follow with the integral formula for the square-integrable inner product, equality of integrals under almost-everywhere equality, integration over the support, and the reflected-time substitution. This identity is the source of the covariance matrix, including its off-diagonal entries.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}inner}.\par}
+The covariance of two responses is the overlap integral of their kernels. Reflection about the endpoint changes this into the response Gram integral already used to define the sampler covariance. Thus the probabilistic construction and the numerical covariance agree entry by entry.
+
 
 \section{\texorpdfstring{Prove time continuity in L\ensuremath{{}^{2}}, including the moving endpoint}{Prove time continuity in L², including the moving endpoint}}
 
@@ -69,11 +76,12 @@ For \(s\) near \(t\), both kernels are supported in the fixed finite interval \(
 
 
 
-Lean proves the pointwise limit by splitting the cases \(r<t\), \(r>t\), and \(r\le0\), with eventual inequalities supplied by the neighborhood filter. It obtains the norm formula from the L\ensuremath{{}^{2}} inner product and the almost-everywhere subtraction formula. The continuity proof then applies \texttt{tendsto\_\allowbreak{}integral\_\allowbreak{}filter\_\allowbreak{}of\_\allowbreak{}dominated\_\allowbreak{}convergence}, explicitly supplies the compact bound and the null singleton exception, and finishes with \texttt{Real.\allowbreak{}continuous\_\allowbreak{}sqrt}. This proves continuity as an L\ensuremath{{}^{2}}-valued map; it does not assert that the selected representatives have continuous sample paths.
+One proves the pointwise limit by splitting the cases \(r<t\), \(r>t\), and \(r\le0\), with eventual inequalities supplied by the neighborhood filter. It obtains the norm formula from the L\ensuremath{{}^{2}} inner product and the almost-everywhere subtraction formula. The continuity proof then applies dominated convergence, explicitly supplies the compact bound and the null singleton exception, and finishes with continuity of the square root. This proves continuity as an L\ensuremath{{}^{2}}-valued map; it does not assert that the selected representatives have continuous sample paths.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{time\allowbreak{}Kernel\_\allowbreak{}tendsto}, \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}sq}, \texttt{continuous\_\allowbreak{}time\allowbreak{}Kernel\allowbreak{}Lp}.\par}
+Changing the endpoint changes both the kernel values and their support. On a common bounded interval the responses admit an integrable dominating bound. Pointwise convergence away from the moving endpoint and dominated convergence then yield convergence in the time Hilbert norm.
+
 
 \section{\texorpdfstring{Apply the isonormal map and derive Gaussian moments}{Apply the isonormal map and derive Gaussian moments}}
 
@@ -82,37 +90,40 @@ Define \(Z_k(t)=I(K_{k,t})\). This is the Wiener integral \(\int_0^t k(t-s)\,dB_
 
 \[\mathbb E Z_k(t)=0,\qquad \operatorname{Cov}(Z_k(t),Z_\ell(t))=\int_0^t k(s)\ell(s)\,ds.\]
 
-The same linear map proves joint Gaussianity of every finite collection. This last statement is stronger than proving Gaussianity of each coordinate separately: all linear combinations must be Gaussian. Lean invokes the previously proved \texttt{has\allowbreak{}Gaussian\allowbreak{}Law\_\allowbreak{}pi\_\allowbreak{}of\_\allowbreak{}linear\allowbreak{}Map\_\allowbreak{}Lp}, whose proof uses finite linear combinations and the linearity of the isonormal map. Covariance follows by rewriting the isonormal covariance theorem and the time-kernel inner-product identity. Time continuity follows by composing the continuous isometry with \texttt{continuous\_\allowbreak{}time\allowbreak{}Kernel\allowbreak{}Lp}.
+The same linear map proves joint Gaussianity of every finite collection. This last statement is stronger than proving Gaussianity of each coordinate separately: all linear combinations must be Gaussian. The argument invokes the previously proved the joint Gaussian law of linear responses, whose proof uses finite linear combinations and the linearity of the isonormal map. Covariance follows by rewriting the isonormal covariance theorem and the time-kernel inner-product identity. Time continuity follows by composing the continuous isometry with continuity of the response in the time Hilbert norm.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{convolution\allowbreak{}Lp}, \texttt{continuous\_\allowbreak{}convolution\allowbreak{}Lp}, \texttt{convolution\allowbreak{}Lp\_\allowbreak{}mean}, \texttt{convolution\allowbreak{}Lp\_\allowbreak{}has\allowbreak{}Gaussian\allowbreak{}Law}, \texttt{convolution\allowbreak{}Lp\_\allowbreak{}covariance}, \texttt{convolution\allowbreak{}Lp\_\allowbreak{}jointly\allowbreak{}Gaussian}.\par}
+The Gaussian map is an isometry in second mean. It therefore sends continuity in the deterministic time-kernel norm to continuity in the random-variable norm. Its covariance identity gives the exact second moments, while linearity establishes joint Gaussianity of any finite response family.
+
 
 \section{\texorpdfstring{Identify the exact multivariate innovation law}{Identify the exact multivariate innovation law}}
 
 
-For finitely many kernels \((k_i)\), assemble \(Z=(Z_{k_i}(t))_i\) as a Euclidean random vector. Its law is proved equal to \(\mathcal N(0,C)\), where \(C_{ij}=\int_0^t k_i(s)k_j(s)\,ds\). The conclusion compares the actual pushforward probability measure with \texttt{kernel\allowbreak{}Gaussian}; equality of laws is not a premise.
+For finitely many kernels \((k_i)\), assemble \(Z=(Z_{k_i}(t))_i\) as a Euclidean random vector. Its law is proved equal to \(\mathcal N(0,C)\), where \(C_{ij}=\int_0^t k_i(s)k_j(s)\,ds\). The conclusion compares the pushforward probability measure with the centered Gaussian response law; equality of laws is not a premise.
 
 
 
-Lean first transports the jointly Gaussian coordinate family through the continuous linear equivalence from a finite function space to Euclidean space. Coordinate L\ensuremath{{}^{2}} membership gives vector L\ensuremath{{}^{2}} membership, hence integrability. To identify the mean, the continuous coordinate projections commute with the Bochner integral and reduce every coordinate to the already proved zero mean. To identify covariance, \texttt{covariance\allowbreak{}Bilin\_\allowbreak{}apply\_\allowbreak{}pi} expands the covariance bilinear form as a finite double sum of coordinate covariances. The Brownian covariance identity turns that double sum into the matrix expression for the Gram covariance. \texttt{Is\allowbreak{}Gaussian.\allowbreak{}ext} then concludes equality of the two Gaussian probability measures from equality of their means and covariance bilinear forms.
+First, the argument transports the jointly Gaussian coordinate family through the continuous linear equivalence from a finite function space to Euclidean space. Coordinate L\ensuremath{{}^{2}} membership gives vector L\ensuremath{{}^{2}} membership, hence integrability. To identify the mean, the continuous coordinate projections commute with the Bochner integral and reduce every coordinate to the already proved zero mean. To identify covariance, the coordinate covariance formula expands the covariance bilinear form as a finite double sum of coordinate covariances. The Brownian covariance identity turns that double sum into the matrix expression for the Gram covariance. uniqueness of a Gaussian law from its mean and covariance then concludes equality of the two Gaussian probability measures from equality of their means and covariance bilinear forms.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{convolution\allowbreak{}Lp\_\allowbreak{}joint\allowbreak{}Law}.\par}
+For a finite collection of responses, every real linear combination is another isonormal image. Hence the collection is jointly Gaussian. Its mean vector is zero and its covariance is the Gram matrix, which identifies its entire distribution rather than only separate coordinate moments.
+
 
 \section{\texorpdfstring{Specialize to both kinetic schemes and check zero friction}{Specialize to both kinetic schemes and check zero friction}}
 
 
-The first-order velocity and position noises use \(k=\psi_0\) and \(k=\psi_1\), respectively. Their covariance is exactly \texttt{klmc\allowbreak{}Covariance \ensuremath{\gamma} t 0 1}, which generally is nonzero. The two-dimensional law theorem supplies the full first-order KLMC innovation, and the four-dimensional theorem uses \((\psi_0,\psi_1,\varphi_2,\varphi_3)\) to supply every correlated innovation needed by the Hessian-corrected second-order scheme. Both are direct specializations of the finite-family joint-law theorem, so each uses one common Brownian motion.
+The first-order velocity and position noises use \(k=\psi_0\) and \(k=\psi_1\), respectively. Their covariance is exactly the velocity–position response covariance, which generally is nonzero. The two-dimensional law theorem supplies the full first-order KLMC innovation, and the four-dimensional theorem uses \((\psi_0,\psi_1,\varphi_2,\varphi_3)\) to supply every correlated innovation needed by the Hessian-corrected second-order scheme. Both are direct specializations of the finite-family joint-law theorem, so each uses one common Brownian motion.
 
 
 
-At zero friction, \(\psi_0\equiv1\), so the velocity convolution must reduce to the original Brownian variable \(B_t\). Lean verifies this as an equality in L\ensuremath{{}^{2}}: the time kernel is precisely \(1_{(0,t]}\), the same indicator used in the canonical Brownian construction. The proof compares the actual almost-everywhere representatives with \texttt{Lp.\allowbreak{}ext} and \texttt{indicator\allowbreak{}Const\allowbreak{}Lp\_\allowbreak{}coe\allowbreak{}Fn}. The position and velocity L\ensuremath{{}^{2}}-continuity statements follow from the general continuous-kernel theorem.
+At zero friction, \(\psi_0\equiv1\), so the velocity convolution must reduce to the original Brownian variable \(B_t\). The argument verifies this as an equality in L\ensuremath{{}^{2}}: the time kernel is precisely \(1_{(0,t]}\), the same indicator used in the canonical Brownian construction. The proof compares the almost-everywhere representatives with equality almost everywhere and the indicator-kernel representative identity. The position and velocity L\ensuremath{{}^{2}}-continuity statements follow from the general continuous-kernel theorem.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{velocity\allowbreak{}Lp}, \texttt{position\allowbreak{}Lp}, \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}one}, \texttt{velocity\allowbreak{}Lp\_\allowbreak{}zero\_\allowbreak{}friction}, \texttt{continuous\_\allowbreak{}velocity\allowbreak{}Lp}, \texttt{continuous\_\allowbreak{}position\allowbreak{}Lp}, \texttt{velocity\_\allowbreak{}position\_\allowbreak{}covariance}, \texttt{klmc\_\allowbreak{}joint\allowbreak{}Law}, \texttt{klmc2\_\allowbreak{}joint\allowbreak{}Law}.\par}
+The first-order and second-order schemes are obtained by choosing their respective kernel families. When friction is zero the kernels become polynomials and the same covariance construction still applies. No singular quotient formula is needed to identify the limiting innovations.
+
 
 \section{\texorpdfstring{Justify stochastic Fubini in the deterministic Hilbert space}{Justify stochastic Fubini in the deterministic Hilbert space}}
 
@@ -121,7 +132,7 @@ The essential primitive identity is
 
 \[K_{\psi_1,t}=\int_0^t K_{\psi_0,s}\,ds\quad\text{in }L^2(\mathbb R,dr).\]
 
-Point evaluation on L\ensuremath{{}^{2}} is not continuous, so one cannot simply evaluate a Bochner integral at a time coordinate and interchange the two integrals. The proof instead tests both sides against an arbitrary L\ensuremath{{}^{2}} function \(f\). The inner product with a kernel is the ordinary integral \(\int_0^s f(r)e^{-\gamma(s-r)}\,dr\), a fact obtained from the actual almost-everywhere kernel representatives.
+Point evaluation on L\ensuremath{{}^{2}} is not continuous, so one cannot simply evaluate a Bochner integral at a time coordinate and interchange the two integrals. The proof instead tests both sides against an arbitrary L\ensuremath{{}^{2}} function \(f\). The inner product with a kernel is the ordinary integral \(\int_0^s f(r)e^{-\gamma(s-r)}\,dr\), a fact obtained from the almost-everywhere kernel representatives.
 
 
 
@@ -133,13 +144,14 @@ Thus the two inner products agree for every \(f\), and Hilbert-space extensional
 
 
 
-Lean proves the two triangular-domain reductions by converting indicator integrals to restricted measures and explicitly identifying the intersections \((0,t]\cap(-\infty,s]=(0,s]\) and \((0,t]\cap[r,\infty)=[r,t]\). It removes the endpoint distinction using the null singleton property of Lebesgue measure. \texttt{Integrable.\allowbreak{}comp\_\allowbreak{}snd} and \texttt{Integrable.\allowbreak{}bdd\_\allowbreak{}mul} establish product integrability. \texttt{integral\_\allowbreak{}integral\_\allowbreak{}swap} applies Fubini, and \texttt{ext\_\allowbreak{}inner\_\allowbreak{}left} finishes after commuting the continuous inner-product functional with the Bochner integral.
+One proves the two triangular-domain reductions by converting indicator integrals to restricted measures and explicitly identifying the intersections \((0,t]\cap(-\infty,s]=(0,s]\) and \((0,t]\cap[r,\infty)=[r,t]\). It removes the endpoint distinction using the null singleton property of Lebesgue measure. integrability on an independent product extension and integrability under bounded multiplication establish product integrability. Fubini’s theorem applies Fubini, and equality of all inner products finishes after commuting the continuous inner-product functional with the Bochner integral.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{inner\_\allowbreak{}time\allowbreak{}Kernel\allowbreak{}Lp}, \texttt{primitive\_\allowbreak{}integrand\_\allowbreak{}left}, \texttt{primitive\_\allowbreak{}integrand\_\allowbreak{}right}, \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}primitive}.\par}
+The triangular integration region has finite measure and the response kernels satisfy the required norm bound there. Fubini may therefore interchange the time primitive and the isonormal response. This is the rigorous origin of the positional innovation as an integrated velocity innovation.
 
-\section{\texorpdfstring{Obtain the actual kinetic Brownian integral equation}{Obtain the actual kinetic Brownian integral equation}}
+
+\section{\texorpdfstring{Obtain the kinetic Brownian integral equation}{Obtain the kinetic Brownian integral equation}}
 
 
 The scalar coefficient identity \(\psi_0(u)+\gamma\psi_1(u)=1\) holds pointwise, including at zero friction. Multiplying it by the time indicator and applying linearity of the isonormal map gives the exact relation
@@ -150,15 +162,16 @@ The deterministic Hilbert primitive identity just proved transfers through the c
 
 \[X_t^{\mathrm{noise}}=\int_0^tV_s^{\mathrm{noise}}\,ds,\qquad V_t^{\mathrm{noise}}=B_t-\gamma\int_0^tV_s^{\mathrm{noise}}\,ds.\]
 
-These are equations for the actual L\ensuremath{{}^{2}} random variables whose joint Gaussian innovation law has already been identified. They connect the numerical exponential-integrator noise to the same additive Brownian forcing used by the kinetic diffusion.
+These are equations for the L\ensuremath{{}^{2}} random variables whose joint Gaussian innovation law has already been identified. They connect the numerical exponential-integrator noise to the same additive Brownian forcing used by the kinetic diffusion.
 
 
 
-For the first identity Lean compares actual representatives of the sum and scalar multiple of the time kernels, then applies \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one}. For the primitive identity, \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}interval\allowbreak{}Integral\_\allowbreak{}comp\_\allowbreak{}comm} transports the deterministic Bochner integral through the isonormal map; its integrability is supplied by the proved L\ensuremath{{}^{2}} time continuity. Finally, ordinary vector-space rearrangement gives the damped Brownian integral equation. No matching-noise law or integral-solution equation is introduced as a premise.
+For the first identity The proof compares representatives of the sum and scalar multiple of the time kernels, then applies the first friction-response balance. For the primitive identity, commutation of a bounded linear map with integration transports the deterministic Bochner integral through the isonormal map; its integrability is supplied by the proved L\ensuremath{{}^{2}} time continuity. Finally, ordinary vector-space rearrangement gives the damped Brownian integral equation. No matching-noise law or integral-solution equation is introduced as a premise.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{velocity\allowbreak{}Lp\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}position\allowbreak{}Lp}, \texttt{position\allowbreak{}Lp\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}velocity\allowbreak{}Lp}, \texttt{velocity\allowbreak{}Lp\_\allowbreak{}integral\_\allowbreak{}equation}.\par}
+The exponential response \(B_t\) satisfies \(B_t=W_t-\gamma\int_0^tB_sds\). Multiplying by the physical amplitude gives the filtered forcing in the velocity equation. Its time primitive supplies position, so the exact and numerical equations use one common Brownian source.
+
 
 \section{\texorpdfstring{Derive the explicit Brownian convolution by an integrating factor}{Derive the explicit Brownian convolution by an integrating factor}}
 
@@ -171,14 +184,15 @@ Substitution into the exact Brownian balance then gives the integration-by-parts
 
 \[V_t=B_t-\gamma\int_0^t e^{-\gamma(t-s)}B_s\,ds.\]
 
-Thus the isonormal Wiener integral and the continuous additive-Brownian forcing formulation are proved equal as actual L\ensuremath{{}^{2}} vectors.
+Thus the isonormal Wiener integral and the continuous additive-Brownian forcing formulation are proved equal as L\ensuremath{{}^{2}} vectors.
 
 
 
-Lean first differentiates the indefinite integral defining the primitive. On a neighborhood of a positive time, coercing through \texttt{Real.\allowbreak{}to\allowbreak{}NNReal} does not change the endpoint, so \texttt{Has\allowbreak{}Deriv\allowbreak{}At.\allowbreak{}congr\_\allowbreak{}of\_\allowbreak{}eventually\allowbreak{}Eq} transfers the derivative to \texttt{position\allowbreak{}Lp}. The product rule differentiates the scalar exponential times the L\ensuremath{{}^{2}} vector. The Brownian balance cancels the damping term. The fundamental theorem of calculus on \([0,t]\), requiring derivatives only in its interior, then integrates this derivative. Multiplication by \(e^{-\gamma t}\) cancels the integrating factor. Finally, scalar multiplication commutes with the interval integral, and the exponential addition law converts \(e^{-\gamma t}e^{\gamma s}\) into \(e^{-\gamma(t-s)}\). This proof uses no sample-path differentiability of Brownian motion.
+First, the argument differentiates the indefinite integral defining the primitive. On a neighborhood of a positive time, coercing through the nonnegative real value does not change the endpoint, so locality of differentiation transfers the derivative to the square-integrable position. The product rule differentiates the scalar exponential times the L\ensuremath{{}^{2}} vector. The Brownian balance cancels the damping term. The fundamental theorem of calculus on \([0,t]\), requiring derivatives only in its interior, then integrates this derivative. Multiplication by \(e^{-\gamma t}\) cancels the integrating factor. Finally, scalar multiplication commutes with the interval integral, and the exponential addition law converts \(e^{-\gamma t}e^{\gamma s}\) into \(e^{-\gamma(t-s)}\). This proof uses no sample-path differentiability of Brownian motion.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}position\allowbreak{}Lp\_\allowbreak{}real}, \texttt{position\allowbreak{}Lp\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}convolution}, \texttt{velocity\allowbreak{}Lp\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}sub\_\allowbreak{}convolution}.\par}
+Integration by parts writes the convolution as a Brownian increment minus an ordinary convolution of the continuous Brownian path. This representation avoids differentiating Brownian paths and gives a pathwise expression compatible with the continuous-input solution construction.
+
 
 \end{document}

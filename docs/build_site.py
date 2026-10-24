@@ -439,36 +439,33 @@ def latex_declarations(names):
 
 
 def latex_document(path, note, notes):
+    from full_proofs import paper_prose
     result = (r'\documentclass[11pt,a4paper]{article}' + '\n'
               + r'\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}' + '\n'
               + r'\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]' + '\n'
-              + r'\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]' + '\n'
               + r'\usepackage[margin=25mm]{geometry}' + '\n'
               + r'\usepackage[unicode,hidelinks]{hyperref}' + '\n'
+              + r'\hypersetup{pdfauthor={LangevinLean Project}}' + '\n'
               + r'\setlength{\emergencystretch}{3em}' + '\n'
               + r'\setlength{\parskip}{0.4em}' + '\n'
               + r'\setlength{\parindent}{0pt}' + '\n'
               + r'\allowdisplaybreaks[2]' + '\n' + r'\raggedbottom' + '\n'
               + r'\title{' + latex_heading(note['title']) + '}\n'
-              + r'\author{LangevinLean mathematical exposition}' + '\n'
+              + r'\author{LangevinLean Project}' + '\n'
               + r'\date{}' + '\n' + r'\begin{document}\maketitle' + '\n'
-              + (r'\noindent Source module: ' + latex_code(path) + '. ' if not path.endswith('/Overview.lean') else '')
-              + 'The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.\n'
-              + latex_prose(note['summary']))
+              + 'Draft mathematical exposition; these notes may contain mistakes.\n'
+              + paper_prose(note['summary']))
     for step in note['steps']:
-        result += '\n\\section{' + latex_heading(step['title']) + '}\n' + latex_prose(step['body'])
-        if step['declarations']:
-            result += latex_declarations(step['declarations'])
+        result += '\n\\section{' + latex_heading(step['title']) + '}\n' + paper_prose(step['body'])
     if path == 'IPLA/Standalone.lean':
         included = re.findall(r'## Included source: ([\w/.]+\.lean)', (ROOT/path).read_text())
-        result += '\n\\section*{Complete mathematical dependency proofs}\nThe following sections reproduce the mathematical statements and proofs of every source module included in the generated Lean bundle, in dependency order.\n'
+        result += '\n\\section*{Complete supporting proofs}\nThe following sections supply the supporting mathematical statements and proofs in dependency order.\n'
         for dependency in included:
             section = notes[dependency]
             result += '\n\\section{' + latex_heading(section['title']) + '}\n'
-            result += '\\noindent Source: ' + latex_code(dependency) + '.\n' + latex_prose(section['summary'])
+            result += paper_prose(section['summary'])
             for step in section['steps']:
-                result += '\n\\subsection{' + latex_heading(step['title']) + '}\n' + latex_prose(step['body'])
-                result += latex_declarations(step['declarations'])
+                result += '\n\\subsection{' + latex_heading(step['title']) + '}\n' + paper_prose(step['body'])
     return result + '\n\\end{document}\n'
 
 
@@ -495,7 +492,7 @@ def main():
         outputs[page] = home_document(lib,config,notes,sources,parsed,math)
         if config.get('proof'):
             overview = {'title':config['title'], 'summary':config['status'],
-                        'steps':[{'title':part['title'], 'body':part['body']+('<p><strong>Formal scope.</strong> '+part['note']+'</p>' if part.get('note') else ''),
+                        'steps':[{'title':part['title'], 'body':part['body']+('<p class="formal-note"><strong>Formal scope.</strong> '+part['note']+'</p>' if part.get('note') else ''),
                                   'declarations':[reference['name'] for reference in part.get('references',[])]}
                                  for part in config['proof']]}
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
@@ -505,7 +502,7 @@ def main():
     outputs.update(full_proof_documents(CONFIG, notes, sources))
     outputs['docs/full_proofs.json'] = json.dumps(
         full_proof_inventory(CONFIG, notes, sources), indent=2, ensure_ascii=False) + '\n'
-    inputs = ['docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/entropy_content.py',
+    inputs = ['docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
               'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']

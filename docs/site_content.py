@@ -13,7 +13,8 @@ ULA_SETUP = r'''<p>Let \(d\ge1\), and let \(U:\mathbb R^d\to\mathbb R\) be diffe
 \[\pi(dx)=Z^{-1}e^{-U(x)}dx,\qquad Z=\int e^{-U(x)}dx\in(0,\infty).\]
 <p>Let \(\mu_0\) be a probability law with \(W_2(\mu_0,\pi)&lt;\infty\). A finite second moment suffices. For \(h>0\), take independent standard Gaussian vectors \(\xi_k\), independent of initialization, and set</p>
 \[X_{k+1}=X_k-h\nabla U(X_k)+\sqrt{2h}\,\xi_k,\qquad\mu_k=\operatorname{Law}(X_k).\]
-<p>In the Lean statement, \(\mathbb R^d\) is <code>EuclideanSpace ℝ ι</code> with a finite nonempty index type, and \(d=|\iota|\). <code>ulaLawStep</code> is the exact Gaussian transition on probability laws; its identification with this recursion is proved.</p>'''
+<p>The transition kernel is \(P_h(x,\cdot)=\mathcal N(x-h\nabla U(x),2hI_d)\), so \(\mu_{k+1}=\mu_kP_h\). The independence assumptions ensure that conditioning on \(X_k\) gives exactly this kernel. Thus a bound for the iterated probability laws is also a bound for the displayed stochastic recursion.</p>
+<p class="formal-note">In the Lean statement, \(\mathbb R^d\) is <code>EuclideanSpace ℝ ι</code> with a finite nonempty index type, and \(d=|\iota|\). <code>ulaLawStep</code> is the exact Gaussian transition on probability laws.</p>'''
 
 IPLA_STATEMENT = r'''<p>Fix an observation \(y\) and a differentiable joint potential \(U_y:\mathbb R^{d_\theta}\times\mathbb R^{d_x}\to\mathbb R\). Assume \(U_y\) is \(m\)-strongly convex with \(m>0\) and has \(L\)-Lipschitz gradient. Let \(N\ge1\); the independent dimensions \(d_\theta,d_x\ge0\) may be zero. Define</p>
 \[\ell_y(\theta)=\int e^{-U_y(\theta,x)}dx,\quad
@@ -217,7 +218,9 @@ def project_document(notes):
     page='index.html'
     body=('<header class="hero project-hero">'
           '<h1>Langevin convergence in Lean</h1>'
-          '<p class="subtitle">Formalized convergence bounds for Langevin sampling and particle methods, with mathematical proofs alongside Lean.</p></header>'
+          '<p class="subtitle">Formalized convergence bounds for Langevin sampling and particle methods, with mathematical proofs alongside Lean. '
+          'These pages are prepared by <a href="https://odakyildiz.com/">Omer Deniz Akyildiz</a> with AI assistance as part of an ongoing effort to formalize Langevin algorithms comprehensively. '
+          'This is draft work, and the pages may contain mistakes.</p></header>'
           '<section class="cards" id="developments" aria-label="Formalized developments">')
     cards=[('UnadjustedLangevin','Wasserstein distance',
             'Wasserstein error bounds for Gaussian ULA in both stable step-size regimes.',
@@ -263,6 +266,11 @@ def project_document(notes):
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'
     return shell(page,'Langevin convergence in Lean',body)
 
+
+from classical_proofs import ULA_PROOF, IPLA_PROOF, PROXIMAL_PROOF
+CONFIG['UnadjustedLangevin']['proof'] = ULA_PROOF
+CONFIG['IPLA']['proof'] = IPLA_PROOF
+CONFIG['ProximalLangevin']['proof'] = PROXIMAL_PROOF
 
 from entropy_content import ENTROPY_CONFIG
 CONFIG.update(ENTROPY_CONFIG)

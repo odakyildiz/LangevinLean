@@ -76,7 +76,11 @@ other libraries. Each dependency appears once within a document. The IPLA volume
 also includes its unpublished LSI extension; both IPLA pages link to that volume.
 The corresponding complete LaTeX source is at `latex/<library>/FullProof.tex`.
 The investigations branch adds a separate Average LMC volume. Individual proof
-boxes have no separate PDF downloads. The PDFs contain no Lean source listings.
+boxes have no separate PDF downloads. The PDFs use ordinary mathematical
+notation and paper-style exposition throughout: source paths, declaration names,
+tactics and implementation commentary belong to the website's paired reading
+view. The mathematical proofs retain the formal development's logical order,
+including intermediate inequalities, integrability and limiting arguments.
 LaTeX exports use `fontspec` and can be compiled with XeLaTeX or LuaLaTeX.
 
 Each Lean statement, proof excerpt, and full-module block has a **Copy Lean**
@@ -96,12 +100,25 @@ and IPLA. Old section anchors are redirected from their overview automatically.
 The authored module statements and proofs live in each library's
 `exposition/module_notes.json`. Each step names the local declarations it explains;
 Lean code is read from the source at generation time. `site_content.py` contains
-the standalone theorem statements and logical diagrams; `entropy_content.py`
+the standalone theorem statements and logical diagrams; `classical_proofs.py`
+contains the detailed strongly convex ULA, IPLA and proximal overview arguments.
+`entropy_content.py`
 contains the detailed entropy arguments and their formal scope. `kinetic_content.py`
 and `kinetic_overviews.py` contain the two kinetic paper arguments, exact endpoint
 statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
+
+Keep each mathematical statement and proof self-contained in ordinary notation.
+Put source correspondence and implementation details in explicitly marked
+`<p class="formal-note">...</p>` elements. These remain available in the paired
+web view and are omitted from mathematical reading mode and LaTeX exports.
+The exporter removes only marked notes; it never guesses which mathematical
+sentences to discard. Equations are protected before HTML parsing, including
+strict inequalities containing a literal less-than sign. The reader checks
+reject source identifiers and implementation commentary in the paper-facing
+prose. Changing a declaration's name is never a substitute for explaining its
+mathematical statement, hypotheses and proof.
 
 Typography and colours follow odakyildiz.com: Latin Modern prose, a neutral
 background, and dark-red links. The four font styles and their licenses are
@@ -115,6 +132,8 @@ From the repository root, with Python 3 and Node.js on `PATH`:
 ```sh
 python3 docs/build_site.py
 python3 docs/build_pdfs.py
+python3 docs/test_paper_prose.py
+python3 docs/verify_exposition.py
 python3 docs/verify_site.py
 ```
 

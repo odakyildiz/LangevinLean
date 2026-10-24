@@ -1,22 +1,26 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Construct spatial smoothness, finite Fisher information and finite actual entropy}{Construct spatial smoothness, finite Fisher information and finite actual entropy}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Unadjusted\allowbreak{}Langevin/\allowbreak{}LSI/\allowbreak{}Gaussian\allowbreak{}Entropy.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-For \(t>0\), the actual frozen Gaussian update \(Y_t=X-t\nabla U(X)+\sqrt{2t}\,Z\) has the positive mixture density constructed in \texttt{Interpolation\allowbreak{}Density.\allowbreak{}lean}. This module proves its spatial \(C^1\) regularity by differentiating the displayed Gaussian integral. Bayes' posterior formula and Jensen's inequality then give the universal Lebesgue Fisher bound \(\int\|\nabla\log p_t\|^2p_t\le d/(2t)\). If the initial gradient has finite energy, the relative score \(\nabla\log r_t=\nabla U+\nabla\log p_t\) also has finite energy. The target LSI consequently proves finite actual KL at every positive time. No initial density or second moment of the state is assumed.
+For \(t>0\), the frozen Gaussian update \(Y_t=X-t\nabla U(X)+\sqrt{2t}Z\) has its explicit positive mixture density \(p_t\). Differentiating the Gaussian kernel under the mixing integral proves spatial \(C^1\) regularity. The posterior component-score formula and Jensen give \(\int\|\nabla\log p_t\|^2d\rho_t\le d/(2t)\). If the initial gradient energy is finite, the propagated gradient and this Lebesgue score are square-integrable, making the relative score \(\nabla\log p_t+\nabla U\) square-integrable as well. LSI then gives finite KL of the actual output law. No initial density or position second moment is assumed.
+
+
+
+At positive time, Gaussian polynomial decay uniformly bounds the component derivatives, so spatial differentiation passes through the mixture even without an initial position moment. The posterior mixture formula gives \(\nabla\log p_t(y)=\mathbb E[-(Y_t-X+t\nabla U(X))/(2t)\mid Y_t=y]\). Jensen and the exact Gaussian second moment yield \(\int\|\nabla\log p_t\|^2d\rho_t\le d/(2t)\). Adding the potential score gives finite relative Fisher information, and the target LSI then gives finite actual KL.
 
 
 \section{\texorpdfstring{Bound the quadratic Gaussian envelope uniformly}{Bound the quadratic Gaussian envelope uniformly}}
@@ -26,11 +30,8 @@ For \(a>0\), put \(u=a\|z\|^2\). The scalar inequality \(u e^{-u}\le e^{-1}\le1\
 
 \[\|z\|^2e^{-a\|z\|^2}\le a^{-1}.\]
 
-Lean multiplies the desired inequality by the positive number \(a\), rewrites its left side as \(u e^{-u}\), and applies \texttt{Real.\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}one}. The final cancellation uses \texttt{mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}}} with the explicit nonzero witness from \texttt{ha}. This global bound later controls the conditional displacement variance even when the initial distribution has no moments.
+For \(a>0\), the function \(s\mapsto s^2e^{-as^2}\) is bounded on \([0,\infty)\). This bounds quadratic factors times Gaussian decay independently of the component's center, enabling mixture differentiation without a position moment.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}le}.\par}
 
 \section{\texorpdfstring{Bound the first Gaussian envelope without an initial moment}{Bound the first Gaussian envelope without an initial moment}}
 
@@ -39,11 +40,8 @@ The elementary estimate \(r\le1+r^2\), together with \(e^{-ar^2}\le1\) and the q
 
 \[\|z\|e^{-a\|z\|^2}\le1+a^{-1}.\]
 
-The proof records the exponential bound as \texttt{hexp}, the quadratic bound as \texttt{hsq}, and \(r\le1+r^2\) as \texttt{hnorm}. Multiplication by the nonnegative exponential and addition then yield the displayed result. The bound is intentionally simple rather than optimal: a finite constant independent of the proposed state and mixture component is what dominated differentiation requires.
+The first derivative introduces one displacement factor. Reserving part of the Gaussian exponential bounds that factor uniformly, leaving a constant integrable against any mixing probability.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{norm\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}le}.\par}
 
 \section{\texorpdfstring{Specify the real Gaussian kernel and its derivative map}{Specify the real Gaussian kernel and its derivative map}}
 
@@ -52,11 +50,12 @@ With precision \(a\), center \(c\), and the already normalized Gaussian constant
 
 \[K_a(c,y)=N_a e^{-a\|y-c\|^2},\qquad D_yK_a(c,y)[v]=-2aK_a(c,y)\langle y-c,v\rangle.\]
 
-\texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel} is the ordinary real density. \texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv} is its proposed Fréchet derivative as a continuous linear functional: the scalar \texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel a c y * (-\allowbreak{}2 * a)} multiplies \texttt{inner\allowbreak{}SL \ensuremath{\mathbb R} (y -\allowbreak{} c)}. The precision parameter keeps this helper reusable; the ULA specialization is \(a=1/(4t)\). The next theorem proves that this proposed derivative is the actual derivative.
+the ordinary Gaussian component kernel is the ordinary real density. the spatial derivative of the Gaussian kernel is its proposed Fréchet derivative as a continuous linear functional: the scalar the Gaussian kernel times the coefficient \(-2a\) multiplies the functional \(v\mapsto\langle y-c,v\rangle\). The precision parameter keeps this helper reusable; the ULA specialization is \(a=1/(4t)\). The next theorem proves that this proposed derivative is the actual derivative.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel}, \texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv}.\par}
+The derivative map is a continuous linear functional in the observation direction, obtained by pairing with the centered displacement. Defining this functional explicitly fixes the object later integrated over the initial law.
+
 
 \section{\texorpdfstring{Differentiate the kernel by the squared-\allowbreak{}norm and exponential chain rules}{Differentiate the kernel by the squared-norm and exponential chain rules}}
 
@@ -65,11 +64,8 @@ The map \(y\mapsto y-c\) has derivative the identity. The squared-norm derivativ
 
 \[D_yK_a(c,y)[v]=-2aK_a(c,y)\langle y-c,v\rangle.\]
 
-The local Lean proof \texttt{hd} is this sequence of \texttt{sub\_\allowbreak{}const}, \texttt{norm\_\allowbreak{}sq}, \texttt{const\_\allowbreak{}mul}, \texttt{exp}, and a final \texttt{const\_\allowbreak{}mul}. The final extensionality argument compares the two continuous linear maps at an arbitrary vector \texttt{v}; elementary scalar algebra proves they agree. No regularity of the potential is involved in this fixed-center calculation.
+The squared-norm derivative contributes twice the displacement pairing, and division by \(4t\) leaves the coefficient \(-1/(2t)\). Multiplication by the unchanged kernel gives the explicit derivative formula.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{has\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.\par}
 
 \section{\texorpdfstring{Find a common integrable bound for all component derivatives}{Find a common integrable bound for all component derivatives}}
 
@@ -78,11 +74,12 @@ The norm of the inner-product functional \(v\mapsto\langle y-c,v\rangle\) equals
 
 \[\|D_yK_a(c,y)\|=2aN_a\|y-c\|e^{-a\|y-c\|^2}\le2aN_a(1+a^{-1}).\]
 
-Lean uses \texttt{norm\_\allowbreak{}smul} and \texttt{inner\allowbreak{}SL\_\allowbreak{}apply\_\allowbreak{}norm}, removes absolute values using positivity of \(N_a\) and the exponential, and applies the first Gaussian envelope bound. The resulting constant is independent of both \(y\) and \(c\). A probability mixture therefore integrates this bound without requiring any moment of its center map.
+The construction uses homogeneity of the norm and the operator norm of the inner-product functional, removes absolute values using positivity of \(N_a\) and the exponential, and applies the first Gaussian envelope bound. The resulting constant is independent of both \(y\) and \(c\). A probability mixture therefore integrates this bound without requiring any moment of its center map.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{norm\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv\_\allowbreak{}le}.\par}
+The common envelope depends on positive time and dimension but not on the initial state. Since the initial law has mass one, that constant envelope is integrable for every mixing distribution.
+
 
 \section{\texorpdfstring{Define the actual proposed mixture derivative}{Define the actual proposed mixture derivative}}
 
@@ -91,11 +88,12 @@ For \(c_t(x)=x-t\nabla U(x)\), define the continuous-linear-map-valued integral
 
 \[P'_t(y)=\int D_yK_{1/(4t)}(c_t(x),y)\,d\mu(x).\]
 
-This is \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Deriv}. The symbol here denotes a spatial Fréchet derivative, not the time derivative of the density. The following domination lemmas establish its integrability, continuity, and equality with the actual spatial derivative of the explicit mixture. Keeping the definition as an integral of linear maps makes each directional evaluation correspond directly to the component kernel derivative.
+This is the integrated spatial kernel derivative. The symbol here denotes a spatial Fréchet derivative, not the time derivative of the density. The following domination lemmas establish its integrability, continuity, and equality with the actual spatial derivative of the explicit mixture. Keeping the definition as an integral of linear maps makes each directional evaluation correspond directly to the component kernel derivative.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Deriv}.\par}
+Integrate the component derivative as a finite-dimensional linear map. Its norm is dominated by the common Gaussian derivative envelope, so this candidate is an actual Bochner integral rather than a purely symbolic expression.
+
 
 \section{\texorpdfstring{Integrate each Gaussian component over the mixing probability law}{Integrate each Gaussian component over the mixing probability law}}
 
@@ -104,11 +102,12 @@ For a measurable center map \(c\), the function \(x\mapsto K_a(c(x),y)\) is meas
 
 
 
-Lean starts from \texttt{integrable\_\allowbreak{}const} and uses \texttt{Integrable.\allowbreak{}mono'}. Its first obligation is measurability, assembled from the center's measurability by \texttt{fun\_\allowbreak{}prop}. Its second obligation is the norm bound; positivity removes the absolute value, and \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff} supplies the Gaussian peak bound.
+The calculation starts from integrability of a constant under the mixing probability and uses integrable domination. Its first obligation is measurability, assembled from the center's measurability by composition of the displayed continuous and measurable maps. Its second obligation is the norm bound; positivity removes the absolute value, and the fact that an exponential with nonpositive exponent is at most one supplies the Gaussian peak bound.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{integrable\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.\par}
+At a fixed observation the kernel is bounded by its common peak. Hence it is integrable over the starting probability and its mixture value is finite, as required before differentiating that mixture.
+
 
 \section{\texorpdfstring{Integrate the continuous-\allowbreak{}linear-\allowbreak{}map-\allowbreak{}valued component derivative}{Integrate the continuous-linear-map-valued component derivative}}
 
@@ -117,11 +116,12 @@ The common derivative bound is a finite constant \(2aN_a(1+a^{-1})\). Therefore
 
 \[\int\|D_yK_a(c(x),y)\|\,d\mu(x)<\infty.\]
 
-The Lean proof again applies \texttt{Integrable.\allowbreak{}mono'} to an integrable constant, now with values in the Banach space of continuous linear functionals. Measurability follows from the explicit derivative formula; the second obligation is exactly \texttt{norm\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv\_\allowbreak{}le}. This supplies the Bochner-integrability premise needed to identify the derivative of the mixture.
+The proof again applies integrable domination to an integrable constant, now with values in the Banach space of continuous linear functionals. Measurability follows from the explicit derivative formula; the second obligation is exactly the uniform Gaussian derivative envelope. This supplies the Bochner-integrability premise needed to identify the derivative of the mixture.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{integrable\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv}.\par}
+The linear-map-valued derivative has norm bounded by an integrable scalar envelope. This verifies both its Bochner integrability and the domination needed for the differentiation-under-integral theorem.
+
 
 \section{\texorpdfstring{Differentiate the mixture under the integral sign}{Differentiate the mixture under the integral sign}}
 
@@ -130,11 +130,12 @@ For each proposed state \(y\),
 
 \[D_y\!\left(\int K_a(c(x),y)\,d\mu(x)\right)=\int D_yK_a(c(x),y)\,d\mu(x).\]
 
-Lean applies \texttt{has\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}dominated\_\allowbreak{}of\_\allowbreak{}fderiv\_\allowbreak{}le} with the whole spatial domain as the common neighborhood. Kernel integrability supplies the value at the base point, derivative-kernel integrability supplies derivative measurability, the uniform Gaussian bound supplies domination, and \texttt{has\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel} supplies pointwise differentiation. All these premises were proved from the actual kernel. In particular, a derivative of the mixture is not among the hypotheses.
+Dominated differentiation applies because the component derivative is explicit, its norm has a common integrable Gaussian bound, and both kernel and derivative are measurable in the mixing variable. It gives the derivative of the mixture as the integral of the component derivative. Thus mixture differentiability is proved from the kernel, not assumed.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{has\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.\par}
+The component derivative formula and common integrable bound satisfy the dominated spatial differentiation hypotheses. Their integral is therefore the genuine derivative of the proposed mixture density.
+
 
 \section{\texorpdfstring{Prove continuity of the mixture derivative with the same domination}{Prove continuity of the mixture derivative with the same domination}}
 
@@ -143,24 +144,26 @@ For every fixed initial point \(x\), the derivative kernel \(y\mapsto D_yK_a(c(x
 
 \[y\longmapsto\int D_yK_a(c(x),y)\,d\mu(x).\]
 
-The Lean theorem \texttt{continuous\_\allowbreak{}of\_\allowbreak{}dominated} requires measurability of every section, a common integrable bound, and almost-everywhere continuity of the component map. The preceding lemmas provide the first three facts, while the explicit formula and \texttt{fun\_\allowbreak{}prop} prove continuity. This continuity is what strengthens mere differentiability to \(C^1\).
+The proof theorem continuity under an integral with a common integrable majorant requires measurability of every section, a common integrable bound, and almost-everywhere continuity of the component map. The preceding lemmas provide the first three facts, while the explicit formula and composition of the displayed continuous and measurable maps prove continuity. This continuity is what strengthens mere differentiability to \(C^1\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{continuous\_\allowbreak{}integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv}.\par}
+At each starting state the component derivative is continuous in the observation. The same bound dominates it near every observation, so dominated convergence proves continuity of the integrated derivative.
 
-\section{\texorpdfstring{Combine the derivative and its continuity into a C1 theorem}{Combine the derivative and its continuity into a C1 theorem}}
+
+\section{\texorpdfstring{Combine the derivative and its continuity into a C\ensuremath{{}^{1}} theorem}{Combine the derivative and its continuity into a C¹ theorem}}
 
 
 A function is \(C^1\) exactly when it has a continuous Fréchet derivative. Apply this criterion to the derivative field \(y\mapsto\int D_yK_a(c(x),y)\,d\mu(x)\).
 
 
 
-\texttt{cont\allowbreak{}Diff\_\allowbreak{}one\_\allowbreak{}iff\_\allowbreak{}has\allowbreak{}FDeriv\allowbreak{}At} reduces the Lean proof to the two preceding results: \texttt{continuous\_\allowbreak{}integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Deriv} gives continuity of this field, and \texttt{has\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel} identifies it as the derivative at every point. The conclusion applies to every probability mixing measure, including singular ones.
+The integrated derivative field is continuous by the common Gaussian domination. The preceding differentiation theorem identifies it as the derivative at every observation. Together these two facts give \(C^1\) regularity of the mixture for every probability mixing measure, including singular measures.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{cont\allowbreak{}Diff\_\allowbreak{}integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.\par}
+Differentiability of the mixture together with continuity of its derivative is precisely \(C^1\) regularity. This is stronger than merely continuity of the density and is what the LSI test class requires.
+
 
 \section{\texorpdfstring{Apply Gaussian smoothing to the actual frozen-\allowbreak{}drift law}{Apply Gaussian smoothing to the actual frozen-drift law}}
 
@@ -169,11 +172,8 @@ The explicit real density of the update satisfies
 
 \[p_t(y)=\int K_{1/(4t)}(x-t\nabla U(x),y)\,d\mu(x).\]
 
-The proof first establishes this equality as \texttt{heq}, using the integral formula from \texttt{Interpolation\allowbreak{}Density.\allowbreak{}lean} and the scalar identity \(-\|z\|^2/(4t)=-(1/(4t))\|z\|^2\). The center map is measurable because the gradient is Lipschitz. The general Gaussian-mixture \(C^1\) theorem then applies with positive precision \(1/(4t)\). Thus spatial regularity is a consequence of the actual transition law, not an assumption about a chosen interpolation density.
+The actual frozen-drift law is already identified with this Gaussian mixture. Its density therefore inherits the established \(C^1\) regularity, regardless of whether the initial law itself has a density.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}cont\allowbreak{}Diff}.\par}
 
 \section{\texorpdfstring{Identify the exact spatial derivative of the actual density}{Identify the exact spatial derivative of the actual density}}
 
@@ -182,24 +182,26 @@ The derivative field defined earlier is now certified:
 
 \[D_yp_t(y)=P'_t(y)=\int D_yK_{1/(4t)}(x-t\nabla U(x),y)\,d\mu(x).\]
 
-Lean applies the general dominated-differentiation theorem to the measurable frozen center and rewrites its mixture back to \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density}. The final \texttt{rfl} checks that the derivative integral is exactly \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Deriv}. This identity is later used to define a jointly measurable score field while retaining its agreement with the actual spatial derivative.
+The actual mixture has measurable frozen center \(c_t(x)=x-t\nabla U(x)\). Applying dominated Gaussian differentiation identifies its derivative with the integral of the displayed component derivative. This exact derivative field can then be chosen jointly measurably while retaining agreement with the actual spatial density derivative.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{has\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density}.\par}
+The spatial derivative of the actual interpolation density equals the integrated component derivative. This identification lets its score be related to Gaussian component scores in the subsequent posterior calculation.
 
-\section{\texorpdfstring{Recover C1 regularity of the potential from its Lipschitz gradient}{Recover C1 regularity of the potential from its Lipschitz gradient}}
+
+\section{\texorpdfstring{Recover C\ensuremath{{}^{1}} regularity of the potential from its Lipschitz gradient}{Recover C¹ regularity of the potential from its Lipschitz gradient}}
 
 
 The assumptions are differentiability of \(U\) and Lipschitz continuity of \(\nabla U\). The Riesz isometry identifies
 
 \[DU(x)=\operatorname{Riesz}(\nabla U(x)).\]
 
-Since the Riesz map and the gradient are continuous, \(x\mapsto DU(x)\) is continuous. The criterion \texttt{cont\allowbreak{}Diff\_\allowbreak{}one\_\allowbreak{}iff\_\allowbreak{}fderiv} now yields \(U\in C^1\). Lean rewrites the derivative field by \texttt{to\allowbreak{}Dual\_\allowbreak{}comp\_\allowbreak{}gradient} and composes the two continuous maps. No Hessian or twice-continuously-differentiable potential is assumed.
+The derivative of the differentiable potential is the inner-product functional represented by \(\nabla U\). A Lipschitz gradient is continuous, and the identification of vectors with these linear functionals is continuous. Therefore the potential has a continuous derivative and belongs to \(C^1\), with no Hessian assumption.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{cont\allowbreak{}Diff\_\allowbreak{}potential\_\allowbreak{}of\_\allowbreak{}lipschitz\_\allowbreak{}gradient}.\par}
+A globally Lipschitz gradient is continuous, and it represents the derivative of the differentiable potential. Thus the potential is \(C^1\), which supplies the regularity of its positive Gibbs density and reciprocal.
+
 
 \section{\texorpdfstring{Establish spatial admissibility of the actual Gibbs-\allowbreak{}relative density}{Establish spatial admissibility of the actual Gibbs-relative density}}
 
@@ -208,11 +210,12 @@ The relative density is \(r_t(y)=Z e^{U(y)}p_t(y)\). The partition factor \(Z\) 
 
 
 
-The Lean proof follows this product exactly using \texttt{cont\allowbreak{}Diff\_\allowbreak{}const.\allowbreak{}mul}, the potential theorem followed by \texttt{exp}, and \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}cont\allowbreak{}Diff}. Together with pointwise positivity and normalization from the density-construction module, this discharges the smooth test-class premises of \texttt{Is\allowbreak{}Log\allowbreak{}Sobolev}.
+The ordinary product rule combines the constant partition, the continuously differentiable exponential of the potential, and the continuously differentiable Gaussian mixture. The resulting relative density is positive and normalized by the established law identity, so it belongs to the target LSI test class.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}cont\allowbreak{}Diff}.\par}
+The relative density is the product of the mixture density with the positive reciprocal Gibbs density. The product rule gives \(C^1\) regularity, while pointwise positivity and normalization are inherited from the actual law.
+
 
 \section{\texorpdfstring{Apply the target LSI directly to the constructed interpolation law}{Apply the target LSI directly to the constructed interpolation law}}
 
@@ -221,11 +224,12 @@ Use the actual positive normalized \(C^1\) relative density as the LSI test. Thi
 
 \[2\alpha\,\mathrm{KL}(\rho_t\mid\nu)\le I(\rho_t\mid\nu).\]
 
-This theorem retains extended nonnegative values, so neither finiteness is silently assumed. Lean obtains the Gibbs probability instance from \texttt{h\allowbreak{}LSI.\allowbreak{}1}; \texttt{h\allowbreak{}LSI.\allowbreak{}2} is applied with the already proved positivity, \(C^1\) regularity, and relative probability normalization. Finally \texttt{tilted\allowbreak{}Measure\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density} replaces the induced tilted measure with the actual Gaussian interpolation law. The only functional-inequality hypothesis is the target's LSI.
+This theorem retains extended nonnegative values, so neither finiteness is silently assumed. The proof obtains the Gibbs probability hypothesis from 1; 2 is applied with the already proved positivity, \(C^1\) regularity, and relative probability normalization. Finally tilted measure the Gibbs-relative density \(r_t=Ze^Up_t\) replaces the induced tilted measure with the actual Gaussian interpolation law. The only functional-inequality hypothesis is the target's LSI.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Law\_\allowbreak{}log\allowbreak{}Sobolev}.\par}
+The constructed relative density belongs to the original positive \(C^1\) normalized LSI class. Therefore the inequality applies directly to its actual law, without assuming a new extension of LSI to arbitrary densities.
+
 
 \section{\texorpdfstring{Record the square-\allowbreak{}norm Jensen inequality for probability measures}{Record the square-norm Jensen inequality for probability measures}}
 
@@ -234,11 +238,12 @@ For a square-integrable random vector \(F\) under a probability measure, convexi
 
 \[\left\|\int F\,d\mu\right\|^2\le\int\|F\|^2\,d\mu.\]
 
-Lean obtains convexity by applying \texttt{Convex\allowbreak{}On.\allowbreak{}pow} to convexity and nonnegativity of the norm, with exponent two. \texttt{map\_\allowbreak{}integral\_\allowbreak{}le} then applies Jensen on the whole vector space. \texttt{Mem\allowbreak{}Lp} supplies both integrability of \(F\) and of \(\|F\|^2\). This general lemma is used under the normalized Gaussian posterior at each proposed state.
+The proof obtains convexity by applying pow to convexity and nonnegativity of the norm, with exponent two. Jensen’s inequality for squared norm then applies Jensen on the whole vector space. square-integrability supplies both integrability of \(F\) and of \(\|F\|^2\). This general lemma is used under the normalized Gaussian posterior at each proposed state.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{norm\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}norm\_\allowbreak{}sq}.\par}
+For a probability measure, expand \(\int\|v-\int v\|^2\ge0\). This gives \(\|\int v\|^2\le\int\|v\|^2\), the vector Jensen inequality used for the posterior mean score.
+
 
 \section{\texorpdfstring{Define Bayes posterior on the initial mixture component}{Define Bayes posterior on the initial mixture component}}
 
@@ -247,11 +252,12 @@ At a fixed proposed point \(y\), let \(p(y)=\int K_a(c(x),y)\,d\mu(x)\). The pos
 
 \[\lambda_y(dx)=\frac{K_a(c(x),y)}{p(y)}\,\mu(dx).\]
 
-\texttt{gaussian\allowbreak{}Posterior} constructs this measure with \texttt{with\allowbreak{}Density}. The definition is total, while its intended probability interpretation uses \(a>0\), measurability of the center, and positivity of the mixing probability law. The following lemmas establish positivity of the denominator and normalization explicitly, before using Jensen.
+Weight the initial probability by \(K_a(c(x),y)/p(y)\). Positive precision makes the kernel positive and finite, so its mixture denominator is positive. The next calculation shows that this weight integrates to one, establishing the posterior probability before Jensen is applied.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{gaussian\allowbreak{}Posterior}.\par}
+At observation \(y\), weight the initial law by \(K_t(x,y)/p_t(y)\). The denominator is the actual mixture value, making this a probability describing which initial component contributed to that observation.
+
 
 \section{\texorpdfstring{Prove the real mixture denominator is everywhere positive}{Prove the real mixture denominator is everywhere positive}}
 
@@ -260,11 +266,8 @@ Every component \(K_a(c(x),y)\) is positive because its normalizer and exponenti
 
 
 
-The Lean proof uses \texttt{integral\_\allowbreak{}pos\_\allowbreak{}iff\_\allowbreak{}support\_\allowbreak{}of\_\allowbreak{}nonneg}, with integrability from the common Gaussian peak bound. The local support equality \texttt{hs} converts the condition to positive mass of the whole space. Thus \(p(y)>0\) at every point, allowing Bayes normalization and the logarithmic score to be defined pointwise.
+Every Gaussian component is positive and the initial measure has mass one, so \(p_t(y)>0\) for every observation. This allows the posterior denominator and mixture log score to be formed pointwise.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}pos}.\par}
 
 \section{\texorpdfstring{Check posterior normalization by cancellation of the actual mixture integral}{Check posterior normalization by cancellation of the actual mixture integral}}
 
@@ -273,11 +276,8 @@ The total posterior mass equals
 
 \[\int\frac{K_a(c(x),y)}{p(y)}\,d\mu(x)=\frac{p(y)}{p(y)}=1.\]
 
-Lean first records positive denominator \texttt{hp} and integrable kernel \texttt{hq}. The definition of \texttt{with\allowbreak{}Density} expresses mass as a nonnegative integral. \texttt{of\allowbreak{}Real\_\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}of\allowbreak{}Real} converts it to the ordinary integral, justified by integrability and nonnegativity of the normalized kernel. \texttt{integral\_\allowbreak{}div} pulls out the denominator and \texttt{div\_\allowbreak{}self hp.\allowbreak{}ne'} performs the normalization.
+Integrating \(K_t(x,y)/p_t(y)\) in \(x\) gives \(p_t(y)/p_t(y)=1\). Strict positivity and finiteness justify the cancellation, establishing posterior normalization.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{gaussian\allowbreak{}Posterior\_\allowbreak{}is\allowbreak{}Probability}.\par}
 
 \section{\texorpdfstring{Prove posterior displacement has finite conditional second moment}{Prove posterior displacement has finite conditional second moment}}
 
@@ -286,11 +286,8 @@ The posterior may arise from an initial law without moments. Nevertheless, at ea
 
 \[\int\|y-c(x)\|^2\,d\lambda_y(x)=\frac{1}{p(y)}\int K_a(c(x),y)\|y-c(x)\|^2\,d\mu(x)<\infty.\]
 
-The quadratic Gaussian envelope bounds the numerator's integrand by \(N_a/a\). Lean's \texttt{integrable\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}smul'} changes posterior integrability into the displayed weighted integral under \(\mu\). The proof \texttt{hsquare} dominates it by the integrable constant \(N_a/(ap(y))\). Measurability follows from the measurable center and absolute continuity of the posterior. The standard \(L^2\) characterization then supplies \texttt{Mem\allowbreak{}Lp} for the displacement.
+The Gaussian displacement-square factor times its exponential is uniformly bounded as a function of the center. Dividing its finite initial-law integral by positive \(p_t(y)\) gives a finite conditional second moment.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{gaussian\allowbreak{}Posterior\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}displacement}.\par}
 
 \section{\texorpdfstring{Identify the mixture score as the posterior component-\allowbreak{}score mean}{Identify the mixture score as the posterior component-score mean}}
 
@@ -299,11 +296,8 @@ Dividing the mixture derivative by its positive value gives
 
 \[\nabla\log p(y)=-2a\int(y-c(x))\,d\lambda_y(x).\]
 
-Lean differentiates \(\log p\) using the actual mixture derivative and the nonzero denominator. The Riesz inverse commutes with the Bochner integral; \texttt{hgrad} identifies the inverse image of each component derivative with \(-2aK_a(c(x),y)(y-c(x))\). Expanding the posterior via \texttt{integral\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}to\allowbreak{}Real\_\allowbreak{}smul} gives the same integral divided by \(p(y)\). The final scalar cancellations establish the equality pointwise, rather than merely choosing an almost-everywhere score representative.
+Divide the integrated gradient identity by \(p_t(y)\). The result is the posterior average of \(-(y-x+t\nabla U(x))/(2t)\), identifying the actual mixture score exactly.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{gradient\_\allowbreak{}log\_\allowbreak{}integral\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.\par}
 
 \section{\texorpdfstring{Use posterior Jensen to bound the pointwise mixture score energy}{Use posterior Jensen to bound the pointwise mixture score energy}}
 
@@ -312,11 +306,8 @@ Applying square-norm Jensen to the posterior score identity yields
 
 \[p(y)\|\nabla\log p(y)\|^2\le4a^2\int K_a(c(x),y)\|y-c(x)\|^2\,d\mu(x).\]
 
-The posterior is a probability measure, and its displacement is square integrable by the preceding lemmas; these are the exact hypotheses needed for Jensen. Lean records that inequality as \texttt{hj}, scales it by \(4a^2p(y)\), expands the posterior integral, and cancels \(p(y)\) using positivity. This gives a usable unnormalized density inequality whose right side can be integrated over the proposed state by Fubini.
+Apply vector Jensen under the normalized posterior to the component score. Its squared posterior mean is bounded by the posterior mean of its squared norm, with no extra factor two.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{gaussian\allowbreak{}Mixture\_\allowbreak{}score\_\allowbreak{}energy\_\allowbreak{}le}.\par}
 
 \section{\texorpdfstring{Compute the exact Gaussian component displacement energy}{Compute the exact Gaussian component displacement energy}}
 
@@ -325,11 +316,8 @@ At precision \(1/(4t)\), the component density is the law of \(c+\sqrt{2t}Z\). T
 
 \[\int K_{1/(4t)}(c,y)\|y-c\|^2\,dy=\mathbb E\|\sqrt{2t}Z\|^2=2td.\]
 
-The proof includes integrability, not only an integral identity. \texttt{gaussian\_\allowbreak{}proposal\_\allowbreak{}radial\_\allowbreak{}density} identifies the normalized density with the actual affine Gaussian law. Gaussian square integrability proves \texttt{hnoise}; \texttt{integrable\_\allowbreak{}map\_\allowbreak{}measure} transfers it to the proposed state, and the density-integrability equivalence gives the weighted Lebesgue integrand. The integral identity then follows from the map formula, \((\sqrt{2t})^2=2t\), and the already proved standard Gaussian moment \(\mathbb E\|Z\|^2=d\).
+Conditional on the initial point, the centered displacement is \(\sqrt{2t}Z\). Dividing its squared moment \(2td\) by \(4t^2\) gives component-score energy \(d/(2t)\).
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}displacement\_\allowbreak{}moment}.\par}
 
 \section{\texorpdfstring{Integrate posterior Jensen to obtain the universal smoothing Fisher bound}{Integrate posterior Jensen to obtain the universal smoothing Fisher bound}}
 
@@ -338,11 +326,8 @@ Integrate the pointwise score inequality, use Fubini, and insert the component d
 
 \[\int p(y)\|\nabla\log p(y)\|^2\,dy\le4\left(\frac1{4t}\right)^2\int2td\,d\mu=\frac d{2t}.\]
 
-Lean first proves joint integrability of the density-weighted displacement energy as \texttt{hprod}, using \texttt{integrable\_\allowbreak{}prod\_\allowbreak{}iff} and the constant component moment. The right side of pointwise Jensen is consequently integrable. Continuity of the mixture score supplies measurability of the left integrand, so \texttt{Integrable.\allowbreak{}mono'} proves \texttt{h\allowbreak{}W}. Only after establishing both integrability statements does the proof apply \texttt{integral\_\allowbreak{}mono}, exchange the integrals, and evaluate the Gaussian moment. The bound is independent of the initial distribution's location, density, or state moments.
+Multiply the posterior Jensen inequality by \(p_t(y)\) and integrate in \(y\). The posterior denominator cancels, and Tonelli reduces the upper bound to the exact Gaussian component-score moment.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{gaussian\allowbreak{}Mixture\_\allowbreak{}fisher\_\allowbreak{}bound}.\par}
 
 \section{\texorpdfstring{Propagate finite gradient energy without a state second moment}{Propagate finite gradient energy without a state second moment}}
 
@@ -351,11 +336,12 @@ Write
 
 \[\nabla U(Y_t)=\bigl(\nabla U(Y_t)-\nabla U(X)\bigr)+\nabla U(X).\]
 
-The first term is in \(L^2\) because Lipschitzness bounds it by \(L\|Y_t-X\|\), and the actual frozen displacement has finite second moment whenever \(\nabla U(X)\in L^2\). The second term is in \(L^2\) by assumption. Lean uses \texttt{frozen\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy} and the \(L^2\) characterization for the discrepancy, adds the pulled-back initial gradient, and transfers the sum to the output measure with \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}. The initial position cancels from the displacement, which is why no \(\mathbb E\|X\|^2\) premise appears.
+The first term is in \(L^2\) because Lipschitzness bounds it by \(L\|Y_t-X\|\), and the actual frozen displacement has finite second moment whenever \(\nabla U(X)\in L^2\). The second term is in \(L^2\) by assumption. The construction uses the Lipschitz-gradient displacement-energy bound and the \(L^2\) characterization for the discrepancy, adds the pulled-back initial gradient, and transfers the sum to the output measure with the pushforward integral identity for square energies. The initial position cancels from the displacement, which is why no \(\mathbb E\|X\|^2\) premise appears.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mem\allowbreak{}Lp\_\allowbreak{}gradient\_\allowbreak{}interpolation\allowbreak{}Law}.\par}
+The gradient difference is at most \(L\) times displacement, so \(\|\nabla U(Y_t)\|^2\le2\|\nabla U(X)\|^2+2L^2\|Y_t-X\|^2\). This uses only a score moment of the initial law.
+
 
 \section{\texorpdfstring{Transfer the smoothing Fisher estimate to the actual update law}{Transfer the smoothing Fisher estimate to the actual update law}}
 
@@ -364,11 +350,8 @@ The generic mixture Fisher theorem applies with \(c_t(x)=x-t\nabla U(x)\). Rewri
 
 \[\nabla\log p_t\in L^2(\rho_t),\qquad\int\|\nabla\log p_t\|^2\,d\rho_t\le\frac d{2t}.\]
 
-The local identity \texttt{heq} matches the actual density with the generic kernel integral. \texttt{hf} is the generic integrability-and-bound result. The density-law identity and \texttt{integrable\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}smul'} convert its integrability to the actual law; the integral-with-density formula converts the numerical bound. Pointwise finiteness of the density ensures that real and extended density representations agree.
+The actual proposal pushforward and mixture density describe the same law. Therefore their Lebesgue-score square integrals agree, transferring the universal smoothing Fisher bound to the law used in entropy production.
 
-
-
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Lebesgue\_\allowbreak{}fisher\_\allowbreak{}bound}.\par}
 
 \section{\texorpdfstring{Retain everywhere positivity for the real density}{Retain everywhere positivity for the real density}}
 
@@ -377,11 +360,12 @@ The extended mixture density is positive and finite at every point for \(t>0\). 
 
 \[p_t(y)>0.\]
 
-The proof is exactly \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}pos}, with the two previously proved guards \texttt{interpolation\allowbreak{}Density\_\allowbreak{}pos} and \texttt{interpolation\allowbreak{}Density\_\allowbreak{}ne\_\allowbreak{}top}. This real positivity witness is used whenever Lean differentiates \(\log p_t\) or rewrites the logarithm of a product.
+Every Gaussian component is positive, so its mixture against a probability is positive. The common Gaussian peak also makes it finite. Hence \(0<p_t(y)<\infty\) at every observation, justifying the logarithm and reciprocal used in its score.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}pos}.\par}
+Pointwise finiteness and positivity are retained when choosing the real representative of the mixture. Hence its logarithm and reciprocal may be differentiated at every observation, rather than only on an unspecified almost-everywhere set.
+
 
 \section{\texorpdfstring{Split the relative score into potential and Lebesgue scores}{Split the relative score into potential and Lebesgue scores}}
 
@@ -390,24 +374,22 @@ Since \(r_t=Ze^Up_t\), positivity and finite normalization give
 
 \[\log r_t=\log Z+U+\log p_t,\qquad\nabla\log r_t=\nabla U+\nabla\log p_t.\]
 
-Lean first proves that the real partition function is positive and finite. The function equality \texttt{heq} follows from \texttt{Real.\allowbreak{}log\_\allowbreak{}mul} and \texttt{Real.\allowbreak{}log\_\allowbreak{}exp}. Spatial differentiability of \(p_t\) then justifies the logarithmic derivative; differentiability of \(U\) handles the other summand. The proof differentiates the displayed sum and uses linearity of the Riesz inverse. The normalization constant disappears from the gradient exactly because it is spatially constant.
+Since \(\log r_t=\log p_t+U+\log Z\), spatial differentiation gives \(\nabla\log r_t=\nabla\log p_t+\nabla U\). The constant normalization contributes no gradient.
 
 
-
-{\raggedright\noindent Lean declarations: \texttt{gradient\_\allowbreak{}log\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density}.\par}
-
-\section{\texorpdfstring{Construct finite relative-\allowbreak{}score energy from two proved L2 fields}{Construct finite relative-score energy from two proved L2 fields}}
+\section{\texorpdfstring{Construct finite relative-\allowbreak{}score energy from two proved L\ensuremath{{}^{2}} fields}{Construct finite relative-score energy from two proved L² fields}}
 
 
 The potential gradient remains in \(L^2(\rho_t)\), while the Gaussian smoothing bound gives \(\nabla\log p_t\in L^2(\rho_t)\). Their sum is therefore in \(L^2\), and the score decomposition identifies it with the actual relative score:
 
 \[\nabla\log r_t\in L^2(\rho_t).\]
 
-Lean obtains continuity of the Lebesgue score from \(C^1\) regularity of its positive density, converts the finite Fisher integral to \texttt{Mem\allowbreak{}Lp}, and adds it to \texttt{mem\allowbreak{}Lp\_\allowbreak{}gradient\_\allowbreak{}interpolation\allowbreak{}Law}. The final function extensionality uses \texttt{gradient\_\allowbreak{}log\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density} pointwise. This is the finite-energy fact used for the bounded logarithmic entropy tests.
+The proof obtains continuity of the Lebesgue score from \(C^1\) regularity of its positive density, converts the finite Fisher integral to square-integrability, and adds it to the propagated finite gradient energy. The final function extensionality uses the score decomposition \(\nabla\log r_t=\nabla\log p_t+\nabla U\) pointwise. This is the finite-energy fact used for the bounded logarithmic entropy tests.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Relative\allowbreak{}Score\_\allowbreak{}mem\allowbreak{}Lp}.\par}
+The two square-integrable fields are the Lebesgue score and the propagated potential gradient. Their sum has energy at most twice each separate energy, providing finite relative-score energy.
+
 
 \section{\texorpdfstring{Prove finite relative Fisher information before taking real values}{Prove finite relative Fisher information before taking real values}}
 
@@ -416,11 +398,12 @@ Square integrability of the actual relative score implies
 
 \[I(\rho_t\mid\nu)=\int\|\nabla\log r_t\|^2\,d\rho_t<\infty.\]
 
-Lean starts from the \(L^2\) score theorem and obtains the integrable squared norm. It unfolds \texttt{relative\allowbreak{}Fisher}, replaces the tilted measure by the actual interpolation law, and rewrites the nonnegative integral as \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} of the ordinary energy integral. Such an extended value is finite. This explicit proof prevents later uses of \texttt{to\allowbreak{}Real} from discarding an infinite Fisher information.
+The squared relative score is integrable under the actual interpolation law. Its nonnegative integral is therefore finite and equals its ordinary energy integral. This identifies actual relative Fisher information as a finite number before LSI or entropy production is combined with it.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Relative\allowbreak{}Fisher\_\allowbreak{}ne\_\allowbreak{}top}.\par}
+Integrating the nonnegative squared relative score against the actual proposed law gives the same finite ordinary energy already constructed. Thus the extended relative Fisher information is finite before any real-value use.
+
 
 \section{\texorpdfstring{Derive finite actual KL from LSI and the constructed finite Fisher energy}{Derive finite actual KL from LSI and the constructed finite Fisher energy}}
 
@@ -429,10 +412,11 @@ At positive time, the constructed density is an admissible LSI test, so \(2\alph
 
 
 
-Lean uses the target's LSI probability instance, \texttt{interpolation\allowbreak{}Relative\allowbreak{}Fisher\_\allowbreak{}ne\_\allowbreak{}top}, and \texttt{interpolation\allowbreak{}Law\_\allowbreak{}log\allowbreak{}Sobolev}. If KL were infinity, its product with the positive nonzero factor \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (2 * \ensuremath{\alpha})} would be infinity. The inequality would then force Fisher information to be infinity, contradicting the proved finiteness. No entropy continuity or initial density smoothness is assumed to obtain this positive-time finiteness.
+The construction uses the target's LSI probability hypothesis, the finite relative-score energy bound, and the target LSI applied to the constructed positive normalized density. If KL were infinity, its product with the positive nonzero factor a nonnegative scalar (2 * \ensuremath{\alpha}) would be infinity. The inequality would then force Fisher information to be infinity, contradicting the proved finiteness. No entropy continuity or initial density smoothness is assumed to obtain this positive-time finiteness.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Law\_\allowbreak{}kl\allowbreak{}Div\_\allowbreak{}ne\_\allowbreak{}top}.\par}
+LSI bounds nonnegative actual KL by the finite relative Fisher information divided by \(2\alpha>0\). Consequently positive-time actual entropy is finite, completing the finiteness chain needed for its later derivative identity.
+
 
 \end{document}

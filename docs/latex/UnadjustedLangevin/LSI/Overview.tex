@@ -1,19 +1,19 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
 \setlength{\emergencystretch}{3em}
 \setlength{\parskip}{0.4em}
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Unadjusted Langevin under LSI}{Unadjusted Langevin under LSI}}
-\author{LangevinLean mathematical exposition}
+\author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
-The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 The actual Gaussian ULA theorem derives its density regularity, entropy identity, score moments, initial endpoint, and compatibility of constants from the stated assumptions. Finite KL at every iterate is part of the checked conclusion.
 \section{\texorpdfstring{Theorem}{Theorem}}
 
@@ -45,13 +45,13 @@ This is the KL estimate of Vempala–Wibisono (2019), Theorem 2. The first term 
 \section{\texorpdfstring{The Gibbs law, the actual update, and the LSI test class}{The Gibbs law, the actual update, and the LSI test class}}
 
 
-Write \(\nu(dy)=J(y)dy\), where \(J=Z^{-1}e^{-U}>0\). A positive C\ensuremath{{}^{1}} relative density \(r\), normalized by \(\int r\,d\nu=1\), defines the law \(r\nu\). The exact functional inequality used in Lean is
+Write \(\nu(dy)=J(y)dy\), where \(J=Z^{-1}e^{-U}>0\). A positive C\ensuremath{{}^{1}} relative density \(r\), normalized by \(\int r\,d\nu=1\), defines the law \(r\nu\). The functional inequality is
 
 
 \[2\alpha\,\mathrm{KL}(r\nu\mid\nu)\le\int\|\nabla\log r\|^2r\,d\nu.\]
 
 
-Both quantities initially take values in the extended nonnegative reals. The proof establishes their finiteness before using real-valued integrals. It applies this same LSI definition to the actual Gaussian mixture, whose strict positivity and C\ensuremath{{}^{1}} regularity are proved below.
+Both quantities initially take values in the extended nonnegative reals. Their finiteness is established before ordinary real integral manipulations are used. It applies this same LSI definition to the actual Gaussian mixture, whose strict positivity and C\ensuremath{{}^{1}} regularity are proved below.
 
 
 
@@ -62,15 +62,16 @@ For one step, take \(X\sim\mu\) independently of \(Z_0\sim\mathcal N(0,I_d)\), a
 \[Y_t=X-t\nabla U(X)+\sqrt{2t}\,Z_0,\quad\rho_t=\operatorname{Law}(Y_t).\]
 
 
-The product measure in \texttt{interpolation\allowbreak{}Law} makes independence explicit. At zero the law is \(\mu\), and at \(h\) it is its actual ULA update. The discrete laws are repeated applications of this transition.
+The independent product measure makes independence explicit. At zero the law is \(\mu\), and at \(h\) it is its actual ULA update. The discrete laws are repeated applications of this transition.
 
 
 
-\textbf{Formal scope.} The positive C\ensuremath{{}^{1}} test class is sufficient because the actual relative density is proved to belong to it at every positive time.
+The relative density is distinct from a Lebesgue density. If \(p_t\) is the density of \(\rho_t\) with respect to volume, then \(r_t=p_t/J\); consequently \(\log r_t=\log p_t+U+\log Z\) and the relative score is \(S_t=\nabla\log p_t+\nabla U\). For the exact Gibbs density, these two score contributions cancel and Fisher information is zero. This explains why the functional inequality controls distance from Gibbs rather than merely spatial variation of \(p_t\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{Is\allowbreak{}Log\allowbreak{}Sobolev}, \texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint}.\par}
+The interpolation is local to a numerical step: its initial random variable remains fixed in the frozen drift. It is therefore not the exact Langevin diffusion during that step. The proof will quantify the discrepancy between \(\nabla U(X)\) and \(\nabla U(Y_t)\), while retaining the exact law equality at both endpoints. Those endpoint equalities are what allow a continuous entropy estimate to become a recurrence for the actual algorithm.
+
 
 \section{\texorpdfstring{Derive \ensuremath{\alpha} \ensuremath{\le} L with bounded tests}{Derive α ≤ L with bounded tests}}
 
@@ -102,11 +103,14 @@ The cosine is bounded by one and converges pointwise to one. Dominated convergen
 
 
 
-\textbf{Formal scope.} The original LSI definition implies the compatibility inequality; it is not an extra premise of the final bound.
+To see the cancellation of the small parameter explicitly, write \(D=t\) for the sine test. The variance bound gives \(\operatorname{Var}(f_t)\le t^2/\alpha\), while the score has mean zero and second moment at most \(L\). Thus
 
+\[t^2\left(\int\cos(t\langle v,x\rangle)d\nu\right)^2
+=\left(\int(f_t-\nu f_t)g_vd\nu\right)^2
+\le\frac{Lt^2}{\alpha}.\]
 
+For \(t>0\), divide by \(t^2\) and multiply by \(\alpha\). The limiting cosine integral is one without any assumption on \(\langle v,X\rangle\), because its integrand is bounded. Positive dimension enters only through the existence of a unit direction; all scalar integrations remain bounded-test calculations.
 
-{\raggedright\noindent Lean declarations: \texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}exponential\_\allowbreak{}test}, \texttt{log\allowbreak{}Sobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness}.\par}
 
 \section{\texorpdfstring{Obtain the initial gradient moment directly from entropy}{Obtain the initial gradient moment directly from entropy}}
 
@@ -131,15 +135,17 @@ For any finite-KL probability law \(\mu\), the entropy variational inequality th
 \le\frac{4L^2}{\alpha}H_\nu(\mu)+2dL.\]
 
 
-The last inequality uses \(\alpha\le L\) and nonnegative KL. Integrability is part of the conclusion. In Lean it is derived before the real integral: for the Radon–Nikodym density \(a=d\mu/d\nu\), the pointwise inequality \(ab\le a\log a-a+e^b\) controls the nonnegative weighted integrand. Subtracting the certified log-moment bound inside the Fenchel inequality gives the sharper variational bound. Thus finite KL alone supplies the score moment required by the Gaussian calculations.
+The last inequality uses \(\alpha\le L\) and nonnegative KL. Integrability is part of the conclusion. Its integrability is derived before using the real integral: for the Radon–Nikodym density \(a=d\mu/d\nu\), the pointwise inequality \(ab\le a\log a-a+e^b\) controls the nonnegative weighted integrand. Subtracting the certified log-moment bound inside the Fenchel inequality gives the sharper variational bound. Thus finite KL alone supplies the score moment required by the Gaussian calculations.
 
 
 
-\textbf{Formal scope.} The checked proof uses this direct score-exponential argument, so no entropy-cost coupling or LSI-to-transport theorem is required.
+The entropy variational inequality can be read directly as a density calculation. If \(a=d\mu/d\nu\) and \(F\) has a finite exponential moment, normalize \(e^F\nu\) by \(M=\int e^Fd\nu\). Nonnegativity of relative entropy with respect to this tilted probability gives
 
+\[0\le\operatorname{KL}\left(\mu\,\middle\Vert\,M^{-1}e^F\nu\right)
+=H_\nu(\mu)-\int Fd\mu+\log M.\]
 
+The pointwise convex-duality estimate first supplies the absolute integrability required to write this identity. For the nonnegative score-square observable, monotone truncations also justify passage from bounded tests to the full \(F\). Taking \(F=\|\nabla U\|^2/(4L)\) and \(\log M\le d/2\) yields the stated coefficient after multiplication by \(4L\).
 
-{\raggedright\noindent Lean declarations: \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}exponential\_\allowbreak{}moment}, \texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl\_\allowbreak{}of\_\allowbreak{}alpha\_\allowbreak{}le}.\par}
 
 \section{\texorpdfstring{Compute displacement and drift-\allowbreak{}error energies}{Compute displacement and drift-error energies}}
 
@@ -167,11 +173,13 @@ All terms are integrable by the score moment just proved and the Gaussian second
 
 
 
-\textbf{Formal scope.} The error is calculated for the actual Gaussian transition, with finiteness and the pair-law change of variables established explicitly.
+In more detail, independence and Cauchy–Schwarz justify
 
+\[\mathbb E\langle\nabla U(X),Z_0\rangle
+=\left\langle\mathbb E\nabla U(X),\mathbb EZ_0\right\rangle=0.\]
 
+The initial gradient is integrable because it is square-integrable under a probability law. Hence this is an ordinary expectation of an integrable mixed term, rather than a formal cancellation. No term involving \(\mathbb E\|X\|^2\) appears: the position cancels before any square is expanded. Multiplying the displacement energy by \(L^2\) preserves its two distinct orders, \(t^2G_0\) from the frozen drift and \(2td\) from Gaussian diffusion. These orders determine the separate initial-entropy and dimensional forcing terms later.
 
-{\raggedright\noindent Lean declarations: \texttt{frozen\_\allowbreak{}displacement\_\allowbreak{}second\_\allowbreak{}moment}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy}.\par}
 
 \section{\texorpdfstring{Prove density regularity, Fisher finiteness, and the weak equation}{Prove density regularity, Fisher finiteness, and the weak equation}}
 
@@ -212,15 +220,21 @@ Its absolute integral is controlled on each positive compact time interval by \(
 \[\int\dot p_t\psi\,dy=-\iint\langle F_t(x,y),\nabla\psi(y)\rangle d\mu(x)dy.\]
 
 
-This is the actual weak equation; no weak-equation hypothesis is passed to the final theorem. The jointly measurable score field used by Lean equals \(S_t\) at positive times, so its spacetime integrals are well-defined.
+This is the actual weak equation; no weak-equation hypothesis is passed to the final theorem. The jointly measurable score field equals \(S_t\) at positive times, so its spacetime integrals are well-defined.
 
 
 
-\textbf{Formal scope.} The kernel differentiation, weak equation, and all required integrability are derived from the stated potential assumptions and the entropy-derived score moment.
+The smoothing Fisher bound follows by integrating posterior Jensen with its denominator canceled:
 
+\[\begin{aligned}
+\int p_t(y)\|\nabla\log p_t(y)\|^2dy
+&\le\iint\frac{\|y-x+t\nabla U(x)\|^2}{4t^2}
+K_t(x,y)d\mu(x)dy\\
+&=\frac{2td}{4t^2}=\frac d{2t}.
+\end{aligned}\]
 
+The inner Gaussian moment is the same for every initial point, so no location moment of \(\mu\) is introduced. The bound diverges as \(t\downarrow0\), which is why the entropy identity is first proved on intervals bounded away from zero. For the weak equation, a bounded test makes the flux-test product integrable, finite gradient energy makes the flux-gradient product integrable, and the explicit quadratic Gaussian envelope makes the flux derivative integrable. These are the precise global integration-by-parts conditions replacing an unproved boundary-decay assertion.
 
-{\raggedright\noindent Lean declarations: \texttt{interpolation\allowbreak{}Lebesgue\_\allowbreak{}fisher\_\allowbreak{}bound}, \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}time}, \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}weak\_\allowbreak{}identity}.\par}
 
 \section{\texorpdfstring{Pass bounded log tests to the entropy identity}{Pass bounded log tests to the entropy identity}}
 
@@ -228,9 +242,11 @@ This is the actual weak equation; no weak-equation hypothesis is passed to the f
 An unbounded logarithm cannot be inserted into the weak equation without justification. For \(m\ge0\), put
 
 
-\[\chi_m(z)=(m+1)\arctan\frac z{m+1},\quad
-w_m(z)=\chi_m'(z)=\frac1{1+(z/(m+1))^2},\quad
-\Phi_m(r)=\int_1^r\chi_m(\log u)du.\]
+\[\begin{aligned}
+\chi_m(z)&=(m+1)\arctan\frac z{m+1},\\
+w_m(z)&=\chi_m'(z)=\frac1{1+(z/(m+1))^2},\\
+\Phi_m(r)&=\int_1^r\chi_m(\log u)du.
+\end{aligned}\]
 
 
 These functions satisfy \(0\le w_m\le1\), \(w_m\to1\), and \(0\le\Phi_m(r)\le r\log r-r+1\), with pointwise convergence to the upper bound. The test \(\psi_{m,t}=\chi_m(\log r_t)\) is bounded C\ensuremath{{}^{1}}, with \(\nabla\psi_{m,t}=w_m(\log r_t)S_t\). Its gradient is square-integrable because \(I_t<\infty\).
@@ -259,11 +275,13 @@ This is sufficient for scalar integration. No pointwise entropy derivative at ev
 
 
 
-\textbf{Formal scope.} The bounded tests, endpoint and flux limits, and positive-time entropy calculus are proved for the actual Gaussian density.
+It is useful to keep the two limiting measures distinct. At a fixed endpoint time, the dominating function is the nonnegative entropy integrand \(r_t\log r_t-r_t+1\), integrated against Gibbs. For the time flux, the domination is instead a spacetime energy bound on one independent state-noise probability. Passing both limits in the integrated bounded-entropy identity yields
 
+\[H(b)-H(a)=\int_a^b\left[-I_t+
+\mathbb E\langle\nabla U(Y_t)-\nabla U(X),S_t(Y_t)\rangle\right]dt.\]
 
+The integrand is integrable on every positive compact interval. This identity itself proves local absolute continuity and gives the derivative almost everywhere by the fundamental theorem of calculus. Applying Young's inequality spends exactly one quarter of \(I_t\); the remaining three quarters can still be converted into a strictly dissipative entropy term through LSI.
 
-{\raggedright\noindent Lean declarations: \texttt{bounded\allowbreak{}Entropy\_\allowbreak{}tendsto}, \texttt{interpolation\allowbreak{}Entropy\_\allowbreak{}local\_\allowbreak{}chain\_\allowbreak{}rule}, \texttt{interpolation\allowbreak{}Entropy\_\allowbreak{}derivative\_\allowbreak{}bound\_\allowbreak{}ae}.\par}
 
 \section{\texorpdfstring{Control the initial endpoint for every finite-\allowbreak{}entropy law}{Control the initial endpoint for every finite-entropy law}}
 
@@ -300,11 +318,12 @@ The proof establishes the needed likelihood-ratio integrability, including the n
 
 
 
-\textbf{Formal scope.} The initial endpoint is a proved upper-envelope limit for the actual law, rather than a regularity field or an assumed approximation theorem.
+To apply this endpoint control, suppose the positive-time comparison reads \(H'\le-aH+B\) with \(a>0\). Integration on \([s,h]\), where \(s>0\), gives
 
+\[H(h)\le e^{-a(h-s)}H(s)+\frac Ba\bigl(1-e^{-a(h-s)}\bigr).\]
 
+Insert \(H(s)\le M(s)\) and let \(s\downarrow0\). Continuity of \(M\) gives precisely the same formula with \(H(0)\) on the right. This argument requires an upper endpoint envelope rather than two-sided entropy continuity. It therefore accommodates every finite-entropy initial law covered by the theorem, while the density differentiations remain confined to strictly positive elapsed time.
 
-{\raggedright\noindent Lean declarations: \texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le}, \texttt{interpolation\allowbreak{}Law\_\allowbreak{}entropy\_\allowbreak{}eventually\_\allowbreak{}le\_\allowbreak{}majorant}, \texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}local\_\allowbreak{}ae\_\allowbreak{}deriv\_\allowbreak{}le}.\par}
 
 \section{\texorpdfstring{Absorb the forcing and obtain the coefficient six}{Absorb the forcing and obtain the coefficient six}}
 
@@ -339,11 +358,13 @@ The scalar comparison needs derivatives only almost everywhere and no density ex
 
 
 
-\textbf{Formal scope.} Every analytic premise of this scalar lemma is supplied by the actual-law results above in the final theorem.
+The signs used in absorption are part of the comparison. Nonnegative KL allows multiplication of the exponential-gap estimate by \(H(0)\), and nonnegative \(B\) allows the forcing kernel to be bounded by its interval length. Explicitly,
 
+\[\int_0^he^{-(3\alpha/2)(h-t)}Bdt\le Bh
+=\frac{\alpha h}{4}H(0)+\frac52h^2dL^2.\]
 
+The first term is paid for by replacing \(e^{-3\alpha h/2}\) with the slower factor \(e^{-\alpha h}\). The second is a genuine discretization error, retained as the additive forcing in the discrete recurrence. The coefficient six is a convenient enlargement of \(5/2\); the proof makes no claim that this intermediate coefficient is optimal.
 
-{\raggedright\noindent Lean declarations: \texttt{one\_\allowbreak{}step\_\allowbreak{}entropy\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}interpolation}.\par}
 
 \section{\texorpdfstring{Prove finite KL at every iterate and sum the recurrence}{Prove finite KL at every iterate and sum the recurrence}}
 
@@ -371,14 +392,16 @@ Use \(x=\alpha h\), discard \(1-q^k\le1\), and simplify:
 \[\frac{6h^2dL^2}{1-e^{-\alpha h}}\le\frac{8hdL^2}{\alpha}.\]
 
 
-This proves the displayed convergence bound with the original potential, actual independent-Gaussian ULA laws, and every finite-KL initial probability law. The final Lean theorem takes smoothness, LSI, the step restriction, and finite initial KL. All density, moment, weak-equation, entropy-regularity, compatibility, and recurrence facts have been proved within its dependency chain.
+This proves the displayed convergence bound with the original potential, actual independent-Gaussian ULA laws, and every finite-KL initial probability law. The final theorem assumes smoothness, LSI, the step restriction, and finite initial KL. All density, moment, weak-equation, entropy-regularity, compatibility, and recurrence facts have been proved within its dependency chain.
 
 
 
-\textbf{Formal scope.} The final axiom audit checks the complete dependency chain against Lean’s standard logical axioms.
+The induction can be written in its exact finite-horizon form. Starting from \(H_0\), each insertion of \(c\) is damped once for every remaining transition. Thus
 
+\[H_k\le e^{-\alpha hk}H_0+
+6h^2dL^2\sum_{j=0}^{k-1}e^{-\alpha hj}.\]
 
+The geometric denominator is strictly positive because both \(\alpha\) and \(h\) are positive. Its lower bound is proportional to \(h\), turning the local \(h^2\) error into a global \(h\) floor. At fixed step, increasing \(k\) removes only the initial-entropy contribution. Reducing the asymptotic floor requires a smaller step; the separate dependences on dimension, smoothness, and LSI constant remain explicit.
 
-{\raggedright\noindent Lean declarations: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite}, \texttt{discrete\_\allowbreak{}entropy\_\allowbreak{}recurrence\_\allowbreak{}bound}.\par}
 
 \end{document}
