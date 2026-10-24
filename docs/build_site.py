@@ -256,8 +256,11 @@ def declaration_header(path, name, sources, parsed, page):
     return code(path, decl['start'], decl['marker'], header_sources, page, 'statement', name)
 
 
-def module_document(path, note, sources, parsed, math):
+def module_document(path, note, sources, parsed, math, catalog=None):
     page = module_page(path)
+    if catalog:
+        typeset = math
+        math = lambda value: catalog.resolve_html(typeset(value), page)
     lib = next(l for l in LIBRARIES if path.startswith(l))
     if '/LSI/' in path: lib += '/LSI'
     local_imports = [p for p in imports(sources[path]) if p in sources]
@@ -271,6 +274,8 @@ def module_document(path, note, sources, parsed, math):
             f'<a href="{relative(latex_path(path),page)}" download>Download LaTeX proof</a> · '
             '<a href="#verification">Verify this module</a></p></header>')
     body += '<nav class="jump-nav" aria-label="Module contents"><a href="#proof">Mathematical proof + Lean</a><a href="#dependencies">Proof dependencies</a><a href="#complete-source">Complete source</a></nav>'
+    if catalog:
+        body += catalog.html_dependencies(path, page=page)
     body += toolbar() + '<section id="proof" class="section"><h2>Statement and proof</h2>'
     if not note['steps']:
         body += '<p>This module assembles or audits the proved declarations in the linked dependency pages below.</p>'
@@ -286,7 +291,8 @@ def module_document(path, note, sources, parsed, math):
         body += (f'<article class="proof-step" id="step-{i}"><h3><span class="step-number">{i:02}</span>'
                  f'{E(step["title"])} <a class="permalink" href="#step-{i}" aria-label="Link to proof step {i}">§</a></h3>'
                  '<div class="pair"><div class="math-pane"><div class="pane-label">Mathematical statement and proof</div>'
-                 + math(proof_source_links(resolve_prose(step['body'], path, page),path,step['declarations'],sources,parsed)) + '</div><div class="lean-pane">'
+                 + math(proof_source_links(resolve_prose(step['body'], path, page),path,step['declarations'],sources,parsed))
+                 + (catalog.html_dependencies(path, index=i, page=page) if catalog else '') + '</div><div class="lean-pane">'
                  '<div class="pane-label">Exact Lean · complete declarations</div>' + cards + '</div></div></article>')
     body += '</section><section class="section" id="dependencies"><h2>Proof dependencies</h2>'
     if local_imports:
@@ -303,6 +309,13 @@ def module_document(path, note, sources, parsed, math):
     body += '<p class="small">Run from the repository root after installing elan and fetching the pinned Mathlib cache with <code>lake exe cache get</code>. Lean checks the formal proof; the documentation verifier checks source fidelity, mathematical annotation coverage, and links.</p></section>'
     body += '<details class="source-section" id="complete-source"><summary>Complete Lean file, including imports and shared variables</summary>'
     body += code(path, 1, len(sources[path].splitlines()), sources, page, 'module') + '</details><div class="section"></div>'
+    if catalog:
+        from report_citations import citation_panel, report_owner
+        library = report_owner(path)
+        plan = catalog.plans[library]
+        location = catalog.locations.get(path)
+        body += (citation_panel(library, plan['title'], plan['revision'], page, section=location)
+                 if location else citation_panel(None, None, None, page))
     return page, shell(page, note['title'], body, lib)
 
 
@@ -438,8 +451,10 @@ def latex_declarations(names):
             + ', '.join(latex_code(name) for name in names) + r'.\par}' + '\n')
 
 
-def latex_document(path, note, notes):
+def latex_document(path, note, notes, catalog=None):
     from full_proofs import paper_prose
+    if catalog:
+        paper_prose = catalog.latex_prose
     result = (r'\documentclass[11pt,a4paper]{article}' + '\n'
               + r'\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}' + '\n'
               + r'\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]' + '\n'
@@ -455,8 +470,12 @@ def latex_document(path, note, notes):
               + r'\date{}' + '\n' + r'\begin{document}\maketitle' + '\n'
               + 'Draft mathematical exposition; these notes may contain mistakes.\n'
               + paper_prose(note['summary']))
-    for step in note['steps']:
+    if catalog:
+        result += catalog.tex_dependencies(path)
+    for index, step in enumerate(note['steps'], 1):
         result += '\n\\section{' + latex_heading(step['title']) + '}\n' + paper_prose(step['body'])
+        if catalog:
+            result += catalog.tex_dependencies(path, index=index)
     if path == 'IPLA/Standalone.lean':
         included = re.findall(r'## Included source: ([\w/.]+\.lean)', (ROOT/path).read_text())
         result += '\n\\section*{Complete supporting proofs}\nThe following sections supply the supporting mathematical statements and proofs in dependency order.\n'
@@ -466,6 +485,8 @@ def latex_document(path, note, notes):
             result += paper_prose(section['summary'])
             for step in section['steps']:
                 result += '\n\\subsection{' + latex_heading(step['title']) + '}\n' + paper_prose(step['body'])
+    if catalog:
+        result += catalog.bibliography(result)
     return result + '\n\\end{document}\n'
 
 
@@ -475,6 +496,10 @@ def main():
     args = parser.parse_args()
     sources, parsed, notes = load()
     from site_content import CONFIG, home_document, project_document
+    from full_proofs import full_proof_inventory
+    from report_links import ReportCatalog
+    from report_citations import bib_outputs
+    catalog = ReportCatalog(full_proof_inventory(CONFIG, notes, sources), notes, sources, parsed)
     prose = [note['summary'] for note in notes.values()]
     prose += [step['body'] for note in notes.values() for step in note['steps']]
     prose += [result['body'] for config in CONFIG.values() for result in config['results']]
@@ -484,25 +509,26 @@ def main():
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css(), 'docs/assets/references.css':REFERENCE_CSS}
     for path,note in notes.items():
-        page, text = module_document(path,note,sources,parsed,math)
+        page, text = module_document(path,note,sources,parsed,math,catalog)
         outputs[page] = text
-        outputs[latex_path(path)] = latex_document(path,note,notes)
+        outputs[latex_path(path)] = latex_document(path,note,notes,catalog)
     for lib,config in CONFIG.items():
         page = lib + '/exposition/index.html'
-        outputs[page] = home_document(lib,config,notes,sources,parsed,math)
+        outputs[page] = home_document(lib,config,notes,sources,parsed,math,catalog)
         if config.get('proof'):
             overview = {'title':config['title'], 'summary':config['status'],
                         'steps':[{'title':part['title'], 'body':part['body']+('<p class="formal-note"><strong>Formal scope.</strong> '+part['note']+'</p>' if part.get('note') else ''),
                                   'declarations':[reference['name'] for reference in part.get('references',[])]}
                                  for part in config['proof']]}
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
-            outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
-    outputs['index.html'] = project_document(notes)
+            outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes,catalog)
+    outputs['index.html'] = project_document(notes,catalog)
     from full_proofs import full_proof_documents, full_proof_inventory
-    outputs.update(full_proof_documents(CONFIG, notes, sources))
+    outputs.update(full_proof_documents(CONFIG, notes, sources, catalog))
+    outputs.update(bib_outputs(catalog.plans))
     outputs['docs/full_proofs.json'] = json.dumps(
-        full_proof_inventory(CONFIG, notes, sources), indent=2, ensure_ascii=False) + '\n'
-    inputs = ['docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
+        catalog.plans, indent=2, ensure_ascii=False) + '\n'
+    inputs = ['docs/report_citations.py','docs/report_links.py','docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
               'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']

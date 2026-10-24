@@ -195,6 +195,9 @@ def compile_one(source: str, source_hash: str, engine: str, engine_hash: str,
             if run.returncode or "Missing character:" in log or "Missing character:" in run.stdout:
                 raise ValueError(f"{source}: TeX pass {pass_number} failed\n"
                                  + diagnostic(run.stdout + "\n" + log))
+            if pass_number == RECIPE["passes"] and re.search(
+                    r"(?:Reference|Citation) .+ undefined|There were undefined references", log):
+                raise ValueError(f"{source}: unresolved result references or bibliography citations")
         temporary_pdf = scratch / "proof.pdf"
         if not temporary_pdf.is_file():
             raise ValueError(f"{source}: TeX completed without a PDF")

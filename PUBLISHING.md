@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`af7d9e0ec07df3074d8f479b8aa7cf0d0fb5b89a`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`b83de24fbeaf054a5b964defa2681284ea7f84d5`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -60,3 +60,13 @@ expanded mathematical exposition, rebuilt proof volumes and project authorship
 update. Paper-facing prose, source coverage, all six PDF hashes, legacy documents
 and offline resource links passed the local documentation checks. The publication
 continues to exclude paper sources and private documents. No Lean sources changed.
+
+On 24 October 2026, the owner approved publication of the modular report and
+precise-citation update from main commit `b83de24fbeaf054a5b964defa2681284ea7f84d5`.
+The seven reports each own their supporting mathematical arguments; later
+reports cite exact numbered sections and subsections. IPLA under strong
+convexity and IPLA under LSI are separate reports. Atlas pages provide
+corporate-author BibTeX copy and download controls. Report/PDF citation checks
+and 131 browser cases, including 88 BibTeX downloads, passed before publication.
+The publication retains robots metadata, robots.txt and .nojekyll, excludes
+papers/ and GitHub Actions workflows, and changes no Lean proofs.

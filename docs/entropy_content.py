@@ -43,7 +43,7 @@ ref('UnadjustedLangevin/LSI/ULALaw.lean','interpolationLaw_endpoint')],
 part('compatibility','Derive α ≤ L with bounded tests',r'''<p>We first derive compatibility, rather than assume it. For bounded C¹ \(f\) with \(\|\nabla f\|\le D\), let \(\Lambda(s)=\log\int e^{sf}d\nu\). The normalized density \(e^{sf-\Lambda(s)}\) is an admissible LSI test, and its log-gradient is \(s\nabla f\). Its entropy is \(s\Lambda'(s)-\Lambda(s)\). Consequently</p>
 \[2\alpha\bigl(s\Lambda'(s)-\Lambda(s)\bigr)\le s^2D^2.\]
 <p>Boundedness permits differentiating the moment generating function near zero. Divide by \(s^2\) and let \(s\downarrow0\): the quotient \((s\Lambda'(s)-\Lambda(s))/s^2\) tends to \(\Lambda''(0)/2=\operatorname{Var}_\nu(f)/2\), so the entire left side tends to \(\alpha\operatorname{Var}_\nu(f)\). Thus \(\alpha\operatorname{Var}_\nu(f)\le D^2\).</p>
-<p>Choose a unit vector \(v\). Translation invariance of the partition function and the smooth upper model give a centered sub-Gaussian directional score \(g_v=\langle\nabla U,v\rangle\), with \(\int g_v^2d\nu\le L\). Integration by parts for bounded C¹ tests gives</p>
+<p>Choose a unit vector \(v\). Translation invariance of the partition function and the smooth upper model <cite data-report-ref="UnadjustedLangevin/Analysis/Smooth.lean" data-report-declaration="smooth_upper_bound"></cite> give a centered sub-Gaussian directional score \(g_v=\langle\nabla U,v\rangle\) <cite data-report-ref="UnadjustedLangevin/GibbsScore.lean" data-report-declaration="gibbs_score_subgaussian"></cite>, with \(\int g_v^2d\nu\le L\) by the directional second-moment estimate <cite data-report-ref="UnadjustedLangevin/GibbsScore.lean" data-report-declaration="integral_sq_le_of_subgaussian"></cite>. Integration by parts for bounded C¹ tests gives</p>
 \[\int f g_v\,d\nu=\int\langle\nabla f,v\rangle d\nu.\]
 <p>Use \(f_t(x)=\sin(t\langle v,x\rangle)\). Its gradient norm is at most \(t\), and the identity reads \(\int(f_t-\nu f_t)g_vd\nu=t\int\cos(t\langle v,x\rangle)d\nu\). Cauchy–Schwarz and the bounded-test variance bound yield</p>
 \[\alpha\left(\int\cos(t\langle v,x\rangle)d\nu\right)^2\le L.\]
@@ -54,7 +54,7 @@ ref('UnadjustedLangevin/LSI/Compatibility.lean','IsLogSobolev.exponential_test')
 ref('UnadjustedLangevin/LSI/Compatibility.lean','logSobolev_constant_le_smoothness')],
 'The original LSI definition implies the compatibility inequality; it is not an extra premise of the final bound.'),
 
-part('moment','Obtain the initial gradient moment directly from entropy',r'''<p>The score estimate also gives, for every vector \(v\),</p>
+part('moment','Obtain the initial gradient moment directly from entropy',r'''<p>The directional score estimate <cite data-report-ref="UnadjustedLangevin/GibbsScore.lean" data-report-declaration="gibbs_score_lmgf_le"></cite> also gives, for every vector \(v\),</p>
 \[\int e^{\langle\nabla U(x),v\rangle}d\nu(x)\le e^{L\|v\|^2/2}.\]
 <p>Average this inequality over an auxiliary centered Gaussian vector. Completing the square in its density gives an exponential square moment. Tonelli applies because every integrand is nonnegative. With the Gaussian variance chosen to match \(4L\),</p>
 \[\int\exp\!\left(\frac{\|\nabla U\|^2}{4L}\right)d\nu
@@ -125,7 +125,7 @@ ref('UnadjustedLangevin/LSI/GaussianEntropyProduction.lean','interpolationEntrop
 
 part('analytic-endpoints','Control the initial endpoint for every finite-entropy law',r'''<p>A one-sided entropy bound suffices to send \(a\downarrow0\); we can construct it directly without assuming an initial smooth density. Data processing for the same independent Gaussian transition gives</p>
 \[\mathrm{KL}(\mu P_t\mid\nu P_t)\le\mathrm{KL}(\mu\mid\nu).\]
-<p>For \(\delta=1-4tL>0\), set \(s=t/\delta\). The first-order smoothness estimate and gradient Lipschitzness yield the pointwise square-completion bound</p>
+<p>For \(\delta=1-4tL>0\), set \(s=t/\delta\). The first-order smoothness estimate <cite data-report-ref="UnadjustedLangevin/Analysis/Smooth.lean" data-report-declaration="smooth_upper_bound"></cite> and gradient Lipschitzness yield the pointwise square-completion bound</p>
 \[U(y)-U(x)-\frac{\|y-x+t\nabla U(x)\|^2}{4t}
 \le-\frac{\|x-y+s\nabla U(y)\|^2}{4s}
 +\frac s4\|\nabla U(y)\|^2.\]
@@ -157,13 +157,13 @@ ref('UnadjustedLangevin/LSI/IntegratedEntropy.lean','one_step_entropy_of_ae_inte
 'Every analytic premise of this scalar lemma is supplied by the actual-law results above in the final theorem.'),
 
 part('iteration','Prove finite KL at every iterate and sum the recurrence',r'''<p>Finite KL at each iterate is proved first by induction: finite current KL gives a square-integrable gradient, the Gaussian Fisher estimate gives finite relative Fisher after a positive step, and LSI then gives finite next KL. Thus the real-valued sequence \(H_k\) faithfully represents the actual divergences.</p>
-<p>Write \(q=e^{-\alpha h}\), \(c=6h^2dL^2\). The actual one-step estimate and induction imply</p>
+<p>Write \(q=e^{-\alpha h}\), \(c=6h^2dL^2\). The actual one-step estimate and the finite-horizon affine recurrence <cite data-report-ref="UnadjustedLangevin/Recurrence.lean" data-report-declaration="affine_recurrence_exact"></cite> imply</p>
 \[H_k\le q^kH_0+c\frac{1-q^k}{1-q}.\]
 <p>For \(0\le x\le1/4\), the exponential tangent bound gives</p>
 \[1-e^{-x}\ge\frac{x}{1+x}\ge\tfrac34x.\]
 <p>Use \(x=\alpha h\), discard \(1-q^k\le1\), and simplify:</p>
 \[\frac{6h^2dL^2}{1-e^{-\alpha h}}\le\frac{8hdL^2}{\alpha}.\]
-<p>This proves the displayed convergence bound with the original potential, actual independent-Gaussian ULA laws, and every finite-KL initial probability law. The final theorem assumes smoothness, LSI, the step restriction, and finite initial KL. All density, moment, weak-equation, entropy-regularity, compatibility, and recurrence facts have been proved within its dependency chain.</p><p>The induction can be written in its exact finite-horizon form. Starting from \(H_0\), each insertion of \(c\) is damped once for every remaining transition. Thus</p>\[H_k\le e^{-\alpha hk}H_0+
+<p>This proves the displayed convergence bound with the original potential, actual independent-Gaussian ULA laws, and every finite-KL initial probability law. The final theorem assumes smoothness, LSI, the step restriction, and finite initial KL. All density, moment, weak-equation, entropy-regularity, compatibility, and recurrence facts have been proved within its dependency chain.</p><p>The induction can be written in its exact finite-horizon form. Starting from \(H_0\), each insertion of \(c\) is damped once for every remaining transition. The geometric-sum form <cite data-report-ref="UnadjustedLangevin/Recurrence.lean" data-report-declaration="affine_recurrence_sum"></cite> is</p>\[H_k\le e^{-\alpha hk}H_0+
 6h^2dL^2\sum_{j=0}^{k-1}e^{-\alpha hj}.\]<p>The geometric denominator is strictly positive because both \(\alpha\) and \(h\) are positive. Its lower bound is proportional to \(h\), turning the local \(h^2\) error into a global \(h\) floor. At fixed step, increasing \(k\) removes only the initial-entropy contribution. Reducing the asymptotic floor requires a smaller step; the separate dependences on dimension, smoothness, and LSI constant remain explicit.</p>''',[
 ref('UnadjustedLangevin/LSI/UnconditionalTheorem.lean','ula_kl_finite'),
 ref('UnadjustedLangevin/LSI/DiscreteEntropy.lean','discrete_entropy_recurrence_bound')],
@@ -175,9 +175,9 @@ IPLA_STATEMENT=r'''<p>Let \(N\ge1\), \(D=d_\theta+Nd_x\), assume \(D\ge1\), and 
 \[z=(\theta,x^1/\sqrt N,\ldots,x^N/\sqrt N),\qquad
 V_N(z)=\sum_{i=1}^NU(\theta,\sqrt N z_i),\quad
 \Pi_N(dz)\propto e^{-V_N(z)}dz.\]
-<p>Assume an LSI with constant \(\beta_N>0\) for this actual lifted target. Compatibility gives \(\beta_N\le NL\) by the positive-dimensional argument on the shared ULA page; the final theorem derives this compatibility from its stated assumptions. For finite initial joint entropy and</p>
+<p>The target is the Gibbs law of the lifted potential under the established target identity <cite data-report-ref="IPLA/Foundations.lean" data-report-declaration="gibbsTarget_eq_gibbsMeasure"></cite>. Assume an LSI with constant \(\beta_N>0\) for this actual lifted target. The positive-dimensional compatibility result <cite data-report-ref="UnadjustedLangevin/LSI/Compatibility.lean" data-report-declaration="logSobolev_constant_le_smoothness"></cite> gives \(\beta_N\le NL\); the final theorem derives this compatibility from its stated assumptions. For finite initial joint entropy and</p>
 \[0&lt;\gamma\le\frac{\beta_N}{4NL^2},\]
-<p>the IPLA laws \(\mu_k\), equivalently ULA for \(V_N\) at step \(\gamma/N\), satisfy</p>
+<p>the IPLA laws \(\mu_k\), equivalently ULA for \(V_N\) at step \(\gamma/N\) by the established algorithm-law identity <cite data-report-ref="IPLA/ULAAdapter.lean" data-report-declaration="laws_eq_ulaLawStep"></cite>, satisfy</p>
 \[\frac{H_{\Pi_N}(\mu_k)}N\le
 e^{-\beta_N\gamma k/N}\frac{H_{\Pi_N}(\mu_0)}N
 +\frac{8\gamma DL^2}{\beta_N}.\]
@@ -185,17 +185,17 @@ e^{-\beta_N\gamma k/N}\frac{H_{\Pi_N}(\mu_0)}N
 \[\boxed{\frac{H_{\Pi_N}(\mu_k)}N\le
 e^{-\alpha\gamma k}\frac{H_{\Pi_N}(\mu_0)}N
 +\frac{8\gamma L^2}{\alpha}\left(d_x+\frac{d_\theta}N\right).}\]
-<p>The condition is now \(0&lt;\gamma\le\alpha/(4L^2)\). An LSI for the original pair target is not substituted for the lifted-target hypothesis. The result derives all interpolation estimates from the shared ULA theorem and finite initial joint KL. If \(D=0\), both laws are the unique point mass and their entropy is zero.</p>'''
+<p>The condition is now \(0&lt;\gamma\le\alpha/(4L^2)\). An LSI for the original pair target is not substituted for the lifted-target hypothesis. The result derives all interpolation estimates from the shared ULA entropy theorem <cite data-report-ref="UnadjustedLangevin/LSI/UnconditionalTheorem.lean" data-report-declaration="ula_kl_bound"></cite> and finite initial joint KL. If \(D=0\), both laws are the unique point mass and their entropy is zero.</p>'''
 
 
 IPLA_PROOF=[
-part('lift','The geometry fixes the dimension, gradient constant, and step',r'''<p>Each physical pair \((\theta,x^i)\) is extracted from the scaled state by \((\theta,\sqrt N z_i)\). Differentiating the lifted sum gives the averaged parameter drift and ordinary latent drifts at step \(\gamma/N\). The corresponding Euclidean state has</p>
+part('lift','The geometry fixes the dimension, gradient constant, and step',r'''<p>Each physical pair \((\theta,x^i)\) is extracted from the scaled state by \((\theta,\sqrt N z_i)\). The two gradient-block formulas <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="gradient_potential_parameter"></cite> show that differentiating the lifted sum gives the averaged parameter drift and ordinary latent drifts at step \(\gamma/N\). The corresponding Euclidean state has</p>
 \[D=d_\theta+Nd_x,\qquad L_N=NL,\qquad h_N=\gamma/N.\]
-<p>The parameter block of the lifted gradient is a sum over particles; each latent block contributes a factor \(\sqrt N\). Squaring and summing the blocks, then applying Cauchy–Schwarz to the common-parameter sum, proves the gradient Lipschitz constant \(NL\). The coordinate Gaussian laws and independence identify the actual noise-driven IPLA law with this ULA transition. No equality between \(d_\theta\) and \(d_x\) is needed.</p><p>The scaling can also be verified directly in physical coordinates. The parameter component of a step is</p>\[\theta_{k+1}=\theta_k-\frac\gamma N\sum_i\nabla_\theta U(\theta_k,x_k^i)
-+\sqrt{\frac{2\gamma}{N}}Z_k^\theta.\]<p>For the latent block, multiply the scaled update by \(\sqrt N\); this gives</p>\[x_{k+1}^i=x_k^i-\gamma\nabla_xU(\theta_k,x_k^i)+\sqrt{2\gamma}Z_k^i.\]<p>Thus the lifted Gaussian transition is exactly the intended particle algorithm, with the same joint innovation law. The dimension \(D\) counts all coordinates of that joint state, and the full joint entropy is the natural input to the shared ULA theorem.</p>''',[
+<p>The dimension identity is the coordinate-space dimension formula <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="finrank_state"></cite>. The parameter block of the lifted gradient is a sum over particles; each latent block contributes a factor \(\sqrt N\). Squaring and summing the blocks, then applying Cauchy–Schwarz to the common-parameter sum, proves the gradient Lipschitz constant \(NL\) <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="potential_gradient_lipschitz"></cite>. The coordinate Gaussian laws and independence identify the actual noise-driven IPLA law with this ULA transition <cite data-report-ref="IPLA/ULAAdapter.lean" data-report-declaration="laws_eq_ulaLawStep"></cite>. No equality between \(d_\theta\) and \(d_x\) is needed.</p><p>The scaling can also be verified directly in physical coordinates. The parameter component of a step is the previously established physical parameter update <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="scaledUpdate_parameter"></cite>:</p>\[\theta_{k+1}=\theta_k-\frac\gamma N\sum_i\nabla_\theta U(\theta_k,x_k^i)
++\sqrt{\frac{2\gamma}{N}}Z_k^\theta.\]<p>For the latent block, multiply the scaled update by \(\sqrt N\); the physical latent update <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="scaledUpdate_particle"></cite> is</p>\[x_{k+1}^i=x_k^i-\gamma\nabla_xU(\theta_k,x_k^i)+\sqrt{2\gamma}Z_k^i.\]<p>Thus the lifted Gaussian transition is exactly the intended particle algorithm, with the same joint innovation law. The dimension \(D\) counts all coordinates of that joint state, and the full joint entropy is the natural input to the shared ULA entropy theorem <cite data-report-ref="UnadjustedLangevin/LSI/UnconditionalTheorem.lean" data-report-declaration="ula_kl_bound"></cite>.</p>''',[
 ref('IPLA/LSI/Theorem.lean','particleLaws_eq_laws')],
 'The lifted geometry and identification with the actual Gaussian particle algorithm are checked.'),
-part('step','Apply the ULA one-step estimate with the lifted target',r'''<p>Apply the ULA entropy argument to \((V_N,\Pi_N)\), with constant \(\beta_N\), dimension \(D\), smoothness \(NL\), and step \(\gamma/N\). Its step restriction becomes</p>
+part('step','Apply the ULA one-step estimate with the lifted target',r'''<p>Apply the ULA one-step entropy theorem <cite data-report-ref="UnadjustedLangevin/LSI/UnconditionalTheorem.lean" data-report-declaration="ula_kl_one_step"></cite> to \((V_N,\Pi_N)\), with constant \(\beta_N\), dimension \(D\), smoothness \(NL\), and step \(\gamma/N\). Its step restriction becomes</p>
 \[\frac\gamma N\le\frac{\beta_N}{4(NL)^2}
 \quad\Longleftrightarrow\quad
 \gamma\le\frac{\beta_N}{4NL^2}.\]
@@ -203,10 +203,10 @@ part('step','Apply the ULA one-step estimate with the lifted target',r'''<p>Appl
 \[6h_N^2D L_N^2=6(\gamma/N)^2D(NL)^2=6\gamma^2DL^2.\]
 <p>Consequently the unnormalized joint entropy obeys</p>
 \[H_{k+1}\le e^{-\beta_N\gamma/N}H_k+6\gamma^2DL^2.\]
-<p>The proof first establishes probability normalization and finite KL, applies the shared one-step theorem, and then simplifies the rescaled constants. Every analytic input is supplied by the actual Gaussian ULA construction.</p><p>The product \(\beta_Nh_N\) equals \(\beta_N\gamma/N\), which fixes the rate in the one-step exponential. The numerical step condition also yields \(\beta_N\gamma/N\le1/4\) through the lifted compatibility inequality. Hence the same geometric-denominator estimate used in the ULA proof is available with the rescaled constants, without losing a particle factor.</p><p>The recurrence is for the unnormalized joint divergence. The additive term has no remaining factor \(N^{-1}\) because the squared step contributes \(N^{-2}\) and the squared lifted smoothness contributes \(N^2\). Normalization by \(N\) is postponed until the complete joint inequality has been derived.</p>''',[
+<p>The lifted LSI assumption includes probability normalization of the Gibbs target <cite data-report-ref="UnadjustedLangevin/LSI/FunctionalInequality.lean" data-report-declaration="IsLogSobolev"></cite>. The shared finiteness theorem <cite data-report-ref="UnadjustedLangevin/LSI/UnconditionalTheorem.lean" data-report-declaration="ula_kl_finite"></cite> supplies finite KL before the one-step theorem is applied and its rescaled constants are simplified. Every analytic input is supplied by the actual Gaussian ULA construction.</p><p>The product \(\beta_Nh_N\) equals \(\beta_N\gamma/N\), which fixes the rate in the one-step exponential. The numerical step condition also yields \(\beta_N\gamma/N\le1/4\) through the lifted compatibility inequality <cite data-report-ref="UnadjustedLangevin/LSI/Compatibility.lean" data-report-declaration="logSobolev_constant_le_smoothness"></cite>. Hence the geometric-denominator estimate <cite data-report-ref="UnadjustedLangevin/LSI/DiscreteEntropy.lean" data-report-declaration="three_quarters_mul_le_one_sub_exp_neg"></cite> used in the ULA proof is available with the rescaled constants, without losing a particle factor.</p><p>The recurrence is for the unnormalized joint divergence. The additive term has no remaining factor \(N^{-1}\) because the squared step contributes \(N^{-2}\) and the squared lifted smoothness contributes \(N^2\). Normalization by \(N\) is postponed until the complete joint inequality has been derived.</p>''',[
 ref('UnadjustedLangevin/LSI/UnconditionalTheorem.lean','ula_kl_one_step')],
 'The particle substitution and scalar algebra use the shared ULA proof from smoothness, LSI, and finite initial KL.'),
-part('normalization','Normalize by the particle number only after deriving the joint bound',r'''<p>Iteration gives the unnormalized floor</p>
+part('normalization','Normalize by the particle number only after deriving the joint bound',r'''<p>The shared full ULA entropy theorem <cite data-report-ref="UnadjustedLangevin/LSI/UnconditionalTheorem.lean" data-report-declaration="ula_kl_bound"></cite> gives the unnormalized floor after the lifted substitution:</p>
 \[\frac{8h_NDL_N^2}{\beta_N}
 =\frac{8\gamma NDL^2}{\beta_N}.\]
 <p>Divide the entire inequality by positive \(N\), including the initial entropy and the floor. This proves</p>
@@ -217,7 +217,7 @@ part('normalization','Normalize by the particle number only after deriving the j
 ref('IPLA/LSI/UnconditionalTheorem.lean','particle_kl_bound_normalized_of_finite_kl'),
 ref('IPLA/LSI/UnconditionalTheorem.lean','particle_kl_bound_linear_lsi_of_finite_kl')],
 'The general lifted-constant bound, division by N, and linear-LSI specialization are checked with their assumptions visible.'),
-part('parameter','Project to the parameter marginal using data processing',r'''<p>Let \(P_\theta\) be the parameter projection, \(\mu_k^\theta=P_{\theta\#}\mu_k\), and \(\Pi_N^\theta=P_{\theta\#}\Pi_N\). Relative entropy decreases under a measurable map:</p>
+part('parameter','Project to the parameter marginal using data processing',r'''<p>Let \(P_\theta\) be the continuous linear parameter projection <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="parameterCLM"></cite>, \(\mu_k^\theta=P_{\theta\#}\mu_k\), and \(\Pi_N^\theta=P_{\theta\#}\Pi_N\). Relative entropy decreases under a measurable map:</p>
 \[H_{\Pi_N^\theta}(\mu_k^\theta)\le H_{\Pi_N}(\mu_k).\]
 <p>This controls the unnormalized parameter KL. In particular, under \(\beta_N=N\alpha\),</p>
 \[H_{\Pi_N^\theta}(\mu_k^\theta)

@@ -140,8 +140,11 @@ CONFIG = {
 
 
 
-def home_document(lib, config, notes, sources, parsed, math):
+def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     page = lib + '/exposition/index.html'
+    if catalog:
+        typeset = math
+        math = lambda value: catalog.resolve_html(typeset(value), page)
     parent_library=lib.split('/')[0]
     entropy='/LSI' in lib
     footref='<sup><a id="entropy-note-ref" href="#entropy-note" aria-label="Entropy analogue">1</a></sup>' if lib=='IPLA' else ''
@@ -150,7 +153,7 @@ def home_document(lib, config, notes, sources, parsed, math):
           f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}{footref}</p>'
           + reference_notice(lib) +
           f'<p class="status">{config["status"]}</p></header>')
-    proof_library='IPLA' if lib=='IPLA/LSI' else lib
+    proof_library=lib
     body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
     body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorem</a><a href="#proof-map">Proof roadmap</a>'
@@ -187,7 +190,7 @@ def home_document(lib, config, notes, sources, parsed, math):
                 body+=f'<p class="small"><a href="{relative(module_page(path),page)}#{anchor(name)}">Detailed explanation in {E(Path(path).name)} →</a></p>'
             body+='</div></div></article>'
         body+='</section>'
-    body+='<section class="section" id="modules"><h2>Supporting proofs</h2><p class="section-intro">Browse the definitions and lemmas used in this development. Each page pairs the mathematical statement and proof with the corresponding Lean declarations. The full PDF above collects the supporting mathematical proofs in dependency order.</p>'
+    body+='<section class="section" id="modules"><h2>Supporting proofs</h2><p class="section-intro">Browse the definitions and lemmas used in this development. Each page pairs the mathematical statement and proof with the corresponding Lean declarations. The report gives the supporting proofs for this development and cites earlier reports by precise section number.</p>'
     body+='<div class="toolbar"><div><label for="module-search">Find a proof </label><input class="search" id="module-search" type="search" placeholder="Name, topic, or source file" aria-controls="module-directory"></div><span class="small" id="module-count" aria-live="polite"></span></div><div id="module-directory">'
     groups={}
     for path,note in sorted(notes.items()):
@@ -211,10 +214,14 @@ def home_document(lib, config, notes, sources, parsed, math):
     body+='<section class="section" id="further-reading"><h2>References and further reading</h2><div class="dependencies">'
     body+=f'<a href="{relative(config["archive"],page)}">{config["archive_label"]}</a>'
     body+=''.join(f'<a href="{relative(p,page)}">{E(label)}</a>' for p,label in config['extra'])+'</div></section>'
+    if catalog:
+        from report_citations import citation_panel
+        plan = catalog.plans[lib]
+        body += citation_panel(lib, plan['title'], plan['revision'], page)
     return shell(page,config['title'],body,lib)
 
 
-def project_document(notes):
+def project_document(notes, catalog=None):
     page='index.html'
     body=('<header class="hero project-hero">'
           '<h1>Langevin convergence in Lean</h1>'
@@ -264,6 +271,9 @@ def project_document(notes):
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'
+    if catalog:
+        from report_citations import citation_panel
+        body += citation_panel(None, None, None, page)
     return shell(page,'Langevin convergence in Lean',body)
 
 
