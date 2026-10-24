@@ -219,7 +219,7 @@ def project_document(notes):
     body=('<header class="hero project-hero">'
           '<h1>Langevin convergence in Lean</h1>'
           '<p class="subtitle">Formalized convergence bounds for Langevin sampling and particle methods, with mathematical proofs alongside Lean. '
-          'These pages are prepared by Omer Deniz Akyildiz with AI assistance as part of an ongoing effort to formalize Langevin algorithms comprehensively. '
+          'These pages are prepared by <a href="https://odakyildiz.com/">Omer Deniz Akyildiz</a> with AI assistance as part of an ongoing effort to formalize Langevin algorithms comprehensively. '
           'This is draft work, and the pages may contain mistakes.</p></header>'
           '<section class="cards" id="developments" aria-label="Formalized developments">')
     cards=[('UnadjustedLangevin','Wasserstein distance',

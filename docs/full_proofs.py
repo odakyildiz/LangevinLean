@@ -125,6 +125,7 @@ def _preamble(title, heading):
         r"\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]",
         r"\usepackage[margin=25mm]{geometry}",
         r"\usepackage[unicode,hidelinks]{hyperref}",
+        r"\hypersetup{pdfauthor={LangevinLean Project}}",
         r"\setlength{\emergencystretch}{3em}",
         r"\setlength{\parskip}{0.4em}",
         r"\setlength{\parindent}{0pt}",
@@ -138,7 +139,7 @@ def _preamble(title, heading):
         r"\allowdisplaybreaks[2]",
         r"\raggedbottom",
         r"\title{" + heading(title) + r"\\[0.6em]\large Mathematical proofs}",
-        r"\author{Omer Deniz Akyildiz\\[0.4em]\normalsize Prepared with AI assistance}",
+        r"\author{LangevinLean Project}",
         r"\date{}",
         r"\begin{document}",
         r"\pagenumbering{roman}",
@@ -262,7 +263,7 @@ def full_proof_documents(configurations, notes, sources):
             "detailed mathematical proofs for this development. The supporting "
             "arguments are arranged so that prerequisites precede their applications. "
             "They use ordinary mathematical notation throughout.\n\n"
-            "Prepared by Omer Deniz Akyildiz with AI assistance, these notes form "
+            "Prepared by the LangevinLean Project with AI assistance, these notes form "
             "part of an ongoing effort to formalize Langevin algorithms comprehensively. "
             "This is draft work and may contain mistakes.\n\n",
             paper_references(library),
