@@ -68,6 +68,15 @@ links to imported proofs and users, the complete module context, and a downloada
 LaTeX exposition under `latex/`. The generated IPLA standalone bundle links to the
 proof of each included source module in HTML; its LaTeX export gathers all those
 mathematical statements and proofs into one document in dependency order.
+Each of the six developments on the main project page has one complete proof
+document at `pdf/<library>/FullProof.pdf`, linked at the top of its overview.
+It contains all theorem statements and assumptions, the mathematical argument,
+and the supporting proofs in dependency order, including shared foundations from
+other libraries. Each dependency appears once within a document. The IPLA volume
+also includes its unpublished LSI extension; both IPLA pages link to that volume.
+The corresponding complete LaTeX source is at `latex/<library>/FullProof.tex`.
+The investigations branch adds a separate Average LMC volume. Individual proof
+boxes have no separate PDF downloads. The PDFs contain no Lean source listings.
 LaTeX exports use `fontspec` and can be compiled with XeLaTeX or LuaLaTeX.
 
 Each Lean statement, proof excerpt, and full-module block has a **Copy Lean**
@@ -105,15 +114,25 @@ From the repository root, with Python 3 and Node.js on `PATH`:
 
 ```sh
 python3 docs/build_site.py
+python3 docs/build_pdfs.py
 python3 docs/verify_site.py
 ```
 
 The builder requires mathematical explanations for every native local declaration,
 rejects unrecognized declaration references, and fails on malformed LaTeX formulas.
-KaTeX and fonts are vendored; no network or package installation is required.
+KaTeX and web fonts are vendored; building HTML requires no network or package installation.
+Building PDFs additionally requires XeLaTeX (or `--engine lualatex`), the standard
+TeX packages used in the exports, and `pdfinfo`. The PDF builder compiles only
+the complete `FullProof.tex` documents, keeps compiler scratch files outside the repository,
+and rebuilds documents when their sources change. Its manifest records source
+and PDF hashes and page counts. `python3 docs/build_pdfs.py --check` checks the
+committed PDFs without requiring a TeX installation.
 The verifier checks the complete source inventory, hashes of authoring inputs and
 outputs, every displayed source line, full declaration coverage, all local HTML
-destinations and anchors, diagram destinations, and LaTeX exports. It checks
+destinations and anchors, diagram destinations, and the complete PDF/LaTeX volumes.
+The dependency inventory in `full_proofs.json` records every included local module
+and its proof steps so a shortened collection cannot silently replace a full proof.
+It also verifies PDF coverage and hashes against the current LaTeX sources. It checks
 documentation integrity; the mathematical proof is checked by Lean:
 
 ```sh

@@ -65,6 +65,9 @@ def verify():
     sources,parsed,notes=load()
     from site_content import CONFIG
     manifest=json.loads((ROOT/'docs/coverage.json').read_text())
+    from full_proofs import full_proof_inventory
+    volumes=full_proof_inventory(CONFIG,notes,sources)
+    assert json.loads((ROOT/'docs/full_proofs.json').read_text())==volumes,'Stale complete-proof dependency inventory'
     assert set(manifest['modules'])==set(sources),'Missing module page in coverage manifest'
     for path,checksum in manifest['inputs'].items():
         assert digest(path)==checksum,f'Stale authoring input {path}; run python3 docs/build_site.py'
@@ -117,6 +120,12 @@ def verify():
                 assert unquote(link.fragment) in parse(destination).ids,f'Broken anchor {path}: {href}'
         for href in doc.boxes:
             assert urlsplit(href).path.endswith('.html'),f'Diagram box must open HTML: {path}: {href}'
+        destinations={(target.parent/unquote(urlsplit(href).path)).resolve()
+                      for href in doc.links if not urlsplit(href).scheme and urlsplit(href).path}
+        for destination in destinations:
+            if destination.name=='FullProof.tex' and destination.is_relative_to(ROOT/'docs/latex'):
+                companion=ROOT/'docs/pdf'/destination.relative_to(ROOT/'docs/latex').with_suffix('.pdf')
+                assert companion.resolve() in destinations,f'Missing PDF companion link: {path}: {destination}'
         represented=set()
         for block in doc.blocks:
             blocks+=1
@@ -130,6 +139,7 @@ def verify():
                 assert name not in represented,f'Repeated declaration {path}: {name}'
                 represented.add(name)
         if path.startswith('docs/modules/'):
+            assert not any(p.is_relative_to(ROOT/'docs/pdf') for p in destinations),'PDF downloads belong on development overviews, not individual proof boxes'
             source=next(p for p in sources if module_page(p)==path)
             assert represented==set(parsed.get(source,{})),f'Missing complete Lean declaration: {source}'
             assert any(b['data-role']=='module' and b['data-source']==source for b in doc.blocks),f'Missing full module: {source}'
@@ -137,6 +147,12 @@ def verify():
             assert manifest['modules'][source]['source_sha256']==digest(source),f'Stale source: {source}'
     for lib in CONFIG:
         doc=parse(ROOT/lib/'exposition/index.html')
+        volume='IPLA' if lib=='IPLA/LSI' else lib
+        target=ROOT/lib/'exposition/index.html'
+        destinations={(target.parent/unquote(urlsplit(href).path)).resolve()
+                      for href in doc.links if not urlsplit(href).scheme and urlsplit(href).path}
+        assert (ROOT/'docs/pdf'/volume/'FullProof.pdf').resolve() in destinations,f'Missing complete PDF proof: {lib}'
+        assert (ROOT/'docs/latex'/volume/'FullProof.tex').resolve() in destinations,f'Missing complete LaTeX proof: {lib}'
         assert len(doc.boxes)>=8,f'Missing logical proof map: {lib}'
         assert {'main-results','verification','proof-map','modules'}<=set(doc.ids),f'Missing standard section: {lib}'
         assert any(b['data-role']=='statement' for b in doc.blocks),f'Missing exact main theorem: {lib}'
@@ -150,7 +166,9 @@ def verify():
                  'IPLA/LSI/exposition/proof.html','IPLA/exposition/proof.html',
                  'ProximalLangevin/exposition/proof.html']:
         assert parse(ROOT/path).robots==['noindex, nofollow, noarchive'],f'Missing legacy indexing restrictions: {path}'
-    print(f'Verified {len(sources)} module pages and LaTeX exports; '
+    from build_pdfs import verify as verify_pdfs
+    verify_pdfs()
+    print(f'Verified {len(sources)} module pages, LaTeX exports and complete PDF proofs; '
           f'{sum(len(d) for d in parsed.values())} explained declarations; '
           f'{blocks} exact source excerpts; {links} links/resources; {len(CONFIG)} standard overviews.')
 

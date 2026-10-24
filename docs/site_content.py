@@ -149,8 +149,9 @@ def home_document(lib, config, notes, sources, parsed, math):
           f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}{footref}</p>'
           + reference_notice(lib) +
           f'<p class="status">{config["status"]}</p></header>')
-    if config.get('proof'):
-        body+='<p class="proof-download"><a href="'+relative('docs/latex/'+lib+'/Overview.tex',page)+'" download>Download the mathematical proof as LaTeX ↓</a></p>'
+    proof_library='IPLA' if lib=='IPLA/LSI' else lib
+    body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
+           '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
     body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorem</a><a href="#proof-map">Proof roadmap</a>'
     if config.get('proof'):body+='<a href="#mathematical-proof">Detailed proof</a>'
     body+='<a href="#modules">Supporting proofs</a><a href="#verification">Compile and verify</a></nav>'+toolbar()
@@ -185,7 +186,7 @@ def home_document(lib, config, notes, sources, parsed, math):
                 body+=f'<p class="small"><a href="{relative(module_page(path),page)}#{anchor(name)}">Detailed explanation in {E(Path(path).name)} →</a></p>'
             body+='</div></div></article>'
         body+='</section>'
-    body+='<section class="section" id="modules"><h2>Supporting proofs</h2><p class="section-intro">Browse the definitions and lemmas used in this development. Each page pairs the mathematical statement and proof with the corresponding Lean declarations; a LaTeX version is available for reading or printing.</p>'
+    body+='<section class="section" id="modules"><h2>Supporting proofs</h2><p class="section-intro">Browse the definitions and lemmas used in this development. Each page pairs the mathematical statement and proof with the corresponding Lean declarations. The full PDF above collects the supporting mathematical proofs in dependency order.</p>'
     body+='<div class="toolbar"><div><label for="module-search">Find a proof </label><input class="search" id="module-search" type="search" placeholder="Name, topic, or source file" aria-controls="module-directory"></div><span class="small" id="module-count" aria-live="polite"></span></div><div id="module-directory">'
     groups={}
     for path,note in sorted(notes.items()):
@@ -253,9 +254,10 @@ def project_document(notes):
                f'<p class="card-scope">{E(scope)}</p>')
         if key=='IPLA':
             body+='<p class="entry-extension">Entropy extension: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a> (unpublished).</p>'
+        body+=f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
         body+='</div></article>'
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
-           '<div class="reading-note"><h2>Read the proofs</h2><p>Each development gives assumptions, theorem statements and a proof roadmap. Supporting pages pair mathematical arguments with Lean and offer LaTeX downloads.</p></div>'
+           '<div class="reading-note"><h2>Read the proofs</h2><p>Each development has one PDF containing the theorem statements, mathematical argument and supporting proofs. The web pages pair those proofs with Lean.</p></div>'
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'

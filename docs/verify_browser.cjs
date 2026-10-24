@@ -9,7 +9,7 @@
  * The script starts a loopback-only static server, blocks every external page
  * request, checks desktop and 375/320px mobile layouts, and repeats a local-file
  * smoke test in a browser context with network access disabled. Screenshots,
- * downloaded TeX examples, and a JSON report are saved outside the repository.
+ * downloaded TeX/PDF examples, and a JSON report are saved outside the repository.
  *
  * Optional environment variables:
  *   PLAYWRIGHT_EXECUTABLE_PATH  Explicit Chromium/Chrome executable.
@@ -115,7 +115,8 @@ async function launchBrowser() {
 async function serveLocal(route, url) {
   const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
-    '.tex': 'application/x-tex; charset=utf-8', '.lean': 'text/plain; charset=utf-8',
+    '.tex': 'application/x-tex; charset=utf-8', '.pdf': 'application/pdf',
+    '.lean': 'text/plain; charset=utf-8',
     '.md': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
     '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf' };
   try {
@@ -299,14 +300,13 @@ async function diagramNavigation(page, item) {
   await goto(page, origin + '/' + item.file);
 }
 
-async function latexDownload(page, item, viewport) {
-  const link = page.locator('a[download][href$=".tex"]').first();
+async function latexDownload(page, item, viewport, link, suffix) {
   const href = await link.getAttribute('href');
-  check(href && href.endsWith('.tex'), 'The module offers a LaTeX source download');
+  check(href && href.endsWith('.tex'), 'The page offers a LaTeX source download');
   expectedDownloadURLs.add(new URL(href, page.url()).href);
   const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
   check(download.suggestedFilename().endsWith('.tex'), 'LaTeX download has a TeX filename');
-  const destination = path.join(outputDir, 'downloads', viewport.label + '-' + item.label + '.tex');
+  const destination = path.join(outputDir, 'downloads', viewport.label + '-' + item.label + suffix + '.tex');
   await download.saveAs(destination);
   check(await download.failure() === null, 'LaTeX download succeeds');
   const source = await fsp.readFile(destination, 'utf8');
@@ -314,6 +314,44 @@ async function latexDownload(page, item, viewport) {
     'Downloaded LaTeX is a complete source document');
   check(source.includes('\\[') || source.includes('\\('), 'Downloaded proof includes mathematical statements');
   downloads.push(destination);
+}
+
+async function pdfDownload(page, item, viewport, texLink, suffix) {
+  const texHref = await texLink.getAttribute('href');
+  const href = texHref.replace(/(^|\/)latex\//, '$1pdf/').replace(/\.tex$/, '.pdf');
+  const link = page.locator('a[download][href="' + href + '"]');
+  if (!check(await link.count() === 1, 'Each full proof export offers one matching PDF download',
+    { latex: texHref, pdf: href })) return;
+  const url = new URL(href, page.url());
+  expectedDownloadURLs.add(url.href);
+  const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+  check(download.suggestedFilename().endsWith('.pdf'), 'PDF download has a PDF filename');
+  const destination = path.join(outputDir, 'downloads', viewport.label + '-' + item.label + suffix + '.pdf');
+  await download.saveAs(destination);
+  check(await download.failure() === null, 'PDF download succeeds');
+  const bytes = await fsp.readFile(destination);
+  check(bytes.subarray(0, 5).toString('ascii') === '%PDF-', 'Downloaded proof has a PDF header');
+  check(bytes.subarray(-1024).toString('latin1').trimEnd().endsWith('%%EOF'),
+    'Downloaded proof has a complete PDF trailer');
+  const source = path.resolve(ROOT, '.' + decodeURIComponent(url.pathname));
+  if (check(source.startsWith(ROOT + path.sep), 'PDF export belongs to this repository', href)) {
+    check(bytes.equals(await fsp.readFile(source)), 'Downloaded PDF matches its repository companion exactly');
+  }
+  downloads.push(destination);
+}
+
+async function proofDownloads(page, item, viewport) {
+  const links = page.locator('a[download][href$=".tex"]');
+  const count = await links.count();
+  if (item.kind === 'module') check(count > 0, 'The module offers a LaTeX proof export');
+  for (let index = 0; index < count; index++) {
+    const link = links.nth(index);
+    const suffix = count > 1 ? '-' + (index + 1) : '';
+    await latexDownload(page, item, viewport, link, suffix);
+    if (/(^|\/)FullProof\.tex$/.test(await link.getAttribute('href'))) {
+      await pdfDownload(page, item, viewport, link, suffix);
+    }
+  }
 }
 
 async function screenshot(page, item, viewport) {
@@ -391,7 +429,7 @@ async function main() {
           await diagramNavigation(page, item);
         }
         await screenshot(page, item, viewport);
-        if (item.kind === 'module' || item.library.key.includes('/LSI')) await latexDownload(page, item, viewport);
+        await proofDownloads(page, item, viewport);
       });
     }
     for (const library of LIBRARIES.filter(library => library.legacy)) {
@@ -443,7 +481,8 @@ async function main() {
       console.log('Screenshots and detailed report: ' + outputDir);
     }
     console.log(JSON.stringify({ result: report.browserQA, checkedCases: checked.length,
-      screenshots: screenshots.length, latexDownloads: downloads.length, failures: failures.length }, null, 2));
+      screenshots: screenshots.length, latexDownloads: downloads.filter(file => file.endsWith('.tex')).length,
+      pdfDownloads: downloads.filter(file => file.endsWith('.pdf')).length, failures: failures.length }, null, 2));
     process.exitCode = failures.length ? 1 : 0;
   }
 })();
