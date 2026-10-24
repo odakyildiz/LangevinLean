@@ -17,10 +17,11 @@ from pathlib import Path
 import re
 from html.parser import HTMLParser
 from references import REFERENCE_CSS, reference_notice
-from theme import theme_head, theme_control
+from theme import asset_href, theme_head, theme_control
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
+SITE_CSS = (HERE / "assets/site.css").read_text()
 LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC"]
 SPEC = importlib.util.spec_from_file_location("proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 HELPERS = importlib.util.module_from_spec(SPEC)
@@ -113,8 +114,8 @@ def shell(page, title, body, active=None):
             '<meta name="robots" content="noindex, nofollow, noarchive">'
             f'<title>{E(title)} · LangevinLean</title>'
             f'<link rel="stylesheet" href="{relative("docs/assets/katex.css",page)}">'
-            f'<link rel="stylesheet" href="{relative("docs/assets/site.css",page)}">'
-            f'<link rel="stylesheet" href="{relative("docs/assets/references.css",page)}">'
+            f'<link rel="stylesheet" href="{asset_href(relative("docs/assets/site.css",page), SITE_CSS)}">'
+            f'<link rel="stylesheet" href="{asset_href(relative("docs/assets/references.css",page), REFERENCE_CSS)}">'
             + theme_head(relative("docs/assets/theme.css", page), relative("docs/assets/theme.js", page)) +
             f'<script defer src="{relative("docs/assets/site.js",page)}"></script>'
             f'<script defer src="{relative("docs/assets/diagrams.js",page)}"></script></head><body data-theme-family="modern"{body_class}>'

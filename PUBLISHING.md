@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`59cdcb983ca758cd19c25cfd8940c96d6ff53c4e`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`bec1fcab11427227fc604a706a16c4a0e702f74c`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -43,3 +43,7 @@ shortened while retaining source attribution and scope qualifications. Current
 proof pages and standalone archives share the design, with fonts bundled locally.
 Documentation integrity, responsive layouts, light/dark themes, reading controls,
 and source search were checked locally. This update changes no Lean proofs.
+
+Shared stylesheets and the theme script use content-based URL versions so
+returning readers receive assets that match each updated page. This was checked
+with the browser cache retained after deployment.
