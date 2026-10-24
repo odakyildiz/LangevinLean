@@ -317,6 +317,7 @@ class LatexProse(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.out = []
         self.list_stack = []
+        self.code_depth = 0
     def handle_starttag(self, tag, attrs):
         if tag in ('p', 'div', 'h3', 'h4'): self.out.append('\n\n')
         elif tag == 'br': self.out.append('\n')
@@ -326,64 +327,148 @@ class LatexProse(HTMLParser):
         elif tag == 'li': self.out.append('\n\\item ')
         elif tag in ('strong','b'): self.out.append('\\textbf{')
         elif tag in ('em','i'): self.out.append('\\emph{')
-        elif tag == 'code': self.out.append('\\texttt{')
+        elif tag == 'code':
+            self.code_depth += 1
+            self.out.append('\\texttt{')
     def handle_endtag(self, tag):
         if tag in ('p','div'): self.out.append('\n\n')
         elif tag in ('ul','ol'): self.out.append('\n\\end{' + self.list_stack.pop() + '}\n')
-        elif tag in ('strong','b','em','i','code'): self.out.append('}')
+        elif tag == 'code':
+            self.code_depth -= 1
+            self.out.append('}')
+        elif tag in ('strong','b','em','i'): self.out.append('}')
     def handle_data(self, text):
-        self.out.append(tex_escape(text))
+        self.out.append(tex_escape(text, breakable=self.code_depth > 0))
 
 
-def tex_escape(text):
+def tex_escape(text, *, breakable=False):
     # Mathematical characters in prose/headings need math fonts too. fontspec's
     # default text font otherwise silently drops Greek and subscript glyphs.
     replacements = {'\\':r'\textbackslash{}','_':r'\_','%':r'\%','&':r'\&',
                     '#':r'\#','$':r'\$','{':r'\{','}':r'\}','~':r'\textasciitilde{}',
-                    '^':r'\textasciicircum{}','²':r'\ensuremath{{}^{2}}',
-                    '³':r'\ensuremath{{}^{3}}','₁':r'\ensuremath{{}_{1}}',
-                    '₂':r'\ensuremath{{}_{2}}','ᐟ':'/',
-                    'μ':r'\ensuremath{\mu}','α':r'\ensuremath{\alpha}',
-                    'θ':r'\ensuremath{\theta}','β':r'\ensuremath{\beta}',
-                    '≤':r'\ensuremath{\le}', 'ℝ':r'\ensuremath{\mathbb R}'}
-    return r'\ensuremath{{}^{3/2}}'.join(''.join(replacements.get(c,c) for c in part)
-                                       for part in text.split('³ᐟ²'))
+                    '^':r'\textasciicircum{}','ᐟ':'/'}
+    symbols = {
+        'α':r'\alpha','β':r'\beta','γ':r'\gamma','δ':r'\delta',
+        'ε':r'\varepsilon','η':r'\eta','θ':r'\theta','κ':r'\kappa',
+        'λ':r'\lambda','μ':r'\mu','ν':r'\nu','ξ':r'\xi','π':r'\pi',
+        'ρ':r'\rho','σ':r'\sigma','τ':r'\tau','φ':r'\varphi',
+        'χ':r'\chi','ψ':r'\psi','ω':r'\omega','Δ':r'\Delta',
+        'Ψ':r'\Psi','ι':r'\iota','ζ':r'\zeta','υ':r'\upsilon',
+        'Γ':r'\Gamma','Σ':r'\Sigma','Ω':r'\Omega',
+        'ℝ':r'\mathbb R','ℕ':r'\mathbb N','ℂ':r'\mathbb C','ℤ':r'\mathbb Z',
+        '≤':r'\le','≥':r'\ge','→':r'\to','⇒':r'\Rightarrow',
+        '∈':r'\in','∉':r'\notin','∀':r'\forall','∃':r'\exists','∂':r'\partial',
+        '−':'-','‖':r'\Vert','√':r'\surd','∇':r'\nabla',
+        '∫':r'\int','∞':r'\infty','×':r'\times','′':r'\prime',
+        '↦':r'\mapsto','∘':r'\circ','⊤':r'\top','•':r'\bullet',
+        '⟨':r'\langle','⟩':r'\rangle',
+        '⟪':r'\langle\!\langle','⟫':r'\rangle\!\rangle',
+    }
+    superscripts = dict(zip('⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿᵗˢᵀᵏ', '0123456789+-=()ntsTk'))
+    subscripts = dict(zip('₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ᵥᵢᵤⱼₗ', '0123456789+-=()viujl'))
+    result = []
+    i = 0
+    while i < len(text):
+        c = text[i]
+        if text.startswith('³ᐟ²', i):
+            result.append(r'\ensuremath{{}^{3/2}}')
+            i += 3
+            continue
+        if i + 1 < len(text) and text[i + 1] == '\u0304':
+            result.append(r'\ensuremath{\bar{' + symbols.get(c, c) + '}}')
+            i += 2
+            continue
+        script = superscripts if c in superscripts else subscripts if c in subscripts else None
+        if script is not None:
+            end = i + 1
+            while end < len(text) and text[end] in script:
+                end += 1
+            content = ''.join(script[ch] for ch in text[i:end])
+            result.append(r'\ensuremath{{}' + ('^' if script is superscripts else '_') + '{' + content + '}}')
+            i = end
+            continue
+        if breakable and i and c.isupper() and (text[i - 1].islower() or text[i - 1].isdigit()):
+            result.append(r'\allowbreak{}')
+        result.append(r'\ensuremath{' + symbols[c] + '}' if c in symbols else replacements.get(c, c))
+        if c == '/' or (breakable and c in '_.-'):
+            result.append(r'\allowbreak{}')
+        i += 1
+    return ''.join(result)
+
+
+def latex_code(text):
+    return r'\texttt{' + tex_escape(text, breakable=True) + '}'
+
+
+def latex_heading(text):
+    # Unicode is supported in PDF bookmarks, while typeset mathematical symbols
+    # need the explicit math-font conversion above.
+    plain = {'\\':r'\textbackslash{}','_':r'\_','%':r'\%','&':r'\&',
+             '#':r'\#','$':r'\$','{':r'\{','}':r'\}',
+             '~':r'\textasciitilde{}','^':r'\textasciicircum{}'}
+    bookmark = ''.join(plain.get(c,c) for c in text)
+    return r'\texorpdfstring{' + tex_escape(text, breakable=True) + '}{' + bookmark + '}'
 
 
 def latex_prose(value):
     math = []
     def protect(match):
-        math.append(html.unescape(match[0]))
+        formula = html.unescape(match[0])
+        # These complete expressions fit comfortably as displays, but their
+        # inline placement leaves too little room after the preceding prose.
+        # Keep the authored mathematical expressions unchanged.
+        display_formulas = {
+            r'\sqrt{2\gamma}\int_{nh}^{(n+1)h}e^{-\gamma((n+1)h-s)}dB_s',
+            r'W_2(\nu_k,\pi)\le(1-m_Nh)^kW_2(\nu_0,\pi)+(33/20)(L_N/m_N)\sqrt{hD}',
+            r'(N_{\psi_0},N_{\psi_1},N_{\varphi_2},N_{\varphi_3})',
+        }
+        if formula.startswith(r'\(') and formula[2:-2] in display_formulas:
+            formula = '\n' + r'\[' + formula[2:-2] + r'\]' + '\n'
+        math.append(formula)
         return f'LATEXMATHPLACEHOLDER{len(math)-1}END'
     parser = LatexProse()
     parser.feed(HELPERS.TEX.sub(protect,value))
     result = ''.join(parser.out)
-    return re.sub(r'LATEXMATHPLACEHOLDER(\d+)END',lambda m:math[int(m[1])],result)
+    result = re.sub(r'LATEXMATHPLACEHOLDER(\d+)END',lambda m:math[int(m[1])],result)
+    return re.sub(r'[ \t]+(?=\n)', '', result)
+
+
+def latex_declarations(names):
+    return ('\n\n' + r'{\raggedright\noindent Lean declarations: '
+            + ', '.join(latex_code(name) for name in names) + r'.\par}' + '\n')
 
 
 def latex_document(path, note, notes):
-    result = (r'\documentclass[11pt]{article}' + '\n' + r'\usepackage{fontspec,amsmath,amssymb,amsthm,hyperref}' + '\n'
-              + r'\usepackage[margin=1in]{geometry}' + '\n' + r'\setlength{\emergencystretch}{3em}' + '\n'
-              + r'\title{' + tex_escape(note['title']) + '}\n'
+    result = (r'\documentclass[11pt,a4paper]{article}' + '\n'
+              + r'\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}' + '\n'
+              + r'\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]' + '\n'
+              + r'\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]' + '\n'
+              + r'\usepackage[margin=25mm]{geometry}' + '\n'
+              + r'\usepackage[unicode,hidelinks]{hyperref}' + '\n'
+              + r'\setlength{\emergencystretch}{3em}' + '\n'
+              + r'\setlength{\parskip}{0.4em}' + '\n'
+              + r'\setlength{\parindent}{0pt}' + '\n'
+              + r'\allowdisplaybreaks[2]' + '\n' + r'\raggedbottom' + '\n'
+              + r'\title{' + latex_heading(note['title']) + '}\n'
               + r'\author{LangevinLean mathematical exposition}' + '\n'
               + r'\date{}' + '\n' + r'\begin{document}\maketitle' + '\n'
-              + (r'\noindent Source module: \texttt{' + tex_escape(path) + '}. ' if not path.endswith('/Overview.lean') else '')
-              + 'Compile this proof document with XeLaTeX or LuaLaTeX. The accompanying HTML pairs the mathematical argument with the exact Lean statements and records the scope of the formalization.\n'
+              + (r'\noindent Source module: ' + latex_code(path) + '. ' if not path.endswith('/Overview.lean') else '')
+              + 'The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.\n'
               + latex_prose(note['summary']))
     for step in note['steps']:
-        result += '\n\\section{' + tex_escape(step['title']) + '}\n' + latex_prose(step['body'])
+        result += '\n\\section{' + latex_heading(step['title']) + '}\n' + latex_prose(step['body'])
         if step['declarations']:
-            result += '\n\n\\noindent Lean declarations: ' + ', '.join(r'\texttt{' + tex_escape(n) + '}' for n in step['declarations']) + '.\n'
+            result += latex_declarations(step['declarations'])
     if path == 'IPLA/Standalone.lean':
         included = re.findall(r'## Included source: ([\w/.]+\.lean)', (ROOT/path).read_text())
         result += '\n\\section*{Complete mathematical dependency proofs}\nThe following sections reproduce the mathematical statements and proofs of every source module included in the generated Lean bundle, in dependency order.\n'
         for dependency in included:
             section = notes[dependency]
-            result += '\n\\section{' + tex_escape(section['title']) + '}\n'
-            result += '\\noindent Source: \\texttt{' + tex_escape(dependency) + '}.\n' + latex_prose(section['summary'])
+            result += '\n\\section{' + latex_heading(section['title']) + '}\n'
+            result += '\\noindent Source: ' + latex_code(dependency) + '.\n' + latex_prose(section['summary'])
             for step in section['steps']:
-                result += '\n\\subsection{' + tex_escape(step['title']) + '}\n' + latex_prose(step['body'])
-                result += '\n\n\\noindent Lean declarations: ' + ', '.join(r'\texttt{' + tex_escape(n) + '}' for n in step['declarations']) + '.\n'
+                result += '\n\\subsection{' + latex_heading(step['title']) + '}\n' + latex_prose(step['body'])
+                result += latex_declarations(step['declarations'])
     return result + '\n\\end{document}\n'
 
 
@@ -416,7 +501,11 @@ def main():
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
             outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes)
     outputs['index.html'] = project_document(notes)
-    inputs = ['docs/build_site.py','docs/site_content.py','docs/entropy_content.py',
+    from full_proofs import full_proof_documents, full_proof_inventory
+    outputs.update(full_proof_documents(CONFIG, notes, sources))
+    outputs['docs/full_proofs.json'] = json.dumps(
+        full_proof_inventory(CONFIG, notes, sources), indent=2, ensure_ascii=False) + '\n'
+    inputs = ['docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/entropy_content.py',
               'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']

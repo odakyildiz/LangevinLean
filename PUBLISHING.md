@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`bec1fcab11427227fc604a706a16c4a0e702f74c`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`c1faa74885a4046e451052088117094f281cea28`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -47,3 +47,10 @@ and source search were checked locally. This update changes no Lean proofs.
 Shared stylesheets and the theme script use content-based URL versions so
 returning readers receive assets that match each updated page. This was checked
 with the browser cache retained after deployment.
+
+On 24 October 2026, each of the six homepage developments received one
+consolidated mathematical proof PDF and its complete LaTeX source. The volumes
+include theorem assumptions and statements, overview arguments, and all authored
+local supporting proofs in dependency order. IPLA includes its unpublished LSI
+extension. Individual proof boxes have no PDF downloads. Compiled output, source
+coverage, internal links, page layout and download behavior were checked locally.
