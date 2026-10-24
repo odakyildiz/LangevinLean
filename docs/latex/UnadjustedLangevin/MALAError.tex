@@ -1,7 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \setlength{\emergencystretch}{3em}
@@ -10,247 +9,277 @@
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{A finite O(h\ensuremath{{}^{3/2}}) rejected-\allowbreak{}displacement bound}{A finite O(h³ᐟ²) rejected-displacement bound}}
-\author{LangevinLean mathematical exposition}
+\author{Omer Deniz Akyildiz\\[0.4em]\normalsize Prepared with AI assistance}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Unadjusted\allowbreak{}Langevin/\allowbreak{}MALAError.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
 The Metropolis-adjusted Langevin proposal provides an exactly invariant approximation to the diffusion. This module proves that its mean rejected displacement under Gibbs initialization is at most \(Ch\sqrt h\), with a finite constant derived from the potential assumptions.
 
 
-\section{\texorpdfstring{mala\allowbreak{}Proposal}{malaProposal}}
+
+For the Langevin proposal, the log Metropolis ratio compares the target-density ratio with the reversed Gaussian-proposal ratio. Expanding the two quadratic exponents exposes a trapezoid error in the potential and a difference of squared gradient norms. Lipschitz-gradient estimates control both by powers of the proposal displacement. The scalar bound \(1-\min(1,e^r)\le|r|\) converts this log-ratio control into a rejection bound; multiplying by displacement gives the expected correction size.
+
+
+\section{\texorpdfstring{The Langevin Gaussian proposal}{The Langevin Gaussian proposal}}
 
 
 Define \(T_h(x,\xi)=x-h\nabla U(x)+\sqrt{2h}\xi\). This is the same Euler proposal used by ULA; MALA applies an accept/\allowbreak{}reject rule to this proposed state.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Proposal}.\par}
+Conditioned on the current state, the proposal has mean \(x-h\nabla U(x)\) and covariance \(2hI_d\). Thus its density is the same Gaussian kernel used by ULA. Only the subsequent decision to accept or remain at \(x\) distinguishes the two algorithms.
 
-\section{\texorpdfstring{mala\allowbreak{}Log\allowbreak{}Ratio}{malaLogRatio}}
+
+\section{\texorpdfstring{The logarithmic Metropolis ratio}{The logarithmic Metropolis ratio}}
 
 
 The log acceptance ratio is \(R_h(x,y)=U(x)-U(y)+(\|y-x+h\nabla U(x)\|^2-\|x-y+h\nabla U(y)\|^2)/(4h)\). The common Gaussian normalizers cancel in the reverse/\allowbreak{}forward proposal density ratio.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Log\allowbreak{}Ratio}.\par}
+The ratio is \(\pi(y)q_h(y,x)/(\pi(x)q_h(x,y))\). Taking its logarithm cancels the target partition function as well as the two Gaussian normalizers, leaving the displayed expression. Positive \(h\) gives nondegenerate proposal densities in both directions.
 
-\section{\texorpdfstring{mala\allowbreak{}Log\allowbreak{}Ratio expansion}{malaLogRatio expansion}}
+
+\section{\texorpdfstring{Expansion of the proposal ratio}{Expansion of the proposal ratio}}
 
 
 Expand both squared norms using the real inner-product norm identity. The \(\|y-x\|^2\) terms cancel, and division by \(4h\) gives \(R_h=U(x)-U(y)+\frac12\langle\nabla U(x)+\nabla U(y),y-x\rangle-\frac h4(\|\nabla U(y)\|^2-\|\nabla U(x)\|^2)\). The premise \(h\ne0\) justifies denominator cancellation.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Log\allowbreak{}Ratio\_\allowbreak{}expansion}.\par}
+Writing \(d=y-x\), expand \(\|d+hg_x\|^2\) and \(\|-d+hg_y\|^2\) before subtracting. Their common \(\|d\|^2\) term disappears, and the surviving linear terms add to \(2h\langle g_x+g_y,d\rangle\). The remaining difference of squared gradients has coefficient \(-h/4\).
 
-\section{\texorpdfstring{gradient norm sq difference bound}{gradient norm sq difference bound}}
+
+\section{\texorpdfstring{Bounding the difference of squared gradients}{Bounding the difference of squared gradients}}
 
 
 Factor \(|\|g_y\|^2-\|g_x\|^2|=|\|g_y\|-\|g_x\||(\|g_y\|+\|g_x\|)\). The reverse triangle inequality bounds the first factor by \(\|g_y-g_x\|\), then Lipschitzness bounds it by \(L\|y-x\|\). The other factor is nonnegative, so multiplication preserves the estimate.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{gradient\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}difference\_\allowbreak{}bound}.\par}
+The estimate does not bound \(\|g_x\|\) or \(\|g_y\|\) uniformly over space. Instead it isolates their growth in one factor and uses \(L\|y-x\|\) for their difference. The resulting expression is compatible with polynomial moment bounds under Gibbs.
 
-\section{\texorpdfstring{potential trapezoid bound}{potential trapezoid bound}}
+
+\section{\texorpdfstring{A trapezoid bound for the potential increment}{A trapezoid bound for the potential increment}}
 
 
 Use the smooth upper and lower first-order models for the potential increment at the two endpoints. Compare the increment with the average endpoint directional derivative, and use the Lipschitz bound on the derivative difference. The resulting trapezoid error is at most \(L\|y-x\|^2\); no second derivative of \(U\) is assumed.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{potential\_\allowbreak{}trapezoid\_\allowbreak{}bound}.\par}
+Restrict \(U\) to the segment \(x+td\). Its derivative is \(\langle\nabla U(x+td),d\rangle\), whose variation is at most \(L|t-s|\|d\|^2\). Integrating this variation bounds the difference between the true increment and the endpoint trapezoid, using only a Lipschitz first derivative.
 
-\section{\texorpdfstring{mala\allowbreak{}Log\allowbreak{}Ratio abs bound}{malaLogRatio abs bound}}
+
+\section{\texorpdfstring{An absolute log-\allowbreak{}ratio bound}{An absolute log-ratio bound}}
 
 
 Insert the exact log-ratio expansion and use the triangle inequality. Bound its potential trapezoid term by \(L\|y-x\|^2\) and its squared-gradient difference by \(L\|y-x\|(\|g_x\|+\|g_y\|)\). Positivity of \(h\) gives the displayed coefficient \(hL/4\) without an absolute value on the step.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Log\allowbreak{}Ratio\_\allowbreak{}abs\_\allowbreak{}bound}.\par}
+The potential term is quadratic in displacement, whereas the second term contains \(h\) times displacement and gradient size. When the Gaussian proposal displacement is of order \(\sqrt h\), both are small enough that multiplication by the rejection displacement produces an integrable error of order \(h^{3/2}\).
 
-\section{\texorpdfstring{metropolis rejection le abs}{metropolis rejection le abs}}
+
+\section{\texorpdfstring{Rejection probability bounded by the log ratio}{Rejection probability bounded by the log ratio}}
 
 
 If \(r\ge0\), \(e^r\ge1\), so rejection is zero. If \(r<0\), \(1-e^r\le-r=|r|\) by \(e^r\ge1+r\). Both cases also give \(0\le1-\min(1,e^r)\), establishing a nonnegative rejection probability and its log-ratio bound.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs}.\par}
+The exponential tangent inequality \(e^r\ge1+r\) is valid for every real \(r\). On the negative branch it turns a nonlinear rejection probability into a linear bound by \(-r\); on the nonnegative branch rejection is exactly zero. This avoids a Taylor remainder for acceptance.
 
-\section{\texorpdfstring{rejected displacement le}{rejected displacement le}}
+
+\section{\texorpdfstring{The rejection-\allowbreak{}weighted displacement}{The rejection-weighted displacement}}
 
 
 Multiply \(1-\min(1,e^r)\le|r|\) by the nonnegative displacement norm \(\|y-x\|\). This yields the rejection-weighted coupling error bound with no condition on the states.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{rejected\_\allowbreak{}displacement\_\allowbreak{}le}.\par}
+The displacement factor must remain outside the acceptance comparison because the later coupling cost measures distance, rather than rejection probability alone. Integrating this product will control how much rejecting a proposal separates MALA from the common-noise ULA chain.
 
-\section{\texorpdfstring{mala\allowbreak{}Amplitude}{malaAmplitude}}
+
+\section{\texorpdfstring{A proposal-\allowbreak{}amplitude envelope}{A proposal-amplitude envelope}}
 
 
 Use the step-independent amplitude \(A(x,\xi)=\|\nabla U(x)\|+\sqrt2\|\xi\|\). For \(0\le h\le1\), it bounds the proposal displacement after extracting \(\sqrt h\); its cubic integrability will give a uniform rejection-error constant.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Amplitude}.\par}
+The amplitude contains the score at the initial point and the size of the independent innovation. Its law is fixed when \(h\) varies. This separation is what permits a single integrable majorant and a single rejection constant for an entire vanishing-mesh sequence.
 
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Displacement}{malaRejectionDisplacement}}
+
+\section{\texorpdfstring{The rejected-\allowbreak{}displacement correction}{The rejected-displacement correction}}
 
 
 Define \(D_h(x,\xi)=\|T_h(x,\xi)-x\|(1-\min(1,e^{R_h(x,T_h(x,\xi))}))\). This is the acceptance-variable-averaged distance lost on rejection, so no additional uniform random variable appears in its integral.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement}.\par}
+For a fixed state and innovation, integrating over an independent uniform accept/\allowbreak{}reject variable would give exactly this expected separation between the proposal and accepted state. The weighted-measure definition performs that integration directly and keeps the same coupling cost.
 
-\section{\texorpdfstring{mala\allowbreak{}Amplitude nonneg}{malaAmplitude nonneg}}
+
+\section{\texorpdfstring{Nonnegativity of the amplitude envelope}{Nonnegativity of the amplitude envelope}}
 
 
 Both score and noise norms are nonnegative, and \(\sqrt2\ge0\). Their sum defining \(A\) is therefore nonnegative. This sign permits later powers, products, and integral comparisons without absolute-value ambiguity.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Amplitude\_\allowbreak{}nonneg}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Displacement nonneg}{malaRejectionDisplacement nonneg}}
+When both score and innovation vanish, the amplitude is zero and so is the proposal displacement. Otherwise its nonnegative powers can be used as majorants without introducing an additional absolute value, which simplifies the cubic-moment calculation.
 
 
-The proposal displacement norm is nonnegative and the rejection factor is nonnegative by \texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs}. Their product is nonnegative, permitting use of extended integrals and domination by an integrable envelope.
+\section{\texorpdfstring{Nonnegativity of the correction}{Nonnegativity of the correction}}
+
+
+The proposal displacement norm is nonnegative and the rejection factor is nonnegative by the rejection estimate \(1-\min(1,e^r)\le|r|\). Their product is nonnegative, permitting use of extended integrals and domination by an integrable envelope.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}nonneg}.\par}
+This nonnegativity means the expected rejection displacement can be handled first as a nonnegative integral. Once an integrable cubic envelope is available, that same quantity is a finite ordinary expectation and can enter the characteristic-function comparison.
 
-\section{\texorpdfstring{mala\allowbreak{}Proposal displacement le}{malaProposal displacement le}}
+
+\section{\texorpdfstring{A bound on proposal displacement}{A bound on proposal displacement}}
 
 
 The triangle inequality gives \(\|T_h-x\|\le h\|g_x\|+\sqrt{2h}\|\xi\|\). For \(0\le h\le1\), \(h\le\sqrt h\) and \(\sqrt{2h}=\sqrt2\sqrt h\). Factor out \(\sqrt h\) to obtain \(\|T_h-x\|\le\sqrt h A(x,\xi)\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Proposal\_\allowbreak{}displacement\_\allowbreak{}le}.\par}
+For \(0\le h\le1\), the elementary inequality \(h^2\le h\) gives \(h\le\sqrt h\). Thus even the deterministic drift displacement can be placed on the same \(\sqrt h\) scale as the Gaussian displacement, with the drift magnitude retained inside the amplitude.
 
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Displacement pointwise}{malaRejectionDisplacement pointwise}}
+
+\section{\texorpdfstring{A pointwise bound on rejected displacement}{A pointwise bound on rejected displacement}}
 
 
 Use rejection \(\le|R_h|\), the log-ratio estimate, and \(\|g_{T_h}\|\le\|g_x\|+L\|T_h-x\|\). Replace the displacement by \(\sqrt hA\), and absorb the remaining step factors with \(h\le1\). The result is \(D_h\le h\sqrt h\,L(2+L)A^3\), whose envelope has no step-size dependence.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}pointwise}.\par}
+The estimate has a constant independent of \(h\): all score and innovation dependence is in \(A^3\). In particular, averaging under Gibbs and Gaussian noise gives an \(O(h^{3/2})\) defect, whose accumulation over \(T/h\) steps is \(O(T\sqrt h)\).
 
-\section{\texorpdfstring{integrable norm fourth mul exp neg mul norm sq}{integrable norm fourth mul exp neg mul norm sq}}
+
+\section{\texorpdfstring{A Gaussian fourth-\allowbreak{}moment integrability bound}{A Gaussian fourth-moment integrability bound}}
 
 
 A polynomial of degree four can be absorbed by part of Gaussian decay: \(\|x\|^4e^{-a\|x\|^2}\le C e^{-(a/2)\|x\|^2}\) for \(a>0\). Gaussian integrability and measurable domination therefore prove the fourth weighted moment is finite.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq}.\par}
+The scalar function \(r\mapsto r^4e^{-ar^2/2}\) is bounded on \([0,\infty)\). Multiplying that bound by \(e^{-ar^2/2}\) provides an integrable Gaussian majorant. The same method works for other fixed polynomial degrees whenever a positive part of the quadratic decay is reserved.
 
-\section{\texorpdfstring{integrable norm fourth mul exp neg of strong\allowbreak{}Convex}{integrable norm fourth mul exp neg of strongConvex}}
+
+\section{\texorpdfstring{The weighted Gibbs fourth moment}{The weighted Gibbs fourth moment}}
 
 
 The quadratic strong-convexity lower bound gives \(e^{-U(x)}\le C e^{-(m/4)\|x\|^2}\). Multiply by \(\|x\|^4\) and invoke the fourth Gaussian weighted-moment theorem. This derives the unnormalized Gibbs fourth moment from the original potential assumptions.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex}.\par}
+A linear term in the strong-convexity lower model is absorbed by completing a square, leaving a positive quadratic coefficient and a finite multiplicative constant. Multiplication by \(\|x\|^4\) then falls under the Gaussian domination just established, with no stationarity assumption needed.
 
-\section{\texorpdfstring{integrable norm fourth gibbs\allowbreak{}Measure}{integrable norm fourth gibbsMeasure}}
+
+\section{\texorpdfstring{The normalized Gibbs fourth moment}{The normalized Gibbs fourth moment}}
 
 
 Change measure to the normalized Gibbs density. Integrability of \(\|x\|^4\) under \(\pi_U\) reduces to the just-proved integrability of \(\|x\|^4e^{-U(x)}\) times a finite normalization factor. No fourth-moment premise is added.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}gibbs\allowbreak{}Measure}.\par}
+Division by the strictly positive finite partition function preserves finiteness of the fourth moment. The result applies to the actual normalized target measure, so subsequent product-space estimates can use an ordinary Gibbs expectation rather than an unnormalized weighted integral.
 
-\section{\texorpdfstring{mem\allowbreak{}Lp three id gibbs\allowbreak{}Measure}{memLp three id gibbsMeasure}}
+
+\section{\texorpdfstring{A finite cubic state moment}{A finite cubic state moment}}
 
 
 The fourth-moment theorem gives the identity variable in \(L^4(\pi_U)\). On a probability space, \(L^4\subset L^3\), so the identity belongs to \(L^3\). This supplies the cubic moment needed for the rejection envelope.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mem\allowbreak{}Lp\_\allowbreak{}three\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure}.\par}
+On a probability space, Hölder gives \(\mathbb E\|X\|^3\le(\mathbb E\|X\|^4)^{3/4}\). The mass-one assumption is what removes any additional measure factor. The cubic moment is sufficient even though the Gaussian-tail argument conveniently supplied the stronger fourth moment.
 
-\section{\texorpdfstring{mala\allowbreak{}Pair\allowbreak{}Measure}{malaPairMeasure}}
+
+\section{\texorpdfstring{The Gibbs-\allowbreak{}Gaussian pair measure}{The Gibbs-Gaussian pair measure}}
 
 
 Take \(\pi_U\otimes\mathcal N(0,I)\), representing a Gibbs state and an independent standard Gaussian proposal innovation. This is the joint law under which the local rejection error is averaged.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Pair\allowbreak{}Measure}.\par}
+For a product test \(f(x)g(\xi)\), expectation factors into the Gibbs expectation of \(f\) and Gaussian expectation of \(g\), whenever integrable. This encodes fresh-noise independence explicitly and permits the separate score and Gaussian moment estimates to be combined.
 
-\section{\texorpdfstring{mala\allowbreak{}Amplitude mem\allowbreak{}Lp three}{malaAmplitude memLp three}}
+
+\section{\texorpdfstring{The cubic moment of proposal amplitude}{The cubic moment of proposal amplitude}}
 
 
 The Gibbs state is in \(L^3\); Lipschitz growth \(\|\nabla U(x)\|\le\|\nabla U(0)\|+L\|x\|\) puts its score in \(L^3\). Gaussian noise also belongs to \(L^3\). Lift both to their independent product and add their norm envelopes to obtain \(A\in L^3\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Amplitude\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}three}.\par}
+The gradient-growth estimate follows from \(\|\nabla U(x)-\nabla U(0)\|\le L\|x\|\). Minkowski in \(L^3\) then bounds the sum of the two amplitude components. No pointwise boundedness of the score is required; its polynomial growth is enough under the Gibbs moments.
 
-\section{\texorpdfstring{mala\allowbreak{}Amplitude cube integrable}{malaAmplitude cube integrable}}
+
+\section{\texorpdfstring{Integrability of the amplitude cube}{Integrability of the amplitude cube}}
 
 
 For nonnegative \(A\), its third power is \(\|A\|^3\). The \(L^3\) characterization gives integrability of this function. This is the finite ordinary integral used to define the rejection constant.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Amplitude\_\allowbreak{}cube\_\allowbreak{}integrable}.\par}
-
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Constant}{malaRejectionConstant}}
+Since \(A\ge0\), \(|A|^3=A^3\). Thus the cubic moment defining the rejection constant is exactly the integral furnished by \(L^3\) membership, rather than a new moment condition. Product independence ensures both amplitude components have the required moments on the same space.
 
 
-Set \(C_{U,L}=L(2+L)\int A(x,\xi)^3d(\pi_U\otimes\gamma)\). The preceding declaration proves the integral is finite under the potential assumptions. All dependence on the positive step size has been removed from this constant.
+\section{\texorpdfstring{The rejection-\allowbreak{}error constant}{The rejection-error constant}}
+
+
+Set \(C_{U,L}=L(2+L)\int A(x,\xi)^3d(\pi_U\otimes\gamma)\). The preceding lemma proves the integral is finite under the potential assumptions. All dependence on the positive step size has been removed from this constant.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Constant}.\par}
+The constant depends on the potential and dimension through the score and Gaussian moments, but not on the mesh. It is used to prove stationarity in a limiting argument, where finiteness and uniformity are essential and a sharp numerical value is unnecessary.
 
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Constant nonneg}{malaRejectionConstant nonneg}}
+
+\section{\texorpdfstring{Nonnegativity of that constant}{Nonnegativity of that constant}}
 
 
 The cubic amplitude integrand is nonnegative and its integral is nonnegative. Since \(L\ge0\), the factor \(L(2+L)\) is nonnegative as well. Their product gives \(C_{U,L}\ge0\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Constant\_\allowbreak{}nonneg}.\par}
+If \(L=0\), the prefactor and the resulting rejection-error constant vanish. For positive \(L\), its sign is still determined only by nonnegative factors. This permits accumulation bounds to multiply the constant by a nonnegative step count without changing inequality direction.
 
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Displacement integrable}{malaRejectionDisplacement integrable}}
+
+\section{\texorpdfstring{Integrability of rejected displacement}{Integrability of rejected displacement}}
 
 
 Continuity of the potential and gradient makes the rejection-displacement function measurable. Its absolute value equals itself by nonnegativity, and its pointwise bound is the integrable function \(h\sqrt h\,L(2+L)A^3\). Apply measurable domination to prove ordinary integrability.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}integrable}.\par}
+The dominating function is finite in integral because \(A\in L^3\). Therefore measurable rejection costs have finite first moments even though their pointwise acceptance ratios may be unbounded. This is the precise integrability needed for an expected-distance coupling bound.
 
-\section{\texorpdfstring{mala\allowbreak{}Rejection\allowbreak{}Displacement integral bound}{malaRejectionDisplacement integral bound}}
+
+\section{\texorpdfstring{The expected rejection-\allowbreak{}displacement bound}{The expected rejection-displacement bound}}
 
 
 Integrate the pointwise rejection envelope using the established integrability of both sides. Pull the step-independent factors out of the integral and recognize \(C_{U,L}\). This gives \(\mathbb ED_h\le C_{U,L}h\sqrt h\) for \(0<h\le1\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}integral\_\allowbreak{}bound}.\par}
-
-\section{\texorpdfstring{exists mala\allowbreak{}Rejection\allowbreak{}Constant}{exists malaRejectionConstant}}
+For a mesh \(h=T/n\), the cumulative bound \(n C_{U,L}h^{3/2}=C_{U,L}T\sqrt h\) tends to zero. This algebra explains why the local exponent \(3/2\), rather than merely \(1\), suffices to transfer exact MALA invariance to the limiting diffusion.
 
 
-Choose the explicitly defined \texttt{mala\allowbreak{}Rejection\allowbreak{}Constant U L}. Its nonnegativity and the integrated envelope theorem verify the existential statement for every \(0<h\le1\) simultaneously. The same constant works throughout the small-step limit.
+\section{\texorpdfstring{Existence of a finite rejection constant}{Existence of a finite rejection constant}}
+
+
+Choose the explicitly defined the finite rejection constant \(C\). Its nonnegativity and the integrated envelope theorem verify the existential statement for every \(0<h\le1\) simultaneously. The same constant works throughout the small-step limit.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{exists\_\allowbreak{}mala\allowbreak{}Rejection\allowbreak{}Constant}.\par}
+The quantifier order is important: one finite constant works for every sufficiently small positive step, instead of choosing a different uncontrolled constant for each mesh. The explicit cubic envelope establishes this uniformity and makes the stationary-limit argument valid.
+
 
 \end{document}

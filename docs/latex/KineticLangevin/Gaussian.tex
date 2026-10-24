@@ -1,7 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \setlength{\emergencystretch}{3em}
@@ -10,23 +9,28 @@
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Construct correlated Gaussian blocks and an independent noise stream}{Construct correlated Gaussian blocks and an independent noise stream}}
-\author{LangevinLean mathematical exposition}
+\author{Omer Deniz Akyildiz\\[0.4em]\normalsize Prepared with AI assistance}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Kinetic\allowbreak{}Langevin/\allowbreak{}Gaussian.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-A covariance matrix alone is insufficient to define a random algorithm. This module constructs actual centered finite-dimensional Gaussian probability measures with the Gram covariance and an infinite product giving one independent block per time and spatial coordinate. Correlation is retained within each block. The exact covariance theorem requires a nonnegative step and continuous kernels; the general Gaussian constructor remains a probability measure even outside that parameter regime.
+A covariance matrix alone is insufficient to define a random algorithm. This section constructs centered finite-dimensional Gaussian probability measures with the Gram covariance and an infinite product giving one independent block per time and spatial coordinate. Correlation is retained within each block. The exact covariance theorem requires a nonnegative step and continuous kernels; the general Gaussian constructor remains a probability measure even outside that parameter regime.
+
+
+
+The noise construction distinguishes independence of different blocks from correlation of responses inside a block. Both features are needed to identify the sampler law and its common-source coupling.
 
 
 \section{\texorpdfstring{Construct the centered Gaussian probability measure and its vector moments}{Construct the centered Gaussian probability measure and its vector moments}}
 
 
-For a finite kernel index set, \texttt{kernel\allowbreak{}Gaussian} is Mathlib's multivariate Gaussian with mean zero and the defined Gram matrix. The named instances establish Gaussianity and total probability mass using the distribution constructor. The mean theorem computes its vector expectation as zero, and \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}mem\allowbreak{}Lp} invokes the finite Gaussian second-moment theorem. These are derived properties of a specified probability measure, rather than moment fields of an abstract noise source. They hold even if the covariance argument is degenerate; identifying its entries with the requested matrix uses the positive-semidefinite theorem below.
+For a finite kernel index set, the centered Gaussian response law is the multivariate Gaussian with mean zero and the defined Gram matrix. The named instances establish Gaussianity and total probability mass using the distribution constructor. The mean theorem computes its vector expectation as zero, and finite Gaussian response moments invokes the finite Gaussian second-moment theorem. These are derived properties of a specified probability measure, rather than moment fields of an abstract noise source. They hold even if the covariance argument is degenerate; identifying its entries with the requested matrix uses the positive-semidefinite theorem below.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{kernel\allowbreak{}Gaussian}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}is\allowbreak{}Gaussian}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}mean}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}mem\allowbreak{}Lp}.\par}
+A covariance Gram matrix determines a centered Gaussian law by applying a square-root linear map to a standard Gaussian. The resulting law is a probability measure even when the covariance is singular. Finite-dimensional Gaussian moments then provide the integrability needed for every coordinate calculation.
+
 
 \section{\texorpdfstring{Evaluate coordinate means, moments and exact covariances}{Evaluate coordinate means, moments and exact covariances}}
 
@@ -36,68 +40,75 @@ Each coordinate projection is a continuous linear functional. Commuting it with 
 \[\operatorname{Cov}(X_i,X_j)=\int_0^hk_i(t)k_j(t)dt,\quad
 \operatorname{Var}(X_i)=\int_0^hk_i(t)^2dt.\]
 
-The two distribution theorems receive the already proved positive-semidefinite matrix witness. The variance proof only rewrites a product as a square. This identifies the exact correlated coordinate law required by the integrators, while its representation as actual Brownian stochastic integrals is a separate identity.
+The two distribution theorems receive the already proved positive-semidefinite matrix witness. The variance proof only rewrites a product as a square. This identifies the exact correlated coordinate law required by the integrators, while its representation as Brownian stochastic integrals is a separate identity.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}coordinate\_\allowbreak{}mean}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}coordinate\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}covariance}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}variance}.\par}
+For centered variables, covariance is simply the expectation of their product. Thus each entry of the constructed matrix has an immediate probabilistic meaning. Diagonal entries give variances; off-diagonal entries describe the dependence between distinct response coordinates generated from the same noise.
+
 
 \section{\texorpdfstring{Instantiate the two-\allowbreak{}block and four-\allowbreak{}block kinetic laws}{Instantiate the two-block and four-block kinetic laws}}
 
 
-\texttt{klmc\allowbreak{}Gaussian} uses the kernel vector \((\psi_0,\psi_1)\); \texttt{klmc2\allowbreak{}Gaussian} uses \((\psi_0,\psi_1,\varphi_2,\varphi_3)\). They are therefore concrete measures on two- and four-dimensional Euclidean space. Each probability instance unfolds the specialization and reuses the general Gaussian probability instance. The first law correlates a coordinate's velocity and position increments; the second also couples the Hessian-correction integrals. Separate spatial coordinates will use separate copies of these entire blocks, rather than separate copies of their individual components.
+the two-response Gaussian law uses the kernel vector \((\psi_0,\psi_1)\); the four-response Gaussian law uses \((\psi_0,\psi_1,\varphi_2,\varphi_3)\). They are therefore concrete measures on two- and four-dimensional Euclidean space. Each is the linear pushforward of a normalized Gaussian measure and therefore has total mass one. The first law correlates a coordinate's velocity and position increments; the second also couples the Hessian-correction integrals. Separate spatial coordinates will use separate copies of these entire blocks, rather than separate copies of their individual components.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{klmc\allowbreak{}Gaussian}, \texttt{klmc2\allowbreak{}Gaussian}, \texttt{klmc\allowbreak{}Gaussian\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}, \texttt{klmc2\allowbreak{}Gaussian\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}.\par}
+The two-block and four-block laws are different-dimensional Gaussian vectors with the response covariances specified earlier. They should not be confused with a collection of independent scalar draws. Independence can instead be used before applying the linear covariance factor.
+
 
 \section{\texorpdfstring{Build one independent Gaussian block for each time and coordinate}{Build one independent Gaussian block for each time and coordinate}}
 
 
-The path space is \(\Omega=(\mathbb R^{\iota})^{\mathbb N\times\mathrm{Fin}(d)}\). Define its law as the infinite product of the kernel Gaussian. Evaluation at \((n,i)\) is measurable and has exactly the original Gaussian law, by the infinite-product marginal theorem. The coordinate-evaluation family is jointly independent by \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}infinite\allowbreak{}Pi}. Thus a time step retains all within-block covariance while distinct iteration–coordinate pairs are independent. The product's probability instance establishes total mass one; the \texttt{Has\allowbreak{}Law} proof records both measurability and the exact pushforward equality.
+The path space is \(\Omega=(\mathbb R^{\iota})^{\mathbb N\times\mathrm{Fin}(d)}\). Define its law as the infinite product of the kernel Gaussian. Evaluation at \((n,i)\) is measurable and has exactly the original Gaussian law, by the infinite-product marginal theorem. The coordinate-evaluation family is jointly independent by independence of the product coordinates. Thus a time step retains all within-block covariance while distinct iteration–coordinate pairs are independent. The product's probability property establishes total mass one; the distributional identity proof records both measurability and the exact pushforward equality.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{kernel\allowbreak{}Noise\allowbreak{}Path}, \texttt{kernel\allowbreak{}Noise\allowbreak{}Path\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}, \texttt{kernel\allowbreak{}Noise\allowbreak{}Path\_\allowbreak{}block\_\allowbreak{}law}, \texttt{kernel\allowbreak{}Noise\allowbreak{}Path\_\allowbreak{}independent}.\par}
+Use a product probability space indexed by time and spatial coordinate, with one Gaussian response block at each index. Product structure gives independence of different indices. Within each block the full response covariance is retained, so the correct velocity–position correlation survives spatial assembly.
+
 
 \section{\texorpdfstring{Transfer block moments and assemble Euclidean innovations}{Transfer block moments and assemble Euclidean innovations}}
 
 
-Evaluation on the infinite product is measure preserving, so composing the finite-block L\ensuremath{{}^{2}} identity with evaluation gives a finite second moment for each block. Its expectation is zero by the established \texttt{Has\allowbreak{}Law} integral transformation. \texttt{klmc\allowbreak{}Innovation} collects component zero across spatial coordinates into velocity and component one into position. \texttt{klmc2\allowbreak{}Innovation} similarly collects each of the four components into a Euclidean vector. \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp} equips the coordinate functions with the Euclidean norm. Their measurable-map theorems unfold these finite coordinate constructions and apply compositional measurability. These maps supply concrete innovation streams for pathwise integrator recursions.
+Evaluation on the infinite product is measure preserving, so composing the finite-block L\ensuremath{{}^{2}} identity with evaluation gives a finite second moment for each block. Its expectation is zero by the established the distributional identity integral transformation. the first-order Gaussian innovation collects component zero across spatial coordinates into velocity and component one into position. the second-order Gaussian innovation similarly collects each of the four components into a Euclidean vector. the Euclidean identification equips the coordinate functions with the Euclidean norm. Their measurable-map theorems unfold these finite coordinate constructions and apply compositional measurability. These maps supply concrete innovation streams for pathwise integrator recursions.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{kernel\allowbreak{}Noise\allowbreak{}Path\_\allowbreak{}block\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{kernel\allowbreak{}Noise\allowbreak{}Path\_\allowbreak{}block\_\allowbreak{}mean}, \texttt{klmc\allowbreak{}Innovation}, \texttt{klmc2\allowbreak{}Innovation}, \texttt{measurable\_\allowbreak{}klmc\allowbreak{}Innovation}, \texttt{measurable\_\allowbreak{}klmc2\allowbreak{}Innovation}.\par}
-
-\section{\texorpdfstring{Turn covariance into actual second and cross moments}{Turn covariance into actual second and cross moments}}
+The Euclidean squared norm is the sum of the coordinate squares. Integrating this finite sum turns scalar moment identities into vector moment identities, with the spatial dimension appearing explicitly. This is the origin of the square-root-dimension factor in first-order error bounds.
 
 
-The Gaussian coordinates have zero mean. Thus their variance equals \(\int X_i^2\), and their covariance equals \(\int X_iX_j\). The second-moment proof starts from the exact variance formula, rewrites variance as the integral of the centered square, and substitutes the proved zero mean. The cross-moment proof unfolds covariance and substitutes both zero means. Each conclusion is an equality for the actual constructed Gaussian measure: \(\mathbb E X_i^2=\int_0^hk_i^2\) and \(\mathbb E X_iX_j=\int_0^hk_ik_j\). These formulas can be used in numerical-error calculations without assuming moments of an unspecified noise source.
+\section{\texorpdfstring{Turn covariance into second and cross moments}{Turn covariance into second and cross moments}}
 
 
-
-{\raggedright\noindent Lean declarations: \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}second\allowbreak{}Moment}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}cross\allowbreak{}Moment}.\par}
-
-\section{\texorpdfstring{The scalar KLMC transition is an actual Gaussian pushforward}{The scalar KLMC transition is an actual Gaussian pushforward}}
-
-
-\texttt{klmc\allowbreak{}Scalar\allowbreak{}Transition} maps the constructed correlated two-dimensional Gaussian through the scalar KLMC step at a fixed phase state. The map is continuous in its innovation, so the pushforward remains a probability measure. Both output coordinates are a constant frozen-force response plus \(\sqrt{2\gamma}\) times a Gaussian coordinate. Their finite second moments follow by adding a constant L\ensuremath{{}^{2}} function to a scalar multiple of the proved Gaussian L\ensuremath{{}^{2}} coordinate. To compute the transition mean, change variables through the pushforward, integrate the two coordinates separately using their established integrability, and substitute zero Gaussian means. The result is exactly the frozen deterministic position–velocity pair. This is a genuine one-step law and moment result, with no assumption that an abstract transition has the desired mean.
+The Gaussian coordinates have zero mean. Thus their variance equals \(\int X_i^2\), and their covariance equals \(\int X_iX_j\). The second-moment proof starts from the exact variance formula, rewrites variance as the integral of the centered square, and substitutes the proved zero mean. The cross-moment proof unfolds covariance and substitutes both zero means. Each conclusion is an equality for the constructed Gaussian measure: \(\mathbb E X_i^2=\int_0^hk_i^2\) and \(\mathbb E X_iX_j=\int_0^hk_ik_j\). These formulas can be used in numerical-error calculations without assuming moments of an unspecified noise source.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{klmc\allowbreak{}Scalar\allowbreak{}Transition}, \texttt{klmc\allowbreak{}Scalar\allowbreak{}Transition\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}, \texttt{klmc\allowbreak{}Scalar\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{klmc\allowbreak{}Scalar\allowbreak{}Transition\_\allowbreak{}mean}.\par}
+Polarization supplies cross moments from covariance once the means are known to vanish. Integrability of each product follows from Cauchy–Schwarz and the finite second moments. Consequently the covariance calculation is a legitimate expectation identity, rather than a purely formal matrix comparison.
+
+
+\section{\texorpdfstring{The scalar KLMC transition is an Gaussian pushforward}{The scalar KLMC transition is an Gaussian pushforward}}
+
+
+the scalar exponential transition measure maps the constructed correlated two-dimensional Gaussian through the scalar KLMC step at a fixed phase state. The map is continuous in its innovation, so the pushforward remains a probability measure. Both output coordinates are a constant frozen-force response plus \(\sqrt{2\gamma}\) times a Gaussian coordinate. Their finite second moments follow by adding a constant L\ensuremath{{}^{2}} function to a scalar multiple of the proved Gaussian L\ensuremath{{}^{2}} coordinate. To compute the transition mean, change variables through the pushforward, integrate the two coordinates separately using their established integrability, and substitute zero Gaussian means. The result is exactly the frozen deterministic position–velocity pair. This is a one-step law and moment result, with no assumption that an abstract transition has the desired mean.
+
+
+
+An affine image of a Gaussian remains Gaussian. Its mean is the deterministic frozen-force response, and its covariance is obtained by multiplying the response covariance on both sides by the noise amplitude. This identifies the transition measure of a single exponential step.
+
 
 \section{\texorpdfstring{Correlated transition covariance and independent initialization}{Correlated transition covariance and independent initialization}}
 
 
-The actual scalar phase transition retains covariance \(2\gamma C_{01}\) between its velocity and position coordinates. Lean pulls covariance through the transition pushforward, removes the deterministic means, moves both factors \(\sqrt{2\gamma}\) outside covariance, and uses the Gaussian Gram-covariance theorem; their product is \(2\gamma\) when friction is nonnegative. This checks the correlation in the update rather than replacing the two noises by independent draws.
+The scalar phase transition retains covariance \(2\gamma C_{01}\) between its velocity and position coordinates. The proof pulls covariance through the transition pushforward, removes the deterministic means, moves both factors \(\sqrt{2\gamma}\) outside covariance, and uses the Gaussian Gram-covariance theorem; their product is \(2\gamma\) when friction is nonnegative. This checks the correlation in the update rather than replacing the two noises by independent draws.
 
 
 
-To initialize independently, the canonical probability space is the product \(\mu_0\otimes Q\), where \(Q\) is the countable independent Gaussian-block path measure. The first projection has law \(\mu_0\), the second projection has law \(Q\), and the two projections are independent. Lean constructs this product explicitly, obtains probability from the two probability instances, and applies the product-marginal and independent-projection theorems. No later-time independence or convergence inequality is assumed by this construction.
+To initialize independently, the canonical probability space is the product \(\mu_0\otimes Q\), where \(Q\) is the countable independent Gaussian-block path measure. The first projection has law \(\mu_0\), the second projection has law \(Q\), and the two projections are independent. The argument constructs this product explicitly, obtains probability from the two probability properties, and applies the product-marginal and independent-projection theorems. No later-time independence or convergence inequality is assumed by this construction.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{klmc\allowbreak{}Scalar\allowbreak{}Transition\_\allowbreak{}cross\allowbreak{}Covariance}, \texttt{kernel\allowbreak{}Initial\allowbreak{}Extension}, \texttt{kernel\allowbreak{}Initial\allowbreak{}Extension\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}, \texttt{kernel\allowbreak{}Initial\allowbreak{}Extension\_\allowbreak{}initial\_\allowbreak{}law}, \texttt{kernel\allowbreak{}Initial\allowbreak{}Extension\_\allowbreak{}noise\_\allowbreak{}law}, \texttt{kernel\allowbreak{}Initial\allowbreak{}Extension\_\allowbreak{}independent}.\par}
+Fresh noise must also be independent of the initial phase. Taking an independent product of initialization and the innovation stream gives this property at time zero and, by recursion, independence of the next block from the past. The resulting joint laws justify Markov iteration.
+
 
 \end{document}

@@ -151,7 +151,8 @@ def diagnostic(output: str) -> str:
 
 
 def compile_one(source: str, source_hash: str, engine: str, engine_hash: str,
-                cache_hash: str, timeout: int, scratch_root: Path) -> dict:
+                cache_hash: str, timeout: int, scratch_root: Path,
+                diagnostics_root: Path | None = None) -> dict:
     with tempfile.TemporaryDirectory(prefix="proof-", dir=scratch_root) as directory:
         scratch = Path(directory)
         content = (ROOT / source).read_bytes()
@@ -187,6 +188,10 @@ def compile_one(source: str, source_hash: str, engine: str, engine_hash: str,
             except subprocess.TimeoutExpired as error:
                 raise ValueError(f"{source}: TeX pass {pass_number} exceeded {timeout}s") from error
             log = (scratch / "proof.log").read_text(errors="replace") if (scratch / "proof.log").exists() else ""
+            if diagnostics_root is not None:
+                saved_log = diagnostics_root / Path(source.removeprefix('docs/latex/')).with_suffix('.log')
+                saved_log.parent.mkdir(parents=True, exist_ok=True)
+                saved_log.write_text(log)
             if run.returncode or "Missing character:" in log or "Missing character:" in run.stdout:
                 raise ValueError(f"{source}: TeX pass {pass_number} failed\n"
                                  + diagnostic(run.stdout + "\n" + log))
@@ -244,7 +249,8 @@ def build(sources: dict[str, str], old_manifest: dict, args) -> None:
                 if item:
                     name, source_hash = item
                     future = workers.submit(compile_one, name, source_hash, executable,
-                                            engine_hash, cache_hash, args.timeout, scratch_root)
+                                            engine_hash, cache_hash, args.timeout, scratch_root,
+                                            args.diagnostics_dir)
                     running[future] = name
 
             for _ in range(args.jobs):
@@ -283,9 +289,15 @@ def main() -> None:
     parser.add_argument("--engine", choices=("lualatex", "xelatex"), default="xelatex")
     parser.add_argument("--jobs", type=int, default=min(4, os.cpu_count() or 1), help="Parallel TeX jobs (1–4)")
     parser.add_argument("--timeout", type=int, default=180, help="Seconds allowed per TeX pass (default: 180)")
+    parser.add_argument("--diagnostics-dir", type=Path,
+                        help="Save final TeX logs outside the repository for layout review")
     args = parser.parse_args()
     if not 1 <= args.jobs <= 4 or args.timeout < 1:
         parser.error("--jobs must be 1–4 and --timeout must be positive")
+    if args.diagnostics_dir is not None:
+        args.diagnostics_dir = args.diagnostics_dir.resolve()
+        if args.diagnostics_dir.is_relative_to(ROOT):
+            parser.error("--diagnostics-dir must be outside the repository")
     try:
         sources, manifest = exported_sources(), load_manifest()
         if args.check:

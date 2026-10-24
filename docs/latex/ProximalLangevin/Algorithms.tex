@@ -1,7 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \setlength{\emergencystretch}{3em}
@@ -10,33 +9,27 @@
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{Exact maps for MYIPLA, PIPULA and PIPGLA}{Exact maps for MYIPLA, PIPULA and PIPGLA}}
-\author{LangevinLean mathematical exposition}
+\author{Omer Deniz Akyildiz\\[0.4em]\normalsize Prepared with AI assistance}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Proximal\allowbreak{}Langevin/\allowbreak{}Algorithms.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-Write \(F_g(z)=\sum_i g(J_i z)\), \(h=\gamma/N\), and \(a=\sqrt{2\gamma/N}\). This module first defines pointwise algorithms for an arbitrary joint map \(P\); probabilistic assumptions enter later modules.
+The three proximal particle schemes use the same scaled state geometry but place deterministic drift, proximity and Gaussian noise in different orders. These pointwise definitions are valid before choosing a probability law. Residual calculus then identifies which updates are exactly Euler steps for a Moreau-smoothed potential and which require a separate splitting analysis.
+
 
 
 \section{\texorpdfstring{The pair map and coordinate outputs}{The pair map and coordinate outputs}}
 
 
-Define \(\operatorname{Pair}_P(z)_\theta=N^{-1}\sum_i(P(J_i z))_\theta\) and \(\operatorname{Pair}_P(z)_{x_i}=N^{-1/2}(P(J_i z))_x\). The two coordinate lemmas are definitionally true: unfold the case distinction between parameter and latent indices. This averaging is part of the algorithm, and does not assert that the map minimizes a lifted objective.
+Define \(\operatorname{Pair}_P(z)_\theta=N^{-1}\sum_i(P(J_i z))_\theta\) and \(\operatorname{Pair}_P(z)_{x_i}=N^{-1/2}(P(J_i z))_x\). These coordinate formulas specify the map separately on its parameter and latent blocks. This averaging is part of the algorithm, and does not assert that the map minimizes a lifted objective.
 
 
 
 
-\textbf{Correspondence with the displayed declarations.}
 
+The map acts on every physical pair using the same old parameter, then returns one parameter by averaging all proposed parameter outputs. Each proposed latent output returns only to its own particle block. The factors \(1/N\) and \(1/\sqrt N\) thus have different roles. They encode a common parameter and the scaled latent geometry, rather than independent parameter copies evolving alongside the particles.
 
-\begin{itemize}
-
-\item \texttt{pairwise\allowbreak{}Map}: Apply a joint map to each common-parameter/\allowbreak{}particle pair, then average its parameter outputs and rescale its particle outputs.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{pairwise\allowbreak{}Map}, \texttt{pairwise\allowbreak{}Map\_\allowbreak{}parameter}, \texttt{pairwise\allowbreak{}Map\_\allowbreak{}particle}.\par}
 
 \section{\texorpdfstring{Where each algorithm places its noise}{Where each algorithm places its noise}}
 
@@ -64,18 +57,9 @@ These are exact definitions of pointwise maps. The residual-gradient theorem bel
 
 
 
-\textbf{Correspondence with the displayed declarations.}
 
+In MYIPLA, proximity is evaluated at the old state and appears through its residual in an explicit drift. In PIPGLA, proximity is evaluated after the smooth drift and Gaussian perturbation. These compositions give different random variables even with the same innovation. Therefore their deterministic identities must be checked separately before any convergence theorem is transferred from a smooth Euler chain.
 
-\begin{itemize}
-
-\item \texttt{pipula\allowbreak{}Update}: PIPULA: pairwise proximity, followed by noise.
-\item \texttt{myipla\allowbreak{}Update}: MYIPLA, with independent smoothing and time steps.
-\item \texttt{pipgla\allowbreak{}Update}: PIPGLA: the noisy smooth forward step is followed by the pairwise proximal map. The common parameter is averaged only at the end.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{pipula\allowbreak{}Update}, \texttt{myipla\allowbreak{}Update}, \texttt{pipgla\allowbreak{}Update}.\par}
 
 \section{\texorpdfstring{A recursion with supplied innovations}{A recursion with supplied innovations}}
 
@@ -85,17 +69,9 @@ For an update \(T\), define \(Z_0=z_0\) and \(Z_{n+1}=T(Z_n,\xi_n)\). The zero a
 
 
 
-\textbf{Correspondence with the displayed declarations.}
 
+A finite recursion requires only an update function, an initial state and a sequence of innovation vectors. Induction determines every iterate uniquely. When measurability and independence are later imposed, this same deterministic map of the inputs defines the probability law. Separating the pointwise construction from these probabilistic requirements allows the exact algorithm identities to be reused on different coupling spaces.
 
-\begin{itemize}
-
-\item \texttt{algorithm\allowbreak{}Chain}: Iterate the displayed state update against a specified innovation sequence.
-\item \texttt{myipla\allowbreak{}Chain}: The full MYIPLA recursion, without any convergence assumption.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{algorithm\allowbreak{}Chain}, \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}zero}, \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}succ}, \texttt{myipla\allowbreak{}Chain}, \texttt{pipula\allowbreak{}Chain}, \texttt{pipgla\allowbreak{}Chain}.\par}
 
 \section{\texorpdfstring{The PIPULA specialization is an identity}{The PIPULA specialization is an identity}}
 
@@ -105,18 +81,9 @@ PIPULA has parameter update \(N^{-1}\sum_i(P(J_i z))_\theta+a\xi_\theta\). In MY
 
 
 
-\textbf{Correspondence with the displayed declarations.}
 
+When the two positive scales are equal, the coefficient multiplying the old state in the expanded residual update is zero and the coefficient multiplying its pairwise proximal image is one. With no smooth potential, nothing remains before the added noise except that image. The equality holds for each input and innovation, so induction gives equality of all finite-time chains and subsequently of their laws.
 
-\begin{itemize}
-
-\item \texttt{pipula\allowbreak{}Update\_\allowbreak{}parameter}: PIPULA's parameter component is precisely the averaged joint proximal parameter output, followed by the parameter Gaussian noise.
-\item \texttt{pipula\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Update}: Removing the smooth part and equating the two time scales recovers PIPULA exactly, including its noise placement.
-\item \texttt{pipula\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Chain}: The exact PIPULA/\allowbreak{}MYIPLA specialization holds for every iteration.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{pipula\allowbreak{}Update\_\allowbreak{}parameter}, \texttt{pipula\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Update}, \texttt{pipula\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Chain}.\par}
 
 \section{\texorpdfstring{Recover physical parameter and particle formulas}{Recover physical parameter and particle formulas}}
 
@@ -126,17 +93,9 @@ Differentiate the lifted sum: its parameter block is \(\sum_i\nabla_\theta g_1(J
 
 
 
-\textbf{Correspondence with the displayed declarations.}
 
+The physical parameter equation retains the average smooth force and the average proposed proximal parameter. The physical latent equation retains its individual force and proximal latent output. Multiplying by \(\sqrt N\) removes the scaling only from the latent block, including its Gaussian coefficient. This conversion shows directly that the state-space definitions implement the intended particle equations with parameter variance reduced by particle count.
 
-\begin{itemize}
-
-\item \texttt{myipla\allowbreak{}Update\_\allowbreak{}parameter}: The MYIPLA parameter coordinate is the displayed averaged pairwise formula.
-\item \texttt{myipla\allowbreak{}Update\_\allowbreak{}particle}: The MYIPLA physical-particle coordinate is exactly the displayed physical-particle formula.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{myipla\allowbreak{}Update\_\allowbreak{}parameter}, \texttt{myipla\allowbreak{}Update\_\allowbreak{}particle}.\par}
 
 \section{\texorpdfstring{Residual proximity is exactly an Euler step}{Residual proximity is exactly an Euler step}}
 
@@ -166,28 +125,10 @@ The coordinate proofs also recover parameter noise \(\sqrt{2\gamma/N}\) and phys
 
 
 
-The recursion declarations include the initial and successor identities for each supplied innovation sequence. All pointwise identities concern the explicit state update, before any stochastic convergence theorem is applied.
 
 
 
+Substitute \(P_\eta(v)=v-\eta\nabla g_2^\eta(v)\) in every pair. Averaging the parameter residual and rescaling each latent residual reproduces exactly \((\eta/N)\nabla F_{g_2^\eta}\). Inserting this identity into MYIPLA cancels the extraneous old-state coefficients. Adding the smooth gradient leaves the Euler force of \(g_1+g_2^\eta\), with the original Gaussian perturbation unchanged. Equality of full chains follows from equality of these updates.
 
-For \(P(x)=x-\lambda r(x)\), the parameter coordinate of the pairwise map is its original parameter minus \(\lambda\) times the average parameter residual. Each latent coordinate similarly loses \(\lambda/\sqrt N\) times its pair residual. These are exactly the blocks of \((\lambda/N)\nabla V_N(r)\), using the previously proved lifted-gradient identities. Add \(\nabla g_1+\nabla e=\nabla(g_1+e)\) under differentiability and set the proximal scale to the Euler scale to identify the MYIPLA update with \texttt{scaled\allowbreak{}Update}. Induction then identifies the entire pointwise chain, not merely its first step.
-
-
-
-
-\textbf{Correspondence with the displayed declarations.}
-
-
-\begin{itemize}
-
-\item \texttt{pairwise\allowbreak{}Map\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}step}: A pairwise residual gradient becomes the corresponding lifted Euler step. This is an equality of actual coordinate maps, not an assumed law identity.
-\item \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}: The gradient of a sum, with the differentiability hypotheses explicit.
-\item \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Update}: The expanded MYIPLA step is exactly IPLA for \texttt{g\ensuremath{{}_{1}} + e} whenever \texttt{e} has the genuine proximal residual gradient.
-\item \texttt{myipla\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Chain}: The entire expanded recursion agrees pointwise with the existing IPLA recursion for the smoothed potential.
-\end{itemize}
-
-
-{\raggedright\noindent Lean declarations: \texttt{pairwise\allowbreak{}Map\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}step}, \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}, \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Update}, \texttt{myipla\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Chain}.\par}
 
 \end{document}

@@ -23,7 +23,7 @@ first-order kinetic exponential integrator has the claimed bound</p>
 <p>The transient term measures loss of the initial error; the term proportional
 to \(h\) is the accumulated numerical bias. The manuscript also studies the
 continuous kinetic diffusion and a distinct Hessian-corrected algorithm called
-KLMC2. A source-level coverage audit identifies the exact checked scope and
+KLMC2. A source-level coverage audit identifies the exact scope and
 any mathematical steps that remain open.</p>'''
 
 
@@ -45,9 +45,9 @@ therefore leaves precisely the desired target. The extra variable changes how
 the sampler moves without changing the position distribution at equilibrium.</p>
 <p>Strong convexity supplies a quadratic lower bound on \(f\), so the partition
 function is finite and all polynomial position moments exist. A proof of
-stationarity still needs an actual solution process and a valid invariance
+stationarity still needs an solution process and a valid invariance
 argument; checking that a formal generator integrates to zero is one component
-of that argument.</p>'''),
+of that argument.</p><p>The kinetic extension is useful because position paths are differentiable in time even though velocity contains Brownian forcing. This extra time integration reduces the local positional discretization defect. At equilibrium, the Gaussian velocity radius is exactly \(\sqrt p\) in second mean, which determines the dimension factor in the first-order error theorem.</p>'''),
 
 part('time-scale', 'Inverse mass changes the clock', r'''<p>The general paper equation includes inverse mass \(u&gt;0\):
 \(dV=-(\gamma V+u\nabla f(L))dt+\sqrt{2\gamma u}\,dW\).
@@ -62,7 +62,7 @@ friction \(\bar\gamma\). This is Lemma 1 in the supplied manuscript.</p>
 <p>The scaling explains why the rest of the paper fixes \(u=1\): it removes
 a redundant clock parameter. When transferring a theorem back to another mass,
 the step size, friction, Gaussian velocity law and physical time must all be
-transformed together.</p>'''),
+transformed together.</p><p>To check the transformation, write the position increment as an integral before changing variables: \(L_{t/\sqrt u}-L_0=\int_0^{t/\sqrt u}V_sds=\int_0^tu^{-1/2}V_{r/\sqrt u}dr\). The velocity equation transforms similarly. This verifies the normalized equation for integral solutions, including its initial data, rather than only manipulating differential notation.</p>'''),
 
 part('synchronous', 'Drive two trajectories with the same noise', r'''<p>To understand mixing, start two copies at different positions and feed them
 the same Brownian path. The random forcing cancels in their difference. Put
@@ -75,7 +75,7 @@ of paths. No independent-noise variance is added to this comparison.</p>
 <p>The usual Euclidean norm of \((r,q)\) need not decrease monotonically:
 energy can move between position and velocity. The paper instead chooses a
 coordinate system that follows this transfer. This is the main reason the
-mixing proof achieves useful constants.</p>'''),
+mixing proof achieves useful constants.</p><p>The cancellation takes place before expectations are taken. Consequently the same deterministic estimate holds on every sample path where the integral equations hold, and also in the Hilbert space of square-integrable random vectors. Independent forcing would instead introduce an extra random difference and would not produce this contraction comparison.</p>'''),
 
 part('twisted-energy', 'A transformed energy makes the mixed terms cancel', r'''<p>Choose \(0\le v&lt;\gamma/2\), set \(\lambda_-=v\),
 \(\lambda_+=\gamma-v\), and define</p>
@@ -99,7 +99,7 @@ If the initial velocities agree, then
 e^{c(v)t}\|q_0\|.\]
 <p>This is the explicit form of Proposition 1 and Theorem 1. Squaring,
 integrating, and taking the infimum over initial position couplings turns it
-into a Wasserstein estimate.</p>'''),
+into a Wasserstein estimate.</p><p>The inverse position identity follows by adding the two transformed coordinates. Its norm bound is \(\|a_t+b_t\|^2\le2(\|a_t\|^2+\|b_t\|^2)\), obtained from the triangle inequality and \(2rs\le r^2+s^2\). This is the sole projection loss. Propagating the transformed norm through the entire evolution and projecting only once prevents that constant from being charged repeatedly.</p>'''),
 
 part('friction', 'How to read the friction regimes', r'''<p>At \(v=0\) the transformed energy is particularly simple:
 \(\|r+\gamma q\|^2+\|r\|^2\). If \(\gamma^2\ge m+M\), then
@@ -109,7 +109,7 @@ part('friction', 'How to read the friction regimes', r'''<p>At \(v=0\) the trans
 <p>Here the two initial phase-space laws share the same independent velocity
 marginal. The prefactor is \(\sqrt2\); this follows directly by substituting
 \(v=0\) in the explicit formula. The supplied source's earlier
-\(\sqrt2/\gamma\) prefactor in its equation <code>exp1</code> does not match
+\(\sqrt2/\gamma\) prefactor in its equation the unshifted display does not match
 that substitution.</p>
 <p>Friction that is very large makes the rate \(m/\gamma\) small: velocities
 are damped before they transport position very far. The smallest friction
@@ -119,7 +119,7 @@ large friction it recovers</p>
 \[\beta=\frac{\gamma-\sqrt{\gamma^2-4m}}2,\]
 <p>the slow characteristic rate of a quadratic potential with curvature \(m\).
 This explains the sharpness example. Singular prefactors at a repeated
-characteristic root require separate limiting estimates.</p>'''),
+characteristic root require separate limiting estimates.</p><p>The optimized exponent and the prefactor describe different effects. A more negative exponent improves long-time decay, while a large prefactor can make a finite-time bound less useful. Near the repeated-root boundary the coordinate transformation becomes singular, so rate optimization must retain its domain and cannot simply substitute the boundary into the prefactor.</p>'''),
 
 part('exponential-step', 'Integrate the frozen force exactly', r'''<p>On an interval of length \(h\), replace the changing force
 \(\nabla f(L_t)\) by its value at the current position \(x\). The remaining
@@ -127,7 +127,7 @@ velocity equation is linear and can be solved exactly. Define</p>
 \[\psi_0(h)=e^{-\gamma h},\qquad
 \psi_1(h)=\frac{1-e^{-\gamma h}}\gamma,\qquad
 \psi_2(h)=\frac h\gamma-\frac{1-e^{-\gamma h}}{\gamma^2}.\]
-<p>With the phase ordered as position and velocity, the update is</p>
+<p>With velocity written first, the update is</p>
 \[v^+=\psi_0(h)v-\psi_1(h)\nabla f(x)+\sqrt{2\gamma}\,\xi,
 \quad x^+=x+\psi_1(h)v-\psi_2(h)\nabla f(x)+\sqrt{2\gamma}\,\xi'.\]
 <p>The exponential terms handle friction at its exact continuous-time rate.
@@ -137,7 +137,7 @@ which are the familiar first-order velocity and second-order position changes
 under a constant force.</p>
 <p>The only approximation here is freezing the nonlinear force. The linear
 friction and its associated Gaussian forcing have already been integrated.
-This is the KLMC exponential integrator reused by KIPLMC1.</p>'''),
+This is the KLMC exponential integrator reused by KIPLMC1.</p><p>An integrating factor gives \(v_t=e^{-\gamma t}v-\int_0^te^{-\gamma(t-s)}\nabla f(x)ds\) before noise is added. Since the force is constant inside this auxiliary problem, the integral equals \(\psi_1(t)\nabla f(x)\). Integrating this velocity once gives the \(\psi_2\) position coefficient. The two coefficient formulas therefore arise from the same exact frozen system.</p>'''),
 
 part('noise', 'Position and velocity noise must be correlated', r'''<p>The two random increments come from the same Brownian motion:</p>
 \[\xi=\int_0^h\psi_0(h-s)dW_s,
@@ -156,7 +156,7 @@ and different time intervals use independent Gaussian pairs.</p>
 functions are linearly independent, which gives strict positivity. One may
 therefore sample a pair using a Cholesky factor \(C=HH^T\) and two independent
 standard normals. A complete law proof identifies this construction with the
-Brownian integrals and establishes independence from the current state.</p>'''),
+Brownian integrals and establishes independence from the current state.</p><p>For an implementable scalar draw, write \(C_{00}=a\), \(C_{10}=b\), and \(C_{11}=d\). Positive definiteness gives \(a>0\) and \(d-b^2/a>0\). With independent standard normals \(G,H\), the pair \((\sqrt aG,(b/\sqrt a)G+\sqrt{d-b^2/a}\,H)\) has exactly covariance \(C\). Its nonzero cross term preserves the common Brownian impulse.</p>'''),
 
 part('first-local-defect', 'Smooth position paths give a smaller local defect', r'''<p>Compare one frozen-force step with the exact kinetic process started at
 the same phase-space state. Their Brownian terms cancel. Gradient Lipschitzness
@@ -177,7 +177,7 @@ error from reappearing in every step as a fixed additive penalty.</p>
 gives the transformed local estimate
 \(\tfrac34Mh^2(\sqrt p+A_k)\). Constructing the auxiliary process, its
 moments and the synchronous Gaussian law is part of the analytic proof behind
-this estimate.</p>'''),
+this estimate.</p><p>The two integrations reveal the order directly: \(\int_0^hsds=h^2/2\), whereas \(\int_0^h(h-s)sds=h^3/6\). Smoothness is used only to turn the position displacement into force variation. The reference velocity moment, rather than a bound on Brownian path derivatives, controls the remaining stochastic quantity.</p>'''),
 
 part('first-recurrence', 'Contract, add the local defect, and sum', r'''<p>Let
 \(A_k=\| (\Delta V_k+\gamma\Delta L_k,-\Delta V_k)\|_{L^2}\).
@@ -196,7 +196,7 @@ q=1-\frac{3mh}{4\gamma},\quad b=\frac34Mh^2\sqrt p.\]
 optimal initial coupling; approximate couplings and a limiting infimum work as
 well. The position projection costs \(\sqrt2/\gamma\), yielding the displayed
 KLMC theorem. The recurrence itself is elementary. The substantive stochastic
-claim is that the actual chain admits the coupling from which it was derived.</p>'''),
+claim is that the chain admits the coupling from which it was derived.</p><p>The geometric sum is finite for every iteration count: \(\sum_{j=0}^{n-1}q^j=(1-q^n)/(1-q)\). Bounding it by \((1-q)^{-1}\) separates transient and persistent errors. Because the local forcing is quadratic and the contraction gap is linear in \(h\), the persistent position floor is linear in the step. The initial-error coefficient remains outside this sum.</p>'''),
 
 part('second-order-method', 'The Hessian-corrected method follows the changing force', r'''<p>If the Hessian is \(M_2\)-Lipschitz in operator norm, a first-order
 Taylor expansion of the gradient leaves a quadratic position remainder:</p>
@@ -216,30 +216,29 @@ algorithm is therefore more elaborate than the frozen-force integrator, but
 still explicit.</p>
 <p>The name KLMC2 here refers to a Hessian method. KIPLMC2 in the particle
 paper uses the OBABO splitting and first derivatives; its definition and proof
-are separate.</p>'''),
+are separate.</p><p>The frozen Hessian acts on the displacement generated by the free Ornstein–Uhlenbeck velocity. That displacement contains both the initial-velocity response and fresh Brownian responses. Applying the Hessian to both parts is necessary to obtain the stated higher-order approximation; retaining only the deterministic Hessian–velocity correction would define a different algorithm.</p>'''),
 
 part('second-order-estimates', 'Fourth moments and the complete stochastic Hessian correction', r'''<p>The Taylor remainder contains \(\|L_s-L_0\|^2\). Its
-\(L^2\) norm therefore uses fourth moments. Under the actual stationary
+\(L^2\) norm therefore uses fourth moments. Under the stationary
 kinetic law, each \(V_s\) is standard Gaussian and</p>
 \[\mathbb E\|V_s\|^2=p,\qquad
 \mathbb E\|V_s\|^4=p^2+2p.\]
-<p>The actual kinematic equation \(L_s-L_0=\int_0^sV_rdr\) gives
+<p>The kinematic equation \(L_s-L_0=\int_0^sV_rdr\) gives
 \(\|L_s-L_0\|_{L^4}\le s(p^2+2p)^{1/4}\), without independence
 between velocities at different times. The formal proof applies closed-convex
-averaging to the existing \(L^2\) time integral. The genuine Taylor forcing
+averaging to the existing \(L^2\) time integral. The Taylor forcing
 is consequently bounded by \(M_2s^2\sqrt{p^2+2p}/2\).</p>
 <p>Its damped integral gives the cubic velocity defect. A further force-memory
-term uses the actual stationary score bound
+term uses the stationary score bound
 \(\mathbb E_\pi\|\nabla f\|^2\le Mp\). Integrating the velocity error
-once more gives the quartic position defect. Proposition 2 is thus checked
-for the implemented four-kernel step:</p>
+once more gives the quartic position defect. Proposition 2 is thus for the defined four-kernel step:</p>
 \[\|P^{-1}(V_h-\hat V_h,L_h-\hat L_h)\|_{L^2}
 \le\frac{h^3}{4}\bigl(M_2\sqrt{p^2+2p}+M\sqrt{Mp}\bigr),
 \qquad \gamma h\le\tfrac15.\]
 <p>Proposition 3 requires an additional repair: the source's displayed
 subtraction omits the Hessian difference multiplying the fresh
 \(\varphi_2\) and \(\varphi_3\) noise. The formal proof keeps both terms.
-Write \(D_H=H(L_0)-H(\widetilde L_0)\), and define the actual free-OU velocity
+Write \(D_H=H(L_0)-H(\widetilde L_0)\), and define the free-OU velocity
 and complete Hessian responses on the same Brownian interval:</p>
 \[U_r=\psi_0(r)V_0+\sqrt{2\gamma}\int_0^r\psi_0(r-s)dB_s,\]
 \[C_j(t)=\varphi_j(t)V_0+\sqrt{2\gamma}
@@ -248,8 +247,7 @@ and complete Hessian responses on the same Brownian interval:</p>
 isonormal map, give</p>
 \[C_2(t)=\int_0^te^{-\gamma(t-s)}\int_0^sU_rdrds,
 \qquad C_2(t)+\gamma C_3(t)=\int_0^t\int_0^sU_rdrds.\]
-<p>Each \(U_r\) has the standard Gaussian marginal, proved from the actual
-stationary reference velocity and its independent future Brownian interval.
+<p>Each \(U_r\) has the standard Gaussian marginal, proved from the stationary reference velocity and its independent future Brownian interval.
 The random operator \(D_H\) can depend on the coupled positions and velocity;
 the cutoff argument below requires no independence from \(U_r\). The complete
 correction therefore satisfies, for \(a\ge5p\),</p>
@@ -260,22 +258,22 @@ M_2\sqrt a\,\|L_0-\widetilde L_0\|_{L^2}
 <p>This retains the source constants while accounting for every stochastic
 Hessian term. The frozen-linear part contracts by \(1-mh/(2\gamma)\)
 under \(\gamma^2\ge m+M\) and \(5\gamma Mh\le m\); adding the complete
-correction gives the repaired actual one-step comparison.</p>'''),
+correction gives the repaired one-step comparison.</p><p>The fourth moment enters because a quadratic Taylor remainder is estimated in second mean: \(\|\|D\|^2\|_{L^2}=(\mathbb E\|D\|^4)^{1/2}\). Expanding the Gaussian fourth norm gives \(3p+p(p-1)=p^2+2p\). This exact coefficient is kept until any later dimension-dependent simplification is explicitly justified.</p>'''),
 
 part('second-order-tail', 'Gaussian truncation and the actual second-order sampling theorem', r'''<p>A Gaussian reference velocity need not be independent of the accumulated
-position error. For any actual standard Gaussian vector and \(a\ge5p\),
-the checked Gaussian exponential moment gives</p>
+position error. For any standard Gaussian vector and \(a\ge5p\),
+the Gaussian exponential moment gives</p>
 \[\|V\|^2\le a+(\|V\|^2-a)_+,\qquad
 \mathbb E(\|V\|^2-a)_+\le4e^{-(a-p)/4}.\]
-<p>The actual Hessian difference satisfies both
+<p>The Hessian difference satisfies both
 \(\|H(x)-H(y)\|\le M-m\) and
 \(\|H(x)-H(y)\|\le M_2\|x-y\|\). On the bounded-velocity part use
 the Lipschitz bound; on the tail use the curvature-width bound. Taking the
 square root of the integrated estimate gives</p>
 \[\|D_HV\|_{L^2}\le M_2\sqrt a\,\|L_0-\widetilde L_0\|_{L^2}
 +2(M-m)e^{-(a-p)/8}.\]
-<p>Apply this estimate to each actual free-OU velocity in the complete
-correction, then combine the repaired comparison with the genuine cubic local
+<p>Apply this estimate to each free-OU velocity in the complete
+correction, then combine the repaired comparison with the cubic local
 defect. Choose</p>
 \[a=\left(\frac{m}{4M_2h}\right)^2,\qquad
 h\le\frac{m}{5\gamma M}\wedge\frac{m}{4M_2\sqrt{5p}}.\]
@@ -285,26 +283,26 @@ The second step restriction ensures \(a\ge5p\), and the first enforces the
 frozen-linear stability bound. The position-dependent comparison term is
 absorbed into \(q=1-mh/(4\gamma)\). Iterating on the constructed common
 Brownian source and taking the true infimum over initial couplings proves
-for the actual independently initialized, iid four-kernel Gaussian KLMC2 chain</p>
+for the independently initialized, iid four-kernel Gaussian KLMC2 chain</p>
 \[W_2(\nu_n^{\rm KLMC2},\pi)\le
 \sqrt2q^n W_2(\nu_0,\pi)
 +\frac{\sqrt2h^2}{m}\left(M_2\sqrt{p^2+2p}+M\sqrt{Mp}\right)
 +\frac{8(M-m)h}{m}e^{-(a-p)/8}.\]
-<p>The actual output transport distance is finite; the real-valued expression
+<p>The output transport distance is finite; the real-valued expression
 does not conceal an infinite distance. No stationary-law, local-error,
 independence, Gaussian-innovation or optimal-coupling premise is supplied to
 this final sampler theorem.</p>
 <p>The cutoff gives both \(e^{-(a-p)/8}\le e^{-p/2}\) and the stronger
 \(e^{-(a-p)/8}\le e^{-m^2/(160M_2^2h^2)}\). The printed simplification
 of the first bias term uses \(p^2+2p\le2p^2\), which requires
-\(p\ge2\). Under that explicit restriction the checked bound implies</p>
+\(p\ge2\). Under that explicit restriction the bound implies</p>
 \[W_2(\nu_n^{\rm KLMC2},\pi)\le
 \sqrt2q^n W_2(\nu_0,\pi)
 +\frac{2h^2M_2p}{m}+\frac{h^2M\sqrt{2Mp}}m
 +\frac{8Mh}{m}e^{-p/2}.\]
 <p>For \(p=1\), the exact fourth-moment expression in the preceding
 sampling theorem remains the valid conclusion. The source's silently used
-higher-dimensional simplification is not applied.</p>'''),
+higher-dimensional simplification is not applied.</p><p>The cutoff has two jobs. Its moderate-velocity contribution is proportional to the current displacement and is absorbed into the contraction gap. Its remaining excess is controlled solely by the Gaussian velocity marginal. Thus the argument remains valid when the displacement and velocity share the entire past of the coupled sampler.</p>'''),
 
 part('complexity', 'Turn an error floor into a computational budget', r'''<p>A bound of the form \(q^kD+Bh\) gives a simple design rule. Choose
 \(h\) small enough that \(Bh\) receives one part of an error budget
@@ -316,8 +314,7 @@ choice and the stability restriction.</p>
 \(\sqrt p/\varepsilon\) up to logarithmic and curvature factors.
 For the Hessian method the leading bias scales as \(h^2p\), giving
 \(h\) of order \(\sqrt{\varepsilon/p}\), and a step count of order
-\(\sqrt{p/\varepsilon}\). These are asymptotic consequences of actual
-algorithmic estimates, with fixed geometry constants.</p>
+\(\sqrt{p/\varepsilon}\). These are asymptotic consequences of algorithmic estimates, with fixed geometry constants.</p>
 <p>The paper's comparisons keep track of condition numbers as well. A kinetic
 method gains from smooth position paths, but poor conditioning can make its
 allowed step size small. This is why neither KLMC nor overdamped LMC uniformly
@@ -342,7 +339,7 @@ initial distance \(D\), the rounded logarithmic iteration prescription satisfies
 \[n\le1+\frac{4\gamma}{m}Q\,
 \max\left\{0,\log\frac{24D\sqrt m}{\varepsilon}\right\}.\]
 <p>This calculation concerns the source comparison with the tail omitted.
-The actual sampler accuracy theorem retains the tail and chooses its step
+The sampler accuracy theorem retains the tail and chooses its step
 using the complete quadratic envelope proved earlier.</p>
 <p>To understand the refinement, write
 \(\kappa=M/m\), \(\eta=M_2/m^{3/2}\), and</p>
@@ -354,7 +351,7 @@ That simplification drops a factor. A valid refinement is</p>
 \[\sqrt{\frac\kappa\rho}\left[
 \sqrt p\,\rho^2+\sqrt{p/\varepsilon}\,\rho^{5/4}\right]\]
 <p>up to a universal multiplicative constant and the displayed logarithm.
-A convenient checked uniform upper bound uses
+A convenient uniform upper bound uses
 \(\widehat\kappa_2=\max\{\kappa,\rho\}\):</p>
 \[\mathcal C\le64\left[\sqrt p\,\widehat\kappa_2^2+
 \sqrt{p/\varepsilon}\,\widehat\kappa_2^{5/4}\right],\]
@@ -364,7 +361,7 @@ the visible nonnegative logarithm. If \(\rho\ge\kappa\), the maximum
 is simply \(\rho\), so the printed shape follows with the same explicit
 constant.</p>
 <p>The distinction matters because the modified number discounts gradient
-curvature by \(p^{-1/3}\), while the actual stability restriction still
+curvature by \(p^{-1/3}\), while the stability restriction still
 contains \(M/m\). Take a natural \(t\ge2\), dimension \(p=t^6\),
 and the valid constants \(m=1\), \(M=t^2\), \(M_2=1\),
 \(\varepsilon=1\). A diagonal quadratic potential can have smallest
@@ -374,7 +371,7 @@ the stated Hessian-Lipschitz bound. Here \(\kappa=t^2\),
 coefficient is at least \(20t^4\), whereas the source expression is at most
 \(8t^3\). No universal constant multiplying that expression can cover all
 natural \(t\). This diagnoses the source's algebraic budget simplification;
-it asserts no lower bound on the best possible behavior of the algorithm.</p>''')
+it asserts no lower bound on the best possible behavior of the algorithm.</p><p>All inverse-step branches must be retained when deriving a uniform work bound. Inverting a minimum of positive admissible steps produces a maximum of the corresponding positive reciprocal costs. The dominant branch may change with curvature, dimension, Hessian regularity, and requested precision. The integer ceiling then adds less than one iteration to the real logarithmic threshold.</p>''')
 ]
 
 
@@ -393,7 +390,7 @@ kinetic exponential integrator and has the paper's claimed bound</p>
 \(\gamma\ge\sqrt{\mu+L}\), and \(0&lt;\eta\le\mu/(4\gamma L)\).
 The manuscript's independently drawn stationary initial position gives a
 possibly larger valid choice of \(D_0\). KIPLMC2 uses the OBABO splitting and
-has a different numerical estimate; the checked scope is documented separately.</p>'''
+has a different numerical estimate; the scope is documented separately.</p>'''
 
 
 KIPLMC_PROOF = [
@@ -412,7 +409,7 @@ force:</p>
 <p>Adding a parameter noise of size \(N^{-1/2}\) makes the whole system a
 Langevin system with a useful explicit equilibrium. The particle number then
 has two roles: it provides interacting latent samples and determines how
-strongly the stationary parameter distribution concentrates near the optimizer.</p>'''),
+strongly the stationary parameter distribution concentrates near the optimizer.</p><p>The common parameter is represented once while each latent variable has its own coordinate. Conditional on that parameter, the equilibrium latent integrations factor into identical marginal likelihood integrals. Increasing particle count therefore sharpens the parameter marginal through a power of the likelihood, while increasing the computational state dimension.</p>'''),
 
 part('joint-geometry', 'The assumptions concern the whole statistical model', r'''<p>The theory assumes \(U\in C^2\), \(\mu&gt;0\), \(L&gt;0\), and</p>
 \[\langle z-z',\nabla U(z)-\nabla U(z')\rangle
@@ -428,7 +425,7 @@ Its Gaussian prior contributes a quadratic in \(x-\theta\), which leaves
 common shifts partly uncontrolled; logistic curvature can vanish far from the
 origin. Spanning covariates give strict convexity, while a uniform positive
 strong-convexity constant requires additional regularization. The source itself
-separates these experiments from its strong-convexity theorem.</p>'''),
+separates these experiments from its strong-convexity theorem.</p><p>The required lower curvature concerns arbitrary joint directions \((u,w)\), including directions that move parameter and latent variables together. Positive curvature in either coordinate with the other fixed is insufficient. A direction in which both move can remove a prior penalty and expose weak or vanishing curvature in the likelihood.</p>'''),
 
 part('particle-sde', 'Give the parameter and particles their own velocities', r'''<p>KIPLD adds velocity blocks \(V^\theta,V^{x_i}\) and uses the same
 friction in each:</p>
@@ -444,7 +441,7 @@ without changing the others generally changes the equilibrium target.</p>
 This creates the smoother position paths responsible for the exponential
 integrator's improved discretization dependence. The target remains a
 statistical estimation problem: the final parameter distribution should
-concentrate around \(\theta_*\) as the particle number grows.</p>'''),
+concentrate around \(\theta_*\) as the particle number grows.</p><p>The parameter noise is reduced by the square root of particle count, matching its averaged force and concentrated equilibrium marginal. Each physical latent equation retains unit temperature. Scaling all latent positions and velocities by \(N^{-1/2}\) turns these different physical amplitudes into one uniform phase-space temperature.</p>'''),
 
 part('rescaling', 'One rescaling reveals an ordinary kinetic diffusion', r'''<p>The particle system looks anisotropic, but it becomes a standard kinetic
 system in \(d_z=d_\theta+Nd_x\) dimensions. At rescaled time \(t\), define</p>
@@ -461,7 +458,7 @@ d\widetilde V_t=-(\widetilde\gamma\widetilde V_t+\nabla f_N(\widetilde Z_t))dt
 <p>This is Proposition A.1. The parameter position stays unchanged under the
 spatial scaling, which will make projection of the final transport estimate
 particularly simple. An original step \(\eta\) corresponds to a rescaled
-step \(\widetilde\eta=\eta/\sqrt N\).</p>'''),
+step \(\widetilde\eta=\eta/\sqrt N\).</p><p>Position is fixed by the velocity-only transformation, so the parameter sample is unchanged. Friction and step are changed inversely, preserving their dimensionless product. The normalized Gaussian velocity and transformed Brownian amplitude must be together; a deterministic clock identity alone would not identify the sampler’s probability law.</p>'''),
 
 part('lifted-geometry', 'Averaging preserves curvature after scaling the latent blocks', r'''<p>The gradients of the averaged potential are</p>
 \[\nabla_\theta\bar U_N=\frac1N\sum_i\nabla_\theta U(\theta,\sqrt Nz_i),
@@ -478,7 +475,7 @@ then permits one joint \(L\)-Lipschitz estimate per particle, giving
 <p>Thus the standard potential \(f_N=N\bar U_N\) has constants
 \(m_N=N\mu\), \(M_N=NL\). Their ratio is \(L/\mu\), independent of
 \(N\). This exact matching is what makes the KIPLMC1 error bound scale well
-with the particle number.</p>'''),
+with the particle number.</p><p>The lifted sum potential has curvature and gradient Lipschitz constants multiplied by \(N\). Dividing the potential by \(N\) cancels both factors in physical time. As a result the synchronous rate depends on the original pair constants, while total coordinate dimension appears only through thermal and numerical moments.</p>'''),
 
 part('powered-marginal', 'Integrating out particles raises the likelihood to the Nth power', r'''<p>The rescaled kinetic Gibbs density is</p>
 \[\widetilde\Pi(dz,dv)\propto
@@ -496,7 +493,7 @@ It relies on the parameter noise being present at the prescribed scale; a
 noise-free parameter gradient flow has a different invariant structure.</p>
 <p>The density computation identifies the candidate marginal. A complete
 continuous-time theorem additionally proves normalization, moments, and
-invariance of the actual kinetic solution.</p>'''),
+invariance of the kinetic solution.</p><p>The latent variables become independent under the conditional Gibbs density for a fixed parameter. Fubini multiplies their identical integrals into \(\ell(\theta)^N\). Dividing by the finite positive full partition function gives the powered marginal, so the concentration argument applies to a normalized probability measure.</p>'''),
 
 part('concentration', 'Convert marginal strong convexity into a sharp equilibrium radius', r'''<p>Strong Prékopa–Leindler preserves the parameter curvature when the latent
 variable is integrated out: \(\kappa\) is \(\mu\)-strongly convex. Thus
@@ -515,7 +512,7 @@ side below by \(N\mu\mathbb E\|\theta-\theta_*\|^2\). Hence</p>
 <p>The coefficient is sharp: an isotropic Gaussian with covariance
 \((N\mu)^{-1}I\) attains equality. This explains why a proof with an extra
 \(\sqrt2\) coefficient, although valid, would not reproduce Proposition 2
-exactly.</p>'''),
+exactly.</p><p>The radius is a root-mean-square statement around the maximizer, rather than a covariance statement around the marginal mean. Its explicit coefficient is important for the final triangle inequality. No equality of the mean and maximizer is required to add this equilibrium contribution to the numerical sampling error.</p>'''),
 
 part('error-split', 'Separate approaching equilibrium from its concentration', r'''<p>The only coupling of a probability law with a point mass fixes the second
 coordinate, so Wasserstein distance to a point is exactly root mean square
@@ -531,7 +528,7 @@ the concentration term. These operations affect different pieces of the bound.</
 block is 1-Lipschitz. Applying the same projection to any coupling cannot
 increase its quadratic transport cost. Therefore a bound on the ordinary
 kinetic sampler immediately controls the parameter sampling term once the
-algorithm-law correspondence has been proved.</p>'''),
+algorithm-law correspondence has been proved.</p><p>For any coupling of the numerical position and an equilibrium position, project both to parameters and use Minkowski’s inequality around the maximizer. The projected discrepancy is bounded by the full scaled-state discrepancy because the projection is nonexpansive. Infimizing the latter cost yields the sampling term plus the equilibrium parameter radius.</p>'''),
 
 part('first-integrator', 'KIPLMC1 is the same exponential step in particle coordinates', r'''<p>Reuse \(\psi_0,\psi_1,\psi_2\) from the kinetic integrator. With fresh
 correlated Gaussian pairs of covariance \(C\), KIPLMC1 updates</p>
@@ -550,7 +547,7 @@ ordinary exponential step with \(\widetilde\gamma=\sqrt N\gamma\) and
 <p>The velocity and position Gaussian integrals scale by \(N^{-1/4}\) and
 \(N^{-3/4}\), respectively. Their covariance entries therefore scale by
 \(N^{-1/2},N^{-1},N^{-3/2}\). Matching these laws, in addition to matching
-the deterministic terms, permits reuse of the same kinetic convergence proof.</p>'''),
+the deterministic terms, permits reuse of the same kinetic convergence proof.</p><p>The parameter force contains a particle mean because the common parameter occurs in every potential summand. A latent force belongs to only one summand. Undoing its spatial scaling cancels the averaging factor, explaining why the physical latent update uses its individual gradient and ordinary thermal amplitude.</p>'''),
 
 part('first-bound', 'The N factors cancel in the exponential-integrator bound', r'''<p>Apply the kinetic KLMC theorem with
 \(m_N=N\mu\), \(M_N=NL\), \(h_N=\eta/\sqrt N\), and
@@ -574,7 +571,7 @@ shared theorem.</p>
 <p>Choosing \(N\) of order \(d_\theta/\varepsilon^2\) and \(\eta\) of
 order \(\varepsilon/\sqrt{d_x}\), subject to stability, makes both floors
 small. The transient then needs order \(\sqrt{d_x}/\varepsilon\) steps,
-up to logarithmic and curvature factors.</p>'''),
+up to logarithmic and curvature factors.</p><p>The total scaled dimension is \(D=d_\theta+Nd_x\), and thermal variance per coordinate is \(1/N\). Thus the stationary velocity radius is \(\sqrt{D/N}=\sqrt{d_\theta/N+d_x}\). This identity is the probabilistic meaning of the particle-factor cancellation in the first-order numerical floor.</p>'''),
 
 part('obabo-subflows', 'OBABO composes five exactly solvable pieces', r'''<p>KIPLMC2 uses a symmetric splitting of the same kinetic diffusion. Write
 \(O\) for friction plus noise, \(B\) for the force kick, and \(A\) for free
@@ -590,7 +587,7 @@ A \(B\) half-step subtracts \(\eta F/2\), and the full \(A\) step sends
 The last \(O\) step uses an independent Gaussian vector. Symmetry gives the
 method its second-order splitting structure, while only first derivatives of
 \(U\) are evaluated. This is an entirely different construction from the
-Hessian-corrected KLMC2 in the first paper.</p>'''),
+Hessian-corrected KLMC2 in the first paper.</p><p>Each thermostat half step separately preserves the appropriate Gaussian velocity law, each force kick is a velocity translation, and each drift is a position translation. Their order determines which refreshed velocity moves position and where the second nonlinear force is evaluated.</p>'''),
 
 part('obabo-expanded', 'Expand the five substeps to inspect every coefficient', r'''<p>For one standard block with force \(g\), combine the first \(O\) and
 \(B\) operations:</p>
@@ -606,9 +603,9 @@ forces and amplitude \(s\). These identities reproduce Algorithm 2 and
 Proposition B.2.</p>
 <p>The resulting law is determined by two independent standard Gaussian
 vectors, independent of the current state. Proving the displayed algebra for
-arbitrary supplied noise vectors certifies the deterministic implementation;
+arbitrary supplied noise vectors certifies the deterministic update;
 proving the stochastic theorem additionally constructs this Gaussian kernel,
-its iterates and the required moment estimates.</p>'''),
+its iterates and the required moment estimates.</p><p>The final combined noise is \(s(\delta\xi+\xi^{\prime})\), but position depends only on the first refresh through the half velocity. Therefore the full phase output has a nontrivial shared-noise structure even though the two input thermostat vectors are independent. The expanded formula retains this structure exactly.</p>'''),
 
 part('discrete-equilibrium', 'The discrete invariant law contributes a separate bias', r'''<p>A finite-step OBABO kernel \(P_h\) generally has its own invariant law
 \(\Pi_h\), different from the kinetic Gibbs law \(\Pi\). The cited
@@ -622,11 +619,11 @@ of the form</p>
 <p>This explains two different occurrences of the numerical bias: a persistent
 \(B\) and a transient \(Aq^{n/2}B\). Dropping the latter would lose a term
 present in the supplied paper's revised theorem.</p>
-<p>These inequalities are substantial results about the actual OBABO kernel,
-including existence of \(\Pi_h\). A Lean theorem that takes them as hypotheses
+<p>These inequalities are substantial results about the OBABO kernel,
+including existence of \(\Pi_h\). A The proof theorem that takes them as hypotheses
 checks the transport combination but does not prove the cited OBABO analysis.
 The coverage audit distinguishes that conditional use from a completed
-formalization.</p>'''),
+argument.</p>'''),
 
 part('obabo-scaling', 'Track the OBABO constants before hiding them', r'''<p>For the rescaled potential, the source uses</p>
 \[A_N=\sqrt3\max\{\sqrt{NL},(NL)^{-1/2}\},\qquad
@@ -647,7 +644,7 @@ a constant depending only on \(\mu,L,\gamma\).</p>
 <p>The product \(A_NB_N\) is proportional to \(\eta N\sqrt{d_z}\), while
 \(B_N\) itself is proportional to \(\eta\sqrt{Nd_z}\). The two terms have
 different powers of \(N\), which is why the source tracks them separately
-before introducing the implicit constant.</p>'''),
+before introducing the implicit constant.</p><p>The clock changes both curvature constants and friction, while leaving the physical contraction ratio unchanged. Simplifying the bias only after substituting every factor avoids introducing spurious growing powers of \(N\). The resulting intensive estimate is stronger than the coarser printed envelope.</p>'''),
 
 part('obabo-bound', 'The revised KIPLMC2 theorem keeps both transient terms', r'''<p>Independent Gaussian initialization gives the same velocity marginal as
 \(\widetilde\Pi\). Coupling these equal velocity blocks and using position
@@ -670,7 +667,7 @@ The paper gives an explicit common coefficient by taking the maximum of
 <p>This bound has worse particle dependence than the KIPLMC1 bound. The paper
 regards that dependence as a limitation of the available estimate and compares
 it with numerical behavior; the experiments do not themselves remove the
-factor from the theorem.</p>'''),
+factor from theorem.</p><p>The extra transient term is harmless for validity but matters when reproducing the displayed manuscript formula. It decays with the same rate as the initial transport discrepancy. The sharper invariant-comparator estimate bounds the chain directly and implies this coarser statement by nonnegative termwise enlargements.</p>'''),
 
 part('complexity-and-experiments', 'Separate guarantees, complexity and experimental observations', r'''<p>For KIPLMC2, choosing \(N\asymp d_\theta/\varepsilon^2\) gives</p>
 \[\sqrt{N(d_\theta+Nd_x)}
@@ -693,9 +690,7 @@ the log probability assigned to each correct test label.</p>
 <p>These are empirical comparisons with concrete data and numerical settings.
 The strong-convexity convergence theorems, their asymptotic complexity
 corollaries, the algorithm definitions and the experimental metrics are
-different kinds of content. The source ledger inventories all of them while
-the formal coverage statement identifies exactly which mathematical
-conclusions have checked Lean proofs.</p>''')
+different kinds of content. The logistic example is globally smooth and can be strictly convex under a full-span feature condition, while common-translation directions still prevent a positive uniform strong-convexity constant without additional regularization.</p><p>The statistical choice of particle count first fixes the dimension-dependent numerical coefficient. The bias budget then fixes a step, and the contraction rate fixes the iteration count. Empirical advantages at particular model settings remain separate from these global sufficient conditions, especially when a model lacks uniform joint strong convexity.</p>''')
 ]
 
 
@@ -746,7 +741,7 @@ _attach(KIPLMC_PROOF, {
 
 for _item in KIPLMC_PROOF:
     if _item['id'] == 'discrete-equilibrium':
-        _item['body'] += r'''<p>The checked development gives a second route that avoids constructing the discrete invariant law. An exact O–Hamiltonian–O step preserves the continuous Gibbs target. Compare it with the actual OBABO update on the same initial state and the same Gaussian vectors. The Verlet local defect has L² cost of order \(h^2\sqrt{d_z}\). Contractive perturbation sums this cost directly over the actual chain. The resulting intensive bound is stronger than the supplied coarse estimate, so it also implies every term retained in the printed theorem.</p>'''
+        _item['body'] += r'''<p>The development gives a second route that avoids constructing the discrete invariant law. An exact O–Hamiltonian–O step preserves the continuous Gibbs target. Compare it with the OBABO update on the same initial state and the same Gaussian vectors. The Verlet local defect has L² cost of order \(h^2\sqrt{d_z}\). Contractive perturbation sums this cost directly over the chain. The resulting intensive bound is stronger than the supplied coarse estimate, so it also implies every term retained in the printed theorem.</p>'''
 
 for _item in KINETIC_PROOF:
     if _item['id'] == 'complexity':

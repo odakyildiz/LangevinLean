@@ -1,7 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \setlength{\emergencystretch}{3em}
@@ -10,85 +9,101 @@
 \allowdisplaybreaks[2]
 \raggedbottom
 \title{\texorpdfstring{The transformed kinetic energy}{The transformed kinetic energy}}
-\author{LangevinLean mathematical exposition}
+\author{Omer Deniz Akyildiz\\[0.4em]\normalsize Prepared with AI assistance}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{Kinetic\allowbreak{}Langevin/\allowbreak{}Geometry.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-The phase convention is \((v,x)\), velocity first. The paper's transformation is \(T_{\gamma,a}(v,x)=(v+(\gamma-a)x,-v-ax)\). Its squared energy is the sum of the two squared Hilbert norms. This explicit sum matters: Lean's default norm on a product is a maximum norm, not the Euclidean phase norm used in the paper. The identities below also apply with the underlying Hilbert space equal to an L\ensuremath{{}^{2}} space of random vectors.
+The phase convention is \((v,x)\), velocity first. The paper's transformation is \(T_{\gamma,a}(v,x)=(v+(\gamma-a)x,-v-ax)\). Its squared energy is the sum of the two squared Hilbert norms. We equip the phase pair with the Euclidean product norm \(\|(v,x)\|_2^2=\|v\|^2+\|x\|^2\), so the transformed energy is a Hilbert-space squared norm. The identities below also apply with the underlying Hilbert space equal to an L\ensuremath{{}^{2}} space of random vectors.
+
+
+
+These are deterministic Hilbert-space identities. Their stochastic use requires only that the coupled position and velocity differences are square integrable; the same inner-product calculations then hold after expectation, with the corresponding root-mean-square norm.
+
+
+
+The transformed norm is the single metric used to initialize, propagate, and project coupling errors. Its explicit inverse also explains which parameter choices are admissible and where prefactors become singular.
 
 
 \section{\texorpdfstring{Define the change of variables and its nonnegative energy}{Define the change of variables and its nonnegative energy}}
 
 
-Set \(y=v+(\gamma-a)x\), \(z=-v-ax\), and \(\mathcal E=\|y\|^2+\|z\|^2\). These are the two coordinates used to expose cancellation in the kinetic drift. The definition \texttt{transform} constructs the pair; \texttt{transform\allowbreak{}Energy} explicitly sums their squares. Unfolding the latter leaves a sum of nonnegative terms, which \texttt{positivity} proves without any sign restriction on \(\gamma\) or \(a\). Thus the energy construction is valid before selecting the admissible friction regime.
+Set \(y=v+(\gamma-a)x\), \(z=-v-ax\), and \(\mathcal E=\|y\|^2+\|z\|^2\). These are the two coordinates used to expose cancellation in the kinetic drift. The definition the linear transformation constructs the pair; the transformed energy explicitly sums their squares. Unfolding the latter leaves a sum of nonnegative terms, which nonnegativity proves without any sign restriction on \(\gamma\) or \(a\). Thus the energy construction is valid before selecting the admissible friction regime.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{transform}, \texttt{transform\allowbreak{}Energy}, \texttt{transform\allowbreak{}Energy\_\allowbreak{}nonneg}.\par}
+The state here may be a difference of two trajectories. In that application the same formula measures how far the trajectories are apart, rather than their absolute energy. Positivity is immediate, while strict definiteness additionally needs the transformation to be invertible.
+
 
 \section{\texorpdfstring{Recover position and velocity}{Recover position and velocity}}
 
 
-Adding the new coordinates gives \(y+z=(\gamma-2a)x\). The proof expands the scalar difference with \texttt{sub\_\allowbreak{}smul} and uses \texttt{module} to normalize the vector-space expression. If \(\gamma-2a\ne0\), multiply by its inverse to recover position. A second identity is \(ay+(\gamma-a)z=-(\gamma-2a)v\), giving \(v=-(\gamma-2a)^{-1}(ay+(\gamma-a)z)\). Lean first proves this vector identity, then rewrites nested scalar multiplication and cancels the nonzero denominator. The hypothesis excludes the singular coordinate choice \(a=\gamma/2\).
+Adding the new coordinates gives \(y+z=(\gamma-2a)x\). The proof expands the scalar difference with distributivity of scalar multiplication and uses vector-space algebra to normalize the vector-space expression. If \(\gamma-2a\ne0\), multiply by its inverse to recover position. A second identity is \(ay+(\gamma-a)z=-(\gamma-2a)v\), giving \(v=-(\gamma-2a)^{-1}(ay+(\gamma-a)z)\). First, the argument proves this vector identity, then rewrites nested scalar multiplication and cancels the nonzero denominator. The hypothesis excludes the singular coordinate choice \(a=\gamma/2\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{transform\_\allowbreak{}add}, \texttt{transform\_\allowbreak{}inverse\_\allowbreak{}position}, \texttt{transform\_\allowbreak{}inverse\_\allowbreak{}velocity}.\par}
+The determinant of this two-by-two scalar transformation is \(\gamma-2a\). Thus the denominator in both inverse formulas has the same geometric origin. At the exceptional value both new coordinates are negatives of one another, and position and velocity can no longer be recovered separately.
+
 
 \section{\texorpdfstring{Bound the position projection}{Bound the position projection}}
 
 
-The triangle inequality and \((\|y\|-\|z\|)^2\ge0\) give \(\|y+z\|^2\le2(\|y\|^2+\|z\|^2)\). Substituting \(y+z=(\gamma-2a)x\) yields \((\gamma-2a)^2\|x\|^2\le2\mathcal E\). In Lean, \texttt{norm\_\allowbreak{}add\_\allowbreak{}le} supplies the triangle bound; \texttt{nlinarith} combines it with nonnegative norms and the square of their difference. The final rewrite uses \texttt{norm\_\allowbreak{}smul} and \(|c|^2=c^2\), so the squared result does not need a sign assumption on the denominator.
+The triangle inequality and \((\|y\|-\|z\|)^2\ge0\) give \(\|y+z\|^2\le2(\|y\|^2+\|z\|^2)\). Substituting \(y+z=(\gamma-2a)x\) yields \((\gamma-2a)^2\|x\|^2\le2\mathcal E\). the triangle inequality supplies the triangle bound; elementary real inequalities combines it with nonnegative norms and the square of their difference. The final rewrite uses homogeneity of the norm and \(|c|^2=c^2\), so the squared result does not need a sign assumption on the denominator.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{position\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy}.\par}
+The factor two is the sharp constant for adding two Hilbert vectors: equality occurs when the two vectors coincide. Consequently the loss in position projection is a property of the chosen coordinates. It is independent of dimension and survives unchanged on a space of random variables.
+
 
 \section{\texorpdfstring{Initialize a coupling with equal velocities}{Initialize a coupling with equal velocities}}
 
 
-If the velocity difference is zero, the transformed pair is \(((\gamma-a)x,-ax)\). Its energy is therefore \(((\gamma-a)^2+a^2)\|x\|^2\). The proof unfolds both definitions, removes zero and negation, converts scalar multiplication norms to absolute scalar factors, and uses \texttt{sq\_\allowbreak{}abs} before \texttt{ring}. This is the exact initialization coefficient in the synchronous-position contraction theorem.
+If the velocity difference is zero, the transformed pair is \(((\gamma-a)x,-ax)\). Its energy is therefore \(((\gamma-a)^2+a^2)\|x\|^2\). The proof unfolds both definitions, removes zero and negation, converts scalar multiplication norms to absolute scalar factors, and uses the identity \( |c|^2=c^2 \) before expansion of the scalar polynomials. This is the exact initialization coefficient in the synchronous-position contraction theorem.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{transform\allowbreak{}Energy\_\allowbreak{}zero\_\allowbreak{}velocity}.\par}
+For a coupling with a common initial velocity, the initial transformed cost therefore depends only on the position coupling. This is the bridge between a phase-space contraction estimate and an initial position Wasserstein distance. No initial velocity transport penalty is introduced by this choice.
+
 
 \section{\texorpdfstring{Read off velocity control and phase energy}{Read off velocity control and phase energy}}
 
 
-At \(a=0\), the second transformed coordinate is \(-v\), so \(\|v\|^2\le\|v+\gamma x\|^2+\|v\|^2=\mathcal E\). Lean simplifies the zero scalar terms and invokes nonnegativity of the other square. \texttt{phase\allowbreak{}Energy} separately records \(\|v\|^2+\|x\|^2\), the ordinary squared Euclidean phase norm. Both definitions avoid relying on the product's maximum norm; only the transformed energy contains the mixed position–velocity geometry needed for contraction.
+At \(a=0\), the second transformed coordinate is \(-v\), so \(\|v\|^2\le\|v+\gamma x\|^2+\|v\|^2=\mathcal E\). The argument simplifies the zero scalar terms and invokes nonnegativity of the other square. the ordinary phase energy separately records \(\|v\|^2+\|x\|^2\), the ordinary squared Euclidean phase norm. Both definitions avoid relying on the product's maximum norm; only the transformed energy contains the mixed position–velocity geometry needed for contraction.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{velocity\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy}, \texttt{phase\allowbreak{}Energy}.\par}
-
-\section{\texorpdfstring{Use the actual Euclidean transformed norm}{Use the actual Euclidean transformed norm}}
+Controlling both position and velocity follows by combining their projection inequalities. The transformed energy is therefore equivalent to the usual phase energy whenever the coordinate transformation is invertible. The constants of equivalence become large near the singular value, explaining the restriction on the shift.
 
 
-Define \(\|s\|_T\) as the norm of \(T_{\gamma,a}s\) in \texttt{With\allowbreak{}Lp 2 (E \ensuremath{\times} E)}. This mathlib type equips the two components with the Euclidean product norm. Its square is exactly \texttt{transform\allowbreak{}Energy}, by \texttt{With\allowbreak{}Lp.\allowbreak{}prod\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}L2}. Thus the norm, squared-energy calculations, and later triangle inequalities all describe the same geometry. Nonnegativity comes directly from \texttt{norm\_\allowbreak{}nonneg}. The construction applies to a Hilbert space of vectors or a Hilbert space of square-integrable random vectors.
+\section{\texorpdfstring{Use the Euclidean transformed norm}{Use the Euclidean transformed norm}}
+
+
+Define \(\|s\|_T\) as the norm of \(T_{\gamma,a}s\) in the Euclidean product Hilbert space. This the underlying measure theory type equips the two components with the Euclidean product norm. Its square is exactly the transformed energy, by the Euclidean squared-norm identity. Thus the norm, squared-energy calculations, and later triangle inequalities all describe the same geometry. Nonnegativity comes directly from nonnegativity of the norm. The construction applies to a Hilbert space of vectors or a Hilbert space of square-integrable random vectors.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{transform\allowbreak{}Norm}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}nonneg}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}sq}.\par}
+Taking the square root is essential before combining two different errors. Squared energies do not obey the triangle inequality, whereas their square roots do. The Euclidean product construction supplies exactly the Hilbert norm needed for the subsequent insertion of an auxiliary exact trajectory.
+
 
 \section{\texorpdfstring{Prove the triangle and velocity-\allowbreak{}projection bounds}{Prove the triangle and velocity-projection bounds}}
 
 
-The transformation is additive: expand the two coordinates and let \texttt{module} normalize the vector identities. After this identity, \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp\_\allowbreak{}add} turns the transformed sum into a sum in an actual normed space, so \texttt{norm\_\allowbreak{}add\_\allowbreak{}le} gives its triangle inequality. Rewriting \(s-t=(s-r)+(r-t)\) gives the three-point bound needed to insert an auxiliary exact path. To pass from an energy bound \(\mathcal E(s)\le B^2\) to \(\|s\|_T\le B\), use nonnegativity and \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}}, then replace the norm square by energy. Applying the same argument to the already proved velocity-square projection gives \(\|v\|\le\|(v,x)\|_T\) at \(a=0\).
+The transformation is additive: expand the two coordinates and let vector-space algebra normalize the vector identities. After this identity, linearity of the Euclidean identification turns the transformed sum into a sum in an normed space, so the triangle inequality gives its triangle inequality. Rewriting \(s-t=(s-r)+(r-t)\) gives the three-point bound needed to insert an auxiliary exact path. To pass from an energy bound \(\mathcal E(s)\le B^2\) to \(\|s\|_T\le B\), use nonnegativity and comparison of nonnegative squares, then replace the norm square by energy. Applying the same argument to the already proved velocity-square projection gives \(\|v\|\le\|(v,x)\|_T\) at \(a=0\).
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{transform\_\allowbreak{}add\_\allowbreak{}states}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}add\_\allowbreak{}le}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}sub\_\allowbreak{}triangle}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le}, \texttt{velocity\_\allowbreak{}le\_\allowbreak{}transform\allowbreak{}Norm}.\par}
+In the coupling proof the intermediate state is the exact endpoint started from the numerical initial phase. The triangle inequality then separates propagation of the old discrepancy from the newly created local numerical error. Both terms remain in one common geometry until the final projection.
+
 
 \section{\texorpdfstring{Project position only at the final endpoint}{Project position only at the final endpoint}}
 
 
-The squared position bound is \(\gamma^2\|x\|^2\le2\|s\|_T^2\). Both sides are squares of nonnegative quantities, so \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}} gives \(\gamma\|x\|\le\sqrt2\|s\|_T\). Division by positive friction yields the exact projection factor \(\sqrt2/\gamma\). If the velocity difference initially vanishes, the energy identity gives \(\|(0,x)\|_T^2=\gamma^2\|x\|^2\). Comparing squares with nonnegative \(\gamma\) proves \(\|(0,x)\|_T=\gamma\|x\|\). These two identities explain why the eventual position theorem loses only one factor \(\sqrt2\), while friction cancels out of its bias floor.
+The squared position bound is \(\gamma^2\|x\|^2\le2\|s\|_T^2\). Both sides are squares of nonnegative quantities, so comparison of nonnegative squares gives \(\gamma\|x\|\le\sqrt2\|s\|_T\). Division by positive friction yields the exact projection factor \(\sqrt2/\gamma\). If the velocity difference initially vanishes, the energy identity gives \(\|(0,x)\|_T^2=\gamma^2\|x\|^2\). Comparing squares with nonnegative \(\gamma\) proves \(\|(0,x)\|_T=\gamma\|x\|\). These two identities explain why the eventual position theorem loses only one factor \(\sqrt2\), while friction cancels out of its bias floor.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{position\_\allowbreak{}le\_\allowbreak{}transform\allowbreak{}Norm}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}zero\_\allowbreak{}velocity}.\par}
+These identities must be applied in the correct order. Initialize the transformed discrepancy using the equal-velocity identity, propagate that norm through all iterations, and project position once at the endpoint. Projecting after every step would unnecessarily multiply the positional prefactor at every iteration.
+
 
 \end{document}

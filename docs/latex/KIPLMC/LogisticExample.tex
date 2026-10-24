@@ -1,7 +1,6 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
-\setmonofont{lmmono10-regular.otf}[Scale=MatchLowercase]
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \setlength{\emergencystretch}{3em}
@@ -9,87 +8,99 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Logistic regression: actual gradient, Hessian, and convexity scope}{Logistic regression: actual gradient, Hessian, and convexity scope}}
-\author{LangevinLean mathematical exposition}
+\title{\texorpdfstring{Logistic regression: gradient, Hessian, and convexity scope}{Logistic regression: gradient, Hessian, and convexity scope}}
+\author{Omer Deniz Akyildiz\\[0.4em]\normalsize Prepared with AI assistance}
 \date{}
 \begin{document}\maketitle
-\noindent Source module: \texttt{KIPLMC/\allowbreak{}Logistic\allowbreak{}Example.\allowbreak{}lean}. The accompanying HTML pairs this mathematical exposition with the exact Lean statements and records the scope of the formalization.
+Draft mathematical exposition; these notes may contain mistakes.
 
 
-The Bayesian logistic example has a Gaussian location prior and finitely many Bernoulli observations. The formal model is \(U(\theta,x)=\frac{\tau}{2}\|x-\theta\|^2+\sum_j[\log(1+e^{\langle v_j,x\rangle})-y_j\langle v_j,x\rangle]\), where \(\tau=\sigma^{-2}\). Additive normalization constants do not affect any derivative. This chapter derives the actual joint gradient and its Fréchet derivative, proves the exact global smoothness constant printed in the paper, and proves convexity and the full-span strict-convexity statement. It also proves that no finite unregularized model in a nonzero latent dimension has a positive global strong-convexity constant. Consequently the experimental model illustrates the algorithms but does not automatically satisfy the hypotheses of the quantitative convergence theorems.
+The Bayesian logistic example has a Gaussian location prior and finitely many Bernoulli observations. The model is \(U(\theta,x)=\frac{\tau}{2}\|x-\theta\|^2+\sum_j[\log(1+e^{\langle v_j,x\rangle})-y_j\langle v_j,x\rangle]\), where \(\tau=\sigma^{-2}\). Additive normalization constants do not affect any derivative. This chapter derives the joint gradient and its Fréchet derivative, proves the exact global smoothness constant printed in the paper, and proves convexity and the full-span strict-convexity statement. It also proves that no finite unregularized model in a nonzero latent dimension has a positive global strong-convexity constant. Consequently the experimental model illustrates the algorithms but does not automatically satisfy the hypotheses of the quantitative convergence theorems.
+
+
+
+The full joint derivatives distinguish global smoothness, pointwise strict convexity, and uniform strong convexity. Common-translation directions prove that finite unregularized logistic models need additional regularization for the global quantitative convergence assumptions.
 
 
 \section{\texorpdfstring{Differentiate a single observation}{Differentiate a single observation}}
 
 
-For a single response, write \(\ell_y(u)=\log(1+e^u)-yu\). The logarithm is evaluated at a positive argument, so the ordinary chain rule gives \(\ell_y'(u)=e^u/(1+e^u)-y=s(u)-y\). Lean first identifies Mathlib's sigmoid with this exponential ratio, then composes the exponential and logarithm derivative rules. The curvature is \(q(u)=s(u)(1-s(u))\). Since \(0<s(u)<1\), it is positive. The identity \(q(u)=1/4-(s(u)-1/2)^2\) gives \(q(u)\le1/4\). The mean-value theorem therefore supplies a global \(1/4\)-Lipschitz theorem for the sigmoid. These arguments do not require the response to be binary; the source's Bernoulli choices are included.
+For a single response, write \(\ell_y(u)=\log(1+e^u)-yu\). The logarithm is evaluated at a positive argument, so the ordinary chain rule gives \(\ell_y'(u)=e^u/(1+e^u)-y=s(u)-y\). First, the argument identifies the sigmoid with this exponential ratio, then composes the exponential and logarithm derivative rules. The curvature is \(q(u)=s(u)(1-s(u))\). Since \(0<s(u)<1\), it is positive. The identity \(q(u)=1/4-(s(u)-1/2)^2\) gives \(q(u)\le1/4\). The mean-value theorem therefore supplies a global \(1/4\)-Lipschitz theorem for the sigmoid. These arguments do not require the response to be binary; the source's Bernoulli choices are included.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{logistic\allowbreak{}Loss}, \texttt{sigmoid\_\allowbreak{}exp\_\allowbreak{}ratio}, \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}logistic\allowbreak{}Loss}, \texttt{logistic\allowbreak{}Weight}, \texttt{logistic\allowbreak{}Weight\_\allowbreak{}pos}, \texttt{logistic\allowbreak{}Weight\_\allowbreak{}le\_\allowbreak{}quarter}, \texttt{sigmoid\_\allowbreak{}lipschitz}.\par}
+The response label enters the first derivative but cancels from the second derivative. Logistic curvature therefore depends only on the predictor. Its pointwise positivity and global upper bound distinguish strict convexity along observed directions from a uniform lower curvature bound.
+
 
 \section{\texorpdfstring{Derive the first and second variations from the model}{Derive the first and second variations from the model}}
 
 
-Take any affine joint line \((\theta,x)+t(u,w)\). The prior contributes \(\tau\langle x-\theta+t(w-u),w-u\rangle\) to the score. Observation \(j\) contributes \([s(\langle v_j,x+tw\rangle)-y_j]\langle v_j,w\rangle\). Differentiating this actual scalar function again gives \(\tau\|w-u\|^2+\sum_jq(\langle v_j,x+tw\rangle)\langle v_j,w\rangle^2\). The Lean proof constructs the derivative of each affine coordinate, applies the squared-norm rule and the single-observation rule, and adds the finitely many derivatives. The second proof differentiates the resulting score. Thus the displayed quadratic form is justified by calculus on the original potential.
+Take any affine joint line \((\theta,x)+t(u,w)\). The prior contributes \(\tau\langle x-\theta+t(w-u),w-u\rangle\) to the score. Observation \(j\) contributes \([s(\langle v_j,x+tw\rangle)-y_j]\langle v_j,w\rangle\). Differentiating this scalar function again gives \(\tau\|w-u\|^2+\sum_jq(\langle v_j,x+tw\rangle)\langle v_j,w\rangle^2\). The proof constructs the derivative of each affine coordinate, applies the squared-norm rule and the single-observation rule, and adds the finitely many derivatives. The second proof differentiates the resulting score. Thus the displayed quadratic form is justified by calculus on the original potential.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{potential}, \texttt{curvature}, \texttt{line\allowbreak{}Score}, \texttt{potential\_\allowbreak{}line\_\allowbreak{}derivative}, \texttt{line\allowbreak{}Score\_\allowbreak{}derivative}.\par}
+The common-translation direction \(u=w\) removes the Gaussian prior contribution entirely. Curvature in that direction must come from observations. The displayed second variation therefore reveals both the prior’s nullspace and the role of feature span in identifying the full joint state.
+
 
 \section{\texorpdfstring{Find the exact Hessian nullspace}{Find the exact Hessian nullspace}}
 
 
-Every term in the second variation is nonnegative when \(\tau\ge0\). If \(\tau>0\), a zero total forces \(w-u=0\) and \(\langle v_j,w\rangle=0\) for every feature. Conversely those equations make every term vanish. Lean isolates the nonnegative prior term, bounds each observation term by the whole sum, and uses strict positivity of every logistic weight to cancel it. If the features span the latent space, orthogonality to every feature extends to their linear span by submodule induction. Taking the inner product with \(w\) itself then gives \(w=0\), and hence \(u=0\). Every nonzero joint direction therefore has strictly positive second variation at each finite state.
+Every term in the second variation is nonnegative when \(\tau\ge0\). If \(\tau>0\), a zero total forces \(w-u=0\) and \(\langle v_j,w\rangle=0\) for every feature. Conversely those equations make every term vanish. The proof isolates the nonnegative prior term, bounds each observation term by the whole sum, and uses strict positivity of every logistic weight to cancel it. If the features span the latent space, orthogonality to every feature extends to their linear span by submodule induction. Taking the inner product with \(w\) itself then gives \(w=0\), and hence \(u=0\). Every nonzero joint direction therefore has strictly positive second variation at each finite state.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{curvature\_\allowbreak{}nonneg}, \texttt{curvature\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}iff}, \texttt{curvature\_\allowbreak{}pos\_\allowbreak{}of\_\allowbreak{}span}.\par}
+Because every finite predictor has a positive logistic weight, zero observation curvature means orthogonality to every feature. Full span eliminates that nullspace at each finite state. This is a pointwise positive-definiteness statement; it does not provide a positive lower eigenvalue uniformly over all states.
+
 
 \section{\texorpdfstring{Prove global convexity and full-\allowbreak{}span strict convexity}{Prove global convexity and full-span strict convexity}}
 
 
-To compare two joint states \(z,z'\), restrict the actual potential to \(F(t)=U(z+t(z'-z))\). The two derivative theorems identify \(F''\) with the nonnegative quadratic form. The real-variable second-derivative criterion proves convexity of \(F\). Applying its Jensen inequality at \(t=0,1\) yields the full joint convexity inequality. Under the span assumption and \(z\ne z'\), the direction is nonzero, so the second derivative is positive at every finite \(t\). The strict second-derivative criterion yields strict Jensen inequality. Lean explicitly rewrites \(z+b(z'-z)=az+bz'\) using \(a+b=1\), so the conclusion concerns the original joint potential on the whole space.
+To compare two joint states \(z,z'\), restrict the potential to \(F(t)=U(z+t(z'-z))\). The two derivative theorems identify \(F''\) with the nonnegative quadratic form. The real-variable second-derivative criterion proves convexity of \(F\). Applying its Jensen inequality at \(t=0,1\) yields the full joint convexity inequality. Under the span assumption and \(z\ne z'\), the direction is nonzero, so the second derivative is positive at every finite \(t\). The strict second-derivative criterion yields strict Jensen inequality. The argument explicitly rewrites \(z+b(z'-z)=az+bz'\) using \(a+b=1\), so the conclusion concerns the original joint potential on the whole space.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{potential\_\allowbreak{}convex}, \texttt{potential\_\allowbreak{}strict\allowbreak{}Convex\_\allowbreak{}of\_\allowbreak{}span}.\par}
-
-\section{\texorpdfstring{Use the Euclidean norm for the actual joint gradient}{Use the Euclidean norm for the actual joint gradient}}
+Convexity is proved on arbitrary line segments, so it is a global property of the joint potential. Strict positivity of the second derivative on each nonconstant segment yields strict convexity. The argument does not turn the varying second-derivative lower bound into a uniform constant.
 
 
-The source norm is the Euclidean product norm \(\|(\theta,x)\|^2=\|\theta\|^2+\|x\|^2\). Mathlib's ordinary product has a maximum norm, so the formalization uses \texttt{With\allowbreak{}Lp 2 (E \ensuremath{\times} E)} for these gradient claims. The coordinate equivalence is continuous and linear. Differentiating the prior and all finite observations proves Fréchet differentiability. The explicit gradient is \((-\tau(x-\theta),\;\tau(x-\theta)+\sum_j[s(\langle v_j,x\rangle)-y_j]v_j)\). To identify it with the actual Hilbert gradient, Lean compares the Fréchet derivative applied to an arbitrary direction with the already proved directional score, expands the product inner product, and uses uniqueness of derivatives. The resulting equality is with the library's \texttt{gradient}, not a separately named surrogate force.
+\section{\texorpdfstring{Use the Euclidean norm for the joint gradient}{Use the Euclidean norm for the joint gradient}}
+
+
+The source norm is the Euclidean product norm \(\|(\theta,x)\|^2=\|\theta\|^2+\|x\|^2\). the joint state is equipped with this Euclidean Hilbert norm for the gradient claims. The coordinate equivalence is continuous and linear. Differentiating the prior and all finite observations proves Fréchet differentiability. The explicit gradient is \((-\tau(x-\theta),\;\tau(x-\theta)+\sum_j[s(\langle v_j,x\rangle)-y_j]v_j)\). To identify it with the Hilbert gradient, The proof compares the Fréchet derivative applied to an arbitrary direction with the already proved directional score, expands the product inner product, and uses uniqueness of derivatives. The resulting equality is with the the gradient, not a separately named surrogate force.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{Joint}, \texttt{joint\allowbreak{}Potential}, \texttt{joint\allowbreak{}Score}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}differentiable}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}has\allowbreak{}Gradient\allowbreak{}At}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}gradient}.\par}
+The Euclidean joint norm is needed because the gradient is defined through its inner product with arbitrary joint directions. A maximum product norm would not give that Hilbert gradient interpretation. The explicit formula therefore uses the same geometry as the smoothness and Hessian statements.
+
 
 \section{\texorpdfstring{Recover the exact printed global smoothness constant}{Recover the exact printed global smoothness constant}}
 
 
-The prior block maps a joint difference \((a,b)\) to \((a-b,b-a)\). Its squared norm is \(2\|b-a\|^2\le4(\|a\|^2+\|b\|^2)\), hence its operator norm is at most two. For observation \(j\), the sigmoid Lipschitz bound and Cauchy–Schwarz give \(\|(s(\langle v_j,x\rangle)-s(\langle v_j,x'\rangle))v_j\|\le\frac14\|v_j\|^2\|x-x'\|\). The latent coordinate projection has norm at most one. Adding these bounds proves \(\|\nabla U(z)-\nabla U(z')\|\le(2\tau+\frac14\sum_j\|v_j\|^2)\|z-z'\|\). The Lean proof first certifies the squared-norm estimate, then bounds each summand, and finally decomposes the actual gradient difference into its prior and observation parts. With \(\tau=\sigma^{-2}\), this is exactly the source constant.
+The prior block maps a joint difference \((a,b)\) to \((a-b,b-a)\). Its squared norm is \(2\|b-a\|^2\le4(\|a\|^2+\|b\|^2)\), hence its operator norm is at most two. For observation \(j\), the sigmoid Lipschitz bound and Cauchy–Schwarz give \(\|(s(\langle v_j,x\rangle)-s(\langle v_j,x'\rangle))v_j\|\le\frac14\|v_j\|^2\|x-x'\|\). The latent coordinate projection has norm at most one. Adding these bounds proves \(\|\nabla U(z)-\nabla U(z')\|\le(2\tau+\frac14\sum_j\|v_j\|^2)\|z-z'\|\). The proof first certifies the squared-norm estimate, then bounds each summand, and finally decomposes the gradient difference into its prior and observation parts. With \(\tau=\sigma^{-2}\), this is exactly the source constant.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{prior\allowbreak{}Block\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{observation\allowbreak{}Score\_\allowbreak{}sub\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{joint\allowbreak{}Score\_\allowbreak{}sub\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}.\par}
-
-\section{\texorpdfstring{Identify the full block Hessian as a genuine Fréchet derivative}{Identify the full block Hessian as a genuine Fréchet derivative}}
+The prior couples parameter and latent directions through a block operator with norm two. Each observation contributes a rank-one latent operator with norm bounded by one quarter of its squared feature norm. Summing these operator bounds yields the printed global Lipschitz constant.
 
 
-The operator is \(\nabla^2U(\theta,x)=\tau\begin{pmatrix}I&-I\\-I&I\end{pmatrix}+\begin{pmatrix}0&0\\0&\sum_jq(\langle v_j,x\rangle)v_jv_j^{\mathsf T}\end{pmatrix}\). Each rank-one observation block sends a direction \((u,w)\) to \((0,q_j\langle v_j,w\rangle v_j)\). Lean constructs these maps as continuous linear maps, forms their finite sum, and transports the block operator to the Euclidean joint space. Differentiating both actual gradient coordinates with the Fréchet chain rule gives exactly this operator. Expanding its product inner product recovers the earlier curvature formula. This closes the connection between the matrix printed in the experiment and the derivative used by the formal calculus.
+\section{\texorpdfstring{Identify the full block Hessian as a Fréchet derivative}{Identify the full block Hessian as a Fréchet derivative}}
+
+
+The operator is \(\nabla^2U(\theta,x)=\tau\begin{pmatrix}I&-I\\-I&I\end{pmatrix}+\begin{pmatrix}0&0\\0&\sum_jq(\langle v_j,x\rangle)v_jv_j^{\mathsf T}\end{pmatrix}\). Each rank-one observation block sends a direction \((u,w)\) to \((0,q_j\langle v_j,w\rangle v_j)\). The argument constructs these maps as continuous linear maps, forms their finite sum, and transports the block operator to the Euclidean joint space. Differentiating both gradient coordinates with the Fréchet chain rule gives exactly this operator. Expanding its product inner product recovers the earlier curvature formula. This closes the connection between the matrix printed in the experiment and the derivative used by the formal calculus.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{raw\allowbreak{}Hessian}, \texttt{joint\allowbreak{}Hessian}, \texttt{joint\allowbreak{}Score\_\allowbreak{}has\allowbreak{}FDeriv\allowbreak{}At}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}fderiv\_\allowbreak{}gradient}, \texttt{joint\allowbreak{}Hessian\_\allowbreak{}quadratic}.\par}
+The block Hessian is obtained by differentiating the joint gradient. Its quadratic form recovers exactly the previously derived line second variation. This closes the consistency between the coordinate formula, directional calculus, and the operator used in theoretical assumptions.
+
 
 \section{\texorpdfstring{An explicit full-\allowbreak{}rank counterexample separates strict from strong convexity}{An explicit full-rank counterexample separates strict from strong convexity}}
 
 
-Already one scalar feature \(v_1=1\) spans the latent space. With response one and common location \(\theta=x=t\), the Gaussian prior vanishes and \(U(t,t)=\log(1+e^{-t})\). For \(t\ge0\), this lies between zero and \(\log2\). A positive strong-convexity constant \(m\) would force the midpoint inequality between \((0,0)\) and \((2t,2t)\) to contain the negative correction \(-mt^2\). Choosing \(t^2=(\log2+1)/m\) makes that right-hand side negative, contradicting nonnegativity. Lean proves the logarithm identity, both bounds, the exact Euclidean distance, and this contradiction. The full-span theorem applies to this example, so strict convexity is compatible with failure of every positive uniform lower curvature bound.
+Already one scalar feature \(v_1=1\) spans the latent space. With response one and common location \(\theta=x=t\), the Gaussian prior vanishes and \(U(t,t)=\log(1+e^{-t})\). For \(t\ge0\), this lies between zero and \(\log2\). A positive strong-convexity constant \(m\) would force the midpoint inequality between \((0,0)\) and \((2t,2t)\) to contain the negative correction \(-mt^2\). Choosing \(t^2=(\log2+1)/m\) makes that right-hand side negative, contradicting nonnegativity. One proves the logarithm identity, both bounds, the exact Euclidean distance, and this contradiction. The full-span theorem applies to this example, so strict convexity is compatible with failure of every positive uniform lower curvature bound.
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{logistic\allowbreak{}Loss\_\allowbreak{}one\_\allowbreak{}eq}, \texttt{logistic\allowbreak{}Loss\_\allowbreak{}one\_\allowbreak{}bounds}, \texttt{scalar\_\allowbreak{}model\_\allowbreak{}not\_\allowbreak{}strong\allowbreak{}Convex}, \texttt{scalar\_\allowbreak{}features\_\allowbreak{}span}.\par}
+Along common positive translation in the one-feature example, the potential remains bounded while a strongly convex function would grow quadratically away from its midpoint. The contradiction is explicit despite full feature rank. Thus strict convexity alone cannot justify the sampler’s strong-convexity convergence theorem.
+
 
 \section{\texorpdfstring{Prove the strong-\allowbreak{}convexity caveat for every finite unregularized model}{Prove the strong-convexity caveat for every finite unregularized model}}
 
@@ -98,6 +109,7 @@ The obstruction is general. For every real response and predictor, \(\ell_y(u)\l
 
 
 
-{\raggedright\noindent Lean declarations: \texttt{logistic\allowbreak{}Loss\_\allowbreak{}le\_\allowbreak{}linear}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}diagonal\_\allowbreak{}growth}, \texttt{joint\allowbreak{}Potential\_\allowbreak{}not\_\allowbreak{}strong\allowbreak{}Convex}.\par}
+For any finite observation set, common translation eliminates the prior and leaves at most linear growth of the observation losses. Uniform strong convexity would require quadratic growth in that same nonzero direction. Additional regularization is therefore necessary to meet the global quantitative hypotheses in these unregularized examples.
+
 
 \end{document}
