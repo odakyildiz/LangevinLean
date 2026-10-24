@@ -1,6 +1,6 @@
 """Authored standalone theorem statements and logical proof roadmaps."""
 from pathlib import Path
-from references import reference_notice, reference_card
+from references import reference_notice, DEVELOPMENTS, PAPERS
 from build_site import (E, LIBRARIES, relative, module_page, anchor, shell,
                         toolbar, commands, proof_diagram, declaration_header, code)
 
@@ -214,25 +214,52 @@ def home_document(lib, config, notes, sources, parsed, math):
 
 def project_document(notes):
     page='index.html'
-    body='<header class="hero project-hero"><div class="eyebrow">LangevinLean · Mathematics and formal verification</div><h1>Convergence proofs for Langevin algorithms</h1><p class="subtitle">Theorems, detailed mathematical arguments, and the Lean code that verifies them.</p><p>Explore Wasserstein convergence under strong convexity, entropy decay under a log-Sobolev inequality, and proximal particle methods. Each result leads through a proof roadmap to the supporting definitions and lemmas.</p></header><section class="cards" aria-label="Convergence theorems">'
-    cards=[('UnadjustedLangevin','Wasserstein distance','Geometric contraction and discretization bias for Gaussian ULA, with the stationary reference constructed from the potential assumptions.'),
-           ('UnadjustedLangevin/LSI','Relative entropy','The entropy interpolation argument under a log-Sobolev inequality: drift-error control, the one-step estimate, and its iteration.'),
-           ('IPLA','Interacting particles','A finite-time parameter error bound, using the lifted ULA system and concentration of the parameter marginal.'),
-           ('ProximalLangevin','Nonsmooth models','Proximal minimizers, Moreau envelopes, corrected particle bounds, and mean-field limits.'),
-           ('KineticLangevin','Kinetic sampling','Exponential integrators, transformed-energy contraction, Gaussian innovations, and a source-by-source coverage audit.'),
-           ('KIPLMC','Kinetic interacting particles','Shared exponential integration for KIPLMC1, OBABO for KIPLMC2, scaled geometry, chain laws, and parameter concentration.')]
-    for key,label,description in cards:
+    body=('<header class="hero project-hero">'
+          '<h1>Langevin convergence in Lean</h1>'
+          '<p class="subtitle">Formalized convergence bounds for Langevin sampling and particle methods, with mathematical proofs alongside Lean.</p></header>'
+          '<section class="cards" id="developments" aria-label="Formalized developments">')
+    cards=[('UnadjustedLangevin','Wasserstein distance',
+            'Wasserstein error bounds for Gaussian ULA in both stable step-size regimes.',
+            'Published bounds; Gibbs stationarity proved.',
+            'Dalalyan and Karagulyan (2019)'),
+           ('UnadjustedLangevin/LSI','Relative entropy',
+            'Relative-entropy convergence of Gaussian ULA from a log-Sobolev inequality and finite initial entropy.',
+            'Includes finite relative entropy at every iterate.',
+            'Vempala and Wibisono (2019)'),
+           ('IPLA','Interacting particles',
+            'Finite-time parameter error from lifted ULA convergence and marginal concentration.',
+            'The extension to unequal parameter and latent dimensions is unpublished.',
+            'Glyn-Davies et al. (2025)'),
+           ('ProximalLangevin','Nonsmooth models',
+            'Corrected MYIPLA, PIPGLA and MYPGD bounds, with proximal-map calculus and mean-field limits.',
+            'Partial paper coverage; corrected bounds and proofs are unpublished.',
+            'Cordero Encinar et al. (2025)'),
+           ('KineticLangevin','Kinetic sampling',
+            'Wasserstein convergence for the kinetic diffusion and KLMC/KLMC2 samplers, with Gibbs stationarity and accuracy guarantees.',
+            'Includes unpublished corrections to the source proofs.',
+            'Dalalyan and Riou-Durand (2020)'),
+           ('KIPLMC','Kinetic interacting particles',
+            'Parameter error for the kinetic particle diffusion, KIPLMC1 and KIPLMC2, with sharp marginal concentration.',
+            'Includes Gaussian sampler bounds and explicit accuracy guarantees.',
+            'Valsecchi Oliva and Akyildiz (2026)')]
+    for number,(key,label,description,scope,source_label) in enumerate(cards,1):
         config=CONFIG[key]
-        body+=(f'<article class="landing-card"><div class="eyebrow">{label}</div><h2>{config["title"]}</h2><p>{description}</p>'
-               + reference_card(key) +
-               f'<a href="{key}/exposition/index.html">Theorem and proof →</a>')
-        if key=='UnadjustedLangevin/LSI':body+='<p class="small card-scope">The actual Gaussian ULA theorem includes finite KL at every iterate.</p>'
-        if key=='IPLA':body+='<p class="small card-scope">Unpublished proof: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a>.</p>'
-        body+='</article>'
-    body+='</section><section class="section reading-guide"><div><h2>Read the proof at two levels</h2><p>Start with the mathematical theorem and its assumptions. The roadmap leads to each supporting result. Mathematical derivations sit beside Lean; named proof constructions link directly to the source lines they explain.</p><p>Use the reading selector to view mathematics alone, Lean alone, or both. LaTeX proof documents are available from every module page.</p></div><div><h2>Check it yourself</h2><p>The repository contains the source, pinned dependencies, and local verification commands. After cloning, run:</p>'
+        paper=PAPERS[DEVELOPMENTS[key]['papers'][0]]
+        body+=(f'<article class="landing-card"><span class="entry-index" aria-hidden="true">{number:02}</span>'
+               f'<div class="entry-main"><div class="eyebrow">{E(label)}</div>'
+               f'<h2><a href="{key}/exposition/index.html">{E(config["title"])}</a></h2>'
+               f'<p>{E(description)}</p></div><div class="entry-meta">'
+               f'<p class="entry-source">Source: <a href="{E(paper["url"])}">{E(source_label)}</a>.</p>'
+               f'<p class="card-scope">{E(scope)}</p>')
+        if key=='IPLA':
+            body+='<p class="entry-extension">Entropy extension: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a> (unpublished).</p>'
+        body+='</div></article>'
+    body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
+           '<div class="reading-note"><h2>Read the proofs</h2><p>Each development gives assumptions, theorem statements and a proof roadmap. Supporting pages pair mathematical arguments with Lean and offer LaTeX downloads.</p></div>'
+           '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
-    body+='<p class="small"><a href="README.md">Installation, compilation, and reproducibility</a></p></div></section>'
-    return shell(page,'Convergence proofs for Langevin algorithms',body)
+    body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'
+    return shell(page,'Langevin convergence in Lean',body)
 
 
 from entropy_content import ENTROPY_CONFIG

@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`81505d9d4accb8140e0872cc51d441c7e6eddd65`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`59cdcb983ca758cd19c25cfd8940c96d6ff53c4e`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -36,3 +36,10 @@ On 24 October 2026, the publication was synchronized with the restored `main`
 snapshot. Its site and source files are unchanged from the previously verified
 pre-AverageLMC publication; AverageLMC remains on `investigations`. The
 main-only `papers/` directory remains excluded.
+
+On 24 October 2026, the pages were redesigned to match the Latin Modern
+typography and neutral/red palette of odakyildiz.com. The project index was
+shortened while retaining source attribution and scope qualifications. Current
+proof pages and standalone archives share the design, with fonts bundled locally.
+Documentation integrity, responsive layouts, light/dark themes, reading controls,
+and source search were checked locally. This update changes no Lean proofs.
