@@ -70,6 +70,7 @@ let browser;
 let outputDir;
 let origin;
 let server;
+let reportPlans;
 
 function check(condition, message, details) {
   if (!condition) {
@@ -116,6 +117,7 @@ async function serveLocal(route, url) {
   const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
     '.tex': 'application/x-tex; charset=utf-8', '.pdf': 'application/pdf',
+    '.bib': 'application/x-bibtex; charset=utf-8',
     '.lean': 'text/plain; charset=utf-8',
     '.md': 'text/plain; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
     '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf' };
@@ -176,6 +178,9 @@ async function contextFor(viewport, offline = false) {
   const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height },
     deviceScaleFactor: 1, acceptDownloads: true, reducedMotion: 'reduce', offline,
     serviceWorkers: 'block' });
+  if (!offline) {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin });
+  }
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.origin === origin) return route.continue();
@@ -354,6 +359,84 @@ async function proofDownloads(page, item, viewport) {
   }
 }
 
+function checkBibtex(value, expectedTitle, description) {
+  check(/^\s*author\s*=\s*\{\{LangevinLean Project\}\}\s*,/mi.test(value),
+    description + ' uses the exact corporate author LangevinLean Project');
+  const field = value.match(/^\s*title\s*=\s*\{\{([\s\S]*?)\}\}\s*,/mi)?.[1];
+  const title = field?.replace(/\\textbackslash\{\}/g, '\\')
+    .replace(/\\([{}&%#_])/g, '$1');
+  check(title === expectedTitle, description + ' names the expected report', {
+    expected: expectedTitle, title,
+  });
+}
+
+async function bibliographyCitation(page, item, viewport) {
+  const panel = page.locator('details.citation-panel');
+  if (!check(await panel.count() === 1, 'The page offers exactly one BibTeX citation panel')) return;
+  const project = item.kind === 'project';
+  const plan = project ? null : reportPlans[item.library.key];
+  const expectedTitle = project ? 'LangevinLean: Formalized Langevin Algorithms' : plan.title;
+  const expectedPath = project ? 'docs/bib/project.bib' : 'docs/bib/' + item.library.key + '.bib';
+  const expectedBytes = await fsp.readFile(path.join(ROOT, expectedPath));
+  checkBibtex(expectedBytes.toString('utf8'), expectedTitle, 'The repository BibTeX entry');
+  const scroll = await page.evaluate(() => [window.scrollX, window.scrollY]);
+  try {
+    if (!await panel.evaluate(element => element.open)) await panel.locator('summary').click();
+    check(await panel.evaluate(element => element.open), 'The citation panel expands');
+    const code = panel.locator('pre code');
+    check(await code.count() === 1, 'The expanded panel contains one BibTeX entry');
+    const displayed = await code.textContent();
+    check(displayed === expectedBytes.toString('utf8'),
+      'The displayed citation matches its repository BibTeX entry exactly');
+    await page.evaluate(() => navigator.clipboard.writeText('browser-qa-before-copy'));
+    await panel.getByRole('button', { name: 'Copy BibTeX citation', exact: true }).click();
+    await page.waitForFunction(() =>
+      document.querySelector('.citation-panel button[data-copy]')?.textContent.trim() === 'Copied');
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    check(copied === displayed, 'Copy BibTeX places the complete displayed entry on the clipboard');
+    checkBibtex(copied, expectedTitle, 'The copied BibTeX entry');
+
+    const link = panel.locator('a[download][href$=".bib"]');
+    if (check(await link.count() === 1, 'The citation panel offers one BibTeX download')) {
+      const href = await link.getAttribute('href');
+      const url = new URL(href, page.url());
+      check(decodeURIComponent(url.pathname) === '/' + expectedPath,
+        'The BibTeX download points to the expected report entry', href);
+      expectedDownloadURLs.add(url.href);
+      const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
+      check(download.suggestedFilename().endsWith('.bib'), 'BibTeX download has a .bib filename');
+      const destination = path.join(outputDir, 'downloads',
+        viewport.label + '-' + item.label + '-citation.bib');
+      await download.saveAs(destination);
+      check(await download.failure() === null, 'BibTeX download succeeds');
+      const bytes = await fsp.readFile(destination);
+      check(bytes.equals(expectedBytes), 'Downloaded BibTeX matches repository bytes exactly');
+      checkBibtex(bytes.toString('utf8'), expectedTitle, 'The downloaded BibTeX entry');
+      downloads.push(destination);
+    }
+
+    if (item.kind === 'module') {
+      const source = item.file.replace(/^docs\/modules\//, '').replace(/\.html$/, '.lean');
+      const location = plan.module_details[source];
+      if (location) {
+        const section = panel.locator('.small a[href*="#nameddest="]');
+        if (check(await section.count() === 1, 'The module citation links its precise report section')) {
+          const url = new URL(await section.getAttribute('href'), page.url());
+          check(decodeURIComponent(url.pathname) === '/' + plan.pdf &&
+            url.hash === '#nameddest=' + location.anchor,
+          'The module citation targets its owning report and exact PDF destination', url.href);
+          check((await section.textContent()).includes('Section ' + location.section),
+            'The precise report citation displays its section number');
+        }
+      }
+    }
+    await noPageOverflow(page);
+  } finally {
+    await panel.evaluate(element => { element.open = false; });
+    await page.evaluate(([x, y]) => window.scrollTo(x, y), scroll);
+  }
+}
+
 async function screenshot(page, item, viewport) {
   const target = item.kind === 'home' ? '#main-results' : '.proof-step';
   await page.locator(target).first().evaluate(element => window.scrollTo(0,
@@ -373,8 +456,9 @@ async function legacyRedirect(page, library) {
     'Unknown old anchor routes to its preserved legacy document with the anchor intact');
 }
 
-async function projectLinks(page) {
+async function projectLinks(page, viewport) {
   await goto(page, origin + '/index.html');
+  await bibliographyCitation(page, { kind: 'project', label: 'project-home' }, viewport);
   const destination = path.join(outputDir, 'project-home-' + page.viewportSize().width + '.png');
   await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
   screenshots.push(destination);
@@ -398,12 +482,14 @@ async function projectLinks(page) {
 }
 
 async function main() {
-  const required = ['index.html', 'docs/assets/site.css', 'docs/assets/site.js',
+  const required = ['index.html', 'docs/assets/site.css', 'docs/assets/site.js', 'docs/full_proofs.json',
+    'docs/bib/project.bib', ...LIBRARIES.map(library => 'docs/bib/' + library.key + '.bib'),
     ...CASES.map(item => item.file), ...LIBRARIES.map(library => library.legacy).filter(Boolean)];
   for (const file of required) {
     if (!fs.existsSync(path.join(ROOT, file))) throw new Error('Missing generated page/resource ' + file +
       '. Run python3 docs/build_site.py and the legacy builders before browser QA.');
   }
+  reportPlans = JSON.parse(await fsp.readFile(path.join(ROOT, 'docs/full_proofs.json'), 'utf8'));
   outputDir = process.env.BROWSER_QA_OUTPUT_DIR
     ? path.resolve(process.env.BROWSER_QA_OUTPUT_DIR)
     : await fsp.mkdtemp(path.join(os.tmpdir(), 'langevin-browser-'));
@@ -416,7 +502,7 @@ async function main() {
     const context = await contextFor(viewport);
     const page = await context.newPage();
     watchPage(page);
-    await runCase(viewport.label + ':project-home-navigation', () => projectLinks(page));
+    await runCase(viewport.label + ':project-home-navigation', () => projectLinks(page, viewport));
     for (const item of CASES) {
       await runCase(viewport.label + ':' + item.label, async () => {
         await goto(page, origin + '/' + item.file);
@@ -428,6 +514,7 @@ async function main() {
           await searchModules(page, item);
           await diagramNavigation(page, item);
         }
+        await bibliographyCitation(page, item, viewport);
         await screenshot(page, item, viewport);
         await proofDownloads(page, item, viewport);
       });
@@ -482,7 +569,8 @@ async function main() {
     }
     console.log(JSON.stringify({ result: report.browserQA, checkedCases: checked.length,
       screenshots: screenshots.length, latexDownloads: downloads.filter(file => file.endsWith('.tex')).length,
-      pdfDownloads: downloads.filter(file => file.endsWith('.pdf')).length, failures: failures.length }, null, 2));
+      pdfDownloads: downloads.filter(file => file.endsWith('.pdf')).length,
+      bibtexDownloads: downloads.filter(file => file.endsWith('.bib')).length, failures: failures.length }, null, 2));
     process.exitCode = failures.length ? 1 : 0;
   }
 })();

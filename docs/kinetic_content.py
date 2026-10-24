@@ -44,8 +44,8 @@ The candidate equilibrium has density</p>
 therefore leaves precisely the desired target. The extra variable changes how
 the sampler moves without changing the position distribution at equilibrium.</p>
 <p>Strong convexity supplies a quadratic lower bound on \(f\), so the partition
-function is finite and all polynomial position moments exist. A proof of
-stationarity still needs an solution process and a valid invariance
+function is finite and the required position moments exist (see <cite data-report-ref="UnadjustedLangevin/Gibbs.lean" data-report-declaration="gibbsPartition_ne_top"></cite>, <cite data-report-ref="UnadjustedLangevin/Gibbs.lean" data-report-declaration="memLp_id_gibbsMeasure"></cite>). A proof of
+stationarity still needs a solution process and a valid invariance
 argument; checking that a formal generator integrates to zero is one component
 of that argument.</p><p>The kinetic extension is useful because position paths are differentiable in time even though velocity contains Brownian forcing. This extra time integration reduces the local positional discretization defect. At equilibrium, the Gaussian velocity radius is exactly \(\sqrt p\) in second mean, which determines the dimension factor in the first-order error theorem.</p>'''),
 
@@ -71,7 +71,7 @@ the same Brownian path. The random forcing cancels in their difference. Put
 H_t=\int_0^1\nabla^2f(L'_t+s(L_t-L'_t))\,ds.\]
 <p>The averaged Hessian is symmetric and obeys \(mI\preceq H_t\preceq MI\).
 The problem has become a deterministic differential inequality along each pair
-of paths. No independent-noise variance is added to this comparison.</p>
+of paths. Existence and uniqueness of those common-input paths follow by applying the earlier additive-input solution theorems to the globally Lipschitz kinetic phase drift (see <cite data-report-ref="UnadjustedLangevin/LangevinIntegral.lean" data-report-declaration="exists_langevin_integral"></cite>, <cite data-report-ref="UnadjustedLangevin/LangevinUniqueness.lean" data-report-declaration="langevin_integral_unique"></cite>). No independent-noise variance is added to this comparison.</p>
 <p>The usual Euclidean norm of \((r,q)\) need not decrease monotonically:
 energy can move between position and velocity. The paper instead chooses a
 coordinate system that follows this transfer. This is the main reason the
@@ -97,9 +97,7 @@ If the initial velocities agree, then
 \[\|q_t\|\le
 \frac{\sqrt{2((\gamma-v)^2+v^2)}}{\gamma-2v}
 e^{c(v)t}\|q_0\|.\]
-<p>This is the explicit form of Proposition 1 and Theorem 1. Squaring,
-integrating, and taking the infimum over initial position couplings turns it
-into a Wasserstein estimate.</p><p>The inverse position identity follows by adding the two transformed coordinates. Its norm bound is \(\|a_t+b_t\|^2\le2(\|a_t\|^2+\|b_t\|^2)\), obtained from the triangle inequality and \(2rs\le r^2+s^2\). This is the sole projection loss. Propagating the transformed norm through the entire evolution and projecting only once prevents that constant from being charged repeatedly.</p>'''),
+<p>This is the explicit form of Proposition 1 and Theorem 1. Squaring and integrating first bounds the output cost for each initial coupling. The earlier coupling-cost bound and all-couplings infimum theorem then turn these bounds into a Wasserstein estimate (see <cite data-report-ref="UnadjustedLangevin/Coupling.lean" data-report-declaration="wasserstein2_le_Lp_cost_real"></cite>, <cite data-report-ref="UnadjustedLangevin/InitialCoupling.lean" data-report-declaration="wasserstein2_affine_bound_real_of_finite_couplings"></cite>).</p><p>The inverse position identity follows by adding the two transformed coordinates. Its norm bound is \(\|a_t+b_t\|^2\le2(\|a_t\|^2+\|b_t\|^2)\), obtained from the triangle inequality and \(2rs\le r^2+s^2\). This is the sole projection loss. Propagating the transformed norm through the entire evolution and projecting only once prevents that constant from being charged repeatedly.</p>'''),
 
 part('friction', 'How to read the friction regimes', r'''<p>At \(v=0\) the transformed energy is particularly simple:
 \(\|r+\gamma q\|^2+\|r\|^2\). If \(\gamma^2\ge m+M\), then
@@ -196,7 +194,7 @@ q=1-\frac{3mh}{4\gamma},\quad b=\frac34Mh^2\sqrt p.\]
 optimal initial coupling; approximate couplings and a limiting infimum work as
 well. The position projection costs \(\sqrt2/\gamma\), yielding the displayed
 KLMC theorem. The recurrence itself is elementary. The substantive stochastic
-claim is that the chain admits the coupling from which it was derived.</p><p>The geometric sum is finite for every iteration count: \(\sum_{j=0}^{n-1}q^j=(1-q^n)/(1-q)\). Bounding it by \((1-q)^{-1}\) separates transient and persistent errors. Because the local forcing is quadratic and the contraction gap is linear in \(h\), the persistent position floor is linear in the step. The initial-error coefficient remains outside this sum.</p>'''),
+claim is that the chain admits the coupling from which it was derived. Equality of the explicit fresh-noise recursion and its iterated transition laws uses the earlier Markov-law identification (see <cite data-report-ref="UnadjustedLangevin/MarkovLaw.lean" data-report-declaration="noiseDrivenChain_law_eq_markovLaws"></cite>).</p><p>The geometric sum is finite for every iteration count: \(\sum_{j=0}^{n-1}q^j=(1-q^n)/(1-q)\). Bounding it by \((1-q)^{-1}\) separates transient and persistent errors. Because the local forcing is quadratic and the contraction gap is linear in \(h\), the persistent position floor is linear in the step. The initial-error coefficient remains outside this sum.</p>'''),
 
 part('second-order-method', 'The Hessian-corrected method follows the changing force', r'''<p>If the Hessian is \(M_2\)-Lipschitz in operator norm, a first-order
 Taylor expansion of the gradient leaves a quadratic position remainder:</p>
@@ -230,7 +228,7 @@ averaging to the existing \(L^2\) time integral. The Taylor forcing
 is consequently bounded by \(M_2s^2\sqrt{p^2+2p}/2\).</p>
 <p>Its damped integral gives the cubic velocity defect. A further force-memory
 term uses the stationary score bound
-\(\mathbb E_\pi\|\nabla f\|^2\le Mp\). Integrating the velocity error
+\(\mathbb E_\pi\|\nabla f\|^2\le Mp\) from the earlier Gibbs score theorem (see <cite data-report-ref="UnadjustedLangevin/GibbsScore.lean" data-report-declaration="integral_norm_sq_gradient_gibbs_le_of_strongConvex"></cite>). Integrating the velocity error
 once more gives the quartic position defect. Proposition 2 is thus for the defined four-kernel step:</p>
 \[\|P^{-1}(V_h-\hat V_h,L_h-\hat L_h)\|_{L^2}
 \le\frac{h^3}{4}\bigl(M_2\sqrt{p^2+2p}+M\sqrt{Mp}\bigr),
@@ -463,7 +461,7 @@ step \(\widetilde\eta=\eta/\sqrt N\).</p><p>Position is fixed by the velocity-on
 part('lifted-geometry', 'Averaging preserves curvature after scaling the latent blocks', r'''<p>The gradients of the averaged potential are</p>
 \[\nabla_\theta\bar U_N=\frac1N\sum_i\nabla_\theta U(\theta,\sqrt Nz_i),
 \qquad\nabla_{z_i}\bar U_N=\frac1{\sqrt N}\nabla_xU(\theta,\sqrt Nz_i).\]
-<p>Apply joint strong convexity to each pair
+<p>Apply the lifted strong-convexity theorem from the earlier particle geometry report (see <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="potential_strongConvex"></cite>). Equivalently, apply joint strong convexity to each pair
 \((\theta,\sqrt Nz_i),(\theta',\sqrt Nz'_i)\), divide by \(N\), and sum.
 The repeated parameter term and the scaled latent terms combine exactly:</p>
 \[\langle Z-Z',\nabla\bar U_N(Z)-\nabla\bar U_N(Z')\rangle
@@ -471,7 +469,7 @@ The repeated parameter term and the scaled latent terms combine exactly:</p>
 <p>For smoothness, Jensen bounds the squared norm of the averaged parameter
 gradient by the average of squared norms. Adding the latent-gradient squares
 then permits one joint \(L\)-Lipschitz estimate per particle, giving
-\(\|\nabla\bar U_N(Z)-\nabla\bar U_N(Z')\|\le L\|Z-Z'\|\).</p>
+\(\|\nabla\bar U_N(Z)-\nabla\bar U_N(Z')\|\le L\|Z-Z'\|\). This is the earlier lifted-gradient Lipschitz theorem divided by \(N\) (see <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="potential_gradient_lipschitz"></cite>).</p>
 <p>Thus the standard potential \(f_N=N\bar U_N\) has constants
 \(m_N=N\mu\), \(M_N=NL\). Their ratio is \(L/\mu\), independent of
 \(N\). This exact matching is what makes the KIPLMC1 error bound scale well
@@ -482,7 +480,7 @@ part('powered-marginal', 'Integrating out particles raises the likelihood to the
 \exp\left[-\sum_iU(\theta,\sqrt Nz_i)-\frac12\|v\|^2\right]dz\,dv.\]
 <p>Integrating the Gaussian velocity gives a constant. For each latent block,
 substitute \(x_i=\sqrt Nz_i\). Its Jacobian is independent of \(\theta\),
-so it is absorbed in normalization. The remaining product separates:</p>
+so it is absorbed in normalization. The earlier exact parameter-marginal theorem identifies the normalized pushforward after the same coordinate change (see <cite data-report-ref="IPLA/MarginalConcentration.lean" data-report-declaration="gibbsTarget_parameter_marginal"></cite>). The remaining product separates:</p>
 \[\pi_\Theta(\theta)\propto
 \prod_{i=1}^N\int e^{-U(\theta,x_i)}dx_i
 =p_\theta(y)^N=e^{-N\kappa(\theta)},\quad
@@ -491,21 +489,11 @@ so it is absorbed in normalization. The remaining product separates:</p>
 rather than changing its maximizer. This is the central statistical mechanism.
 It relies on the parameter noise being present at the prescribed scale; a
 noise-free parameter gradient flow has a different invariant structure.</p>
-<p>The density computation identifies the candidate marginal. A complete
-continuous-time theorem additionally proves normalization, moments, and
-invariance of the kinetic solution.</p><p>The latent variables become independent under the conditional Gibbs density for a fixed parameter. Fubini multiplies their identical integrals into \(\ell(\theta)^N\). Dividing by the finite positive full partition function gives the powered marginal, so the concentration argument applies to a normalized probability measure.</p>'''),
+<p>The density computation identifies the candidate marginal. Normalization and finite second moments follow from the earlier lifted-target construction (see <cite data-report-ref="IPLA/Foundations.lean" data-report-declaration="gibbsTarget_isProbability"></cite>, <cite data-report-ref="IPLA/Foundations.lean" data-report-declaration="gibbsTarget_memLp"></cite>). Invariance is a separate dynamical assertion, supplied by the kinetic phase-stationarity theorem after the clock change (see <cite data-report-ref="KineticLangevin/ContinuousGibbs.lean" data-report-declaration="phaseFlow_gibbs_stationary"></cite>).</p><p>The latent variables become independent under the conditional Gibbs density for a fixed parameter. Fubini multiplies their identical integrals into \(\ell(\theta)^N\). Dividing by the finite positive full partition function gives the powered marginal, so the concentration argument applies to a normalized probability measure.</p>'''),
 
 part('concentration', 'Convert marginal strong convexity into a sharp equilibrium radius', r'''<p>Strong Prékopa–Leindler preserves the parameter curvature when the latent
-variable is integrated out: \(\kappa\) is \(\mu\)-strongly convex. Thus
-\(\theta_*\), its minimizer, is unique, and the potential of
-\(\pi_\Theta\) has curvature \(N\mu\).</p>
-<p>A useful sharp moment argument integrates the divergence of
-\((\theta-\theta_*)e^{-N\kappa(\theta)}\). After justifying the boundary
-limit with the Gaussian tails, it gives</p>
-\[\mathbb E_{\pi_\Theta}
-\langle\theta-\theta_*,N\nabla\kappa(\theta)\rangle=d_\theta.\]
-<p>Since \(\nabla\kappa(\theta_*)=0\), strong monotonicity bounds the left
-side below by \(N\mu\mathbb E\|\theta-\theta_*\|^2\). Hence</p>
+variable is integrated out: \(\kappa\) is \(\mu\)-strongly convex (see <cite data-report-ref="IPLA/StrongLogConcavity.lean" data-report-declaration="marginalPotential_strongConvex"></cite>). Thus its minimizer \(\theta_*\) is unique (see <cite data-report-ref="IPLA/StrongLogConcavity.lean" data-report-declaration="existsUnique_marginalMaximizer"></cite>), and the potential of \(\pi_\Theta\) has curvature \(N\mu\).</p>
+<p>The sharp moment theorem in the earlier proximal report compares Gibbs partition integrals under dilation toward the minimizer (see <cite data-report-ref="ProximalLangevin/SharpConcentration.lean" data-report-declaration="sharp_integral_sq_dist_gibbs_le"></cite>). It requires continuity and strong convexity of the marginal potential, without a differentiability assumption on that potential. Applied to \(N\kappa\), and then to the exact powered particle marginal (see <cite data-report-ref="ProximalLangevin/SharpIPLA.lean" data-report-declaration="sharp_marginalTarget_secondMoment_le"></cite>), it gives</p>
 \[W_2(\pi_\Theta,\delta_{\theta_*})
 =\bigl(\mathbb E_{\pi_\Theta}\|\theta-\theta_*\|^2\bigr)^{1/2}
 \le\sqrt{\frac{d_\theta}{N\mu}}.\]
@@ -525,12 +513,12 @@ statistical radius. Increasing \(n\) reduces the transient sampling error.
 Decreasing the step reduces discretization bias. Increasing \(N\) reduces
 the concentration term. These operations affect different pieces of the bound.</p>
 <p>The map from full rescaled position, or full phase space, to its parameter
-block is 1-Lipschitz. Applying the same projection to any coupling cannot
+block is 1-Lipschitz. The earlier particle-geometry result gives operator norm at most one for this projection (see <cite data-report-ref="IPLA/Geometry.lean" data-report-declaration="norm_parameterCLM_le_one"></cite>). Applying it to any coupling cannot
 increase its quadratic transport cost. Therefore a bound on the ordinary
 kinetic sampler immediately controls the parameter sampling term once the
-algorithm-law correspondence has been proved.</p><p>For any coupling of the numerical position and an equilibrium position, project both to parameters and use Minkowski’s inequality around the maximizer. The projected discrepancy is bounded by the full scaled-state discrepancy because the projection is nonexpansive. Infimizing the latter cost yields the sampling term plus the equilibrium parameter radius.</p>'''),
+algorithm-law correspondence has been proved.</p><p>The earlier projected-RMS transport theorem formalizes the next step (see <cite data-report-ref="UnadjustedLangevin/Projection.lean" data-report-declaration="projectedRMSReal_le_wasserstein2Real_add"></cite>): for any coupling of the numerical position and an equilibrium position, project both to parameters and use Minkowski’s inequality around the maximizer. The projected discrepancy is bounded by the full scaled-state discrepancy because the projection is nonexpansive. Infimizing the latter cost yields the sampling term plus the equilibrium parameter radius.</p>'''),
 
-part('first-integrator', 'KIPLMC1 is the same exponential step in particle coordinates', r'''<p>Reuse \(\psi_0,\psi_1,\psi_2\) from the kinetic integrator. With fresh
+part('first-integrator', 'KIPLMC1 is the same exponential step in particle coordinates', r'''<p>Reuse \(\psi_0,\psi_1,\psi_2\) and the frozen-force exponential update from the earlier kinetic report (see <cite data-report-ref="KineticLangevin/Integrator.lean" data-report-declaration="exponentialStep"></cite>). With fresh
 correlated Gaussian pairs of covariance \(C\), KIPLMC1 updates</p>
 \[\theta^+=\theta+\psi_1(\eta)V^\theta-\psi_2(\eta)F^\theta
 +\sqrt{2\gamma/N}\,\varepsilon^{0\prime},\]
@@ -549,7 +537,7 @@ ordinary exponential step with \(\widetilde\gamma=\sqrt N\gamma\) and
 \(N^{-1/2},N^{-1},N^{-3/2}\). Matching these laws, in addition to matching
 the deterministic terms, permits reuse of the same kinetic convergence proof.</p><p>The parameter force contains a particle mean because the common parameter occurs in every potential summand. A latent force belongs to only one summand. Undoing its spatial scaling cancels the averaging factor, explaining why the physical latent update uses its individual gradient and ordinary thermal amplitude.</p>'''),
 
-part('first-bound', 'The N factors cancel in the exponential-integrator bound', r'''<p>Apply the kinetic KLMC theorem with
+part('first-bound', 'The N factors cancel in the exponential-integrator bound', r'''<p>Apply the canonical KLMC sampling theorem from the earlier kinetic report (see <cite data-report-ref="KineticLangevin/GenericCanonicalKLMC.lean" data-report-declaration="klmc_wasserstein_bound"></cite>) with
 \(m_N=N\mu\), \(M_N=NL\), \(h_N=\eta/\sqrt N\), and
 \(\gamma_N=\sqrt N\gamma\). Then</p>
 \[\frac{m_Nh_N}{\gamma_N}=\frac{\mu\eta}{\gamma},\qquad
@@ -557,7 +545,7 @@ part('first-bound', 'The N factors cancel in the exponential-integrator bound', 
 =\sqrt2\frac L\mu\eta\sqrt{\frac{d_\theta}N+d_x}.\]
 <p>The friction and step restrictions reduce exactly to
 \(\gamma\ge\sqrt{\mu+L}\) and \(\eta\le\mu/(4\gamma L)\).
-Projection and concentration give</p>
+The projected-RMS transport inequality (see <cite data-report-ref="UnadjustedLangevin/Projection.lean" data-report-declaration="projectedRMSReal_le_wasserstein2Real_add"></cite>) and the sharp particle concentration radius (see <cite data-report-ref="ProximalLangevin/SharpIPLA.lean" data-report-declaration="sharp_gibbsTarget_parameter_concentration"></cite>) then give</p>
 \[\mathcal E_n\le\sqrt2D_0
 \left(1-\frac{3\mu\eta}{4\gamma}\right)^n
 +\sqrt2\frac L\mu\eta\sqrt{\frac{d_\theta}N+d_x}
@@ -573,7 +561,7 @@ order \(\varepsilon/\sqrt{d_x}\), subject to stability, makes both floors
 small. The transient then needs order \(\sqrt{d_x}/\varepsilon\) steps,
 up to logarithmic and curvature factors.</p><p>The total scaled dimension is \(D=d_\theta+Nd_x\), and thermal variance per coordinate is \(1/N\). Thus the stationary velocity radius is \(\sqrt{D/N}=\sqrt{d_\theta/N+d_x}\). This identity is the probabilistic meaning of the particle-factor cancellation in the first-order numerical floor.</p>'''),
 
-part('obabo-subflows', 'OBABO composes five exactly solvable pieces', r'''<p>KIPLMC2 uses a symmetric splitting of the same kinetic diffusion. Write
+part('obabo-subflows', 'OBABO composes five exactly solvable pieces', r'''<p>KIPLMC2 uses the symmetric five-subflow composition established in the earlier kinetic report (see <cite data-report-ref="KineticLangevin/OBABO.lean" data-report-declaration="obaboStep_expanded"></cite>). Write
 \(O\) for friction plus noise, \(B\) for the force kick, and \(A\) for free
 transport. The composition is</p>
 \[O(\eta/2)\;B(\eta/2)\;A(\eta)\;B(\eta/2)\;O(\eta/2).\]
@@ -620,12 +608,12 @@ of the form</p>
 \(B\) and a transient \(Aq^{n/2}B\). Dropping the latter would lose a term
 present in the supplied paper's revised theorem.</p>
 <p>These inequalities are substantial results about the OBABO kernel,
-including existence of \(\Pi_h\). A The proof theorem that takes them as hypotheses
+including existence of \(\Pi_h\). A theorem that takes them as hypotheses
 checks the transport combination but does not prove the cited OBABO analysis.
 The coverage audit distinguishes that conditional use from a completed
 argument.</p>'''),
 
-part('obabo-scaling', 'Track the OBABO constants before hiding them', r'''<p>For the rescaled potential, the source uses</p>
+part('obabo-scaling', 'Track the OBABO constants before hiding them', r'''<p>For comparison with the direct bound, the manuscript’s cited discrete-invariant-law analysis uses the following rescaled constants</p>
 \[A_N=\sqrt3\max\{\sqrt{NL},(NL)^{-1/2}\},\qquad
 q=1-\frac{\mu\eta}{3\gamma}.\]
 <p>Under \(\gamma\ge2\sqrt L\) and
@@ -644,7 +632,7 @@ a constant depending only on \(\mu,L,\gamma\).</p>
 <p>The product \(A_NB_N\) is proportional to \(\eta N\sqrt{d_z}\), while
 \(B_N\) itself is proportional to \(\eta\sqrt{Nd_z}\). The two terms have
 different powers of \(N\), which is why the source tracks them separately
-before introducing the implicit constant.</p><p>The clock changes both curvature constants and friction, while leaving the physical contraction ratio unchanged. Simplifying the bias only after substituting every factor avoids introducing spurious growing powers of \(N\). The resulting intensive estimate is stronger than the coarser printed envelope.</p>'''),
+before introducing the implicit constant.</p><p>The clock changes both curvature constants and friction, while leaving the physical contraction ratio unchanged. Simplifying the bias only after substituting every factor avoids introducing spurious growing powers of \(N\). The direct position sampling theorem from the earlier kinetic report instead gives an intensive estimate (see <cite data-report-ref="KineticLangevin/OBABOPosition.lean" data-report-declaration="obabo_position_sampling_bound"></cite>), which is stronger than the coarser printed envelope.</p>'''),
 
 part('obabo-bound', 'The revised KIPLMC2 theorem keeps both transient terms', r'''<p>Independent Gaussian initialization gives the same velocity marginal as
 \(\widetilde\Pi\). Coupling these equal velocity blocks and using position
@@ -667,7 +655,7 @@ The paper gives an explicit common coefficient by taking the maximum of
 <p>This bound has worse particle dependence than the KIPLMC1 bound. The paper
 regards that dependence as a limitation of the available estimate and compares
 it with numerical behavior; the experiments do not themselves remove the
-factor from theorem.</p><p>The extra transient term is harmless for validity but matters when reproducing the displayed manuscript formula. It decays with the same rate as the initial transport discrepancy. The sharper invariant-comparator estimate bounds the chain directly and implies this coarser statement by nonnegative termwise enlargements.</p>'''),
+factor from theorem.</p><p>The extra transient term is harmless for validity but matters when reproducing the displayed manuscript formula. It decays with the same rate as the initial transport discrepancy. The sharper invariant-comparator estimate from the earlier kinetic report bounds the chain directly (see <cite data-report-ref="KineticLangevin/OBABOPosition.lean" data-report-declaration="obabo_position_sampling_bound"></cite>) and implies this coarser statement by nonnegative termwise enlargements.</p>'''),
 
 part('complexity-and-experiments', 'Separate guarantees, complexity and experimental observations', r'''<p>For KIPLMC2, choosing \(N\asymp d_\theta/\varepsilon^2\) gives</p>
 \[\sqrt{N(d_\theta+Nd_x)}
@@ -741,7 +729,7 @@ _attach(KIPLMC_PROOF, {
 
 for _item in KIPLMC_PROOF:
     if _item['id'] == 'discrete-equilibrium':
-        _item['body'] += r'''<p>The development gives a second route that avoids constructing the discrete invariant law. An exact O–Hamiltonian–O step preserves the continuous Gibbs target. Compare it with the OBABO update on the same initial state and the same Gaussian vectors. The Verlet local defect has L² cost of order \(h^2\sqrt{d_z}\). Contractive perturbation sums this cost directly over the chain. The resulting intensive bound is stronger than the supplied coarse estimate, so it also implies every term retained in the printed theorem.</p>'''
+        _item['body'] += r'''<p>The development gives a second route that avoids constructing the discrete invariant law. The earlier kinetic report proves that an exact O–Hamiltonian–O step preserves the continuous Gibbs target (see <cite data-report-ref="KineticLangevin/ExactOBABO.lean" data-report-declaration="exactObaboStep_preserves_target"></cite>). Compare it with the OBABO update on the same initial state and the same Gaussian vectors. The Verlet local defect has L² cost of order \(h^2\sqrt{d_z}\). The earlier kinetic perturbation theorem sums this cost directly over the chain (see <cite data-report-ref="KineticLangevin/OBABOBias.lean" data-report-declaration="obabo_wasserstein_bound"></cite>). The resulting intensive bound is stronger than the supplied coarse estimate, so it also implies every term retained in the printed theorem.</p>'''
 
 for _item in KINETIC_PROOF:
     if _item['id'] == 'complexity':

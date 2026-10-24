@@ -68,14 +68,18 @@ links to imported proofs and users, the complete module context, and a downloada
 LaTeX exposition under `latex/`. The generated IPLA standalone bundle links to the
 proof of each included source module in HTML; its LaTeX export gathers all those
 mathematical statements and proofs into one document in dependency order.
-Each of the six developments on the main project page has one complete proof
-document at `pdf/<library>/FullProof.pdf`, linked at the top of its overview.
-It contains all theorem statements and assumptions, the mathematical argument,
-and the supporting proofs in dependency order, including shared foundations from
-other libraries. Each dependency appears once within a document. The IPLA volume
-also includes its unpublished LSI extension; both IPLA pages link to that volume.
+The seven theorem overviews each link to a mathematical proof report at
+`pdf/<library>/FullProof.pdf`. IPLA's strongly convex and LSI treatments have
+separate reports. Each report contains its theorem statements, detailed argument,
+and its own supporting proofs in dependency order. Shared results are proved once
+in their owning report and cited by exact section or subsection at their use sites.
+The report order is ULA-SC, ULA-LSI, IPLA-SC, IPLA-LSI, Proximal, Kinetic, KIPLMC.
 The corresponding complete LaTeX source is at `latex/<library>/FullProof.tex`.
-The investigations branch adds a separate Average LMC volume. Individual proof
+Every overview and module page offers a corporate-author BibTeX citation, with
+copy and download controls. Individual entries and `all-reports.bib` are generated
+under `bib/`; their content revision identifies the report edition. Module pages
+also identify their exact report section when the module belongs to a report.
+The project homepage offers a separate project-level citation. Individual proof
 boxes have no separate PDF downloads. The PDFs use ordinary mathematical
 notation and paper-style exposition throughout: source paths, declaration names,
 tactics and implementation commentary belong to the website's paired reading
@@ -149,8 +153,13 @@ committed PDFs without requiring a TeX installation.
 The verifier checks the complete source inventory, hashes of authoring inputs and
 outputs, every displayed source line, full declaration coverage, all local HTML
 destinations and anchors, diagram destinations, and the complete PDF/LaTeX volumes.
-The dependency inventory in `full_proofs.json` records every included local module
-and its proof steps so a shortened collection cannot silently replace a full proof.
+The dependency inventory in `full_proofs.json` records each proof's unique report
+owner, numbered sections, declaration-to-subsection mapping, earlier-report
+dependencies, and content revision. `report_links.py` resolves authored citation
+markers and indexes explicit earlier-result uses in the corresponding proofs.
+`verify_report_citations.py` checks these destinations, bibliography entries,
+report ownership and use-site citations; `--pdf` also checks the final PDF's named
+destinations and author metadata using pypdf.
 It also verifies PDF coverage and hashes against the current LaTeX sources. It checks
 documentation integrity; the mathematical proof is checked by Lean:
 

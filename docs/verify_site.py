@@ -139,7 +139,9 @@ def verify():
                 assert name not in represented,f'Repeated declaration {path}: {name}'
                 represented.add(name)
         if path.startswith('docs/modules/'):
-            assert not any(p.is_relative_to(ROOT/'docs/pdf') for p in destinations),'PDF downloads belong on development overviews, not individual proof boxes'
+            # Numbered report references and the citation panel link to the
+            # consolidated PDFs; individual proof boxes still have no PDF export.
+            assert not re.search(r'<a[^>]*\bdownload[^>]*href="[^"]*\.pdf', text), 'Individual module pages must not offer separate PDF downloads'
             source=next(p for p in sources if module_page(p)==path)
             assert represented==set(parsed.get(source,{})),f'Missing complete Lean declaration: {source}'
             assert any(b['data-role']=='module' and b['data-source']==source for b in doc.blocks),f'Missing full module: {source}'
@@ -147,7 +149,7 @@ def verify():
             assert manifest['modules'][source]['source_sha256']==digest(source),f'Stale source: {source}'
     for lib in CONFIG:
         doc=parse(ROOT/lib/'exposition/index.html')
-        volume='IPLA' if lib=='IPLA/LSI' else lib
+        volume=lib
         target=ROOT/lib/'exposition/index.html'
         destinations={(target.parent/unquote(urlsplit(href).path)).resolve()
                       for href in doc.links if not urlsplit(href).scheme and urlsplit(href).path}
