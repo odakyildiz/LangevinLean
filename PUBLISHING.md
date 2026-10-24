@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`b967a171ff4977e85b2a8493c9d7e5bfb1d087c6`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`81505d9d4accb8140e0872cc51d441c7e6eddd65`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -31,3 +31,8 @@ The responsive diagram and automatic theme update was checked locally on
 23 October 2026: 167 theme/layout cases, 65 connector and live-resize cases,
 131 existing browser cases, and 49 code-copy cases passed. All documentation
 checks passed. This update changes no Lean sources.
+
+On 24 October 2026, the publication was synchronized with the restored `main`
+snapshot. Its site and source files are unchanged from the previously verified
+pre-AverageLMC publication; AverageLMC remains on `investigations`. The
+main-only `papers/` directory remains excluded.
