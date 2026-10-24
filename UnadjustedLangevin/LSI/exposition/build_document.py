@@ -245,7 +245,8 @@ def build():
                                 Path(os.path.relpath(ROOT / "docs/references.py", HERE)).as_posix(),
                                 Path(os.path.relpath(ROOT / "docs/theme.py", HERE)).as_posix(),
                                 Path(os.path.relpath(ROOT / "docs/assets/theme.css", HERE)).as_posix(),
-                                Path(os.path.relpath(ROOT / "docs/assets/theme.js", HERE)).as_posix()]},
+                                Path(os.path.relpath(ROOT / "docs/assets/theme.js", HERE)).as_posix()] +
+                   [Path(os.path.relpath(p, HERE)).as_posix() for p in SHARED.THEME.FONT_FILES]},
     }
     embedded = json.dumps(sources, ensure_ascii=False).replace('<', '\\u003c').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
     page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'

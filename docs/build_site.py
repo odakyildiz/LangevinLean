@@ -101,6 +101,7 @@ def imports(source):
 
 
 def shell(page, title, body, active=None):
+    body_class = ' class="project-home"' if page == 'index.html' else ''
     navigation=[('UnadjustedLangevin','ULA · SC'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
                 ('ProximalLangevin','Proximal'), ('KineticLangevin','Kinetic'), ('KIPLMC','KIPLMC')]
@@ -116,7 +117,7 @@ def shell(page, title, body, active=None):
             f'<link rel="stylesheet" href="{relative("docs/assets/references.css",page)}">'
             + theme_head(relative("docs/assets/theme.css", page), relative("docs/assets/theme.js", page)) +
             f'<script defer src="{relative("docs/assets/site.js",page)}"></script>'
-            f'<script defer src="{relative("docs/assets/diagrams.js",page)}"></script></head><body data-theme-family="modern">'
+            f'<script defer src="{relative("docs/assets/diagrams.js",page)}"></script></head><body data-theme-family="modern"{body_class}>'
             '<a class="skip" href="#main">Skip to content</a><header class="site-nav">'
             f'<a class="brand" href="{relative("index.html",page)}">LangevinLean</a>'
             f'<nav aria-label="Main navigation">{nav}</nav>' + theme_control() + '</header>'
@@ -125,7 +126,7 @@ def shell(page, title, body, active=None):
             f'<a href="{relative("index.html",page)}">Project home</a>'
             f'<a href="{relative("docs/README.md",page)}">Reproduce the proofs</a>'
             '<a href="https://github.com/odakyildiz/LangevinLean">GitHub</a></div>'
-            '<span>Lean 4.35.0-rc3 · Mathlib · Mathematical exposition and formal proofs</span></footer></main>'
+            '<span>Lean 4.35.0-rc3 · Mathlib</span></footer></main>'
             '<div id="action-status" role="status" aria-live="polite"></div></body></html>\n')
 
 
@@ -421,6 +422,8 @@ def main():
     inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
+    inputs += [p.relative_to(ROOT).as_posix() for p in sorted((HERE/'assets/fonts').glob('*'))
+               if p.is_file()]
     inputs += ['UnadjustedLangevin/exposition/build_document.py']
     inputs += [p.relative_to(ROOT).as_posix() for p in sorted(HELPERS.VENDOR.rglob('*')) if p.is_file()]
     manifest = {'format':1,'modules':{},'inputs':{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in inputs}}

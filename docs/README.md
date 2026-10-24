@@ -94,6 +94,13 @@ statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
+Typography and colours follow odakyildiz.com: Latin Modern prose, a neutral
+background, and dark-red links. The four font styles and their licenses are
+bundled in `assets/fonts/`. Current pages use the shared assets; standalone
+archives embed the fonts through `theme.py` so they remain readable offline.
+Keep code in its monospace font and retain contrast in both light and dark
+themes when changing the palette.
+
 From the repository root, with Python 3 and Node.js on `PATH`:
 
 ```sh
