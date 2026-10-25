@@ -1,0 +1,144 @@
+Here, we discuss the \gls*{mmfpo} algorithm in Section~\ref{sec:momentum_mfpo}, motivate a discretisation  and present details on the \gls*{ebm} training experiment.
+
+\subsubsection{\textsc{\small M-MFPO} Discretisation}
+
+We begin by constructing a discretisation to provide a concrete algorithm for our framework. A naive Euler-Maruyama discretisation of \gls*{uld} can have poor stability and obscure the practical benefits of momentum; related limitations have been studied for underdamped samplers \citep{em_bad1_ma2019analognesterovaccelerationmcmc}. Indeed, preliminary experimental testing of the Euler-Maruyama discretisation yielded poor stability requiring small step-sizes and hence slow convergence. Instead we propose a splitting scheme inspired by the \textit{OBABO} scheme of \cite{obabo_ref_leimkuhler_matthews} for the discretisation of the underdamped Langevin dynamics. We consider the following splitting of the particle dynamics \eqref{eq:alg_underdamped} generator into,
+\begin{equation*}
+    \begin{aligned}
+    \begin{pmatrix}
+        d\theta_t \\ dm_t \\ dX^i_t \\ dV^i_t
+    \end{pmatrix} &= \underbrace{\begin{pmatrix}
+    m_tdt \\ 0 \\ 0 \\ 0
+    \end{pmatrix}}_{\textit{A1}} +
+    \underbrace{\begin{pmatrix}
+    0 \\ -N^{-1}\sum_{i=1}^N F(\theta_t,X_t^i)dt \\ 0 \\ 0
+    \end{pmatrix}}_{\textit{B1}} +
+    \underbrace{\begin{pmatrix}
+    0 \\ -\gamma  m_tdt \\ 0 \\ 0
+    \end{pmatrix}}_{\textit{L}} \\
+    &\qquad + \underbrace{\begin{pmatrix}
+    0 \\ 0 \\ V^i_tdt \\ 0
+    \end{pmatrix}}_{\textit{A2}} +
+    \underbrace{\begin{pmatrix}
+    0 \\ 0 \\ 0 \\ -\nabla_x E(\theta_t,X_t^i)dt
+    \end{pmatrix}}_{\textit{B2}} +
+    \underbrace{\begin{pmatrix}
+    0 \\ 0 \\ 0 \\ -\gamma V^i_tdt + \sqrt{2\gamma}dB^i_t
+    \end{pmatrix}}_{\textit{O}}.
+\end{aligned}
+\end{equation*}
+Here, \textit{L} is linear and \textit{O} is an Ornstein-Uhlenbeck part, for which we know the solution exactly. The remaining parts \textit{A1}, \textit{A2}, \textit{B1} and \textit{B2} are deterministic and may be approximated with a forward Euler step.  The frictionless exact-gradient parameter dynamics described by
+\begin{equation*}
+    \md\theta_t=m_t \md t,\qquad
+    \md m_t=-\nabla_\theta\ell(\theta_t)\md t
+\end{equation*}
+are Hamiltonian with
+\begin{equation*}
+    H_\theta(\theta,m)=\frac{1}{2}\Vert m\Vert^2+\ell(\theta),
+\end{equation*}
+In the mean-field and particle systems, with corresponding \textit{A1} and \textit{B1} parts, the objective gradient is approximated and is not generally $\nabla_\theta\ell(\theta)$ away from sampler equilibrium. For frozen $\theta$, the sampler dynamics, given by the \textit{A2} and \textit{B2} parts, is Hamiltonian for each $(X^i,V^i)$ and a full Hamiltonian is given by
+\begin{equation*}
+    H_{X,\theta}(X^1,...,X^N,V^1,...,V^N)=\frac{1}{2}\sum_{i=1}^N\Vert V^i\Vert^2+\sum_{i=1}^N E(\theta,X^i_t).
+\end{equation*}
+We note that the continuous time results in this paper do not establish any discretisation related guarantees, which we leave for future work. 
+
+We now construct a Strang-splitting scheme by combining the exact solutions of the \textit{L} and \textit{O} parts with a forward Euler step for the remaining parts. We introduce the time discretisation $0=t_0<t_1<\cdots<t_K=T$ with $t_k=kh$ and step-size $h=T/K$. Defining $\eta=\exp\left({-\frac{\gamma h}{2}}\right)$ and $\bar{F}\left(\theta,X^{[N]}\right):=\frac{1}{N}\sum_{i=1}^N F(\theta,X^i)$ for clarity, we opt for the following order of updates,
+\begin{equation}\label{eq:full_discretisation}
+\begin{alignedat}{3}
+    \tilde{V}^i_{n} &= \eta\hat{V}^i_n+\sqrt{1-\eta^2}\xi^{X^i,1}_n,
+    &\quad \tilde{m}_n &= \eta\hat{m}_n,
+    &\quad &(\textit{O,L}) \\
+    \tilde{V}^i_{n+\frac{1}{2}} &= \tilde{V}^i_n-\frac{h}{2}\nabla_xE\left(\hat{\theta}_n,\hat{X}^i_n\right),
+    &\quad \tilde{m}_{n+\frac{1}{2}} &= \tilde{m}_n-\frac{h}{2} \bar{F}\left(\hat{\theta}_n,\hat{X}^{[N]}_{n}\right),
+    &\quad &(\textit{B}) \\
+    \hat{X}^i_{n+1} &= \hat{X}^i_n+ h\tilde{V}^i_{n+\frac{1}{2}},
+    &\quad \hat{\theta}_{n+1} &= \hat{\theta}_n+h\tilde{m}_{n+\frac{1}{2}},
+    &\quad &(\textit{A}) \\
+    \tilde{m}_{n+1} &= \tilde{m}_{n+\frac{1}{2}}-\frac{h}{2} \bar{F}\left(\hat{\theta}_{n+1},\hat{X}^{[N]}_{n+1}\right),
+    &\quad \tilde{V}^i_{n+1} &= \tilde{V}^i_{n+\frac{1}{2}}-\frac{h}{2}\nabla_xE\left(\hat{\theta}_{n+1},\hat{X}^i_{n+1}\right),
+    &\quad &(\textit{B}) \\
+    \hat{m}_{n+1} &= \eta\tilde{m}_{n+1},
+    &\quad \hat{V}^i_{n+1} &= \eta\tilde{V}^i_{n+1}+\sqrt{1-\eta^2}\xi^{X^i,2}_n,
+    &\quad &(\textit{O,L})
+\end{alignedat}
+\end{equation}
+where updates are read in order from left to right, top to bottom. We denote $\hat\theta_n, \hat{m}_n, \hat{X}^i_n, \hat{V}^i_n$ the approximations of $\theta_{t_n}, m_{t_n}, X^i_{t_n}, V^i_{t_n}$ respectively and $\xi^{X^i,1}_n, \xi^{X^i,2}_n$ are independent standard Gaussian random variables. The order of updates is not unique and we may swap the orders of any update within each row without changing the scheme. The linear \textit{L} flow is split symmetrically alongside the \textit{O} flow.
+
+We note that \eqref{eq:full_discretisation} features alternating updates between the parameter and particles. Ignoring parameter updates, the sequential particle updates are exactly the OBABO scheme for the underdamped Langevin dynamics with frozen parameters; similarly, ignoring particle updates, the sequential parameter updates are exactly a Strang splitting scheme of the Heavy Ball dynamics with frozen particles. We note that discretisation may  be viewed this way in special regimes when $\theta$ is close to a fixed point of the optimiser and $X^i$ are close to equilibrium. However in general the coupling between the \textit{A,B} parameter and particle dynamics cannot be reduced to a single Hamiltonian system and separated discretisation steps are needed. We show that both the continuous-time system generated by the \textit{A} and \textit{B} parts and the discrete-time system generated by the \textit{B1,A,B2} parts of the discretisation have volume preserving flows, which motivates our choice of discretisation scheme.
+
+\begin{lemma}[Volume preservation of schemes]\label{lemma:vol_preserve_ode} Consider the ODE obtained by taking the \textit{A, B} parts of \eqref{eq:alg_underdamped}. Assuming the associated flow is globally defined and the vector field in $C^1$ is continuously differentiable, then the flow is volume preserving. In particular, let $\varphi_t$ denote the flow generated by the ODE, then
+\begin{equation*}
+    \mathrm{det}D\varphi_t(z)=1,
+\end{equation*}
+where $D$ denotes the total derivative and for any $z:=(\theta,m,X,V)$ and $t>0$. 
+
+Moreover, let $\Phi_h$ be the one-step map described by the \textit{B,A} sections of the discretisation \eqref{eq:full_discretisation}. Then $\Phi_h$ is also volume preserving. In particular,
+\begin{equation*}
+    \mathrm{det} D\Phi_h(z)=1,
+\end{equation*}
+for any $z:=(\theta,m,X,V)$ and $h$ the step-size.
+\end{lemma}
+
+\begin{proof}
+Using Liouville's formula, it is a classical result that the ODE, $\dot{x}=f(x)$, is volume preserving if and only if $\mathrm{div}(f)\equiv0$. For our system \eqref{eq:alg_underdamped}, the \textit{A,B} sub-system is given by,
+\begin{equation}\label{eq:general_splitting_scheme_ode}
+\begin{aligned}
+    \md\theta_t &=m_t\md t,\\
+        \md m_t &= -\frac{1}{N}\sum_{i=1}^N{F}\left(\theta_t, X^i_t\right)\md t
+        ,\\
+        \md X^i_t&=V_t^i \md t,\\
+        \md V^i_t&=-\nabla_x E(\theta_t, X^i_t)\md t.
+\end{aligned}    
+\end{equation}
+From this it is clear the divergence of the vector-field is zero as each derivative is zero and the system is volume preserving. We now show the discretisation of the \textit{A,B} subsystem in \eqref{eq:full_discretisation} is also volume preserving. Given a one-step scheme, $\Phi_h:\mathbb{R}^{d_\theta+ d_m}\times(\mathbb{R}^ {d_x+ d_v})^N\rightarrow\mathbb{R}^{d_\theta+ d_m}\times(\mathbb{R}^ {d_x+ d_v})^N$ approximating the true flow $\varphi_h$ of \eqref{eq:general_splitting_scheme_ode} over a time interval of length $h$, assume that \(\Phi_h\) is a \(C^1\)-diffeomorphism. It is volume preserving if and only if
+\begin{equation*}
+    \left|\det D\Phi_h(\theta,m,X,V)\right|=1
+\end{equation*}
+for every \((\theta,m,X,V)\). For the splitting maps considered below,
+the determinant is in fact equal to one. We show this by splitting the main flow into the composition of multiple sub-flows. From the chain rule, it is enough to check that each sub-flow is volume preserving. Taking $\Phi_h$ to be the one-step map associated with the \textit{B,A,B} section of \eqref{eq:full_discretisation}, we consider the composition,
+\begin{equation*}
+    \Phi_h=\Phi_h^{(1)}\circ \Phi_h^{(2)}\circ\Phi_h^{(1)},
+\end{equation*}
+with the one-step sub-maps,
+\begin{equation*}
+    \Phi_h^{(1)}\begin{pmatrix}\theta\\m\\X^i\\V^i
+    \end{pmatrix}=\begin{pmatrix}
+        \theta \\
+        m-\frac{h}{2}\bar{F}\left(\theta, X^{[N]}\right) \\
+        X^i \\
+        V^i-\frac{h}{2}\nabla_xE(\theta, X^i)
+    \end{pmatrix},\qquad \Phi_h^{(2)}\begin{pmatrix}\theta\\m\\X^i\\V^i
+        \end{pmatrix}=\begin{pmatrix}
+            \theta + hm \\
+            m \\
+            X^i + hV^i \\
+            V^i
+        \end{pmatrix}.
+\end{equation*}
+Taking derivatives we see that $D\Phi_h^{(1)}$ and $D\Phi_h^{(2)}$ are both unit triangular matrices (up to row and column exchanges) and hence, $\mathrm{det}D\Phi_h^{(1)}=\mathrm{det}D\Phi_h^{(2)}=1$ so each component of the composition is volume preserving and hence the \textit{A,B} subsystem discretisation is also volume preserving.
+\end{proof}
+
+With a typical \gls*{uld} in which the \textit{A,B} parts describe a Hamiltonian system, whose generated flow is symplectic and hence integrators are designed to also be symplectic. In our case, the \textit{A,B} parts no longer form a single Hamiltonian system, but the generated flow is still volume preserving and finding a discretisation scheme that is also volume preserving helps respect the underlying structure of the ODE.
+
+Other orderings of parameter and particle updates are also valid. For instance, one could alternate between a full step of the parameters and a full step of the particles. The reason we decide the interweaving updates in \eqref{eq:full_discretisation} is one of computational efficiency. The computational bottleneck in these schemes is usually the expensive computations and evaluations of the gradients of the energy and objective functions, with the cost of such gradient evaluations also scaling with the size of the model. We observe in \eqref{eq:full_discretisation} and other second order schemes that gradient evaluations are required twice in one iteration: once before the \textit{A} step and once after. However this issue may be circumvented by saving the second gradient evaluation at the end of one iteration and re-using it for the first gradient evaluation at the start of the next iteration, essentially only requiring one gradient evaluation per iteration. Note that this is true provided the $\textit{A1,A2}$ updates are sequential between the two sets of $\textit{B1,B2}$ updates. This would not be possible if we were to naively update particles and parameters in series. We would also like to mention that our scheme admits other formulations such as using the BAOAB scheme with the same benefits as our proposed OBABO-like scheme and may also be written in the same way.
+
+Whilst other practical integrators for \gls*{uld} are known and widely used, such as the (Euler) Exponential Integrator used in the \gls*{mpgd} discretisation \citep{lim2024momentumparticlemaximumlikelihood}, we found empirically that the OBABO-like splitting scheme is the most stable and performative whilst admitting larger step-sizes. The \textit{BAB} sequence helps preserves the geometry and structure of the continuous-time dynamics and widely used to discretise Hamiltonian systems, in which we express a resemblance to. In the Hamiltonian setting the \textit{B1A1B1} system with fixed particles or the \textit{B2A2B2} system with fixed parameters is also more commonly known as the leap-frog algorithm and a key component of \gls*{hmc}. Even at the level of the full coupled system, the second-order full-system dynamics admits a natural decomposition into interpretable subcomponents that can be updated separately, which motivates the use of a splitting scheme. In particular the splitting of the OBABO scheme preserves this operator structure, respecting the position-momentum decomposition present.
+
+\subsubsection{Hyperparameter Tuning}  \label{sec:algorithm_hp_tuning}
+The choices of friction \(\gamma\) and step size \(h\) are central to the stability and convergence of the algorithm; principled tuning remains open. Because the parameter and particle updates play different roles, an implementation may use separate values \((\gamma_\theta,h_\theta)\) and \((\gamma_X,h_X)\) for the two subsystems.
+
+In \eqref{eq:full_discretisation}, friction enters the split flows through the momentum coefficient \(\gamma h\). For fixed \(h>0\), the deterministic interwoven leapfrog scheme is obtained in the limit \(\gamma\downarrow0\). Conversely, as \(\gamma h\to\infty\), one has \(\eta\to0\): the particle momenta are replaced by independent standard Gaussian draws, whereas the parameter momentum is set to zero because the \textit{L} flow has no noise. In this limit,
+\[
+\widehat X_{n+1}^i
+=
+\widehat X_n^i-\frac{h^2}{2}\nabla_xE(\widehat\theta_n,\widehat X_n^i)
++h\xi_n^{X^i,1},
+\qquad
+\widehat\theta_{n+1}
+=
+\widehat\theta_n-\frac{h^2}{2}\bar F(\widehat\theta_n,\widehat X_n^{[N]}).
+\]
+Thus the position and parameter updates reduce respectively to an Euler--Maruyama step for overdamped Langevin dynamics and a gradient-descent step, both with step size \(h^2/2\).
+
+\subsubsection{2D \textsc{\small EBM} Training Experimental Details}\label{app:training_ebm_2d}
+\subfile{ebm_training}

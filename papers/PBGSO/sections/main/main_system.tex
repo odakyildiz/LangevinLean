@@ -1,0 +1,154 @@
+\subsection{A general mean-field dynamics for stochastic optimisation}
+We first describe a fully general framework for stochastic optimisation of loss functions with intractable gradients. Recall that we consider the problem of minimising a loss function $\ell:\Theta\rightarrow\mathbb{R}$ where the gradient takes the form as in \eqref{eq:obj_func}.
+
+In order to define general mean-field dynamics, we will consider a general optimiser state $\vartheta_t \in \Theta \times \sM$. This notation allows the optimiser state to include auxiliary variables, such as momenta -- i.e. it may contain only $\theta_t$, or $(\theta_t,m_t)$, or Adam-style auxiliary variables. Let $\Psi_t:(\Theta \times \sM)\times\Theta \rightarrow \Theta \times \sM$ be a function that gives the update direction for the optimiser state $\vartheta_t$ when it is supplied with a gradient estimate.  Let $\Pi_\theta(\vartheta_t)=\theta_t$ extract the parameter component. Similarly to the optimiser state, we will consider a general sampler state $Z_t \in \sX \times \sV$ with dynamics that depend on the projected parameter state $\theta_t=\Pi_\theta(\vartheta_t)$. Let $\Pi_x(Z_t)=X_t$ extract the $x$-component of the sampler state. We will assume that the dynamics of $Z_t$ are such that, for frozen $\theta$, the marginal distribution of $X_t$ converges to $\pi_\theta$.
+
+Let $\sB$ be a finite-dimensional noise space and let $B_t$ be a Brownian motion on $\sB$. We write $\sL(\sB,\sX\times\sV)$ for the space of
+linear maps from $\sB$ to $\sX\times\sV$. We then consider the following coupled mean-field system
+\begin{align}
+\mathrm{d} \vartheta_t &= \Psi_t(\vartheta_t,G_{\nu_t}(\vartheta_t)) \mathrm{d} t, \label{eq:general_mf_system_opt}\\
+\mathrm{d} Z_t &= b_{\Pi_\theta(\vartheta_t)}(Z_t) \mathrm{d}t  +\sigma_{\Pi_\theta(\vartheta_t)}(Z_t)\mathrm{d}B_t, \label{eq:general_mf_system_x}
+\end{align}
+where the drift $b_\theta:\sX\times\sV\to\sX\times\sV$ and diffusion coefficient
+$\sigma_\theta:\sX\times\sV\to\sL(\sB,\sX\times\sV)$ are chosen such that the system \eqref{eq:general_mf_system_x} has invariant distribution $\nu_\theta$ with $\sX$-marginal $\pi_\theta$ and $\nu_t = \mathrm{Law}(Z_t)$ with the function $G_{\nu_t}(\vartheta_t)$ defined as
+\begin{align*}
+G_{\nu_t}(\vartheta_t)&:=\int_{\sX\times\sV} F(\Pi_\theta(\vartheta_t),\Pi_x(z))\nu_t(\mathrm{d} z).
+\end{align*}
+Next, we unpack the implications and possibilities provided by the generality of \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x}. A general $\Psi_t$ allows many optimisers whose optima are fixed points of the optimiser dynamics, including gradient descent and continuous-time analogues of \textsc{RMSProp}, \textsc{ADAM}, and related adaptive methods \citep{da2020general,barakat_convergence_2021, heredia2026modelingadagradrmspropadam}. Similarly, in \eqref{eq:general_mf_system_x}, one may choose a frozen sampler on the augmented space $\sX\times\sV$ whose invariant law $\nu_\theta$ has $\sX$-marginal $\pi_\theta$. From \citet{Ma_SGMCMC}, we describe one sufficient Euclidean construction. Recall $\sX=\mathbb{R}^{d_x}$, $\sV=\mathbb{R}^{d_v}$, write $z=(x,v)$, and consider functions $H:\Theta\times\sX\times\sV\to\mathbb{R}$ and $g:\sX\times\sV\to\mathbb{R}$ such that
+\begin{equation*}
+    H(\theta,z) = E(\theta,x) + g(x, v).
+\end{equation*}
+where $E$ is such that $\pi_\theta(\md x)=C_\theta^{-1}\exp(-E(\theta,x))\,\md x$. Assume also
+$C_g:=\int_{\sV}\exp(-g(x,v))\,\md v < \infty$ and independent of $x$. Then the measure $\nu_\theta \propto \exp(-H(\theta,x,v))$ on $\sX\times\sV$ has $\sX$-marginal $\pi_\theta$. Next, consider the diffusion in \eqref{eq:general_mf_system_x} with drift and diffusion coefficients
+\begin{align}\label{eq:generalised_langevin_drift_diffusion}
+    &b_\theta(z)
+    =
+    -[\mathrm{D}_\theta(z)+\mathrm{Q}_\theta(z)]\nabla_z H(\theta,z)
+    +\xi_\theta(z),\\
+    &\sigma_\theta(z)\sigma_\theta(z)^\top
+    =
+    2\mathrm{D}_\theta(z).
+\end{align}
+where $\mathrm{D}_\theta(z)\in\mathbb{R}^{(d_x+d_v)\times(d_x+d_v)}$ is symmetric positive semidefinite, $\mathrm{Q}_\theta(z)\in\mathbb{R}^{(d_x+d_v)\times(d_x+d_v)}$ is skew-symmetric, and both are continuously differentiable in $z$. The correction term is defined coordinatewise by
+\begin{align}
+    \xi_{\theta,i}(z)
+    :=
+    \sum_{j=1}^{d_x+d_v}
+    \frac{\partial}{\partial z_j}
+    \bigl(\mathrm{D}_{\theta,ij}(z)+\mathrm{Q}_{\theta,ij}(z)\bigr),
+\end{align}
+where $i=1,\ldots,d_x+d_v$. All derivatives here are with respect to the sampler variable $z$, with $\theta$ fixed. Assume additionally that $e^{-H(\theta,\cdot)}$ is integrable, that the coefficients and $H$ are sufficiently regular for the stationary Fokker--Planck equation, and that the relevant boundary/no-flux or decay conditions justify integration by parts. Here, the generalised Langevin dynamics with drift and diffusion given in \eqref{eq:generalised_langevin_drift_diffusion} have stationary distribution $\nu_\theta \propto e^{-H(\theta,z)}$ provided that the following identity is satisfied \citep{Ma_SGMCMC,yao2025accelerating}
+\begin{equation*}
+    \sum_{i,j=1}^{d_x+d_v}\frac{\partial^2}{\partial z_i\partial z_j}\left(\mathrm{Q}_{\theta,ij}(z)e^{-H(\theta,z)}\right)= 0.
+\end{equation*}
+Under these conditions, the displayed identity holds automatically because \(\mathrm{Q}_\theta\) is sufficiently smooth and skew-symmetric and mixed derivatives commute, thus $\nu_\theta$ is invariant for the frozen sampler, and the preceding marginal condition gives $(\Pi_x)_\#\nu_\theta=\pi_\theta$. This construction can be generalised to arbitrary manifolds using the construction provided in \citet{barp2021unifying}.
+
+Next, we provide a basic result that demonstrates the importance of our framework for a wide class of optimisers and samplers. We start with a well-posedness assumption for the mean-field system \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x}.
+\begin{assumption}[Well-posedness]\label{ass:strong_sol_exist_unique}
+For every $\vartheta_0\in\Theta\times\sM$ and every random variable $Z_0$, independent of the driving Brownian motion, with law $\nu_0\in\mathcal P_2(\sX\times\sV)$, the mean-field system \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x} admits a pathwise unique strong solution on every finite time interval. Moreover, $\nu_t:=\mathrm{Law}(Z_t)\in\mathcal P_2(\sX\times\sV)$ for all finite $t\ge0$. Furthermore, assume one of
+\begin{enumerate}[(i)]
+    \item For any $\vartheta\in\Theta\times\sM,z\in\sX\times\sV$, the diffusion coefficient $\sigma_{\Pi_{\theta}(\vartheta)}(z)$ is constant.
+    \item For any $\vartheta\in\Theta\times\sM,z\in\sX\times\sV$, the following linear growth condition on the drift and diffusion 
+\begin{equation*}
+    \| b_{\Pi_\theta(\vartheta)}(z)\|+\|\sigma_{\Pi_\theta(\vartheta)}(z)\|\le K(1+\|\theta\|+\|z\|).
+\end{equation*}
+\end{enumerate}
+\end{assumption}
+Standard Lipschitz and linear-growth assumptions on the combined drift and diffusion coefficients provide sufficient conditions for
+Assumption~\ref{ass:strong_sol_exist_unique}.
+\begin{assumption}\label{ass:existence_minimizer} There exists an optimiser state \(\vartheta_\star\in\Theta\times\sM\), with \(\Pi_\theta(\vartheta_\star)=\theta_\star\), such that
+\[
+\nabla_\theta\ell(\theta_\star)=0
+\qquad\text{and}\qquad
+\Psi_t(\vartheta_\star,0)=0
+\quad\text{for all }t\ge0.
+\]
+Moreover, the frozen sampler at \(\theta_\star\) has an invariant measure \(\nu_{\theta_\star}\in\mathcal P_2(\sX\times\sV)\) whose \(\sX\)-marginal is \(\pi_{\theta_\star}\), i.e.
+\[
+(\Pi_x)_\#\nu_{\theta_\star}=\pi_{\theta_\star}.
+\]
+\end{assumption}
+This assumption simply states that the optimiser map $\Psi_t$ has a fixed point at $\vartheta_\star$ which is generally satisfied by well-defined optimisation methods. Next we show that the mean-field system \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x} has a stationary law at the optimiser--sampler pair $(\vartheta_\star,\nu_{\theta_\star})$.
+\begin{theorem}\label{thm:invariant_measure} Let \Cref{ass:strong_sol_exist_unique} and \Cref{ass:existence_minimizer} hold. Let
+\[
+\mu_\star:=\delta_{\vartheta_\star}\otimes\nu_{\theta_\star}.
+\]
+Then \(\mu_\star\) is a stationary law for the coupled mean-field system \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x}: if the system is initialized from \(\mu_\star\), its law remains \(\mu_\star\) for all \(t\ge0\).
+\end{theorem}
+See Appendix~\ref{app:thm_invariant_measure} for the proof. If \(\Psi_t\equiv\Psi\) is time-independent, then the coupled mean-field dynamics are time-homogeneous. In this case \(\mu_\star\) is an invariant measure in the usual semigroup sense. This formulation covers various algorithms in the literature as special cases and brings great flexibility to the design of diffusion-based stochastic optimisers. We highlight some concrete examples from the literature below.
+
+\subsubsection{Existing literature as special cases}
+\glsreset{mmle}
+\glsreset{pgd}
+
+\textbf{PGD.} Consider the \gls*{mmle} problem given a model $p_\theta(x, y)$ with fixed data $y$. As a minimisation, the loss function is $\ell(\theta) = - \log p_\theta(y)$ and the gradient takes the form \eqref{eq:obj_func} with $F(\theta,x)=-\nabla_\theta \log p_\theta(x,y)$ and $\pi_\theta(x) = p_\theta(x \mid y)$. \citet{pmlr-v206-kuntz23a} proposed \gls*{pgd} to solve this problem, where the mean-field limit can be written as
+\begin{align*}
+\md \theta_t &=
+\left[
+\int \nabla_\theta \log p_{\theta_t}(x,y)\,
+\nu_t(\md x)
+\right] \md t,\\
+    \md X_t
+&=
+\nabla_x\log p_\theta(X_t,y)\, \md t
++
+\sqrt{2}\,\md B_t.
+\end{align*}
+This is a special case of \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x} with $\Psi_t(\vartheta_t,G_{\nu_t})=-G_{\nu_t}$, $\vartheta_t=\theta_t$, $Z_t=X_t$, $\mathrm{D}_\theta(x)=I_{d_x}$, $\mathrm{Q}_\theta(x)=0$, and $g(x,v)=0$, so that the drift and diffusion coefficients are $b_\theta(x)=\nabla_x\log p_\theta(x,y)$, and $\sigma_\theta(x)=\sqrt{2}I_{d_x}$. The sampler is an overdamped Langevin diffusion targeting $\pi_\theta(x)=p_\theta(x\mid y)$. From Theorem~\ref{thm:invariant_measure}, we see $\delta_{\theta_\star}\otimes\pi_{\theta_\star}$ is an invariant measure for any stationary point $\theta_\star$ of $\ell$; hence for any minimiser, since $\ell\in C^1$ on $\Theta$.
+
+\textbf{Implicit diffusion.} This is also the mean-field limit of the implicit diffusion framework \citep[Section~4.1]{marion2025implicitdiffusionefficientoptimization} which reads as
+\begin{align*}
+\md \theta_t &= - \varepsilon_t \int F(\theta_t, x) \nu_t(\md x) \md t,\\
+\md X_t &= - \nabla_x E(\theta_t, X_t) \md t + \sqrt{2} \md B_t,
+\end{align*}
+for the optimisation of loss functions where $\nabla \ell(\theta) = \mathbb{E}_{\pi_\theta}[F(\theta, x)]$. For any deterministic schedule \(t\mapsto\varepsilon_t\) satisfying the regularity needed for well-posedness, this is a special case of \eqref{eq:general_mf_system_opt}--\eqref{eq:general_mf_system_x} with \(\Psi_t(\theta,G_{\nu_t})=-\varepsilon_t G_{\nu_t}\), \(Z_t=X_t\), \(b_\theta=-\nabla_xE(\theta,\cdot)\), and \(\sigma_\theta=\sqrt2I_{d_x}\). The choice \(\varepsilon_t\equiv1\) gives the time-homogeneous optimiser used in the \gls*{pgd} example.
+
+\textbf{MPGD.} Accelerated methods were also proposed for the problem of \gls*{mmle} which introduce auxiliary momentum variables to extend \gls*{pgd}, which we term \gls*{mpgd} \citep{lim2024momentumparticlemaximumlikelihood}. This is again a special case of our framework with the loss choices identical to the previous case and with the auxiliary variables $m\in \sM=\mathbb{R}^{d_\theta}$ and $v\in \sV=\mathbb{R}^{d_v}$ such that the optimiser state becomes $\vartheta_t=(\theta_t,m_t)$ and the sampler state is $Z_t=(X_t,V_t)$. When \(\Psi_t\) is the time-homogeneous heavy-ball ODE, take \(d_v=d_x\), $g(x,v):=\tfrac{1}{2M_x}\|v\|^2$,
+\[
+\begin{aligned}
+&\mathrm D=
+\begin{pmatrix}
+\mathbf 0&\mathbf 0\\
+\mathbf 0&\gamma_xI_{d_x}
+\end{pmatrix},
+\qquad
+\mathrm Q=
+\begin{pmatrix}
+\mathbf 0&-I_{d_x}\\
+I_{d_x}&\mathbf 0
+\end{pmatrix}.
+\end{aligned}
+\]
+Then
+\[
+\begin{aligned}
+b_\theta(x,v)
+&=
+\left(
+\tfrac{v}{M_x},
+-\nabla_xE(\theta,x)-\tfrac{\gamma_x}{M_x}v
+\right),\\
+\sigma_\theta\sigma_\theta^\top
+&=
+\operatorname{diag}(0,2\gamma_xI_{d_x}),
+\end{aligned}
+\]
+so the sampler is precisely the mass-\(M_x\) underdamped Langevin diffusion used by \gls*{mpgd} \citep{lim2024momentumparticlemaximumlikelihood}. Theorem~\ref{thm:invariant_measure} therefore shows that
+\[
+\delta_{\theta_\star}\otimes\delta_0\otimes\pi_{\theta_\star}
+\otimes\mathcal N(0,M_xI_{d_x})
+\]
+is stationary whenever \(\nabla_\theta\ell(\theta_\star)=0\).
+
+\subsection{Space and time discretisations}
+
+To obtain an SDE that is amenable to numerical implementation, we approximate the mean-field law by an empirical measure of \(N\) particles driven by mutually independent Brownian motions. Under i.i.d.\ initialisation, the particles interact through their common optimiser state and are therefore exchangeable rather than independent. Their empirical gradient \(G_{\nu_t^N}(\vartheta_t^N)\) is used as an approximation of the corresponding mean-field gradient. This gives the following finite-dimensional interacting SDE
+\begin{align}
+\mathrm{d} \vartheta^N_t &= \Psi_t(\vartheta^N_t,G_{\nu_t^N}(\vartheta_t^N) ) \mathrm{d} t,\label{eq:general_particle_system_opt}\\
+\mathrm{d} Z^i_t &= b_{\Pi_\theta(\vartheta^N_t)}(Z^i_t) \mathrm{d}t  +\sigma_{\Pi_\theta(\vartheta^N_t)}(Z^i_t)\mathrm{d}B^i_t,\label{eq:general_particle_system_x}
+\end{align}
+where $\{B^i_t\}_{i=1}^N$ are mutually independent Brownian motions on $\sB$ and the empirical measure $\nu_t^N$ is defined as $\nu_t^N =({1}/{N}) \sum_{i=1}^N \delta_{Z^i_t}$ and
+\begin{align}
+G_{\nu_t^N}(\vartheta_t^N)&:=\frac{1}{N}\sum_{i=1}^N F(\Pi_{\theta}(\vartheta^N_t),\Pi_{x}(Z^i_t)). \nonumber
+\end{align}
+Certain choices of $\Psi_t$ and the drift and diffusion coefficients in \eqref{eq:general_particle_system_x}, together with suitable time-discretisation (e.g. Euler-Maruyama) schemes, give rise to practical algorithms. We leave the design of such algorithms to Section~\ref{sec:algorithm} where we develop applications. We next consider theoretical analysis of the general mean-field system and its interacting-particle approximation.
