@@ -18,11 +18,11 @@ are shortcuts to that teaching document. The editable fragments live under
 open. Running the builder also recreates the shortcuts, including their section
 anchors and a visible link if automatic redirection is disabled.
 
-The main theorem states both fully constructed Gaussian ULA bounds, with the
-exact theorem headers from `CanonicalULA.lean`. The analytic argument develops
-through definitions, lemmas, and the shared proof in `HilbertDalalyan.lean`.
-The historical Euclidean wrappers are explained in a separate compatibility
-chapter and retained in the complete-source appendix. Each proof step sits beside its source lines, and
+The main theorem states both Gaussian ULA bounds and reproduces their exact
+headers from `CanonicalULA.lean`. The proof gives the deterministic contraction,
+local discretization error, and coupling recurrence in `HilbertDalalyan.lean`.
+A separate chapter specializes these estimates to Euclidean random variables;
+the appendix includes the corresponding source. Each proof step sits beside its source lines, and
 the full declaration follows every proof, initially unfolded. On narrow screens,
 each Lean box follows its mathematical step. The small toolbar switches to
 mathematics only, folds repeated code, or prints the document. Step links can be
@@ -31,10 +31,11 @@ bookmarked; full modules at the end can be copied or saved.
 The front of the document states the main theorem explicitly, with both
 step-size regimes, its assumptions, the meaning of the error terms, and a proof
 roadmap. Direct links lead to the full theorem proofs; expandable sections show
-the constructed reference properties and the exact Lean theorem statements.
-The shared analytic interface explicitly displays its reference argument;
-the canonical endpoints discharge it and use the true initial Wasserstein
-distance. These two levels are identified separately throughout the document.
+the stationary reference process and the exact Lean theorem statements.
+The abstract coupling result assumes the listed properties of that process.
+The final convergence theorems construct a process with these properties and
+take the infimum over initial couplings to obtain the initial Wasserstein
+distance.
 
 The Lean notes assume no prior Lean experience. Every statement has a note
 explaining its parameters and hypotheses, every proof block has explanations

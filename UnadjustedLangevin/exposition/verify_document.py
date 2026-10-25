@@ -103,7 +103,7 @@ def verify():
         "lpChain", "L2Reference", "l2_reference_bound",
         "dalalyan_small_step_of_integral_reference", "dalalyan_large_step_of_integral_reference"}
     assert any(d["name"] == "hilbert_lpChain_eq_lpUlaChain" for d in wrappers["declarations"])
-    assert "Exact Lean statements of the canonical results" in text
+    assert "Exact Lean statements of the convergence theorems" in text
     assert 'data-source="UnadjustedLangevin/CanonicalULA.lean"' in text
     assert "Gibbs invariance and the complete coupling-family construction remain open" not in text
     assert '<style>' in text and 'class="katex' in text, "Missing styles or prerendered mathematics"

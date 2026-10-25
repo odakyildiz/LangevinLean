@@ -262,8 +262,8 @@ def paper_references(library):
             'IPLA/LSI': 'The particle entropy argument presented here is unpublished; '
                         'the cited works provide its sampling and functional-inequality background.',
             'ProximalLangevin': 'The algorithms are from the cited paper. The corrected bounds '
-                               'and proofs here are unpublished and cover only the results explicitly '
-                               'stated below; the printed rates and constants are not all recovered.',
+                               'and proofs here are unpublished. They establish the results stated '
+                               'below; some rates and constants printed in the paper are not proved here.',
             'KineticLangevin': 'The exposition follows the cited kinetic-sampling paper, with '
                               'corrections to the continuous prefactor and the second-order comparison. '
                               'The exact fourth Gaussian moment is retained. Continuous solutions '
@@ -298,10 +298,9 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
         document += [
             r"\chapter*{About this document}" + "\n",
             r"\addcontentsline{toc}{chapter}{About this document}" + "\n",
-            "These draft notes present the assumptions, convergence theorems and "
-            "detailed mathematical proofs for this development. The supporting "
-            "arguments are arranged so that prerequisites precede their applications. "
-            "They use ordinary mathematical notation throughout.\n\n"
+            "Chapter 1 states the assumptions and convergence estimates. "
+            "Chapter 2 gives their proofs. Chapter 3 proves the supporting "
+            "lemmas, in an order in which each lemma precedes its applications.\n\n"
             "Prepared by the LangevinLean Project with AI assistance, these notes form "
             "part of an ongoing effort to formalize Langevin algorithms comprehensively. "
             "This is draft work and may contain mistakes.\n\n",
@@ -340,9 +339,8 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
                                     + _module_label(node["file"]) + "}.\n")
                 document.append(r"\end{enumerate}" + "\n")
         document += [r"\chapter{Supporting proofs}" + "\n",
-                     "We now supply the detailed supporting arguments. Each section "
-                     "introduces the objects and estimates needed by the results that "
-                     "follow it.\n\n"]
+                     "The following sections give the definitions and prove the lemmas "
+                     "used in the convergence arguments.\n\n"]
         for path in plan["modules"]:
             note = notes[path]
             document.append(r"\section{" + latex_heading(note["title"]) + "}\n")
@@ -365,7 +363,6 @@ def _earlier_report_notice(plan, catalog):
     if not plan['earlier_reports']:
         return ''
     keys = ','.join(REPORTS[library]['key'] for library in plan['earlier_reports'])
-    return ('These proofs use results established in the earlier project reports '
-            + r'\cite{' + keys + '}. '
-            + 'Each application below gives the section containing the required result. '
-            + 'The earlier proofs are not reproduced in this report.\n\n')
+    return ('Results from the earlier reports '
+            + r'\cite{' + keys + '} '
+            + 'are used below. Each application cites the section containing the required result.\n\n')

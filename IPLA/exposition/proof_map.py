@@ -1,4 +1,4 @@
-"""Offline, source-linked roadmap of the formally proved IPLA theorem."""
+"""The mathematical dependencies of the IPLA parameter-error estimate."""
 from __future__ import annotations
 
 import html
@@ -9,73 +9,73 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-# This is a logical proof roadmap, rather than a graph of Lean import commands.
+# The arrows record mathematical dependencies between the stated results.
 NODES = [
     dict(id="assumptions", x=355, y=24, kind="input",
-         title="Joint potential + Gaussian noise",
-         detail=r"\(m\)-strong convexity · \(L\)-Lipschitz gradient",
+         title="Joint potential and Gaussian innovations",
+         detail=r"\(m\)-strong convexity and an \(L\)-Lipschitz gradient",
          file="IPLA/Model.lean", declaration="GaussianInnovations"),
     dict(id="geometry", x=25, y=210, kind="ipla",
-         title="Lift and rescale the particles",
-         detail=r"\(Nm,NL\) · dimension \(d_\theta+Nd_x\)",
+         title="Scaled particle potential",
+         detail=r"Curvature and gradient constants \(Nm,NL\); dimension \(d_\theta+Nd_x\)",
          file="IPLA/Geometry.lean", declaration="potential_strongConvex"),
     dict(id="algorithm", x=25, y=360, kind="ipla",
-         title="Identify the actual algorithm",
-         detail=r"IPLA law = ULA law, step \(\gamma/N\)",
+         title="Equality of particle and Euler laws",
+         detail=r"IPLA and Gaussian Euler laws with step \(\gamma/N\)",
          file="IPLA/ULAAdapter.lean", declaration="laws_eq_ulaLawStep"),
     dict(id="gibbs", x=355, y=210, kind="ula",
-         title="Gibbs normalization and moments",
-         detail=r"Positive finite partition · finite \(L^2\) moments",
+         title="Gibbs normalization and second moments",
+         detail=r"A positive finite partition and finite \(L^2\) moments",
          file="UnadjustedLangevin/Gibbs.lean",
          declaration="isProbabilityMeasure_gibbsMeasure"),
     dict(id="mala", x=355, y=360, kind="ula",
-         title="Exact Metropolis invariance",
-         detail="Gaussian density + detailed balance",
+         title="Metropolis invariance of the Gibbs law",
+         detail="Gaussian proposal density and detailed balance",
          file="UnadjustedLangevin/MALAInvariance.lean",
          declaration="malaOneStep_gibbs_invariant"),
     dict(id="stationarity", x=355, y=510, kind="ula",
-         title="Prove continuous Gibbs stationarity",
-         detail="Vanishing rejection cost + Euler limit",
+         title="Stationarity of the Langevin law",
+         detail="Vanishing rejection displacement and the Euler limit",
          file="UnadjustedLangevin/GibbsStationarity.lean",
          declaration="lp_langevin_gibbs_stationary"),
     dict(id="dalalyan", x=355, y=660, kind="ula",
-         title="Dalalyan’s coupling estimate",
-         detail=r"Contraction · local error · \(W_2\) infimum",
+         title="The synchronous coupling estimate",
+         detail=r"Gradient contraction, local error, and the \(W_2\) infimum",
          file="UnadjustedLangevin/HilbertDalalyan.lean",
          declaration="dalalyan_small_step_of_integral_reference"),
     dict(id="canonical", x=355, y=810, kind="ula",
-         title="Shared Gaussian ULA theorem",
-         detail=r"Actual Gaussian chain · initial \(W_2\) derived",
+         title="Gaussian Euler transport convergence",
+         detail=r"Independent Gaussian recursion and finite initial \(W_2\)",
          file="UnadjustedLangevin/GaussianULA.lean",
          declaration="dalalyan_of_gaussian_innovations"),
     dict(id="marginal", x=685, y=210, kind="concentration",
-         title="Compute the parameter marginal",
-         detail=r"\(\Pi_N\) projected to \(\theta\): density \(\propto\ell_y(\theta)^N\)",
+         title="The parameter Gibbs marginal",
+         detail=r"Projection of \(\Pi_N\) onto \(\theta\) has density \(\propto\ell_y(\theta)^N\)",
          file="IPLA/MarginalConcentration.lean",
          declaration="gibbsTarget_parameter_marginal"),
     dict(id="log-concavity", x=685, y=360, kind="concentration",
-         title="Derive marginal strong convexity",
-         detail=r"Prékopa: \(F(\theta)=-\log\ell_y(\theta)\) is \(m\)-convex",
+         title="Strong convexity after latent integration",
+         detail=r"Prékopa–Leindler gives \(F(\theta)=-\log\ell_y(\theta)\) with curvature \(m\)",
          file="IPLA/StrongLogConcavity.lean",
          declaration="marginalPotential_strongConvex"),
     dict(id="gibbs-moment", x=685, y=510, kind="ula",
-         title="Shared Gibbs moment estimate",
-         detail=r"Dimension \(d_\theta\) · curvature \(Nm\) · mode \(\theta_\star\)",
+         title="The Gibbs moment about its mode",
+         detail=r"Dimension \(d_\theta\), curvature \(Nm\), and mode \(\theta_\star\)",
          file="UnadjustedLangevin/GibbsConcentration.lean",
          declaration="integral_sq_dist_gibbs_le_of_continuous_strongConvex_mode"),
     dict(id="concentration", x=685, y=810, kind="concentration",
-         title="Prove the equilibrium radius",
-         detail=r"Parameter RMS \(\le\sqrt{2d_\theta/(Nm)}\)",
+         title="The equilibrium parameter radius",
+         detail=r"The parameter root mean square is \(\le\sqrt{2d_\theta/(Nm)}\)",
          file="IPLA/Concentration.lean",
          declaration="gibbsTarget_parameter_concentration"),
     dict(id="projection", x=25, y=1000, kind="ula",
-         title="Project the parameter and constants",
-         detail=r"Norm \(\le1\) · exact dimension and step factors",
+         title="Parameter projection of transport",
+         detail=r"Projection norm \(\le1\) and the scaled dimension and step",
          file="UnadjustedLangevin/Projection.lean",
          declaration="projectedRMSReal_le_wasserstein2Real_add"),
     dict(id="theorem", x=355, y=1150, kind="final",
-         title="General-dimension IPLA bound",
-         detail=r"Independent \(d_\theta,d_x\) · zero dimensions included",
+         title="The IPLA parameter-error estimate",
+         detail=r"Arbitrary \(d_\theta,d_x\), including zero dimensions",
          file="IPLA/Theorem.lean", declaration="theorem1"),
 ]
 
@@ -147,16 +147,16 @@ def diagram_svg(sources, math):
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1030 1274" '
         'class="proof-svg" role="group" aria-labelledby="proof-map-title proof-map-description">',
         '<title id="proof-map-title">Proof of the general-dimension IPLA theorem</title>',
-        '<desc id="proof-map-description">Fourteen linked boxes trace the joint assumptions '
-        'through IPLA geometry, the shared ULA theorem and Gibbs stationarity, and '
-        'marginal concentration. These branches meet in projection and exact scaling, '
-        'then the final theorem. Every box opens an HTML proof page with its Lean source.</desc>',
+        '<desc id="proof-map-description">The joint assumptions imply the scaled-potential regularity, '
+        'Gaussian Euler transport estimate, and parameter concentration. '
+        'Parameter projection and the coordinate scaling combine these estimates '
+        'in the final inequality. Each item links its mathematical proof and formal source.</desc>',
         '<style>' + SVG_CSS + '</style>',
         '<defs><marker id="proof-arrow" viewBox="0 0 10 10" refX="9" refY="5" '
         'markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
         '<path d="M 0 0 L 10 5 L 0 10 z" fill="#7e929d"/></marker></defs>',
-        '<text class="proof-lane" x="25" y="181">IPLA GEOMETRY + LAWS</text>',
-        '<text class="proof-lane" x="355" y="181">SHARED ULA PROOF</text>',
+        '<text class="proof-lane" x="25" y="181">PARTICLE GEOMETRY AND LAWS</text>',
+        '<text class="proof-lane" x="355" y="181">GAUSSIAN EULER ESTIMATES</text>',
         '<text class="proof-lane" x="685" y="181">PARAMETER CONCENTRATION</text>',
     ]
     for start, end, route in EDGES:
@@ -225,8 +225,8 @@ def proof_map_section(sources, math, katex_styles):
     # Embed fonts in the downloadable SVG as well as in the enclosing HTML.
     (HERE / "proof-map.svg").write_text(svg.replace('<style>', '<style>'+katex_styles, 1))
     groups = [
-        ("IPLA", "IPLA geometry and concentration"),
-        ("UnadjustedLangevin", "Shared ULA"),
+        ("IPLA", "Particle geometry and concentration"),
+        ("UnadjustedLangevin", "Gaussian Euler estimates"),
     ]
     catalog = []
     for prefix, label in groups:
@@ -235,26 +235,26 @@ def proof_map_section(sources, math, katex_styles):
         catalog.extend('<li>' + lean_link(path, Path(path).name) + '</li>' for path, _ in entries)
         catalog.append('</ul></section>')
     supplements = [
-        ("IPLA/Dynamics.lean", "Physical θ and x updates"),
-        ("IPLA/Scaling.lean", "Exact constants and step size"),
-        ("UnadjustedLangevin/CanonicalULA.lean", "Shared law-level ULA estimate"),
-        ("UnadjustedLangevin/MALACoupling.lean", "Rejection-cost coupling"),
+        ("IPLA/Dynamics.lean", "Physical parameter and latent updates"),
+        ("IPLA/Scaling.lean", "Scaled constants and step restriction"),
+        ("UnadjustedLangevin/CanonicalULA.lean", "Gaussian Euler transport estimate"),
+        ("UnadjustedLangevin/MALACoupling.lean", "Metropolis rejection displacement"),
         ("UnadjustedLangevin/EulerLimit.lean", "Euler convergence"),
-        ("UnadjustedLangevin/GibbsScore.lean", "Gibbs score moment"),
+        ("UnadjustedLangevin/GibbsScore.lean", "Gibbs score second moment"),
         ("UnadjustedLangevin/CanonicalBrownian.lean", "Brownian source"),
-        ("IPLA/PrekopaTensorization.lean", "Finite-dimensional Prékopa"),
+        ("IPLA/PrekopaTensorization.lean", "Finite-dimensional Prékopa–Leindler"),
         ("IPLA/Degenerate.lean", "Zero-dimensional cases"),
     ]
     extra_links = " · ".join(lean_link(path, label) for path, label in supplements)
     return (
         '<section id="proof-map" aria-labelledby="proof-map-heading">'
-        '<h2 id="proof-map-heading">Proof map — follow the Lean files</h2>'
-        '<p>Read downward from the joint assumptions. The blue boxes are the shared ULA '
-        'results; the green and purple boxes supply the IPLA geometry and statistical '
-        'marginal argument. Select any box to open its proof page and exact Lean source. '
-        'The arrows describe the mathematical argument, rather than every import.</p>'
+        '<h2 id="proof-map-heading">Dependencies of the parameter-error estimate</h2>'
+        '<p>The joint-potential and innovation assumptions imply the scaled particle '
+        'geometry, the Gaussian Euler transport estimate, and the Gibbs parameter '
+        'concentration. Projection combines the transport and concentration terms. '
+        'Each link gives the corresponding proof and formal statement.</p>'
         '<div class="proof-legend"><span class="legend-ipla">IPLA geometry and laws</span>'
-        '<span class="legend-ula">Shared ULA</span>'
+        '<span class="legend-ula">Gaussian Euler estimates</span>'
         '<span class="legend-concentration">Parameter concentration</span></div>'
         '<figure class="proof-figure"><div class="proof-scroll" data-proof-diagram role="group" '
         'aria-label="Linked proof diagram">' + diagram_html(math) +
@@ -264,9 +264,9 @@ def proof_map_section(sources, math, katex_styles):
         '<a href="proof-map.svg" target="_blank" rel="noopener">Open the SVG diagram</a>.'
         '</figcaption></figure>'
         '<p class="proof-support"><strong>Supporting files:</strong> ' + extra_links + '.</p>'
-        '<p class="proof-note"><strong>The stationarity step is a proved limit argument.</strong> '
-        'Exact MALA invariance, coupling bounds and the Euler limit establish the law of the '
-        'continuous solution. Generator integration is documented separately below.</p>'
+        '<p class="proof-note"><strong>Stationarity follows by a limit of invariant adjusted chains.</strong> '
+        'Metropolis invariance, the rejection-displacement comparison, and Euler convergence identify the law of the '
+        'Langevin integral solution. The separate generator integration identity does not alone prove this stationarity.</p>'
         '<details id="lean-files" class="source-library"><summary>Browse all ' +
         str(len(sources)) + ' Lean source files</summary><div class="source-groups">' +
         ''.join(catalog) + '</div></details></section>' + diagram_script()

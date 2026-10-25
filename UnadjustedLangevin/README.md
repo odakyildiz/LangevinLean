@@ -1,10 +1,10 @@
 # Unadjusted Langevin: Dalalyan's theorem in Lean
 
-The end-to-end strongly convex Gaussian ULA theorem is kernel-checked, including
-both sharp step-size regimes and the corrected constant **1.65**. The public
-endpoints construct the reference process and prove its Gibbs stationarity.
-They take no stationary-reference, generator-uniqueness, score-moment, target
-normalization, or Brownian-existence hypothesis.
+The strongly convex Gaussian ULA theorem is proved in Lean, with both step-size
+regimes and the coefficient **1.65**. The proof constructs the reference
+process, proves that its distribution is the normalized Gibbs measure at every
+time, and bounds its gradient second moment. These properties follow from the
+stated assumptions on the potential.
 
 ## Build and inspect
 
@@ -56,7 +56,7 @@ Finite initial W₂ is derived from the actual L² initialization.
 `dalalyan_output_finite` proves finite output transport cost. The real-valued
 bounds therefore do not conceal infinite costs behind `ENNReal.toReal`.
 
-## How the former hypotheses are discharged
+## Supporting results
 
 | Modules | Checked content |
 | --- | --- |
@@ -78,7 +78,7 @@ the public theorems construct their inputs. No optimal coupling is assumed.
 The transport development proves the properties used here without claiming a
 complete Wasserstein metric theory.
 
-## Generator integration and actual stationarity
+## Integration by parts and Gibbs stationarity
 
 For compactly supported C² test functions, ordinary integration by parts gives
 
@@ -100,9 +100,9 @@ identifies the limit with the constructed L² Langevin solution, and
 characteristic functions identify its Gibbs law. This completes stationarity
 without assuming a Dynkin formula or weak-forward-equation uniqueness.
 
-The integral solution is a continuous curve in L² with a Bochner integral
-equation. This suffices for the convergence theorem. A separate sample-path
-SDE representation is not an input to any public endpoint.
+The integral solution is a continuous curve in L² satisfying a Bochner integral
+equation. The convergence theorem uses this representation. It does not require
+a separate theorem on continuity of the individual sample paths.
 
 See [the complete hypothesis audit](exposition/hypotheses.md). The IPLA
 application additionally proves marginal strong log-concavity and its sharp
@@ -118,19 +118,18 @@ $$
 H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+\frac{8hnL^2}{\alpha}.
 $$
 
-`ULA.LSI.ula_kl_bound_of_interpolation` proves this bound for the actual Gaussian
-ULA laws **conditionally** on identified interpolation densities, regularity,
-finite KL/Fisher information, entropy production, a gradient-moment estimate,
-and $\alpha\le L$. The modules prove the entropy calculus, actual Gaussian
-displacement/error moments, one-step scalar estimate, and iteration. A second
-wrapper derives KL regularity and production
-from local density data and an admissible weak equation. Deriving every
-interpolation and moment obligation
-from LSI and smoothness alone remains unfinished. The detailed proof page
-explains the calculations, displays every LSI declaration, and audits the
-correspondence with the paper. See the [module guide](LSI/README.md) for the
-precise status and module map. The strongly convex transport endpoints above remain
-the complete results under their stated potential assumptions.
+`ULA.LSI.ula_kl_bound` proves this bound for the Gaussian ULA distributions
+from a normalized Gibbs target satisfying LSI, differentiability of the
+potential, a Lipschitz gradient, the stated positive step restriction, and
+finite initial relative entropy. The proof constructs and differentiates the
+Gaussian interpolation density, bounds the gradient moments, proves the weak
+equation and entropy derivative, and derives $\alpha\le L$ in positive
+dimension. It then integrates the entropy inequality and sums the discrete
+recurrence. In dimension zero the distributions are equal. Finiteness of KL at
+each iterate is included in the conclusion. The earlier conditional theorem
+`ULA.LSI.ula_kl_bound_of_interpolation` remains available with its explicit
+interpolation assumptions. See the [module guide](LSI/README.md) for the proof
+and source correspondence.
 
 The coupling estimate follows Section 6 of
 [Dalalyan (COLT 2017)](https://proceedings.mlr.press/v65/dalalyan17a.html).
@@ -138,8 +137,9 @@ The corrected coefficient from
 [Dalalyan–Karagulyan](https://arxiv.org/abs/1710.00095) is derived independently
 in Lean: `(7/6) √2 ≤ 33/20 = 1.65`.
 
-A fixed positive step gives a nonzero error floor. The bounds do not assert
-exact Gibbs convergence as n tends to infinity at fixed h.
+For fixed positive step size, the bound tends to a positive constant as the
+iteration count tends to infinity. That constant tends to zero with the step
+size.
 
 ## Proof document
 

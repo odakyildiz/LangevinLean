@@ -1,8 +1,8 @@
 <details class="beginner-guide" id="lean-beginner-guide" open>
-<summary>New to Lean? Start here: syntax, proof states, and typing symbols</summary>
+<summary>Lean syntax, proof states, and symbol entry</summary>
 <div class="guide-body">
-<p>You can know the mathematics and still find every line of Lean unfamiliar. The notes below assume no programming or Lean experience. Open a topic here whenever a word or symbol is unfamiliar. Every proof block also has its own line-by-line explanation, including the names and arguments used in that particular block. The expanded examples in this guide are teaching examples; the numbered source boxes elsewhere are the exact repository code.</p>
-<p><strong>A useful reading order:</strong> types and proofs → goals → <code>let</code> and <code>have</code> → function application → affine-map notation → <code>simp</code> and <code>simpa</code>. You do not have to memorize the table of symbols before starting the proof.</p>
+<p>This guide defines the notation and proof commands used in the source excerpts. It assumes no prior experience with Lean. Each proof block also has an explanation of its individual source lines and arguments. The examples in this guide illustrate the syntax; the numbered source boxes elsewhere reproduce the repository code.</p>
+<p>The topics are ordered as follows: types and proofs, goals, local definitions and intermediate results, function application, affine maps, and simplification. The symbol table gives the corresponding keyboard abbreviations.</p>
 
 <details class="guide-topic" id="lean-types">
 <summary>Types, values, propositions, and the colon <code>:</code></summary>
@@ -13,7 +13,7 @@
 </details>
 
 <details class="guide-topic" id="lean-goals">
-<summary>What is a goal? What do <code>by</code>, indentation, and <code>⊢</code> mean?</summary>
+<summary>Goals, <code>by</code> blocks, indentation, and <code>⊢</code></summary>
 <p>A <em>goal</em> is the statement Lean is currently asking you to prove. The <em>context</em> is the collection of objects and facts available at that point. In the Lean editor, the Infoview displays them, for example:</p>
 <pre class="note-code">x : ℝ
 hx : 0 ≤ x
@@ -25,7 +25,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-assignment">
-<summary>What does <code>:=</code> do? How is it different from <code>:</code> and <code>=</code>?</summary>
+<summary>Types, definitions, and equality: <code>:</code>, <code>:=</code>, and <code>=</code></summary>
 <p><code>:</code> introduces a type or proposition. <code>:=</code> introduces the expression that supplies its value or proof. Read <code>let n : ℕ := 3</code> as “define the local natural number <code>n</code> to be <code>3</code>.” Read <code>have h : 0 ≤ n := someProof</code> as “name this proof of <code>0 ≤ n</code> by <code>h</code>.”</p>
 <p>In <code>lemma myLemma : P := by …</code>, the text after <code>:=</code> must be a proof of <code>P</code>. The <code>by</code> block builds that proof through tactics. In <code>let line : ℝ →ᵃ[ℝ] H := AffineMap.lineMap x y</code>, the text after <code>:=</code> is an affine-map object. In both cases Lean checks that the right-hand expression has the specified type.</p>
 <p><code>=</code> is different: it forms a mathematical assertion of equality. <code>line = anotherMap</code> is something that could need a proof. Writing <code>:=</code> gives a definition or a proof term; it is not an instruction to prove an equality and does not mutate an earlier variable. Local definitions are not changing computer storage as the argument runs.</p>
@@ -33,7 +33,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-let">
-<summary>What is <code>let</code>? What does it mean to unfold a local definition?</summary>
+<summary>Local definitions with <code>let</code> and their expansion</summary>
 <p><code>let</code> gives a local name to a specified value. In the first proof, <code>let line : ℝ →ᵃ[ℝ] H := AffineMap.lineMap x y</code> introduces the abbreviation <code>line</code> for that particular affine map. The name is usable in the remainder of this proof, including its nested subproofs. It is not a new hypothesis asserting that some unspecified map exists.</p>
 <p>A local definition retains its defining value. <em>Unfolding</em> it means replacing occurrences of its name by that value. Thus unfolding <code>line</code> replaces it by <code>AffineMap.lineMap x y</code>. This replacement is justified by the definition itself; there is no extra mathematical lemma to prove.</p>
 <p>Here is a small checked example:</p>
@@ -46,7 +46,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-have">
-<summary>What is <code>have</code>? Is it an assumption or a proof?</summary>
+<summary>Intermediate results with <code>have</code></summary>
 <p><code>have</code> introduces an intermediate result after you supply its justification. In <code>have hc : P := by …</code>, you choose a name <code>hc</code>, state the proposition <code>P</code>, and prove it in the indented block. After that block succeeds, later lines can use <code>hc</code>. You have not asked Lean to accept <code>P</code> without evidence.</p>
 <pre class="note-code">example (x : ℝ) (hx : 0 ≤ x) : 0 ≤ x + 0 := by
   have h : 0 ≤ x := hx
@@ -54,11 +54,11 @@ hx : 0 ≤ x
 <p><code>hx</code> is a supplied hypothesis; <code>h</code> is a new local name for a proof obtained from it. The word <code>have</code> is not English prose ignored by Lean: it is syntax that adds a checked local declaration to the context. The last line simplifies the new fact and the target so that they match.</p>
 <p>You can write <code>have hs := theoremName arguments</code> without a colon. Lean reads the theorem’s result type and infers which proposition <code>hs</code> proves. You can also introduce a parameterized local result: <code>have hbound (t : ℝ) : P t := by …</code>. That proves a fact available for every real argument <code>t</code>; later <code>hbound s</code> applies it at <code>s</code>.</p>
 <p>The first proof’s <code>hc</code>, <code>hl</code>, <code>hd</code>, and <code>hs</code> are chosen names: convexity of the restriction, its line derivative, the derivative of its composition, and the slope inequality. Their spelling conveys the author’s intent but does not change Lean’s logic. The type after the colon determines what each fact actually says.</p>
-<p><strong>A subtle distinction from <code>let</code>:</strong> in ordinary proof writing, <code>have</code> usually names a proved proposition and <code>let</code> usually names a defined mathematical object. This is a convention, not a restriction saying one can only hold proofs and the other can only hold data. Both introduce typed local terms. A <code>let</code> binding retains a defining value that can be unfolded; a fact introduced with <code>have</code> is normally used through its stated type. For the first proof, use <code>let line</code> to abbreviate the map and <code>have hc</code> to record the proved convexity of its composition.</p>
+<p><strong>Comparison with <code>let</code>:</strong> in ordinary proof writing, <code>have</code> usually names a proved proposition and <code>let</code> usually names a defined mathematical object. This is a convention, not a restriction saying one can only hold proofs and the other can only hold data. Both introduce typed local terms. A <code>let</code> binding retains a defining value that can be unfolded; a fact introduced with <code>have</code> is normally used through its stated type. For the first proof, use <code>let line</code> to abbreviate the map and <code>have hc</code> to record the proved convexity of its composition.</p>
 </details>
 
 <details class="guide-topic" id="lean-application">
-<summary>Why are arguments separated by spaces? What are <code>fun</code>, <code>↦</code>, and <code>∘</code>?</summary>
+<summary>Function application, function definitions, and composition</summary>
 <p>Lean normally applies a function by writing its name followed by its arguments, separated by spaces. <code>f x</code> means the mathematical expression <em>f(x)</em>. <code>AffineMap.lineMap x y</code> applies the named construction first to <code>x</code> and then to <code>y</code>. A function expecting several arguments can be applied to just its first arguments, producing a function that awaits the rest.</p>
 <p>Application groups to the left: <code>f x y</code> means <code>(f x) y</code>. Parentheses group an argument that is itself an expression. <code>f (x + y)</code> applies <code>f</code> to the sum; <code>f x + y</code> adds <code>y</code> after applying <code>f</code>. Similarly, <code>gradient f x</code> means “the gradient of <code>f</code> evaluated at <code>x</code>,” and <code>inner ℝ u v</code> specifies the real inner product of two vectors.</p>
 <p><code>fun t ↦ expression</code> defines a function by describing its value at a variable input. The ASCII version <code>fun t =&gt; expression</code> has the same role. For example, <code>fun t : ℝ ↦ t • (y - x) + x</code> maps a real parameter to the corresponding point on the line. The colon specifies the input type.</p>
@@ -66,7 +66,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-dot">
-<summary>What do dots in <code>AffineMap.lineMap</code>, <code>hf.comp_affineMap</code>, and <code>hs.1</code> mean?</summary>
+<summary>Qualified names, theorem application, and component selection</summary>
 <p>A dot can separate parts of a name. <code>AffineMap.lineMap</code> is the construction <code>lineMap</code> inside the namespace <code>AffineMap</code>. A namespace organizes library declarations and helps distinguish similarly named things. Names are case-sensitive: the initial capital <code>A</code> and <code>M</code> matter. <code>affineMap.lineMap</code> is not the same identifier.</p>
 <p>A dot can also be <em>generalized field notation</em>: a convenient way to pass an object or proof to a suitable theorem. In this proof, <code>hf.comp_affineMap line</code> is the theorem application <code>ConvexOn.comp_affineMap line hf</code>. Lean uses the type of <code>hf</code> to find the theorem and inserts <code>hf</code> into the appropriate argument position. It does not always insert the object as the first explicit argument; the theorem’s declaration determines the placement.</p>
 <p>In <code>hxy.trans hyz</code>, <code>.trans</code> combines compatible equalities or inequalities by transitivity. For example, a proof of <code>a ≤ b</code> and a proof of <code>b ≤ c</code> yield a proof of <code>a ≤ c</code>. The local notes state the intermediate expressions when this occurs.</p>
@@ -74,7 +74,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-affine-map">
-<summary>What is <code>ℝ →ᵃ[ℝ] H</code>? What is <code>AffineMap.lineMap x y</code>?</summary>
+<summary>Affine maps and parameterized lines</summary>
 <p>The full notation <code>A →ᵃ[k] B</code> names the type <code>AffineMap k A B</code>: affine maps from <code>A</code> to <code>B</code> over the scalar system <code>k</code>. The superscript <code>ᵃ</code> is a marker for affine maps. It is not a variable exponent, and this is not an ordinary function arrow followed by an extra hypothesis.</p>
 <p>Thus <code>ℝ →ᵃ[ℝ] H</code> has three pieces: input space <code>ℝ</code>, scalar system <code>ℝ</code> inside the brackets, and output space <code>H</code>. An affine map includes both its underlying function and the algebraic structure witnessing affinity. In this setting an affine map preserves affine combinations. Such a map can be evaluated like a function, so <code>line t</code> is meaningful.</p>
 <p><code>AffineMap.lineMap</code> is a construction already proved valid in mathlib. Given two points <code>x y : H</code>, <code>AffineMap.lineMap x y</code> is the parameterized line:</p>
@@ -85,7 +85,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-simp">
-<summary>What is <code>simp</code>? Why write <code>[line]</code> when <code>line</code> was defined with <code>let</code>?</summary>
+<summary>Simplification and expansion of definitions with <code>simp</code></summary>
 <p><code>simp</code> is the simplifier tactic. It uses definitions you explicitly ask it to unfold and a collection of proven simplification rules, for example that adding zero changes nothing. Each replacement is justified; it does not decide arbitrary mathematical questions by guessing.</p>
 <p>After <code>simp</code>, square brackets supply additional instructions for this simplification. In <code>simp [line]</code>, <code>line</code> is a local definition, so the list tells the simplifier it may unfold <code>line</code> to its defining value. The fact that it was introduced by <code>let</code> is exactly what makes that value available.</p>
 <p>If a list entry is instead an equality lemma, the simplifier can use that equality as a rewrite rule. Thus <code>simp [line, someEquality]</code> may contain both a definition to unfold and a theorem to rewrite with. These brackets are tactic syntax. They are not declaring a typeclass instance, constructing a vector containing <code>line</code>, or evaluating <code>line</code> at an input.</p>
@@ -94,7 +94,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-simpa">
-<summary>What is <code>simpa [line] using hf.comp_affineMap line</code> doing?</summary>
+<summary>Simplification of a supplied proof with <code>simpa</code></summary>
 <p><code>simpa</code> asks Lean to finish the current goal by simplification. The form <code>simpa using h</code> supplies an existing proof <code>h</code>, simplifies its statement and the target as needed, and succeeds when the resulting statements match. If they do not match, the command fails; it does not simply move on with an unproved result.</p>
 <p>Break the actual command into its parts:</p>
 <dl class="syntax-parts"><dt><code>simpa</code></dt><dd>Close the current goal through simplification.</dd><dt><code>[line]</code></dt><dd>Add the local definition <code>line</code> to the things that can be unfolded.</dd><dt><code>using</code></dt><dd>The expression that follows is an existing proof to adapt to the target.</dd><dt><code>hf.comp_affineMap line</code></dt><dd>Apply the convexity-under-affine-composition theorem to the given convexity proof <code>hf</code> and affine map <code>line</code>.</dd></dl>
@@ -116,7 +116,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-proof-terms">
-<summary>What are <code>exact</code>, proof terms, <code>rfl</code>, and <code>show</code>?</summary>
+<summary>Proof terms, <code>exact</code>, <code>rfl</code>, and <code>show</code></summary>
 <p>A <em>proof term</em> is an expression that Lean checks has the target proposition as its type. If <code>h : P</code> is already available and the goal is <code>P</code>, the tactic <code>exact h</code> supplies that proof and closes the goal. A theorem applied to suitable arguments is itself a proof term for the resulting conclusion.</p>
 <p><code>exact</code> is a tactic; the expression after it need not be a tactic. For example, <code>exact hc.trans hbound</code> supplies the proof term formed by transitivity. A parenthesized <code>(by …)</code> embedded among theorem arguments builds a proof of the expected hypothesis in place, rather than first naming it with <code>have</code>.</p>
 <p><code>rfl</code> proves equality when both sides are definitionally equal—when they compute or unfold to the same expression with the appropriate reductions. The zero and successor recursion equations often have this form. It is not a general tactic for proving any true equality. It can appear as <code>:= rfl</code> in a declaration or as the tactic <code>rfl</code> inside <code>by</code>.</p>
@@ -124,7 +124,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-rewrite">
-<summary>What are <code>rw</code>, <code>←</code>, <code>at</code>, <code>rwa</code>, and <code>calc</code>?</summary>
+<summary>Rewriting and successive equalities or inequalities</summary>
 <p><code>rw [h]</code> uses an equality or suitable equivalence <code>h</code> to replace one expression by another in the target. If <code>h</code> proves <code>a = b</code>, the usual direction replaces <code>a</code> by <code>b</code>. <code>rw [← h]</code> reverses that direction. The arrow is an instruction about rewriting, not a new implication or a modification of the theorem.</p>
 <p><code>rw [h] at hs</code> rewrites the hypothesis named <code>hs</code>. A list such as <code>rw [h1, h2]</code> performs the rewrites in order, so the second sees the expression produced by the first. Some rewriting commands can finish the goal when the resulting equality is reflexive; otherwise there is a remaining target.</p>
 <p><code>rwa</code> rewrites and then tries to close by an available matching assumption. <code>simp only […] at hxy ⊢</code> is simplification at both a fact and the target. Read the <code>at</code> part carefully: it tells you which statement is being transformed.</p>
@@ -168,7 +168,7 @@ hx : 0 ≤ x
 </details>
 
 <details class="guide-topic" id="lean-unicode">
-<summary>How do I type <code>→ᵃ[ℝ]</code> and the other symbols?</summary>
+<summary>Keyboard entry of mathematical symbols</summary>
 <p>In a <code>.lean</code> file with the Lean 4 extension active in VS Code, type a backslash, then an abbreviation, then <kbd>Tab</kbd> to accept the symbol. These input abbreviations are an editor feature; the saved Lean source contains the resulting Unicode characters. They do not turn into symbols when typed in an ordinary browser text box.</p>
 <p><strong>To enter <code>ℝ →ᵃ[ℝ] H</code>:</strong> type <code>\R</code>, press <kbd>Tab</kbd>, then a space; type <code>\r</code>, press <kbd>Tab</kbd>; type <code>\^a</code>, press <kbd>Tab</kbd>; type <code>[</code>; type <code>\R</code>, press <kbd>Tab</kbd>; type <code>]</code>, then a space and <code>H</code>. The superscript <code>ᵃ</code> is a separate Unicode character. The literal source text <code>-&gt;^a</code> does not spell the decorated affine-map notation.</p>
 <p>You may instead copy <code>ℝ →ᵃ[ℝ] H</code>, or write <code>AffineMap ℝ ℝ H</code> and avoid the decorated arrow entirely. Ordinary function arrows can use the ASCII spelling <code>-&gt;</code>. Ordinary lambda arrows can use <code>=&gt;</code>.</p>
@@ -201,7 +201,7 @@ hx : 0 ≤ x
 <p>These abbreviations were checked against the installed Lean extension’s table. The extension’s <a href="https://github.com/leanprover/vscode-lean4/blob/master/lean4-unicode-input/src/abbreviations.json">official abbreviation table</a> is a reference for additional symbols. To inspect a library declaration in VS Code, hover over its name or use Go to Definition; this is how to see the precise hypotheses of <code>AffineMap.lineMap</code> or a theorem called by dot notation.</p>
 </details>
 <details class="guide-topic" id="lean-library-tools">
-<summary>How do I find out what a long library name means?</summary>
+<summary>Looking up library declarations</summary>
 <p>Names such as <code>comp_hasDerivAt_of_eq</code> are library declarations, not new language keywords. You do not have to infer their complete meaning from their spelling. In the Lean editor, hover over the name to see its type, and use Go to Definition to inspect its declaration and documentation. A theorem’s type tells you its inputs and the result it produces. Dots, underscores, and capitalization are part of the name; underscores inside <code>hasDerivAt_id</code> are not holes.</p>
 <p>In a scratch Lean file with the necessary imports, <code>#check AffineMap.lineMap</code> asks Lean to print the type of the construction. <code>#print AffineMap.lineMap</code> also prints its defining body. These are commands for inspecting declarations, rather than tactics to insert into an unfinished proof. A long library declaration often has implicit type and instance parameters before the explicit mathematical arguments; that is why the displayed type may be longer than the short use in this document.</p>
 <p>The appendix’s <code>#print axioms theoremName</code> commands inspect which logical axioms a theorem ultimately depends on. They do not add those axioms or prove the theorem. This project’s audit reports Lean’s standard logical dependencies. A theorem with a supplied hypothesis remains conditional on that hypothesis, regardless of its axiom report. The proof of a reference-process existence theorem cannot be replaced by a structure declaration or by an axiom audit.</p>

@@ -280,26 +280,26 @@ def write_entry_points():
                 '<style>body{max-width:42rem;margin:4rem auto;padding:0 1.25rem;font:18px/1.7 Georgia,serif}a{color:#38604c}</style>'
                 + THEME.theme_head() + '</head><body data-theme-family="ula">' + THEME.theme_control() +
                 '<p>The proof document is ready.</p>'
-                f'<p><a href="{url}">Open the fully rendered Langevin proof document</a>.</p>'
+                f'<p><a href="{url}">Open the Langevin proof document</a>.</p>'
                 '</body></html>\n')
         (HERE/name).write_text(page)
 
 
 INTRO = r"""
-<p class="eyebrow">A mathematical proof with its formal counterpart</p>
+<p class="eyebrow">Mathematical proofs and Lean source</p>
 <h1>The unadjusted<br><em>Langevin algorithm</em></h1>
-<p class="subtitle">Dalalyan’s coupling argument, constructed in order.</p>
-<p>The main theorem is stated first. The rest of this document constructs its proof from supporting lemmas, with the mathematical argument and exact Lean source together.</p>
+<p class="subtitle">Wasserstein convergence under strong convexity.</p>
+<p>The main theorem is followed by the deterministic contraction estimates, Gaussian moment bounds, coupling argument, and discrete recurrence used in its proof. Each mathematical argument is displayed beside its Lean source.</p>
 """
 READING_NOTE = r"""
 <p class="notation">In deterministic lemmas, \(\|\cdot\|\) is the ambient norm. For random vectors, \(\|Z\|_2=(\mathbb E\|Z\|^2)^{1/2}\). The formal potential is named <code>f</code> or <code>U</code>; a general drift is named <code>g</code>. Scalar multiplication is <code>•</code>, and <code>∀ᵐ</code> means “almost everywhere”. Constants typed <code>ℝ≥0</code> carry their nonnegativity.</p>
-<p class="reading-note">Read straight down after the main theorem. Every proof step has its exact Lean lines alongside it. A complete declaration follows every proof, initially unfolded. All complete modules are included at the end. Open Lean notes for beginner explanations, or select a line-range label to link to that step.</p>
+<p class="reading-note">Every proof step is displayed beside its Lean source. Each proof is followed by its complete declaration, and the appendix contains the complete modules. The expandable Lean notes explain the syntax and individual source lines. Each line-range label links to the corresponding step.</p>
 """
 CLOSING = r"""
-<div class="closing"><h2>What the estimate establishes</h2>
-<p>For the small-step regime, \(b/(1-q)=1.65(L/m)\sqrt{hd}\). For the large-step regime, \(b/(1-q)=1.65Lh\sqrt{hd}/(2-Lh)\). With fixed positive \(h\), the upper envelope tends to this bias bound; no convergence to the exact target law at fixed step is asserted.</p>
-<p>The shared proof first bounds the error for one initial coupling. <code>ProductReference.lean</code> realizes each coupling on its own explicit product probability space, proves a common output law, and passes to the infimum. This gives the actual initial distance \(W_2(\operatorname{Law}(X_0),\pi)\).</p>
-<p><a href="#module-unadjustedlangevin-canonicalula-lean"><code>CanonicalULA.lean</code></a> assembles the unconditional theorem. The supporting modules construct Gaussian innovations and the Brownian integral solution, normalize Gibbs measure, prove Gibbs stationarity and score moments, and identify the algorithm law. The reference records in the analytic chapter expose these proved intermediate facts; they are not extra assumptions of the canonical endpoint.</p>
+<div class="closing"><h2>Consequences of the error bound</h2>
+<p>For the small-step regime, \(b/(1-q)=1.65(L/m)\sqrt{hd}\). For the large-step regime, \(b/(1-q)=1.65Lh\sqrt{hd}/(2-Lh)\). For fixed positive \(h\), the bound on the error tends to \(b/(1-q)\) as the iteration count tends to infinity. The theorem therefore bounds the limiting error by a quantity that decreases to zero with the step size.</p>
+<p>The proof first fixes a coupling of the initial distribution and the Gibbs measure. <code>ProductReference.lean</code> constructs the associated random variables on a product probability space and shows that the distribution of each ULA iterate is independent of this choice of coupling. Taking the infimum over initial coupling costs then gives \(W_2(\operatorname{Law}(X_0),\pi)\).</p>
+<p><a href="#module-unadjustedlangevin-canonicalula-lean"><code>CanonicalULA.lean</code></a> applies these estimates. The supporting results establish existence of the Gaussian innovations and Brownian integral solution, normalization and second moments of the Gibbs measure, Gibbs stationarity, and the distribution of the ULA recursion. These facts are derived from the stated assumptions on the potential and initial distribution.</p>
 <p>The exact rational coefficient is checked by the lemma \((7/6)\sqrt2\le33/20\).</p></div>
 """
 
@@ -327,7 +327,7 @@ def build():
         target = "module-"+slug(path)
         main_sources.append(f'<p><code>ULA.Hilbert.{name}</code></p>'+code_block(path,d["start"],d["marker"],sources)+
                             f'<p><a href="#{target}">Continue to the complete checked source</a>.</p>')
-    formal_main = '<details class="main-formal"><summary>Exact Lean statements of the canonical results</summary><p>The source headers are reproduced exactly. The shared proof is explained line by line below, and the complete canonical construction is included in the source appendix.</p>'+''.join(main_sources)+'</details>'
+    formal_main = '<details class="main-formal"><summary>Exact Lean statements of the convergence theorems</summary><p>The source headers are reproduced exactly. The coupling proof is explained line by line below. The source appendix includes the constructions used to establish its probability and stationarity assumptions.</p>'+''.join(main_sources)+'</details>'
     main_overview = math(main_statement).replace('<!--FORMAL_MAIN_STATEMENTS-->',formal_main)
     toc,chapters,decl_count,step_count = [],[],0,0
     for number,s in enumerate(sections,1):
