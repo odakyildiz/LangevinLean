@@ -224,8 +224,8 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
 def project_document(notes, catalog=None):
     page='index.html'
     body=('<header class="hero project-hero">'
-          '<h1>Langevin convergence in Lean</h1>'
-          '<p class="subtitle">Formalized convergence bounds for Langevin sampling and particle methods, with mathematical proofs alongside Lean. '
+          '<h1>Langevin algorithms in Lean</h1>'
+          '<p class="subtitle">Formalization of Langevin-based stochastic algorithms and their convergence bounds for sampling and particle methods, with mathematical proofs alongside Lean. '
           'These pages are prepared by <a href="https://odakyildiz.com/">Omer Deniz Akyildiz</a> with AI assistance as part of an ongoing effort to formalize Langevin algorithms comprehensively. '
           'This is draft work, and the pages may contain mistakes.</p></header>'
           '<section class="cards" id="developments" aria-label="Formalized developments">')
@@ -274,7 +274,7 @@ def project_document(notes, catalog=None):
     if catalog:
         from report_citations import citation_panel
         body += citation_panel(None, None, None, page)
-    return shell(page,'Langevin convergence in Lean',body)
+    return shell(page,'Langevin algorithms in Lean',body)
 
 
 from classical_proofs import ULA_PROOF, IPLA_PROOF, PROXIMAL_PROOF
