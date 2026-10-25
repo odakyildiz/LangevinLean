@@ -4,13 +4,13 @@ Open [index.html](index.html) for the standalone lifted-target LSI theorem,
 the per-particle specialization, parameter-marginal consequence, and detailed
 mathematics beside Lean. The [source archive](proof.html) includes every local
 dependency and retains the older interpolation-data interfaces as reusable
-lemmas. The primary unconditional endpoint is
+lemmas. The main normalized entropy theorem is
 `particle_kl_bound_linear_lsi_of_finite_kl` in `IPLA/LSI/UnconditionalTheorem.lean`.
 
 The theorem assumes differentiability, a Lipschitz gradient, an LSI for the
-actual lifted Gibbs target, the stated positive step restriction, and finite
-initial joint KL. Density construction, entropy differentiation, initial
-entropy control, moments, and compatibility are proved in the shared ULA
+normalized joint particle Gibbs measure, the stated positive step restriction, and finite
+initial joint KL. Density construction, entropy differentiation, the bound at the initial
+time, gradient moments, and the inequality between LSI and smoothness constants are proved in the shared ULA
 argument. A pair-target LSI is not substituted for the lifted-target premise.
 
 These pages work offline. Their authoring inputs are `chapters.json` and

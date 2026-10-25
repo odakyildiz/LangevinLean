@@ -155,7 +155,7 @@ def audit_section(audit, math):
                     ' · '.join(links) + '</td></tr>')
     return ('<section class="chapter reference-audit" id="reference-audit">'
             '<h2><span class="chapter-number">' + html.escape(audit.get("label", "Reference audit")) +
-            '</span>' + html.escape(audit.get("title", "What matches the paper")) +
+            '</span>' + html.escape(audit.get("title", "Comparison with the reference paper")) +
             '</h2><div class="chapter-intro"><p>' + references +
             '</p><p>' + math(html.escape(audit["verdict"])) + '</p></div>'
             '<div class="table-wrap"><table><thead><tr><th scope="col">Claim</th>'
@@ -178,15 +178,14 @@ def build():
                                "Vempala–Wibisono (2019).")
     subtitle = metadata.get("subtitle", "The entropy argument, its Lean proof, and the comparison "
                             "with the reference paper.")
-    status = metadata.get("status", "The displayed bound matches the paper. The current Lean endpoints "
-                          "require additional analytic interpolation hypotheses. The page identifies "
-                          "exactly which steps are proved and which remain open.")
-    status_label = metadata.get("status_label", "Conditional Lean formalization.")
+    status = metadata.get("status", "Each statement below gives its assumptions. The reference table "
+                          "compares the proved estimates with the corresponding paper results.")
+    status_label = metadata.get("status_label", "Assumptions and source comparison.")
     source_intro = metadata.get("source_intro", "Every LSI module and its local Lean dependencies are embedded "
                                 "below, together with the pinned build configuration. Excerpts above are read directly "
                                 "from these files. The audit module checks the logical axioms used by the results.")
     eyebrow = metadata.get("eyebrow", "Sampling algorithms · Entropy analysis")
-    audit_title = audit.get("title", "What matches the paper")
+    audit_title = audit.get("title", "Comparison with the reference paper")
     related = metadata.get("related_links", [{"path": "UnadjustedLangevin/exposition/dist/index.html",
                                               "label": "Strongly convex ULA proof"}])
     related_links = ''.join(f' · <a href="{relative(link["path"])}">'

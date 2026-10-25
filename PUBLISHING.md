@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`b83de24fbeaf054a5b964defa2681284ea7f84d5`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`7b208affab823b1b2c611ce6c50dc166d3c71d8b`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -70,3 +70,5 @@ corporate-author BibTeX copy and download controls. Report/PDF citation checks
 and 131 browser cases, including 88 BibTeX downloads, passed before publication.
 The publication retains robots metadata, robots.txt and .nojekyll, excludes
 papers/ and GitHub Actions workflows, and changes no Lean proofs.
+
+On 25 October 2026, the publication was updated from main commit `7b208affab823b1b2c611ce6c50dc166d3c71d8b` after the comprehensive mathematical-prose rewrite. All 340 module descriptions and 1,669 proof boxes, the theorem overviews, legacy documents, and audit explanations were reviewed. The seven PDFs use dry mathematical language, explicit assumptions, and precise numbered references. The local Lean build, seven dependency audits, standalone IPLA compilation, documentation and citation checks, PDF visual review, and 131 browser cases passed. This update retains the project authorship and BibTeX citations, robots metadata, robots.txt, and .nojekyll. Paper sources and GitHub Actions workflows remain excluded. No Lean sources changed.

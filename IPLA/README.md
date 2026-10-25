@@ -2,9 +2,11 @@
 
 The library has a strongly convex transport theorem and a separate
 [LSI entropy extension](LSI/exposition/index.html). The latter states a general
-bound using the actual lifted target's LSI constant and derives the
-per-particle specialization. It retains the shared ULA interpolation
-conditions explicitly; its [module guide](LSI/README.md) records the assumptions.
+bound using the joint particle target's LSI constant and derives the
+per-particle specialization. Its assumptions are differentiability, a Lipschitz
+gradient, an LSI for that target, the stated step restriction, and finite initial
+joint KL. The shared ULA theorem proves the interpolation properties used in
+the argument. Its [module guide](LSI/README.md) records the assumptions.
 
 ## Strongly convex theorem
 
@@ -29,9 +31,10 @@ is unique under the same potential assumptions.
 Read the [offline exposition](exposition/index.html) or its
 [statement and assumption audit](exposition/README.md). It gives the exact
 mathematical statement, a coefficient-by-coefficient correspondence with Lean,
-the source's Φ/Ψ smoothness issue, and a file-level proof roadmap. The
+the smoothness assumptions on the source's Φ and Ψ potentials, and a list of
+the proof steps and files. The
 exposition includes the final declaration copied directly from the source;
-it does not reproduce the proof.
+the module pages give the corresponding mathematical proofs.
 
 For the rescaled state, the dimension is `dθ + N*dx`, proved explicitly by
 `IPLA.finrank_state` in [Geometry.lean](Geometry.lean). There is one shared
@@ -46,9 +49,9 @@ The final proof directly applies
 That shared ULA module also derives finite initial transport from the
 initialization and Gibbs moments. Contraction, local error, Brownian reference
 construction, and Gibbs stationarity all stay in `UnadjustedLangevin`.
-The `laws_eq_ulaLawStep` bridge transfers ULA's output-finiteness result to
+The distributional identity `laws_eq_ulaLawStep` transfers ULA's output-finiteness result to
 the IPLA law before projection. IPLA adds the lifted geometry, algorithm
-identification, exact parameter marginal, proved Prékopa theorem, and sharp
+identification, exact parameter marginal, Prékopa theorem, and
 parameter concentration. The small compatibility export modules contain no
 separate ULA proofs.
 

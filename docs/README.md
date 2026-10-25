@@ -11,12 +11,13 @@ analogue is also linked as a footnote from IPLA:
 - [Kinetic Langevin](../KineticLangevin/exposition/index.html)
 - [KIPLMC](../KIPLMC/exposition/index.html)
 
-The two kinetic developments prove the actual continuous mixing and Gaussian
-sampler endpoints. Kinetic Langevin includes Gibbs stationarity, the KLMC and
+The two kinetic developments prove convergence bounds for the continuous
+kinetic equations and the discrete Gaussian samplers. Kinetic Langevin includes Gibbs stationarity, the KLMC and
 Hessian-corrected KLMC2 Wasserstein bounds, and explicit accuracy guarantees.
-KIPLMC includes physical-time KIPLD mixing, both actual Gaussian-chain parameter
-RMS bounds, sharp MMLE concentration, exact algorithm scaling, and the logistic
-analytic example. KIPLMC1 reuses the shared exponential integrator; KIPLMC2 has
+KIPLMC includes KIPLD convergence in the original time variable, parameter
+root-mean-square error bounds for both Gaussian samplers, concentration about
+the maximum marginal likelihood estimator, the change of variables relating
+the algorithms, and the analytic logistic example. KIPLMC1 reuses the shared exponential integrator; KIPLMC2 has
 its own checked OBABO contraction and direct sampling-error proof.
 
 The source audits preserve every statement and identify the supplied draft's
@@ -24,27 +25,27 @@ corrections. In particular, KLMC2 retains the exact $\sqrt{p^2+2p}$ moment
 factor for all dimensions, uses $p\ge2$ for the printed coarser formula, and
 proves the stronger inverse-step-square tail. The complete comparison includes
 the stochastic Hessian-difference terms omitted from the displayed source proof.
-The informal tail-free refined condition-number budget also needs the factor
+The iteration count stated after omission of the exponential tail also needs the factor
 $\sqrt{\kappa/\rho}$, with $\kappa=M/m$ and
 $\rho=\kappa_2=(M_2/m^{3/2})^{2/3}+\kappa p^{-1/3}$; the printed form is
 valid under $\rho\ge\kappa$, or after using $\max(\kappa,\rho)$.
-This algebraic budget correction is distinct from the proved accuracy guarantee
-that retains every exponential tail term.
-Continuous dynamics use actual canonical Brownian coordinate laws and selected
-solutions continuous in L² on finite horizons. A separate almost-surely continuous
+The proved accuracy guarantee includes every exponential tail term; its
+iteration count is stated separately from the formula obtained by dropping
+that term.
+The continuous equations have Brownian coordinate processes with the stated
+joint laws and solutions continuous in L² on each finite time interval. A separate almost-surely continuous
 sample-path modification theorem is not asserted. Empirical experiment results
 remain observations, separate from the analytic guarantees.
 
 Run `python3 scripts/verify-kinetic-coverage.py --require-complete` to require
-every full endpoint and auxiliary proof gate. The verifier checks actual
-declarations; an inventory entry or conditional scalar recurrence cannot replace
-the proved stochastic-law conclusion.
+every convergence theorem and required supporting proof. The verifier checks the declarations proving each convergence statement
+and the supporting results required by that proof.
 
 Every overview states its results with all assumptions beside the exact Lean
 headers, provides verification commands, and has a logical proof diagram whose
 boxes open HTML proof pages. Its searchable directory includes every Lean
 subfile, import module, and kernel audit in that development. The LSI extensions
-have their own directories and detailed mathematical arguments. Their complete Lean endpoints derive the Gaussian interpolation calculus and
+have their own directories and detailed mathematical arguments. Their convergence theorems derive the Gaussian interpolation identities and
 moment bounds from smoothness, the target LSI, and finite initial KL. Output
 finiteness is included in the convergence conclusions.
 
@@ -108,19 +109,24 @@ the standalone theorem statements and logical diagrams; `classical_proofs.py`
 contains the detailed strongly convex ULA, IPLA and proximal overview arguments.
 `entropy_content.py`
 contains the detailed entropy arguments and their formal scope. `kinetic_content.py`
-and `kinetic_overviews.py` contain the two kinetic paper arguments, exact endpoint
+and `kinetic_overviews.py` contain the two kinetic paper arguments, exact theorem
 statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
 Keep each mathematical statement and proof self-contained in ordinary notation.
+Use dry mathematical language: state the hypotheses, define each quantity,
+and explain each inference. Include the inequalities, integrability conditions,
+and limiting arguments needed to justify the conclusion. Avoid metaphors,
+invented terminology, and descriptions of what a proof accomplishes in place
+of the proof itself. Use the same notation throughout an argument.
 Put source correspondence and implementation details in explicitly marked
 `<p class="formal-note">...</p>` elements. These remain available in the paired
 web view and are omitted from mathematical reading mode and LaTeX exports.
 The exporter removes only marked notes; it never guesses which mathematical
 sentences to discard. Equations are protected before HTML parsing, including
 strict inequalities containing a literal less-than sign. The reader checks
-reject source identifiers and implementation commentary in the paper-facing
+reject source identifiers and implementation commentary in the mathematical
 prose. Changing a declaration's name is never a substitute for explaining its
 mathematical statement, hypotheses and proof.
 

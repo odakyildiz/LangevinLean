@@ -63,13 +63,13 @@ DEVELOPMENTS = {
     "KineticLangevin": dict(
         label="Published source; corrected checked proofs", status="corrected",
         papers=["dalalyan-riou-durand"],
-        scope="The audit follows the supplied mainDR_dec_18.tex manuscript. Actual canonical Brownian integral-solution mixing, full Gibbs stationarity, both correlated-Gaussian KLMC/KLMC2 Wasserstein bounds, literal Cholesky sampling, and explicit accuracy guarantees are proved. The corrected proofs checked here are unpublished: the audit records the continuous prefactor correction, the stationary local reference, and the retained stochastic Hessian-difference terms. KLMC2 keeps the exact fourth-moment factor in every dimension and states p≥2 for the printed coarser simplification; its sharper inverse-step-square tail is proved. Continuous solutions are continuous in L² on finite horizons; no separate almost-surely continuous sample-path modification theorem is claimed.",
-        card="Actual kinetic mixing, Gibbs stationarity, KLMC and KLMC2 sampling bounds, and accuracy guarantees are checked, with the supplied source corrections stated explicitly."),
+        scope="The comparison uses the supplied mainDR_dec_18.tex manuscript. The results prove Wasserstein convergence of the kinetic diffusion, invariance of its Gibbs measure, KLMC and KLMC2 error estimates for correlated Gaussian increments, their Cholesky representations, and explicit iteration counts for a prescribed error. The corrected proofs are unpublished. The reference table records the correction to the continuous prefactor and the stochastic Hessian-difference terms retained in the second-order comparison. The KLMC2 estimate retains the exact fourth Gaussian moment in every dimension; the coarser displayed simplification assumes p≥2. The stronger inverse-step-square exponential term is also proved. Continuous solutions are continuous in L² on finite time intervals. Almost-sure continuity of sample paths is not proved here.",
+        card="The results cover kinetic diffusion convergence, Gibbs invariance, KLMC and KLMC2 error bounds, and iteration counts. The reference table specifies the corrections to the source proofs."),
     "KIPLMC": dict(
         label="Published source; checked diffusion and sampler proofs", status="extended",
         papers=["kinetic-ipla", "dalalyan-riou-durand", "monmarche-obabo"],
-        scope="The audit uses the supplied KIPLMC main.tex and sections, including the stated particle-dependent OBABO rate. KIPLMC1 reuses the shared kinetic exponential integrator with its exact Cholesky-generated correlated Gaussian law; KIPLMC2 uses the checked O-B-A-B-O scheme. Physical-time Brownian integral-solution mixing, full Gibbs stationarity, both actual Gaussian parameter RMS theorems, exact clock and algorithm conjugacies, sharp MMLE concentration, explicit accuracy budgets, and the logistic analytic example are proved. The internal OBABO proof gives a stronger direct estimate and recovers the supplied coarse rate with an explicit uniform constant. Continuous solutions use the canonical continuous-L² model; empirical experiments are recorded separately.",
-        card="Actual KIPLD mixing, both Gaussian particle sampler RMS bounds, sharp MMLE concentration, exact integrator reuse, and explicit accuracy guarantees are checked."),
+        scope="The comparison uses the supplied KIPLMC main.tex and its sections, including the OBABO rate that depends on the particle number. KIPLMC1 is the kinetic exponential integrator applied to the scaled particle potential, with correlated Gaussian increments represented by a Cholesky factor. KIPLMC2 uses the O-B-A-B-O splitting. The results prove diffusion convergence in physical time, Gibbs invariance, root mean square parameter estimates for both Gaussian recursions, time-rescaling identities, concentration about the marginal maximizer, and iteration counts. The logistic example is checked analytically. The OBABO argument proves a stronger estimate and then deduces the stated coarser rate with a uniform constant. The continuous solutions are continuous in L². Numerical experiments are reported separately from these estimates.",
+        card="The results give KIPLD convergence, parameter estimates for both Gaussian particle recursions, concentration about the marginal maximizer, and explicit iteration counts."),
     "UnadjustedLangevin": dict(
         label="Paper references", status="published",
         papers=["dalalyan-karagulyan", "dalalyan"],
@@ -77,7 +77,7 @@ DEVELOPMENTS = {
         card="The displayed coefficient 1.65 and both step-size regimes follow Theorem 1 of Dalalyan and Karagulyan (2019)."),
     "UnadjustedLangevin/LSI": dict(
         label="Paper reference", status="published", papers=["vempala-wibisono"],
-        scope="The entropy bound follows Theorem 2, Section 3.1, and Appendices B.2.1–B.2.2 of Vempala and Wibisono (2019). The Lean development supplies the regularity and endpoint arguments for the actual Gaussian ULA laws.",
+        scope="The entropy bound is Theorem 2 of Vempala and Wibisono (2019); its proof is in Section 3.1 and Appendices B.2.1–B.2.2. The proof here establishes Gaussian density regularity, entropy differentiation at positive times, and the limit as elapsed time decreases to zero.",
         card="Source: Theorem 2 and Appendices B.2.1–B.2.2."),
     "IPLA": dict(
         label="Published source and unpublished extension", status="extended",
@@ -87,7 +87,7 @@ DEVELOPMENTS = {
     "IPLA/LSI": dict(
         label="Unpublished proof", status="unpublished",
         papers=["vempala-wibisono", "statfem-ipla"],
-        scope="The IPLA LSI proof presented here is unpublished. It derives the joint entropy bound, per-particle normalization, and parameter-marginal consequence by applying the shared ULA entropy theorem to the actual lifted IPLA target. The papers below are background references for that construction.",
+        scope="The IPLA LSI proof presented here is unpublished. It applies the ULA entropy theorem to the joint particle Gibbs measure, proves the joint entropy estimate and its normalization by particle number, and bounds the parameter-marginal entropy by data processing. The papers below provide the ULA and IPLA results used in the argument.",
         card="The IPLA LSI proof presented here is unpublished. The cited papers provide the ULA entropy theorem and IPLA background."),
     "ProximalLangevin": dict(
         label="Published source; unpublished corrected proofs", status="corrected",

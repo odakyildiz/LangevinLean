@@ -1,10 +1,10 @@
-# ULA and IPLA hypothesis completion audit
+# Assumptions and supporting results for ULA and IPLA
 
-The strongly convex Gaussian ULA theorem and the IPLA Theorem 1 endpoint are
-proved from their displayed potential, step-size, initialization, and Gaussian
-algorithm assumptions. No stationary reference, concentration estimate,
-normalization, moment estimate, or Brownian-existence assertion is supplied as
-an extra mathematical hypothesis.
+The strongly convex Gaussian ULA theorem and IPLA Theorem 1 follow from their
+displayed assumptions on the potential, step size, initialization, and Gaussian
+innovations. The proofs establish normalization of the Gibbs measure, the
+required moment and concentration bounds, and existence of a stationary
+reference process.
 
 The potential assumptions are differentiability, positive strong convexity,
 and a globally L-Lipschitz gradient of the **same** potential U. For IPLA this
@@ -12,10 +12,10 @@ is the joint potential U_y(θ,x), with observations y fixed. There is no separat
 convexity or Lipschitz-gradient assumption on θ, x, a marginal potential, or
 any lifted particle potential. There is no Hessian or C² assumption on U.
 
-## Public endpoints and ordinary algorithm assumptions
+## Convergence theorems and their assumptions
 
 `ULA.Hilbert.dalalyan` and `dalalyan_large_step` in `CanonicalULA.lean` prove
-both Dalalyan branches for the iterated product-Gaussian law update. The
+both step-size cases of Dalalyan's bound for iteration of the Gaussian transition kernel. The
 initial law is a probability measure with finite W₂ to Gibbs, and the
 Euclidean dimension is finite and nonzero. The admissible step-size inequalities
 are displayed in each theorem. Finite target and initial second moments,
@@ -23,11 +23,12 @@ finite output W₂, and compatibility m≤L are derived.
 
 `ULA.Hilbert.dalalyan_of_gaussian_innovations` and its large-step counterpart
 in `GaussianULA.lean` apply to the actual `lpChain` on any probability space.
-Their stochastic assumptions are precisely the algorithm: every scalar noise
+Their stochastic assumptions are as follows: every scalar noise
 coordinate is standard normal, all iteration-coordinate pairs are independent,
-and initialization is independent of the complete noise path. Coordinate
-grouping and all output-law identifications are theorems. The L² initialization
-already has a finite second moment, so finite initial W₂ is derived internally.
+and initialization is independent of the complete noise path. Grouping
+the coordinates gives independent standard Gaussian vectors, and induction
+identifies the distribution of the recursion with iteration of the transition
+kernel. The initial random vector belongs to L², which implies finite initial W₂.
 
 `IPLA.theorem1` in `IPLA/Theorem.lean` specializes this shared ULA theorem to
 the actual scaled interacting-particle recursion. It uses joint strong
@@ -39,9 +40,9 @@ Gaussian laws and independence just described. Existence of θ⋆ is proved by
 point is named in the bound. No reference-family or concentration premise
 occurs in the final theorem.
 
-## Discharged obligations
+## Supporting results proved from these assumptions
 
-| Former obligation | Checked result |
+| Mathematical property | Checked result |
 | --- | --- |
 | m≤L | `ULA.strongConvex_le_lipschitz` in nonzero dimension. |
 | Gibbs normalization and second moment | `gibbsPartition_pos`, `gibbsPartition_ne_top`, `isProbabilityMeasure_gibbsMeasure`, and `memLp_id_gibbsMeasure`. |
@@ -63,9 +64,9 @@ occurs in the final theorem.
 | Exact initial W₂ term | The initial-coupling infimum in `ProductReference.lean`, with every reference constructed by `CanonicalULA.lean`. |
 | IPLA marginal strong log-concavity | The proved Prékopa–Leindler, tensorization, and `StrongLogConcavity.lean` results. |
 | IPLA parameter marginal and maximizer | `gibbsTarget_parameter_marginal` and `exists_marginalMaximizer`. |
-| Sharp IPLA statistical radius | `IPLA.gibbsTarget_parameter_concentration`, giving √(2d/(Nm)) from joint strong convexity. |
+| IPLA parameter radius | `IPLA.gibbsTarget_parameter_concentration`, giving √(2d/(Nm)) from joint strong convexity. |
 
-## Why generator integration is sufficient groundwork but not the entire bridge
+## Integration by parts and proof of stationarity
 
 For compactly supported C² tests, `Generator.lean` proves
 
@@ -86,26 +87,29 @@ constant Gibbs curve satisfies its explicitly defined weak forward equation.
 The final invariance proof does not assume that the constructed process solves
 that weak equation or that the equation has unique solutions.
 
-Instead, `MALAInvariance.lean` proves exact detailed balance for the actual
+`MALAInvariance.lean` proves detailed balance for the
 Gaussian Metropolis proposal. Under a Lipschitz gradient, `MALAError.lean`
 proves expected rejected displacement at most C h√h, with finite C derived
 from Gibbs and Gaussian moments. `MALACoupling.lean` compares n ULA steps to
 this stationary chain with expected distance at most n C h√h. For `h=T/n`
 this tends to zero. `EulerLimit.lean` proves matching-noise Euler convergence
-to the actual continuous Banach-space integral solution. `CouplingLimit.lean`
+to the continuous Banach-space integral solution. `CouplingLimit.lean`
 uses characteristic functions to identify that solution's law with Gibbs.
-`GibbsStationarity.lean` assembles these proved results. Thus no semigroup-core,
-Itô, or weak-Fokker–Planck uniqueness hypothesis enters the public theorem.
+`GibbsStationarity.lean` applies these results to prove stationarity. The
+argument uses the discrete invariant chains and their limit; it requires no
+uniqueness assumption for the weak Fokker–Planck equation.
 
-Older conditional reference and weak-equation criteria remain modular lemmas;
-they are not unresolved assumptions of the final endpoints.
+The conditional results for a given reference process or weak equation remain
+available as separate lemmas. The final convergence theorems use the process
+and stationarity established above.
 
 ## Representation and kernel checks
 
 The continuous reference is a continuous L² curve satisfying a Bochner integral
-equation. The proof constructs its canonical pre-Brownian source and derives
-all laws and moments needed for ULA. A separate theorem about continuous
-sample paths is not required or assumed by the convergence result.
+equation. Its driving process has the Brownian finite-dimensional distributions
+and independence properties used in the proof. All required moments follow
+from this construction. The convergence theorem uses continuity in L² and
+does not assume continuity of individual sample paths.
 
 The source proof of Gibbs stationarity and the shared ULA convergence theorem
 contain no imports from IPLA. IPLA imports and instantiates the shared ULA

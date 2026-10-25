@@ -3,9 +3,9 @@
 The final theorem proves the strongly convex IPLA bound from the original
 joint-potential assumptions. **\(\theta\) denotes the parameter, \(x\) the latent variable,
 and \(y\) fixed observed data.** Strong convexity and gradient Lipschitz continuity
-are assumed only for the same joint function \(U_y(\theta,x)\). The stationary reference,
-Gibbs invariance, marginal strong convexity, and concentration are proved facts,
-not additional hypotheses in `IPLA.theorem1`.
+are assumed only for the same joint function \(U_y(\theta,x)\). The proof constructs the stationary reference and establishes Gibbs
+invariance, marginal strong convexity, and the concentration bound from these
+assumptions.
 
 The [main exposition page](index.html) has the standalone mathematical and Lean
 statements, verification commands, a clickable proof diagram, and a searchable
@@ -22,7 +22,7 @@ The source is [Theorem 1, equation (34), and Appendix B of
 arXiv:2409.07101v2](https://arxiv.org/html/2409.07101v2).
 Its forcing parameter \(b\) corresponds to \(\theta\) here; its latent FEM state \(u\) corresponds
 to \(x\). Both have dimension \(d=n_u\) in the printed theorem. The formalization proves
-its extension to independent dimensions \(d_\theta\) and \(d_x\) by the same Appendix B
+an extension to independent dimensions \(d_\theta\) and \(d_x\) by the same Appendix B
 argument: the rescaled state has dimension \(d_\theta+Nd_x\), and concentration concerns
 only the \(d_\theta\)-dimensional parameter marginal. No equality, ordering, embedding,
 or padding assumption relates \(d_\theta\) and \(d_x\). Setting \(d_\theta=d_x=d\) recovers the
@@ -64,9 +64,8 @@ x_{k+1}^i
 
 The innovations are independent standard Gaussian vectors and are independent
 of the initialization. The parameter innovation \(\xi^0\) has dimension \(d_\theta\) and
-each latent innovation \(\xi^i\) has dimension \(d_x\). **“Gaussian IPLA” refers to this
-Gaussian update noise.** It does not require a Gaussian statistical model, a
-quadratic potential, or a Gaussian initialization. `noise k` in Lean is the innovation for transition
+each latent innovation \(\xi^i\) has dimension \(d_x\). The term “Gaussian IPLA” specifies the distribution of the update noise.
+The statistical model, potential, and initial distribution need not be Gaussian. `noise k` in Lean is the innovation for transition
 \(k\to k+1\). There are no regularity assumptions in the observed data \(y\).
 
 Use the rescaled state and lifted potential
@@ -148,7 +147,7 @@ No dimension-positivity premise is hidden in the final declaration.
 | \(\pi_N\) | `gibbsTarget (U y)` | The actual normalized density, definitionally the Gibbs measure of `potential (U y)`. |
 | Parameter marginal of \(\pi_N\) | `marginalTarget N (U y)` | Its density is proportional to \(\ell_y(\theta)^N\), proved by `gibbsTarget_parameter_marginal`. |
 | \(\theta^\star\) | `θStar` and `IsMarginalMaximizer (U y) θStar` | A maximizer of the latent integral; existence and uniqueness are derived. |
-| Initial \(W_2\) | `ULA.wasserstein2Real (P.map initial) (gibbsTarget (U y))` | The genuine coupling infimum for the rescaled state. |
+| Initial \(W_2\) | `ULA.wasserstein2Real (P.map initial) (gibbsTarget (U y))` | The infimum of squared transport costs, followed by a square root, for the rescaled state. |
 | RMS error | The square root of the law integral in `theorem1` | Finite second moment is proved before converting extended quantities to real numbers. |
 
 The substitutions into the shared Dalalyan theorem are exact:
@@ -199,7 +198,7 @@ two different printed potentials have the same smoothness constant.
 | Gibbs invariance of that solution | Proved in `lp_langevin_gibbs_stationary`; no stationarity binder. |
 | Reference and initial coupling family | Constructed for arbitrary finite-cost couplings in the shared ULA theorem; no reference-family binder. |
 | Marginal preservation of strong log-concavity | Proved using the finite-dimensional Prékopa theorem. |
-| Sharp equilibrium parameter concentration | Proved in `gibbsTarget_parameter_concentration`; no concentration binder. |
+| Equilibrium parameter concentration | Proved in `gibbsTarget_parameter_concentration`; no concentration binder. |
 | Output finite transport and finite projected moment | Derived before taking real-valued Wasserstein distance and RMS. |
 
 Finite \(W_2\) and an \(L^2\) initialization describe the same moment regime here:
@@ -207,8 +206,8 @@ Finite \(W_2\) and an \(L^2\) initialization describe the same moment regime her
 and `wasserstein2_ne_top_of_memLp` proves the converse when the target has its
 derived second moment. The theorem's \(L^2\) representation therefore adds no
 independent analytical integrability requirement beyond the source's finite-\(W_2\)
-initialization. Every extra premise of the earlier conditional endpoint has
-been removed from the final theorem declaration.
+initialization. The supporting moment, concentration, and stationarity
+properties follow from the displayed assumptions in the final theorem.
 
 ## Main proof steps and files
 
@@ -222,9 +221,9 @@ This is a file-level roadmap; the proof is contained in the Lean sources.
    and `gaussianULA_initial_transport_finite`, which derives finite initial
    transport. This reuses `UnadjustedLangevin/CanonicalULA.lean` and the shared
    ULA contraction, local-error recurrence, transport infimum, Gibbs
-   normalization, and score estimates. The canonical Brownian source and all
+   normalization, and score estimates. The Brownian coordinate process and all
    initial coupling extensions are constructed there. The retained
-   `laws_eq_ulaLawStep` bridge transfers ULA's `dalalyan_output_finite` result
+   `laws_eq_ulaLawStep` identity transfers ULA's `dalalyan_output_finite` result
    to the actual IPLA law before taking a real-valued projected moment.
 3. `UnadjustedLangevin/GibbsStationarity.lean` proves that the constructed
    Langevin solution has Gibbs law at every time, using exactly invariant
@@ -237,7 +236,7 @@ This is a file-level roadmap; the proof is contained in the Lean sources.
    `PrekopaTensorization.lean` extends it to finite dimensions.
    `StrongLogConcavity.lean` derives \(m\)-strong convexity of \(-\log\ell_y\) and the
    unique maximizer. These are conclusions, not additional potential assumptions.
-5. `UnadjustedLangevin/GibbsConcentration.lean` proves the dimension-sharp
+5. `UnadjustedLangevin/GibbsConcentration.lean` proves the dimension-dependent
    second-moment bound by dilation for a continuous strongly convex potential
    about its mode. `IPLA/Concentration.lean` applies it to \(-N\log\ell_y\) and gets
    the radius \(\sqrt{2d_\theta/(Nm)}\).
@@ -249,7 +248,7 @@ marginal argument are separate modules. IPLA's small compatibility export
 files, including `IPLA/Dalalyan.lean`, add names for shared results and contain
 no separate convergence, Brownian-reference, or transport proofs.
 
-## What the generator argument establishes
+## Integration by parts and stationarity
 
 `UnadjustedLangevin/Generator.lean` integrates the Langevin generator against
 the actual Gibbs density using compactly supported \(C^2\) test functions. `GeneratorDirichlet.lean`
@@ -258,10 +257,10 @@ proves the Dirichlet identity, symmetry, and dissipativity, and
 use first-order assumptions on \(U_y\), with no Hessian of the potential.
 
 An integrated generator identity by itself does not identify the law of a
-constructed stochastic solution. That identification is now proved separately
-by the Metropolis and Euler limit argument in `GibbsStationarity.lean`. Thus the
-requested generator verification is present, and the process-stationarity gap
-is also closed by a theorem about the actual constructed Langevin solution.
+constructed stochastic solution. The Metropolis and Euler limit argument in `GibbsStationarity.lean` proves
+this identification: each Metropolis approximation preserves the Gibbs
+distribution, its distance from the Euler approximation tends to zero, and
+the Euler approximation converges to the constructed L² integral solution.
 
 ## Standalone compilation and audit
 

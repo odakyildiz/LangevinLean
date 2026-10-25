@@ -11,9 +11,9 @@ def node(identifier, row, col, file, title, detail, parents=(), final=False):
 
 ULA_SETUP = r'''<p>Let \(d\ge1\), and let \(U:\mathbb R^d\to\mathbb R\) be differentiable and \(m\)-strongly convex, with \(m>0\) and \(L\)-Lipschitz gradient. These assumptions imply \(m\le L\). Define</p>
 \[\pi(dx)=Z^{-1}e^{-U(x)}dx,\qquad Z=\int e^{-U(x)}dx\in(0,\infty).\]
-<p>Let \(\mu_0\) be a probability law with \(W_2(\mu_0,\pi)&lt;\infty\). A finite second moment suffices. For \(h>0\), take independent standard Gaussian vectors \(\xi_k\), independent of initialization, and set</p>
+<p>Let \(\mu_0\) be a probability measure with \(W_2(\mu_0,\pi)&lt;\infty\). This condition holds if \(\mu_0\) has a finite second moment, because the assumptions on \(U\) imply that \(\pi\) has a finite second moment. Let \(X_0\) have distribution \(\mu_0\), and let \((\xi_k)\) be independent standard Gaussian vectors, independent of \(X_0\). For \(h>0\), define</p>
 \[X_{k+1}=X_k-h\nabla U(X_k)+\sqrt{2h}\,\xi_k,\qquad\mu_k=\operatorname{Law}(X_k).\]
-<p>The transition kernel is \(P_h(x,\cdot)=\mathcal N(x-h\nabla U(x),2hI_d)\), so \(\mu_{k+1}=\mu_kP_h\). The independence assumptions ensure that conditioning on \(X_k\) gives exactly this kernel. Thus a bound for the iterated probability laws is also a bound for the displayed stochastic recursion.</p>
+<p>The conditional distribution of \(X_{k+1}\) given \(X_k=x\) is \(P_h(x,\cdot)=\mathcal N(x-h\nabla U(x),2hI_d)\). Consequently \(\mu_{k+1}=\mu_kP_h\). This follows from the independence of \(\xi_k\) from the preceding variables. The convergence estimate below is therefore an estimate for the distribution of the stated recursion.</p>
 <p class="formal-note">In the Lean statement, \(\mathbb R^d\) is <code>EuclideanSpace ℝ ι</code> with a finite nonempty index type, and \(d=|\iota|\). <code>ulaLawStep</code> is the exact Gaussian transition on probability laws.</p>'''
 
 IPLA_STATEMENT = r'''<p>Fix an observation \(y\) and a differentiable joint potential \(U_y:\mathbb R^{d_\theta}\times\mathbb R^{d_x}\to\mathbb R\). Assume \(U_y\) is \(m\)-strongly convex with \(m>0\) and has \(L\)-Lipschitz gradient. Let \(N\ge1\); the independent dimensions \(d_\theta,d_x\ge0\) may be zero. Define</p>
@@ -22,7 +22,7 @@ IPLA_STATEMENT = r'''<p>Fix an observation \(y\) and a differentiable joint pote
 <p>In scaled coordinates \(z=(\theta,x^1/\sqrt N,\ldots,x^N/\sqrt N)\), set</p>
 \[V_N(z)=\sum_{i=1}^NU_y(\theta,\sqrt N z_i),\qquad
 \Pi_N(dz)\propto e^{-V_N(z)}dz.\]
-<p>Use a square-integrable initial state and standard Gaussian innovations independent in every coordinate and time and independent of initialization. For \(0&lt;\gamma\le2/(m+L)\), the actual IPLA updates are</p>
+<p>Assume the initial state has a finite second moment. Let all Gaussian vectors in the following recursion be standard and independent of one another and of the initial state. For \(0&lt;\gamma\le2/(m+L)\), define the IPLA iterates by</p>
 \[\begin{aligned}
 \theta_{k+1}&=\theta_k-\frac\gamma N\sum_i\nabla_\theta U_y(\theta_k,x_k^i)+\sqrt{2\gamma/N}\,\xi_k^0,\\
 x_{k+1}^i&=x_k^i-\gamma\nabla_xU_y(\theta_k,x_k^i)+\sqrt{2\gamma}\,\xi_k^i.
@@ -33,13 +33,13 @@ x_{k+1}^i&=x_k^i-\gamma\nabla_xU_y(\theta_k,x_k^i)+\sqrt{2\gamma}\,\xi_k^i.
 \le{}&\sqrt{\frac{2d_\theta}{Nm}}+(1-m\gamma)^kW_2(\mu_0,\Pi_N)\\
 &+\frac{33}{20}\frac Lm\sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma.
 \end{aligned}\]
-<p>The target normalization, finite transport moments, stationary reference, marginal strong convexity, and equilibrium radius are derived. The selected center is a maximizer of the integrated joint density; including a prior in \(U_y\) gives the prior-inclusive interpretation.</p>'''
+<p>The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal and the existence of its minimizer. Thus \(\theta_\star\) is a maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).</p>'''
 
-PROX_SETUP = r'''<p>Write \(U=g_1+g_2\) on \(\mathbb R^{d_\theta+d_x}\). Assume \(g_1\) is differentiable, \(m\)-strongly convex for \(m>0\), and has \(L_1\)-Lipschitz gradient. Assume \(g_2\) is finite-valued, convex, bounded below, and \(K\)-Lipschitz. Define the actual proximal minimizer and Moreau envelope by</p>
+PROX_SETUP = r'''<p>Write \(U=g_1+g_2\) on \(\mathbb R^{d_\theta+d_x}\). Assume \(g_1\) is differentiable, \(m\)-strongly convex for \(m>0\), and has \(L_1\)-Lipschitz gradient. Assume \(g_2\) is finite-valued, convex, bounded below, and \(K\)-Lipschitz. Define its proximal map and Moreau envelope by</p>
 \[P_\eta(x)=\operatorname*{argmin}_p\left\{g_2(p)+\frac{\|p-x\|^2}{2\eta}\right\},\quad
 g_2^\eta(x)=g_2(P_\eta(x))+\frac{\|P_\eta(x)-x\|^2}{2\eta},\]
 \[V_\eta=g_1+g_2^\eta,\qquad L_\eta=L_1+\eta^{-1},\qquad\eta>0.\]
-<p>Take \(N\ge1\), \(d_\theta,d_x\ge0\), an L² initial scaled particle state, and independent standard Gaussian innovations at all coordinates and times, independent of initialization. Write \(\rho_0\) for the initial scaled law, \(\Pi_{N,\eta}\) for the Gibbs target of the lifted \(V_\eta\), and choose marginal maximizers \(\theta_U\) for \(g_1+g_2\) and \(\theta_\eta\) for \(V_\eta\). Their existence is established in the supporting modules.</p>'''
+<p>Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are independent over coordinates and time and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.</p>'''
 
 PROX_SETUP += r'''<p>Precisely, the scaled state, lifted potential, and normalized target are</p>
 \[z=(\theta,x^1/\sqrt N,\ldots,x^N/\sqrt N),\qquad
@@ -49,14 +49,14 @@ W_{N,\eta}(z)=\sum_{i=1}^N V_\eta(\theta,\sqrt N z_i),\]
 
 MYIPLA = PROX_SETUP + r'''<p>MYIPLA is the Gaussian IPLA recursion for \(V_\eta\), using the proved identity \(\nabla g_2^\eta=(I-P_\eta)/\eta\):</p>
 \[z_{n+1}=z_n-\frac\gamma N\nabla W_{N,\eta}(z_n)+\sqrt{2\gamma/N}\,\xi_n.\]
-<p>For \(0&lt;\gamma\le2/(m+L_\eta)\) and every \(n\in\mathbb N\), its actual parameter iterate satisfies</p>
+<p>For \(0&lt;\gamma\le2/(m+L_\eta)\) and every \(n\in\mathbb N\), the parameter iterate satisfies</p>
 \[\begin{aligned}
 \bigl(\mathbb E\|\theta_n-\theta_U\|^2\bigr)^{1/2}
 \le{}&\sqrt{\frac{\eta K^2}{m}}+\sqrt{\frac{d_\theta}{Nm}}
 +(1-m\gamma)^nW_2(\rho_0,\Pi_{N,\eta})\\
 &+\frac{33}{20}\frac{L_\eta}{m}\sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma.
 \end{aligned}\]
-<p>The terms are the finite smoothing displacement, sharp equilibrium radius, decaying initial transport error, and discretization bias. The smoothing rate is \(O(\sqrt\eta)\), and the discretization coefficient depends on \(\eta\). This is the proved corrected theorem; the paper’s Taylor-based linear smoothing expression is not asserted.</p>'''
+<p>The first term bounds \(\|\theta_U-\theta_\eta\|\). The second bounds the root mean square distance from a parameter drawn from \(\Pi_{N,\eta}\) to \(\theta_\eta\). The remaining two terms bound the distance between the numerical distribution and \(\Pi_{N,\eta}\). The smoothing estimate is \(O(\sqrt\eta)\), and the discretization term depends on \(\eta\) through \(L_\eta\). These are the bounds proved here; the paper's linear-in-\(\eta\) smoothing expression is not a conclusion of this argument.</p>'''
 
 PIPGLA = PROX_SETUP + r'''<p>For PIPGLA assume also \(m\le L_1\), take any proximal parameter \(\lambda>0\), and \(0&lt;\gamma\le2/(m+L_1)\). First apply the smooth-gradient step with its averaged parameter drift and Gaussian innovation:</p>
 \[\begin{aligned}
@@ -72,9 +72,9 @@ PIPGLA = PROX_SETUP + r'''<p>For PIPGLA assume also \(m\le L_1\), take any proxi
 <p>All constants are explicit. Put \(D=d_\theta+Nd_x\), \(a=Nm\), \(b=NL_1\), \(c=NK\),</p>
 \[G=\sqrt{2b^2D/a+2c^2}+c,\qquad\sigma=\sqrt{2D},\]
 \[C_N=\frac{4b^2}{a^2}\left(\frac{G^2}{a}+\sigma^2\right)+\frac2a(Gc+c^2).\]
-<p>The first term is a proved proximal-parameter comparison. The remaining transport estimate comes from a constructed synchronous coupling and actual-law recurrence. The constants differ from the paper’s printed bound.</p>'''
+<p>The first term bounds the difference caused by using \(P_\lambda\) in place of \(P_\gamma\). The next two terms bound smoothing of the parameter maximizer and the second moment of the smoothed Gibbs parameter marginal. The square-root term follows from a coupling of the splitting recursion with a stationary comparison process, followed by a recurrence for their squared distance. The constants in this estimate differ from those printed in the paper.</p>'''
 
-MYPGD = PROX_SETUP + r'''<p>MYPGD uses the MYIPLA drift and erases its parameter Gaussian noise, retaining latent Gaussian noise:</p>
+MYPGD = PROX_SETUP + r'''<p>MYPGD has the MYIPLA drift, with zero Gaussian noise in the parameter coordinates and unchanged Gaussian noise in the latent coordinates:</p>
 \[z_{n+1}=z_n-\frac\gamma N\nabla W_{N,\eta}(z_n)+\sqrt{2\gamma/N}\,M\xi_n,\]
 <p>where \(M\) is the orthogonal projection onto latent coordinates. Assume \(m\le L_\eta\) explicitly and \(0&lt;\gamma\le2/(m+L_\eta)\). For every \(n\in\mathbb N\), the actual finite-particle recursion satisfies</p>
 \[\begin{aligned}
@@ -83,59 +83,59 @@ MYPGD = PROX_SETUP + r'''<p>MYPGD uses the MYIPLA drift and erases its parameter
 &+(1-m\gamma)^nW_2(\rho_0,\Pi_{N,\eta})\\
 &+\frac{33}{20}\frac{L_\eta}{m}\sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma.
 \end{aligned}\]
-<p>The additional \(\sqrt{2d_\theta/(Nm)}\) is a proved conservative cost of removing parameter noise. This finite-particle replacement does not assert the paper’s stronger mean-field metric or constants.</p>'''
+<p>The additional \(\sqrt{2d_\theta/(Nm)}\) bounds the distance caused by setting the parameter noise to zero. It is obtained by comparing the two recursions with the same latent Gaussian variables. The displayed estimate concerns the finite-particle algorithm; it does not establish the paper's stronger estimate for the mean-field distance or its constants.</p>'''
 
 CONFIG = {
-    'UnadjustedLangevin':dict(label='Wasserstein convergence',title='Unadjusted Langevin under Strong Convexity',subtitle='A quantitative sampling theorem with a constructed stationary reference.',
-        status='The strongly convex convergence theorems construct their Brownian reference and prove Gibbs stationarity. The LSI extension derives its entropy bound from smoothness, LSI, and finite initial KL.',
+    'UnadjustedLangevin':dict(label='Wasserstein convergence',title='Unadjusted Langevin under Strong Convexity',subtitle='A Wasserstein convergence bound for a strongly convex potential.',
+        status='The proof establishes Gibbs stationarity and compares ULA with a stationary Langevin process. It assumes differentiability, strong convexity and a Lipschitz gradient. The separate LSI report proves an entropy estimate from smoothness, LSI and finite initial relative entropy.',
         archive='UnadjustedLangevin/exposition/dist/index.html',archive_label='Extended teaching document and Lean notes',
         extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · full proof and reference audit')],
-        results=[dict(title='Small-step Gaussian ULA',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan',body=ULA_SETUP+r'''<p>If \(0&lt;h\le2/(m+L)\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(1-mh)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac Lm\sqrt{hd}.\]<p>The rational coefficient \(33/20\) is exactly \(1.65\). The initial term uses the true Wasserstein infimum over couplings.</p>'''),
-                 dict(title='The other stable step-size regime',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The strict upper endpoint ensures the denominator is positive. Both regimes follow from the same scalar recurrence, using their respective contraction factors.</p>''')],
-        diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contract the gradient step',r'\(q=1-mh\) or \(Lh-1\)'),
-                 node('gibbs',0,1,'UnadjustedLangevin/Gibbs.lean','Construct the Gibbs target',r'Positive normalization and \(L^2\) moments'),
-                 node('brownian',0,2,'UnadjustedLangevin/CanonicalBrownian.lean','Construct Brownian noise','Independent Gaussian coordinates'),
-                 node('local',1,0,'UnadjustedLangevin/LocalError.lean','Bound the local Euler defect','Integrate the Lipschitz drift error',('geometry',)),
-                 node('stationary',1,1,'UnadjustedLangevin/GibbsStationarity.lean','Prove Gibbs stationarity','Metropolis invariance and Euler limit',('gibbs','brownian')),
-                 node('integral',1,2,'UnadjustedLangevin/LangevinIntegral.lean','Solve the integral equation',r'\(L^2\) Picard construction',('brownian',)),
-                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','Solve the scalar recurrence',r'\(a_{k+1}\le q a_k+b\)',('local',)),
-                 node('coupling',2,1,'UnadjustedLangevin/HilbertDalalyan.lean','Compare synchronous paths','Noise cancellation and initial infimum',('local','stationary','integral')),
-                 node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Identify the Gaussian laws','Independent transitions give the chain',('brownian',)),
-                 node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','Canonical ULA theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
-    'IPLA':dict(label='Particle convergence',title='Interacting Particle Langevin under Strong Convexity',subtitle='A parameter error bound from the joint potential and the actual particle recursion.',
-        status='The final strongly convex theorem derives its stationary reference, target moments, and equilibrium concentration from the joint-potential assumptions. Parameter and latent dimensions are independent. The entropy extension proves its bound from a lifted-target LSI and finite initial joint KL.',
+        results=[dict(title='The small-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan',body=ULA_SETUP+r'''<p>If \(0&lt;h\le2/(m+L)\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(1-mh)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac Lm\sqrt{hd}.\]<p>The rational coefficient \(33/20\) is exactly \(1.65\). The initial distance is the infimum of root mean square costs over all couplings of the two initial measures.</p>'''),
+                 dict(title='The larger-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The assumption \(Lh<2\) makes the denominator positive. The two estimates follow from the same error recurrence with the contraction factor appropriate to each step interval.</p>''')],
+        diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contraction of the gradient step',r'\(q=1-mh\) or \(Lh-1\)'),
+                 node('gibbs',0,1,'UnadjustedLangevin/Gibbs.lean','Normalization of the Gibbs measure',r'Positive normalization and \(L^2\) moments'),
+                 node('brownian',0,2,'UnadjustedLangevin/CanonicalBrownian.lean','Gaussian construction of Brownian motion','Independent Gaussian coordinates'),
+                 node('local',1,0,'UnadjustedLangevin/LocalError.lean','The local discretization error','Integrate the Lipschitz drift error',('geometry',)),
+                 node('stationary',1,1,'UnadjustedLangevin/GibbsStationarity.lean','Stationarity of the Gibbs measure','Metropolis invariance and Euler limit',('gibbs','brownian')),
+                 node('integral',1,2,'UnadjustedLangevin/LangevinIntegral.lean','Existence of the integral solution',r'\(L^2\) Picard construction',('brownian',)),
+                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','The scalar error recurrence',r'\(a_{k+1}\le q a_k+b\)',('local',)),
+                 node('coupling',2,1,'UnadjustedLangevin/HilbertDalalyan.lean','Coupling with the same Brownian motion','Cancellation of the common increment',('local','stationary','integral')),
+                 node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Distributions of the Gaussian recursion','Independence determines each transition',('brownian',)),
+                 node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','The ULA convergence theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
+    'IPLA':dict(label='Particle convergence',title='Interacting Particle Langevin under Strong Convexity',subtitle='A root mean square parameter estimate for the particle recursion.',
+        status='The bound follows from strong convexity and gradient Lipschitzness of the joint potential. Parameter and latent dimensions need not agree. Normalization, moments and concentration of the Gibbs measure are proved under these assumptions. The separate entropy result assumes LSI for the joint particle target and finite initial joint relative entropy.',
         archive='IPLA/exposition/proof.html',archive_label='Extended statement correspondence and assumption audit',
         extra=[('IPLA/LSI/exposition/index.html','Particle entropy under a lifted-target LSI · full proof'),('docs/modules/IPLA/Standalone.html','Standalone Mathlib-only theorem · full dependency proofs')],
-        results=[dict(title='Parameter error for the actual IPLA recursion',file='IPLA/Theorem.lean',name='theorem1',body=IPLA_STATEMENT)],
-        diagram=[node('geometry',0,0,'IPLA/Geometry.lean','Lift and rescale particles',r'Dimension \(d_\theta+Nd_x\); curvature \(Nm\)'),
-                 node('gibbs',0,1,'IPLA/Foundations.lean','Normalize the lifted target','Derived probability and finite moments'),
-                 node('marginal',0,2,'IPLA/MarginalConcentration.lean','Compute the parameter marginal',r'Density proportional to \(\ell_y(\theta)^N\)'),
-                 node('algorithm',1,0,'IPLA/ULAAdapter.lean','Identify IPLA with ULA',r'Exact algorithm law; step \(\gamma/N\)',('geometry',)),
-                 node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','Apply the shared ULA theorem','Stationarity and Gaussian law proved',('geometry','gibbs')),
-                 node('convex',1,2,'IPLA/StrongLogConcavity.lean','Prove marginal strong convexity','Prékopa–Leindler and tensorization',('marginal',)),
-                 node('scaling',2,0,'IPLA/Scaling.lean','Simplify particle constants',r'Exact \(N\), step, and dimension factors',('algorithm',)),
-                 node('projection',2,1,'IPLA/Transport.lean','Project the transport estimate',r'Parameter projection: \(\|P_\theta\|\le1\)',('ula',)),
-                 node('concentration',2,2,'IPLA/Concentration.lean','Derive the equilibrium radius',r'RMS \(\le\sqrt{2d_\theta/(Nm)}\)',('convex','marginal')),
-                 node('theorem',3,1,'IPLA/Theorem.lean','Final IPLA parameter bound','General independent dimensions',('scaling','projection','concentration'),True)]),
-    'ProximalLangevin':dict(label='Proximal',title='Proximal particle Langevin',subtitle='Actual proximal minimizers, finite-time algorithm bounds, and mean-field limits.',
-        status='Corrected MYIPLA, PIPGLA, and MYPGD original-center bounds are proved. This is a partial formalization of arXiv:2406.14292v3: exact published constants and several appendix claims remain outside the proved results. The reference audit records the differences.',
+        results=[dict(title='Parameter error for IPLA',file='IPLA/Theorem.lean',name='theorem1',body=IPLA_STATEMENT)],
+        diagram=[node('geometry',0,0,'IPLA/Geometry.lean','The scaled particle coordinates',r'Dimension \(d_\theta+Nd_x\); curvature \(Nm\)'),
+                 node('gibbs',0,1,'IPLA/Foundations.lean','Normalization of the particle target','Positive normalizing constant and finite moments'),
+                 node('marginal',0,2,'IPLA/MarginalConcentration.lean','The parameter marginal density',r'Density proportional to \(\ell_y(\theta)^N\)'),
+                 node('algorithm',1,0,'IPLA/ULAAdapter.lean','IPLA as a ULA recursion',r'The same distribution; step \(\gamma/N\)',('geometry',)),
+                 node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','The ULA convergence estimate','Application to the particle potential',('geometry','gibbs')),
+                 node('convex',1,2,'IPLA/StrongLogConcavity.lean','Strong convexity of the negative log marginal','Prékopa–Leindler and tensorization',('marginal',)),
+                 node('scaling',2,0,'IPLA/Scaling.lean','Substitution of the scaled constants',r'Exact \(N\), step, and dimension factors',('algorithm',)),
+                 node('projection',2,1,'IPLA/Transport.lean','Projection to the parameter coordinates',r'Parameter projection: \(\|P_\theta\|\le1\)',('ula',)),
+                 node('concentration',2,2,'IPLA/Concentration.lean','The equilibrium parameter second moment',r'RMS \(\le\sqrt{2d_\theta/(Nm)}\)',('convex','marginal')),
+                 node('theorem',3,1,'IPLA/Theorem.lean','The IPLA parameter bound','Possibly unequal parameter and latent dimensions',('scaling','projection','concentration'),True)]),
+    'ProximalLangevin':dict(label='Proximal',title='Proximal particle Langevin',subtitle='Proximal maps, parameter error estimates and mean-field limits.',
+        status='The results bound MYIPLA, PIPGLA and MYPGD parameter errors relative to the maximizer of the original marginal. Their constants differ from arXiv:2406.14292v3. The proofs cover part of that paper; the reference table identifies the remaining claims and the differences in the estimates.',
         archive='ProximalLangevin/exposition/proof.html',archive_label='Detailed proofs and version-specific paper audit',
-        extra=[('docs/modules/ProximalLangevin/MeanFieldParticleLaw.html','Constructed iid mean-field limit and tagged laws'),('docs/modules/ProximalLangevin/PIPULA.html','Full-potential PIPULA reduction and its assumptions')],
-        results=[dict(title='MYIPLA: a finite original-model guarantee',file='ProximalLangevin/Theorem.lean',name='moreau_myipla_parameter_rms_original',body=MYIPLA),
-                 dict(title='PIPGLA: an actual-law splitting bound',file='ProximalLangevin/SplittingTheorem.lean',name='pipgla_parameter_rms_original',body=PIPGLA),
-                 dict(title='MYPGD: finite-particle noise removal',file='ProximalLangevin/MYPGDTheorem.lean',name='moreau_mypgd_parameter_rms_original',body=MYPGD)],
-        diagram=[node('prox',0,0,'ProximalLangevin/Proximal.lean','Construct actual proximal maps','Existence, optimality, nonexpansiveness'),
-                 node('moreau',0,1,'ProximalLangevin/Moreau.lean','Prove Moreau calculus','Gradient, smoothness, and value gap',('prox',)),
-                 node('bias',0,2,'ProximalLangevin/Perturbation.lean','Control the marginal center shift','Finite value sandwich, then convexity'),
-                 node('myipla',1,0,'ProximalLangevin/MYIPLA.lean','Identify the smoothed IPLA law',r'Reuse ULA with \(L_\eta=L_1+\eta^{-1}\)',('prox','moreau')),
-                 node('splitting',1,1,'ProximalLangevin/SplittingOneStep.lean','Prove the splitting coupling step','Energy cancellation and Brownian terms',('prox','moreau')),
-                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Construct mean-field dynamics',r'\(L^2\) integral equation and uniqueness',('moreau',)),
-                 node('mytheorem',2,0,'ProximalLangevin/Theorem.lean','MYIPLA original-center theorem','Smoothing + concentration + ULA',('myipla','bias'),True),
-                 node('endpoint',2,1,'ProximalLangevin/SplittingEndpoint.lean','Derive the actual-law recurrence','Construct references, then take infima',('splitting',)),
-                 node('particles',2,2,'ProximalLangevin/MeanFieldParticles.lean','Couple iid particles to the limit',r'Uniform \(L^2\) error \(O(N^{-1/2})\)',('meanfield',)),
-                 node('mypgd',3,0,'ProximalLangevin/MYPGDTheorem.lean','MYPGD original-center theorem','Proved Gaussian noise-removal cost',('mytheorem',),True),
-                 node('pitheorem',3,1,'ProximalLangevin/SplittingTheorem.lean','PIPGLA original-center theorem','Arbitrary positive proximal parameter',('endpoint','bias'),True),
-                 node('particlelaw',3,2,'ProximalLangevin/MeanFieldParticleLaw.lean','Actual tagged-law limit','Constructed one-time Wasserstein bound',('particles',),True)])
+        extra=[('docs/modules/ProximalLangevin/MeanFieldParticleLaw.html','Independent mean-field particles and their marginal distributions'),('docs/modules/ProximalLangevin/PIPULA.html','PIPULA for the full potential and its assumptions')],
+        results=[dict(title='MYIPLA: parameter error',file='ProximalLangevin/Theorem.lean',name='moreau_myipla_parameter_rms_original',body=MYIPLA),
+                 dict(title='PIPGLA: parameter error',file='ProximalLangevin/SplittingTheorem.lean',name='pipgla_parameter_rms_original',body=PIPGLA),
+                 dict(title='MYPGD: parameter error without parameter noise',file='ProximalLangevin/MYPGDTheorem.lean',name='moreau_mypgd_parameter_rms_original',body=MYPGD)],
+        diagram=[node('prox',0,0,'ProximalLangevin/Proximal.lean','Existence of the proximal map','Existence, optimality, nonexpansiveness'),
+                 node('moreau',0,1,'ProximalLangevin/Moreau.lean','Differentiability of the Moreau envelope','Gradient, Lipschitz constant and approximation error',('prox',)),
+                 node('bias',0,2,'ProximalLangevin/Perturbation.lean','Difference of the marginal maximizers','Pointwise potential bounds and strong convexity'),
+                 node('myipla',1,0,'ProximalLangevin/MYIPLA.lean','IPLA for the smoothed potential',r'Reuse ULA with \(L_\eta=L_1+\eta^{-1}\)',('prox','moreau')),
+                 node('splitting',1,1,'ProximalLangevin/SplittingOneStep.lean','A one-step coupling estimate for splitting','Expansion of the squared coupling error',('prox','moreau')),
+                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Existence of the mean-field solution',r'\(L^2\) integral equation and uniqueness',('moreau',)),
+                 node('mytheorem',2,0,'ProximalLangevin/Theorem.lean','MYIPLA error relative to the original maximizer','Smoothing + concentration + ULA',('myipla','bias'),True),
+                 node('endpoint',2,1,'ProximalLangevin/SplittingEndpoint.lean','The recurrence for the splitting distributions','Coupling comparison and Wasserstein infimum',('splitting',)),
+                 node('particles',2,2,'ProximalLangevin/MeanFieldParticles.lean','Comparison with independent mean-field particles',r'Uniform \(L^2\) error \(O(N^{-1/2})\)',('meanfield',)),
+                 node('mypgd',3,0,'ProximalLangevin/MYPGDTheorem.lean','MYPGD error relative to the original maximizer','Bound for omitted parameter noise',('mytheorem',),True),
+                 node('pitheorem',3,1,'ProximalLangevin/SplittingTheorem.lean','PIPGLA error relative to the original maximizer','Arbitrary positive proximal parameter',('endpoint','bias'),True),
+                 node('particlelaw',3,2,'ProximalLangevin/MeanFieldParticleLaw.lean','Convergence of a tagged particle distribution','Wasserstein estimate at each fixed time',('particles',),True)])
 }
 
 

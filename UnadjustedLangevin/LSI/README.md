@@ -41,24 +41,25 @@ and the squared relative score. The actual positive-time Gaussian density is
 proved to belong to this class; its Fisher information is proved finite before
 LSI is used to obtain finite KL.
 
-The completed analytic route is:
+The proof has the following steps:
 
 1. [Compatibility.lean](Compatibility.lean) derives $\alpha\le L$ in positive
    dimension using bounded exponential and sinusoidal tests and the Gibbs
    integration-by-parts identity.
-2. [EntropyMoment.lean](EntropyMoment.lean) Gaussian-averages the directional
-   score MGF and uses the entropy variational inequality to prove score
-   integrability and $G_\mu\le4L H_\nu(\mu)+2dL$. This supplies the required
-   moment directly, without LSI-to-transport.
+2. [EntropyMoment.lean](EntropyMoment.lean) integrates the directional
+   score moment-generating function against a Gaussian measure and uses the entropy variational inequality to prove score
+   integrability and $G_\mu\le4L H_\nu(\mu)+2dL$. The variational inequality applies because the relevant exponential
+   score moment is finite. Thus finite relative entropy implies the required
+   second moment of the gradient.
 3. [InterpolationDensity.lean](InterpolationDensity.lean) and
-   [GaussianEntropy.lean](GaussianEntropy.lean) construct the actual positive
-   Gaussian-mixture density, C¹ relative density, posterior score and finite
-   Fisher information. [GaussianDrift.lean](GaussianDrift.lean) proves the exact
+   [GaussianEntropy.lean](GaussianEntropy.lean) construct the positive
+   Gaussian-mixture density, prove that its relative density is C¹, express
+   its score as a conditional mean, and prove finiteness of its Fisher information. [GaussianDrift.lean](GaussianDrift.lean) proves the exact
    displacement and frozen gradient-error energies.
 4. [GaussianTimeDerivative.lean](GaussianTimeDerivative.lean) differentiates
-   the actual mixture in time and proves spacetime L¹ estimates.
-   [GaussianWeakEquation.lean](GaussianWeakEquation.lean) proves the actual
-   global weak equation for bounded C¹ tests with finite gradient energy.
+   the mixture density in time and proves spacetime L¹ estimates.
+   [GaussianWeakEquation.lean](GaussianWeakEquation.lean) proves the
+   weak equation on the whole space for bounded C¹ tests with finite gradient energy.
    [GaussianMeasurability.lean](GaussianMeasurability.lean) and
    [GaussianEnergyIntegrability.lean](GaussianEnergyIntegrability.lean) provide
    the measurable score field and compact-time energy estimates.
@@ -66,24 +67,25 @@ The completed analytic route is:
    [EntropyChainRule.lean](EntropyChainRule.lean) and
    [GaussianEntropyIdentity.lean](GaussianEntropyIdentity.lean) apply bounded
    smooth log tests, commute time and space integration, and pass two dominated
-   limits. They prove local absolute continuity and the a.e. derivative of
-   actual entropy. [GaussianScorePairing.lean](GaussianScorePairing.lean) and
+   limits. They prove local absolute continuity and the almost-everywhere derivative of
+   entropy. [GaussianScorePairing.lean](GaussianScorePairing.lean) and
    [GaussianEntropyProduction.lean](GaussianEntropyProduction.lean) identify
-   the joint score pairing and prove
+   the integral of the score against the interpolation error and prove
    $H'\le-3I/4+L^2(t^2G_0+2td)$.
 6. [GibbsInterpolationBound.lean](GibbsInterpolationBound.lean),
    [EntropyEndpoint.lean](EntropyEndpoint.lean) and
-   [InitialEntropy.lean](InitialEntropy.lean) construct a continuous initial
-   entropy upper envelope from data processing and a pointwise evolved-Gibbs
-   density bound. Initial smoothness, initial Fisher information and entropy
-   continuity at zero are unnecessary.
+   [InitialEntropy.lean](InitialEntropy.lean) bound entropy at positive times by a continuous function whose initial
+   value is the initial entropy. The proof uses data processing and a
+   pointwise bound on the density obtained by applying the interpolation to
+   the Gibbs measure. This provides the initial value when integrating the
+   entropy inequality, even for an initial distribution with only finite KL.
 7. [IntegratedEntropy.lean](IntegratedEntropy.lean) integrates the a.e.
-   inequality and sends the positive starting time to zero using that envelope.
+   inequality and sends the positive starting time to zero using this continuous upper bound.
    The one-step coefficient is $6$.
    [DiscreteEntropy.lean](DiscreteEntropy.lean) sums the recurrence for the
-   coefficient-$8$ bound, and
+   bound with coefficient $8$, and
    [UnconditionalTheorem.lean](UnconditionalTheorem.lean) proves finiteness at
-   each actual iterate and assembles the final theorem.
+   each iterate and applies the recurrence.
 
 [ConditionalDrift.lean](ConditionalDrift.lean) and
 [GradientMoment.lean](GradientMoment.lean) also retain independently useful

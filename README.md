@@ -70,7 +70,7 @@ HTML includes the offline fonts, formula rendering, and source viewers.
 
 - **ULA under Strong Convexity:** [theorem, workflow, and proof diagram](UnadjustedLangevin/exposition/index.html),
   [library guide](UnadjustedLangevin/README.md), and
-  [canonical theorem](UnadjustedLangevin/CanonicalULA.lean).
+  [convergence theorem](UnadjustedLangevin/CanonicalULA.lean).
 - **ULA under LSI:** [detailed mathematical argument, Lean scope, and proof diagram](UnadjustedLangevin/LSI/exposition/index.html),
   with a downloadable LaTeX proof and [source-by-source archive](UnadjustedLangevin/LSI/exposition/proof.html).
 - **IPLA under Strong Convexity:** [theorem, workflow, and proof diagram](IPLA/exposition/index.html),
@@ -82,52 +82,53 @@ HTML includes the offline fonts, formula rendering, and source viewers.
 - **Proximal algorithms:** [three main bounds, workflow, and proof diagram](ProximalLangevin/exposition/index.html),
   [detailed proofs and v3 paper audit](ProximalLangevin/exposition/proof.html),
   and [scope and module guide](ProximalLangevin/README.md). Corrected MYIPLA,
-  PIPGLA and MYPGD actual-law bounds and corrected mean-field results are proved;
+  PIPGLA and MYPGD distributional bounds and corrected mean-field results are proved;
   the ledger identifies remaining results.
 - **Kinetic Langevin:** [continuous mixing, KLMC, and KLMC2 proofs](KineticLangevin/exposition/index.html),
-  including actual Brownian integral-solution laws, Gibbs stationarity,
+  including the distributions of Brownian integral solutions, Gibbs stationarity,
   correlated Gaussian samplers, and both unconditional Wasserstein bounds.
   The [source coverage audit](KineticLangevin/exposition/reference_audit.json)
   records every source result and the corrections required by the supplied draft.
 - **KIPLMC:** [diffusion, both particle sampler bounds, and concentration](KIPLMC/exposition/index.html).
   KIPLMC1 calls the shared kinetic exponential integrator; KIPLMC2 calls the
-  shared OBABO composition. Actual Gaussian-chain parameter RMS bounds,
-  exact clock changes, sharp MMLE concentration, and finite accuracy budgets
+  shared OBABO composition. Parameter root-mean-square error bounds for the Gaussian chains,
+  exact changes of time variable, concentration about the maximum marginal
+  likelihood estimator, and explicit iteration counts for a specified accuracy
   are proved. The [source coverage audit](KIPLMC/exposition/reference_audit.json)
   distinguishes the analytic statements from the empirical experiments.
 
-The two kinetic developments prove their complete actual-law convergence
-endpoints. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:
+The two kinetic developments prove convergence of the continuous processes
+and the Gaussian samplers under the displayed assumptions. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:
 the unshifted continuous prefactor is $\sqrt{2}$; the second-order local proof
 uses a stationary reference; and the comparison must retain fresh stochastic
 Hessian-difference terms. KLMC2 retains $\sqrt{p^2+2p}$ in every dimension,
 including $p=1$; the printed coarser simplification is checked with $p\ge2$
 stated explicitly. The sharper inverse-step-square tail is also proved.
 The audits preserve the source statements and explain these differences.
-The draft's additional tail-free condition-number budget needs a factor
+The draft's iteration count obtained by omitting the exponential tail needs a factor
 $\sqrt{\kappa/\rho}$, where $\kappa=M/m$ and
 $\rho=\kappa_2=(M_2/m^{3/2})^{2/3}+\kappa p^{-1/3}$; its printed form is
 justified when $\rho\ge\kappa$, or with $\rho$ replaced by
-$\max(\kappa,\rho)$. This correction concerns an informal algebraic budget
-that neglects the exponential tail; the proved all-tail accuracy guarantee
-remains separate.
+$\max(\kappa,\rho)$. The proved accuracy guarantee retains the exponential tail and states its
+iteration count separately.
 
-Continuous dynamics are constructed as selected solutions continuous in L² on
-each finite horizon, driven by actual canonical Brownian coordinate laws. Their
-integral equations, independence, fixed-time laws, and stationarity are checked.
+The continuous equations have solutions continuous in L² on each finite time
+interval, driven by Brownian coordinate processes with the stated joint laws.
+The proof establishes their integral equations, independence properties,
+distributions at fixed times, and stationarity.
 A separate almost-surely continuous sample-path modification theorem is not
 asserted. The numerical convergence bounds use the actual Gaussian Markov laws.
 
-Verify the source correspondence and require every full endpoint and auxiliary
-coverage gate with:
+Verify the source correspondence and the presence of each convergence theorem
+and its supporting results with:
 
 ```sh
 python3 scripts/verify-kinetic-coverage.py
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
-The strict command rejects an open endpoint or a missing required proof;
-inventory entries and conditional scalar recurrences cannot satisfy those gates.
+The strict command rejects a missing convergence theorem or supporting result.
+It checks the declarations proving the distributional conclusions.
 
 ## Repository structure and reuse
 
@@ -135,21 +136,23 @@ The [ULA proof under LSI](UnadjustedLangevin/LSI/exposition/index.html) follows
 [Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf):
 for $0<h\le\alpha/(4L^2)$, the KL bound is
 $H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+8hnL^2/\alpha$.
-The complete Lean endpoint `ULA.LSI.ula_kl_bound` in
+The theorem `ULA.LSI.ula_kl_bound` in
 [UnconditionalTheorem.lean](UnadjustedLangevin/LSI/UnconditionalTheorem.lean)
 proves this bound from differentiability, Lipschitz gradient, LSI, the step
 restriction, and finite initial KL. Its conclusion includes finite KL at every
-actual Gaussian ULA iterate. The proof derives compatibility $\alpha\le L$,
-the score moment, positive-time density and entropy calculus, the actual weak
-equation, and the initial endpoint. It uses a direct score-exponential argument,
-so no LSI-to-transport premise is needed. The offline pages and downloadable
+Gaussian ULA iterate. The proof derives $\alpha\le L$, bounds the gradient
+second moment by the initial entropy, constructs the density at positive
+times, and proves its weak equation and entropy derivative. A bound on
+entropy at small positive times gives the initial value for integration. The
+gradient estimate follows from an exponential moment and the entropy
+variational inequality. The offline pages and downloadable
 LaTeX explain these arguments beside their exact Lean declarations.
 
 The [IPLA entropy extension](IPLA/LSI/exposition/index.html) derives a general
 particle bound from the actual lifted Gibbs target's LSI constant $\beta_N$.
 When that target has the admissible constant $N\alpha$, the per-particle KL
 bias is $(8\gamma L^2/\alpha)(d_x+d_\theta/N)$ and the contraction factor is
-$e^{-\alpha\gamma k}$. The new finite-KL endpoint derives all shared interpolation estimates. A pair-target LSI is not substituted for the lifted-target
+$e^{-\alpha\gamma k}$. The theorem for finite initial KL derives the required interpolation estimates. A pair-target LSI is not substituted for the lifted-target
 hypothesis, and parameter KL is controlled by the full joint entropy.
 
 | Location | Purpose |
@@ -159,13 +162,13 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`UnadjustedLangevin/LSI/`](UnadjustedLangevin/LSI/README.md) | KL/Fisher calculus, Gaussian interpolation laws, and the full ULA entropy theorem under LSI. |
 | [`IPLA/`](IPLA/exposition/README.md) | Lifted particle geometry, identification of IPLA with ULA, the parameter marginal and its log-concavity and concentration, and the final IPLA theorem. |
 | [`IPLA/LSI/`](IPLA/LSI/README.md) | Particle entropy bounds from finite initial KL, exact normalization and parameter KL projection under a lifted-target LSI. |
-| [`ProximalLangevin/`](ProximalLangevin/README.md) | Actual proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
-| [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Actual kinetic mixing and Gibbs stationarity, literal Cholesky Gaussian sampling, complete KLMC/KLMC2 Wasserstein proofs, accuracy guarantees, and an explicit source-correction ledger. |
-| [`KIPLMC/`](KIPLMC/exposition/README.md) | Actual KIPLD mixing, complete KIPLMC1/KIPLMC2 parameter RMS bounds, exact diffusion and algorithm scaling, sharp target concentration, and the logistic analytic example. |
+| [`ProximalLangevin/`](ProximalLangevin/README.md) | Proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
+| [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Kinetic convergence and Gibbs stationarity, Cholesky Gaussian sampling, KLMC/KLMC2 Wasserstein bounds, iteration counts for a specified accuracy, and comparison with the source paper. |
+| [`KIPLMC/`](KIPLMC/exposition/README.md) | KIPLD convergence, KIPLMC1/KIPLMC2 parameter root-mean-square error bounds, changes of variables for the diffusion and algorithms, target concentration, and the analytic logistic example. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
-| [`docs/`](docs/README.md) | Complete module proof atlas, mathematical LaTeX exports, shared renderer, and documentation integrity checks. |
+| [`docs/`](docs/README.md) | Module statements and proofs, mathematical LaTeX exports, shared renderer, and documentation integrity checks. |
 
 The dependency runs from IPLA to `UnadjustedLangevin`; the ULA library has no
 IPLA imports. IPLA applies the existing ULA estimate to its lifted potential,

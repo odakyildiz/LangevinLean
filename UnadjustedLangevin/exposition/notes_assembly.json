@@ -3,7 +3,7 @@
     {
       "id": "dynamics",
       "title": "The noise-driven iterates",
-      "intro": "<p>Write \\(T_h(x)=x-h\\nabla U(x)\\), so one Euler update is \\(T_h(x)+\\sqrt{2h}\\,z\\). The noise vectors remain explicit. Common-noise algebra works for any supplied noise sequence; identifying the algorithm with Gaussian ULA also requires independent standard Gaussian noise hypotheses.</p>",
+      "intro": "<p>Given the initial vector \\(x_0\\) and innovations \\(\\xi_k\\), define \\(X_0=x_0\\) and \\(X_{k+1}=X_k-h\\nabla U(X_k)+\\sqrt{2h}\\xi_k\\). For fixed \\(n\\), the state depends only on the initial vector and \\(\\xi_0,\\ldots,\\xi_{n-1}\\). The initial and successor identities follow from this definition.</p><p>If the initial vector and each innovation are measurable and the gradient is Lipschitz, every iterate is measurable by induction. The gradient is continuous, and measurable vector addition and scalar multiplication preserve the induction hypothesis. Gaussianity and independence are separate assumptions used when computing the laws of these iterates.</p>",
       "file": "UnadjustedLangevin/Dynamics.lean",
       "declarations": [
         {
@@ -43,7 +43,7 @@
         {
           "name": "ulaChain_succ",
           "title": "The update identity",
-          "statement": "<p>For every \\(k\\ge0\\), the chain satisfies \\(X_{k+1}=\\operatorname{ulaUpdate}(U,h,X_k,\\xi_k)\\).</p>",
+          "statement": "<p>For every \\(k\\ge0\\), the chain satisfies \\(X_{k+1}=T_h^{\\xi_k}(X_k)\\).</p>",
           "steps": [
             {
               "start": 31,
@@ -86,7 +86,7 @@
     {
       "id": "coupling",
       "title": "Couplings and quadratic transport",
-      "intro": "<p>Let \\(H\\) be a normed additive group with its Borel measurable structure and a second countable topology. Let \\(P\\) be a measure on a measurable space \\(\\Omega\\), and write \\(\\mathcal L_P(X)=X_\\#P\\). The symbol \\(\\|Z\\|_{2,P}\\) denotes the extended \\(L^2\\) seminorm, which may be infinite. In the probability setting the following definitions give the usual quadratic transport cost.</p>",
+      "intro": "<p>Let \\(H\\) be a second-countable normed space with its Borel sigma-algebra. A coupling of \\(\\mu,\\nu\\) is a measure \\(\\gamma\\) on \\(H\\times H\\) with those marginals. Set \\(c(\\gamma)=(\\int\\|x-y\\|^2d\\gamma)^{1/2}\\) and \\(W_2(\\mu,\\nu)=\\inf_{\\gamma\\in\\Gamma(\\mu,\\nu)}c(\\gamma)\\), with extended nonnegative values allowed. A coupling with finite cost proves that this transport infimum is finite.</p><p>For measurable random vectors on the same probability space, the joint law is a coupling of their marginal laws, and its cost equals \\(\\|X-Y\\|_2\\). Consequently an estimate of the mean-square difference bounds the transport distance. The same statements hold for almost-everywhere measurable representatives. Pointwise domination, Minkowski, and finite second moments give the one-step error estimates below; independence of the compared variables is not required.</p>",
       "file": "UnadjustedLangevin/Coupling.lean",
       "declarations": [
         {
@@ -139,13 +139,13 @@
         },
         {
           "name": "wasserstein2Real",
-          "title": "Real conversion of transport distance",
-          "statement": "<p>Define \\(W_2^{\\mathbb R}(\\mu,\\nu)=\\operatorname{toReal}(W_2(\\mu,\\nu))\\). The comparison lemmas below establish finite upper bounds before using this conversion.</p>",
+          "title": "Finite quadratic Wasserstein distance",
+          "statement": "<p>The infimum defining quadratic Wasserstein distance takes values in \\([0,\\infty]\\). Whenever it is finite, it can be used as an ordinary nonnegative real number. Each estimate below proves finiteness from a finite coupling cost before performing real arithmetic with the distance.</p>",
           "steps": [
             {
               "start": 46,
               "end": 46,
-              "prose": "<p>Apply real conversion to the extended distance; for a finite distance this returns its ordinary real value.</p>",
+              "prose": "<p>Restrict attention to a pair of measures with finite quadratic Wasserstein distance. Its finite value has the same order comparisons as the extended nonnegative value. Thus the previously proved coupling inequalities apply as inequalities between real numbers.</p>",
               "note": "<p><strong>Line 46.</strong> <code>def wasserstein2Real (μ ν : Measure H) : ℝ := (wasserstein2 μ ν).toReal</code></p><p><code>def</code> introduces a named mathematical definition. <code>(μ ν : Measure H)</code> is short for two explicit parameters of the same type. The final <code>: ℝ</code> states that the result is a real number, and <code>:=</code> gives its defining value. First <code>wasserstein2 μ ν</code> computes the extended nonnegative-real distance; then <code>.toReal</code> converts it to a real. The parentheses make that whole distance the receiver of the conversion. The conversion returns the ordinary value when the argument is finite, but sends <code>⊤</code> to <code>0</code>. Therefore this definition alone does not justify interpreting it as a finite transport distance for all measures. The later comparison lemmas supply finite bounds before transporting inequalities through <code>toReal</code>. This line defines a value rather than proving a theorem, so there is no pending goal or tactic block. Lean still checks that the right side has type <code>ℝ</code>.</p><p>Throughout this argument, laws are pushforward measures and the extended seminorm may be infinite unless a finite-moment hypothesis is supplied. Keep the mathematical function separate from the proof that it is measurable: both are arguments in Lean, but they have different types and roles.</p>"
             }
           ],
@@ -274,7 +274,7 @@
         {
           "name": "wasserstein2_le_random_cost_real",
           "title": "Finite coupled cost gives a real bound",
-          "statement": "<p>If \\(X,Y\\) are measurable and \\(X-Y\\in L^2(P;H)\\), then</p>\\[W_2^{\\mathbb R}(X_\\#P,Y_\\#P)\\le\\operatorname{toReal}(\\|X-Y\\|_{2,P}).\\]",
+          "statement": "<p>If \\(X,Y\\) are measurable and \\(X-Y\\in L^2(P;H)\\), then</p>\\[W_2(X_\\#P,Y_\\#P)\\le\\|X-Y\\|_{2,P}.\\]",
           "steps": [
             {
               "start": 108,
@@ -288,7 +288,7 @@
         {
           "name": "wasserstein2_le_Lp_cost",
           "title": "The transport bound for L² classes",
-          "statement": "<p>For \\(X,Y\\in L^2(P;H)\\), their representatives define laws satisfying</p>\\[W_2(X_\\#P,Y_\\#P)\\le\\operatorname{ofReal}(\\|X-Y\\|_{L^2}).\\]",
+          "statement": "<p>For \\(X,Y\\in L^2(P;H)\\), their representatives define laws satisfying</p>\\[W_2(X_\\#P,Y_\\#P)\\le\\|X-Y\\|_{L^2}.\\]",
           "steps": [
             {
               "start": 114,
@@ -313,19 +313,19 @@
         },
         {
           "name": "wasserstein2_le_Lp_cost_real",
-          "title": "The real L²-to-transport bridge",
-          "statement": "<p>For \\(X,Y\\in L^2(P;H)\\),</p>\\[W_2^{\\mathbb R}(X_\\#P,Y_\\#P)\\le\\|X-Y\\|_{L^2}.\\]",
+          "title": "The finite Wasserstein bound from an L² coupling",
+          "statement": "<p>For \\(X,Y\\in L^2(P;H)\\),</p>\\[W_2(X_\\#P,Y_\\#P)\\le\\|X-Y\\|_{L^2}.\\]",
           "steps": [
             {
               "start": 124,
               "end": 125,
-              "prose": "<p>The preceding extended bound is dominated by the finite number \\(\\operatorname{ofReal}(\\|X-Y\\|_{L^2})\\), so convert monotonically to real numbers.</p>",
+              "prose": "<p>The preceding coupling estimate bounds the extended distance by the finite norm \\(\\|X-Y\\|_{L^2}\\). It therefore proves that the distance is finite and gives the same inequality for its ordinary real value.</p>",
               "note": "<p><strong>Line 124.</strong> <code>have hb := wasserstein2_le_Lp_cost P X Y</code></p><p><code>have hb := wasserstein2_le_Lp_cost P X Y</code> names the extended-real transport inequality proved just above. There is no explicit type after <code>hb</code>; Lean infers the proposition from the theorem application on the right of <code>:=</code>. The name is arbitrary and local. Its right endpoint is <code>ENNReal.ofReal ‖X - Y‖</code>.</p><p><strong>Line 125.</strong> <code>have hr := ENNReal.toReal_mono ENNReal.ofReal_ne_top hb</code></p><p><code>have hr := ENNReal.toReal_mono ENNReal.ofReal_ne_top hb</code> converts that inequality into one between real values. <code>ENNReal.ofReal_ne_top</code> proves finiteness of an embedded real number, and Lean infers which one from <code>hb</code>. This produces a new proof <code>hr</code>; <code>hb</code> remains available. The next line simplifies the conversions in its conclusion. Explicitly proving the upper endpoint finite is what makes this use of monotonicity legitimate.</p><p>Throughout this argument, laws are pushforward measures and the extended seminorm may be infinite unless a finite-moment hypothesis is supplied. Keep the mathematical function separate from the proof that it is measurable: both are arguments in Lean, but they have different types and roles.</p>"
             },
             {
               "start": 126,
               "end": 126,
-              "prose": "<p>Real conversion of the embedding of a nonnegative norm returns the norm itself.</p>",
+              "prose": "<p>The L² norm is nonnegative and finite. Regarding that norm as an extended nonnegative number and then taking its finite value leaves the norm unchanged.</p>",
               "note": "<p><strong>Line 126.</strong> <code>simpa only [wasserstein2Real, ENNReal.toReal_ofReal (norm_nonneg _)] using hr</code></p><p><code>simpa only [...] using hr</code> simplifies the proposition proved by <code>hr</code> and checks that it becomes the current goal. The first listed definition, <code>wasserstein2Real</code>, identifies the real conversion of the extended transport distance. The second rule, <code>ENNReal.toReal_ofReal (norm_nonneg _)</code>, cancels <code>ofReal</code> followed by <code>toReal</code> for the nonnegative real norm. The theorem <code>norm_nonneg</code> says a norm is nonnegative, with <code>_</code> asking Lean to infer the vector <code>X - Y</code>. The brackets are a simplifier instruction list. The result is the real transport bound by the ordinary <code>Lp</code> norm. This is a typical role for <code>simpa</code>: the mathematical result has already been obtained, and definitional wrappers or simple conversions are the only mismatch between its statement and the desired conclusion.</p><p>Throughout this argument, laws are pushforward measures and the extended seminorm may be infinite unless a finite-moment hypothesis is supplied. Keep the mathematical function separate from the proof that it is measurable: both are arguments in Lean, but they have different types and roles.</p>"
             }
           ],
@@ -382,7 +382,7 @@
         {
           "name": "synchronous_l2_bound_real",
           "title": "The finite-moment one-step inequality",
-          "statement": "<p>Assume \\(q\\ge0\\), \\(A\\) is almost everywhere strongly measurable, \\(X'-Y'=A-V\\) and \\(\\|A\\|\\le q\\|X-Y\\|\\) almost everywhere. If \\(X-Y,V\\in L^2(P;H)\\), then</p>\\[\\operatorname{toReal}(\\|X'-Y'\\|_{2,P})\\le q\\operatorname{toReal}(\\|X-Y\\|_{2,P})+\\operatorname{toReal}(\\|V\\|_{2,P}).\\]",
+          "statement": "<p>Assume \\(q\\ge0\\), \\(A\\) is almost everywhere strongly measurable, \\(X'-Y'=A-V\\) and \\(\\|A\\|\\le q\\|X-Y\\|\\) almost everywhere. If \\(X-Y,V\\in L^2(P;H)\\), then</p>\\[\\|X'-Y'\\|_{2,P}\\le q\\|X-Y\\|_{2,P}+\\|V\\|_{2,P}.\\]",
           "steps": [
             {
               "start": 170,
@@ -411,7 +411,7 @@
     {
       "id": "integrability",
       "title": "Propagation of finite error moments",
-      "intro": "<p>A finite initial coupling error and finite local defects suffice to justify all real transport estimates. Common-noise contraction propagates these finite moments to every iterate.</p>",
+      "intro": "<p>Suppose \\(E=A-V\\) almost everywhere, \\(A\\) is almost everywhere strongly measurable, and \\(\\|A\\|\\le q\\|D\\|\\). Finite \\(L^p\\) membership of \\(D\\) transfers to \\(A\\) by domination, and finite \\(L^p\\) membership of \\(V\\) then gives that of \\(E\\). Applied to successive coupled Euler updates, this proves finite second moments of every error from the finite initial error and finite defects.</p><p>The common noise cancels in the difference of the updates. Hence the moment induction uses only the preceding error and the defect. A contraction factor strictly below one is not needed for this finiteness result; that restriction is imposed when summing the convergence recurrence.</p>",
       "file": "UnadjustedLangevin/Integrability.lean",
       "declarations": [
         {
@@ -437,7 +437,7 @@
         {
           "name": "ulaChain_error_memLp",
           "title": "All coupling errors have finite second moment",
-          "statement": "<p>Assume \\(\\nabla U\\) is \\(L\\)-Lipschitz, \\(q\\ge0\\), and the initial vector, every noise vector, and every \\(Y_k\\) are measurable. Suppose</p>\\[Y_{k+1}=\\operatorname{ulaUpdate}(U,h,Y_k,\\xi_k)+V_k\\quad\\text{almost everywhere},\\]<p>and common-noise updates satisfy \\(\\|\\operatorname{ulaUpdate}(U,h,x,z)-\\operatorname{ulaUpdate}(U,h,y,z)\\|\\le q\\|x-y\\|\\). If \\(X_0-Y_0\\in L^2\\) and every \\(V_k\\in L^2\\), then \\(X_n-Y_n\\in L^2\\) for all \\(n\\). This assertion does not require stationarity or \\(q&lt;1\\).</p>",
+          "statement": "<p>Assume \\(\\nabla U\\) is \\(L\\)-Lipschitz, \\(q\\ge0\\), and the initial vector, every noise vector, and every \\(Y_k\\) are measurable. Suppose</p>\\[Y_{k+1}=T_h^{\\xi_k}(Y_k)+V_k\\quad\\text{almost everywhere},\\]<p>and common-noise updates satisfy \\(\\|T_h^z(x)-T_h^z(y)\\|\\le q\\|x-y\\|\\). If \\(X_0-Y_0\\in L^2\\) and every \\(V_k\\in L^2\\), then \\(X_n-Y_n\\in L^2\\) for all \\(n\\). This assertion does not require stationarity or \\(q&lt;1\\).</p>",
           "steps": [
             {
               "start": 52,
@@ -454,7 +454,7 @@
             {
               "start": 59,
               "end": 60,
-              "prose": "<p>Set \\(A=\\operatorname{ulaUpdate}(U,h,X_n,\\xi_n)-\\operatorname{ulaUpdate}(U,h,Y_n,\\xi_n)\\), the update difference before adding the reference defect.</p>",
+              "prose": "<p>Set \\(A=T_h^{\\xi_n}(X_n)-T_h^{\\xi_n}(Y_n)\\), the update difference before adding the reference defect.</p>",
               "note": "<p><strong>Line 59.</strong> <code>let A : Ω → E d := fun ω ↦</code></p><p><code>let A : Ω → E d := fun ω ↦</code> begins a local definition for the update difference at a fixed predecessor index <code>n</code>. The output is a vector, and the only varying argument of <code>A</code> is the sample <code>ω</code>. The line continues because the lambda's returned expression is on the next line.</p><p><strong>Line 60.</strong> <code>ulaUpdate U h (X n ω) (noise n ω) - ulaUpdate U h (Y n ω) (noise n ω)</code></p><p>The returned value subtracts two <code>ulaUpdate</code> outputs. The first starts from <code>X n ω</code>, the second from <code>Y n ω</code>, and both use the identical noise <code>noise n ω</code>. Every occurrence of <code>ulaUpdate U h</code> is function application with two remaining vector arguments, not multiplication. The local name <code>A</code> captures the contraction part before the defect <code>V n</code> is subtracted. Its definition is an exact abbreviation, so <code>dsimp [A]</code> can later reveal this formula whenever required.</p><p>The induction tracks membership of the displacement in <code>L²</code>, rather than calculating its numerical norm. Each local fact supplies a typed hypothesis to the general membership-transfer lemma, so the final application needs no additional probabilistic assumptions beyond the ones listed in the header.</p>"
             },
             {
@@ -490,7 +490,7 @@
     {
       "id": "recurrence",
       "title": "Iteration of the scalar error estimate",
-      "intro": "<p>Once coupling gives \\(e_{k+1}\\le qe_k+b\\), the remaining calculation is deterministic. We retain the exact geometric sum before obtaining the simpler bias-floor bound. The upper envelope approaches \\(b/(1-q)\\); this does not assert that the actual error converges to that value.</p>",
+      "intro": "<p>Let a real sequence satisfy \\(e_{k+1}\\le qe_k+b\\), with \\(q\\ge0\\). Induction gives \\(e_n\\le q^ne_0+b\\sum_{j=0}^{n-1}q^j\\). If \\(0\\le q&lt;1\\), the sum equals \\((1-q^n)/(1-q)\\). When \\(b\\ge0\\), it is bounded by \\(1/(1-q)\\), giving a uniform additive bound \\(b/(1-q)\\).</p><p>The upper-bound sequence \\(q^ne_0+b/(1-q)\\) converges to \\(b/(1-q)\\). Therefore every tolerance strictly above this value eventually bounds the errors. This conclusion does not imply that the error sequence itself converges or has this limit.</p>",
       "file": "UnadjustedLangevin/Recurrence.lean",
       "declarations": [
         {
@@ -527,7 +527,7 @@
         },
         {
           "name": "affine_recurrence_exact",
-          "title": "The exact finite-horizon envelope",
+          "title": "The exact finite geometric-sum bound",
           "statement": "<p>If \\(0\\le q&lt;1\\) and \\(e_{k+1}\\le qe_k+b\\), then</p>\\[e_n\\le q^ne_0+\\frac{b(1-q^n)}{1-q}.\\]",
           "steps": [
             {
@@ -547,7 +547,7 @@
         },
         {
           "name": "affine_recurrence_bound",
-          "title": "A uniform bias-floor bound",
+          "title": "A uniform bound for the accumulated error",
           "statement": "<p>If \\(0\\le q&lt;1\\), \\(b\\ge0\\), and \\(e_{k+1}\\le qe_k+b\\), then</p>\\[e_n\\le q^ne_0+\\frac b{1-q}.\\]",
           "steps": [
             {
@@ -573,7 +573,7 @@
         },
         {
           "name": "bias_envelope_tendsto",
-          "title": "Limit of the upper envelope",
+          "title": "Limit of the upper-bound sequence",
           "statement": "<p>For \\(0\\le q&lt;1\\) and arbitrary real \\(b,e_0\\),</p>\\[q^ne_0+\\frac b{1-q}\\longrightarrow\\frac b{1-q}\\quad(n\\to\\infty).\\]",
           "steps": [
             {
@@ -593,19 +593,19 @@
         },
         {
           "name": "eventually_below_bias",
-          "title": "Every accuracy above the floor is eventually attained",
+          "title": "Eventual error below a prescribed value above the limiting bound",
           "statement": "<p>Assume \\(0\\le q&lt;1\\), \\(b\\ge0\\), and \\(e_{k+1}\\le qe_k+b\\). For every \\(\\varepsilon&gt;b/(1-q)\\), the errors satisfy \\(e_n&lt;\\varepsilon\\) for every sufficiently large \\(n\\).</p>",
           "steps": [
             {
               "start": 68,
               "end": 69,
-              "prose": "<p>The upper envelope tends to a value strictly below \\(\\varepsilon\\), so it is eventually below \\(\\varepsilon\\).</p>",
+              "prose": "<p>The upper-bound sequence converges to a value strictly below \\(\\varepsilon\\), so it is eventually below \\(\\varepsilon\\).</p>",
               "note": "<p><strong>Line 68.</strong> <code>have he := (bias_envelope_tendsto q b (e 0) hq hq1).eventually</code></p><p>The theorem <code>bias_envelope_tendsto q b (e 0) hq hq1</code> proves convergence of the scalar upper envelope with initial value <code>e 0</code>. Its <code>.eventually</code> method turns membership in a neighborhood of the limiting value into an eventual property of the sequence. The required neighborhood proof is supplied on the next line, so the <code>have he :=</code> declaration is still continuing.</p><p><strong>Line 69.</strong> <code>(gt_mem_nhds hε)</code></p><p><code>gt_mem_nhds hε</code> says that the set of real numbers less than <code>ε</code> is a neighborhood of the limiting bias, because <code>hε</code> states that bias is strictly below <code>ε</code>. Applied by line 68, this yields <code>he</code>: the upper envelope is below <code>ε</code> for all sufficiently large indices. No explicit numerical cutoff is selected; the eventual statement asserts its existence in filter language.</p><p>This part concerns only real-number inequalities and natural-number indices. The proof names record exact symbolic facts, not approximate computations. Lean checks the tactic-produced proof against the current proposition; an arithmetic tactic does not grant an inequality merely because it is requested.</p>"
             },
             {
               "start": 70,
               "end": 71,
-              "prose": "<p>At each such index, place \\(e_n\\) below the envelope by the recurrence bound and then below \\(\\varepsilon\\).</p>",
+              "prose": "<p>At each such index, bound \\(e_n\\) by this sequence using the recurrence and then below \\(\\varepsilon\\).</p>",
               "note": "<p><strong>Line 70.</strong> <code>filter_upwards [he] with n hn</code></p><p><code>filter_upwards [he] with n hn</code> reduces the desired eventual claim about <code>e n</code> to a pointwise argument on the eventual set where the envelope bound <code>he</code> holds. It introduces an index <code>n</code> and proof <code>hn</code> that the envelope at that index is less than <code>ε</code>.</p><p><strong>Line 71.</strong> <code>exact lt_of_le_of_lt (affine_recurrence_bound e q b hq hq1 hb hstep n) hn</code></p><p><code>lt_of_le_of_lt</code> combines a weak inequality and a strict inequality. Its first argument is the recurrence upper bound at this <code>n</code>, supplied by <code>affine_recurrence_bound</code>. Its second argument is <code>hn</code>. Thus <code>e n ≤ envelope n &lt; ε</code>, giving <code>e n &lt; ε</code>. <code>exact</code> closes the pointwise goal, and <code>filter_upwards</code> packages it as the desired eventual statement. Every argument of the recurrence theorem is supplied explicitly, including <code>hb</code>, the sign condition used in discarding the finite-horizon correction.</p><p>This part concerns only real-number inequalities and natural-number indices. The proof names record exact symbolic facts, not approximate computations. Lean checks the tactic-produced proof against the current proposition; an arithmetic tactic does not grant an inequality merely because it is requested.</p>"
             }
           ],
@@ -617,7 +617,7 @@
     {
       "id": "initial-coupling",
       "title": "Passing from a chosen initial coupling to an infimum",
-      "intro": "<p>The analytic estimate first uses the cost of one initial coupled pair. The infimum calculation here replaces that cost by \\(W_2(\\mu,\\nu)\\) when all finite-cost couplings give the same output laws. <code>ProductReference.lean</code> proves this common-law property on concrete product extensions; <code>CanonicalULA.lean</code> supplies their stationary references.</p>",
+      "intro": "<p>Let the output measures be fixed and assume that every initial coupling gives an affine bound in its cost with the same constants. Taking the infimum over couplings gives the corresponding bound in \\(W_2(\\mu,\\nu)\\). This uses the infimum property and does not assume an optimal coupling.</p><p>If the initial transport distance is finite, a finite-cost coupling exists. Approximate minimizing couplings then suffice even if the assumed estimate is stated only for finite-cost couplings. When the affine coefficient is zero, one such coupling already proves the constant bound. When it is positive, couplings with cost approaching the infimum give the result by taking a limit.</p>",
       "file": "UnadjustedLangevin/InitialCoupling.lean",
       "declarations": [
         {
@@ -669,7 +669,7 @@
         {
           "name": "wasserstein2_affine_bound_real_of_all_couplings",
           "title": "The real uniform-coupling estimate",
-          "statement": "<p>Let \\(a,b\\ge0\\) be finite and assume \\(W_2(\\mu,\\nu)&lt;+\\infty\\). If \\(W_2(\\mu',\\nu')\\le ac(\\gamma)+b\\) for every initial coupling, then</p>\\[W_2^{\\mathbb R}(\\mu',\\nu')\\le aW_2^{\\mathbb R}(\\mu,\\nu)+b.\\]",
+          "statement": "<p>Let \\(a,b\\ge0\\) be finite and assume \\(W_2(\\mu,\\nu)&lt;+\\infty\\). If \\(W_2(\\mu',\\nu')\\le ac(\\gamma)+b\\) for every initial coupling, then</p>\\[W_2(\\mu',\\nu')\\le aW_2(\\mu,\\nu)+b.\\]",
           "steps": [
             {
               "start": 52,
@@ -701,7 +701,7 @@
         {
           "name": "wasserstein2_affine_bound_real_of_finite_couplings",
           "title": "Finite-cost initial couplings suffice",
-          "statement": "<p>Let \\(a,b\\ge0\\) be finite. Assume both the initial and output transport distances are finite and that every finite-cost \\(\\gamma\\in\\Gamma(\\mu,\\nu)\\) satisfies</p>\\[W_2^{\\mathbb R}(\\mu',\\nu')\\le a\\operatorname{toReal}(c(\\gamma))+b.\\]<p>Then \\(W_2^{\\mathbb R}(\\mu',\\nu')\\le aW_2^{\\mathbb R}(\\mu,\\nu)+b\\).</p>",
+          "statement": "<p>Let \\(a,b\\ge0\\) be finite. Assume both the initial and output transport distances are finite and that every finite-cost \\(\\gamma\\in\\Gamma(\\mu,\\nu)\\) satisfies</p>\\[W_2(\\mu',\\nu')\\le ac(\\gamma)+b.\\]<p>Then \\(W_2(\\mu',\\nu')\\le aW_2(\\mu,\\nu)+b\\).</p>",
           "steps": [
             {
               "start": 71,
@@ -742,13 +742,13 @@
     {
       "id": "general-convergence",
       "title": "The conditional common-noise convergence theorem",
-      "intro": "<p>Combine the actual chain, propagation of finite moments, the transport bridge, and the scalar recurrence. This theorem takes the stationary reference updates and defect bounds as inputs. The subsequent integral-reference result derives those defect bounds from a continuous equation.</p>",
+      "intro": "<p>Let \\(X_k\\) be the numerical iterates and \\(Y_k\\) a supplied reference on the same probability space, with \\(\\mathcal L(Y_k)=\\pi\\). Assume a common-noise update contraction with factor \\(0\\le q&lt;1\\), a finite initial mean-square difference, and square-integrable reference defects bounded in norm by \\(b\\). Subtracting the updates gives \\(e_{k+1}\\le qe_k+b\\), where \\(e_k=\\|X_k-Y_k\\|_2\\). Moment propagation ensures these norms are finite.</p><p>The joint law of \\((X_n,Y_n)\\) bounds \\(W_2(\\mathcal L(X_n),\\pi)\\) by \\(e_n\\). Iteration gives the stated transport estimate. Its initial term is the cost of the supplied coupling. Replacing that cost by an initial Wasserstein distance requires the same construction and constants for every finite-cost initial coupling.</p>",
       "file": "UnadjustedLangevin/Convergence.lean",
       "declarations": [
         {
           "name": "ula_wasserstein_bound_of_reference",
           "title": "Transport bound from a supplied discrete reference",
-          "statement": "<p>Let \\(\\nabla U\\) be \\(L\\)-Lipschitz, \\(0\\le q&lt;1\\), and \\(b\\ge0\\). Assume the initial vector, all noise vectors, and all reference vectors \\(Y_k\\) are measurable; \\((Y_k)_\\#P=\\pi\\); and</p>\\[Y_{k+1}=\\operatorname{ulaUpdate}(U,h,Y_k,\\xi_k)+V_k\\quad\\text{almost everywhere}.\\]<p>Suppose the common-noise update is \\(q\\)-contractive, \\(X_0-Y_0\\in L^2\\), every \\(V_k\\in L^2\\), and \\(\\|V_k\\|_2\\le b\\). Then</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le q^n\\|X_0-Y_0\\|_2+\\frac b{1-q}.\\]<p>The initial term is the cost of the chosen coupled pair.</p>",
+          "statement": "<p>Let \\(\\nabla U\\) be \\(L\\)-Lipschitz, \\(0\\le q&lt;1\\), and \\(b\\ge0\\). Assume the initial vector, all noise vectors, and all reference vectors \\(Y_k\\) are measurable; \\((Y_k)_\\#P=\\pi\\); and</p>\\[Y_{k+1}=T_h^{\\xi_k}(Y_k)+V_k\\quad\\text{almost everywhere}.\\]<p>Suppose the common-noise update is \\(q\\)-contractive, \\(X_0-Y_0\\in L^2\\), every \\(V_k\\in L^2\\), and \\(\\|V_k\\|_2\\le b\\). Then</p>\\[W_2((X_n)_\\#P,\\pi)\\le q^n\\|X_0-Y_0\\|_2+\\frac b{1-q}.\\]<p>The initial term is the cost of the chosen coupled pair.</p>",
           "steps": [
             {
               "start": 44,
@@ -765,7 +765,7 @@
             {
               "start": 50,
               "end": 52,
-              "prose": "<p>To derive the recurrence, fix \\(k\\) and set \\(A=\\operatorname{ulaUpdate}(U,h,X_k,\\xi_k)-\\operatorname{ulaUpdate}(U,h,Y_k,\\xi_k)\\).</p>",
+              "prose": "<p>To derive the recurrence, fix \\(k\\) and set \\(A=T_h^{\\xi_k}(X_k)-T_h^{\\xi_k}(Y_k)\\).</p>",
               "note": "<p><strong>Line 50.</strong> <code>have hstep (k : ℕ) : e (k + 1) ≤ (q : ℝ) * e k + b := by</code></p><p><code>have hstep (k : ℕ) : e (k + 1) ≤ (q : ℝ) * e k + b := by</code> begins the central local lemma: the real error sequence satisfies a scalar affine recurrence. Its binder makes this a proof for every time <code>k</code>. The cast of <code>q</code> supplies the real coefficient expected by the scalar arithmetic.</p><p><strong>Line 51.</strong> <code>let A : Ω → E d := fun ω ↦</code></p><p><code>let A : Ω → E d := fun ω ↦</code> introduces the local contracted term for this fixed step. It is a function of the sample, rather than a single vector or a proof. Its defining body continues on the next line.</p><p><strong>Line 52.</strong> <code>ulaUpdate U h (X k ω) (noise k ω) - ulaUpdate U h (Y k ω) (noise k ω)</code></p><p>The body subtracts the update starting at <code>Y k ω</code> from the update starting at <code>X k ω</code>, using the same <code>noise k ω</code> in both. Parentheses group each vector argument for <code>ulaUpdate</code>. This <code>A</code> is precisely the term to which the supplied pointwise common-noise contraction applies; the separate defect <code>V k</code> has not yet entered it.</p><p>The proof keeps four roles distinct: the actual chain <code>X</code>, the supplied reference <code>Y</code>, its defect <code>V</code>, and the scalar error sequence <code>e</code>. Each local proof establishes one input needed to pass from their vector update identity to the scalar recurrence and then transport.</p>"
             },
             {
@@ -812,8 +812,8 @@
     },
     {
       "id": "integral-reference",
-      "title": "The shared Hilbert-space proof and both step regimes",
-      "intro": "<p>Work on a probability space with \\(\\mathcal H=L^2(P;H)\\), and write \\(g=\\widehat{\\nabla U}\\). This is the single analytic proof used by both Euclidean ULA and the lifted IPLA system. The reference record exposes the integral equation, stationary laws, and moment bounds used at this stage. <code>CanonicalULA.lean</code> constructs these inputs from strong convexity, a Lipschitz gradient, and independent Gaussian innovations.</p>",
+      "title": "Convergence in a Hilbert space of random variables",
+      "intro": "<p>Let \\(\\mathcal H=L^2(P;H)\\) and let the gradient act by pointwise composition. Supply continuous reference segments \\(Y_{k,t}\\), joining at grid endpoints, whose grid laws equal \\(\\pi\\). Their endpoint noise is the innovation driving the numerical step. The reference integral equation and the bounds \\(\\|g(Y_{k,t})\\|_2\\le\\sqrt{Ld}\\) and \\(\\|B_{k,t}\\|_2\\le\\sqrt{2d}\\sqrt t\\) give a defect norm at most \\((33/20)Lh\\sqrt{hd}\\) when \\(Lh\\le2\\).</p><p>The common-noise subtraction and the deterministic Euler contraction give an affine recurrence in \\(\\mathcal H\\). Its geometric sum bounds the transport distance of the numerical law from \\(\\pi\\). The two step ranges use factors \\(1-mh\\) and \\(Lh-1\\), respectively. The reference and its stationary laws are hypotheses here; the Brownian construction later supplies them.</p>",
       "file": "UnadjustedLangevin/HilbertDalalyan.lean",
       "declarations": [
         {
@@ -897,7 +897,7 @@
         {
           "name": "l2_reference_bound",
           "title": "Full convergence calculation from the integral reference",
-          "statement": "<p>Suppose a reference with the preceding properties is supplied, \\(h\\ge0\\), and \\(Lh\\le2\\). Let \\(0\\le q&lt;1\\), and assume the lifted Euler map contracts:</p>\\[\\|(X-hg(X))-(Y-hg(Y))\\|_2\\le q\\|X-Y\\|_2.\\]<p>For any initial vector \\(X_0\\in\\mathcal H\\), the \\(L^2\\) chain driven by the reference endpoint noise satisfies</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le q^n\\|X_0-Y_{0,0}\\|_2+\\frac{(33/20)Lh\\sqrt{hd}}{1-q}.\\]<p>The statement is conditional on the supplied reference, and the initial term is the cost of the chosen coupling.</p>",
+          "statement": "<p>Suppose a reference with the preceding properties is supplied, \\(h\\ge0\\), and \\(Lh\\le2\\). Let \\(0\\le q&lt;1\\), and assume the lifted Euler map contracts:</p>\\[\\|(X-hg(X))-(Y-hg(Y))\\|_2\\le q\\|X-Y\\|_2.\\]<p>For any initial vector \\(X_0\\in\\mathcal H\\), the \\(L^2\\) chain driven by the reference endpoint noise satisfies</p>\\[W_2((X_n)_\\#P,\\pi)\\le q^n\\|X_0-Y_{0,0}\\|_2+\\frac{(33/20)Lh\\sqrt{hd}}{1-q}.\\]<p>The statement is conditional on the supplied reference, and the initial term is the cost of the chosen coupling.</p>",
           "steps": [
             {
               "start": 80,
@@ -965,7 +965,7 @@
         {
           "name": "dalalyan_small_step_of_integral_reference",
           "title": "The small-step bound",
-          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(H\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(0&lt;h\\le2/(m+L)\\), and supply a reference with the preceding properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le(1-mh)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac Lm\\sqrt{hd}.\\]<p>This uses a chosen initial coupling and a supplied stationary reference. Replacing the initial cost by \\(W_2(\\mathcal L(X_0),\\pi)\\) needs the additional uniform family of reference couplings explained in the final section.</p>",
+          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(H\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(0&lt;h\\le2/(m+L)\\), and supply a reference with the preceding properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2((X_n)_\\#P,\\pi)\\le(1-mh)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac Lm\\sqrt{hd}.\\]<p>This uses a chosen initial coupling and a supplied stationary reference. Replacing the initial cost by \\(W_2(\\mathcal L(X_0),\\pi)\\) needs the additional uniform family of reference couplings explained in the final section.</p>",
           "steps": [
             {
               "start": 128,
@@ -1009,7 +1009,7 @@
         {
           "name": "dalalyan_large_step_of_integral_reference",
           "title": "The large-step bound",
-          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(H\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(h&gt;0\\), \\(h\\ge2/(m+L)\\), and \\(Lh&lt;2\\), and supply a reference with the stated properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le(Lh-1)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac{Lh}{2-Lh}\\sqrt{hd}.\\]<p>The denominator is positive by strict stability. The reference remains an input, and the initial term remains the chosen coupling cost.</p>",
+          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(H\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(h&gt;0\\), \\(h\\ge2/(m+L)\\), and \\(Lh&lt;2\\), and supply a reference with the stated properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2((X_n)_\\#P,\\pi)\\le(Lh-1)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac{Lh}{2-Lh}\\sqrt{hd}.\\]<p>The denominator is positive by strict stability. The reference remains an input, and the initial term remains the chosen coupling cost.</p>",
           "steps": [
             {
               "start": 156,
@@ -1055,9 +1055,9 @@
     },
     {
       "id": "euclidean-compatibility",
-      "title": "Euclidean compatibility wrappers",
+      "title": "Convergence for Euclidean random vectors",
       "file": "UnadjustedLangevin/L2Convergence.lean",
-      "intro": "<p>The original <code>E d</code> API remains available. These declarations specialize the single proof above to Euclidean space. The complete file is also included in the source appendix.</p>",
+      "intro": "<p>Take the pointwise state space to be \\(\\mathbb R^d\\). The norm on the random-variable space is \\(\\|X\\|_2=(\\mathbb E\\sum_iX_i^2)^{1/2}\\). The reference assumptions, integral equation, and endpoint innovation identities are those of the Hilbert-space result. Equality of the Euclidean and Hilbert-space recursions follows by induction from their equal initial values and equal successor maps.</p><p>Consequently the same defect and contraction estimates give the Euclidean transport bounds. The constants and the supplied initial coupling are unchanged by this specialization. In particular, these statements do not add existence or stationarity of the reference; those remain the stated hypotheses.</p>",
       "setup_note": "<p>This file imports <code>HilbertDalalyan</code> and returns to namespace <code>ULA</code>. The implicit natural <code>d</code> determines the type <code>E d</code>. All old theorem parameters and conclusions are retained. Each result below delegates to the generic proof after identifying the two names for the same recursive algorithm.</p>",
       "declarations": [
         {
@@ -1076,56 +1076,56 @@
         },
         {
           "name": "hilbert_lpChain_eq_lpUlaChain",
-          "title": "Identifying the old and shared recursions",
-          "statement": "<p>For every \\(n\\), the old Euclidean L² chain equals the common Hilbert-space L² chain.</p>",
+          "title": "Equality of the two Euclidean recursions",
+          "statement": "<p>Specialize the Hilbert-space recursion to \\(H=\\mathbb R^d\\). With the same initial variable and innovations, it equals the recursion defined directly on Euclidean L² random vectors, at every index.</p>",
           "statement_note": "<p>Both sides have the same initial value, step, gradient, and innovation sequence. The equality holds in the L² quotient, so no representative or distribution assumption enters. This equality is the only translation needed by the three wrapper theorems.</p>",
           "steps": [
             {
               "start": 39,
               "end": 41,
-              "prose": "<p>Induct on the index and unfold the matching recursive clauses.</p>",
+              "prose": "<p>Both recursions have the same initial value and the same successor update. Induction therefore identifies them at every index.</p>",
               "note": "<p><strong>Line 39.</strong> <code>induction n with</code> splits the equality into the initial and successor cases.</p><p><strong>Line 40.</strong> At zero, both definitions return <code>initial</code>; <code>rfl</code> proves their equality.</p><p><strong>Line 41.</strong> In the successor case, <code>ih</code> identifies the preceding iterates. The two successor equations rewrite each chain to the same update, and <code>simp only</code> replaces the preceding iterate using <code>ih</code>.</p>"
             }
           ]
         },
         {
           "name": "l2_reference_bound",
-          "title": "Full convergence calculation from the integral reference — Euclidean API",
-          "statement": "<p>Suppose a reference with the preceding properties is supplied, \\(h\\ge0\\), and \\(Lh\\le2\\). Let \\(0\\le q&lt;1\\), and assume the lifted Euler map contracts:</p>\\[\\|(X-hg(X))-(Y-hg(Y))\\|_2\\le q\\|X-Y\\|_2.\\]<p>For any initial vector \\(X_0\\in\\mathcal H\\), the \\(L^2\\) chain driven by the reference endpoint noise satisfies</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le q^n\\|X_0-Y_{0,0}\\|_2+\\frac{(33/20)Lh\\sqrt{hd}}{1-q}.\\]<p>The statement is conditional on the supplied reference, and the initial term is the cost of the chosen coupling.</p>",
+          "title": "Full convergence calculation from the integral reference in Euclidean space",
+          "statement": "<p>Suppose a reference with the preceding properties is supplied, \\(h\\ge0\\), and \\(Lh\\le2\\). Let \\(0\\le q&lt;1\\), and assume the lifted Euler map contracts:</p>\\[\\|(X-hg(X))-(Y-hg(Y))\\|_2\\le q\\|X-Y\\|_2.\\]<p>For any initial vector \\(X_0\\in\\mathcal H\\), the \\(L^2\\) chain driven by the reference endpoint noise satisfies</p>\\[W_2((X_n)_\\#P,\\pi)\\le q^n\\|X_0-Y_{0,0}\\|_2+\\frac{(33/20)Lh\\sqrt{hd}}{1-q}.\\]<p>The statement is conditional on the supplied reference, and the initial term is the cost of the chosen coupling.</p>",
           "statement_note": "<p>The signature is the historical Euclidean theorem statement. Its potential, step, regularity, reference, and numerical assumptions are supplied unchanged to the general theorem. No new mathematical premise is introduced by specializing the ambient Hilbert space.</p>",
           "steps": [
             {
               "start": 56,
               "end": 58,
-              "prose": "<p>Apply the shared theorem, then rewrite the recursion to its historical Euclidean name.</p>",
+              "prose": "<p>Apply the preceding Hilbert-space estimate with \\(H=\\mathbb R^d\\). The two recursions agree by the preceding induction, so the same inequality holds for the Euclidean recursion with the stated assumptions and constants.</p>",
               "note": "<p><strong>Line 56.</strong> <code>simpa only [hilbert_lpChain_eq_lpUlaChain] using</code> asks Lean to simplify the conclusion of an existing proved theorem with exactly the recursion-identification equality.</p><p><strong>Line 57.</strong> <code>Hilbert.l2_reference_bound</code> is that shared theorem. The displayed arguments pass the same measure, dimension, potential, step, gradient Lipschitz proof, and reference data.</p><p><strong>Line 58.</strong> The remaining numerical and contraction assumptions and the iteration count complete the application. Lean checks that its rewritten conclusion is precisely the old Euclidean goal.</p>"
             }
           ]
         },
         {
           "name": "dalalyan_small_step_of_integral_reference",
-          "title": "The small-step bound — Euclidean API",
-          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(\\mathbb R^d\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(0&lt;h\\le2/(m+L)\\), and supply a reference with the preceding properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le(1-mh)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac Lm\\sqrt{hd}.\\]<p>This uses a chosen initial coupling and a supplied stationary reference. Replacing the initial cost by \\(W_2(\\mathcal L(X_0),\\pi)\\) needs the additional uniform family of reference couplings explained in the final section.</p>",
+          "title": "The small-step bound in Euclidean space",
+          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(\\mathbb R^d\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(0&lt;h\\le2/(m+L)\\), and supply a reference with the preceding properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2((X_n)_\\#P,\\pi)\\le(1-mh)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac Lm\\sqrt{hd}.\\]<p>This uses a chosen initial coupling and a supplied stationary reference. Replacing the initial cost by \\(W_2(\\mathcal L(X_0),\\pi)\\) needs the additional uniform family of reference couplings explained in the final section.</p>",
           "statement_note": "<p>The signature is the historical Euclidean theorem statement. Its potential, step, regularity, reference, and numerical assumptions are supplied unchanged to the general theorem. No new mathematical premise is introduced by specializing the ambient Hilbert space.</p>",
           "steps": [
             {
               "start": 72,
               "end": 74,
-              "prose": "<p>Apply the shared theorem, then rewrite the recursion to its historical Euclidean name.</p>",
+              "prose": "<p>Apply the preceding Hilbert-space estimate with \\(H=\\mathbb R^d\\). The two recursions agree by the preceding induction, so the same inequality holds for the Euclidean recursion with the stated assumptions and constants.</p>",
               "note": "<p><strong>Line 72.</strong> <code>simpa only [hilbert_lpChain_eq_lpUlaChain] using</code> asks Lean to simplify the conclusion of an existing proved theorem with exactly the recursion-identification equality.</p><p><strong>Line 73.</strong> <code>Hilbert.dalalyan_small_step_of_integral_reference</code> is that shared theorem. The displayed arguments pass the same measure, dimension, potential, step, gradient Lipschitz proof, and reference data.</p><p><strong>Line 74.</strong> The remaining numerical and contraction assumptions and the iteration count complete the application. Lean checks that its rewritten conclusion is precisely the old Euclidean goal.</p>"
             }
           ]
         },
         {
           "name": "dalalyan_large_step_of_integral_reference",
-          "title": "The large-step bound — Euclidean API",
-          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(\\mathbb R^d\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(h&gt;0\\), \\(h\\ge2/(m+L)\\), and \\(Lh&lt;2\\), and supply a reference with the stated properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2^{\\mathbb R}((X_n)_\\#P,\\pi)\\le(Lh-1)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac{Lh}{2-Lh}\\sqrt{hd}.\\]<p>The denominator is positive by strict stability. The reference remains an input, and the initial term remains the chosen coupling cost.</p>",
+          "title": "The large-step bound in Euclidean space",
+          "statement": "<p>Suppose \\(U\\) is differentiable and \\(m\\)-strongly convex on \\(\\mathbb R^d\\), \\(\\nabla U\\) is \\(L\\)-Lipschitz, and \\(0&lt;m\\le L\\). Let \\(h&gt;0\\), \\(h\\ge2/(m+L)\\), and \\(Lh&lt;2\\), and supply a reference with the stated properties. For any initial vector \\(X_0\\in\\mathcal H\\),</p>\\[W_2((X_n)_\\#P,\\pi)\\le(Lh-1)^n\\|X_0-Y_{0,0}\\|_2+\\frac{33}{20}\\frac{Lh}{2-Lh}\\sqrt{hd}.\\]<p>The denominator is positive by strict stability. The reference remains an input, and the initial term remains the chosen coupling cost.</p>",
           "statement_note": "<p>The signature is the historical Euclidean theorem statement. Its potential, step, regularity, reference, and numerical assumptions are supplied unchanged to the general theorem. No new mathematical premise is introduced by specializing the ambient Hilbert space.</p>",
           "steps": [
             {
               "start": 87,
               "end": 89,
-              "prose": "<p>Apply the shared theorem, then rewrite the recursion to its historical Euclidean name.</p>",
+              "prose": "<p>Apply the preceding Hilbert-space estimate with \\(H=\\mathbb R^d\\). The two recursions agree by the preceding induction, so the same inequality holds for the Euclidean recursion with the stated assumptions and constants.</p>",
               "note": "<p><strong>Line 87.</strong> <code>simpa only [hilbert_lpChain_eq_lpUlaChain] using</code> asks Lean to simplify the conclusion of an existing proved theorem with exactly the recursion-identification equality.</p><p><strong>Line 88.</strong> <code>Hilbert.dalalyan_large_step_of_integral_reference</code> is that shared theorem. The displayed arguments pass the same measure, dimension, potential, step, gradient Lipschitz proof, and reference data.</p><p><strong>Line 89.</strong> The remaining numerical and contraction assumptions and the iteration count complete the application. Lean checks that its rewritten conclusion is precisely the old Euclidean goal.</p>"
             }
           ]
