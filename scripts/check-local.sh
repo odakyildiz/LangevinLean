@@ -16,7 +16,8 @@ for audit in \
   IPLA/LSI/Check.lean \
   KineticLangevin/Check.lean \
   KIPLMC/Check.lean \
-  PBGSO/Check.lean
+  PBGSO/Check.lean \
+  LatentDiffusion/Check.lean
 do
   printf '\nAuditing %s\n' "$audit"
   lake env lean "$audit"
@@ -40,6 +41,10 @@ do
   printf '\nChecking %s\n' "$verifier"
   python3 -B "$verifier"
 done
+
+printf '\nChecking latent-diffusion statements and source fidelity\n'
+python3 -B scripts/verify-latent-diffusion.py
+lake env lean LatentDiffusion/exposition/statement_checks.lean
 
 printf '\nChecking the complete module proof atlas\n'
 python3 -B docs/build_site.py --check

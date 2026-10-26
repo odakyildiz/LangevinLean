@@ -526,6 +526,8 @@ def main():
     outputs['index.html'] = project_document(notes,catalog)
     from build_pbgso import outputs as pbgso_outputs, authoring_inputs as pbgso_inputs
     outputs.update(pbgso_outputs())
+    from build_latent_diffusion import outputs as latent_outputs, authoring_inputs as latent_inputs
+    outputs.update(latent_outputs())
     from full_proofs import full_proof_documents, full_proof_inventory
     outputs.update(full_proof_documents(CONFIG, notes, sources, catalog))
     outputs.update(bib_outputs(catalog.plans))
@@ -539,6 +541,7 @@ def main():
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += pbgso_inputs()
+    inputs += latent_inputs()
     inputs += [p.relative_to(ROOT).as_posix() for p in sorted((HERE/'assets/fonts').glob('*'))
                if p.is_file()]
     inputs += ['UnadjustedLangevin/exposition/build_document.py']

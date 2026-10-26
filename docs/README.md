@@ -11,6 +11,13 @@ analogue is also linked as a footnote from IPLA:
 - [Kinetic Langevin](../KineticLangevin/exposition/index.html)
 - [KIPLMC](../KIPLMC/exposition/index.html)
 - [PBGSO: paper theorems and new discretisation bounds](../PBGSO/exposition/index.html)
+- [Latent diffusion: assumptions, results and exact Lean statements](../LatentDiffusion/exposition/index.html)
+
+Latent diffusion has a source-derived overview and complete declaration pages,
+with variational identities, marginal optimizers, particle error bounds and
+explicit accuracy choices. Its continuous decay results retain explicit analytic
+bridges. The [source audit](../LatentDiffusion/exposition/source_audit.md) records
+remaining gaps, corrected minibatch scaling and the time-zero density obstruction.
 
 PBGSO is a separate source-based development with all eight source results
 and both new method bounds verified under explicit source interpretations. It proves the general independent-map framework, actual Brownian/Itô
@@ -183,6 +190,18 @@ required bridges. Its completed ledger uses the explicit SDE meaning of A2 and
 ordinary finite signed-work convention for constant-diffusion source2; the
 broader extended-negative interpretation is outside that correspondence.
 
+`build_latent_diffusion.py` generates the latent-diffusion overview, complete
+proof pages, exact source inventory and imported theorem checks. It is integrated
+into `build_site.py` and its input/output manifest. Run
+`python3 docs/build_latent_diffusion.py --check` to check regeneration, exact source
+excerpts, complete theorem headers, local links and mathematical typesetting;
+`lake env lean LatentDiffusion/exposition/statement_checks.lean` checks the displayed
+results against their imported Lean proof types.
+`python3 scripts/verify-latent-diffusion.py` additionally checks the source audit
+and unresolved coverage statuses; it does not certify complete source coverage.
+This development stays outside
+the published PDF report catalog, and its source coverage remains partial.
+
 Keep each mathematical statement and proof self-contained in ordinary notation.
 Use dry mathematical language: state the hypotheses, define each quantity,
 and explain each inference. Include the inequalities, integrability conditions,
@@ -249,6 +268,7 @@ lake env lean IPLA/LSI/Check.lean
 lake env lean KineticLangevin/Check.lean
 lake env lean KIPLMC/Check.lean
 lake env lean PBGSO/Check.lean
+lake env lean LatentDiffusion/Check.lean
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 

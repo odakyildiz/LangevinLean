@@ -3,13 +3,13 @@
 Lean formalizations of unadjusted Langevin (ULA), interacting particle Langevin
 (IPLA), proximal particle algorithms, kinetic Langevin, kinetic interacting
 particle Langevin Monte Carlo (KIPLMC), and a general particle-based stochastic
-optimisation framework (PBGSO). Mathematical statements and proofs are
+optimisation framework (PBGSO), and latent diffusion. Mathematical statements and proofs are
 paired with the exact Lean declarations, including every supporting subfile.
 The shared theory is organized for reuse by further methods.
 
 Open the [documentation homepage](index.html), then choose strongly convex ULA,
 ULA under LSI, strongly convex IPLA, proximal algorithms, kinetic Langevin,
-KIPLMC, or PBGSO. The established overviews pair mathematical results with Lean,
+KIPLMC, PBGSO, or latent diffusion. The established overviews pair mathematical results with Lean,
 verification commands, and proof diagrams linking to detailed HTML proof pages.
 They have module pages and downloadable LaTeX expositions. PBGSO's main page
 pairs its four main paper theorems and final discretisation bounds New A and
@@ -49,6 +49,7 @@ lake env lean IPLA/LSI/Check.lean
 lake env lean KineticLangevin/Check.lean
 lake env lean KIPLMC/Check.lean
 lake env lean PBGSO/Check.lean
+lake env lean LatentDiffusion/Check.lean
 lake env lean IPLA/Standalone.lean
 ```
 
@@ -104,6 +105,13 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   likelihood estimator, and explicit iteration counts for a specified accuracy
   are proved. The [source coverage audit](KIPLMC/exposition/reference_audit.json)
   distinguishes the analytic statements from the empirical experiments.
+- **Latent diffusion:** [assumptions, mathematical results and exact Lean statements](LatentDiffusion/exposition/index.html),
+  with [source coverage and remaining gaps](LatentDiffusion/exposition/source_audit.md).
+  The development proves variational identities, marginal optimizer results,
+  interacting-particle error estimates and explicit accuracy choices. Continuous
+  decay retains explicit analytic bridges; the audit records corrected minibatch
+  scaling and the obstruction to universal density regularity at time zero.
+  Incomplete source-proof statuses and remaining analytic obligations are explicit.
 - **PBGSO:** [general framework, assumptions and exact theorem statements](PBGSO/exposition/index.html),
   [scope and module guide](PBGSO/README.md), and
   [audit of all eight numbered source results](PBGSO/exposition/source_audit.md).
@@ -209,6 +217,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Kinetic convergence and Gibbs stationarity, Cholesky Gaussian sampling, KLMC/KLMC2 Wasserstein bounds, iteration counts for a specified accuracy, and comparison with the source paper. |
 | [`KIPLMC/`](KIPLMC/exposition/README.md) | KIPLD convergence, KIPLMC1/KIPLMC2 parameter root-mean-square error bounds, changes of variables for the diffusion and algorithms, target concentration, and the analytic logistic example. |
+| [`LatentDiffusion/`](LatentDiffusion/exposition/index.html) | Variational identities, marginal optimizers, conditional continuous decay, interacting-particle numerical bounds and explicit accuracy choices; source obstructions and remaining analytic bridges are documented. |
 | [`PBGSO/`](PBGSO/README.md) | General optimiser/sampler framework, actual predictable Brownian integration and continuous adapted modifications, stationary product laws and optimal law contraction, source appendix criteria and fully constructed additive particle numerical bounds; original raw stationarity via actual Wiener-path transfer and primitive linear-growth optimal law contraction across sources; constant-diffusion contraction uses the explicit ordinary finite signed-work A3 convention; actual independent reference clouds and physical particle/reference pairing are constructed. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
