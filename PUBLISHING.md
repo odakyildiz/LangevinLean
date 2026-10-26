@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`7b208affab823b1b2c611ce6c50dc166d3c71d8b`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`125ab02554a456958ab09c7dc4e7b6e63e3c22ca`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -22,6 +22,21 @@ Do not regenerate HTML directly here without restoring those directives.
 The `papers/` directory is never published. Apply documentation and cleanup commits
 separately from paper-source commits; do not merge `main` wholesale into this
 branch. Before publishing, `git ls-files papers` must return no files.
+
+On 26 October 2026, the owner approved publication of the PBGSO framework and
+the revised theorem overview from main commit
+`125ab02554a456958ab09c7dc4e7b6e63e3c22ca`. The update includes the technical
+proof catalog, source audit, assumption inventory and standalone verification
+entry files. Paper sources remain excluded; robots metadata, robots.txt and
+.nojekyll are retained.
+
+Before publication, `bash scripts/check-local.sh` passed on that source
+snapshot, including the full Lean build, eight dependency audits, PBGSO
+standalone checks, documentation verification and isolated IPLA compilation.
+Browser QA passed 127 cases directly. Four navigation cases passed using a
+temporary verification copy that accepts catalog links with section anchors;
+the committed browser assertion incorrectly requires an exact `technical.html`
+link. Published site and verification sources remain identical to main.
 
 The kinetic Langevin and KIPLMC pages were approved for publication on
 23 October 2026 with their documented source corrections and scope qualifications.
