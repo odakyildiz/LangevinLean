@@ -1,31 +1,29 @@
-import PBGSO.FullyConstructedHigherOrder
+import PBGSO.FullyUniformHigherOrder
 
 /-!
-# Theorem New B: final printed HOL-MYPGD endpoint
+# Theorem New B: time-uniform actual particle implementation bound
 
-This is a compact repository check entry point, not a self-contained proof file.
-Run `python3 scripts/check-pbgso-standalone.py --endpoint new-b --check`.
-For one Mathlib-only file containing the entire local proof closure, use
-`--output /tmp/pbgso-new-b --check`. See PBGSO/README.md.
+Repository verification entry point. For a Mathlib-only single file containing
+its complete exact proof closure, run:
+  python3 scripts/check-pbgso-standalone.py --endpoint new-b --output /tmp/pbgso-new-b --check
 
-The checked endpoint uses the actual printed affine coefficients and verified
-Gaussian covariance. Its inputs are independent globally jointly Lipschitz
-forces; a positive population with the flattened Euclidean encoding; alpha > 0,
-gamma >= 0; P2 initial/target laws; an actual frozen invariant sampler; zero
-target mean observation; positive source A3; and uniform reference observation
-variance. Processes, references, Gaussian coupling and mesh-uniform constants
-are constructed. The error rate is O(sqrt h) on each fixed horizon.
+The final endpoint constructs its physical particle process, actual Gaussian
+coupling, A3 contracting metric, exact restarts, local consistency coefficients,
+and time-uniform reference moments. Independent globally jointly Lipschitz
+forces, finite-dimensional optimiser/sampler coordinates, physical coefficient
+signs, positive particle count/rate, P2 initial/target laws, an actual frozen
+invariant trajectory with zero mean observation, and A5 are explicit.
 
-The stationary target can be biased by hybrid smoothing. The separately
-checked original-target corollary adds L*epsilon/m from actual coupled target
-observations, their expectation identities, and positive gradient monotonicity;
-it does not assume or derive a model-specific Moreau coupling radius.
+The final error is D*sqrt(h) plus the original continuous relaxation and
+particle floor for every iteration, for 0<h<=h_max. The constructed D and
+positive h_max depend only on the fixed data, never h,n or a time horizon.
+Their dependence on N is not asserted uniform. No numerical contractivity,
+local-defect, uniform-moment, reference-matching or error-recurrence conclusion
+is assumed. The target is the stationary critical point of the forces used.
 -/
 
 set_option pp.deepTerms true
 set_option pp.maxSteps 1000000
 
-#check @PBGSO.FullyConstructedHigherOrder.parameter_bound
-#print axioms PBGSO.FullyConstructedHigherOrder.parameter_bound
-#check @PBGSO.FullyConstructedHigherOrder.original_parameter_bound
-#print axioms PBGSO.FullyConstructedHigherOrder.original_parameter_bound
+#check @PBGSO.FullyUniformHigherOrder.parameter_bound
+#print axioms PBGSO.FullyUniformHigherOrder.parameter_bound

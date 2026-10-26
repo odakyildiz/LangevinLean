@@ -1,25 +1,29 @@
-import PBGSO.FullyConstructedMomentum
+import PBGSO.FullyUniformMomentum
 
 /-!
-# Theorem New A: final M-MFPO/OBABO endpoint
+# Theorem New A: time-uniform actual particle implementation bound
 
-This is a compact repository check entry point, not a self-contained proof file.
-Run `python3 scripts/check-pbgso-standalone.py --endpoint new-a --check`.
-For one Mathlib-only file containing the entire local proof closure, use
-`--output /tmp/pbgso-new-a --check`. See PBGSO/README.md.
+Repository verification entry point. For a Mathlib-only single file containing
+its complete exact proof closure, run:
+  python3 scripts/check-pbgso-standalone.py --endpoint new-a --output /tmp/pbgso-new-a --check
 
-The checked endpoint constructs the process, actual Gaussian innovations,
-integral references, and mesh-uniform finite-horizon constants. Its inputs are
-independent globally jointly Lipschitz forces; a positive population with the
-flattened Euclidean encoding; gamma >= 0; P2 initial/target laws; an actual
-frozen invariant sampler; zero target mean observation; positive source A3;
-and uniform reference observation variance. The target is stationary, with
-zero optimizer momentum. The bound is finite-horizon O(sqrt h), not a claim
-of uniform-in-time numerical mixing or arbitrary nonsmooth-force accuracy.
+The final endpoint constructs its physical particle process, actual Gaussian
+coupling, A3 contracting metric, exact restarts, local consistency coefficients,
+and time-uniform reference moments. Independent globally jointly Lipschitz
+forces, finite-dimensional optimiser/sampler coordinates, physical coefficient
+signs, positive particle count/rate, P2 initial/target laws, an actual frozen
+invariant trajectory with zero mean observation, and A5 are explicit.
+
+The final error is D*sqrt(h) plus the original continuous relaxation and
+particle floor for every iteration, for 0<h<=h_max. The constructed D and
+positive h_max depend only on the fixed data, never h,n or a time horizon.
+Their dependence on N is not asserted uniform. No numerical contractivity,
+local-defect, uniform-moment, reference-matching or error-recurrence conclusion
+is assumed. The target is the stationary critical point of the forces used.
 -/
 
 set_option pp.deepTerms true
 set_option pp.maxSteps 1000000
 
-#check @PBGSO.FullyConstructedMomentum.numerical_parameter_bound
-#print axioms PBGSO.FullyConstructedMomentum.numerical_parameter_bound
+#check @PBGSO.FullyUniformMomentum.numerical_parameter_bound
+#print axioms PBGSO.FullyUniformMomentum.numerical_parameter_bound

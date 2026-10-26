@@ -45,8 +45,10 @@ class LandingContractTests(unittest.TestCase):
                          '<p>Paper assumptions: the stated initial laws and model hypotheses.</p>' +
                          status + '<div class="katex">The mathematical conclusion.</div></article>')
         new = ''.join(f'<article data-new-theory="{label}"><h3>Theorem New {label} — Final bound</h3>'
-                      '<p>Assumptions: the explicit primitive force conditions.</p>'
-                      '<div class="katex">The final numerical parameter bound.</div></article>'
+                      '<p class="added-assumption" data-assumption-kind="added">'
+                      'Assumptions: the explicit primitive force conditions.</p>'
+                      '<div class="katex" data-time-uniform="true">The final numerical parameter bound '
+                      'for every iteration, with constants independent of time.</div></article>'
                       for label in 'AB')
         roadmap_links = ''.join(f'<a href="proofs/Appendix{i}.html#decl-final">Appendix result {i}</a>'
                                 for i in range(4))
@@ -96,6 +98,18 @@ class LandingContractTests(unittest.TestCase):
     def test_third_new_result_is_rejected(self):
         with self.assertRaises(AssertionError):
             self.check(self.overview.replace('</main>', '<article data-new-theory="C"></article></main>'))
+
+    def test_finite_horizon_cannot_replace_uniform_numerical_conclusion(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('data-time-uniform="true"', '', 1))
+
+    def test_time_dependent_constants_are_rejected(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('independent of time', 'depending on the run length', 1))
+
+    def test_final_numerical_bound_must_cover_every_iteration(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('for every iteration', 'until a fixed time', 1))
 
     def test_catalog_cannot_return_to_landing(self):
         with self.assertRaises(AssertionError):

@@ -137,91 +137,93 @@ c_N=\frac{L_\Psi}{\rho}\sqrt{\frac{\kappa V_F}{N}}.
         ('PBGSO/RawConstructedParticleParameter.lean', 'original_parameter_bound_linearGrowth', 'Linear-growth branch'),
         ('PBGSO/RawConstructedParticleJointLimit.lean', 'parameter_joint_limit', 'Joint large-time and large-particle limit')], source='thm:parameter_error_full')
     body += '</section><section class="section" id="new-theory"><h2>New theory</h2>'
-    body += math(r'''<p>The following are new finite-horizon bounds for the actual M-MFPO and HOL-MYPGD particle updates. They are not discretisation theorems stated or proved in the manuscript. In each statement, \(t_n=nh\), \(d_x\) is the position/noise-coordinate dimension, \(d=N d_x\) is the flattened position/noise-cloud dimension, and \(\widehat\theta_n^{N,h}\) uses the same initial state as the constructed continuous interacting system. The augmented sampler phase has dimension \(2d\) for M-MFPO and \(3d\) for HOL; the Gaussian constants below use \(\sqrt d\).</p>''')
+    body += math(r'''<p>The following are new time-uniform bounds for the actual M-MFPO and HOL-MYPGD particle updates. They are not discretisation theorems stated or proved in the manuscript. In each statement, \(t_n=nh\), \(d_x\) is the position/noise-coordinate dimension, \(d=N d_x\), and \(\widehat\theta_n^{N,h}\) uses the same initial state as the constructed continuous interacting system. Constants may depend on \(N\) and the primitive data, but are independent of \(n,h\) and the time horizon. The augmented sampler phase has dimension \(2d\) for M-MFPO and \(3d\) for HOL.</p>''')
 
     body += article('theorem-new-a', 'Theorem New A — M-MFPO final discretisation bound', r'''
-<p><strong>Inherited assumptions.</strong> For the kinetic model \(ds=(m,-G_\nu(s)-\gamma m)dt\), \(d(x,v)=(v,-G(\theta,x)-\gamma v)dt+(0,\sqrt{2\gamma}\,dB)\), assume A3, an actual frozen stationary \(\mathcal P_2\) law with zero mean observation at \(s_\star=(\theta_\star,0)\), and the uniform observation variance A5. The initial sampler law is in \(\mathcal P_2\), the initial optimiser is deterministic, and \(N\ge1\).</p>
+<p><strong>Inherited assumptions.</strong> For the kinetic model \(ds=(m,-G_\nu(s)-\gamma m)dt\), \(d(x,v)=(v,-G(\theta,x)-\gamma v)dt+(0,\sqrt{2\gamma}\,dB)\), assume A3 with \(\rho&gt;0\), an actual frozen stationary \(\mathcal P_2\) law with zero mean observation at \(s_\star=(\theta_\star,0)\), and the uniform observation variance A5. The initial sampler law is in \(\mathcal P_2\), the initial optimiser is deterministic, and \(N\ge1\). Initial sampler states are i.i.d. with that law and independent of the Brownian drivers.</p>
 <div class="added-assumption" data-assumption-kind="added"><strong>Extra assumptions, before the result.</strong> The independent forces \(F,G\) are globally jointly Lipschitz: for \(Q=F,G\), with its own constant \(l_Q\),
 \[\begin{gathered}
 \|Q(\theta,x)-Q(\theta',x')\|\\
 \le l_Q(\|\theta-\theta'\|+\|x-x'\|).
 \end{gathered}\]
-The optimiser space is a complete real Hilbert space with compatible Borel and second-countability structure, and sampler coordinates are finite-dimensional Euclidean. Take \(\gamma\ge0\), a fixed finite horizon \(T\ge0\), \(0&lt;h\le1\) and \(nh\le T\). Use the stated OBABO update, the standard Euclidean cloud encoding, no optimiser thermal noise, and independent isotropic Gaussian sampler half-step innovations.
+The optimiser and sampler coordinates are finite-dimensional real Hilbert/Euclidean spaces with their usual Borel structure. Take \(\gamma\ge0\) and \(0&lt;h\le h_{*,M}\), where the explicit positive threshold below depends only on the data. Use the stated OBABO update, standard Euclidean cloud encoding, no optimiser thermal noise, and independent isotropic Gaussian sampler half-step innovations.
 <p><strong>Frozen target realization.</strong> Supply an actual norm-continuous L² frozen sampler trajectory on the product of \(\nu_\star\) and the canonical Brownian source. It starts at the initial-coordinate projection, solves the frozen integral equation with the displayed physical Brownian input, and has law \(\nu_\star\) at each time. This <code>FrozenTrajectory</code> premise is more explicit than the weak frozen-invariance assertion used in Theorem 1; this endpoint does not derive it from an abstract invariant law.</p></div>
-<p>The processes and their Brownian coupling are constructed from these primitives. There exist nonnegative constants \(P,G_0,R\), depending on the data and \(T\) but independent of \(h,n\) on this horizon. They bound reference momentum, drift and temporal increments; they are conclusions of the construction.</p>
-<div class="theorem-conclusion"><p><strong>Statement.</strong> With the constants defined below, for every admissible mesh,</p>
+<p>The contracting particle metric, Brownian coupling, reference moments and local error coefficients are constructed from these primitives. No uniform moment bound, numerical contraction, local-error estimate or error recurrence is an additional assumption.</p>
+<div class="theorem-conclusion" data-time-uniform="true"><p><strong>Statement.</strong> There are explicit finite \(D_M\ge0\) and \(h_{*,M}&gt;0\), independent of time. For every \(n\in\mathbb N\) and every \(0&lt;h\le h_{*,M}\),</p>
 \[\begin{aligned}
 &\|\widehat\theta_n^{N,h}-\theta_\star\|_{L^2}\\
-&\quad\le B_M(h,n)\\
+&\quad\le D_M\sqrt h\\
 &\qquad+\sqrt\kappa\,e^{-\rho t_n}d_0\\
-&+\frac{2+\gamma}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t_n}),\\
-&B_M(h,n)=e^{K_Mt_n}C_Mt_n\sqrt h.
+&+\frac{2+\gamma}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t_n}).
 \end{aligned}\]
-<p>The verified discretisation term \(B_M\) is \(O(\sqrt h)\) at fixed \(T,N\). Its constants need not be uniform in time or particle count.</p></div>
+<p>The discretisation error is \(O(\sqrt h)\) uniformly over all iterations, for fixed \(N\). The constants and allowed step size need not be uniform in particle count.</p></div>
 <details class="bound-constants"><summary>Constants in the final bound</summary>
-<p>Let \(E\) be the standard Euclidean encoding from the flattened position cloud to the particle array. The exact certified force constants are</p>
+<p>Let \(E\) be the standard cloud encoding and put</p>
 \[\begin{aligned}
 L_F&=l_F(1+\|E\|),\\
-L_G&=\|E^{-1}\|l_G(1+\|E\|).
+L_G&=\|E^{-1}\|l_G(1+\|E\|),\\
+L&=2\max(L_F,L_G),\\
+K&=L+\gamma+1,\\
+\Xi&=\sqrt d,\qquad\beta=\sqrt\gamma\sqrt{2d}.
 \end{aligned}\]
-<p>Put \(L=2\max(L_F,L_G)\) and \(F_0=G_0+\gamma P\). Then</p>
+<p>In the actual raw L² implementation coordinates, write \(f\) for the full kinetic drift, \(z_0\) for the initial state and \(g_0\) for the coupled force at zero. Let \((c_0,c_1)\) be exactly <code>momentumUniformDefect</code> evaluated at \((L,\gamma,\|g_0\|,\Xi,\beta)\). These nonnegative coefficients are explicit expressions in the primitive data, defined in the linked proof; the theorem proves the local estimate from the actual OBABO map.</p>
+<p>Source A3 constructs a bounded linear metric factor \(C\) and \(m_C&gt;0\) with \(m_C\|z\|\le\|Cz\|\). They are derived, not extra stability assumptions. Let \(P\) be the proved equivalence from raw coordinates to physical particle L² coordinates. With \(\underline d_N=m\min(1,1/N)\) and \(\overline d_N=M\max(1,1/N)\) from the source metric comparisons, take</p>
 \[\begin{aligned}
-K_M&=1+2L+L^2/2,\\
-C_M&=\tfrac{\gamma^2+\gamma}{2}P\\
-&\quad+\tfrac{\gamma+1}{2}F_0\\
-&\quad+\tfrac L2(P+\sqrt d+F_0/2)\\
-&\quad+\sqrt\gamma\sqrt d+\tfrac32\gamma\sqrt\gamma\sqrt d\\
-&\quad+\tfrac23(L+\gamma+1)R.
+m_C&=\frac{\sqrt{\underline d_N}}{\|P^{-1}\|+1},\\
+U_C&=\sqrt{\overline d_N}\,\|P\|,\\
+S&=U_Ce^{K+1}(\|f(0)\|+\beta),\\
+R&=U_C\|z_0\|\\
+&\quad+\frac S{1-e^{-\rho}}+S,\\
+a&=U_Cc_0,\\
+b&=U_Cc_1/m_C,\\
+D_M&=\frac{4(a+bR)}{\rho m_C},\\
+h_{*,M}&=\min\{1,\rho^{-1},q^2\},\\
+q&=\frac\rho{4(b+1)}.
 \end{aligned}\]
-<p>The source-level definition is exactly <code>momentumDiscretizationBudget</code> with zero initial discrepancy. The response constant used by the formal endpoint is the certified \(2+\gamma\).</p></details>''', [
-        ('PBGSO/FullyConstructedMomentum.lean', 'numerical_parameter_bound', 'Final formal theorem'),
-        ('PBGSO/NumericsTarget.lean', 'momentumDiscretizationBudget', 'Exact discretisation budget'),
-        ('PBGSO/ParticleMethodLp.lean', 'meanLip', 'Encoded force constants')], new='A')
+<p>The full-state error in the raw product norm (the maximum of the component L² errors) against the continuous interacting particles is also bounded by \(D_M\sqrt h\) for every iteration. The threshold ensures \(\rho h\le1\) and \(b\sqrt h\le\rho/4\). The factor \(2+\gamma\) is the certified response bound used by this endpoint.</p></details>''', [
+        ('PBGSO/FullyUniformMomentum.lean', 'numerical_parameter_bound', 'Final formal theorem'),
+        ('PBGSO/MomentumUniformDefect.lean', 'momentumUniformDefect', 'Exact local coefficients'),
+        ('PBGSO/MomentumUniform.lean', 'momentumUniformErrorConstant', 'Metric uniform estimate'),
+        ('PBGSO/UniformStepSize.lean', 'maximumStep', 'Explicit positive step threshold')], new='A')
 
     body += article('theorem-new-b', 'Theorem New B — HOL-MYPGD final discretisation bound', r'''
-<p><strong>Inherited assumptions.</strong> For the original higher-order model \(d\theta=-G_\nu(\theta)dt\), \(dx=u\,dt\), \(du=(-G(\theta,x)+\gamma v)dt\), \(dv=(-\gamma u-\alpha v)dt+\sqrt{2\alpha}\,dB\), assume A3, a frozen stationary \(\mathcal P_2\) law with zero mean observation at \(\theta_\star\), and A5. Take a deterministic initial parameter, an initial sampler law in \(\mathcal P_2\) and \(N\ge1\).</p>
-<div class="added-assumption" data-assumption-kind="added"><strong>Extra assumptions, before the result.</strong> The independent forces \(F,G\) satisfy the same separate global joint Lipschitz bounds and the same Hilbert/Euclidean space conditions as New A. Take \(\alpha&gt;0\), \(\gamma\ge0\), a fixed finite horizon \(T\ge0\), \(0&lt;h\le1\), \(nh\le T\), and standard Euclidean cloud encoding. Use the paper’s parameter-first endpoint-force update and its printed correlated Gaussian innovation law, with independent time and spatial blocks.
+<p><strong>Inherited assumptions.</strong> For the original higher-order model \(d\theta=-G_\nu(\theta)dt\), \(dx=u\,dt\), \(du=(-G(\theta,x)+\gamma v)dt\), \(dv=(-\gamma u-\alpha v)dt+\sqrt{2\alpha}\,dB\), assume A3 with \(\rho&gt;0\), a frozen stationary \(\mathcal P_2\) law with zero mean observation at \(\theta_\star\), and A5. Take a deterministic initial parameter, i.i.d. initial sampler states from a \(\mathcal P_2\) law independently of the Brownian drivers, and \(N\ge1\).</p>
+<div class="added-assumption" data-assumption-kind="added"><strong>Extra assumptions, before the result.</strong> The independent forces \(F,G\) satisfy the same separate global joint Lipschitz bounds and finite-dimensional Hilbert/Euclidean space conditions as New A. Take \(\alpha&gt;0\), \(\gamma\ge0\), \(0&lt;h\le h_{*,H}\), and standard Euclidean cloud encoding. Use the paper’s parameter-first endpoint-force update and its printed correlated Gaussian innovation law, with independent time and spatial blocks.
 <p><strong>Frozen target realization.</strong> Supply an actual norm-continuous L² frozen trajectory on \(\nu_\star\) times the canonical Brownian source, initialized by the first-coordinate projection, satisfying this model’s frozen integral equation with its physical Brownian input, and preserving \(\nu_\star\) at every time. This is the same <code>FrozenTrajectory</code> realization requirement as New A, now for the \((x,u,v)\) sampler.</p></div>
-<p>The actual innovations are constructed with their printed covariance and a Brownian coupling. There exist nonnegative mesh-independent horizon constants \(P,G_0,C\) derived from the constructed reference process.</p>
-<div class="theorem-conclusion"><p><strong>Statement.</strong> With the constants defined below,</p>
+<p>The actual innovations, printed covariance, Brownian coupling, contracting particle metric, uniform reference moments and local error coefficients are constructed. No numerical contraction, moment bound or final error recurrence is assumed.</p>
+<div class="theorem-conclusion" data-time-uniform="true"><p><strong>Statement.</strong> There are explicit finite \(D_H\ge0\) and \(h_{*,H}&gt;0\), independent of time. For every \(n\in\mathbb N\) and every \(0&lt;h\le h_{*,H}\),</p>
 \[\begin{aligned}
 &\|\widehat\theta_n^{N,h}-\theta_\star\|_{L^2}\\
-&\quad\le B_H(h,n)\\
+&\quad\le D_H\sqrt h\\
 &\qquad+\sqrt\kappa\,e^{-\rho t_n}d_0\\
-&\qquad+\frac1\rho\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t_n}),\\
-&B_H(h,n)=e^{K_Ht_n}C_Ht_n\sqrt h.
+&\qquad+\frac1\rho\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t_n}).
 \end{aligned}\]
-<p>The verified discretisation term \(B_H\) is \(O(\sqrt h)\) at fixed \(T,N\). The target is the stationary point of the forces actually used; using smoothed forces does not identify it with the original unsmoothed target.</p></div>
+<p>The discretisation error is \(O(\sqrt h)\) uniformly over all iterations for fixed \(N\); neither the constant nor the threshold is claimed uniform in \(N\). This conservative strong rate applies to the actual printed coefficients and targets the stationary point of the forces used. Smoothed forces can have a different target from the original unsmoothed problem.</p></div>
 <details class="bound-constants"><summary>Constants in the final bound</summary>
-<p>Use the encoded force constants \(L_F,L_G\) from New A. Define</p>
+<p>Use \(L_F,L_G\) from New A. In the actual raw HOL L² coordinates, let \(f\) be the full drift and \(z_0\) the initial state. Put</p>
 \[\begin{aligned}
-c_{12}&=\gamma^2/(2\alpha),\\
-c_{13}&=\gamma/2,\\
-c_{22}&=\gamma^2/2,\\
-c_{23}&=\gamma\alpha/2,\\
-c_{31}&=\gamma/2,\\
-r_{32}&=\gamma^3/\alpha^2+2\gamma^3/\alpha^3+\gamma/\alpha,\\
-c_{32}&=\gamma^3/\alpha+r_{32}\alpha^2/2,\\
-r_{33}&=1+\gamma^2/\alpha+\gamma^2/\alpha^2,\\
-c_{33}&=\gamma^2+r_{33}\alpha^2/2.
+K&=4(L_F+L_G\\
+&\qquad+1+2\gamma+\alpha),\\
+\beta&=\sqrt\alpha\sqrt{2d}.
 \end{aligned}\]
+<p>The exact nonnegative \(c_0,c_1\) are <code>holUniformLocalConstant0</code> and <code>holUniformLocalConstant1</code>, evaluated at the flattened dimension, \(\alpha,\gamma,L_F,L_G\), the lifted force norms at zero, and (for \(c_0\)) \(\|f(0)\|\). Their definitions include the actual printed coefficient and Gaussian remainder constants; the linked sources give their complete expressions.</p>
+<p>Source A3 constructs the metric factor \(C\). Use the same physical/raw coordinate equivalence \(P\) and empirical metric comparisons \(\underline d_N,\overline d_N\) as in New A (now for the HOL phase). The data-only constants are</p>
 \[\begin{aligned}
-w&=(3+\gamma)/2,\\
-r_u&=c_{12}+c_{22}+c_{32},\\
-r_v&=c_{13}+c_{23}+c_{33},\\
-a_1&=L_F+wL_G(1+L_F),\\
-a_2&=1+\gamma+r_u,\\
-a_3&=\gamma+\alpha+r_v,\\
-K_H&=\max\{a_1,a_2,a_3\},\\
-F_G&=G_0+\gamma P+L_GG_0,\\
-D_H&=(\tfrac12+c_{31})F_G\\
-&\quad+(r_u+r_v)P+L_GG_0,\\
-C_\xi&=\sqrt{2\alpha}(\gamma/2+\gamma+\alpha+c_{33}),\\
-C_H&=D_H+\sqrt d\,C_\xi+\tfrac83C.
+m_C&=\frac{\sqrt{\underline d_N}}{\|P^{-1}\|+1},\\
+U_C&=\sqrt{\overline d_N}\,\|P\|,\\
+S&=U_Ce^{K+1}(\|f(0)\|+\beta),\\
+R&=U_C\|z_0\|\\
+&\quad+\frac S{1-e^{-\rho}}+S,\\
+a&=U_Cc_0,\\
+b&=U_Cc_1/m_C,\\
+D_H&=\frac{4(a+bR)}{\rho m_C},\\
+h_{*,H}&=\min\{1,\rho^{-1},q^2\},\\
+q&=\frac\rho{4(b+1)}.
 \end{aligned}\]
-<p>This is exactly <code>higherOrderDiscretizationBudget</code> with \(F_\theta=G_0\), \(U=V=P\), and zero initial discrepancy.</p></details>''', [
-        ('PBGSO/FullyConstructedHigherOrder.lean', 'parameter_bound', 'Final formal theorem'),
-        ('PBGSO/NumericsTarget.lean', 'higherOrderDiscretizationBudget', 'Exact discretisation budget'),
+<p>The full-state error in the raw product norm (the maximum of the component L² errors) against the continuous interacting particles is bounded by \(D_H\sqrt h\) for every iteration. The finite constants are independent of the run length; no higher force derivatives or common potential are required.</p></details>''', [
+        ('PBGSO/FullyUniformHigherOrder.lean', 'parameter_bound', 'Final formal theorem'),
+        ('PBGSO/HOLRestartLocal.lean', 'holUniformLocalConstant0', 'Exact local constant c₀'),
+        ('PBGSO/HOLRestartLocal.lean', 'holUniformLocalConstant1', 'Exact local constant c₁'),
         ('PBGSO/HOLCovariance.lean', 'holCovarianceMatrix_eq_gram', 'Printed innovation covariance')], new='B')
     body += '</section>'
     # Verification commands are authored separately so each file can be checked directly.
@@ -277,15 +279,19 @@ C_H&=D_H+\sqrt d\,C_\xi+\tfrac83C.
         ]),
         ('03', 'M-MFPO → Theorem New A', [
             ('PBGSO/ParticleMethodLp.lean','meanForce_lipschitz','Empirical forces and actual raw/L² updates'),
-            ('PBGSO/MomentumRates.lean','momentumAmplification_linear_bound','OBABO stability and consistency'),
-            ('PBGSO/MomentumIntegralConstruction.lean','exists_momentum_references_from_source','Brownian inputs and horizon-uniform references'),
-            ('PBGSO/FullyConstructedMomentum.lean','numerical_parameter_bound','Constructed numerical parameter bound'),
+            ('PBGSO/ImplementationMetric.lean','momentum_metric','Source A3 → actual contracting particle metric'),
+            ('PBGSO/UniformIntegralMoments.lean','uniform_moment','Derived moments uniform over all time'),
+            ('PBGSO/MomentumUniformDefect.lean','obabo_affine_local_defect','Actual Gaussian OBABO local error'),
+            ('PBGSO/UniformDiscrete.lean','one_step_same_initial_uniform_norm','Small-step absorption of accumulated errors'),
+            ('PBGSO/FullyUniformMomentum.lean','numerical_parameter_bound','Time-uniform numerical parameter bound'),
         ]),
         ('04', 'HOL-MYPGD → Theorem New B', [
             ('PBGSO/HigherOrderRates.lean','holCoefficient_bounds','Actual printed coefficients and remainders'),
-            ('PBGSO/HOLNoiseRates.lean','holScalarNoiseConstant','Gaussian/Brownian coupling constant'),
-            ('PBGSO/HigherOrderIntegralReference.lean','exists_higherOrderReference_of_particle_integral','Constructed integral references'),
-            ('PBGSO/FullyConstructedHigherOrder.lean','parameter_bound','Constructed numerical parameter bound'),
+            ('PBGSO/ImplementationMetric.lean','higherOrder_metric','Source A3 → actual contracting particle metric'),
+            ('PBGSO/HOLRestart.lean','higherOrderRestart_contracts','Constructed exact restarts and their contraction'),
+            ('PBGSO/HOLRestartLocal.lean','higherOrderRestart_local_error','Printed Gaussian scheme: derived local error'),
+            ('PBGSO/HOLUniform.lean','higherOrder_time_uniform_of_integral','All-iteration strong discretisation bound'),
+            ('PBGSO/FullyUniformHigherOrder.lean','parameter_bound','Time-uniform numerical parameter bound'),
         ]),
     ]
     body += '<div class="roadmap-grid">'

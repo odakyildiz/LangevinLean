@@ -68,38 +68,60 @@ convention, and A2 means actual frozen SDE invariance.
 
 ## New bounds for the two actual methods
 
-`FullyConstructedMomentum.numerical_parameter_bound` and
-`FullyConstructedHigherOrder.parameter_bound` prove finite-horizon parameter
-bounds for the actual M-MFPO/OBABO and printed HOL-MYPGD particle maps. They
-combine the source continuous-time relaxation/particle floor with a numerical
-budget of order `sqrt(h)` on each fixed horizon. The exact budgets are displayed
-on the overview and in the checked theorem headers.
+`FullyUniformMomentum.numerical_parameter_bound` and
+`FullyUniformHigherOrder.parameter_bound` prove time-uniform parameter bounds
+for the actual M-MFPO/OBABO and printed HOL-MYPGD particle maps. Each combines
+the source continuous-time relaxation and particle floor with `D*sqrt(h)` for
+**every iteration**, whenever `0 < h <= h_max`. Both `D` and the explicit
+positive threshold are independent of the run length and step size. They may
+depend on the fixed population N; no uniform-in-N discretization claim is made.
 
-The model, physical Brownian inputs, independent Gaussian innovations, raw/L²
-coordinate identities, integral references and mesh-independent moment/modulus
-constants are constructed. There is no supplied reference-law, coefficient
-matching, noise-error or final discretization-error premise.
+The construction derives the contracting empirical metric from source A3,
+exact Picard restarts and their contraction, uniform continuous-reference
+moments, actual Gaussian one-step errors and the final absorbed recurrence.
+No numerical contractivity, local-error estimate, uniform moment estimate,
+reference-law identity or error recurrence is an input to the final endpoints.
+If the proved affine metric local error is `h*sqrt(h)*(a+b*norm(C*z))`, the
+verified constants are
 
-The assumptions remain substantive: independent forces that are globally jointly
-Lipschitz in both optimiser and sampler coordinates,
-positive particle count, the displayed flattened Euclidean cloud encoding,
-P₂ initial and target laws, an actual norm-continuous L² frozen trajectory on
-the stationary law times the canonical Brownian source, zero target mean
-observation, a positive source A3 rate/metric and uniform reference observation
-variance. The kinetic friction hypotheses and HOL `alpha > 0`, `gamma >= 0`
-appear explicitly. Arbitrary invertible cloud encodings transform raw noise;
-isotropic independent particle noise uses the proved Euclidean encoding.
+```
+U_C = sqrt(upper_N)*norm(P)
+m_C = sqrt(lower_N)/(norm(P.inverse)+1)
+S = U_C*exp(K+1)*(norm(f(0))+beta)
+R = U_C*norm(z0) + S/(1-exp(-rho)) + S
+D = 4*(a+b*R)/(rho*m_C)
+h_max = min(1, 1/rho, (rho/(4*(b+1)))^2)
+```
+
+Here P is the proved raw-to-physical coordinate equivalence, lower_N/upper_N
+are the empirical source metric comparisons, and a=U_C*c0, b=U_C*c1/m_C.
+The proof constructs C from A3 and shows
+`m_C*norm(z) <= norm(C*z) <= U_C*norm(z)`; the final constants use only
+the primitive data and proved coordinate norms.
+`K` is a certified global drift Lipschitz constant, `beta` is the actual
+Brownian L² increment radius, and a,b are explicit proved coefficients.
+The exact functions and final bounds are linked from the overview.
+
+The assumptions are independent globally jointly Lipschitz forces,
+finite-dimensional optimiser and Euclidean sampler coordinates, positive
+particle count, standard flattened Euclidean cloud encoding, P₂ initial and
+target laws, positive source A3, uniform reference observation variance, and an
+actual norm-continuous L² frozen invariant trajectory on the stationary law
+times the canonical Brownian source with zero target mean observation.
 The frozen trajectory starts at the initial-coordinate projection, solves the
-frozen physical-input integral equation, and preserves the target law at each
-time. These final numerical endpoints take that realization explicitly; they
-do not derive it from an abstract invariant law. The bounds concern stationary critical points and finite horizons. They do not
-assert global minimization or uniform-in-time numerical mixing.
+physical-input integral equation and preserves the target law at every time.
+The endpoint takes this realization explicitly, rather than deriving it from
+an abstract invariant law. M-MFPO uses `gamma >= 0`; HOL uses `alpha > 0` and
+`gamma >= 0`. No common force potential or higher force derivatives are added.
+The target is a stationary critical point. The uniform coupling estimate does
+not require existence of a numerical invariant law.
 
-`FullyConstructedHigherOrder.original_parameter_bound` additionally proves an
-original-target bias `L*epsilon/m` from actual coupled target sampler variables,
-a spatial observation Lipschitz constant and positive original-gradient
-monotonicity. Its coupling radius is a visible hypothesis, not a hidden
-smoothing conclusion.
+The earlier `FullyConstructedMomentum` and `FullyConstructedHigherOrder`
+finite-horizon estimates remain as supporting results. The latter's
+`original_parameter_bound` adds `L*epsilon/m` from actual coupled original and
+surrogate target observations and positive gradient monotonicity. That bias
+argument can also be combined with the new uniform theorem; a model-specific
+smoothing coupling radius remains an explicit separate requirement.
 
 Two source limitations are recorded separately: the printed HOL coefficients
 are not the exact full force-free linear flow (an exact nonzero defect is
@@ -175,8 +197,8 @@ Mathlib dependencies are prepared; the script never installs or fetches them.
 An exported `.lean` file can also be copied into a separate project with Lean
 `leanprover/lean4:v4.35.0-rc3` and Mathlib `v4.35.0-rc3`, then checked with
 `lake env lean NewA.lean` (or the other filename). The analytic hypotheses
-remain visible in the exact theorem types. New A and New B are the finite
-horizon implementation-to-target bounds described above; the paper entry
+remain visible in the exact theorem types. New A and New B are the time-uniform
+implementation-to-target bounds described above; the paper entry
 retains the finite signed-work convention, actual A1/A2 solution assumptions,
 original interacting-solution existence and synchronous initial conditions.
 
@@ -211,10 +233,13 @@ original interacting-solution existence and synchronous initial conditions.
   `HypocoerciveCriterion`, `FlowSourceRegularity`, `ContinuousFlowMeasure`,
   `DiscreteVolume`: the
   appendix sufficient criteria and continuous/discrete volume results.
-- `FullyConstructedMomentum`, `FullyConstructedHigherOrder`: the final new
-  actual implementation-to-target bounds. Supporting method modules derive
-  force lifts, exact raw maps, Gaussian laws, coefficient errors, consistency,
-  finite-horizon rates, physical noise matching and integral references.
+- `FullyUniformMomentum`, `FullyUniformHigherOrder`: final time-uniform
+  implementation-to-target bounds. `ImplementationMetric`, `EmpiricalMetric`
+  and `MetricFactor` construct the actual contracting raw metric from A3.
+  `UniformIntegralMoments`, `UniformDiscrete`, `UniformStepSize` derive uniform
+  moments and all-iteration error absorption. `MomentumUniform*` and
+  `HOLUniform*`/`HOLRestart*` derive actual scheme errors and Brownian coupling.
+  The earlier finite-horizon results remain available in `FullyConstructed*`.
 
 The generated proof catalog covers every module and every complete declaration;
 this entry-point list is not a substitute for its exact assumptions.

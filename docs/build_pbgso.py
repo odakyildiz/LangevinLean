@@ -2390,6 +2390,119 @@ MODULES.update({
    'Only the primitive C1 arbitrary force, actual all-real ODE and identity initial map are assumed for the phase theorem. No bijectivity, inverse, flow regularity, global original-force Lipschitz bound or measure/Jacobian-preservation conclusion is supplied. The generic divergence-free theorem has explicit zero trace.'),
 })
 
+MODULES.update({'MetricFactor': ('Constructed positive finite-dimensional metric factors',
+                  'A positive symmetric metric operator is factored into a Euclidean linear map, with '
+                  'inner-product and norm-comparison identities proved.',
+                  'Assume the original finite-dimensional real Hilbert space and symmetric positive metric; no '
+                  'factor, square-root operator or coercivity conclusion is supplied.'),
+ 'EmpiricalMetric': ('Source A3 gives a contracting empirical particle metric',
+                     'Actual paired empirical-cloud couplings instantiate source A3. Finite-dimensional metric '
+                     'factorization and L² lifting give drift dissipation on every random particle state, '
+                     'transported by the actual coordinate equivalence.',
+                     'Use source A3, positive particle count, finite-dimensional physical coordinates and the '
+                     'literal drift-packing identity. No random-state dissipativity or numerical contraction '
+                     'is assumed.'),
+ 'MethodLpEquivalences': ('Actual inverse physical and raw implementation L² coordinates',
+                          'Continuous linear joining, splitting and particle packing are proved inverse on L². '
+                          'The actual M-MFPO and HOL full drifts are identified under these maps.',
+                          'Primitive ParticleForceData and the original model definitions suffice; no output '
+                          'matching, drift identity or measure-law conclusion is supplied.'),
+ 'ImplementationMetric': ('Actual M-MFPO and HOL contracting metrics derived from A3',
+                          'The empirical metric is transported to each literal raw implementation space using '
+                          'proved inverse L² maps and the actual physical particle drift identities.',
+                          'Finite-dimensional optimiser and sampler coordinates, primitive ParticleForceData '
+                          'and source A3 are explicit. The metric factor, coercivity, random-state '
+                          'dissipativity and all coordinate identities are conclusions.'),
+ 'UniformIntegralMoments': ('Derived uniform moments and exact integral-flow contraction',
+                            'A one-unit Gronwall radius, constructed zero-start Picard restarts and drift '
+                            'contraction derive global uniform reference moments. Local radii and square-root '
+                            'temporal moduli are derived too.',
+                            'Global Lipschitz drift, primitive weighted drift dissipativity, the original '
+                            'continuous additive integral equation and Brownian square-root increment bounds '
+                            'suffice. No reference moment estimate or stability recurrence is supplied.'),
+ 'UniformDiscrete': ('All-iteration error absorption under an explicit small-step condition',
+                     'Exact-flow contraction and an affine local numerical defect give an absorbed recursion '
+                     'and a uniform square-root-step strong error. Supporting chain and geometric-radius '
+                     'inequalities are proved.',
+                     'This generic lemma displays map updates, exact contraction, local defect and reference '
+                     'radius explicitly. The method and final target clients derive all these premises from '
+                     'primitive force regularity and source A3.'),
+ 'UniformStepSize': ('Explicit positive uniform-error step threshold',
+                     'The threshold min(1,1/rho,(rho/(4(b+1)))² is positive and guarantees the two absorption '
+                     'inequalities, including b=0.',
+                     'Only positive rho, nonnegative b and a positive step below the threshold are used; no '
+                     'stability conclusion is assumed.'),
+ 'MomentumUniformLocal': ('Actual Gaussian OBABO local error with square-root temporal regularity',
+                          'The literal thermostat, force kick and drift coefficients give local consistency '
+                          'and explicit affine initial-radius coefficients.',
+                          'Primitive force Lipschitz regularity, actual component integral equations, the '
+                          'displayed reference increments and physical half-noise identity are explicit. Later '
+                          'modules derive these radii, increments and noise identities.'),
+ 'MomentumUniformDefect': ('OBABO affine local error from primitive integral data',
+                           'One-step state and drift radii and increment moduli are derived from the actual '
+                           'kinetic integral equation. The Gaussian-coupled local defect is explicitly affine '
+                           'in the random initial norm.',
+                           'Only global force Lipschitz regularity, nonnegative friction, the original '
+                           'continuous integral equation and Brownian increment/half-noise primitives remain; '
+                           'no local-error or moment conclusion is assumed.'),
+ 'MomentumUniform': ('Time-uniform actual OBABO strong discretisation error',
+                     'Picard restarts and primitive drift dissipativity give exact contraction; affine local '
+                     'errors and derived global reference moments are absorbed into a uniform sqrt(h) error.',
+                     'The generic theorem displays metric coercivity and original drift monotonicity; final '
+                     'particle clients derive them from source A3. No numerical contractivity, local defect, '
+                     'moments or final recurrence are assumed.'),
+ 'MomentumUniformParticle': ('Actual independent-Gaussian M-MFPO all-iteration bound',
+                             'Actual Brownian coordinate half-steps construct the Gaussian implementation '
+                             'innovations, their norms and exact physical-input identity. The full-state error '
+                             'is uniform over every iteration.',
+                             'Primitive ParticleForceData, nonnegative friction, the original global integral '
+                             'equation and metric drift dissipativity/coercivity are explicit here. '
+                             'FullyUniformMomentum constructs the process and metric internally.'),
+ 'HOLUniformLocal': ('Printed HOL coefficients give absolute affine local remainders',
+                     'The actual parameter-first endpoint-force scheme has an absolute local remainder growing '
+                     'linearly in the input norm. Primitive force bounds also give a global full-drift '
+                     'Lipschitz constant.',
+                     'Separate global joint Lipschitz force conditions and physical coefficient signs suffice. '
+                     'No Lipschitz remainder estimate or numerical contractivity is asserted.'),
+ 'HOLRestart': ('Constructed exact HOL restarts on the actual Brownian source',
+                'Global Picard solutions, their original integral equations, physical Brownian increment '
+                'radii, restart identity and primitive-metric contraction are proved.',
+                'Separate force Lipschitz conditions and the actual measure-preserving Brownian source suffice '
+                'for construction; contraction uses primitive drift dissipativity, derived from A3 in the '
+                'final client.'),
+ 'HOLRestartLocal': ('Actual printed Gaussian HOL local error with derived radii',
+                     'Original Picard integral equations and Brownian increments derive every local moment and '
+                     'temporal modulus. The actual correlated-Gaussian local error is h sqrt(h) times an '
+                     'affine function of the input norm.',
+                     'Only primitive force regularity, alpha>0, gamma>=0 and the actual Brownian source are '
+                     'supplied. No reference moment, drift modulus, local-error or numerical stability '
+                     'conclusion is a premise.'),
+ 'HOLUniform': ('Time-uniform actual printed HOL strong discretisation error',
+                'Constructed Picard restarts contract, their Gaussian local defects have explicit affine '
+                'growth, and the original integral equation yields uniform reference moments. Small-step '
+                'absorption gives the all-iteration sqrt(h) bound.',
+                'The generic theorem displays primitive weighted drift dissipativity and metric coercivity, '
+                'subsequently derived from source A3. Numerical contraction, local errors, uniform moments and '
+                'error recurrences are not assumptions.'),
+ 'FullyUniformMomentum': ('Theorem New A: constructed time-uniform M-MFPO parameter bound',
+                          'Source A3 constructs the contracting raw particle metric. The actual global '
+                          'particle process, Gaussian coupling, uniform moments and affine local errors give a '
+                          'positive fixed step threshold and all-iteration parameter bound.',
+                          'Finite-dimensional physical coordinates, independent globally jointly Lipschitz '
+                          'forces, nonnegative friction, positive N/rho, P2 initial/target laws, an actual '
+                          'frozen invariant trajectory, zero target mean observation and A5 are explicit. No '
+                          'metric, process, reference, moment, local defect or final recurrence is supplied. '
+                          'Constants may depend on fixed N.'),
+ 'FullyUniformHigherOrder': ('Theorem New B: constructed time-uniform printed HOL parameter bound',
+                             'The literal printed Gaussian implementation is compared with the actual '
+                             'constructed particles in the A3 metric. Uniform moments and derived local errors '
+                             'yield an all-iteration parameter bound below a positive fixed step threshold.',
+                             'Finite-dimensional coordinates, separate globally jointly Lipschitz forces, '
+                             'alpha>0/gamma>=0, positive N/rho, P2 initial/target laws, actual frozen '
+                             'invariant trajectory, zero target mean observation and A5 are explicit. No '
+                             'numerical contraction, reference moment, drift modulus, error recurrence or '
+                             'matching-law conclusion is assumed. Constants may depend on fixed N.')})
+
 def pbgso_declarations(source):
     """Retain namespace-distinct declarations sharing a short source name.
 
@@ -3001,7 +3114,19 @@ def technical_document(sources, parsed, math):
         r'<p>The final theorem assumes no weak-process package, iid-cloud identity, residual measurability, zero initial energy, target realizer or compatible output-law conclusion. Its inputs are the autonomous additive maps and model compatibility, actual frozen invariant trajectory, positive source A3, one-Lipschitz parameter projection, positive N and uniform observation variance. ImplementationDynamics derives compatibility for the concrete methods from their primitive F/G force bounds. The theorem concerns the constructed continuous additive processes; the general state-dependent raw-SDE results are stated above.</p>',
         [('PBGSO/ConstructedParameterBound.lean','parameter_bound')],
         sources, parsed, math, page, 'result-constructed-parameter')
-    body += result_panel('M-MFPO: complete additive implementation-to-target bound',
+    body += result_panel('New A and New B: time-uniform actual implementation bounds',
+        r'<p>Both actual particle methods now satisfy a discretisation error bound D sqrt(h) for every iteration, under an explicit positive threshold h_max. Source A3 constructs the contracting metric on the literal raw implementation coordinates. Exact Picard restarts, uniform continuous-reference moments and actual Gaussian local errors are proved before small-step absorption is applied.</p>'
+        r'\[\begin{gathered}D=\frac{4(a+bR)}{\rho m_C},\\ h_{\max}=\min\{1,\rho^{-1},[\rho/(4(b+1))]^2\}.\end{gathered}\]'
+        r'<p>The final target theorem adds this time-uniform discretisation term to the source continuous relaxation and particle floor. Independent globally jointly Lipschitz forces, finite-dimensional optimiser/sampler coordinates, the physical parameter signs, P2 initial/target laws, actual frozen invariance, zero mean target observation, source A3 and A5 remain explicit. There is no supplied numerical contraction, local defect, uniform moment estimate or error recurrence. The constants may depend on fixed N. The original finite-horizon results below remain supporting theorems. See the main page for exactly the two final theorem statements and the standalone verification commands.</p>',
+        [('PBGSO/FullyUniformMomentum.lean','numerical_parameter_bound'),
+         ('PBGSO/FullyUniformHigherOrder.lean','parameter_bound'),
+         ('PBGSO/ImplementationMetric.lean','momentum_metric'),
+         ('PBGSO/ImplementationMetric.lean','higherOrder_metric'),
+         ('PBGSO/UniformIntegralMoments.lean','uniform_moment'),
+         ('PBGSO/UniformDiscrete.lean','one_step_same_initial_uniform_norm'),
+         ('PBGSO/UniformStepSize.lean','admissible')],
+        sources, parsed, math, page, 'result-time-uniform-numerics')
+    body += result_panel('M-MFPO: earlier finite-horizon additive implementation-to-target bound',
         r'<p>The actual heavy-ball optimiser, underdamped sampler and finite interacting particle process are constructed from the original independent forces. Genuine same-sample L² coordinates identify the full original integral dynamics. The two normalized half-grid Gaussian innovations are exactly coupled to that process Brownian input. Compactness and actual Brownian increments derive mesh-independent constants P,G,R on each fixed finite horizon.</p>'
         r'<p>Write \(E_n=\|\widehat\theta_n^{N,h}-\theta_\star\|_{L^2}\). Then</p>\[\begin{aligned}E_n&\le B_M(h,n;0)\\ &+\sqrt\kappa e^{-\rho nh}d_0\\ &+c_M(1-e^{-\rho nh}),\\ c_M&=\frac{2+\gamma}{\rho}\sqrt{\frac{\kappa V}{N}},\\ &\quad 0<h\le1,\ nh\le T.\end{aligned}\]'
         r'<p>The explicit earlier square-root-step budget uses the derived momentum radius P, force radius G+gamma P and increment modulus R, with zero initial discretization error. The response constant 2+gamma is the constructed bound for this complete heavy-ball optimiser in its Hilbert coordinates. The final theorem assumes no reference, moment/modulus estimate, weak-process package or compatible law identity.</p>'
@@ -3009,7 +3134,7 @@ def technical_document(sources, parsed, math):
         [('PBGSO/FullyConstructedMomentum.lean','numerical_parameter_bound'),
          ('PBGSO/MomentumIntegralConstruction.lean','exists_momentum_references_from_source')],
         sources, parsed, math, page, 'result-fully-constructed-momentum')
-    body += result_panel('HOL-MYPGD: complete additive implementation-to-target bound',
+    body += result_panel('HOL-MYPGD: earlier finite-horizon additive implementation-to-target bound',
         r'<p>Starting with the original independent force maps, the actual physical HOL model and global interacting particle process are constructed. Explicit continuous linear coordinates prove its original shared L² implementation equations and parameter identity. The original Brownian input is exactly the pulled fourth Gaussian kernel; the full implementation innovation array has the proved manuscript covariance and independence. Compactness and actual Brownian increments derive all force, auxiliary and drift-modulus constants once per finite horizon, uniformly over its meshes.</p>'
         r'<p>Write \(E_n=\|\widehat\theta_n^{N,h}-\theta_\star\|_{L^2}\). Then</p>\[\begin{aligned}E_n&\le B_H(h,n;0)\\ &+\sqrt\kappa e^{-\rho nh}d_0\\ &+\frac1\rho\sqrt{\frac{\kappa V}{N}}(1-e^{-\rho nh}),\\ &\qquad 0<h\le1,\ nh\le T.\end{aligned}\]'
         r'<p>Here \(B_H\) is the previously proved explicit square-root-step budget, with zero initial discretization error, \(F_\theta=G\), \(F_G=G+\gamma P+L_GG\) and \(U=V=P\). The final theorem derives nonnegative P,G,C independently of the mesh. It assumes no integral reference, moment/modulus estimate, final law identity or weak-process package.</p>'

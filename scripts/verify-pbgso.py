@@ -165,6 +165,16 @@ def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
         assert any('katex' in n.classes() for n in node.walk()), f'Missing New {label} bound'
         assert re.search(r'\b(assumptions?|hypotheses)\b', node.text(), re.I), \
             f'Missing New {label} assumptions'
+        conclusions = [n for n in node.walk() if n.attrs.get('data-time-uniform') == 'true']
+        assert len(conclusions) == 1, f'New {label} must identify its time-uniform conclusion'
+        assert re.search(r'every (?:iteration|n\b)|all iterations', conclusions[0].text(), re.I), \
+            f'New {label} must quantify over all iterations'
+        assert re.search(r'independent of time', conclusions[0].text(), re.I), \
+            f'New {label} must state that its constants are independent of time'
+        assert any(n.attrs.get('data-assumption-kind') == 'added' for n in node.walk()), \
+            f'New {label} must color its extra numerical assumptions'
+        assert not re.search(r'fixed finite horizon|nh\s*≤\s*T', node.text(), re.I), \
+            f'New {label} must not restrict the headline result to a fixed horizon'
 
     standalone = doc.by_id('standalone-verification')
     commands = '\n'.join(n.text() for n in standalone.walk() if n.tag == 'pre')
@@ -238,6 +248,13 @@ def verify(require_complete=False):
     coverage = audit['formal_coverage']
     method_coverage = audit['additional_method_coverage']
     assert set(method_coverage) == {'M-MFPO', 'HOL-MYPGD'}, 'Missing actual method-bound coverage'
+    uniform_endpoints = {
+        'M-MFPO': ('PBGSO/FullyUniformMomentum.lean', 'numerical_parameter_bound'),
+        'HOL-MYPGD': ('PBGSO/FullyUniformHigherOrder.lean', 'parameter_bound'),
+    }
+    for method, (file, name) in uniform_endpoints.items():
+        assert {'file': file, 'name': name} in method_coverage[method]['declarations'], \
+            f'Missing all-iteration final endpoint: {method}'
     assert set(coverage) == {r['id'] for r in audit['results']}, 'Missing per-source-result formal coverage'
     for identifier, item in {**coverage, **method_coverage}.items():
         assert item['status'] in ('partial','verified'), f'Invalid coverage status: {identifier}'
