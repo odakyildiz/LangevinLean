@@ -1,0 +1,327 @@
+\documentclass[twoside]{article}
+
+\usepackage[accepted]{styles/aistats2026}
+\input{includes/includes}
+\input{includes/math_commands}
+\usepackage{standalone}
+\begin{document}
+
+\twocolumn[
+
+\aistatstitle{Training Latent Diffusion Models with Interacting Particle Algorithms}
+
+\aistatsauthor{ Tim Y. J. Wang$^{\dagger}$ \And Juan Kuntz \And O. Deniz Akyildiz$^{\dagger}$ }
+\runningauthor{Tim Y. J. Wang, Juan Kuntz, O. Deniz Akyildiz}
+
+\aistatsaddress{ $^{\dagger}$Department of Mathematics, Imperial College London }
+]
+
+\makeatletter
+\fancyhead[CE]{\small\bfseries\@runningtitle}
+\fancyhead[CO]{\small\bfseries\@runningauthor}
+\makeatother
+
+\begin{abstract}
+  We introduce a novel particle-based algorithm for end-to-end training of latent diffusion models. We reformulate the training task as minimizing a free energy functional and obtain a gradient flow that does so. By approximating the latter with a system of interacting particles, we obtain the algorithm, which we underpin theoretically by providing error guarantees. The novel algorithm compares favorably in experiments with previous particle-based methods and variational inference analogues.
+\end{abstract}
+
+\section{INTRODUCTION}
+\glspl*{DM} introduced in~\cite{pmlr-v37-sohl-dickstein15}, and further developed in~\cite{hodenoisingdiffusionprobabilistic2020, songscorebasedgenerativemodeling2021}, excel at numerous generative modeling tasks. Examples include image synthesis \citep{dhariwal2021beatsGAN}, protein design \citep{watsonNovoDesignProtein2023}, and language modeling \citep{nieLargeLanguageDiffusion2025}. They work by progressively adding noise to data to transform the data distribution into an easy-to-sample reference distribution, and then learn to revert this noising process.
+
+However, these steps take place in the data's \emph{ambient} space, which is typically high dimensional. For this reason, \gls*{DM} training and inference prove computationally expensive. To alleviate this issue, \cite{rombachhighresolutionimagesynthesis2022,vahdatscorebasedgenerativemodeling2021,wehenkeldiffusionpriorsvariational2021} and others proposed using a \gls*{VAE} \citep{Kingma2013AutoEncodingVB} to map back-and-forth between the high-dimensional ambient space and a low-dimensional \emph{latent} space, and carrying out the noising/de-noising steps in the latter. To date, the world's most popular \glspl*{DM} (e.g., Stable Diffusion~\citep{podell2024sdxl}) fall into this \gls*{LDM} category.
+
+Recently,~\cite{kuntz23a,limMomentumParticleMaximum2024,limParticleSemiimplicitVariational2024} have reported performance gains for parameter estimation in simple latent variable models and generator networks by replacing variational approximations with particle-based ones. Here, we investigate whether this is also the case for \glspl*{LDM} and introduce, to the best of our knowledge, the first particle-based method for \gls*{LDM} training.
+
+
+
+\paragraph{Contributions.} 
+\begin{enumerate}[label={(C\arabic*)}]
+\item We recast the problem of \gls*{LDM} training as the minimization of a free energy functional, characterize the functional's minima (Proposition~\ref{prop:ftildemins}), identify a gradient flow that minimizes it, and establish its exponential convergence under standard assumptions (Theorem~\ref{thm:exp_convg_informal}).
+\item Approximating the flow in (C1), we obtain \glspl*{IPLD}---a simple, particle-based, and encoder-free algorithm for \gls*{LDM} training well-adapted to modern compute environments---and we derive non-asymptotic bounds on its error (Theorem~\ref{thrm:error-bound}).
+\item Through several practical improvements, we obtain an efficient and scalable version of the algorithm (Section~\ref{sec:pratical-alg}) and demonstrate its effectiveness in numerical experiments (Section~\ref{sec:numerics}).
+\item Lastly, by approaching \glspl*{LDM} from the above unexplored angle, we open the door to other novel \gls*{LDM} training methods. In particular, our approach connects latent diffusion models to the rich body of work on gradient flows and interacting particle systems stemming from the optimal transport literature \citep{villani2008optimal,chaintron_2022}--a connection that can spur the design of new algorithms as we demonstrate here.
+\end{enumerate}
+\paragraph{Paper structure.} The paper is organized as follows. First, we review the necessary background on \glspl*{LDM} and identify relevant loss functions (Section~\ref{sec:dldm}). Next, we obtain \gls*{IPLD}: an algorithm for minimizing this loss (Section~\ref{sec:gradient_flow_ldm}). We do so by identifying a gradient flow that minimizes the loss (Section~\ref{sec:gradient_flow}), approximating it (Section~\ref{sec:practical_disc}), and incorporating a series of practical improvements (Section~\ref{sec:pratical-alg}). We then survey the related literature (Section~\ref{sec:rel_work}) and experimentally compare \gls*{IPLD} with relevant baselines (Section~\ref{sec:numerics}). We conclude with a discussion of our results, \gls*{IPLD}'s limitations, and future research directions (Section~\ref{sec:conclusion}).
+
+\paragraph{Notation.} We use $\mathsf{X} = \mathbb{R}^{d_x}$ and $\mathsf{Z} = \mathbb{R}^{d_z}$ to denote the ambient and latent spaces, $\Theta = \mathbb{R}^{d_\theta}$ and $\Phi = \mathbb{R}^{d_\phi}$ the decoder's and \gls*{DM}'s parameter spaces (c.f.~Section~\ref{sec:dldm}), $\{x^1,\dots,x^M\}$ the training set, $[M]:=\{1,\dots,M\}$ the set of indices, and $\mathcal{P}_2(\R^d)$ the space of probability distributions on $\R^d$ with finite second moment. To denote product measures, we write $q^{1:M} = (q^1, \dots, q^M) \in \mathcal{P}_2(\sZ)^M$ for $M$-tuples of distributions $q^1, \dots, q^M$ over $\sZ$. 
+
+\section{PRELIMINARIES}\label{sec:dldm}
+
+We consider latent-space versions of \glspl*{DDPM}~\citep{hodenoisingdiffusionprobabilistic2020} similar to those in \cite{rombachhighresolutionimagesynthesis2022, vahdatscorebasedgenerativemodeling2021,wehenkeldiffusionpriorsvariational2021}. To be specific, for a fixed data point $x \in \sX$, we consider the following latent variable model:
+\begin{equation}\label{eq:LDDM}
+    p_{\theta, \phi}(x, z_{0:K}) = p_{\phi}(x|z_{0}) p_{\theta}(z_{0:K})
+\end{equation}
+where ${p_{\phi}(x|z_{0}) = \mathcal{N}(x; g_\phi(z_0),\sigma^2 I)}$ is an isotropic Gaussian decoder, with $g_\phi: \sZ \to \sX$ 
+denoting a neural network parameterized by $\phi$, that  maps from the latent space to the ambient space, and the prior
+$$p_{\theta}(z_{0:K}) := p(z_K) \prod_{k=1}^K p_{\theta, k}(z_{k-1}|z_k),$$
+is a \gls*{DDPM} parameterized by $\theta$ \citep{hodenoisingdiffusionprobabilistic2020}. The \gls*{DDPM} end point is defined with a standard Gaussian distribution $p_K (z_{K}):=\mathcal{N}(z_K; 0, I)$ at time $K$, and its backward kernels are also Gaussian: $$p_{\theta, k}(z_{k-1}|z_{k}):=\mathcal{N}(z_{k-1}; \mu_{\theta, k}(z_k), \beta_k^2 I),$$ where $(k,z)\mapsto\mu_{\theta, k}(z)$ denotes a neural network parameterized by $\theta$; and $\{\beta_k\}_{k=1}^K$ a fixed noise schedule.
+
+Suppose we are given a dataset $\{x^1,\dots,x^M\}$ where $x^m \sim p_{\text{data}}$ for $m \in [M]$. To fit the generative model in \eqref{eq:LDDM}, we aim to find parameters $(\theta_\star,\phi_\star)$ that maximize the \emph{expected log-likelihood} $\mathbb{E}_{p_{\text{data}}}[\log p_{\theta,\phi}(X)]$. Given that we only have access to the empirical measure $p_{\text{data}}^M = (1/M) \sum_{m=1}^M \delta_{x^m}$, we approximate the expected log-likelihood with the empirical average:
+\begin{equation}\label{eq:ell}
+    \ell(\theta,\phi):=\frac{1}{M}\sum_{m=1}^M\log p_{\theta,\phi}(x^m),
+\end{equation}
+where $$p_{\theta,\phi}(x):=\int p_{\theta,\phi}(x,z_{0:K}) \dd z_{0:K}$$ denotes the probability density the model assigns to a given datapoint $x$. This quantity is also called the \emph{marginal likelihood}.
+\subsection{Minimizing Free Energy}
+The direct computation of $\ell(\theta, \phi)$ (and consequently of its gradients) is intractable, as $p_{\theta,\phi}(x)$ involves marginalising over the latent variables $z_{0:K}$. To circumvent this issue, we instead look at utilising lower bounds on $\ell(\theta, \phi)$. Using the standard lower bound of marginal likelihood, we obtain using Jensen's inequality that $\log p_{\theta,\phi}(x) \geq \mathbb{E}_{q}[\log p_{\theta,\phi}(x, \cdot)/q(\cdot)]$ for any $x$ and distribution $q$ over the latent space. We aim at generalising this bound for $M$ data points where $q$ is the prior distribution defined by the \gls*{DDPM} in the latent space.
+
+To this end, consider the product measure $q^{1:M} \in \mathcal{P}_2(\sZ)^M$ and note that
+\begin{align}\label{eq:lower_bound}
+\ell(\theta, \phi) &\geq \frac{1}{M}\sum_{m=1}^M\mathbb{E}_{q^m}\left[ \log \frac{p_{\theta, \phi}(x^m, z_{0})}{q^m(z_{0})} \right]
+\end{align}
+where we have for all $(\theta, \phi)\in \Theta\times \Phi$: 
+\begin{equation}\label{eq:joint_z1k}
+    p_{\theta, \phi}(\cdot, z_{0}):=\int p_{\theta,\phi}(\cdot,z_{0:K})\dd z_{1:K}.
+\end{equation}
+The negative of the quantity in the r.h.s. of \eqref{eq:lower_bound} is termed \textit{the free energy}, denoted $F(\theta,\phi,q^{1:M})$
+\citep{bishop2006pattern}:
+\begin{align}\label{eq:fen78awfnye8awnfeua}
+F(\theta,\phi,q^{1:M})&:= \frac{1}{M}\sum_{m=1}^M\mathbb{E}_{q^m}\left[ \log \frac{q^m(z_{0})}{p_{\theta, \phi}(x^m, z_{0})} \right].
+\end{align}
+Noting that $-\ell(\theta, \phi) \leq F(\theta, \phi, q^{1:M})$ for all $(\theta, \phi, q^{1:M}) \in \Theta \times \Phi \times \mathcal{P}_2(\sZ)^M$, we see that minimizing \eqref{eq:fen78awfnye8awnfeua} above over all parameters $\theta,\phi$ and $M$-tuples $q^{1:M}=(q^1,\dots,q^M)$ is equivalent to maximizing $\ell(\theta,\phi)$ over all $\theta,\phi$; see, e.g.,~\citet{Neal1998}. 
+
+However, the joint density $p_{\theta, \phi}(x, z_{0})$ in \eqref{eq:fen78awfnye8awnfeua} is still computationally prohibitive to evaluate due to marginalizing over the entire diffusion trajectory $z_{1:K}$. We therefore resort to one more upper bound for the negative log-likelihood $-\ell(\theta, \phi)$, leading to the \textit{tilted free energy} (see Appendix~\ref{app:reparam_diffusion} for the full derivation):
+\begin{align}
+\tilde{F}(\theta, \phi, q^{1:M}) &:= \frac{1}{M}\sum_{m=1}^M\mathbb{E}\left[ \log \frac{q^m(z_{0:K})}{p_{\theta, \phi}(x^m, z_{0:K})} \right],\label{eq:free-energy}
+\end{align}
+where the expectation is taken with respect to $q^m(z_{0:K})$ with $q^m(z_{0:K}):=q(z_{1:K}|z_0)q^m(z_0)$ for all $m \in [M]$ and $$q(z_{1:K}|z_{0})=\prod_{k=1}^K q(z_k|z_{k-1})$$ is the \emph{forward process}, a product of Gaussian kernels as in \gls*{DDPM}.  
+
+
+Examining the second lower bound in \eqref{eq:free-energy}, we note that $\tilde{F}$ can be decomposed as (cf. Appendix~\ref{app:reparam_diffusion}):
+\begin{align*}
+    \tilde{F}(\theta, \phi, q^{1:M}) 
+    &= F(\theta, \phi, q^{1:M}) + \frac{1}{M}\sum_{m=1}^M \mathbb{E}_{q^m}[\mathcal{R}(\theta, z_0)],
+    \end{align*}
+    where
+\begin{align}
+    \quad \mathcal{R}(\theta, z_0) &= \KL\big(q(z_{1:K}|z_{0}) \|p_{\theta}(z_{1:K}|z_{0})\big) \geq 0.
+\end{align}
+So $\tilde{F}$ amounts to a regularized version of $F$ that penalizes deviations from the forward process.
+Therefore, we can alternatively view $\tilde{F}$ as the free energy obtained replacing  $p_{\theta,\phi}(x^m,z_0)$ in~\eqref{eq:fen78awfnye8awnfeua} with the \emph{tilted} version:
+\begin{equation}\label{eq:ptildedef}
+\tilde{p}_{\theta,\phi}(x^m,z_0):=p_{\theta,\phi}(x^m,z_0)\exp(-\mathcal{R}(\theta,z_0)),
+\end{equation}
+for $m \in [M]$. For this reason, similar arguments to those behind \cite[Theorem 2]{Neal1998} yield the following result.
+\begin{proposition}\label{prop:ftildemins}$(\theta_\star,\phi_\star)$ maximize $\tilde{\ell}(\theta,\phi):=M^{-1}\sum_{m=1}^M\log \tilde{p}_{\theta,\phi}(x^m)$ iff $(\theta_\star,\phi_\star,q^{1:M}_\star)$ minimize $\tilde{F}$ for some $q_\star^{1:M}$, where $\tilde{p}_{\theta,\phi}(x^m) := \int \tilde{p}_{\theta,\phi}(x^m,z_{0:K}) \dd z_{0:K}$ for all $m \in [M]$.
+\end{proposition}
+In an idealized setting where the backward process parameterized by $\theta$ is expressive enough to match the chosen forward process, the penalty $\mathcal{R}(\theta, z_0)$ vanishes, and our tilted log-likelihood $\tilde{\ell}(\theta,\phi)$ shares the same maxima and maximizers with the true $\ell(\theta,\phi)$ in \eqref{eq:ell}.
+Hence, for optimal parameters $\theta_\star$ such that $$\theta_\star \in \Theta_0:=\{\theta\in \Theta: \mathcal{R}(\theta,\cdot)\equiv 0\},$$  Proposition~\ref{prop:ftildemins} implies that the minimizers $(\theta_\star,\phi_\star)$-components of $\tilde{F}(\theta, \phi, q^{1:M})$, our tractable proxy for optimization, also maximize the marginal log-likelihood $\ell$, our objective of interest. 
+While this is never perfectly achieved in practice, we believe a close approximation is possible when the forward and reverse processes are chosen with care (generally, the more expressive the latter is, the better).
+
+Previous works such as~\cite{wehenkeldiffusionpriorsvariational2021} restrict $q^m$ to mean-field Gaussian distributions of the sort $\mathcal{N}(z_0;\mu_\psi(x^m),\Sigma_\psi(x^m))$, where the mean and (diagonal) covariance matrix are parameterized by an encoder with parameters $\psi$, and they optimize $\tilde{F}$ over $(\theta,\phi,\psi)$. In the following, we take a different approach and replace these parametric variational approximations with particle-based ones.
+
+
+\section{INTERACTING PARTICLE LATENT DIFFUSION}\label{sec:gradient_flow_ldm}
+To obtain an algorithm for minimizing $\tilde{F}$ in \eqref{eq:free-energy}, we follow similar steps to those taken in \citet{kuntz23a} to obtain particle-based algorithms for minimizing $F$ in \eqref{eq:fen78awfnye8awnfeua} for simpler latent variable models (in particular, ones for which $p_{\theta,\phi}(x,z_0)$ have a standard Gaussian prior and do not have complex dependencies on latent variables $z_0$). 
+
+\subsection{The gradient flow}
+\label{sec:gradient_flow}
+To derive our algorithm, we search for an analogue of gradient descent (GD) applicable to $\tilde{F}(\theta, \phi, q^{1:M})$. A single update step of GD in the Euclidean space $\R^d$ for minimizing a function $f:\R^d\to\R$ is given by $x_{k+1}=x_k-h\nabla_x f(x_k)$. This update step is exactly the Euler discretization with step size $h>0$ of the continuous-time \emph{gradient flow} $\dot{x}_t=-\nabla_xf(x_t)$.
+The analogue of the continuous time gradient flow we now identify resides in the joint space of parameters $\Theta\times \Phi\ni (\theta, \phi)$ and distributions $\mathcal{P}_2(\sZ)^M\ni q^{1:M}$. Under this geometry,
+$\nabla \tilde{F}=(\nabla_\theta \tilde{F}, \nabla_\phi \tilde{F},\nabla_{q^1} \tilde{F}, \dots,\nabla_{q^M} \tilde{F})$ (see Appendix~\ref{app:otto_calc} for details):
+\begin{align}
+    &\nabla_\theta \tilde{F}(\theta, \phi, q^{1:M}) = \frac{1}{M}\sum_{m=1}^M\mathbb{E}_{q^m}\left[\nabla_{\theta} \mathcal{L}_D(\theta, z_{0})\right],
+    \label{eq:theta_ode} \\
+    &\nabla_\phi \tilde{F}(\theta, \phi, q^{1:M}) 
+    =-\frac{1}{M}\sum_{m=1}^M\mathbb{E}_{q^m}\left[\nabla_{\phi} \log p_{\phi}( x^m | z_0)\right],\label{eq:phi_ode} \\\nonumber
+    &\nabla_{q^m} \tilde{F}(\theta, \phi, q^{1:M}) \\ 
+    &= [\nabla_{z_0} \cdot \left[
+        q^m(z_0) \nabla_{z_0}  \mathcal{L}^m(\theta, \phi, z_0) \right]- \Delta_{z_0} q^m(z_0)],\label{eq:fpe_qt} 
+\end{align}
+where the last equation holds for all $m\in [M]$, and we have defined:
+\begin{equation}\label{eq:single_loss_drift}
+    \mathcal{L}^m(\theta, \phi, z_0):=\log(p_{\phi}( x^m|z_0))-\mathcal{L}_D(\theta, z_0), 
+\end{equation}
+with $\mathcal{L}_D(\theta,z_0)$ being the \emph{diffusion loss} for the latent space \gls*{DDPM} prior\footnote{We point out that the loss is dependent on the number of diffusion time steps $K$.}:
+\begin{equation}
+\mathcal{L}_D(\theta,z_0):=\mathbb{E}_{q(z_{1:K}|z_{0})}\left[ \log \frac{{q(z_{1:K}|z_{0})}}{p_{\theta}(z_{0:K})} \right].
+\end{equation}
+The gradient flow then reads 
+\begin{equation}\label{eq:flow}
+(\dot{\theta}_t,\dot{\phi}_t,\dots \dot{q}^{1:M}_t)=-\nabla \tilde{F}(\theta_t,\phi_t,q^{1:M}_t).
+\end{equation}
+Using the results of \cite{caprioerrorboundsparticle2024}, it is straightforward to obtain sufficient conditions under which the flow converges exponentially fast to $\tilde{F}$'s minimizers. We state a concise version of the result and associated assumptions; we defer the full statement and proof to Appendix~\ref{sec_app:exp_convg_proof}. Let $\tilde{\rho}_{\theta,\phi}(\cdot):=\tilde p_{\theta,\phi}(x, \cdot)$ be the unnormalized tilted posterior, and $\tilde{\pi}_{\theta,\phi}(\cdot) = \tilde\rho_{\theta,\phi}(\cdot)/A_{\theta, \phi}$ be its normalized version with $A_{\theta, \phi}$ being the normalizing constant.
+\begin{restatable}[Model regularity]{assumption_app}{modelregularityrestatable}\label{assump:model_reg}
+    We assume that
+    \begin{enumerate}
+        \item For all $z \in \sZ$, $(\theta,\phi) \mapsto \tilde\pi_{\theta,\phi}(z)$ and $(\theta, \phi) \mapsto A_{\theta, \phi}$ are differentiable;
+        \item for all $(\theta,\phi) \in \Theta \times \Phi$, $\tilde\pi_{\theta,\phi}$ is twice continuously differentiable;
+        \item $\tilde{\rho}_{\theta,\phi}(z)>0$ for all $z\in \sZ$ and $(\theta,\phi) \in \Theta \times \Phi$.
+    \end{enumerate}
+\end{restatable}
+\begin{restatable}[Regularity of solutions]{assumption_app}{solutionregularityrestatable}\label{assump:solution_reg}
+    For any initial conditions $(\theta, \phi, q^{1:M})\in \mathcal{M}^{1:M}$,  the gradient flow has a classical solution $(\theta_t, \phi_t,  q_t^{1:M})_{t \geq 0}$ with $(\theta_0, \phi_0, q_0^{1:M}) = (\theta, \phi, q^{1:M})$.  
+Furthermore, for all $m\in [M]$ and $t \geq 0$, $q_t^m$ has a Lebesgue density in $\mathcal{C}^{1,2}([0, \infty) \times \sZ, \mathbb{R}^+)$ and $(\theta_t, \phi_t) \in \mathcal{C}^1([0, \infty), \Theta \times \Phi)$.
+\end{restatable}
+\begin{restatable}[Strong log-concavity]{assumption_app}{stronglogconcavityrestatable}\label{assump:strong_log_concave}
+    For all $x\in \sX$, the tilted joint density $\tilde{p}_{\theta, \phi}(x,z)$ is $\lambda$-strongly log-concave in $(\theta, \phi, z)$ for some $\lambda>0$.
+\end{restatable}
+\begin{theorem}\label{thm:exp_convg_informal}
+Suppose Assumptions \Cref{assump:model_reg}-\Cref{assump:strong_log_concave} hold, then $\tilde{\ell}$ has a unique maximizer $(\theta_\star, \phi_\star)$ and the flow converges exponentially fast to it: for $\lambda$ independent of $M$ and all $t\geq 0$, 
+\begin{align*}
+        \vert\vert(\theta_t,\phi_t)-(\theta_\star,\phi_\star) \vert\vert
+        \leq
+        \sqrt{\frac{2[\tilde{F}(\theta_0, \phi_0, q_0^{1:M})-\tilde{F}_\star]}{\lambda}}e^{-\lambda t},
+\end{align*}
+where we denote $\tilde{F}_\star:=\inf_{(\theta,\phi,q^{1:M})}\tilde{F}(\theta,\phi,q^{1:M})$ and $\vert\vert\cdot\vert\vert$ denotes the Euclidean norm.
+\end{theorem}
+\begin{proof}[Proof (Sketch)]
+Given the fact that $(\theta,\phi,z_0)\mapsto \log(\tilde{p}_{\theta,\phi}(x^m,z_0))$ is $\lambda$-strongly concave for each $m$ in $[M]$, it follows that
+\begin{align}
+\tilde{\ell}(\theta,\phi,z_0^{1:M})
+&:=\frac{1}{M}\sum_{m=1}^M\log\tilde{p}_{\theta,\phi}(x^m,z_0^m),\label{eq:tilde-ell}
+\end{align}
+is also $\lambda$-strongly concave. The result is then an application of the extended log-Sobolev inequality under strong log-concavity (cf. Definition \ref{def:xLSI} and \citet{caprioerrorboundsparticle2024}), whence the exponential convergence follows from Gr{\"o}nwall's inequality.
+\end{proof}
+
+\subsection{Approximating the flow and a simple algorithm}
+\label{sec:practical_disc}
+In almost all cases, (\ref{eq:theta_ode}--\ref{eq:flow}) defines an intractable set of equations and we must approximate it. To do so, we exploit the fact~\cite[Section~2]{kuntz23a} that they form the Fokker-Planck equation satisfied by the law of the following McKean-Vlasov SDE \citep{chaintron_2022}:
+\begin{align}
+\dd {\theta}_t &= -\frac{1}{M}\sum_{m=1}^M\mathbb{E}_{q^m_t}\left[\nabla_{\theta} \mathcal{L}_D(\theta_t, Z_{0,t}^m)\right] \dd t, \label{eq:gf_theta_ode} \\
+    \dd {\phi}_t &= \frac{1}{M}\sum_{m=1}^M\mathbb{E}_{q^m_t}\left[\nabla_{\phi} \log p_{\phi_t}( x^m | Z_{0,t}^m)\right] \dd t, \\
+    \dd Z_{0,t}^m &= \nabla_{z_{0}} \mathcal{L}^m(\theta_t, \phi_t, {Z}_{0,t}^m)dt+\sqrt{{2}} \dd W_{t}^m, \label{eq:gf_z_sde}
+\end{align}
+where we define the last equation for all $m\in [M]$, $q_t^m$ denotes the law of $Z_{0,t}^m$, and $(W_t^{1:M})_{t\geq 0}$ denotes a $d_z\times M$-dimensional Brownian motion. 
+
+However, the laws $(q_t^{1:M})_{t\geq0}$ are unknown and the continuous time axis intractable, so we must approximate the former and discretize the latter. In particular, for each $m$ we approximate the laws using an empirical distribution:
+$$
+q_t^m(\mathrm{d}z_0) \approx \frac{1}{N}\sum_{n=1}^N\delta_{Z_{0,t}^{m,n}}(\mathrm{d}z_0),
+$$ 
+which is formed with $N$ weakly-dependent particles ${Z_{0,t}^{m,1},\dots,Z_{0,t}^{m,N}}$ all (approximately) distributed according to $q_t^{m}$; and we discretize the time axis using the Euler-Maruyama scheme:
+\begin{align}
+    {\theta}_{t+1} &= \theta_t - (h/MN) \sum_{m=1}^M \sum_{n=1}^N\nabla_{\theta} \mathcal{L}_D(\theta_t, Z_{0,t}^{m,n}),\label{eq:disc_theta} 
+    \\
+    {\phi}_{t+1} &= \phi_t + (h/MN)  \sum_{m=1}^M\sum_{n=1}^N \nabla_{\phi} \log p_{\phi_t}( x^m | Z_{0,t}^{m,n}),\label{eq:disc_phi} 
+    \\
+    Z_{0,t+1}^{m,n} &= Z_{0,t}^{m,n} + h\nabla_{z_{0}} [\mathcal{L}^m(\theta_t, \phi_t, {Z}_{0,t}^{m,n})]\nonumber \\
+    &+\sqrt{{2h}} W_{t}^{m,n}, \quad \forall (m,n) \in [M] \times [N],\label{eq:disc_par}
+\end{align}
+ where $h>0$ denotes the discretization step size, $W_{1:T}^{1:M,1:N}$ a $T\times M\times N$-dimensional standard Gaussian random variable, and $T$ denotes the total number of steps. Under the conditions in Theorem~\ref{thm:exp_convg_informal}'s premise, and a further Lipschitz gradients assumption, it is straightforward to obtain error bounds for (\ref{eq:disc_theta}--\ref{eq:disc_par}) using the results in~\cite{caprioerrorboundsparticle2024}.
+\begin{restatable}[Lipschitz gradient]{assumption_app}{lipschitzgradientrestatable}\label{assump:lipschitz_grad}
+The log-likelihood $\tilde\ell^m(\theta, \phi,z_0):=\log \tilde{p}_{\theta,\phi}(x^m,z_0)$ is differentiable and its gradient 
+is $L$-Lipschitz for some $L > 0$, \emph{i.e.} for all $(\theta, \phi, z_0), (\theta',\phi', z_0') \in \Theta \times \Phi \times \sZ$,
+\begin{align*}
+    &\|\nabla \tilde\ell^m(\theta, \phi, z_0) - \nabla \tilde\ell^m(\theta',\phi', z_0')\| \\
+    &\qquad \quad \, \leq L\|(\theta, \phi, z_0) - (\theta', \phi', z_0')\|.
+\end{align*}
+\end{restatable}
+\begin{theorem}\label{thrm:error-bound}
+Suppose that the premise of Theorem~\ref{thm:exp_convg_informal} and \Cref{assump:lipschitz_grad} hold, and that $\mathcal{R}$ has Lipschitz gradients. For all sufficiently small $h>0$, there exists a constant $C_{h,N}$ of order $\mathcal{O}(h^{1/2}+N^{-1/2})$ independent of $T$, a $\rho \in (0, 1)$, and a $C>0$ independent of $(h,N,T)$, such that
+$$\mathbb{E}\left[\vert\vert(\theta_T,\phi_T)-(\theta_\star,\phi_\star) \vert\vert^2\right]^{1/2} \leq C_{h,N}+C\rho^T\quad\forall T\in \mathbb{N},$$
+where $(\theta_\star,\phi_\star)$ denote $\tilde{\ell}$'s unique maximizer.
+\end{theorem}
+\begin{proof}[Proof (Sketch)]
+Given the extra Lipschitz gradients assumption on $\log p_{\theta, \phi}(x,z_0)$, the result follows from bounding the spatial and temporal discretization errors separately, which are then combined with the exponential convergence result in \Cref{thm:exp_convg_informal}. We defer the full proof to \Cref{sec_app:discretize_proof}.
+\end{proof}
+In particular, \Cref{thrm:error-bound} shows that the error can be made arbitrarily small by picking $N,T$ sufficiently large and $h$ sufficiently small.
+\subsection{A practical algorithm: IPLD}\label{sec:pratical-alg}
+While amenable to theoretical analysis, the algorithm defined by~(\ref{eq:disc_theta}--\ref{eq:disc_par}) performs poorly in practice when applied to models of the sort we are interested in for several reasons. We deal with these one at a time and obtain a practical discretization,  Interacting Particle Latent Diffusion (\textsc{\small IPLD}), which is well-suited to modern computing environments.
+
+\paragraph{Subsampling.} The updates  in (\ref{eq:disc_theta}--\ref{eq:disc_par}) incur a $\mathcal{O}(NMK)$ computational~\footnote{We use the convention in optimization~\citep{Nesterov2004} and only include the dominant gradient evaluation cost.}, which proves prohibitively expensive for all but the smallest of training sets. We overcome this issue by subsampling similarly as in \citet{sgld2011,hodenoisingdiffusionprobabilistic2020}. First, we rewrite~(\ref{eq:disc_theta}--\ref{eq:disc_par}) more concisely as
+\begin{align*}
+    (\theta_{t+1},\phi_{t+1})&=(\theta_t,\phi_t)-h\nabla_{(\theta,\phi)} \mathcal{L}_t,\\
+    Z_{0,t+1}^{1:M,1:N}&=Z_{0,t}^{1:M,1:N}- (MNh)\nabla_{z_0^{1:M,1:N}} \mathcal{L}_t\\
+    &+\sqrt{{2h}}W_t^{1:M,1:N},
+\end{align*}
+where $\mathcal{L}_t:=(MN)^{-1}\sum_{m=1}^M\sum_{n=1}^N\left[\mathcal{L}^m(\theta, \phi, z_{0,t}^{m,n})\right]$ with $\mathcal{L}^m$ defined in \eqref{eq:single_loss_drift}. Then, we replace the loss $\mathcal{L}_t$ with the following unbiased estimate:
+\begin{align}
+    &\hat{\mathcal{L}}_t := \hat{\mathcal{L}}(\theta_t,\phi_t,z^{1:M,1:N}_{0,t})\label{eq:batch_loss}\\
+    &:= \frac{1}{N |\mathcal{B}|} \sum_{(m,n)\in \mathcal{B} \times [N]} \left[
+    \hat{\mathcal{L}}_D(\theta_t, z_{0,t}^{m,n}) - \log p_\phi ( x^m | z_{0,t}^{m,n}) \right] \notag
+\end{align}
+where $\mathcal{B}$ denotes a subset of $[M]$ of size $|\mathcal{B}|$ drawn uniformly at random (and independently of all other random variables), and $\hat{\mathcal{L}}_{\mathcal{D}}$ denotes the $\mathcal{O}(1)$-cost unbiased estimate of the diffusion loss $\mathcal{L}_{\mathcal{D}}$ specified in Appendix~\ref{app:reparam_diffusion}; so bringing down the cost to $\mathcal{O}(N|\mathcal{B}|)$. We add noise to the particles' updates scaled by $\sqrt{|\mathcal{B}|/M}$ to match the variance of the noise in the full-batch updates in~\eqref{eq:disc_par}. See \Cref{algo:train_basic} below for pseudocode.
+\begin{algorithm}[H]
+    \caption{Interacting Particle Latent Diffusion (\gls*{IPLD})}\label{algo:train_basic}
+    \begin{algorithmic}[1]
+        \linespread{1.2}\selectfont
+        \State \textbf{Inputs:} Dataset $\{ x^m\}_{m\in [M]}$, 
+        stepsize $h$,
+        \\ particles $z_{0,0}^{1:M,1:N}$, parameters $\phi,\theta$
+        \While{not converged}
+            \State Sample a mini-batch of indices $\mathcal{B}\subset [M]$
+            \State Compute $\hat{\mathcal{L}}_t = \hat{\mathcal{L}}
+            (\theta_t,\phi_t,z^{1:M,1:N}_{0,t})$ in \eqref{eq:batch_loss}
+        \For{$(m,n)\in [M] \times [N]$}
+        \If{$m\in \mathcal{B}$}
+        \State ${z_{0,t}^{m,n} \gets z_{0,t}^{m,n} -(MNh)\nabla_{ z_{0}^{m,n}}\hat{\mathcal{L}}_t}$
+        \EndIf
+        \State $z_{0,t+1}^{m,n} \gets z_{0,t}^{m,n} +\sqrt{\frac{2h|\mathcal{B}|}{M}}W_{t}^{m,n}$ 
+    \EndFor
+    \State $\theta_{t+1} \gets \theta_t - h \nabla_{\theta} \hat{\mathcal{L}}_t$
+    \State $\phi_{t+1} \gets \phi_t - h \nabla_{\phi} \hat{\mathcal{L}}_t$
+\EndWhile
+\State \textbf{Outputs:} $(\theta_{t}, \phi_t, z_{0,t}^{1:M, 1:N})$
+\end{algorithmic}
+\end{algorithm}
+\paragraph{Distributed Training.} (\ref{eq:disc_theta}--\ref{eq:disc_par}) require $\mathcal{O}(MN)$ memory. However, \gls*{IPLD} is well-suited for distributed training: $Z^{m,n}_{0,t}$'s update for a given pair $(m,n)$ is independent of that for all other pairs, and requires only access to the $m$th datapoint. Thus, in distributed setups, we allocate each accelerator a disjoint subset of the training set and it handles the corresponding updates for all $N$ particles, reducing per-device memory costs and communication costs. This contrasts with autoencoder-based \glspl*{LDM} that necessitate synchronizing gradients for encoders (typically, deep networks) when trained end-to-end. 
+
+\paragraph{Reweighting and annealing.} We re-weight the diffusion loss $\mathcal{L}_{\mathcal{D}}$ similarly as in \citet{hodenoisingdiffusionprobabilistic2020}, as this re-weighting is known to improve sample quality~\citep{songMaximumLikelihoodTraining2021,kingmaunderstandingdiffusionobjectives2023}; see Appendix~\ref{app:reparam_diffusion} for details. Furthermore, we anneal the KL term in the free energy, replacing the summand in~\eqref{eq:free-energy} with: $-\mathbb{E}_{q^m}\left[\log {p_{\phi}( x^m|z_0)}\right] + \gamma_t \KL(q^m(z_0)||p_\theta(z_0))$, where $\gamma_t:[0,\infty)\to(0,\infty)$ denotes the (non-decreasing) annealing schedule. This is a practice commonly used when training deep \glspl*{LVM} to encourage accurate reconstruction during the early stages of training~\citep{sonderby2016ladderVAE,fu2019cyclicalannealingschedulesimple,vahdatNVAEDeepHierarchical2020,vahdatscorebasedgenerativemodeling2021}. Adjusting $\tilde{F}$ correspondingly results in $\gamma_t$ premultiplying $\mathcal{L}_{\mathcal{D}}$ in~\eqref{eq:fpe_qt}; which in turn corresponds to adjusting the noise levels in~(\ref{eq:gf_z_sde},\ref{eq:disc_par}) by multiplying a factor of $\sqrt{\gamma_t}$ (cf. Appendix~\ref{app:kl_anneal_deriv} for details).
+
+\paragraph{Preconditioning and momentum.} When training simpler latent variable models with algorithms similar to ours, \cite{kuntz23a,limMomentumParticleMaximum2024} observed that preconditioning the models' parameters similarly as in RMSProp~\citep{tieleman2012lecture} mitigated ill-conditioning and stabilized the training. \cite{limMomentumParticleMaximum2024} further noted gains in both training speeds and test-time performance by incorporating momentum into the parameter and particle updates. Here we precondition and incorporate momentum for both the parameters and particles. We use optimizers like AdamW~\citep{loshchilov2019decoupledweightdecayregularization} for the former and adaptive Langevin algorithms \citep{Li2016, kim2020stochasticgradientlangevindynamics} for the latter. 
+Lastly, we choose different step sizes $h_\theta$, $h_\phi$, and $h_z$ respectively for $\theta$, $\phi$, and the particles to account for the multi-scale nature of the interacting particle system \citep{akyildiz2024multiscaleperspectivemaximummarginal, Pavliotis2008}. We provide the pseudocode for the full training algorithm in Appendix~\ref{app:precond_training_alg}.
+
+
+\section{RELATED WORK}\label{sec:rel_work}
+\paragraph{Interacting Particle Algorithms.}~Interacting particle systems have long been the foundation of much  statistical and optimization methodology, e.g.~\citep{DelMoral2004, kennedy1995swarm}. Their use in algorithms that fit latent variable models by jointly updating model's parameters and a latent-space particle cloud to maximize the likelihood is more recent:~\citet{kuntz23a} proposed several such algorithms and~\citet{limMomentumParticleMaximum2024} improved their performance by incorporating momentum into the algorithms' updates (see also \cite{encinar2024proximalinteractingparticlelangevin,sharrock24a,oliva2024kineticinteractingparticlelangevin,marion2025implicitdiffusionefficientoptimization,akyildiz2025interacting,marks2025learninglatentenergybasedmodels}). 
+The theoretical guarantees of our algorithm are derived from the results in \citet{caprioerrorboundsparticle2024}. Similar error bounds have been established in \citet{akyildiz2025interacting} for an alternative approximation to the gradient flow featuring noise in the parameter updates. Also related to our method are numerous works approximating gradient flows with particles to obtain alternatives to conventional \gls*{VI}; e.g.,~\citet{liuSteinVariationalGradient2016,lambertVariationalInferenceWasserstein2022,duncan23svgd, diao2023forwardbackwardgaussianvariationalinference, limParticleSemiimplicitVariational2024}. Lastly, there is a growing body of work exploring training methodologies for generative models in the ambient space using particle-based methods~\citep{arbel2019maximummeandiscrepancygradient,yiMonoFlowRethinkingDivergence2023,franceschiUnifyingGANsScorebased2023,galashovDeepMMDGradient2024,zhouInductiveMomentMatching2025}.
+
+\paragraph{Latent Diffusion Models.}
+There have been various attempts at incorporating \glspl*{DM} into \glspl*{LVM} as the prior $p_{\theta}(z)$. \citet{vahdatscorebasedgenerativemodeling2021} proposed to jointly train a continuous-time score-based \gls*{DM}~\citep{songscorebasedgenerativemodeling2021} in the latent space of a deep hierarchical \gls*{VAE} \citep{vahdatNVAEDeepHierarchical2020}. Similarly, \citet{wehenkeldiffusionpriorsvariational2021} considered the joint training of a discrete-time \gls*{DM} with a conventional \gls*{VAE}. \citet{cohen22vqdiff} instead applied a discrete-time diffusion prior to a \gls*{VQVAE} \citep{vandenoord17vqvae}. The seminal work by \citet{rombachhighresolutionimagesynthesis2022} can also be viewed as learning a diffusion prior post training of the \gls*{VAE}. Additionally, several studies have proposed a trainable forward process for diffusion models \citep{kim2022maximum, bartosh2024neural,bartosh2024flow,nielsen2024diffenc}, which can be viewed as generalizations of latent diffusion models.
+More recently, combinations of diffusion-based priors with other types of probabilistic models in hierarchical \glspl*{VAE} have been explored, such as \gls*{EBM} \citep{cuiLearningLatentSpace2024} and Variational Mixture of Posteriors prior \citep{kuzina2024hierarchical}. Additionally, the work by \citet{silvestriTrainingConsistencyModels2025} can also be viewed as an \gls*{VAE} with a consistency model \citep{songConsistencyModels2023} learning the aggregated posterior. Concurrent to our work, \citet{leng2025repaeunlockingvaeendtoend} also considers the joint training of a latent diffusion model with the \gls*{VAE}, but their objective is instead based on the REPresentation Alignment (REPA) loss \citep{yuRepresentationAlignmentGeneration2024}, which require forward passes through pretrained vision foundational models like DINO \citep{caron2021emerging,oquab2024dinov2learningrobustvisual}.
+
+\paragraph{Decoder-only Models.} 
+Connected to our work are other methods that, similarly to us, optimize latent variables rather than relying on an encoder network. Several studies \citep{han2017abp, nijkamp2019shortrun,nijkamp2020inf,pangLearningLatentSpace2020,nijkamp2022mcmc,yu2023learning} have considered short-run and persistent Langevin dynamics within an \gls*{EM} framework to train latent variable models featuring a top-down generator network. Also related to our work are approaches like \citet{bojanowski2018optimizing,luiseGeneralizationPropertiesOptimal2020} that optimize latent distributions as an alternative or enhancement to \glspl*{GAN}~\citep{goodfellow2014generative}.
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.99\linewidth]{figures/main/mmd_horizontal.pdf}
+\caption{Estimated MMD between the ground truth and the distribution learned with \gls*{IPLD} (solid line) and \textsc{\small DiffusionVAE} (dashed line) for the GMM (left) and concentric circles (right) datasets. Shaded regions indicate $\pm1$ standard error.}\label{fig:ldm_gmm_comparison}
+\end{figure}
+\begin{figure}[htbp]
+     \centering
+     \includegraphics[width=0.99\linewidth]{figures/main/qualitative_combined.png}
+\caption{Samples generated by \gls*{IPLD} trained with varying numbers of particles for 1,000 steps (showing the first two out of $d_x=64$ dimensions).}\label{fig:toy_examples}
+\end{figure}
+\input{table}
+\section{EXPERIMENTS}
+\label{sec:numerics}
+We evaluate \gls*{IPLD}'s performance on two
+synthetic datasets (Section~\ref{sec:synth}) and three image datasets (Section~\ref{sec:image})~\footnote{Code available at \href{https://github.com/akyildiz-group/IPLD-release}{\faGithub~ IPLD-release}}. In the synthetic case, we benchmark against the closest \gls*{VI}
+analogue to \gls*{IPLD} we have been able to locate in the literature: \gls*{DiffusionVAE} \citep{wehenkeldiffusionpriorsvariational2021}; see the end of Section~\ref{sec:dldm}  for more details. For the image datasets, we additionally compare with several other decoder-only \glspl*{LVM} (cf.~Section~\ref{sec:rel_work}). 
+
+
+\subsection{Synthetic Datasets}\label{sec:synth}
+We first validate the effectiveness of our method on two toy datasets. We generate these by first sampling from a distribution on a $2$-dimensional latent space, and then mapping the samples into a $64$-dimensional ambient space using a matrix $A \in \R^{2\times 64}$ with orthogonal rows. We consider 1)  a \gls*{GMM} with $25$ components as in \citet{boys2024tweedie,cardoso2024monte}, and 2) a distribution concentrated on concentric circles similar to that\footnote{{\scriptsize\url{https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_circles.html}}} in \texttt{scikit-learn}.
+We train both \gls*{DiffusionVAE} and \gls*{IPLD} for 1,000 steps and varying numbers of particles $N=1,4,16,64,256$ (in the case of \gls*{DiffusionVAE}, $N$ refers to the number of samples drawn from the encoder at each step). For both datasets, increasing $N$ increases the quality of the samples generated by \gls*{IPLD} (\Cref{fig:toy_examples}). To quantitatively compare \gls*{IPLD} and \gls*{DiffusionVAE}, we estimate the \gls*{MMD} \citep{jmlr:v13:gretton12a} between the distribution learned by each and the ground truth. The \gls*{MMD} values are averaged over $50$ training runs and the standard error is reported. For all particle numbers, \gls*{IPLD} outperformed \gls*{DiffusionVAE} (\Cref{fig:ldm_gmm_comparison}). See Appendix~\ref{app:synth} for more details.
+\begin{figure}[hbtp]
+      \centering
+      \includegraphics[width=\linewidth]{figures/main/images.png}
+      \caption{Samples generated with \gls*{IPLD} trained on CIFAR-10, CelebA64, and SVHN. The CelebA64 samples have been curated for better visualization. See Appendix~\ref{app:additional_samples} for additional samples.}
+      \label{fig:generated_samples}
+ \end{figure}
+\subsection{Image Modeling}\label{sec:image} Next,  we test our model on three image datasets: CIFAR-10 \citep{krizhevsky2009learning}, SVHN \citep{svhn2011}, and CelebA64 \citep{liu2015faceattributes}. As before, we benchmark against \gls*{DiffusionVAE} using the same decoder, diffusion model, and $4\times 8\times 8$-dimensional latent space as for \gls*{IPLD}. We train both models for the same number of epochs ($400$ for CIFAR10 and SVHN, $200$ for CelebA64); see Appendix~\ref{app:image_exp_details} for details. For \gls*{IPLD}, we vary the particle number $N=1,5,10$ (we use a single particle for \gls*{DiffusionVAE} because back-propagating the corresponding gradients through the model's encoder with more particles proved too memory-consuming for our hardware). We warm-start the multi-particle \gls*{IPLD} runs using a single particle as in \citet{kuntz23a}; see Appendix~\ref{app:warm_start} for details. In both cases, we compute \gls*{FID} scores for the trained model (\Cref{tab:fid_scores}). \gls*{IPLD} outperforms \gls*{DiffusionVAE}, and its performance increases with the number of particles used for training. 
+\gls*{IPLD} also proves competitive with previous decoder-only models discussed in Section~\ref{sec:rel_work} (see also \Cref{tab:fid_scores}).
+
+
+\section{DISCUSSION}\label{sec:conclusion}
+Like many before us, we recast fitting an \gls*{LDM} via maximum likelihood as minimizing a free energy functional (Section~\ref{sec:dldm}). Unlike others, we then identify a gradient flow that minimizes the functional and approximate it using systems of interacting particles (Sections~\ref{sec:gradient_flow}, \ref{sec:practical_disc}), and we theoretically characterize both the flow and the approximations (Theorems~\ref{thm:exp_convg_informal},~\ref{thrm:error-bound}) under standard assumptions. Following these steps, we obtain \gls*{IPLD} (Section~\ref{sec:pratical-alg}): a theoretically-principled algorithm for end-to-end \gls*{LDM} training. Because it entails updating a cloud of particles and each particle's update is independent of the others',  \gls*{IPLD} is well-suited for modern distributed compute environments and is easy to scale. 
+
+In numerical experiments involving both synthetic and image data, \gls*{IPLD} compares favorably with relevant benchmarks (Section~\ref{sec:numerics}). However, our results on the image datasets fall short of today's state-of-the-art. We believe this may be due to the relatively small latent spaces, decoder, and DM architectures we use (e.g., compare Appendix~\ref{app:image_exp_details} with \citet[Appendices~G.1,2]{vahdatscorebasedgenerativemodeling2021})
+and our limited computational budget (e.g., compare Appendix~\ref{app:computational_considerations} with \citet[Appendix E]{rombachhighresolutionimagesynthesis2022}), rather than a fundamental limitation of the approach.
+Our work may be limited by the fact that, to date, \glspl*{LDM} trained in a two-stage manner (e.g.,~\cite{rombachhighresolutionimagesynthesis2022}) have achieved results that those trained end-to-end have not, and our approach is fundamentally an end-to-end one. However, recent works such as~\cite{leng2025repaeunlockingvaeendtoend} have demonstrated promising breakthroughs in end-to-end \gls*{LDM} training, and their innovations are relatively straightforward to incorporate in our algorithm. Further improvements may be possible through more careful subsampling schemes than that in Section~\ref{sec:pratical-alg} and the use of variance reduction techniques \citep{zou2018subsampled}. Indeed, we hope our work paves the way to other more effective particle-based algorithms for \gls*{LDM} training.
+
+Lastly, our theoretical analysis is limited to the simplified algorithm in Section~\ref{sec:practical_disc}. However, we believe that it may be possible to extend the analysis to more practical versions using techniques along the lines of those used to study adaptive optimizers \citep{malladi2024sdesscalingrulesadaptive} and momentum-enriched interacting particle systems \citep{oliva2024kineticinteractingparticlelangevin,limMomentumParticleMaximum2024}.
+\section*{Acknowledgements}
+We thank the anonymous reviewers for their constructive comments. TW is supported by the Roth
+Scholarship from the Department of Mathematics, Imperial College London. We acknowledge computational resources and support provided by the Department of Mathematics and the Imperial College Research Computing Service, DOI: 10.14469/hpc/2232.
+
+\bibliographystyle{apalike}
+\bibliography{bibliography}
+
+\appendix
+\thispagestyle{empty}
+\input{supp_aistats.tex}
+
+
+\end{document}
