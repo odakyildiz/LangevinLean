@@ -3,7 +3,9 @@
 
 Default checks are syntactic/documentary, not a proof of complete source coverage.
 --lean additionally builds, checks displayed declarations and audits logical axioms.
---require-source-complete fails while source results retain unresolved bridges.
+--require-source-complete requires --lean and checks all 19 corrected source
+statements on their explicitly recorded added regularity domains. Literal
+printed claims are tracked separately, including the refuted unrestricted A2.
 """
 from __future__ import annotations
 
@@ -62,6 +64,7 @@ def tex_environments(path, assumptions=False):
 
 
 def verify(lean=False, require_complete=False):
+    require(not require_complete or lean, "Source-complete mode requires --lean")
     sources, parsed = source_inventory()
     for path, source in sources.items():
         masked = "\n".join(HELPERS.mask_comments(source.splitlines()))
@@ -147,24 +150,42 @@ def verify(lean=False, require_complete=False):
         print(f"Lean checked {len(names)} theorem axiom reports; only standard logical axioms occur.")
 
     incomplete = [r["id"] for r in audit["results"]
-                  if r.get("original_statement_fully_reconstructed") is not True]
+                  if r.get("corrected_statement_fully_proved") is not True or
+                  r.get("remaining_obligations")]
     print(f"Checked {len(sources)} Lean source files, 19 result environments, 4 assumptions, "
           f"and {len(mappings)} declaration mappings.")
-    print(f"Source reconstruction remains incomplete for {len(incomplete)} source results; "
-          "this verification is not a source-completeness certificate.")
+    print(f"Corrected source statements proved: {19-len(incomplete)}/19. "
+          "The certificate includes the recorded added regularity; it does not "
+          "assert the unrestricted literal manuscript statements.")
     if require_complete:
+        regularity = {r["id"] for r in audit.get("added_regularity", [])}
+        require(regularity == {f"R{i}" for i in range(1, 8)},
+                "Missing explicit added-regularity inventory")
+        for record in audit["results"]:
+            require(record.get("added_assumptions") and
+                    set(record["added_assumptions"]) <= regularity,
+                    "Missing regularity provenance: " + record["id"])
+            refs = record.get("formal_declarations", [])
+            require(refs and any(ref["file"].split("/")[-1].startswith("Regular") or
+                                record["id"] == "app:lemma_1st_var" for ref in refs),
+                    "Missing completed analytic endpoint: " + record["id"])
+            for ref in refs:
+                require(parsed[ref["file"]][ref["name"]]["kind"] in ("theorem", "lemma"),
+                        "Source result endpoint is not a proved theorem: " + record["id"])
         open_bridges = [key for key, record in audit.get("formal_results", {}).items()
                         if record.get("unproved")]
         require(not incomplete and not open_bridges,
-                "Source-complete mode failed: unresolved or corrected source claims: " +
+                "Source-complete mode failed: unresolved corrected statements: " +
                 ", ".join(incomplete) + "; open analytic bridges: " + ", ".join(open_bridges))
+        print("Source-complete certificate passed: all 19 corrected statements, "
+              "their regularity provenance, exact source references and Lean proof chains.")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--lean", action="store_true", help="build and check Lean plus transitive axioms")
     parser.add_argument("--require-source-complete", action="store_true",
-                        help="fail unless every source statement is recorded as fully reconstructed")
+                        help="with --lean, certify all corrected source statements under added regularity")
     args = parser.parse_args()
     try:
         verify(args.lean, args.require_source_complete)

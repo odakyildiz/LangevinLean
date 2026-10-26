@@ -109,13 +109,14 @@ def validate_landing(source, audit):
         return matches[0]
 
     assumptions = unique("assumptions")
+    regularity = unique("source-regularity")
     contracts = unique("source-contracts")
     paper = unique("source-results")
     new = unique("new-theory")
     new_assumptions = unique("new-assumptions")
     new_theorems = unique("new-theorems")
-    require(assumptions.order < contracts.order < paper.order < new.order,
-            "Paper assumptions, formalization premises and source results must precede new theory")
+    require(assumptions.order < regularity.order < contracts.order < paper.order < new.order,
+            "Paper assumptions, added regularity and source results must precede new theory")
     require(new.attrs.get("data-new-theory") == "true",
             "The new-theory block must be explicitly identified")
     require(new.contains(new_assumptions) and new.contains(new_theorems),
@@ -137,11 +138,29 @@ def validate_landing(source, audit):
                 source_assumption_ids.append(match[1])
         require(not node.attrs.get("data-assumption-id", "").startswith("N"),
                 "New assumptions cannot appear among paper assumptions")
+        require(not node.attrs.get("data-assumption-id", "").startswith("R"),
+                "Added regularity cannot appear among paper assumptions")
         if node.tag in {"h3", "h4"}:
             require(not re.match(r"\s*(?:N\d+|V1|C1)\b", node.text()),
                     "Added domains and analytic bridges need their own section")
     require(source_assumption_ids == ["A1", "A2", "A3", "A4"],
             "The source-assumptions section must state A1–A4 explicitly and in order")
+
+    regularity_ids = {f"R{i}" for i in range(1, 8)}
+    regularity_cards = [node for node in nodes
+                        if node.attrs.get("data-assumption-id") in regularity_ids]
+    require(len(regularity_cards) == 7 and
+            {node.attrs["data-assumption-id"] for node in regularity_cards} == regularity_ids,
+            "Added source regularity must include R1–R7 exactly once")
+    for node in regularity_cards:
+        require(regularity.contains(node), "R regularity must precede the source results in its own section")
+        require(node.has_class("category-regularity"), "R regularity must retain its separate blue category")
+        require(any(child.tag == "pre" for child in node.elements()),
+                "R regularity must show its exact Lean hypotheses")
+    for name, colour in (("original", "28734a"), ("regularity", "245fa3"), ("new", "a65d00")):
+        require(re.search(r"\.category-" + name + r"\s*\{[^}]*border-top-color:\s*#" + colour,
+                          source, re.I),
+                "Original, added regularity and new theory must have distinct green, blue and orange colours")
 
     required_assumptions = {f"N{i}" for i in range(1, 8)}
     numerical_assumptions = [node for node in nodes
@@ -188,6 +207,18 @@ def validate_landing(source, audit):
                                   r"(?:fully reconstructed|fully formalized|proved without added assumptions)\b",
                                   visible, re.I),
                     f"A source result with unresolved premises claims full reconstruction: {identifier}")
+        if record.get("corrected_statement_fully_proved") is True:
+            require(status == "proved" and card.attrs.get("data-corrected-complete") == "true",
+                    f"Completed corrected source proof is not shown as proved: {identifier}")
+        expected_added = set(record.get("added_assumptions", []))
+        actual_added = {node.text().strip() for node in descendants
+                        if node.has_class("regularity-link") and
+                        node.attrs.get("href", "").startswith("#regularity-r")}
+        require(actual_added == expected_added,
+                f"Source card must link its own added R assumptions: {identifier}")
+        if card.attrs.get("data-original-complete") == "false":
+            require("the original statement is reconstructed" not in visible.lower(),
+                    "A corrected theorem cannot claim fidelity to a false printed original")
 
     for node in nodes:
         if node.has_class("category-new"):
@@ -219,23 +250,36 @@ class LandingContractTests(unittest.TestCase):
 
         paper = []
         for record in self.audit["results"]:
+            complete = record.get("corrected_statement_fully_proved") is True
+            added = ('<p class="added-regularity">' + ''.join(
+                '<a class="regularity-link" href="#regularity-' + item.lower() + '">' + item + '</a>'
+                for item in record.get("added_assumptions", [])) + '</p>')
             paper.append('<article data-source-result="' + escape(record["id"]) +
-                         '" data-formal-status="partial">' + pair(
-                             '<p>Formal status: the stated conclusion is conditional on explicit analytic premises.</p>') +
+                         '" data-formal-status="' + ('proved' if complete else 'partial') +
+                         '" data-corrected-complete="' + str(complete).lower() +
+                         '" data-original-complete="false">' + pair(
+                             '<p>Formal status: the stated conclusion is conditional on explicit analytic premises.</p>' + added) +
                          '<a data-source-path="' + record["source"] +
                          '" data-source-start="' + str(record["start_line"]) +
                          '" data-source-end="' + str(record["end_line"]) + '">Source</a>' +
                          '<details><summary>Exact printed source</summary><pre>' +
                          escape(record["exact_tex"]) + '</pre></details></article>')
-        assumptions = ''.join(f'<article><h3>A{i} — Source condition</h3></article>'
+        assumptions = ''.join(f'<article class="category-original"><h3>A{i} — Source condition</h3></article>'
                               for i in range(1, 5))
+        regularity = ''.join(f'<article data-assumption-id="R{i}" class="category-regularity">' +
+                             pair('Explicit added regularity and its primitive Lean fields.') + '</article>'
+                             for i in range(1, 8))
         new_assumptions = ''.join(f'<article data-assumption-id="N{i}" class="category-new">' +
                                  pair('The explicit primitive force premise.') + '</article>'
                                  for i in range(1, 8))
         new_theorems = ''.join(f'<article id="{identifier}" class="category-new">' +
                               pair('The quantitative conclusion and its contribution to the paper.') + '</article>'
                               for identifier in sorted(NEW_THEOREMS))
-        return ('<main><section id="assumptions">' + assumptions + '</section>' +
+        return ('<style>.category-original{border-top-color:#28734a}'
+                '.category-regularity{border-top-color:#245fa3}'
+                '.category-new{border-top-color:#a65d00}</style>'
+                '<main><section id="assumptions">' + assumptions + '</section>' +
+                '<section id="source-regularity"><h2>Added regularity R1–R7</h2>' + regularity + '</section>' +
                 '<section id="source-contracts"><h2>Additional formalization premises</h2></section>' +
                 '<section id="source-results">' + ''.join(paper) + '</section>' +
                 '<section id="new-theory" data-new-theory="true">' +
@@ -277,12 +321,13 @@ class LandingContractTests(unittest.TestCase):
 
     def test_source_cards_cannot_hide_their_formalization_status(self):
         with self.assertRaisesRegex(AssertionError, "formal status"):
-            self.check(self.fixture().replace('data-formal-status="partial"', '', 1))
+            self.check(re.sub(r'data-formal-status="[^"]+"', '', self.fixture(), count=1))
 
     def test_partial_result_cannot_claim_full_reconstruction(self):
         with self.assertRaisesRegex(AssertionError, "claims full reconstruction"):
-            self.check(self.fixture().replace('Formal status: the stated conclusion is conditional',
-                                             'Fully reconstructed. Formal status: the conclusion is conditional', 1))
+            source = re.sub(r'data-formal-status="[^"]+"', 'data-formal-status="partial"',
+                            self.fixture(), count=1)
+            self.check(source.replace('Formal status:', 'Fully reconstructed. Formal status:', 1))
 
     def test_new_theory_cannot_precede_paper_results(self):
         source = self.fixture().replace('id="source-results"', 'id="swap"')
@@ -298,6 +343,24 @@ class LandingContractTests(unittest.TestCase):
     def test_new_assumptions_must_be_separate_and_complete(self):
         with self.assertRaisesRegex(AssertionError, "N1–N7"):
             self.check(self.fixture().replace('data-assumption-id="N7"', ''))
+
+    def test_added_source_regularity_must_be_complete(self):
+        with self.assertRaisesRegex(AssertionError, "R1–R7"):
+            self.check(self.fixture().replace('data-assumption-id="R7"', ''))
+
+    def test_added_source_regularity_cannot_be_relabelled_original(self):
+        source = self.fixture().replace('data-assumption-id="R3" class="category-regularity"',
+                                        'data-assumption-id="R3" class="category-original"')
+        with self.assertRaisesRegex(AssertionError, "blue category"):
+            self.check(source)
+
+    def test_assumption_colours_must_distinguish_all_three_origins(self):
+        with self.assertRaisesRegex(AssertionError, "distinct green, blue and orange"):
+            self.check(self.fixture().replace('border-top-color:#245fa3', 'border-top-color:#a65d00'))
+
+    def test_each_source_card_must_link_its_own_added_assumptions(self):
+        with self.assertRaisesRegex(AssertionError, "own added R assumptions"):
+            self.check(self.fixture().replace('href="#regularity-r1"', 'href="#missing"', 1))
 
     def test_exact_lean_cannot_be_replaced_by_a_proof_link(self):
         source = self.fixture().replace('<pre data-role="statement">theorem example : 0 ≤ 1</pre>',

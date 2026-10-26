@@ -6,8 +6,17 @@ No proof body is copied into this statement-checking file. -/
 
 set_option linter.defProp false
 
--- LatentDiffusion/Flow.lean:28
-def check_LatentDiffusion_PosteriorFamily_freeEnergy_decay_of_firstOrder := @LatentDiffusion.PosteriorFamily.freeEnergy_decay_of_firstOrder
+-- LatentDiffusion/RegularConvergence.lean:349
+def check_LatentDiffusion_RegularConvergence_ClassicalFlow_deBruijn := @LatentDiffusion.RegularConvergence.ClassicalFlow.deBruijn
+
+-- LatentDiffusion/RegularConvergence.lean:359
+def check_LatentDiffusion_RegularConvergence_ClassicalFlow_extendedLSI := @LatentDiffusion.RegularConvergence.ClassicalFlow.extendedLSI
+
+-- LatentDiffusion/RegularConvergence.lean:368
+def check_LatentDiffusion_RegularConvergence_ClassicalFlow_energy_decay := @LatentDiffusion.RegularConvergence.ClassicalFlow.energy_decay
+
+-- LatentDiffusion/RegularFlowTalagrand.lean:196
+def check_LatentDiffusion_RegularFlowTalagrand_CharacteristicRealization_exists_minimizer_talagrand := @LatentDiffusion.RegularFlowTalagrand.CharacteristicRealization.exists_minimizer_talagrand
 
 -- LatentDiffusion/Density.lean:117
 def check_LatentDiffusion_Density_density_freeEnergy_eq_kl := @LatentDiffusion.Density.density_freeEnergy_eq_kl
@@ -27,23 +36,23 @@ def check_LatentDiffusion_SourceObstruction_not_solutionRegularity_of_null_singl
 -- LatentDiffusion/SourceObstruction.lean:54
 def check_LatentDiffusion_SourceObstruction_not_solutionRegularity_of_noAtoms := @LatentDiffusion.SourceObstruction.not_solutionRegularity_of_noAtoms
 
--- LatentDiffusion/Marginal.lean:17
-def check_LatentDiffusion_averageMarginalPotential_strongConvex := @LatentDiffusion.averageMarginalPotential_strongConvex
+-- LatentDiffusion/RegularConvergence.lean:478
+def check_LatentDiffusion_RegularConvergence_existsUnique_optimizer_and_flow_convergence := @LatentDiffusion.RegularConvergence.existsUnique_optimizer_and_flow_convergence
 
--- LatentDiffusion/Marginal.lean:62
-def check_LatentDiffusion_existsUnique_averageMarginalMinimizer := @LatentDiffusion.existsUnique_averageMarginalMinimizer
+-- LatentDiffusion/RegularConvergence.lean:416
+def check_LatentDiffusion_RegularConvergence_ClassicalFlow_full_product_exponential_convergence := @LatentDiffusion.RegularConvergence.ClassicalFlow.full_product_exponential_convergence
 
--- LatentDiffusion/Marginal.lean:79
-def check_LatentDiffusion_existsUnique_variationalOptimizer := @LatentDiffusion.existsUnique_variationalOptimizer
+-- LatentDiffusion/RegularConvergence.lean:454
+def check_LatentDiffusion_RegularConvergence_ClassicalFlow_parameter_exponential_convergence := @LatentDiffusion.RegularConvergence.ClassicalFlow.parameter_exponential_convergence
 
--- LatentDiffusion/Marginal.lean:131
-def check_LatentDiffusion_parameter_posterior_control := @LatentDiffusion.parameter_posterior_control
+-- LatentDiffusion/RegularProductMetricFlow.lean:149
+def check_LatentDiffusion_RegularProductMetricFlow_distance_right_slope := @LatentDiffusion.RegularProductMetricFlow.distance_right_slope
 
--- LatentDiffusion/Marginal.lean:154
-def check_LatentDiffusion_parameter_decay_of_firstOrder := @LatentDiffusion.parameter_decay_of_firstOrder
+-- LatentDiffusion/RegularProductMetricFlow.lean:239
+def check_LatentDiffusion_RegularProductMetricFlow_kinetic_energy_eq_fisher := @LatentDiffusion.RegularProductMetricFlow.kinetic_energy_eq_fisher
 
--- LatentDiffusion/Flow.lean:68
-def check_LatentDiffusion_PosteriorFamily_posteriorKL_decay_of_firstOrder := @LatentDiffusion.PosteriorFamily.posteriorKL_decay_of_firstOrder
+-- LatentDiffusion/RegularDensityDomain.lean:74
+def check_LatentDiffusion_RegularDensityDomain_ProductDensityChart_lowerSemicontinuous_energy := @LatentDiffusion.RegularDensityDomain.ProductDensityChart.lowerSemicontinuous_energy
 
 -- LatentDiffusion/Variational.lean:130
 def check_LatentDiffusion_zero_gap_at_tilted_max_not_sufficient := @LatentDiffusion.zero_gap_at_tilted_max_not_sufficient
@@ -156,41 +165,95 @@ def check_LatentDiffusion_SourceResults_tilted_evidence_le := @LatentDiffusion.S
 -- LatentDiffusion/SourceResults.lean:204
 def check_LatentDiffusion_SourceResults_tilted_logEvidence_le := @LatentDiffusion.SourceResults.tilted_logEvidence_le
 
--- LatentDiffusion/Cloud.lean:281
-def check_LatentDiffusion_Cloud_fullBatchStep_parameter := @LatentDiffusion.Cloud.fullBatchStep_parameter
+-- LatentDiffusion/RegularVariational.lean:87
+def check_LatentDiffusion_RegularVariational_DensityModel_literal_integral := @LatentDiffusion.RegularVariational.DensityModel.literal_integral
 
--- LatentDiffusion/Cloud.lean:291
-def check_LatentDiffusion_Cloud_fullBatchStep_particle := @LatentDiffusion.Cloud.fullBatchStep_particle
+-- LatentDiffusion/RegularVariational.lean:148
+def check_LatentDiffusion_RegularVariational_DensityModel_literal_minimizers_on_iff := @LatentDiffusion.RegularVariational.DensityModel.literal_minimizers_on_iff
 
--- LatentDiffusion/SourceResults.lean:51
-def check_LatentDiffusion_SourceResults_entropy_integrand_derivative := @LatentDiffusion.SourceResults.entropy_integrand_derivative
+-- LatentDiffusion/RegularEvidence.lean:185
+def check_LatentDiffusion_RegularEvidence_sum_posterior_parameter_gradient_eq_zero := @LatentDiffusion.RegularEvidence.sum_posterior_parameter_gradient_eq_zero
 
--- LatentDiffusion/SourceResults.lean:61
-def check_LatentDiffusion_SourceResults_first_variation_constant_cancels := @LatentDiffusion.SourceResults.first_variation_constant_cancels
+-- LatentDiffusion/RegularFlowCalculus.lean:251
+def check_LatentDiffusion_RegularFlowCalculus_integral_divergence_mul := @LatentDiffusion.RegularFlowCalculus.integral_divergence_mul
+
+-- LatentDiffusion/RegularFlowCalculus.lean:548
+def check_LatentDiffusion_RegularFlowCalculus_normalized_product_gradient_representation := @LatentDiffusion.RegularFlowCalculus.normalized_product_gradient_representation
+
+-- LatentDiffusion/RegularFlowCalculus.lean:613
+def check_LatentDiffusion_RegularFlowCalculus_normalized_product_deBruijn := @LatentDiffusion.RegularFlowCalculus.normalized_product_deBruijn
+
+-- LatentDiffusion/RegularTransport.lean:193
+def check_LatentDiffusion_RegularTransport_RegularDisplacement_entropy_displacement_convex := @LatentDiffusion.RegularTransport.RegularDisplacement.entropy_displacement_convex
+
+-- LatentDiffusion/RegularTransportFirstOrder.lean:70
+def check_LatentDiffusion_RegularTransport_RegularDisplacement_entropy_tangent := @LatentDiffusion.RegularTransport.RegularDisplacement.entropy_tangent
+
+-- LatentDiffusion/RegularDensityDomain.lean:66
+def check_LatentDiffusion_RegularDensityDomain_ProductDensityChart_continuous_energy := @LatentDiffusion.RegularDensityDomain.ProductDensityChart.continuous_energy
+
+-- LatentDiffusion/RegularDensityDomain.lean:79
+def check_LatentDiffusion_RegularDensityDomain_ProductDensityChart_cauchy_minimizer := @LatentDiffusion.RegularDensityDomain.ProductDensityChart.cauchy_minimizer
+
+-- LatentDiffusion/RegularStochastic.lean:214
+def check_LatentDiffusion_RegularStochastic_independent_average_norm_sq := @LatentDiffusion.RegularStochastic.independent_average_norm_sq
+
+-- LatentDiffusion/RegularStochastic.lean:482
+def check_LatentDiffusion_RegularStochastic_full_batch_parameter_bound := @LatentDiffusion.RegularStochastic.full_batch_parameter_bound
+
+-- LatentDiffusion/RegularSourceTheorem.lean:167
+def check_LatentDiffusion_RegularSourceTheorem_full_batch_optimizer_rms_rate := @LatentDiffusion.RegularSourceTheorem.full_batch_optimizer_rms_rate
+
+-- LatentDiffusion/RegularSourceTheorem.lean:250
+def check_LatentDiffusion_RegularSourceTheorem_optimizer_replication := @LatentDiffusion.RegularSourceTheorem.optimizer_replication
+
+-- LatentDiffusion/RegularModel.lean:108
+def check_LatentDiffusion_RegularModel_existsUnique_p2_literalOptimizer := @LatentDiffusion.RegularModel.existsUnique_p2_literalOptimizer
+
+-- LatentDiffusion/RegularModel.lean:66
+def check_LatentDiffusion_RegularModel_existsUnique_variationalOptimizer := @LatentDiffusion.RegularModel.existsUnique_variationalOptimizer
 
 -- LatentDiffusion/SourceCalculus.lean:44
 def check_LatentDiffusion_SourceCalculus_parameter_freeEnergy_hasFDerivAt := @LatentDiffusion.SourceCalculus.parameter_freeEnergy_hasFDerivAt
 
--- LatentDiffusion/SourceCalculus.lean:86
-def check_LatentDiffusion_SourceCalculus_density_freeEnergy_hasDerivAt := @LatentDiffusion.SourceCalculus.density_freeEnergy_hasDerivAt
-
 -- LatentDiffusion/SourceCalculus.lean:118
 def check_LatentDiffusion_SourceCalculus_density_firstVariation_of_zero_mass := @LatentDiffusion.SourceCalculus.density_firstVariation_of_zero_mass
 
--- LatentDiffusion/SourceResults.lean:72
-def check_LatentDiffusion_SourceResults_normalized_product_metric_cancellation := @LatentDiffusion.SourceResults.normalized_product_metric_cancellation
+-- LatentDiffusion/RegularTransportGeodesic.lean:518
+def check_LatentDiffusion_RegularTransport_product_geodesic_iff_optimalInterpolation := @LatentDiffusion.RegularTransport.product_geodesic_iff_optimalInterpolation
 
--- LatentDiffusion/Flow.lean:15
-def check_LatentDiffusion_extendedLSI_of_firstOrder := @LatentDiffusion.extendedLSI_of_firstOrder
+-- LatentDiffusion/RegularTransportGeodesic.lean:537
+def check_LatentDiffusion_RegularTransport_product_geodesic_iff_gradientInterpolation := @LatentDiffusion.RegularTransport.product_geodesic_iff_gradientInterpolation
 
--- LatentDiffusion/SourceResults.lean:80
-def check_LatentDiffusion_SourceResults_geodesic_convexity_first_order := @LatentDiffusion.SourceResults.geodesic_convexity_first_order
+-- LatentDiffusion/RegularTransportFirstOrder.lean:731
+def check_LatentDiffusion_RegularTransport_DatasetRegularity_displacement_strongConvex := @LatentDiffusion.RegularTransport.DatasetRegularity.displacement_strongConvex
 
--- LatentDiffusion/SourceResults.lean:31
-def check_LatentDiffusion_SourceResults_cauchy_minimizing_sequence := @LatentDiffusion.SourceResults.cauchy_minimizing_sequence
+-- LatentDiffusion/RegularDirectional.lean:178
+def check_LatentDiffusion_RegularDirectional_lower_directional_liminf_law_pairing := @LatentDiffusion.RegularDirectional.lower_directional_liminf_law_pairing
 
--- LatentDiffusion/SourceResults.lean:113
-def check_LatentDiffusion_SourceResults_geodesic_quadratic_growth := @LatentDiffusion.SourceResults.geodesic_quadratic_growth
+-- LatentDiffusion/RegularTransportFirstOrder.lean:661
+def check_LatentDiffusion_RegularTransport_DatasetRegularity_extendedLSI := @LatentDiffusion.RegularTransport.DatasetRegularity.extendedLSI
+
+-- LatentDiffusion/RegularProductMetricFlow.lean:176
+def check_LatentDiffusion_RegularProductMetricFlow_distance_integral_bound := @LatentDiffusion.RegularProductMetricFlow.distance_integral_bound
+
+-- LatentDiffusion/RegularTalagrand.lean:203
+def check_LatentDiffusion_RegularTalagrand_metric_flow_talagrand := @LatentDiffusion.RegularTalagrand.metric_flow_talagrand
+
+-- LatentDiffusion/RegularConvergence.lean:292
+def check_LatentDiffusion_RegularConvergence_ClassicalFlow_distanceSq_eq_posterior := @LatentDiffusion.RegularConvergence.ClassicalFlow.distanceSq_eq_posterior
+
+-- LatentDiffusion/RegularMeanField.lean:86
+def check_LatentDiffusion_RegularMeanField_exists_meanField := @LatentDiffusion.RegularMeanField.exists_meanField
+
+-- LatentDiffusion/RegularSourceTheorem.lean:512
+def check_LatentDiffusion_RegularSourceTheorem_meanField_actual_empirical_convergence := @LatentDiffusion.RegularSourceTheorem.meanField_actual_empirical_convergence
+
+-- LatentDiffusion/RegularMeanField.lean:189
+def check_LatentDiffusion_RegularMeanField_exists_spatial_comparison := @LatentDiffusion.RegularMeanField.exists_spatial_comparison
+
+-- LatentDiffusion/RegularMeanField.lean:253
+def check_LatentDiffusion_RegularMeanField_temporal_comparison := @LatentDiffusion.RegularMeanField.temporal_comparison
 
 -- LatentDiffusion/BatchAudit.lean:226
 def check_LatentDiffusion_BatchAudit_randomScanConditionalSecondMoment_eq := @LatentDiffusion.BatchAudit.randomScanConditionalSecondMoment_eq
@@ -198,11 +261,29 @@ def check_LatentDiffusion_BatchAudit_randomScanConditionalSecondMoment_eq := @La
 -- LatentDiffusion/BatchAudit.lean:253
 def check_LatentDiffusion_BatchAudit_fullNoiseConditionalSecondMoment_eq := @LatentDiffusion.BatchAudit.fullNoiseConditionalSecondMoment_eq
 
+-- LatentDiffusion/RegularFlowTalagrand.lean:175
+def check_LatentDiffusion_RegularFlowTalagrand_CharacteristicRealization_distance_right_slope := @LatentDiffusion.RegularFlowTalagrand.CharacteristicRealization.distance_right_slope
+
+-- LatentDiffusion/RegularVariational.lean:246
+def check_LatentDiffusion_RegularVariational_DominatedDensityChart_lowerSemicontinuous_energy := @LatentDiffusion.RegularVariational.DominatedDensityChart.lowerSemicontinuous_energy
+
+-- LatentDiffusion/RegularVariational.lean:251
+def check_LatentDiffusion_RegularVariational_DominatedDensityChart_cauchy_minimizer := @LatentDiffusion.RegularVariational.DominatedDensityChart.cauchy_minimizer
+
+-- LatentDiffusion/RegularTransportFirstOrder.lean:635
+def check_LatentDiffusion_RegularTransport_DatasetRegularity_lower_directional_liminf := @LatentDiffusion.RegularTransport.DatasetRegularity.lower_directional_liminf
+
 -- LatentDiffusion/SourceResults.lean:220
 def check_LatentDiffusion_SourceResults_uniform_time_unscaled := @LatentDiffusion.SourceResults.uniform_time_unscaled
 
 -- LatentDiffusion/SourceResults.lean:229
 def check_LatentDiffusion_SourceResults_uniform_time_corrected := @LatentDiffusion.SourceResults.uniform_time_corrected
+
+-- LatentDiffusion/Cloud.lean:281
+def check_LatentDiffusion_Cloud_fullBatchStep_parameter := @LatentDiffusion.Cloud.fullBatchStep_parameter
+
+-- LatentDiffusion/Cloud.lean:291
+def check_LatentDiffusion_Cloud_fullBatchStep_particle := @LatentDiffusion.Cloud.fullBatchStep_particle
 
 -- LatentDiffusion/Cloud.lean:90
 def check_LatentDiffusion_Cloud_potential_strongConvex := @LatentDiffusion.Cloud.potential_strongConvex

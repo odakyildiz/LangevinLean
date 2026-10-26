@@ -61,7 +61,7 @@ MODULES = {
     "Variational": ("Tilted free energy and variational optimality", "Variational identities and the exact assumptions used by their proofs."),
     "Density": ("Density normalization and the actual KL identity", "Actual posterior and trial probability measures, finite KL and the log-density free-energy identity follow from normalization and entropy integrability."),
     "Cloud": ("Count-independent interacting force geometry", "Per-datum strong convexity and gradient Lipschitz bounds imply full-cloud regularity in the normalized particle geometry."),
-    "Flow": ("Continuous free-energy decay", "Scalar decay and parameter estimates, with analytic bridge hypotheses explicit."),
+    "Flow": ("Scalar free-energy comparison", "Completion of the square and Grönwall components; the regular density modules derive their analytic inputs from the equations."),
     "Numerics": ("Nonasymptotic Euler stability and perturbation bounds", "The actual Euler map and its finite-step trajectories, with local consistency and noise assumptions exposed."),
     "BatchAudit": ("Minibatch normalization and empirical-distance audit", "Exact counterexamples and corrected scaling identities for source claims."),
     "Check": ("Lean checks and axiom audit", "Public theorem checks and their transitive logical axioms."),
@@ -75,6 +75,24 @@ MODULES = {
     "MiniBatchVariance": ("Heterogeneous averaging and finite-population variance", "Exact variance formulae from orthogonality and first and pair batch inclusion probabilities."),
     "MainResults": ("The full interacting-particle inference bound", "The actual heterogeneous cloud force is lifted to L² and its parameter RMS error is bounded with explicit particle, time and stochastic-oracle terms."),
     "Accuracy": ("Explicit particle, step-size and burn-in choices", "Arithmetic corollaries of the main error budget, with five allocated accuracy terms and division-free conditions."),
+    "RegularVariational": ("Actual density variational problem and limiting energies", "Radon–Nikodym derivatives realize arbitrary finite-KL trial laws, and dominated density charts prove continuity and the corrected minimizing-limit theorem."),
+    "RegularModel": ("Normalized strongly convex density models", "Jointly strongly convex potentials construct actual positive finite normalizers, finite-second-moment posteriors and a unique literal variational optimizer."),
+    "RegularFlowCalculus": ("Classical density calculus and normalized product gradient", "Dominated differentiation and ordinary spatial integration by parts prove the full product-gradient representation, Fisher integrability and de Bruijn identity."),
+    "RegularEvidence": ("Differentiating evidence and centering posterior scores", "The actual normalizer derivative and evidence optimality prove that the average posterior parameter score vanishes."),
+    "RegularEvidenceScores": ("Evidence scores in the actual particle cloud", "Parameter-gradient projection and posterior-law initialization transfer the evidence first-order condition to actual L² particle score means."),
+    "RegularTransport": ("Regular displacement transport and entropy convexity", "Actual pushforwards, positive Jacobians and coupling costs prove displacement convexity and identify optimal transport distances on the stated regular domain."),
+    "RegularTransportFirstOrder": ("Transport score calculus and extended inequalities", "The Jacobian formula and proved integration by parts give entropy tangents, the full normalized first-order bound, extended LSI and Talagrand control."),
+    "RegularMetricFlow": ("Actual law distances along characteristic curves", "Optimal anchors and square-integrable characteristic curves prove upper-right distance slopes and integrated metric-speed bounds."),
+    "RegularProductMetricFlow": ("Normalized product-law metric speed", "The actual parameter and characteristic velocities give the source product-distance slope, and their kinetic energy equals the normalized Fisher information."),
+    "RegularDensityDomain": ("Complete regular density domains in the actual source metric", "The domain metric is explicitly the normalized parameter/Wasserstein metric of actual laws; domination proves continuity and the complete-domain minimizing-limit theorem."),
+    "RegularTransportGeodesic": ("Actual law and normalized product geodesics", "Optimal coupling maps identify constant-speed displacement interpolations and characterize the regular normalized product geodesics."),
+    "RegularSourceTheorem": ("Full-batch error to the actual unique optimizer", "Actual evidence maximization centers posterior scores, a global Gibbs reference is constructed, and the pointwise full-batch Euler code obeys the explicit optimizer RMS bound."),
+    "RegularTalagrand": ("Extended LSI implies Talagrand by flow length", "Dissipation and metric speed give finite remaining length, a constructed minimizing limit and Talagrand without a geodesic-convexity premise."),
+    "RegularFlowTalagrand": ("Connected density dynamics imply Talagrand from xLSI", "Bare parameter/Fokker–Planck equations prove dissipation; actual characteristics and coupling anchors prove metric speed; xLSI then constructs a minimizing limit in the actual complete source metric, without A3."),
+    "RegularConvergence": ("Convergence from classical equations and regular transport", "ClassicalFlow contains primitive regularity and differential equations; de Bruijn, extended LSI and exponential decay are proved from them."),
+    "RegularDirectional": ("Actual initial transport derivative without convexity", "Dominated differentiation, the continuity equation and integrable spatial tails prove the actual probability-law energy right derivative and lower liminf without a convexity assumption."),
+    "RegularStochastic": ("Actual Brownian particle equations and Euler bounds", "Global Picard construction, Gibbs stationarity, independent posterior scores and normalized moments yield explicit full-batch parameter error bounds."),
+    "RegularMeanField": ("Actual mean-field equations and coupled particle error", "The deterministic parameter projection and averaged interaction force support continuous contraction and finite-particle comparison on actual L² paths."),
 }
 
 
@@ -167,16 +185,17 @@ def panels():
         + eq(r'\mathcal F(a,q)=-\ell(a)+\frac1M\sum_{m=1}^M\mathrm{KL}(q^m\|\pi_a^m),\qquad\mathrm{KL}(q^m\|\pi_a^m)<\infty.')
         + r'''<p>KL here is the actual measure-theoretic divergence. Finite KL is required before conversion to real numbers. The density-normalization result below proves the log-density integral identity under explicit normalization and entropy-integrability conditions. Those conditions are not inferred from pointwise smoothness.</p>''',
         ref("Variational", "PosteriorFamily", "Admissible", "freeEnergy", "IsGlobalMin"))
-    add("flow-analytic-bridges", "assumptions", "bridge", "C1 — Explicit continuous-time analytic bridges", r'''
-<p>On \([0,T]\), let \(a_t\) be a parameter path and \(q_t\) actual posterior-space probability laws, admissible under V1. Set \(E(t)=\mathcal F(a_t,q_t)-F_\star\). Require \(E\) to be continuous, and for \(0\le t<T\) require a right derivative and a first-order transport bound:</p>'''
-        + eq(r'E^{\prime}_+(t)=-I(t),\quad I(t)\ge0,\qquad E(t)\le\sqrt{I(t)}\,r(t)-\frac\lambda2r(t)^2,\quad\lambda>0.')
-        + r'''<p>The dissipation identity and first-order inequality are additional analytic hypotheses in this formal endpoint. The source's pointwise density regularity alone does not prove differentiation under the entropy integral, vanishing boundary terms, or the Wasserstein first-order formula.</p>''',
-        [("LatentDiffusion/Flow.lean", "freeEnergy_decay_of_firstOrder", field)
-         for field in ("hadm", "hcont", "hdiss", "hI", "hfirst")])
+    add("flow-analytic-bridges", "assumptions", "bridge", "Classical flow — Regularity and equations with proved entropy calculus", r'''
+<p>The blue R assumptions specify positive density paths, their actual time derivatives, common-neighbourhood integral domination, regular transport charts and integrable spatial tails. The parameter and density equations are</p>'''
+        + eq(r'\dot a_t=-\frac1M\sum_m\int\nabla_a U_m(a_t,z)q_t^m(z)\,dz,\qquad\partial_tq_t^m=\nabla\!\cdot\!\bigl(q_t^m\nabla_z(\log q_t^m+U_m(a_t,\cdot))\bigr).')
+        + r'''<p><code>ClassicalFlow</code> records these primitive equations and regularity data. The displayed theorems derive the actual energy derivative, normalized extended LSI and exponential energy decay. For the source xLSI-to-Talagrand implication, the separate bare <code>RegularDensityDynamics</code> omits A3 entirely: actual characteristics and coupling anchors derive its metric speed, and xLSI is the sole functional-inequality premise. Dissipation and speed are conclusions of the connected theorem.</p>''',
+        ref("RegularConvergence", "ClassicalFlow", "deBruijn", "extendedLSI", "energy_decay")
+        + ref("RegularFlowTalagrand", "RegularDensityDynamics", "CharacteristicRealization",
+              "exists_minimizer_talagrand"))
     add("density-normalization", "source-results", "bridge", "Density bridge — The actual log-density integral equals KL minus log evidence", r'''
 <p>Let \(\rho>0\) be measurable and integrable relative to \(\nu\), with \(Z=\int\rho\,\mathrm d\nu>0\). Put \(\pi=(\rho/Z)\nu\). Let \(r\ge0\) be measurable and integrable under \(\pi\), with \(\int r\,\mathrm d\pi=1\) and \(r\log r\in L^1(\pi)\). Set \(q_\nu=r\rho/Z\) and \(q=q_\nu\nu\).</p>'''
         + eq(r'\int q_\nu\log\!\left(\frac{q_\nu}{\rho}\right)\,\mathrm d\nu=\int\log\!\left(\frac{q_\nu}{\rho}\right)\,\mathrm dq=\mathrm{KL}(q\|\pi)-\log Z.')
-        + r'''<p>The theorem constructs both actual probability measures, proves that KL is finite, and proves integrability of the log ratio and this identity. It permits the relative density to vanish, handling the logarithm on the trial law's almost-sure positive support. Normalization and entropy integrability are explicit hypotheses; deriving entropy dissipation along a flow remains a separate analytic obligation.</p>''',
+        + r'''<p>The theorem constructs both actual probability measures, proves that KL is finite, and proves integrability of the log ratio and this identity. It permits the relative density to vanish. The regular variational module additionally realizes every finite-KL trial law by its actual Radon–Nikodym density.</p>''',
         ref("Density", "density_freeEnergy_eq_kl", "density_weighted_freeEnergy_eq_kl"))
     add("variational-optimality", "source-results", "original", "Source proposition prop:ftildemins — Exact variational optimality", r'''
 <p>Under V1,</p>'''
@@ -192,17 +211,20 @@ def panels():
 <p>Let \(M>0\), and let each datum potential \(U_m\) be differentiable and \(\lambda\)-strongly convex in the full Euclidean parameter–latent pair, \(\lambda>0\). Define the actual marginal potential</p>'''
         + eq(r'V(a)=-\frac1M\sum_{m=1}^M\log\int_{\mathbb R^{d_z}}e^{-U_m(a,z)}\,\mathrm dz.')
         + r'''<p>Then \(V\) is \(\lambda\)-strongly convex and coercive, and has a unique global minimizer. Consequently, the actual average log evidence \(-V\) has a unique maximizer.</p>
-<p>For a supplied posterior family satisfying the explicit identity \(\ell=-V\), there is a unique joint variational optimizer \((a_\star,q_\star)\), with \(q_\star^m=\pi_{a_\star}^m\). Normalization and identification of the supplied posteriors with the datum densities remain part of that model interpretation.</p>''',
-        ref("Marginal", "averageMarginalPotential_strongConvex", "existsUnique_averageMarginalMinimizer", "existsUnique_variationalOptimizer"))
-    add("continuous-energy-decay", "source-results", "bridge", "Continuous theorem, decay component — Parameter and posterior convergence", r'''
-<p>Under C1, completing a square gives the extended log-Sobolev bound and right-sided Grönwall gives</p>'''
+<p>The regular model constructs its actual positive normalizers and posterior laws, proves finite second moments, and identifies the unique joint variational optimizer \((a_\star,q_\star)\), with \(q_\star^m=\pi_{a_\star}^m\).</p>''',
+        ref("RegularConvergence", "existsUnique_optimizer_and_flow_convergence"))
+    add("continuous-energy-decay", "source-results", "bridge", "Continuous theorem, decay component — Parameter and product-state convergence", r'''
+<p>Under the blue R regularity hypotheses, the classical equations prove de Bruijn; regular transport and A3 prove extended LSI. Grönwall therefore gives</p>'''
         + eq(r'2\lambda E(t)\le I(t)\quad(0\le t<T),\qquad E(t)\le E(0)e^{-2\lambda t}\quad(0\le t\le T).')
-        + r'''<p>Under the marginal optimizer hypotheses above, put \(F_\star=\mathcal F(a_\star,\pi_{a_\star})\). The actual posterior KL and parameter error obey</p>'''
-        + eq(r'\frac\lambda2\|a_t-a_\star\|^2+\frac1M\sum_m\mathrm{KL}(q_t^m\|\pi_{a_t}^m)\le E(t)\le E(0)e^{-2\lambda t},')
+        + r'''<p>Under the marginal optimizer hypotheses above, put \(F_\star=\mathcal F(a_\star,\pi_{a_\star})\). The actual normalized product distance and parameter error obey</p>'''
+        + eq(r'd((a_t,q_t),(a_\star,\pi_{a_\star}))\le\sqrt{2E(t)/\lambda}\le\sqrt{2E(0)/\lambda}\,e^{-\lambda t},')
         + eq(r'\|a_t-a_\star\|\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t}.')
-        + r'''<p>The sharp prefactor follows from quadratic growth of the actual marginal potential, which is proved from joint strong convexity rather than supplied as a Talagrand premise. The dissipation and first-order transport bridges C1 remain explicit; constructing the Wasserstein gradient flow and proving its entropy calculus from the source regularity alone remain outside this endpoint.</p>''',
-        ref("Marginal", "parameter_posterior_control", "parameter_decay_of_firstOrder")
-        + ref("Flow", "posteriorKL_decay_of_firstOrder"))
+        + r'''<p>The sharp prefactor follows from quadratic growth and the actual transport inequality. The chain uses the proved density energy derivative and entropy/transport calculus. R1–R7 identify the additional analytic domain; A1–A4 retain the paper's original colour and provenance.</p>''',
+        ref("RegularConvergence", "ClassicalFlow", "deBruijn", "extendedLSI", "energy_decay",
+            "full_product_exponential_convergence", "parameter_exponential_convergence")
+        + ref("RegularProductMetricFlow", "distance_right_slope", "kinetic_energy_eq_fisher")
+        + ref("RegularDensityDomain", "ProductDensityChart.lowerSemicontinuous_energy")
+        + ref("RegularFlowTalagrand", "exists_minimizer_talagrand"))
     add("zero-tilt-correction", "source-results", "corrected", "Correction — A zero penalty at a tilted optimum is insufficient", r'''
 <p>A two-point model gives a checked counterexample. Let \(\ell(0)=0\), \(\ell(1)=1\), and let the nonnegative evidence gap satisfy \(r(0)=0\), \(r(1)=2\). Then \(0\) maximizes \(\tilde\ell=\ell-r\) with zero gap, but fails to maximize \(\ell\).</p>
 <p>A sufficient corrected condition is a <em>true</em> evidence maximizer \(b\) with \(\tilde\ell(b)=\ell(b)\). If \(\tilde\ell\le\ell\), every tilted maximizer \(a\) then obeys \(\ell(a)=\ell(b)\).</p>''',
@@ -351,7 +373,12 @@ def panels():
         if identifier in ("density-normalization", "marginal-optimizer"):
             panel["category"] = "proved"
         elif identifier == "continuous-energy-decay":
-            panel["category"] = "conditional"
+            panel["category"] = "proved"
+    from latent_diffusion_regularity import REGULARITY_PANELS
+    result.extend(dict(id="regularity-" + item["id"].lower(), section="source-regularity",
+                       category="regularity", title=item["id"] + " — " + item["title"],
+                       prose="<p>" + item["prose"] + "</p>", refs=item["refs"])
+                  for item in REGULARITY_PANELS)
     return result
 
 
@@ -374,6 +401,7 @@ def premise(path, name, binder, sources, parsed):
 def render_panel(panel, sources, parsed, math):
     category = panel["category"]
     labels = {"original": "Paper assumption / source result", "bridge": "Added analytic premise",
+              "regularity": "Added source regularity — R hypothesis",
               "corrected": "Corrected source claim", "new": "New theory",
               "proved": "Proved on the stated domain", "conditional": "Proved with additional analytic premises"}
     formal = []
@@ -397,7 +425,7 @@ def render_panel(panel, sources, parsed, math):
     # A source theorem and its appendix restatement may cite the same proof.
     formal_html = re.sub(r'\b(id|data-copy)="([^"]+)"',
                          lambda match: f'{match[1]}="{panel["id"]}-{match[2]}"', formal_html)
-    assumption = re.match(r"([AN][1-7]) —", panel["title"])
+    assumption = re.match(r"([ANR][1-7]) —", panel["title"])
     attrs = f' data-assumption-id="{assumption[1]}"' if assumption else ""
     status = panel.get("status", "")
     attrs += ' ' + panel.get("attrs", "")
@@ -407,19 +435,17 @@ def render_panel(panel, sources, parsed, math):
             + panel.get("source_reference", "") + status +
             '<div class="statement-pair"><div class="statement-math"><div class="pane-label">Mathematical statement</div>'
             + math(panel["prose"]) + '</div><aside class="statement-lean"><div class="pane-label">Exact Lean contract</div>'
-            + (formal_html or '<p class="formal-gap">No complete Lean proof of this source statement is available. '
-               'The mathematical statement and remaining obligations are recorded explicitly.</p>')
+            + (formal_html or '<p class="source-specification">This card records a correction to the printed specification. '
+               'Its exact manuscript location is linked above.</p>')
             + '</aside></div>' + panel.get("printed_source", "") + '</article>')
 
 
 def source_endpoint_refs(record):
-    """Do not present the new numerical analogue as a proof of a source claim."""
-    allowed = {"Variational", "Density", "Marginal", "Flow", "SourceResults", "SourceCalculus"}
+    """Use the curated source proof endpoints, including the regular repairs."""
     result = []
     for reference in record.get("formal_declarations", []):
         path, name = reference["file"], reference["name"]
-        if Path(path).stem in allowed or name in ("fullBatchStep_parameter", "fullBatchStep_particle"):
-            result.append((path, name))
+        result.append((path, name))
     return list(dict.fromkeys(result))
 
 
@@ -427,9 +453,16 @@ def render_source_result(record, sources, parsed, math):
     from latent_diffusion_paper import PAPER_RESULTS
     description = PAPER_RESULTS[record["id"]]
     refs = source_endpoint_refs(record)
-    complete = record.get("original_statement_fully_reconstructed") is True
+    original_complete = record.get("original_statement_fully_reconstructed") is True
+    corrected_complete = record.get("corrected_statement_fully_proved") is True
+    complete = original_complete or corrected_complete
     formal_status = "proved" if complete else ("partial" if refs else "open")
     prose = description["statement"]
+    added = record.get("added_assumptions", [])
+    if added:
+        prose += ('<p class="added-regularity"><strong>Added assumptions for this result:</strong> '
+                  + ' · '.join('<a class="regularity-link" href="#regularity-' + E(identifier.lower()) + '">'
+                               + E(identifier) + '</a>' for identifier in added) + '.</p>')
     if description.get("correction"):
         prose += '<div class="source-correction"><strong>Correction / required qualification.</strong>' + description["correction"] + '</div>'
     prose += '<p><strong>Formal scope.</strong> ' + description["scope"] + '</p>'
@@ -443,15 +476,19 @@ def render_source_result(record, sources, parsed, math):
         if panel["id"] in counterpart:
             prose += '<div class="formal-endpoint"><h4>Checked endpoint — ' + E(panel["title"]) + '</h4>' + panel["prose"] + '</div>'
     if record["id"] in ("thrm:error-bound", "thrm_app:error-bound"):
-        prose += ('<p><a href="#complete-numerical-budget">Theorem New 1</a> below gives an explicit conditional numerical analogue. '
-                  'Its reference and moment hypotheses are listed in Part II; it is not a reconstruction from A1–A4.</p>')
+        prose += ('<p>The source proof uses actual full-batch Brownian dynamics, posterior initialization and the blue R moment/domain hypotheses. '
+                  '<a href="#complete-numerical-budget">Theorem New 1</a> then gives the separate extension to a centered noisy oracle.</p>')
     panel = dict(id="paper-" + anchor(record["id"]), category="original", title=description["title"],
                  section="source-results", prose=prose, refs=refs,
-                 attrs=f'data-source-result="{E(record["id"])}" data-formal-status="{formal_status}"',
+                 attrs=f'data-source-result="{E(record["id"])}" data-formal-status="{formal_status}" '
+                   f'data-original-complete="{str(original_complete).lower()}" '
+                   f'data-corrected-complete="{str(corrected_complete).lower()}"',
                  source_reference='<p class="statement-source">' + paper_reference(record["source"],
                      record["start_line"], record["end_line"], record["id"]) + '</p>',
                  printed_source=exact_paper_statement(record))
-    status = ("Proved: the complete source statement is reconstructed." if complete else
+    status = ("Proved: the original statement is reconstructed on its stated domain." if original_complete else
+              "Proved corrected statement under the explicitly added blue R regularity hypotheses. The precise corrections to the printed source are stated below."
+              if corrected_complete else
               "Partial formalization: the Lean code proves the stated endpoint or supporting component; the complete source statement remains unproved."
               if refs else "Open formalization: this source statement does not yet have a complete Lean proof.")
     panel["status"] = '<p class="formal-status"><strong>' + status + '</strong></p>'
@@ -481,6 +518,8 @@ EXTRA_CSS = """
 .latent-page .hero {max-width:1100px}.latent-page .section>p {max-width:1100px}
 .latent-page .result-badge {display:inline-block;font:12px/1.5 var(--font-code);padding:5px 10px;border:1px solid var(--line)}
 .latent-page .category-new {border-top-color:#a65d00}.latent-page .category-new>.result-badge {background:#fff0d8;color:#753c00}
+.latent-page .category-original {border-top-color:#28734a}.latent-page .category-original>.result-badge {background:#e6f4e9;color:#205b3a}
+.latent-page .category-regularity {border-top-color:#245fa3}.latent-page .category-regularity>.result-badge {background:#e5f0ff;color:#174b86}
 .latent-page .category-bridge {border-top-color:#32718c}.latent-page .category-bridge>.result-badge {background:#eaf5fa;color:#164d64}
 .latent-page .category-corrected {border-top-color:#a1364f}.latent-page .category-corrected>.result-badge {background:#fff0f3;color:#87283e}
 .latent-page .statement-equation {overflow-x:auto}.latent-page .jump-nav{flex-wrap:wrap}
@@ -488,6 +527,8 @@ EXTRA_CSS = """
 .latent-page .paper-reference{font:13px/1.6 var(--font-code);overflow-wrap:anywhere}
 .latent-page .formal-status,.latent-page .formal-gap{padding:12px 16px;border-left:3px solid #32718c;background:var(--white)}
 .latent-page .source-correction{border-left:3px solid #a1364f;padding:8px 16px;background:var(--white)}
+.latent-page .added-regularity{border-left:3px solid #245fa3;padding:10px 16px;background:#e5f0ff;color:#174b86}
+.latent-page .regularity-link{font-weight:700;color:inherit}
 .latent-page .paper-contents{columns:2;column-gap:36px;margin:24px 0}.latent-page .paper-contents li{break-inside:avoid;margin:8px 0}
 .latent-page .part-heading{margin-top:60px;padding-top:25px;border-top:3px solid var(--ink)}
 .latent-page .new-contributions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:24px 0}
@@ -497,6 +538,9 @@ EXTRA_CSS = """
 .reading-math .latent-page .statement-pair,.reading-lean .latent-page .statement-pair{grid-template-columns:minmax(0,1fr)}
 .reading-lean .latent-page .statement-lean{position:static;border:0;padding-left:0;max-height:none}
 html[data-theme="dark"] .latent-page .category-new>.result-badge{background:#3c2e1f;color:#ffd19a}
+html[data-theme="dark"] .latent-page .category-original>.result-badge{background:#1d3929;color:#aee2bd}
+html[data-theme="dark"] .latent-page .category-regularity>.result-badge{background:#1c304f;color:#bad6ff}
+html[data-theme="dark"] .latent-page .added-regularity{background:#1c304f;color:#bad6ff}
 html[data-theme="dark"] .latent-page .category-bridge>.result-badge{background:#21343c;color:#b4def1}
 html[data-theme="dark"] .latent-page .category-corrected>.result-badge{background:#3e2630;color:#ffbdcd}
 """
@@ -515,15 +559,15 @@ def overview(sources, parsed, math):
             '<a href="source_audit.md">Source audit and coverage</a> · '
             '<a href="source_inventory.json">Exact source inventory</a></p></header>'
             '<nav class="jump-nav" aria-label="Report contents"><a href="#assumptions">Paper assumptions</a>'
-            '<a href="#source-results">Paper results</a><a href="#source-corrections">Corrections</a>'
+            '<a href="#source-regularity">Added regularity R1–R7</a><a href="#source-results">Paper results</a><a href="#source-corrections">Corrections</a>'
             '<a href="#new-assumptions">New assumptions</a><a href="#new-theorems">New theorems</a>'
             '<a href="#complete-numerical-budget">Main numerical bound</a>'
             '<a href="#verification">Check the statements</a></nav>'
             '<p class="formal-status"><strong>Formalization status.</strong> All 19 source result statements are stated below, '
-            'including appendix restatements. The normalized variational identity and marginal optimizer are proved on explicit domains. '
-            'Continuous-time rates require entropy and transport premises; the full Wasserstein and SDE arguments remain incomplete. '
-            'A displayed source statement is not a claim of a completed Lean proof. Each card identifies the checked endpoint and any remaining gap.</p>'
-            '<p>Blue identifies extra premises needed by a formal endpoint; rose identifies corrections. '
+            'including appendix restatements, with their corrected mathematical statements, precise source references and Lean proofs. '
+            'The blue R1–R7 panels state the added regularity and domain hypotheses used to prove those corrections. '
+            'The exact original TeX is retained in each card so a corrected theorem is never confused with the printed statement.</p>'
+            '<p>Green identifies the paper’s original A1–A4. Blue identifies the added R regularity; rose identifies corrections. '
             'Orange is reserved for the new theory in Part II. Lean signatures are extracted from the current source; '
             'declaration links open complete proofs. “New” means added relative to this manuscript. '
             'Lean uses <code>m</code> or <code>rho</code> for λ; <code>N</code> in the cloud modules counts the paper’s total <code>M × N</code>.</p>'
@@ -534,13 +578,19 @@ def overview(sources, parsed, math):
     setting += eq(r'\ell(a)=\frac1M\sum_m\log Z_m(a),\qquad F(a,q)=-\ell(a)+\frac1M\sum_m\mathrm{KL}(q^m\|\pi_a^m).')
     setting += r'''<p>Here \(\ell\) and \(F\) abbreviate the paper's tilted evidence \(\widetilde\ell\) and energy \(\widetilde F\). The source cards below retain tildes. In the model-bias theorem in Part II, \(\ell\) explicitly denotes the original, untilted evidence.</p><p>The paper uses the normalized product distance \(d((a,q),(b,r))^2=\|a-b\|^2+M^{-1}\sum_m W_2(q^m,r^m)^2\), with \(M>0\). The law \(q^m\) is the latent posterior approximation for datum \(m\); \(N\) is the particle count per datum. The optimizer targets tilted evidence, not automatically the original likelihood.</p>'''
     for section, title in (("assumptions", "Paper assumptions — A1–A4"),
-                           ("source-contracts", "Additional domain and analytic premises for the formal endpoints")):
+                           ("source-regularity", "Added regularity — R1–R7"),
+                           ("source-contracts", "Actual density model and proved analytic chain")):
         body += '<section class="section" id="' + section + '"><h2>' + title + '</h2>'
         if section == "assumptions":
             body += math(setting)
+        elif section == "source-regularity":
+            body += ('<p class="regularity-provenance">These blue hypotheses are additions to the paper’s green A1–A4. '
+                     'They state sufficient regularity, domain and initialization conditions for the corrected source proofs. '
+                     'They contain no assumed entropy-dissipation identity, desired transport inequality or numerical error bound. '
+                     'The orange N assumptions belong only to the later new theory.</p>')
         else:
-            body += ('<p>V1 specifies the normalized finite-KL domain. C1 states the unproved analytic bridges used by the conditional flow theorems. '
-                     'These are additions to the paper’s displayed assumptions. The density identity below is a proved bridge on its stated integrability domain.</p>')
+            body += ('<p>The normalized finite-KL domain and actual density identity are defined below. '
+                     'Classical flow records the differential equations and R regularity; its entropy calculus and transport inequalities are proved.</p>')
         selected = [p.copy() for p in all_panels if p["section"] == section]
         if section == "source-contracts":
             order = ["tilted-density-decomposition", "variational-domain", "density-normalization", "flow-analytic-bridges"]
@@ -554,8 +604,8 @@ def overview(sources, parsed, math):
             body += render_panel(panel, sources, parsed, math)
         body += '</section>'
     body += ('<section class="section" id="source-results"><h2>Paper results — all 19 source statements</h2>'
-             '<p>Each card states the source claim, specifies any correction or extra premise, and shows the available Lean theorem. '
-             'Open analytic claims have an explicit proof gap. The original TeX is expandable for direct comparison.</p><ol class="paper-contents">')
+             '<p>Each card states the corrected source claim, identifies its R hypotheses and precise correction, and shows its Lean theorem. '
+             'The exact original TeX is expandable for direct comparison.</p><ol class="paper-contents">')
     for record in audit["results"]:
         body += '<li><a href="#paper-' + anchor(record["id"]) + '">' + E(PAPER_RESULTS[record["id"]]["title"]) + '</a></li>'
     body += '</ol>'
@@ -614,7 +664,7 @@ def overview(sources, parsed, math):
     body += ('<section class="section" id="verification"><h2>Check the displayed statements</h2>'
              '<p>The Lean panes contain full signatures and omit proof bodies. '
              'These commands check the available imported proofs, exact displayed code, source coverage and page ordering. '
-             'They do not certify the source results marked open or partial.</p>'
+             'The source audit separately records proof completion for corrected statements and fidelity to the exact printed statements.</p>'
              + commands("python3 scripts/verify-latent-diffusion.py --lean\npython3 docs/test_latent_diffusion_landing.py\npython3 docs/build_latent_diffusion.py --check", "verify-latent")
              + '<p><a href="statement_checks.lean">Statement checks</a> invoke the displayed Lean theorem endpoints as imported proof constants, without copying their proofs.</p>'
              + '<p>Proof modules: '
@@ -653,6 +703,7 @@ def inventory_document(sources, parsed):
             "paper_results": [{"id": record["id"], "source": record["source"],
                                "start_line": record["start_line"], "end_line": record["end_line"],
                                "original_statement_fully_reconstructed": record["original_statement_fully_reconstructed"],
+                               "corrected_statement_fully_proved": record.get("corrected_statement_fully_proved", False),
                                "refs": source_endpoint_refs(record)} for record in paper_audit()["results"]],
             "modules": {path: {"source_sha256": hashlib.sha256(source.encode()).hexdigest(),
                                "shared_context": context_text(source, parsed[path]),
