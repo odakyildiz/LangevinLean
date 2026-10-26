@@ -143,3 +143,66 @@ def check_LatentDiffusion_Accuracy_burnin := @LatentDiffusion.Accuracy.burnin
 
 -- LatentDiffusion/Accuracy.lean:53
 def check_LatentDiffusion_Accuracy_budget_le_epsilon := @LatentDiffusion.Accuracy.budget_le_epsilon
+
+-- LatentDiffusion/SourceResults.lean:158
+def check_LatentDiffusion_SourceResults_tilted_freeEnergy_decomposition := @LatentDiffusion.SourceResults.tilted_freeEnergy_decomposition
+
+-- LatentDiffusion/SourceResults.lean:172
+def check_LatentDiffusion_SourceResults_tilted_freeEnergy_le := @LatentDiffusion.SourceResults.tilted_freeEnergy_le
+
+-- LatentDiffusion/SourceResults.lean:184
+def check_LatentDiffusion_SourceResults_tilted_evidence_le := @LatentDiffusion.SourceResults.tilted_evidence_le
+
+-- LatentDiffusion/SourceResults.lean:204
+def check_LatentDiffusion_SourceResults_tilted_logEvidence_le := @LatentDiffusion.SourceResults.tilted_logEvidence_le
+
+-- LatentDiffusion/Cloud.lean:281
+def check_LatentDiffusion_Cloud_fullBatchStep_parameter := @LatentDiffusion.Cloud.fullBatchStep_parameter
+
+-- LatentDiffusion/Cloud.lean:291
+def check_LatentDiffusion_Cloud_fullBatchStep_particle := @LatentDiffusion.Cloud.fullBatchStep_particle
+
+-- LatentDiffusion/SourceResults.lean:51
+def check_LatentDiffusion_SourceResults_entropy_integrand_derivative := @LatentDiffusion.SourceResults.entropy_integrand_derivative
+
+-- LatentDiffusion/SourceResults.lean:61
+def check_LatentDiffusion_SourceResults_first_variation_constant_cancels := @LatentDiffusion.SourceResults.first_variation_constant_cancels
+
+-- LatentDiffusion/SourceCalculus.lean:44
+def check_LatentDiffusion_SourceCalculus_parameter_freeEnergy_hasFDerivAt := @LatentDiffusion.SourceCalculus.parameter_freeEnergy_hasFDerivAt
+
+-- LatentDiffusion/SourceCalculus.lean:86
+def check_LatentDiffusion_SourceCalculus_density_freeEnergy_hasDerivAt := @LatentDiffusion.SourceCalculus.density_freeEnergy_hasDerivAt
+
+-- LatentDiffusion/SourceCalculus.lean:118
+def check_LatentDiffusion_SourceCalculus_density_firstVariation_of_zero_mass := @LatentDiffusion.SourceCalculus.density_firstVariation_of_zero_mass
+
+-- LatentDiffusion/SourceResults.lean:72
+def check_LatentDiffusion_SourceResults_normalized_product_metric_cancellation := @LatentDiffusion.SourceResults.normalized_product_metric_cancellation
+
+-- LatentDiffusion/Flow.lean:15
+def check_LatentDiffusion_extendedLSI_of_firstOrder := @LatentDiffusion.extendedLSI_of_firstOrder
+
+-- LatentDiffusion/SourceResults.lean:80
+def check_LatentDiffusion_SourceResults_geodesic_convexity_first_order := @LatentDiffusion.SourceResults.geodesic_convexity_first_order
+
+-- LatentDiffusion/SourceResults.lean:31
+def check_LatentDiffusion_SourceResults_cauchy_minimizing_sequence := @LatentDiffusion.SourceResults.cauchy_minimizing_sequence
+
+-- LatentDiffusion/SourceResults.lean:113
+def check_LatentDiffusion_SourceResults_geodesic_quadratic_growth := @LatentDiffusion.SourceResults.geodesic_quadratic_growth
+
+-- LatentDiffusion/BatchAudit.lean:226
+def check_LatentDiffusion_BatchAudit_randomScanConditionalSecondMoment_eq := @LatentDiffusion.BatchAudit.randomScanConditionalSecondMoment_eq
+
+-- LatentDiffusion/BatchAudit.lean:253
+def check_LatentDiffusion_BatchAudit_fullNoiseConditionalSecondMoment_eq := @LatentDiffusion.BatchAudit.fullNoiseConditionalSecondMoment_eq
+
+-- LatentDiffusion/SourceResults.lean:220
+def check_LatentDiffusion_SourceResults_uniform_time_unscaled := @LatentDiffusion.SourceResults.uniform_time_unscaled
+
+-- LatentDiffusion/SourceResults.lean:229
+def check_LatentDiffusion_SourceResults_uniform_time_corrected := @LatentDiffusion.SourceResults.uniform_time_corrected
+
+-- LatentDiffusion/Cloud.lean:90
+def check_LatentDiffusion_Cloud_potential_strongConvex := @LatentDiffusion.Cloud.potential_strongConvex

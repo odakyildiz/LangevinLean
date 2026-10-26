@@ -6,7 +6,7 @@ The paper already states a nonasymptotic error estimate for its **full-batch, ex
 
 This document inventories source claims and explains the correspondence limits. It is not a declaration that every continuum optimal-transport, entropy or SDE result below has been independently reconstructed from the four displayed source assumptions. The statement page and Lean check file identify precisely the proved declarations and any additional hypotheses. A theorem with an explicit analytical interface does not establish that interface from the paper's raw assumptions.
 
-The achieved source correspondence is precise: `Variational.lean` proves the optimizer/minimizer equivalence for the normalized minus-log-evidence plus actual KL formulation on its admissible domain; `Density.lean` now proves identification with the actual raw log-density integral from explicit density normalization and entropy-integrability hypotheses. `Marginal.lean` proves existence and uniqueness of the heterogeneous finite-dimensional marginal optimizer from joint differentiability and strong convexity, using actual marginal integrals. `Flow.lean` and `Marginal.lean` prove the sharp parameter exponential rate conditional on entropy dissipation and first-order transport control. They do not derive those continuum analytic bridges from the source density assumptions or reconstruct the full-state Wasserstein result. The remaining source analytic lemmas are individually marked unverified in `reference_audit.json`. New explicit numerical estimates retain their stationary-reference, moment and oracle-centering hypotheses.
+The achieved source correspondence is precise: `Variational.lean` proves the optimizer/minimizer equivalence for the normalized minus-log-evidence plus actual KL formulation on its admissible domain; `Density.lean` now proves identification with the actual raw log-density integral from explicit density normalization and entropy-integrability hypotheses. `Marginal.lean` proves existence and uniqueness of the heterogeneous finite-dimensional marginal optimizer from joint differentiability and strong convexity, using actual marginal integrals. `Flow.lean` and `Marginal.lean` prove the sharp parameter exponential rate conditional on entropy dissipation and first-order transport control. They do not derive those continuum analytic bridges from the source density assumptions or reconstruct the full-state Wasserstein result. The remaining source analytic lemmas are individually marked open or partially reconstructed in `reference_audit.json`. `SourceCalculus.lean` now proves actual dominated first variations, and `SourceResults.lean` proves the corrected minimizing-sequence and other source-level steps described below. New explicit numerical estimates retain their stationary-reference, moment and oracle-centering hypotheses.
 
 ## Setting and four displayed source assumptions
 
@@ -83,7 +83,7 @@ The baseline full-batch Euler variance at temperature `τ` is `τ/[a(1-ah/2)]`; 
 
 ### The practical adaptive algorithm is a further method
 
-Supplement lines 291–303 use `+h_z G M` while `M` tracks the **positive gradient of the loss**, producing ascent for the stated loss unless the momentum sign is changed. The displayed loop at 312 uses `B×[M]` where `B×[N]` is required. Noise in the full algorithm is scaled by `1/M`, and line 303 reports an additional implementation factor `1/B`; neither is justified by the full-batch theorem. A state-dependent preconditioned Langevin sampler also generally requires a divergence correction to retain its claimed target, and momentum introduces an enlarged state and a different invariant-law problem. These features are not covered by an Euler contractivity theorem merely because the formulas use gradients.
+Supplement lines 291–303 use `+h_z G M` while `M` tracks the **positive gradient of the loss**, producing ascent for the stated loss unless the momentum sign is changed. The displayed loop at 312 uses `B×[M]` where `B×[N]` is required. Noise in the full algorithm is scaled by `1/M`, and line 304 reports an additional implementation factor `1/B`; neither is justified by the full-batch theorem. A state-dependent preconditioned Langevin sampler also generally requires a divergence correction to retain its claimed target, and momentum introduces an enlarged state and a different invariant-law problem. These features are not covered by an Euler contractivity theorem merely because the formulas use gradients.
 
 ### Additional source corrections
 
@@ -163,3 +163,55 @@ The source Proposition 1 is therefore linked to a genuine density-integral
 identity on this explicit domain. This does not establish every extended-integral
 or arbitrary-law version of the original statement, or derive this domain from
 raw A1 alone; its full-reconstruction flag remains false.
+
+
+## Source-first page and additional checked source steps
+
+The main page now states all 19 source result environments in Part I, including
+all supplementary lemmas and repeated theorems. Each includes a readable
+mathematical statement, exact source label and line range, expandable original
+TeX, correction/domain note, and its actual Lean status. Generated verbatim
+manuscript views make every line citation navigable. Part II alone contains
+New Assumptions N1–N7 and the New Theorems. The page does not claim every source
+statement has been fully reconstructed.
+
+`SourceCalculus.parameter_freeEnergy_hasFDerivAt` proves differentiation of the
+actual parameter-dependent density free-energy integral, using pointwise
+Fréchet derivatives and an integrable derivative bound on one common parameter
+neighborhood. `density_freeEnergy_hasDerivAt` proves the actual entropy-density
+integral derivative along q+t r from positivity on a common neighborhood and
+integrable derivative domination. `density_firstVariation_of_zero_mass` proves
+that the entropy constant one disappears for zero-mass perturbations. These
+reconstruct the first-variation lemma on an explicit dominated domain; A1 does
+not itself prove that domain's hypotheses. The Wasserstein metric
+identification and PDE integration by parts remain separate obligations.
+
+`SourceResults.cauchy_minimizing_sequence` corrects `lem:cauchy`: for a
+real-valued lower-semicontinuous energy on a complete metric space, a Cauchy
+sequence whose energies tend to a global lower bound converges to an actual
+global minimizer. The source's unrelated Cauchy sequence does not suffice.
+Applying this theorem to the source flow requires the actual lower
+semicontinuity, complete energy domain, minimizing flow subsequence and
+admissibility of its limit.
+
+`geodesic_convexity_first_order` proves the right-derivative consequence of the
+strong interpolation-convexity inequality. `geodesic_quadratic_growth` proves
+quadratic growth at a minimizer directly from that interpolation inequality.
+The latter uses a stronger convexity input than xLSI and does not reconstruct
+the general xLSI-to-Wasserstein-Talagrand implication. The actual entropy's
+displacement convexity and transport subgradient calculus remain unproved.
+
+The same module proves the actual density identity
+F(q;rho exp(-R))=F(q;rho)+integral(q R), monotonicity of tilted normalizers and
+log evidence for nonnegative R, the positive-count normalized-metric factor
+cancellation, and exact uniform-time means:
+mean_j(c+L_j)=c+mean_j L_j, whereas
+mean_j(c+K L_j)=c+sum_j L_j. The last identity checks the estimator normalization
+correction in supplement lines 92–113; it is an exact finite arithmetic mean,
+not a construction of a stochastic sampler.
+
+The main numerical theorem's target is the fixed parameter of its supplied
+integral reference. To interpret the estimate as inference to the paper's
+maximizer, the application must identify this target with Part I's optimizer
+and construct the corresponding frozen posterior reference. The formal
+inequality alone does not make that identification.

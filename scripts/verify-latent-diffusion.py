@@ -119,6 +119,7 @@ def verify(lean=False, require_complete=False):
     # The generator independently checks complete headers, source snippets,
     # locally rendered mathematics, links, and the statement-only landing page.
     run([sys.executable, "docs/build_latent_diffusion.py", "--check"])
+    run([sys.executable, "docs/test_latent_diffusion_landing.py"])
 
     if lean:
         run(["lake", "build", "LatentDiffusion"], capture=True)

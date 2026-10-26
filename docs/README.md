@@ -191,14 +191,20 @@ ordinary finite signed-work convention for constant-diffusion source2; the
 broader extended-negative interpretation is outside that correspondence.
 
 `build_latent_diffusion.py` generates the latent-diffusion overview, complete
-proof pages, exact source inventory and imported theorem checks. It is integrated
+proof pages, verbatim line-numbered manuscript views, exact source inventory
+and imported theorem checks. Its first part states all 19 paper results and
+their corrections; its second part separately lists New Assumptions and New
+Theorems. Each source result records its formal status. It is integrated
 into `build_site.py` and its input/output manifest. Run
 `python3 docs/build_latent_diffusion.py --check` to check regeneration, exact source
 excerpts, complete theorem headers, local links and mathematical typesetting;
 `lake env lean LatentDiffusion/exposition/statement_checks.lean` checks the displayed
 results against their imported Lean proof types.
 `python3 scripts/verify-latent-diffusion.py` additionally checks the source audit
-and unresolved coverage statuses; it does not certify complete source coverage.
+and unresolved coverage statuses, and runs
+`python3 docs/test_latent_diffusion_landing.py` to check all 19 source cards,
+exact citations, original TeX, and separation/order of the two parts. These
+checks do not certify complete source coverage.
 This development stays outside
 the published PDF report catalog, and its source coverage remains partial.
 

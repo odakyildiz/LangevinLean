@@ -10,5 +10,7 @@ import LatentDiffusion.Marginal
 import LatentDiffusion.MiniBatchVariance
 import LatentDiffusion.Numerics
 import LatentDiffusion.SourceAssumptions
+import LatentDiffusion.SourceCalculus
 import LatentDiffusion.SourceObstruction
+import LatentDiffusion.SourceResults
 import LatentDiffusion.Variational
