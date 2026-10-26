@@ -1,7 +1,7 @@
 # GitHub Pages publication
 
 This branch publishes a static snapshot of `main` commit
-`125ab02554a456958ab09c7dc4e7b6e63e3c22ca`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
+`632313c875dd241036f525eff68a42bd81697455`, excluding the main-only `papers/` directory. GitHub Pages serves `gh-pages`
 at `/` with HTTPS. The source repository remains private; the published
 site is accessible by URL.
 
@@ -22,6 +22,20 @@ Do not regenerate HTML directly here without restoring those directives.
 The `papers/` directory is never published. Apply documentation and cleanup commits
 separately from paper-source commits; do not merge `main` wholesale into this
 branch. Before publishing, `git ls-files papers` must return no files.
+
+The subsequent 26 October 2026 publication updates the snapshot to main commit
+`632313c875dd241036f525eff68a42bd81697455`, as approved by the owner. It adds
+time-uniform PBGSO discretisation bounds for both schemes, explicit metric and
+uniform constants, complete theorem contracts, and expanded standalone checks.
+The publication continues to exclude paper sources and retains robots metadata,
+robots.txt and .nojekyll.
+
+Validation passed with `bash scripts/check-local.sh`: the 4,609-job Lean build,
+eight dependency audits, strict PBGSO coverage, 21 landing tests, 17 theorem-header
+tests, expanded standalone endpoint checks, documentation checks and isolated
+IPLA compilation. Four responsive browser navigation cases passed using the
+temporary anchor-aware assertion described below. Published verification
+sources remain unchanged from main.
 
 On 26 October 2026, the owner approved publication of the PBGSO framework and
 the revised theorem overview from main commit
