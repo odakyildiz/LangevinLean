@@ -462,7 +462,7 @@ async function projectLinks(page, viewport) {
   const destination = path.join(outputDir, 'project-home-' + page.viewportSize().width + '.png');
   await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
   screenshots.push(destination);
-  check(await page.locator('.landing-card').count() === 6, 'Project home has six theorem cards and the particle entropy footnote');
+  check(await page.locator('.landing-card').count() === 7, 'Project home has six established theorem cards, the PBGSO source-based card and the particle entropy footnote');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Unadjusted Langevin under Strong Convexity'),
     'ULA card states the strong convexity assumption');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Interacting Particle Langevin under Strong Convexity'),
@@ -478,6 +478,16 @@ async function projectLinks(page, viewport) {
     await page.waitForURL(url => url.pathname === '/index.html');
     await page.waitForLoadState('load');
   }
+  await page.locator('.landing-card a[href="PBGSO/exposition/index.html"]').click();
+  await page.waitForURL(url => url.pathname === '/PBGSO/exposition/index.html');
+  await page.waitForLoadState('load');
+  check(await page.locator('#assumptions').count() === 1 && await page.locator('#source-inventory').count() === 1,
+    'PBGSO card opens the explicit assumptions and source-coverage overview');
+  check((await page.locator('#main').innerText()).includes('not proved here'),
+    'PBGSO overview retains its incomplete strong-SDE and Wasserstein scope');
+  await noPageOverflow(page);
+  await page.locator('.site-nav .brand').click();
+  await page.waitForURL(url => url.pathname === '/index.html');
   await noPageOverflow(page);
 }
 

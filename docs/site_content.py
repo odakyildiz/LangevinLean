@@ -266,8 +266,18 @@ def project_document(notes, catalog=None):
             body+='<p class="entry-extension">Entropy extension: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a> (unpublished).</p>'
         body+=f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
         body+='</div></article>'
+    # PBGSO is a source-based development, separate from the published
+    # published-report/PDF entries maintained by CONFIG and ReportCatalog.
+    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">07</span>'
+           '<div class="entry-main"><div class="eyebrow">General stochastic optimisation</div>'
+           '<h2><a href="PBGSO/exposition/index.html">Particle-based Generalised Stochastic Optimisation</a></h2>'
+           '<p>General optimiser and sampler models, explicit analytic assumptions, comparison proofs and new concrete method bounds.</p>'
+           '</div><div class="entry-meta"><p class="entry-source">Source: Zhang and Akyildiz, local PBGSO manuscript.</p>'
+           '<p class="card-scope">Eight source results and two new actual method bounds verified with explicit assumptions, '
+           'including the finite signed-work convention for constant-diffusion contraction.</p>'
+           '<p><a href="PBGSO/exposition/index.html#assumptions">Assumptions and formal scope</a></p></div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
-           '<div class="reading-note"><h2>Read the proofs</h2><p>Each development has one PDF containing the theorem statements, mathematical argument and supporting proofs. The web pages pair those proofs with Lean.</p></div>'
+           '<div class="reading-note"><h2>Read the proofs</h2><p>The established reports have one PDF containing theorem statements, mathematical arguments and supporting proofs. The PBGSO source-based development has a web overview with its current scope and exact Lean statements. The web pages pair the arguments with Lean.</p></div>'
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'

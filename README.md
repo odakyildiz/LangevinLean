@@ -1,16 +1,19 @@
 # LangevinLean
 
 Lean formalizations of unadjusted Langevin (ULA), interacting particle Langevin
-(IPLA), proximal particle algorithms, kinetic Langevin, and kinetic interacting
-particle Langevin Monte Carlo (KIPLMC). Mathematical statements and proofs are
+(IPLA), proximal particle algorithms, kinetic Langevin, kinetic interacting
+particle Langevin Monte Carlo (KIPLMC), and a general particle-based stochastic
+optimisation framework (PBGSO). Mathematical statements and proofs are
 paired with the exact Lean declarations, including every supporting subfile.
 The shared theory is organized for reuse by further methods.
 
 Open the [documentation homepage](index.html), then choose strongly convex ULA,
 ULA under LSI, strongly convex IPLA, proximal algorithms, kinetic Langevin,
-or KIPLMC. Each overview has standalone mathematical results beside Lean,
+KIPLMC, or PBGSO. Each overview has mathematical results beside Lean,
 verification commands, and a proof diagram whose boxes open detailed HTML
-proof pages. Every Lean file has a module page and downloadable LaTeX exposition.
+proof pages. The established reports have module pages and downloadable LaTeX
+expositions; PBGSO has source-based declaration pages with explicit scope and
+assumption notes.
 Relative links and bundled mathematical typesetting work offline after cloning;
 no website account or documentation build is needed to read the pages.
 
@@ -41,6 +44,7 @@ lake env lean UnadjustedLangevin/LSI/Check.lean
 lake env lean IPLA/LSI/Check.lean
 lake env lean KineticLangevin/Check.lean
 lake env lean KIPLMC/Check.lean
+lake env lean PBGSO/Check.lean
 lake env lean IPLA/Standalone.lean
 ```
 
@@ -96,6 +100,26 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   likelihood estimator, and explicit iteration counts for a specified accuracy
   are proved. The [source coverage audit](KIPLMC/exposition/reference_audit.json)
   distinguishes the analytic statements from the empirical experiments.
+- **PBGSO:** [general framework, assumptions and exact theorem statements](PBGSO/exposition/index.html),
+  [scope and module guide](PBGSO/README.md), and
+  [audit of all eight numbered source results](PBGSO/exposition/source_audit.md).
+  The general independent-map optimiser/sampler framework, all eight source
+  results and new actual M-MFPO/HOL-MYPGD finite-horizon bounds are proved under
+  explicit assumptions. Actual Brownian integration, local stopping,
+  original stationary product laws, optimal-law contraction and sharp original
+  particle/parameter bounds are verified. Both methods construct their raw/L²
+  coordinates, physical Gaussian noise, integral references and mesh-uniform
+  constants. Source A2 means actual stationary weak frozen SDE invariance;
+  constant-diffusion source2 uses the independent ordinary finite signed-work
+  reading of universal A3. The broader extended-negative-work interpretation
+  is outside that convention. Original interacting-solution existence and
+  synchronous initialization remain explicit for general particle bounds.
+  The page records these assumptions, critical-point rather than minimizer
+  targets, smoothing bias, the improper full-space TV prior and the printed
+  HOL coefficient defect. `python3 scripts/verify-pbgso.py` checks documentation
+  fidelity; `python3 scripts/verify-pbgso.py --require-complete` also checks all
+  eight source results, both method bounds and required bridges under the
+  audit file’s stated source interpretations.
 
 The two kinetic developments prove convergence of the continuous processes
 and the Gaussian samplers under the displayed assumptions. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:
@@ -165,6 +189,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Kinetic convergence and Gibbs stationarity, Cholesky Gaussian sampling, KLMC/KLMC2 Wasserstein bounds, iteration counts for a specified accuracy, and comparison with the source paper. |
 | [`KIPLMC/`](KIPLMC/exposition/README.md) | KIPLD convergence, KIPLMC1/KIPLMC2 parameter root-mean-square error bounds, changes of variables for the diffusion and algorithms, target concentration, and the analytic logistic example. |
+| [`PBGSO/`](PBGSO/README.md) | General optimiser/sampler framework, actual predictable Brownian integration and continuous adapted modifications, stationary product laws and optimal law contraction, source appendix criteria and fully constructed additive particle numerical bounds; original raw stationarity via actual Wiener-path transfer and primitive linear-growth optimal law contraction across sources; constant-diffusion contraction uses the explicit ordinary finite signed-work A3 convention; actual independent reference clouds and physical particle/reference pairing are constructed. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
@@ -191,7 +216,7 @@ bash scripts/check-local.sh
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
-This builds all five Lean libraries, runs the seven theorem dependency audits,
+This builds all six Lean libraries, runs the eight theorem dependency audits,
 checks all four proof documents and the complete module proof atlas, and compiles
 the IPLA standalone in isolation with only Mathlib available. The standalone verifier refreshes its committed
 diagnostic reports; review any changes before committing.

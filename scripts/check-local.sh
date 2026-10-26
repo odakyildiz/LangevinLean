@@ -15,7 +15,8 @@ for audit in \
   UnadjustedLangevin/LSI/Check.lean \
   IPLA/LSI/Check.lean \
   KineticLangevin/Check.lean \
-  KIPLMC/Check.lean
+  KIPLMC/Check.lean \
+  PBGSO/Check.lean
 do
   printf '\nAuditing %s\n' "$audit"
   lake env lean "$audit"
@@ -23,6 +24,9 @@ done
 
 printf '\nChecking kinetic paper correspondence and reporting full-proof coverage\n'
 python3 -B scripts/verify-kinetic-coverage.py --require-complete
+
+printf '\nChecking PBGSO theorem statements, assumptions and source correspondence\n'
+python3 -B scripts/verify-pbgso.py --require-complete
 
 for verifier in \
   UnadjustedLangevin/exposition/verify_document.py \

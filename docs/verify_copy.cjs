@@ -23,7 +23,8 @@ function checkModernCoverage() {
   const pages = ['index.html', 'UnadjustedLangevin/exposition/index.html',
     'UnadjustedLangevin/LSI/exposition/index.html', 'IPLA/exposition/index.html',
     'IPLA/LSI/exposition/index.html', 'ProximalLangevin/exposition/index.html',
-    'KineticLangevin/exposition/index.html', 'KIPLMC/exposition/index.html'];
+    'KineticLangevin/exposition/index.html', 'KIPLMC/exposition/index.html',
+    'PBGSO/exposition/index.html'];
   function visit(directory) {
     for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
       const file = path.join(directory, entry.name);
@@ -32,6 +33,7 @@ function checkModernCoverage() {
     }
   }
   visit(path.join(REPO, 'docs/modules'));
+  visit(path.join(REPO, 'PBGSO/exposition/proofs'));
   for (const page of pages) {
     const html = fs.readFileSync(path.join(REPO, page), 'utf8');
     const blocks = (html.match(/<pre class="lean-code"/g) || []).length;
