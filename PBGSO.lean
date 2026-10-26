@@ -31,6 +31,7 @@ import PBGSO.ClosedIntegralTransport
 import PBGSO.ClosedIsometricExtension
 import PBGSO.ClosedStepAlgebra
 import PBGSO.ClosedStepIntegration
+import PBGSO.CloudEncodingConstants
 import PBGSO.ConstantNoiseFluctuation
 import PBGSO.ConstantNoiseWork
 import PBGSO.ConstructedAdaptation
@@ -160,6 +161,7 @@ import PBGSO.MethodBrownianMatching
 import PBGSO.MethodDiffusionCoordinates
 import PBGSO.MethodIntegralSegments
 import PBGSO.MethodLpEquivalences
+import PBGSO.MethodMetricComparisons
 import PBGSO.MethodParticles
 import PBGSO.Methods
 import PBGSO.MetricFactor
@@ -294,12 +296,15 @@ import PBGSO.TargetBias
 import PBGSO.TimeGridContinuity
 import PBGSO.TimeGridCut
 import PBGSO.TimeGridEnergy
+import PBGSO.UniformConstantExpansions
 import PBGSO.UniformDiscrete
 import PBGSO.UniformIntegralMoments
+import PBGSO.UniformOriginConstants
 import PBGSO.UniformStepSize
 import PBGSO.UniversalMomentGrowth
 import PBGSO.Volume
 import PBGSO.WeakContraction
+
 /-! General independent-map optimiser/sampler theory, actual predictable and
 local Brownian integration, original continuous equations and paths, raw
 stationarity and true law contraction, derived moment/finite-variation calculus,

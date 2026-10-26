@@ -1,6 +1,6 @@
 import PBGSO.FullyConstructedMomentum
 import PBGSO.MomentumUniformParticle
-import PBGSO.ImplementationMetric
+import PBGSO.MethodMetricComparisons
 import PBGSO.UniformStepSize
 
 /-! # Fully constructed time-uniform M-MFPO target guarantee
@@ -41,11 +41,64 @@ variable
       ∂AdditiveCanonical.law (ULA.CanonicalBrownian.vectorProbability J) (momentumForceDynamics D γ)
         μ hμ a (input γ) (input_continuous γ) (input_zero γ) r) ≤ Variance)
 
-/-- Time-uniform final parameter bound for the actual proposed M-MFPO
-iteration. Every metric, moment, exact-step and local-defect construction is
-internal. The positive maximum step and discretisation coefficient are
-independent of iteration count; no numerical stability premise is supplied. -/
-theorem numerical_parameter_bound
+/-- Coercivity of the constructed source metric in raw kinetic coordinates. -/
+def metricCoercivity : ℝ := Real.sqrt (EmpiricalMetric.lower N Geometry) / 2
+
+/-- Data-only upper norm bound for the constructed metric factor. -/
+def metricUpper : ℝ := 2 * Real.sqrt (EmpiricalMetric.upper N Geometry)
+
+/-- Actual Brownian increment radius, with the given nonnegative friction. -/
+def noiseRadius (hγ : 0 ≤ γ) : ℝ :=
+  momentumUniformBrownianRadius (I := Fin N × J) ⟨γ, hγ⟩
+
+/-- State-independent part of the proved OBABO local Gaussian error. -/
+def localConstant0 (hγ : 0 ≤ γ) : ℝ :=
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  (momentumUniformDefect (momentumUniformForceLip D) ⟨γ, hγ⟩
+    ‖coupledForce (D.meanForceLp Q) (D.samplerForceLp Q) 0‖
+    (Real.sqrt (Fintype.card (Fin N × J) : ℝ)) (noiseRadius (N := N) (J := J) γ hγ)).1
+
+/-- Linear initial-state part of the proved OBABO local Gaussian error. -/
+def localConstant1 (hγ : 0 ≤ γ) : ℝ :=
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  (momentumUniformDefect (momentumUniformForceLip D) ⟨γ, hγ⟩
+    ‖coupledForce (D.meanForceLp Q) (D.samplerForceLp Q) 0‖
+    (Real.sqrt (Fintype.card (Fin N × J) : ℝ)) (noiseRadius (N := N) (J := J) γ hγ)).2
+
+/-- Explicit one-unit exact kinetic radius when started at zero. -/
+def zeroStartRadius (hγ : 0 ≤ γ) : ℝ :=
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  let γnn : ℝ≥0 := ⟨γ, hγ⟩
+  UniformIntegral.radius (momentumUniformForceLip D + γnn + 1)
+    ‖coupledForce (D.meanForceLp Q) (D.samplerForceLp Q) 0‖
+    (noiseRadius (N := N) (J := J) γ hγ) 0
+
+/-- Data-only transformed zero-start radius `S`. -/
+def zeroStartMoment (hγ : 0 ≤ γ) : ℝ :=
+  metricUpper (N := N) Geometry * zeroStartRadius D γ μ hγ
+
+/-- Uniform exact-reference radius, derived by contraction and unit restarts. -/
+def referenceRadius (hγ : 0 ≤ γ) (ρ : ℝ) : ℝ :=
+  let S := zeroStartMoment D γ Geometry μ hγ
+  metricUpper (N := N) Geometry * ‖initial D γ Geometry μ hμ a Variance hVariance‖ +
+    S / (1 - Real.exp (-ρ)) + S
+
+/-- Linear-radius coefficient absorbed by exact-flow dissipation. -/
+def radiusGrowth (hγ : 0 ≤ γ) : ℝ :=
+  metricUpper (N := N) Geometry * localConstant1 D γ μ hγ / metricCoercivity (N := N) Geometry
+
+/-- Explicit time-uniform numerical coefficient, independent of `h,n`. -/
+def discretizationConstant (hγ : 0 ≤ γ) (ρ : ℝ) : ℝ :=
+  4 * (metricUpper (N := N) Geometry * localConstant0 D γ μ hγ +
+    radiusGrowth D γ Geometry μ hγ * referenceRadius D γ Geometry μ hμ a Variance hVariance hγ ρ) /
+      (ρ * metricCoercivity (N := N) Geometry)
+
+/-- Explicit positive upper step size; `hγ` only forms the physical friction. -/
+def maximumStep (hγ : 0 ≤ γ) (ρ : ℝ) : ℝ :=
+  UniformStep.maximumStep ρ (radiusGrowth D γ Geometry μ hγ)
+
+/-- Positivity and both uniform bounds for the explicit data-defined constants. -/
+theorem explicit_guarantee
     (hcloud : D.cloud = euclideanParticleEncoding N J) (hγ : 0 ≤ γ)
     (star : A) (νStar : Measure (HypocoercivePhase (EuclideanSpace ℝ J))) [IsProbabilityMeasure νStar]
     (hνStar : MemLp (fun z : HypocoercivePhase (EuclideanSpace ℝ J) ↦ z) 2 νStar)
@@ -54,18 +107,19 @@ theorem numerical_parameter_bound
     (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (model D γ) Geometry ρ)
     (hg : (model D γ).meanGradient νStar (targetState star) = 0)
     (hV : 0 ≤ Variance) :
-    ∃ hmax U : ℝ, 0 < hmax ∧ 0 ≤ U ∧
-      ∀ h : ℝ, 0 < h → h ≤ hmax → ∀ n : ℕ,
+    0 < maximumStep D γ Geometry μ hγ ρ ∧
+      0 ≤ discretizationConstant D γ Geometry μ hμ a Variance hVariance hγ ρ ∧
+      ∀ h : ℝ, 0 < h → h ≤ maximumStep D γ Geometry μ hγ ρ → ∀ n : ℕ,
         (‖momentumParticleIterate (ParticleNoiseSpace.probability (J := J) μ N)
           (particleBrownian (J := J) μ N) (particleBrownian_isPreBrownian (J := J) μ N)
           D γ h (initial D γ Geometry μ hμ a Variance hVariance) n -
           momentumUnpackLp (ParticleNoiseSpace.probability (J := J) μ N) D
-            ((particles D γ Geometry μ hμ a Variance hVariance).state (n*h))‖ ≤ U*Real.sqrt h) ∧
+            ((particles D γ Geometry μ hμ a Variance hVariance).state (n*h))‖ ≤ discretizationConstant D γ Geometry μ hμ a Variance hVariance hγ ρ * Real.sqrt h) ∧
         ‖(momentumParticleIterate (ParticleNoiseSpace.probability (J := J) μ N)
           (particleBrownian (J := J) μ N) (particleBrownian_isPreBrownian (J := J) μ N)
           D γ h (initial D γ Geometry μ hμ a Variance hVariance) n).2.1 -
           Lp.const 2 (ParticleNoiseSpace.probability (J := J) μ N) star‖ ≤
-        U * Real.sqrt h +
+        discretizationConstant D γ Geometry μ hμ a Variance hVariance hγ ρ * Real.sqrt h +
         (Real.sqrt Geometry.conditionNumber * Real.exp (-ρ * (n*h)) *
           optimizerLawDistance a (targetState star) μ νStar +
           ((2+γ)/ρ) * Real.sqrt (Geometry.conditionNumber * Variance/(N : ℝ)) *
@@ -98,14 +152,12 @@ theorem numerical_parameter_bound
         (momentumPhysicalDiffusion (J := J) γ)) W hW 0) hY heq t ht
     rw [momentumUnpackLp_brownian Q D hcloud W hW γ 0 t] at he
     exact he
-  obtain ⟨d,C,hcoerc,hupper,hdrift⟩ := ImplementationMetric.momentum_metric Q D γ
+  obtain ⟨d,C,hcoerc,hupper,hdrift⟩ := MethodMetricComparisons.momentum_metric_explicit Q D hcloud γ
     (diffusionColumns (J := J) γ) Geometry ρ hmono
-  let m := Real.sqrt (EmpiricalMetric.lower N Geometry)/
-    (‖(momentumPhysicalLpEquiv Q D).symm.toContinuousLinearMap‖+1)
+  let m := Real.sqrt (EmpiricalMetric.lower N Geometry) / 2
   have hm : 0 < m := by
     exact div_pos (Real.sqrt_pos.mpr (EmpiricalMetric.lower_pos N D.nonempty Geometry)) (by positivity)
-  let Mbound := Real.sqrt (EmpiricalMetric.upper N Geometry)*
-    ‖(momentumPhysicalLpEquiv Q D).toContinuousLinearMap‖
+  let Mbound := 2 * Real.sqrt (EmpiricalMetric.upper N Geometry)
   have hMbound : 0 ≤ Mbound := by dsimp [Mbound]; positivity
   have hCnorm : ‖C‖ ≤ Mbound := C.opNorm_le_bound hMbound hupper
   let γnn : ℝ≥0 := ⟨γ,hγ⟩
@@ -147,8 +199,8 @@ theorem numerical_parameter_bound
   have hU : 0 ≤ U := by
     change 0 ≤ 4*(AB.1+AB.2*R)/(ρ*m)
     positivity
-  refine ⟨UniformStep.maximumStep ρ AB.2,U,
-    UniformStep.maximumStep_pos ρ AB.2 hρ hABb,hU,?_⟩
+  change 0 < UniformStep.maximumStep ρ AB.2 ∧ 0 ≤ U ∧ _
+  refine ⟨UniformStep.maximumStep_pos ρ AB.2 hρ hABb,hU,?_⟩
   intro h hh hhmax n
   obtain ⟨hh1,hρh,hsmall⟩ := UniformStep.admissible ρ AB.2 h hρ hABb hh hhmax
   have hsmallActual : actualAB.2*Real.sqrt h ≤ ρ/4 :=
@@ -181,4 +233,76 @@ theorem numerical_parameter_bound
     (norm_fst_le (num.2-(z (n*h)).2)).trans (norm_snd_le (num-z (n*h)))
   exact (numerical_target_triangle Q num.2.1 (z (n*h)).2.1 star).trans
     (add_le_add (hp.trans herror) hreference)
+/-- The actual raw-state discretisation bound with an explicit coefficient. -/
+theorem explicit_discretization_bound
+    (hcloud : D.cloud = euclideanParticleEncoding N J) (hγ : 0 ≤ γ)
+    (star : A) (νStar : Measure (HypocoercivePhase (EuclideanSpace ℝ J))) [IsProbabilityMeasure νStar]
+    (hνStar : MemLp (fun z : HypocoercivePhase (EuclideanSpace ℝ J) ↦ z) 2 νStar)
+    (Frozen : AdditiveStationary.FrozenTrajectory (ULA.CanonicalBrownian.vectorProbability J)
+      (momentumForceDynamics D γ) νStar hνStar (targetState star) (input γ))
+    (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (model D γ) Geometry ρ)
+    (hg : (model D γ).meanGradient νStar (targetState star) = 0)
+    (hV : 0 ≤ Variance)
+    (h : ℝ) (hh : 0 < h) (hhmax : h ≤ maximumStep D γ Geometry μ hγ ρ) (n : ℕ) :
+‖momentumParticleIterate (ParticleNoiseSpace.probability (J := J) μ N)
+          (particleBrownian (J := J) μ N) (particleBrownian_isPreBrownian (J := J) μ N)
+          D γ h (initial D γ Geometry μ hμ a Variance hVariance) n -
+          momentumUnpackLp (ParticleNoiseSpace.probability (J := J) μ N) D
+            ((particles D γ Geometry μ hμ a Variance hVariance).state (n*h))‖ ≤ discretizationConstant D γ Geometry μ hμ a Variance hVariance hγ ρ * Real.sqrt h := by
+  exact ((explicit_guarantee D γ Geometry μ hμ a Variance hVariance hcloud hγ
+    star νStar hνStar Frozen ρ hρ hmono hg hV).2.2 h hh hhmax n).1
+
+/-- Final parameter theorem with data-defined coefficient and step size. -/
+theorem explicit_parameter_bound
+    (hcloud : D.cloud = euclideanParticleEncoding N J) (hγ : 0 ≤ γ)
+    (star : A) (νStar : Measure (HypocoercivePhase (EuclideanSpace ℝ J))) [IsProbabilityMeasure νStar]
+    (hνStar : MemLp (fun z : HypocoercivePhase (EuclideanSpace ℝ J) ↦ z) 2 νStar)
+    (Frozen : AdditiveStationary.FrozenTrajectory (ULA.CanonicalBrownian.vectorProbability J)
+      (momentumForceDynamics D γ) νStar hνStar (targetState star) (input γ))
+    (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (model D γ) Geometry ρ)
+    (hg : (model D γ).meanGradient νStar (targetState star) = 0)
+    (hV : 0 ≤ Variance)
+    (h : ℝ) (hh : 0 < h) (hhmax : h ≤ maximumStep D γ Geometry μ hγ ρ) (n : ℕ) :
+        ‖(momentumParticleIterate (ParticleNoiseSpace.probability (J := J) μ N)
+          (particleBrownian (J := J) μ N) (particleBrownian_isPreBrownian (J := J) μ N)
+          D γ h (initial D γ Geometry μ hμ a Variance hVariance) n).2.1 -
+          Lp.const 2 (ParticleNoiseSpace.probability (J := J) μ N) star‖ ≤
+        discretizationConstant D γ Geometry μ hμ a Variance hVariance hγ ρ * Real.sqrt h +
+        (Real.sqrt Geometry.conditionNumber * Real.exp (-ρ * (n*h)) *
+          optimizerLawDistance a (targetState star) μ νStar +
+          ((2+γ)/ρ) * Real.sqrt (Geometry.conditionNumber * Variance/(N : ℝ)) *
+            (1-Real.exp (-ρ * (n*h)))) := by
+  exact ((explicit_guarantee D γ Geometry μ hμ a Variance hVariance hcloud hγ
+    star νStar hνStar Frozen ρ hρ hmono hg hV).2.2 h hh hhmax n).2
+
+/-- Backwards-compatible existential form of the explicit guarantee. -/
+theorem numerical_parameter_bound
+    (hcloud : D.cloud = euclideanParticleEncoding N J) (hγ : 0 ≤ γ)
+    (star : A) (νStar : Measure (HypocoercivePhase (EuclideanSpace ℝ J))) [IsProbabilityMeasure νStar]
+    (hνStar : MemLp (fun z : HypocoercivePhase (EuclideanSpace ℝ J) ↦ z) 2 νStar)
+    (Frozen : AdditiveStationary.FrozenTrajectory (ULA.CanonicalBrownian.vectorProbability J)
+      (momentumForceDynamics D γ) νStar hνStar (targetState star) (input γ))
+    (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (model D γ) Geometry ρ)
+    (hg : (model D γ).meanGradient νStar (targetState star) = 0)
+    (hV : 0 ≤ Variance) :
+    ∃ hmax U : ℝ, 0 < hmax ∧ 0 ≤ U ∧
+      ∀ h : ℝ, 0 < h → h ≤ hmax → ∀ n : ℕ,
+        (‖momentumParticleIterate (ParticleNoiseSpace.probability (J := J) μ N)
+          (particleBrownian (J := J) μ N) (particleBrownian_isPreBrownian (J := J) μ N)
+          D γ h (initial D γ Geometry μ hμ a Variance hVariance) n -
+          momentumUnpackLp (ParticleNoiseSpace.probability (J := J) μ N) D
+            ((particles D γ Geometry μ hμ a Variance hVariance).state (n*h))‖ ≤ U*Real.sqrt h) ∧
+        ‖(momentumParticleIterate (ParticleNoiseSpace.probability (J := J) μ N)
+          (particleBrownian (J := J) μ N) (particleBrownian_isPreBrownian (J := J) μ N)
+          D γ h (initial D γ Geometry μ hμ a Variance hVariance) n).2.1 -
+          Lp.const 2 (ParticleNoiseSpace.probability (J := J) μ N) star‖ ≤
+        U * Real.sqrt h +
+        (Real.sqrt Geometry.conditionNumber * Real.exp (-ρ * (n*h)) *
+          optimizerLawDistance a (targetState star) μ νStar +
+          ((2+γ)/ρ) * Real.sqrt (Geometry.conditionNumber * Variance/(N : ℝ)) *
+            (1-Real.exp (-ρ * (n*h)))) := by
+  exact ⟨maximumStep D γ Geometry μ hγ ρ, discretizationConstant D γ Geometry μ hμ a Variance hVariance hγ ρ,
+    explicit_guarantee D γ Geometry μ hμ a Variance hVariance hcloud hγ
+      star νStar hνStar Frozen ρ hρ hmono hg hV⟩
+
 end PBGSO.FullyUniformMomentum

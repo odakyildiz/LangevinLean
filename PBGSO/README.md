@@ -12,8 +12,12 @@ Read the [mathematical overview](exposition/index.html), the
 [source audit](exposition/source_audit.md), the
 [coverage ledger](exposition/reference_audit.json), and the
 [exact assumption inventory](exposition/assumption_inventory.json).
-The overview copies theorem signatures from the current Lean sources. Each
-proof page includes its complete source and the shared context of every result.
+The overview pairs each mathematical assumption and theorem with its exact
+Lean statement. It uses the paper’s optimiser state `vartheta`, sampler `Z`,
+mean observation `G_nu`, and numerical coordinates. A1–A5, added regularity
+R1–R3, and numerical assumptions N1–N3 are stated separately, with additions
+and solution interpretations marked before the theorems. Shared Lean context
+is available beside each statement. Each proof page retains the full source.
 
 ## Source results and current scope
 
@@ -68,60 +72,133 @@ convention, and A2 means actual frozen SDE invariance.
 
 ## New bounds for the two actual methods
 
-`FullyUniformMomentum.numerical_parameter_bound` and
-`FullyUniformHigherOrder.parameter_bound` prove time-uniform parameter bounds
-for the actual M-MFPO/OBABO and printed HOL-MYPGD particle maps. Each combines
-the source continuous-time relaxation and particle floor with `D*sqrt(h)` for
-**every iteration**, whenever `0 < h <= h_max`. Both `D` and the explicit
-positive threshold are independent of the run length and step size. They may
-depend on the fixed population N; no uniform-in-N discretization claim is made.
+`FullyUniformMomentum.explicit_parameter_bound` and
+`FullyUniformHigherOrder.explicit_parameter_bound` prove time-uniform
+parameter bounds for the actual M-MFPO/OBABO and printed HOL-MYPGD particle
+maps. Their `explicit_discretization_bound` theorems also bound the full raw
+state error, in the maximum of the four component L² norms. Each parameter
+bound combines the source continuous-time relaxation and particle floor with
+`D_j*sqrt(h)` for **every iteration**, when `0 < h <= h_star,j`. The coefficient
+and positive threshold are explicit functions of the data, independent of
+iteration count, step size and time horizon. They may depend on fixed N;
+no uniform-in-N discretization claim is made.
 
 The construction derives the contracting empirical metric from source A3,
 exact Picard restarts and their contraction, uniform continuous-reference
-moments, actual Gaussian one-step errors and the final absorbed recurrence.
+moments, actual Gaussian one-step errors and the absorbed recurrence.
 No numerical contractivity, local-error estimate, uniform moment estimate,
-reference-law identity or error recurrence is an input to the final endpoints.
-If the proved affine metric local error is `h*sqrt(h)*(a+b*norm(C*z))`, the
-verified constants are
+reference-law identity or final recurrence is an assumption.
+
+The main page states the numerical assumptions before the bounds:
+
+- **N1:** independent globally jointly Lipschitz forces on the paper’s
+  finite-dimensional optimiser and Euclidean sampler spaces. Write `F_x` for
+  the sampler force, to preserve the paper’s `G_nu` for the population mean
+  observation; Lean calls these two independent forces `D.F` and `D.G`.
+- **N2:** positive population, deterministic optimiser initial state, an
+  independent i.i.d. P₂ sampler cloud and physical Brownian drivers, source
+  A3 with positive rate, A5, and zero mean observation at the target.
+- **N3:** an actual norm-continuous L² frozen invariant trajectory on the
+  target law times the canonical Brownian source. It starts at the initial
+  projection, solves the physical frozen integral equation and preserves its
+  law at every time. This is stronger than the weak frozen-SDE interpretation
+  of A2 used for Theorem 1; the numerical endpoint takes it explicitly.
+
+M-MFPO assumes `gamma >= 0`; HOL assumes `alpha > 0` and `gamma >= 0`.
+No common potential or higher force derivatives are required. The target is
+an actual stationary zero-observation target. It is an objective critical
+point when the gradient identity and frozen position marginal match that
+objective. The uniform error proof does not assume
+a numerical invariant law.
+
+### Explicit numerical constants
+
+Let `d = N*d_x`. For positive position dimension, the standard Euclidean cloud
+map has norm 1 and inverse norm `sqrt(N)`. Thus the actual force constants are
 
 ```
-U_C = sqrt(upper_N)*norm(P)
-m_C = sqrt(lower_N)/(norm(P.inverse)+1)
-S = U_C*exp(K+1)*(norm(f(0))+beta)
-R = U_C*norm(z0) + S/(1-exp(-rho)) + S
-D = 4*(a+b*R)/(rho*m_C)
-h_max = min(1, 1/rho, (rho/(4*(b+1)))^2)
+L_F = 2*ell_F
+L_x = 2*sqrt(N)*ell_x
+f0 = norm(F(0,0))
+g0 = sqrt(N)*norm(F_x(0,0))
+b0 = max(f0,g0)
 ```
 
-Here P is the proved raw-to-physical coordinate equivalence, lower_N/upper_N
-are the empirical source metric comparisons, and a=U_C*c0, b=U_C*c1/m_C.
-The proof constructs C from A3 and shows
-`m_C*norm(z) <= norm(C*z) <= U_C*norm(z)`; the final constants use only
-the primitive data and proved coordinate norms.
-`K` is a certified global drift Lipschitz constant, `beta` is the actual
-Brownian L² increment radius, and a,b are explicit proved coefficients.
-The exact functions and final bounds are linked from the overview.
+For `d_x = 0`, the proved alternatives are `L_F = ell_F`, `L_x = 0`.
+`CloudEncodingConstants` proves both cases. `UniformOriginConstants` proves
+that `f0` and `g0` are exactly the actual lifted zero-force norms and that the
+full raw drift at zero has norm `b0` for each method. No coordinate-map norm or
+unspecified zero-state process radius remains in the constants.
 
-The assumptions are independent globally jointly Lipschitz forces,
-finite-dimensional optimiser and Euclidean sampler coordinates, positive
-particle count, standard flattened Euclidean cloud encoding, P₂ initial and
-target laws, positive source A3, uniform reference observation variance, and an
-actual norm-continuous L² frozen invariant trajectory on the stationary law
-times the canonical Brownian source with zero target mean observation.
-The frozen trajectory starts at the initial-coordinate projection, solves the
-physical-input integral equation and preserves the target law at every time.
-The endpoint takes this realization explicitly, rather than deriving it from
-an abstract invariant law. M-MFPO uses `gamma >= 0`; HOL uses `alpha > 0` and
-`gamma >= 0`. No common force potential or higher force derivatives are added.
-The target is a stationary critical point. The uniform coupling estimate does
-not require existence of a numerical invariant law.
+For M-MFPO, the local coefficients have the following closed formulas:
 
-The earlier `FullyConstructedMomentum` and `FullyConstructedHigherOrder`
-finite-horizon estimates remain as supporting results. The latter's
-`original_parameter_bound` adds `L*epsilon/m` from actual coupled original and
-surrogate target observations and positive gradient monotonicity. That bias
-argument can also be combined with the new uniform theorem; a model-specific
-smoothing coupling radius remains an explicit separate requirement.
+```
+L_M = 2*max(L_F,L_x)
+K_M = L_M + gamma + 1
+Xi_M = sqrt(d)
+beta_M = sqrt(gamma)*sqrt(2*d)
+T_M = b0 + K_M*exp(K_M+1)*(b0+beta_M) + beta_M
+c0_M = ((gamma+1)/2 + L_M/4)*b0
+       + (L_M/2 + sqrt(gamma) + 3*gamma*sqrt(gamma)/2)*sqrt(d)
+       + 2*K_M*T_M/3
+c1_M = (gamma^2+gamma+L_M)/2 + ((gamma+1)/2 + L_M/4)*L_M
+       + 2*K_M^2*exp(K_M+1)/3
+```
+
+For HOL-MYPGD, all coefficient and Gaussian remainder budgets are explicit:
+
+```
+K_H = 4*(L_F+L_x+1+2*gamma+alpha)
+beta_H = sqrt(alpha)*sqrt(2*d)
+r12 = gamma^2/(2*alpha)
+r13 = gamma/2
+r22 = gamma^2/2
+r23 = gamma*alpha/2
+r32 = 2*gamma^3/alpha + gamma^3/2 + gamma*alpha/2
+r33 = 3*gamma^2/2 + alpha^2/2 + alpha*gamma^2/2
+A_H = (1+gamma)*(g0+2*L_x+L_x*(f0+2*L_F))/2
+      + r12+r22+r32 + r13+r23+r33 + L_x*(f0+2*L_F)
+N_H = sqrt(2*alpha)*(3*gamma/2+alpha+r33)
+T_H = b0 + K_H*exp(K_H+1)*(b0+beta_H) + beta_H
+c0_H = A_H + sqrt(d)*N_H + 8*K_H*T_H/3
+c1_H = A_H + 8*K_H^2*exp(K_H+1)/3
+```
+
+`UniformConstantExpansions` proves equality of these arithmetic expressions
+with the exact coefficients in the local-error proofs; no consistency budget
+or error bound is supplied as a premise.
+
+For either method `j = M,H`, let `lambda_low,lambda_up` be the certified source
+quadratic comparisons. The metric and remaining constants are
+
+```
+lower_N = lambda_low*min(1,1/N)
+upper_N = lambda_up*max(1,1/N)
+m_N = sqrt(lower_N)/2
+U_N = 2*sqrt(upper_N)
+S_j = U_N*exp(K_j+1)*(b0+beta_j)
+R_j = U_N*norm(y0) + S_j/(1-exp(-rho)) + S_j
+a_j = U_N*c0_j
+b_j = U_N*c1_j/m_N
+D_j = 4*(a_j+b_j*R_j)/(rho*m_N)
+h_star,j = min(1, 1/rho, (rho/(4*(b_j+1)))^2)
+```
+
+Here `norm(y0)` is the raw maximum-component L² norm of the common initial
+phase. `MethodMetricComparisons` derives a metric factor C from A3 with
+`m_N*norm(y) <= norm(C*y) <= U_N*norm(y)`. Since N is positive,
+`m_N = sqrt(lambda_low/N)/2` and `U_N = 2*sqrt(lambda_up)`. Both constants are
+numeric comparisons; no unknown operator norm enters the final bound.
+The proof derives the radius `R_j` by restarting the actual continuous flow
+and absorbs the one-step defects using the explicit positive step threshold.
+
+The earlier existential `FullyUniformMomentum.numerical_parameter_bound` and
+`FullyUniformHigherOrder.parameter_bound` remain as corollaries. The
+`FullyConstructedMomentum` and `FullyConstructedHigherOrder` finite-horizon
+estimates also remain supporting results. The latter’s `original_parameter_bound`
+adds `L*epsilon/m` from actual coupled original/surrogate target observations
+and positive gradient monotonicity. The same bias argument can accompany the
+uniform theorem; a model-specific smoothing coupling radius remains explicit.
 
 Two source limitations are recorded separately: the printed HOL coefficients
 are not the exact full force-free linear flow (an exact nonzero defect is
@@ -156,12 +233,16 @@ citation checks also apply.
 
 ## Standalone verification
 
-The compact entry files
+The reader-facing entry files
 [`NewA.lean`](../standalone/PBGSO/NewA.lean),
 [`NewB.lean`](../standalone/PBGSO/NewB.lean), and
-[`PaperTheorems.lean`](../standalone/PBGSO/PaperTheorems.lean) print the exact
-final theorem contracts and audit their logical axioms. They import the proof
-library and are **repository checks**, rather than self-contained proof files:
+[`PaperTheorems.lean`](../standalone/PBGSO/PaperTheorems.lean) contain actual
+theorem declarations, their complete variable and assumption contexts, and
+short proofs applying the checked library. New A/B also display their primitive
+force records, exact numerical constants, closed arithmetic expansions and
+checked constant identities. Readers can inspect the statements without
+opening the proof closure. These files import the proof library and serve as
+**repository checks**:
 
 ```sh
 lake build PBGSO
@@ -179,10 +260,13 @@ python3 scripts/check-pbgso-standalone.py --output /tmp/pbgso-standalone --check
 The output directory must be new or empty. It receives `NewA.lean`, `NewB.lean`,
 `PaperTheorems.lean`, the pinned `lean-toolchain`, exact source hashes in
 `manifest.json`, and full Lean output in `*.check.txt`. Each exported file
-contains every local definition, assumption and proof used by its endpoints;
+begins with an exact reader-facing assumption/statement preview, followed by
+every local definition and proof used by its endpoints. The actual theorem
+declarations compile after their dependencies at the end, as Lean requires;
 only Mathlib is imported. The script checks each file in a fresh directory with
-all original project oleans removed from `LEAN_PATH`, and rejects unexpected
-axioms. No theorem is renamed or strengthened.
+all original project oleans removed from `LEAN_PATH`, and rejects placeholders,
+custom axioms and unexpected logical dependencies. The manifest also hashes the exact reader-facing entry; the
+export does not strengthen its statements.
 
 To export only one numerical theorem, use `--endpoint new-a` or
 `--endpoint new-b`; `--endpoint paper` selects the original paper endpoints.
@@ -239,7 +323,11 @@ original interacting-solution existence and synchronous initial conditions.
   `UniformIntegralMoments`, `UniformDiscrete`, `UniformStepSize` derive uniform
   moments and all-iteration error absorption. `MomentumUniform*` and
   `HOLUniform*`/`HOLRestart*` derive actual scheme errors and Brownian coupling.
-  The earlier finite-horizon results remain available in `FullyConstructed*`.
+  `MethodMetricComparisons` proves numeric raw-metric comparisons;
+  `CloudEncodingConstants`, `UniformOriginConstants` and
+  `UniformConstantExpansions` remove coordinate-norm, origin and arithmetic
+  ambiguity from the displayed constants. Earlier finite-horizon results remain
+  available in `FullyConstructed*`.
 
 The generated proof catalog covers every module and every complete declaration;
 this entry-point list is not a substitute for its exact assumptions.

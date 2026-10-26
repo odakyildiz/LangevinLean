@@ -2503,6 +2503,135 @@ MODULES.update({'MetricFactor': ('Constructed positive finite-dimensional metric
                              'numerical contraction, reference moment, drift modulus, error recurrence or '
                              'matching-law conclusion is assumed. Constants may depend on fixed N.')})
 
+MODULES.update({'MethodMetricComparisons': ('Numerical metric comparisons from exact shared L² coordinate identities',
+                             'The physical particle norm squared equals the sum of all four raw component '
+                             'second moments. The actual coordinate maps have norm at most two, and their '
+                             'inverses at most one; source A3 therefore constructs a contracting factor with '
+                             'explicit square-root metric bounds.',
+                             'Only the standard Euclidean cloud encoding and primitive finite-dimensional '
+                             'source metric/A3 are used. The comparison identities require no independence '
+                             'of the shared coordinates. No operator-norm, numerical-contraction or moment '
+                             'estimate is assumed.'),
+ 'UniformConstantExpansions': ('Closed arithmetic expressions for every new local-error coefficient',
+                               'Direct algebra certifies the complete M-MFPO and HOL local constants, '
+                               'including all nested coefficient, Gaussian and drift-Lipschitz terms. The '
+                               'identities connect the human-readable formulas to the existing local-error '
+                               'estimates.',
+                               'The HOL simplifications require positive alpha and the displayed nonnegative '
+                               'friction/Lipschitz constants; M arithmetic uses its nonnegative primitive '
+                               'constants. These are proved equalities of definitions, without a supplied '
+                               'estimate or new analytic assumption.'),
+ 'CloudEncodingConstants': ('Exact numerical norms of the standard Euclidean cloud encoding',
+                            'The reindexing map has norm one and inverse norm sqrt(N) in positive dimension, '
+                            'with explicit zero-dimensional cases. These identities give exact certified '
+                            'force constants 2 ell_F and 2 sqrt(N) ell_x.',
+                            'Positive particle count and the standard coordinate encoding are explicit. '
+                            'Exact nonzero norms use Nonempty spatial index; the separate empty-index '
+                            'statements cover dimension zero. No norm comparison is assumed.')})
+
+MODULES.update({'UniformOriginConstants': ('Exact primitive force values for every uniform numerical coefficient',
+                            'Actual constant L² identities reduce lifted zero-force norms to the primitive '
+                            'F(0,0) and sqrt(N) G(0,0). The full raw kinetic and HOL drift norms at zero are '
+                            'the maximum of those two values.',
+                            'A probability source, positive particle count and the actual standard Euclidean '
+                            'cloud encoding suffice. No zero-force identity, operator norm, independence or '
+                            'numerical estimate is a premise.')})
+
+def _pbgso_mask_lexical(source):
+    """Mask comments/literals without changing source offsets or line breaks.
+
+    The legacy teaching parser is deliberately untouched. In particular, a
+    string or comment containing ``:=`` must not end a PBGSO theorem header.
+    """
+    out, index, block_depth, string, quoted_name = [], 0, 0, False, False
+    while index < len(source):
+        char, pair = source[index], source[index:index + 2]
+        if block_depth:
+            if pair == '/-':
+                block_depth += 1; out.extend('  '); index += 2
+            elif pair == '-/':
+                block_depth -= 1; out.extend('  '); index += 2
+            else:
+                out.append('\n' if char == '\n' else ' '); index += 1
+        elif string:
+            if char == '\\' and index + 1 < len(source):
+                out.append(' ')
+                out.append('\n' if source[index + 1] == '\n' else ' ')
+                index += 2
+            else:
+                out.append('\n' if char == '\n' else ' '); index += 1
+                if char == '"':
+                    string = False
+        elif quoted_name:
+            out.append('\n' if char == '\n' else ' '); index += 1
+            if char == '»':
+                quoted_name = False
+        elif pair == '/-':
+            block_depth = 1; out.extend('  '); index += 2
+        elif pair == '--':
+            end = source.find('\n', index)
+            if end == -1:
+                end = len(source)
+            out.extend(' ' * (end - index)); index = end
+        elif char == '"':
+            string = True; out.append(' '); index += 1
+        elif char == '«':
+            quoted_name = True; out.append(' '); index += 1
+        else:
+            out.append(char); index += 1
+    if block_depth or string or quoted_name:
+        raise ValueError('Unterminated PBGSO Lean comment or literal')
+    return ''.join(out)
+
+
+def _pbgso_header_marker(masked, declaration):
+    """Locate the actual body delimiter, not a nested named argument.
+
+    ``marker_column`` is a zero-based offset in the ORIGINAL source line.
+    Counting only lines is insufficient when ``(I := I)`` and the actual proof
+    delimiter occur on the same line. A result type may also begin with one
+    or more top-level ``let x := ...;`` terms; their assignments belong to
+    the statement and are skipped. Equation-style declarations retain their
+    preceding header line as the fallback boundary.
+    """
+    opening = {'(': ')', '[': ']', '{': '}', '⟨': '⟩', '⦃': '⦄'}
+    closing = set(opening.values())
+    stack, pending_lets, equation = [], 0, None
+    for number in range(declaration['start'], declaration['end'] + 1):
+        line, column = masked[number - 1], 0
+        while column < len(line):
+            char = line[column]
+            if char in opening:
+                stack.append(opening[char]); column += 1
+            elif char in closing:
+                if stack and stack[-1] == char:
+                    stack.pop()
+                column += 1
+            elif line[column:column + 2] == ':=':
+                if not stack:
+                    if pending_lets:
+                        pending_lets -= 1
+                    else:
+                        return number, column, ':='
+                column += 2
+            elif char.isalpha() or char == '_':
+                word = re.match(r"[\w']+", line[column:])[0]
+                if not stack:
+                    if word in ('let', 'letI'):
+                        pending_lets += 1
+                    elif word == 'where' and not pending_lets:
+                        return number, column, 'where'
+                column += len(word)
+            else:
+                if char == '|' and not stack and equation is None:
+                    previous = number - 1
+                    equation = (previous, len(masked[previous - 1]), '')
+                column += 1
+    if equation is not None:
+        return equation
+    raise ValueError(f"Cannot locate PBGSO body of {declaration['name']} at {declaration['start']}")
+
+
 def pbgso_declarations(source):
     """Retain namespace-distinct declarations sharing a short source name.
 
@@ -2554,6 +2683,15 @@ def pbgso_declarations(source):
                 while declaration['end'] > declaration['start'] and not source.splitlines()[declaration['end']-1].strip():
                     declaration['end'] -= 1
                 break
+    # Override the legacy first-':=' heuristic only for PBGSO. The mask is
+    # made from the original source, since namespace disambiguation above
+    # may change the length of a declaration's first line.
+    original_masked = _pbgso_mask_lexical(source).splitlines()
+    for declaration in parsed.values():
+        marker, column, token = _pbgso_header_marker(original_masked, declaration)
+        declaration.update(marker=marker, marker_column=column, marker_token=token)
+        suffix = original_masked[marker - 1][column + len(token):].strip()
+        declaration['body_start'] = marker + 1 if suffix in ('', 'by') else marker
     return parsed
 
 
@@ -2577,18 +2715,22 @@ def module_note(path):
     raise ValueError(f'Missing PBGSO module explanation and assumption note: {path}')
 
 
-def header_text(source, decl):
+def header_lines(source, decl):
+    """Exact source rows through the complete statement, excluding its body."""
     rows = source.splitlines()[decl["start"] - 1:decl["marker"]]
-    if ":=" in rows[-1]:
-        rows[-1] = rows[-1].split(":=", 1)[0].rstrip()
-    return "\n".join(rows)
+    rows[-1] = rows[-1][:decl['marker_column']].rstrip()
+    return rows
+
+
+def header_text(source, decl):
+    return "\n".join(header_lines(source, decl))
 
 
 def exact_header(path, name, sources, parsed, page):
     decl = parsed[path][name]
     headers = dict(sources)
     rows = sources[path].splitlines()
-    rows[decl["marker"] - 1] = rows[decl["marker"] - 1].split(":=", 1)[0].rstrip()
+    rows[decl["marker"] - 1] = header_lines(sources[path], decl)[-1]
     headers[path] = "\n".join(rows)
     context = context_text(sources[path], parsed[path])
     shared = ('<details class="statement-context"><summary>Exact shared imports, variables and namespace context</summary>'
@@ -3302,7 +3444,7 @@ def authoring_inputs():
     sources, _ = source_inventory()
     return ['docs/build_pbgso.py', 'docs/pbgso_overview.py', 'docs/assets/pbgso.css',
             'scripts/check-pbgso-standalone.py',
-            'docs/test_pbgso_landing.py',
+            'docs/test_pbgso_landing.py', 'docs/test_pbgso_headers.py',
             'scripts/verify-pbgso.py', 'PBGSO/README.md',
             'PBGSO/exposition/source_audit.md', 'PBGSO/exposition/reference_audit.json'] + list(sources) + sorted(
                 p.relative_to(ROOT).as_posix() for p in (ROOT/'standalone/PBGSO').glob('*.lean'))

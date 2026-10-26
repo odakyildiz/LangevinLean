@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'docs'))
 
 from build_pbgso import (CATALOG, OVERVIEW, assumption_inventory, outputs, proof_page,
-                         source_inventory)
+                         header_lines, source_inventory)
 from verify_site import Page
 from build_site import HELPERS
 
@@ -93,6 +93,58 @@ class LandingDocument(HTMLParser):
         return found[0]
 
 
+class ProseText(HTMLParser):
+    """Visible non-code prose, excluding rendered mathematics and its source.
+
+    KaTeX's MathML annotations legitimately contain the original TeX. For
+    example, a TeX line break followed by ``(`` contains the same characters
+    as an unrendered inline-math opener. Those annotations are not raw prose.
+    """
+    EXCLUDED = {'pre', 'code', 'script', 'style', 'annotation', 'annotation-xml'}
+    BLOCKS = {'p', 'div', 'section', 'article', 'li', 'ul', 'ol', 'table', 'tr',
+              'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br'}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack, self.parts = [], []
+
+    def handle_starttag(self, tag, attributes):
+        classes = set(dict(attributes).get('class', '').split())
+        parent_excluded = bool(self.stack and self.stack[-1][1])
+        excluded = parent_excluded or tag in self.EXCLUDED or any(
+            name == 'katex' or name.startswith('katex-') for name in classes)
+        if not parent_excluded and (excluded or tag in self.BLOCKS):
+            self.parts.append('\n')
+        if tag not in LandingDocument.VOID:
+            self.stack.append((tag, excluded))
+
+    def handle_startendtag(self, tag, attributes):
+        self.handle_starttag(tag, attributes)
+        if tag not in LandingDocument.VOID:
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                excluded = self.stack[index][1]
+                self.stack = self.stack[:index]
+                parent_excluded = bool(self.stack and self.stack[-1][1])
+                if not parent_excluded and (excluded or tag in self.BLOCKS):
+                    self.parts.append('\n')
+                return
+
+    def handle_data(self, data):
+        if not self.stack or not self.stack[-1][1]:
+            self.parts.append(data)
+
+
+def verify_prose_math(text, page):
+    prose = ProseText()
+    prose.feed(text)
+    prose.close()
+    assert not re.search(r'\\[\[(]', ''.join(prose.parts)), f'Unrendered math: {page}'
+
+
 def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
     """Check the reader-facing mathematical hierarchy and assumption markers.
 
@@ -110,11 +162,36 @@ def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
         'Primary PBGSO page must link to its separate technical catalog'
 
     expected_ids = {r['id']: r['number'] for r in audit['results'] if r['kind'] == 'theorem'}
+    def paired_contract(node, label):
+        pairs = [n for n in node.walk() if 'statement-pair' in n.classes()]
+        assert len(pairs) == 1, f'{label} needs one mathematics/Lean pair'
+        mathematical = [n for n in pairs[0].walk() if 'statement-math' in n.classes()]
+        formal = [n for n in pairs[0].walk() if 'statement-lean' in n.classes()]
+        assert len(mathematical) == len(formal) == 1, f'{label} must show both columns'
+        assert any('katex' in n.classes() for n in mathematical[0].walk()), \
+            f'{label} needs an explicit mathematical formula'
+        assert any(n.tag == 'pre' and n.attrs.get('data-source') and
+                   n.attrs.get('data-role') in ('statement', 'contract', 'premise') and n.text().strip()
+                   for n in formal[0].walk()), f'{label} needs literal Lean source beside the mathematics'
+
+    assumptions = [n for n in main.walk() if n.attrs.get('data-assumption-id')]
+    assumptions_by_id = {n.attrs['data-assumption-id']: n for n in assumptions}
+    assert {'A1', 'A2', 'A3', 'A4', 'A5'} <= set(assumptions_by_id), \
+        'All five paper assumptions must be stated explicitly'
+    assert {'R1', 'R2', 'R3', 'N1', 'N2', 'N3'} <= set(assumptions_by_id), \
+        'Explicit branch regularity and numerical assumptions must remain visible'
+    for identifier, node in assumptions_by_id.items():
+        paired_contract(node, f'Assumption {identifier}')
+        if identifier in {'R1', 'R2', 'R3', 'N1', 'N3'}:
+            assert node.attrs.get('data-assumption-kind') == 'added', \
+                f'Added assumption {identifier} must be colored as added'
+
     paper = [n for n in main.walk() if 'data-source-result' in n.attrs]
     assert len(paper) == 4 and {n.attrs['data-source-result'] for n in paper} == set(expected_ids), \
         'Primary PBGSO page must state exactly the four named main paper theorems'
     for node in paper:
         identifier = node.attrs['data-source-result']
+        paired_contract(node, identifier)
         headings = [n.text() for n in node.walk() if n.tag in ('h2', 'h3', 'h4')]
         assert any(re.search(r'\bTheorem\s+'+re.escape(expected_ids[identifier])+r'\b', h, re.I)
                    for h in headings), f'Missing paper theorem name/number: {identifier}'
@@ -158,6 +235,7 @@ def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
         'New Theory must contain exactly Theorem New A and Theorem New B'
     for node in additions:
         label = node.attrs['data-new-theory']
+        paired_contract(node, f'Theorem New {label}')
         assert new in set(node.ancestors()), f'Theorem New {label} must be inside New Theory'
         headings = [n.text() for n in node.walk() if n.tag in ('h2', 'h3', 'h4')]
         assert any(re.search(r'\bTheorem\s+New\s+'+label+r'\b', h, re.I) for h in headings), \
@@ -175,6 +253,15 @@ def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
             f'New {label} must color its extra numerical assumptions'
         assert not re.search(r'fixed finite horizon|nh\s*≤\s*T', node.text(), re.I), \
             f'New {label} must not restrict the headline result to a fixed horizon'
+
+    for identifier in ('numerical-force-constants', 'numerical-m-constants',
+                       'numerical-h-constants', 'numerical-metric-constants',
+                       'numerical-final-constants'):
+        constants = doc.by_id(identifier)
+        paired_contract(constants, identifier)
+        mathematical = next(n for n in constants.walk() if 'statement-math' in n.classes())
+        assert not re.search(r'momentumUniformDefect|holUniformLocalConstant[01]', mathematical.text()), \
+            'A Lean definition name cannot replace an explicit mathematical coefficient'
 
     standalone = doc.by_id('standalone-verification')
     commands = '\n'.join(n.text() for n in standalone.walk() if n.tag == 'pre')
@@ -219,6 +306,19 @@ def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
         'The technical catalog must link every complete module proof page'
 
 
+def expected_source_excerpt(block, sources, parsed, page):
+    """Compute the exact excerpt and reject a prematurely terminated header."""
+    source = block['data-source']
+    start, end = int(block['data-start']), int(block['data-end'])
+    if block['data-role'] == 'statement':
+        name = block['data-declaration']
+        declaration = parsed[source][name]
+        assert (start, end) == (declaration['start'], declaration['marker']), \
+            f'Truncated theorem header: {page}: {source}: {name}'
+        return header_lines(sources[source], declaration)
+    return sources[source].splitlines()[start - 1:end]
+
+
 def verify(require_complete=False):
     sources, parsed = source_inventory()
     expected = outputs()
@@ -249,8 +349,8 @@ def verify(require_complete=False):
     method_coverage = audit['additional_method_coverage']
     assert set(method_coverage) == {'M-MFPO', 'HOL-MYPGD'}, 'Missing actual method-bound coverage'
     uniform_endpoints = {
-        'M-MFPO': ('PBGSO/FullyUniformMomentum.lean', 'numerical_parameter_bound'),
-        'HOL-MYPGD': ('PBGSO/FullyUniformHigherOrder.lean', 'parameter_bound'),
+        'M-MFPO': ('PBGSO/FullyUniformMomentum.lean', 'explicit_parameter_bound'),
+        'HOL-MYPGD': ('PBGSO/FullyUniformHigherOrder.lean', 'explicit_parameter_bound'),
     }
     for method, (file, name) in uniform_endpoints.items():
         assert {'file': file, 'name': name} in method_coverage[method]['declarations'], \
@@ -279,16 +379,14 @@ def verify(require_complete=False):
         assert doc.robots == ['noindex, nofollow, noarchive']
         assert len(doc.ids) == len(set(doc.ids)), f'Duplicate HTML IDs: {path}'
         assert 'katex-error' not in text, f'Invalid math: {path}'
-        assert not re.search(r'\\[\[(]', ''.join(doc.text)), f'Unrendered math: {path}'
+        verify_prose_math(text, path)
         assert not any(urlsplit(href).path.endswith('.pdf') for href in doc.links), f'Unestablished PDF link: {path}'
         represented = set()
         for block in doc.blocks:
             excerpts += 1
             source = block['data-source']
             start, end = int(block['data-start']), int(block['data-end'])
-            wanted = sources[source].splitlines()[start-1:end]
-            if block['data-role'] == 'statement':
-                wanted[-1] = wanted[-1].split(':=', 1)[0].rstrip()
+            wanted = expected_source_excerpt(block, sources, parsed, path)
             assert block['lines'] == wanted, f'Altered source: {path}: {source}:{start}-{end}'
             if block['data-role'] == 'declaration':
                 name = block['data-declaration']

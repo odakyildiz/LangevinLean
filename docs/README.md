@@ -27,10 +27,16 @@ parameter bounds for every iteration under an explicit positive small-step
 threshold. Source A3 constructs their contracting empirical metric; physical
 noise, Gaussian coupling, raw/L² coordinates, uniform reference moments and
 local errors are derived. Constants may depend on the fixed particle count.
-The numerical assumptions include globally jointly Lipschitz forces and
-finite-dimensional coordinates; no numerical contraction or uniform moment
-bound is assumed. The sharp original
-raw particle interaction and parameter arguments use computed local Brownian
+The numerical assumptions N1–N3 separately state global force Lipschitz
+regularity, the original initial/A3/A5 data, and an actual canonical L² frozen
+target trajectory. No numerical contraction or uniform moment bound is
+assumed. The explicit endpoints are `FullyUniformMomentum.explicit_parameter_bound`
+and `FullyUniformHigherOrder.explicit_parameter_bound`; each also has an
+`explicit_discretization_bound` for the full raw state. Their metric constants
+are numeric (`sqrt(lower_N)/2` and `2*sqrt(upper_N)`), and the force/cloud,
+zero-origin and local-error arithmetic expansions are proved. Older
+existential statements remain corollaries, and finite-horizon results remain
+available. The sharp original raw particle interaction and parameter arguments use computed local Brownian
 noise, genuine stopping and actual reference variance. The constant-diffusion source2 branch is also proved across arbitrary original
 sources under the explicitly independent ordinary finite signed-work reading
 of universal A3. The broader extended-negative-work interpretation is outside
@@ -78,10 +84,19 @@ boxes open HTML proof pages. Its searchable directory includes every Lean
 subfile, import module, and kernel audit in that development. The LSI extensions
 have their own directories and detailed mathematical arguments. PBGSO's main
 page states four main paper theorems and the two final numerical bounds as
-Theorem New A and Theorem New B. Orange identifies added conditions; blue
-identifies explicit interpretations of source assumptions. Each theorem keeps
-its own assumption list. Standalone verification instructions precede a linked
-proof roadmap at the end. The separate
+Theorem New A and Theorem New B. Each mathematical row sits beside its exact
+Lean statement, with expandable shared context. The paper’s state/gradient
+notation is retained. A1–A5, added R1–R3, and numerical N1–N3 have their own
+paired statements; orange marks added conditions and blue marks explicit
+solution interpretations. Each theorem states which conditions it uses.
+All numerical constants are expanded mathematically, including both positive
+and zero position-dimension cloud constants and the proved primitive zero-force
+radius. No unknown coordinate-map norm is left in the displayed bounds.
+Standalone entry files contain actual assumption contexts and theorem
+declarations with short checked proofs, rather than only `#check` commands.
+Their Mathlib-only exports place exact readable contracts before the complete
+proof appendix. Verification instructions precede a linked proof roadmap at
+the end. The separate
 [technical page](../PBGSO/exposition/technical.html) retains intermediate results,
 the eight-result correspondence ledger, assumption inventory and declaration
 directory. The LSI convergence theorems derive the Gaussian interpolation identities and
