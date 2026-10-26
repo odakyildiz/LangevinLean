@@ -10,6 +10,32 @@ analogue is also linked as a footnote from IPLA:
 - [IPLA under LSI](../IPLA/LSI/exposition/index.html)
 - [Kinetic Langevin](../KineticLangevin/exposition/index.html)
 - [KIPLMC](../KIPLMC/exposition/index.html)
+- [PBGSO: general framework and explicit formal scope](../PBGSO/exposition/index.html)
+
+PBGSO is a separate source-based development with all eight source results
+and both new method bounds verified under explicit source interpretations. It proves the general independent-map framework, actual Brownian/Itô
+integration, original local stationary product laws, primitive linear-growth
+optimal law contraction across original sources, the appendix criteria and
+continuous/discrete volume assertions. A2 is interpreted as an actual stationary
+weak frozen SDE, not a generator-only identity. Source A1 supplies canonical
+full-system strong existence and same-driver uniqueness; actual Wiener-path
+transport derives the law comparison without a common-source frozen strong
+solver or ambient sample-measure separability.
+
+Both actual additive particle methods have new finite-horizon square-root-step
+parameter bounds with derived physical noise, Gaussian coupling, raw/L²
+coordinates, integral references and mesh-uniform constants. The sharp original
+raw particle interaction and parameter arguments use computed local Brownian
+noise, genuine stopping and actual reference variance. The constant-diffusion source2 branch is also proved across arbitrary original
+sources under the explicitly independent ordinary finite signed-work reading
+of universal A3. The broader extended-negative-work interpretation is outside
+this convention; a proved dissipative cubic/P₂ witness records the difference.
+Natural independent reference clouds and the complete physical pair are
+constructed. Source A4/A5 derive stationary-target comparison work without
+that universal finite-work convention. Exact assumptions accompany every Lean header. The source audit
+also distinguishes the verified HOL Gaussian covariance from its incorrect
+exact-linear-flow claim and records the improper full-space TV prior. PBGSO
+has no complete proof PDF or published-report claim.
 
 The two kinetic developments prove convergence bounds for the continuous
 kinetic equations and the discrete Gaussian samplers. Kinetic Langevin includes Gibbs stationarity, the KLMC and
@@ -41,11 +67,11 @@ Run `python3 scripts/verify-kinetic-coverage.py --require-complete` to require
 every convergence theorem and required supporting proof. The verifier checks the declarations proving each convergence statement
 and the supporting results required by that proof.
 
-Every overview states its results with all assumptions beside the exact Lean
+The seven established overviews state their results with all assumptions beside the exact Lean
 headers, provides verification commands, and has a logical proof diagram whose
 boxes open HTML proof pages. Its searchable directory includes every Lean
 subfile, import module, and kernel audit in that development. The LSI extensions
-have their own directories and detailed mathematical arguments. Their convergence theorems derive the Gaussian interpolation identities and
+have their own directories and detailed mathematical arguments. PBGSO instead provides a source-result correspondence table, complete assumption inventory and declaration directory. The LSI convergence theorems derive the Gaussian interpolation identities and
 moment bounds from smoothness, the target LSI, and finite initial KL. Output
 finiteness is included in the convergence conclusions.
 
@@ -54,7 +80,7 @@ the same vendored KaTeX used by the statements. Typesetting is generated locally
 so diagram formulas and proof links work offline without browser-side rendering.
 The downloadable IPLA SVG also embeds its mathematical fonts.
 
-Every overview, supporting module page, and archived proof document identifies
+Each established-report overview, supporting module page, and archived proof document identifies
 its paper references and publication status near the top. Full citations include
 all authors, the title, publication venue, year, volume and pages, and paper links.
 The IPLA LSI proof and corrected proximal proofs are explicitly unpublished;
@@ -63,13 +89,13 @@ Background papers are distinguished from sources of the displayed result.
 The kinetic pages identify their published sources and the corrected proofs
 checked here. The shared metadata and notice styles are authored in `references.py`.
 
-`modules/` mirrors the Lean source paths. Each module page contains an authored
+For the established reports, `modules/` mirrors the Lean source paths. Each module page contains an authored
 mathematical statement and proof beside the full corresponding Lean declarations,
 links to imported proofs and users, the complete module context, and a downloadable
 LaTeX exposition under `latex/`. The generated IPLA standalone bundle links to the
 proof of each included source module in HTML; its LaTeX export gathers all those
 mathematical statements and proofs into one document in dependency order.
-The seven theorem overviews each link to a mathematical proof report at
+The seven established theorem overviews each link to a mathematical proof report at
 `pdf/<library>/FullProof.pdf`. IPLA's strongly convex and LSI treatments have
 separate reports. Each report contains its theorem statements, detailed argument,
 and its own supporting proofs in dependency order. Shared results are proved once
@@ -114,6 +140,19 @@ statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
+`build_pbgso.py` generates PBGSO's separate overview and complete declaration
+pages under `PBGSO/exposition/`, using the shared layout and mathematical
+typesetting. It reads every Lean file, shared context, theorem header and full
+structure/definition contract directly into `assumption_inventory.json`.
+`scripts/verify-pbgso.py` checks those exact excerpts and assumptions, source
+audit coverage, local links and regeneration. PBGSO stays outside the published
+PDF report catalog and its bibliography/numbering system.
+`python3 scripts/verify-pbgso.py --require-complete` is the separate strict
+coverage check for all eight source results, both actual method bounds and
+required bridges. Its completed ledger uses the explicit SDE meaning of A2 and
+ordinary finite signed-work convention for constant-diffusion source2; the
+broader extended-negative interpretation is outside that correspondence.
+
 Keep each mathematical statement and proof self-contained in ordinary notation.
 Use dry mathematical language: state the hypotheses, define each quantity,
 and explain each inference. Include the inequalities, integrability conditions,
@@ -145,6 +184,7 @@ python3 docs/build_pdfs.py
 python3 docs/test_paper_prose.py
 python3 docs/verify_exposition.py
 python3 docs/verify_site.py
+python3 scripts/verify-pbgso.py
 ```
 
 The builder requires mathematical explanations for every native local declaration,
@@ -178,6 +218,7 @@ lake env lean UnadjustedLangevin/LSI/Check.lean
 lake env lean IPLA/LSI/Check.lean
 lake env lean KineticLangevin/Check.lean
 lake env lean KIPLMC/Check.lean
+lake env lean PBGSO/Check.lean
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 

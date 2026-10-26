@@ -105,7 +105,8 @@ def shell(page, title, body, active=None):
     body_class = ' class="project-home"' if page == 'index.html' else ''
     navigation=[('UnadjustedLangevin','ULA · SC'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
-                ('ProximalLangevin','Proximal'), ('KineticLangevin','Kinetic'), ('KIPLMC','KIPLMC')]
+                ('ProximalLangevin','Proximal'), ('KineticLangevin','Kinetic'), ('KIPLMC','KIPLMC'),
+                ('PBGSO','PBGSO')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
                   for lib,label in navigation)
@@ -523,6 +524,8 @@ def main():
             overview['steps'].insert(0,{'title':'Theorem', 'body':config['results'][0]['body'], 'declarations':[]})
             outputs['docs/latex/'+lib+'/Overview.tex'] = latex_document(lib+'/Overview.lean',overview,notes,catalog)
     outputs['index.html'] = project_document(notes,catalog)
+    from build_pbgso import outputs as pbgso_outputs, authoring_inputs as pbgso_inputs
+    outputs.update(pbgso_outputs())
     from full_proofs import full_proof_documents, full_proof_inventory
     outputs.update(full_proof_documents(CONFIG, notes, sources, catalog))
     outputs.update(bib_outputs(catalog.plans))
@@ -535,6 +538,7 @@ def main():
     inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
+    inputs += pbgso_inputs()
     inputs += [p.relative_to(ROOT).as_posix() for p in sorted((HERE/'assets/fonts').glob('*'))
                if p.is_file()]
     inputs += ['UnadjustedLangevin/exposition/build_document.py']
