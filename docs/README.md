@@ -10,7 +10,7 @@ analogue is also linked as a footnote from IPLA:
 - [IPLA under LSI](../IPLA/LSI/exposition/index.html)
 - [Kinetic Langevin](../KineticLangevin/exposition/index.html)
 - [KIPLMC](../KIPLMC/exposition/index.html)
-- [PBGSO: general framework and explicit formal scope](../PBGSO/exposition/index.html)
+- [PBGSO: paper theorems and new discretisation bounds](../PBGSO/exposition/index.html)
 
 PBGSO is a separate source-based development with all eight source results
 and both new method bounds verified under explicit source interpretations. It proves the general independent-map framework, actual Brownian/Itô
@@ -71,7 +71,15 @@ The seven established overviews state their results with all assumptions beside 
 headers, provides verification commands, and has a logical proof diagram whose
 boxes open HTML proof pages. Its searchable directory includes every Lean
 subfile, import module, and kernel audit in that development. The LSI extensions
-have their own directories and detailed mathematical arguments. PBGSO instead provides a source-result correspondence table, complete assumption inventory and declaration directory. The LSI convergence theorems derive the Gaussian interpolation identities and
+have their own directories and detailed mathematical arguments. PBGSO's main
+page states four main paper theorems and the two final numerical bounds as
+Theorem New A and Theorem New B. Orange identifies added conditions; blue
+identifies explicit interpretations of source assumptions. Each theorem keeps
+its own assumption list. Standalone verification instructions precede a linked
+proof roadmap at the end. The separate
+[technical page](../PBGSO/exposition/technical.html) retains intermediate results,
+the eight-result correspondence ledger, assumption inventory and declaration
+directory. The LSI convergence theorems derive the Gaussian interpolation identities and
 moment bounds from smoothness, the target LSI, and finite initial KL. Output
 finiteness is included in the convergence conclusions.
 
@@ -140,7 +148,9 @@ statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
-`build_pbgso.py` generates PBGSO's separate overview and complete declaration
+`pbgso_overview.py` authors PBGSO's statement-only main page and its roadmap;
+`assets/pbgso.css` supplies its assumption colours and responsive roadmap layout.
+`build_pbgso.py` generates that overview, the technical catalog and complete declaration
 pages under `PBGSO/exposition/`, using the shared layout and mathematical
 typesetting. It reads every Lean file, shared context, theorem header and full
 structure/definition contract directly into `assumption_inventory.json`.

@@ -27,6 +27,8 @@ python3 -B scripts/verify-kinetic-coverage.py --require-complete
 
 printf '\nChecking PBGSO theorem statements, assumptions and source correspondence\n'
 python3 -B scripts/verify-pbgso.py --require-complete
+python3 -B docs/test_pbgso_landing.py
+python3 -B scripts/check-pbgso-standalone.py --check
 
 for verifier in \
   UnadjustedLangevin/exposition/verify_document.py \

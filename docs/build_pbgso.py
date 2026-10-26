@@ -17,8 +17,21 @@ from build_site import ROOT, HELPERS, anchor, code, commands, declarations, rela
 
 E = html.escape
 OVERVIEW = "PBGSO/exposition/index.html"
+CATALOG = "PBGSO/exposition/technical.html"
 
 MODULES = {
+    "RawStationaryUniqueness": (
+        "Stationary product-law uniqueness for the original raw equations",
+        "Actual stationary original solution families, direct A1 strong existence and "
+        "same-driver uniqueness instantiate the arbitrary-source contraction bounds. "
+        "Exponential decay and Wasserstein separation give equality of the optimiser "
+        "states and sampler laws.",
+        "Assume P₂ stationary sampler laws, source A3 with positive rate, and the "
+        "stated original stationary solution/A1 existence and uniqueness data on each "
+        "finite horizon. The constant-diffusion branch additionally requires universal "
+        "finite signed coupling work and primitive Borel fields; the linear-growth "
+        "branch requires its canonical primitive coefficient regularity. No weak-generator "
+        "realization, energy estimate or contraction conclusion is supplied."),
     "Framework": (
         "General optimiser–sampler model and weak stationarity",
         "The optimiser, parameter projection, sampler, position projection, observation map, "
@@ -2607,10 +2620,10 @@ def result_panel(title, prose, references, sources, parsed, math, page, identifi
     return body + '</div></div></article>'
 
 
-def overview_document(sources, parsed, math):
-    page = OVERVIEW
+def technical_document(sources, parsed, math):
+    page = CATALOG
     body = ('<header class="hero"><div class="eyebrow">General stochastic optimisation · source-based formal development</div>'
-            '<h1>Particle-based Generalised Stochastic Optimisation</h1>'
+            '<h1>PBGSO proof details and complete catalog</h1>'
             '<p class="subtitle">General optimiser responses and augmented sampler diffusions, with explicit analytic assumptions, '
             'proved comparison arguments and new bounds for the two implementation maps.</p>'
             '<p class="reference-notice"><strong>Source:</strong> Jiechen Jackie Zhang and O. Deniz Akyildiz, '
@@ -2625,7 +2638,8 @@ def overview_document(sources, parsed, math):
             'Both additive M-MFPO and HOL numerical endpoints construct their processes, Gaussian coupling, integral references and mesh-uniform constants. '
             'Primitive global joint Lipschitz force bounds for the methods, source A3, actual frozen invariance, P₂ laws and reference variance remain visible. '
             'The exact eight-result/two-method completion ledger below controls the strict verification result.</aside>'
-            '<nav class="jump-nav" aria-label="PBGSO contents"><a href="#framework">Framework</a>'
+            '<p><a href="index.html">Return to the theorem statements and proof roadmap</a>.</p>'
+            '<nav class="jump-nav" aria-label="PBGSO technical contents"><a href="#framework">Framework</a>'
             '<a href="#assumptions">Assumptions</a><a href="#main-results">Formal results</a>'
             '<a href="#source-inventory">Paper correspondence</a><a href="#modules">Supporting proofs</a>'
             '<a href="#result-fully-constructed-momentum">M-MFPO bound</a><a href="#result-fully-constructed-hol">HOL bound</a>'
@@ -3115,7 +3129,7 @@ def overview_document(sources, parsed, math):
     body += '<p>Lean checks the formal proofs. The default PBGSO verifier checks source hashes, every displayed declaration, exact assumption inventory, source-result coverage, local links and regeneration. Its successful run certifies documentation fidelity, not completion of all paper theorems. The strict <code>--require-complete</code> command rejects any open source-result, actual method-bound or required bridge obligation. Its source correspondence uses the documented SDE meaning of A2 and ordinary finite signed-work convention for the constant-diffusion source2 branch; an extended-negative-work theorem is not claimed. The audit file exposes logical axioms separately from analytic theorem premises. This source-based development has no proof PDF export.</p></section>'
     from report_citations import citation_panel
     body += citation_panel(None, None, None, page)
-    return shell(page, 'PBGSO framework and verified method bounds', body, 'PBGSO')
+    return shell(page, 'PBGSO proof details and complete catalog', body, 'PBGSO')
 
 
 def module_document(path, sources, parsed):
@@ -3141,6 +3155,7 @@ def module_document(path, sources, parsed):
 
 
 def outputs():
+    from pbgso_overview import overview_document
     sources, parsed = source_inventory()
     math_inputs = []
     def collect_math(text):
@@ -3148,8 +3163,10 @@ def outputs():
         return text
     # Collect the exact overview prose, including the inline theorem panels.
     overview_document(sources, parsed, collect_math)
+    technical_document(sources, parsed, collect_math)
     math = HELPERS.render_mathematics(math_inputs)
-    result = {OVERVIEW: overview_document(sources, parsed, math)}
+    result = {OVERVIEW: overview_document(sources, parsed, math),
+              CATALOG: technical_document(sources, parsed, math)}
     result.update({proof_page(path): module_document(path, sources, parsed) for path in sources})
     result['PBGSO/exposition/assumption_inventory.json'] = json.dumps(
         assumption_inventory(sources, parsed), indent=2, ensure_ascii=False) + '\n'
@@ -3158,8 +3175,12 @@ def outputs():
 
 def authoring_inputs():
     sources, _ = source_inventory()
-    return ['docs/build_pbgso.py', 'scripts/verify-pbgso.py', 'PBGSO/README.md',
-            'PBGSO/exposition/source_audit.md', 'PBGSO/exposition/reference_audit.json'] + list(sources)
+    return ['docs/build_pbgso.py', 'docs/pbgso_overview.py', 'docs/assets/pbgso.css',
+            'scripts/check-pbgso-standalone.py',
+            'docs/test_pbgso_landing.py',
+            'scripts/verify-pbgso.py', 'PBGSO/README.md',
+            'PBGSO/exposition/source_audit.md', 'PBGSO/exposition/reference_audit.json'] + list(sources) + sorted(
+                p.relative_to(ROOT).as_posix() for p in (ROOT/'standalone/PBGSO').glob('*.lean'))
 
 
 if __name__ == '__main__':

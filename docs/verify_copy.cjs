@@ -24,7 +24,7 @@ function checkModernCoverage() {
     'UnadjustedLangevin/LSI/exposition/index.html', 'IPLA/exposition/index.html',
     'IPLA/LSI/exposition/index.html', 'ProximalLangevin/exposition/index.html',
     'KineticLangevin/exposition/index.html', 'KIPLMC/exposition/index.html',
-    'PBGSO/exposition/index.html'];
+    'PBGSO/exposition/index.html', 'PBGSO/exposition/technical.html'];
   function visit(directory) {
     for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
       const file = path.join(directory, entry.name);

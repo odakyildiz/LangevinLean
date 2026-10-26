@@ -80,14 +80,19 @@ coordinate identities, integral references and mesh-independent moment/modulus
 constants are constructed. There is no supplied reference-law, coefficient
 matching, noise-error or final discretization-error premise.
 
-The assumptions remain substantive: separate global force Lipschitz bounds,
+The assumptions remain substantive: independent forces that are globally jointly
+Lipschitz in both optimiser and sampler coordinates,
 positive particle count, the displayed flattened Euclidean cloud encoding,
-P₂ initial and target laws, actual frozen invariance, zero target mean
+P₂ initial and target laws, an actual norm-continuous L² frozen trajectory on
+the stationary law times the canonical Brownian source, zero target mean
 observation, a positive source A3 rate/metric and uniform reference observation
 variance. The kinetic friction hypotheses and HOL `alpha > 0`, `gamma >= 0`
 appear explicitly. Arbitrary invertible cloud encodings transform raw noise;
 isotropic independent particle noise uses the proved Euclidean encoding.
-The bounds concern stationary critical points and finite horizons. They do not
+The frozen trajectory starts at the initial-coordinate projection, solves the
+frozen physical-input integral equation, and preserves the target law at each
+time. These final numerical endpoints take that realization explicitly; they
+do not derive it from an abstract invariant law. The bounds concern stationary critical points and finite horizons. They do not
 assert global minimization or uniform-in-time numerical mixing.
 
 `FullyConstructedHigherOrder.original_parameter_bound` additionally proves an
@@ -126,6 +131,54 @@ verified under the audit file’s explicit source interpretations.
 Regenerate the site with `python3 docs/build_site.py`; the bundled Node runtime
 must be on PATH for local math rendering. Existing repository-wide static and
 citation checks also apply.
+
+## Standalone verification
+
+The compact entry files
+[`NewA.lean`](../standalone/PBGSO/NewA.lean),
+[`NewB.lean`](../standalone/PBGSO/NewB.lean), and
+[`PaperTheorems.lean`](../standalone/PBGSO/PaperTheorems.lean) print the exact
+final theorem contracts and audit their logical axioms. They import the proof
+library and are **repository checks**, rather than self-contained proof files:
+
+```sh
+lake build PBGSO
+python3 scripts/check-pbgso-standalone.py --check
+```
+
+To generate genuinely self-contained local proofs, export the complete
+transitive source closure into one Mathlib-only file per entry point and check
+it with the repository's compiled modules excluded:
+
+```sh
+python3 scripts/check-pbgso-standalone.py --output /tmp/pbgso-standalone --check
+```
+
+The output directory must be new or empty. It receives `NewA.lean`, `NewB.lean`,
+`PaperTheorems.lean`, the pinned `lean-toolchain`, exact source hashes in
+`manifest.json`, and full Lean output in `*.check.txt`. Each exported file
+contains every local definition, assumption and proof used by its endpoints;
+only Mathlib is imported. The script checks each file in a fresh directory with
+all original project oleans removed from `LEAN_PATH`, and rejects unexpected
+axioms. No theorem is renamed or strengthened.
+
+To export only one numerical theorem, use `--endpoint new-a` or
+`--endpoint new-b`; `--endpoint paper` selects the original paper endpoints.
+For example:
+
+```sh
+python3 scripts/check-pbgso-standalone.py --endpoint new-a --output /tmp/pbgso-new-a --check
+```
+
+These commands run offline once the repository's pinned Lean toolchain and
+Mathlib dependencies are prepared; the script never installs or fetches them.
+An exported `.lean` file can also be copied into a separate project with Lean
+`leanprover/lean4:v4.35.0-rc3` and Mathlib `v4.35.0-rc3`, then checked with
+`lake env lean NewA.lean` (or the other filename). The analytic hypotheses
+remain visible in the exact theorem types. New A and New B are the finite
+horizon implementation-to-target bounds described above; the paper entry
+retains the finite signed-work convention, actual A1/A2 solution assumptions,
+original interacting-solution existence and synchronous initial conditions.
 
 ## Entry points
 

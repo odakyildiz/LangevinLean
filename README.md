@@ -9,11 +9,13 @@ The shared theory is organized for reuse by further methods.
 
 Open the [documentation homepage](index.html), then choose strongly convex ULA,
 ULA under LSI, strongly convex IPLA, proximal algorithms, kinetic Langevin,
-KIPLMC, or PBGSO. Each overview has mathematical results beside Lean,
-verification commands, and a proof diagram whose boxes open detailed HTML
-proof pages. The established reports have module pages and downloadable LaTeX
-expositions; PBGSO has source-based declaration pages with explicit scope and
-assumption notes.
+KIPLMC, or PBGSO. The established overviews pair mathematical results with Lean,
+verification commands, and proof diagrams linking to detailed HTML proof pages.
+They have module pages and downloadable LaTeX expositions. PBGSO's main page
+states its four main paper theorems and final discretisation bounds New A and
+New B, colours added assumptions, provides standalone checks, and ends with a
+linked roadmap. Its separate technical catalog retains the source-based
+declaration pages and exact assumption notes.
 Relative links and bundled mathematical typesetting work offline after cloning;
 no website account or documentation build is needed to read the pages.
 

@@ -261,6 +261,7 @@ import PBGSO.RawSamplerGrowth
 import PBGSO.RawSamplerGrowthArbitraryLaw
 import PBGSO.RawSamplerGrowthLaw
 import PBGSO.RawSolutionLawUniqueness
+import PBGSO.RawStationaryUniqueness
 import PBGSO.RawStoppingAdaptation
 import PBGSO.RawStoppingCoordinates
 import PBGSO.RawToPredictableData
