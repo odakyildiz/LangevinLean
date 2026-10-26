@@ -12,10 +12,12 @@ ULA under LSI, strongly convex IPLA, proximal algorithms, kinetic Langevin,
 KIPLMC, or PBGSO. The established overviews pair mathematical results with Lean,
 verification commands, and proof diagrams linking to detailed HTML proof pages.
 They have module pages and downloadable LaTeX expositions. PBGSO's main page
-states its four main paper theorems and final discretisation bounds New A and
-New B, colours added assumptions, provides standalone checks, and ends with a
-linked roadmap. Its separate technical catalog retains the source-based
-declaration pages and exact assumption notes.
+pairs its four main paper theorems and final discretisation bounds New A and
+New B with exact Lean statements. A1–A5, added R1–R3 and numerical N1–N3 are
+stated separately using the paper’s notation. The page expands all numerical
+constants, colours added conditions, provides readable standalone declarations
+and ends with a linked roadmap. Its separate technical catalog retains the
+source-based declaration pages and exact assumption notes.
 Relative links and bundled mathematical typesetting work offline after cloning;
 no website account or documentation build is needed to read the pages.
 
@@ -113,7 +115,15 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   coordinates, physical Gaussian noise, exact restarts and uniform reference
   moments. The discretisation term is D*sqrt(h) for every iteration under an
   explicit positive small-step threshold, with constants allowed to depend
-  on fixed N. No numerical contraction or uniform moment bound is assumed. Source A2 means actual stationary weak frozen SDE invariance;
+  on fixed N. The explicit headline endpoints are
+  `FullyUniformMomentum.explicit_parameter_bound` and
+  `FullyUniformHigherOrder.explicit_parameter_bound`; each also certifies the
+  full raw-state error through `explicit_discretization_bound`. The proved metric
+  comparison constants are `sqrt(lower_N)/2` and `2*sqrt(upper_N)`,
+  and cloud dimensions, force origins and local coefficients have proved
+  arithmetic expansions. No numerical contraction or uniform moment bound is
+  assumed. Older existential endpoints remain corollaries. Source A2 means
+  actual stationary weak frozen SDE invariance;
   constant-diffusion source2 uses the independent ordinary finite signed-work
   reading of universal A3. The broader extended-negative-work interpretation
   is outside that convention. Original interacting-solution existence and
@@ -123,7 +133,13 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   HOL coefficient defect. `python3 scripts/verify-pbgso.py` checks documentation
   fidelity; `python3 scripts/verify-pbgso.py --require-complete` also checks all
   eight source results, both method bounds and required bridges under the
-  audit file’s stated source interpretations.
+  audit file’s stated source interpretations. The readable
+  [New A](standalone/PBGSO/NewA.lean), [New B](standalone/PBGSO/NewB.lean) and
+  [paper theorem](standalone/PBGSO/PaperTheorems.lean) entries state complete
+  assumptions and conclusions with short checked proofs.
+  `python3 scripts/check-pbgso-standalone.py --output /tmp/pbgso-standalone --check`
+  exports each complete Mathlib-only proof closure with the readable contracts
+  first, then compiles it with this project’s compiled modules excluded.
 
 The two kinetic developments prove convergence of the continuous processes
 and the Gaussian samplers under the displayed assumptions. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:

@@ -3,8 +3,10 @@
 
 Uses only the standard library, the installed pinned Lean toolchain, and
 already prepared local Mathlib dependencies. It never fetches dependencies.
-Compact repository entry files import the proof library. --output instead
-copies the complete transitive local proof sources into one file per endpoint.
+Reader-facing repository entry files state the complete theorem contracts and
+prove them by applying the checked library. --output copies the complete
+transitive local proof sources into one Mathlib-only file per entry. Each
+export begins with an exact contract preview before its long proof appendix.
 --output ... --check excludes this project's compiled modules from LEAN_PATH
 and compiles each exported file in a fresh directory.
 """
@@ -78,6 +80,21 @@ def without_imports(source: str) -> str:
                    if not re.match(r"\s*(?:public\s+)?import\s+", code))
 
 
+def validate_reader_entry(entry: Path) -> None:
+    """A check-only list of imported names is not a readable theorem contract."""
+    required = {
+        "NewA.lean": {"theorem_new_a", "step_and_discretization_bound"},
+        "NewB.lean": {"theorem_new_b", "step_and_discretization_bound"},
+        "PaperTheorems.lean": {"theorem1_stationary_product", "theorem2_constant_diffusion",
+                               "theorem2_linear_growth", "theorem3_particle_interaction",
+                               "theorem4_parameter_constant", "theorem4_parameter_linear_growth"},
+    }
+    names = set(re.findall(r"^theorem\s+([\w.]+)\b", code_only(entry.read_text()), re.M))
+    missing = required[entry.name] - names
+    if missing:
+        raise ValueError(f"Missing actual reader-facing theorem declarations in {entry.name}: {sorted(missing)}")
+
+
 def local_closure(entry: Path) -> tuple[list[tuple[Path, str]], list[str]]:
     ordered, external, seen, active = [], [], set(), set()
 
@@ -106,6 +123,13 @@ def local_closure(entry: Path) -> tuple[list[tuple[Path, str]], list[str]]:
 
 def export(entry: Path, destination: Path) -> dict:
     sources, external = local_closure(entry)
+    entry_source = entry.read_text()
+    contracts = without_imports(entry_source)
+    contract_code = code_only(contracts)
+    if not re.search(r"^theorem\s+", contract_code, re.M):
+        raise ValueError(f"No inspectable theorem declaration in {entry.name}")
+    if re.search(r"\b(?:sorry|admit|sorryAx|axiom)\b", contract_code):
+        raise ValueError(f"Placeholder or new axiom in {entry.name}")
     chunks = ["\n".join("import " + name for name in external), f'''
 /-!
 # PBGSO standalone proof export: {entry.name}
@@ -118,11 +142,24 @@ not needed. No theorem is renamed or strengthened by this export.
 Use Lean {TOOLCHAIN} and Mathlib v4.35.0-rc3 with its prepared dependencies:
   lake env lean {entry.name}
 
-The final #check commands print the complete original theorem contracts, and
-#print axioms checks their complete kernel dependencies. The supplied analytic
-assumptions remain hypotheses; this file does not assert that they hold for
-arbitrary models. Source module boundaries are preserved by explicit sections.
+The reader-facing contracts are previewed FIRST, before the proof appendix.
+Their actual Lean declarations are compiled after their dependencies at the
+end of this file; the preview is copied exactly from the checked entry file.
+#print axioms audits the complete kernel dependencies of those declarations.
+The supplied analytic assumptions remain hypotheses; this file does not
+assert that they hold for arbitrary models. Source module boundaries are
+preserved by explicit sections.
 -/
+/-
+================ READER-FACING THEOREM CONTRACTS ================
+This preview is an exact copy of the repository entry (except imports).
+Lean dependency order puts its compiled declarations after the proof appendix.
+
+{contracts}
+================ END READER-FACING CONTRACTS ====================
+-/
+
+/-! # Complete checked proof appendix -/
 set_option relaxedAutoImplicit false
 set_option maxSynthPendingDepth 3
 set_option maxHeartbeats 2000000
@@ -145,14 +182,16 @@ set_option linter.unusedSectionVars false
         chunks.extend([f"\n/-! ## Included source: {relative} -/\nsection\n", body,
                        "\n" + "end\n" * pending + "end\n"])
         hashes[relative] = hashlib.sha256(source.encode()).hexdigest()
-    chunks.extend(["\n/-! ## Exact original endpoint checks -/\n", without_imports(entry.read_text())])
+    chunks.extend(["\n/-! # Compiled reader-facing theorem declarations -/\n", contracts])
     text = "\n".join(chunks)
     if any(name != "Mathlib" and not name.startswith("Mathlib.") for name in imports(text)):
         raise ValueError("Export retained a local import")
     destination.write_text(text)
     return {"file": destination.name, "sha256": hashlib.sha256(text.encode()).hexdigest(),
             "local_source_count": len(sources), "source_sha256": hashes,
-            "external_imports": external, "endpoint_entry": entry.relative_to(ROOT).as_posix()}
+            "external_imports": external, "endpoint_entry": entry.relative_to(ROOT).as_posix(),
+            "endpoint_sha256": hashlib.sha256(entry_source.encode()).hexdigest(),
+            "reader_contract_preview": True}
 
 
 def lake_command() -> list[str]:
@@ -241,6 +280,7 @@ def main() -> None:
         report = {"schema_version": 1, "lean_toolchain": TOOLCHAIN, "endpoints": {}}
         for key in selected:
             entry = ENTRY / ENTRIES[key]
+            validate_reader_entry(entry)
             if output:
                 target = output / entry.name
                 item = export(entry, target)
@@ -256,7 +296,9 @@ def main() -> None:
             (output / "lean-toolchain").write_text(TOOLCHAIN + "\n")
             (output / "README.md").write_text(
                 "# PBGSO Mathlib-only standalone exports\n\n"
-                "Each .lean file contains every local definition, assumption and proof in its endpoint's transitive closure. "
+                "Each .lean file begins with an exact, human-readable preview of its assumptions and theorem statements, "
+                "followed by every local definition and proof in its endpoint's transitive closure. "
+                "The same actual theorem declarations are compiled after the proof appendix, as required by Lean dependency order. "
                 "Only Mathlib is imported. Copy a file into a project with the pinned Lean/Mathlib v4.35.0-rc3 and run "
                 "`lake env lean NewA.lean` (or NewB.lean / PaperTheorems.lean). No original checkout or local PBGSO oleans are needed.\n\n"
                 "manifest.json records exact source hashes and any isolated compilation/axiom audit; .check.txt files contain full diagnostics. "

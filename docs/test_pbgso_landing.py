@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('verify_pbgso', ROOT/'scripts/verify-pbgso.py')
 VERIFY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VERIFY)
+STANDALONE_SPEC = importlib.util.spec_from_file_location(
+    'pbgso_standalone', ROOT/'scripts/check-pbgso-standalone.py')
+STANDALONE = importlib.util.module_from_spec(STANDALONE_SPEC)
+STANDALONE_SPEC.loader.exec_module(STANDALONE)
 
 
 class LandingContractTests(unittest.TestCase):
@@ -36,20 +40,38 @@ class LandingContractTests(unittest.TestCase):
             'formal_coverage': {identifier: dict(declarations=[dict(file=f'PBGSO/Appendix{i}.lean')])
                                 for i, identifier in enumerate(appendix)},
         }
+        def pair(content):
+            return ('<div class="statement-pair"><div class="statement-math">' + content +
+                    '</div><aside class="statement-lean"><pre data-source="PBGSO/Example.lean" '
+                    'data-role="statement">theorem example : 0 ≤ 1</pre></aside></div>')
+
+        def assumption(identifier, added=False):
+            marker = (' class="added-assumption" data-assumption-kind="added"' if added else '')
+            return (f'<article data-assumption-id="{identifier}"{marker}>' +
+                    pair('<div class="katex">The explicit quantified assumption.</div>') + '</article>')
+
         paper = []
         for i, identifier in enumerate(identifiers):
             status = ('<div class="added-assumption" data-assumption-kind="added">'
                       'Explicit regularity: FiniteCouplingWork.</div>' if i == 1 else
                       '<p class="no-added-assumption">Added analytic assumptions: none.</p>')
-            paper.append(f'<article data-source-result="{identifier}"><h3>Theorem {i+1} — Paper name</h3>'
-                         '<p>Paper assumptions: the stated initial laws and model hypotheses.</p>' +
-                         status + '<div class="katex">The mathematical conclusion.</div></article>')
-        new = ''.join(f'<article data-new-theory="{label}"><h3>Theorem New {label} — Final bound</h3>'
-                      '<p class="added-assumption" data-assumption-kind="added">'
-                      'Assumptions: the explicit primitive force conditions.</p>'
-                      '<div class="katex" data-time-uniform="true">The final numerical parameter bound '
-                      'for every iteration, with constants independent of time.</div></article>'
+            paper.append(f'<article data-source-result="{identifier}"><h3>Theorem {i+1} — Paper name</h3>' +
+                         pair('<p>Paper assumptions: the stated initial laws and model hypotheses.</p>' +
+                              status + '<div class="katex">The mathematical conclusion.</div>') + '</article>')
+        new = ''.join(f'<article data-new-theory="{label}"><h3>Theorem New {label} — Final bound</h3>' +
+                      pair('<p class="added-assumption" data-assumption-kind="added">'
+                           'Assumptions: the explicit primitive force conditions.</p>'
+                           '<div class="katex" data-time-uniform="true">The final numerical parameter bound '
+                           'for every iteration, with constants independent of time.</div>') + '</article>'
                       for label in 'AB')
+        constants = ''.join(f'<article id="{identifier}">' + pair(
+            '<div class="katex">All coefficients equal explicit arithmetic formulas.</div>') + '</article>'
+            for identifier in ('numerical-force-constants', 'numerical-m-constants',
+                               'numerical-h-constants', 'numerical-metric-constants',
+                               'numerical-final-constants'))
+        paper_assumptions = ''.join(assumption('A'+str(i)) for i in range(1, 6))
+        added_assumptions = ''.join(assumption('R'+str(i), True) for i in range(1, 4))
+        numerical_assumptions = ''.join(assumption('N'+str(i), i != 2) for i in range(1, 4))
         roadmap_links = ''.join(f'<a href="proofs/Appendix{i}.html#decl-final">Appendix result {i}</a>'
                                 for i in range(4))
         self.roadmap_prose = ('The proof constructs the original processes, derives their comparison '
@@ -57,9 +79,10 @@ class LandingContractTests(unittest.TestCase):
         self.overview = (
             '<main id="main"><a href="technical.html">Separate proof catalog</a>'
             '<section id="assumptions"><span class="interpretation-assumption" '
-            'data-assumption-kind="interpretation">A2 means an actual stationary weak SDE.</span></section>' +
+            'data-assumption-kind="interpretation">A2 means an actual stationary weak SDE.</span>' +
+            paper_assumptions + added_assumptions + '</section>' +
             '<section id="paper-theorems">'+''.join(paper)+'</section>' +
-            '<section id="new-theory">'+new+'</section>' +
+            '<section id="new-theory">'+numerical_assumptions+constants+new+'</section>' +
             '<section id="standalone-verification"><pre>python3 scripts/check-example.py '
             '--output /tmp/generated-proof\nlake env lean /tmp/generated-proof/NewA.lean</pre>'
             '<a href="../../standalone/PBGSO/NewA.lean">New A entry</a>'
@@ -111,6 +134,24 @@ class LandingContractTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.check(self.overview.replace('for every iteration', 'until a fixed time', 1))
 
+    def test_lean_link_cannot_replace_the_actual_formalization(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('class="statement-lean"', 'class="only-link"', 1))
+
+    def test_missing_explicit_paper_assumption_is_rejected(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('data-assumption-id="A4"', ''))
+
+    def test_added_numerical_assumptions_must_be_colored(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('data-assumption-id="N1" class="added-assumption" '
+                                             'data-assumption-kind="added"', 'data-assumption-id="N1"'))
+
+    def test_opaque_constant_lookup_cannot_replace_expansion(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('All coefficients equal explicit arithmetic formulas.',
+                                             'Use momentumUniformDefect to obtain the coefficients.', 1))
+
     def test_catalog_cannot_return_to_landing(self):
         with self.assertRaises(AssertionError):
             self.check(self.overview.replace('</main>', '<article class="module-card"></article></main>'))
@@ -134,6 +175,21 @@ class LandingContractTests(unittest.TestCase):
     def test_roadmap_must_include_each_appendix_result(self):
         with self.assertRaises(AssertionError):
             self.check(self.overview.replace('proofs/Appendix3.html#decl-final', 'source_audit.md'))
+
+
+class StandaloneReaderContractTests(unittest.TestCase):
+    def test_actual_entries_expose_their_theorems(self):
+        for filename in STANDALONE.ENTRIES.values():
+            STANDALONE.validate_reader_entry(STANDALONE.ENTRY/filename)
+
+    def test_check_command_and_commented_statement_are_not_declarations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            entry = Path(directory)/'NewA.lean'
+            entry.write_text('import PBGSO.FullyUniformMomentum\n'
+                             '-- theorem theorem_new_a : True := by trivial\n'
+                             '#check PBGSO.FullyUniformMomentum.explicit_parameter_bound\n')
+            with self.assertRaises(ValueError):
+                STANDALONE.validate_reader_entry(entry)
 
 
 if __name__ == '__main__':

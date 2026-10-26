@@ -1,6 +1,6 @@
 import PBGSO.FullyConstructedHigherOrder
 import PBGSO.HOLUniform
-import PBGSO.ImplementationMetric
+import PBGSO.MethodMetricComparisons
 import PBGSO.UniformStepSize
 
 /-! # Time-uniform HOL-MYPGD parameter error from primitive source data
@@ -53,22 +53,72 @@ variable (α γ : ℝ) (Geo : TwistedGeometry A (HigherOrderSampler (EuclideanSp
         (input α) (input_continuous α) (input_zero α) r) ≤ Variance)
 
 
-/-- Uniform strong discretisation error in the original raw product norm:
-the maximum of the four component L² discrepancies. All constants are derived
-from primitive forces, A3, physical coordinates and the actual initial state. -/
-theorem discretization_bound [FiniteDimensional ℝ A]
+/-- Coercivity of the constructed source metric in raw HOL coordinates. -/
+def metricCoercivity : ℝ := Real.sqrt (EmpiricalMetric.lower N Geo) / 2
+
+/-- Data-only upper norm bound for the constructed metric factor. -/
+def metricUpper : ℝ := 2 * Real.sqrt (EmpiricalMetric.upper N Geo)
+
+/-- State-independent part of the proved local Gaussian error. -/
+def localConstant0 : ℝ :=
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  holUniformLocalConstant0 (Fin N × J) α γ D.meanLip D.samplerForceLip
+    ‖D.meanForceLp Q 0 0‖ ‖D.samplerForceLp Q 0 0‖
+    ‖holDrift (D.meanForceLp Q) (D.samplerForceLp Q) α γ 0‖
+
+/-- Linear initial-state part of the proved local Gaussian error. -/
+def localConstant1 : ℝ :=
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  holUniformLocalConstant1 α γ D.meanLip D.samplerForceLip
+    ‖D.meanForceLp Q 0 0‖ ‖D.samplerForceLp Q 0 0‖
+
+/-- Actual Brownian increment radius, including every particle coordinate. -/
+def noiseRadius : ℝ := holUniformNoiseRadius (Fin N × J) α
+
+/-- Explicit one-unit exact-flow radius when started at zero. -/
+def zeroStartRadius : ℝ :=
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  UniformIntegral.radius (holDriftGlobalLip D.meanLip D.samplerForceLip α γ)
+    ‖holDrift (D.meanForceLp Q) (D.samplerForceLp Q) α γ 0‖
+    (noiseRadius (N := N) (J := J) α) 0
+
+/-- Data-only transformed zero-start radius `S`. -/
+def zeroStartMoment : ℝ := metricUpper (N := N) Geo * zeroStartRadius D α γ μ
+
+/-- Uniform exact-reference radius, derived by contraction and unit restarts. -/
+def referenceRadius (ρ : ℝ) : ℝ :=
+  let S := zeroStartMoment D α γ Geo μ
+  metricUpper (N := N) Geo * ‖initial D α γ Geo μ hμ a Variance hVariance‖ +
+    S / (1 - Real.exp (-ρ)) + S
+
+/-- Linear-radius coefficient absorbed by exact-flow dissipation. -/
+def radiusGrowth : ℝ :=
+  metricUpper (N := N) Geo * localConstant1 D α γ μ / metricCoercivity (N := N) Geo
+
+/-- Explicit time-uniform discretisation coefficient, independent of `h,n`. -/
+def discretizationConstant (ρ : ℝ) : ℝ :=
+  (4 * (metricUpper (N := N) Geo * localConstant0 D α γ μ +
+    radiusGrowth D α γ Geo μ * referenceRadius D α γ Geo μ hμ a Variance hVariance ρ) / ρ) /
+      metricCoercivity (N := N) Geo
+
+/-- Explicit positive upper step size, with no hidden error or radius premise. -/
+def maximumStep (ρ : ℝ) : ℝ := UniformStep.maximumStep ρ (radiusGrowth D α γ Geo μ)
+
+/-- Positivity and the uniform bound for the explicit constants above. -/
+theorem explicit_discretization_guarantee [FiniteDimensional ℝ A]
     (hcloud : D.cloud = euclideanParticleEncoding N J)
     (hα : 0 < α) (hγ : 0 ≤ γ)
     (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (sourceModel D α γ) Geo ρ) :
-    ∃ hmax K : ℝ, 0 < hmax ∧ 0 ≤ K ∧
-      ∀ (h : ℝ≥0) (n : ℕ), 0 < (h : ℝ) → (h : ℝ) ≤ hmax →
+    0 < maximumStep D α γ Geo μ ρ ∧
+      0 ≤ discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ ∧
+      ∀ (h : ℝ≥0) (n : ℕ), 0 < (h : ℝ) → (h : ℝ) ≤ maximumStep D α γ Geo μ ρ →
         ‖higherOrderPullbackParticleIterate (Fin N × J)
           (ParticleNoiseSpace.probability (J := J) μ N)
           (ParticleNoiseSpace.noise_preserving (J := J) μ N) D α γ h
           (initial D α γ Geo μ hμ a Variance hVariance) n -
           higherOrderUnpackLp (ParticleNoiseSpace.probability (J := J) μ N) D
             ((particle D α γ Geo μ hμ a Variance hVariance).state (n * (h : ℝ)))‖ ≤
-          K * Real.sqrt (h : ℝ) := by
+          discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ * Real.sqrt (h : ℝ) := by
   let Q := ParticleNoiseSpace.probability (J := J) μ N
   let hf := ParticleNoiseSpace.noise_preserving (J := J) μ N
   let L := higherOrderForceDynamics D α γ
@@ -103,12 +153,10 @@ theorem discretization_bound [FiniteDimensional ℝ A]
       Part.continuous hYeq t ht
     rw [higherOrderUnpackLp_brownian Q D hcloud] at he
     exact he
-  obtain ⟨dim, C, hcoerc, hupper, hCmono⟩ := ImplementationMetric.higherOrder_metric Q D α γ
+  obtain ⟨dim, C, hcoerc, hupper, hCmono⟩ := MethodMetricComparisons.higherOrder_metric_explicit Q D hcloud α γ
     (physicalColumns (J := J) α) Geo ρ hmono
-  let m := Real.sqrt (EmpiricalMetric.lower N Geo) /
-    (‖(higherOrderPhysicalLpEquiv Q D).symm.toContinuousLinearMap‖ + 1)
-  let Upper := Real.sqrt (EmpiricalMetric.upper N Geo) *
-    ‖(higherOrderPhysicalLpEquiv Q D).toContinuousLinearMap‖
+  let m := Real.sqrt (EmpiricalMetric.lower N Geo) / 2
+  let Upper := 2 * Real.sqrt (EmpiricalMetric.upper N Geo)
   have hm : 0 < m := by
     dsimp [m]
     exact div_pos (Real.sqrt_pos.mpr (EmpiricalMetric.lower_pos N D.nonempty Geo)) (by positivity)
@@ -146,7 +194,8 @@ theorem discretization_bound [FiniteDimensional ℝ A]
       (div_le_div_of_nonneg_right hs hgap.le)) hs
   have hab : ‖C‖ * c₁ / m ≤ b :=
     div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_right hCnorm hc₁) hm.le
-  refine ⟨UniformStep.maximumStep ρ b, K, UniformStep.maximumStep_pos ρ b hρ hb, hK, ?_⟩
+  change 0 < UniformStep.maximumStep ρ b ∧ 0 ≤ K ∧ _
+  refine ⟨UniformStep.maximumStep_pos ρ b hρ hb, hK, ?_⟩
   intro h n hh hhmax
   obtain ⟨hh1, hρh, hsmall⟩ := UniformStep.admissible ρ b h hρ hb hh hhmax
   have hsmallC : (‖C‖ * c₁ / m) * Real.sqrt (h : ℝ) ≤ ρ / 4 :=
@@ -173,10 +222,95 @@ theorem discretization_bound [FiniteDimensional ℝ A]
       _ ≤ ((4 * (Upper * c₀ + b * R) / ρ) * Real.sqrt (h : ℝ)) / m := by gcongr
       _ = K * Real.sqrt (h : ℝ) := by dsimp [K]; ring
   exact hdisc
+/-- The actual raw-state bound with fully specified constants and step range. -/
+theorem explicit_discretization_bound [FiniteDimensional ℝ A]
+    (hcloud : D.cloud = euclideanParticleEncoding N J)
+    (hα : 0 < α) (hγ : 0 ≤ γ)
+    (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (sourceModel D α γ) Geo ρ)
+    (h : ℝ≥0) (n : ℕ) (hh : 0 < (h : ℝ))
+    (hhmax : (h : ℝ) ≤ maximumStep D α γ Geo μ ρ) :
+        ‖higherOrderPullbackParticleIterate (Fin N × J)
+          (ParticleNoiseSpace.probability (J := J) μ N)
+          (ParticleNoiseSpace.noise_preserving (J := J) μ N) D α γ h
+          (initial D α γ Geo μ hμ a Variance hVariance) n -
+          higherOrderUnpackLp (ParticleNoiseSpace.probability (J := J) μ N) D
+            ((particle D α γ Geo μ hμ a Variance hVariance).state (n * (h : ℝ)))‖ ≤
+          discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ * Real.sqrt (h : ℝ) := by
+  exact (explicit_discretization_guarantee D α γ Geo μ hμ a Variance hVariance
+    hcloud hα hγ ρ hρ hmono).2.2 h n hh hhmax
 
-/-- The final time-uniform parameter error combines the derived numerical
-floor with source continuous relaxation and particle interaction. No numerical
-metric, compatible process, moment estimate or error recurrence is a premise. -/
+/-- Backwards-compatible existential form of the explicit bound. -/
+theorem discretization_bound [FiniteDimensional ℝ A]
+    (hcloud : D.cloud = euclideanParticleEncoding N J)
+    (hα : 0 < α) (hγ : 0 ≤ γ)
+    (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (sourceModel D α γ) Geo ρ) :
+    ∃ hmax K : ℝ, 0 < hmax ∧ 0 ≤ K ∧
+      ∀ (h : ℝ≥0) (n : ℕ), 0 < (h : ℝ) → (h : ℝ) ≤ hmax →
+        ‖higherOrderPullbackParticleIterate (Fin N × J)
+          (ParticleNoiseSpace.probability (J := J) μ N)
+          (ParticleNoiseSpace.noise_preserving (J := J) μ N) D α γ h
+          (initial D α γ Geo μ hμ a Variance hVariance) n -
+          higherOrderUnpackLp (ParticleNoiseSpace.probability (J := J) μ N) D
+            ((particle D α γ Geo μ hμ a Variance hVariance).state (n * (h : ℝ)))‖ ≤
+          K * Real.sqrt (h : ℝ) := by
+  exact ⟨maximumStep D α γ Geo μ ρ, discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ,
+    explicit_discretization_guarantee D α γ Geo μ hμ a Variance hVariance
+      hcloud hα hγ ρ hρ hmono⟩
+
+/-- Final parameter theorem with data-defined numerical coefficient and step size. -/
+theorem explicit_parameter_bound [FiniteDimensional ℝ A]
+    (hcloud : D.cloud = euclideanParticleEncoding N J)
+    (hα : 0 < α) (hγ : 0 ≤ γ)
+    (νStar : Measure (HigherOrderSampler (EuclideanSpace ℝ J))) [IsProbabilityMeasure νStar]
+    (hνStar : MemLp (fun z : HigherOrderSampler (EuclideanSpace ℝ J) ↦ z) 2 νStar)
+    (aStar : A)
+    (Frozen : AdditiveStationary.FrozenTrajectory (ULA.CanonicalBrownian.vectorProbability J)
+      (higherOrderForceDynamics D α γ) νStar hνStar aStar (input α))
+    (ρ : ℝ) (hρ : 0 < ρ) (hmono : TwistedJointMonotonicity (sourceModel D α γ) Geo ρ)
+    (hg : (sourceModel D α γ).meanGradient νStar aStar = 0)
+    (hV : 0 ≤ Variance)
+    (h : ℝ≥0) (n : ℕ) (hh : 0 < (h : ℝ))
+    (hhstep : (h : ℝ) ≤ maximumStep D α γ Geo μ ρ) :
+        ‖(higherOrderPullbackParticleIterate (Fin N × J)
+          (ParticleNoiseSpace.probability (J := J) μ N)
+          (ParticleNoiseSpace.noise_preserving (J := J) μ N) D α γ h
+          (initial D α γ Geo μ hμ a Variance hVariance) n).1 -
+          Lp.const 2 (ParticleNoiseSpace.probability (J := J) μ N) aStar‖ ≤
+        discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ * Real.sqrt (h : ℝ) +
+        (Real.sqrt Geo.conditionNumber * Real.exp (-ρ * (n * (h : ℝ))) *
+          optimizerLawDistance a aStar μ νStar +
+          (1 / ρ) * Real.sqrt (Geo.conditionNumber * Variance / (N : ℝ)) *
+            (1 - Real.exp (-ρ * (n * (h : ℝ))))) := by
+  let Q := ParticleNoiseSpace.probability (J := J) μ N
+  let hf := ParticleNoiseSpace.noise_preserving (J := J) μ N
+  let L := higherOrderForceDynamics D α γ
+  let M := sourceModel D α γ
+  let H := higherOrder_compatibility D.F D.G D.parameterLip D.samplerLip
+    D.parameter_bound D.sampler_bound α γ (physicalColumns (J := J) α)
+  let Part := particle D α γ Geo μ hμ a Variance hVariance
+  let Y := fun t : ℝ ↦ higherOrderUnpackLp Q D (Part.state t)
+  let K := discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ
+  have hdisc := explicit_discretization_bound D α γ Geo μ hμ a Variance hVariance
+    hcloud hα hγ ρ hρ hmono h n hh hhstep
+  have hparam := higherOrder_parameter_lipschitz D.F D.G α γ (physicalColumns (J := J) α)
+  have hcparam := AdditiveConstructed.parameter_bound (ULA.CanonicalBrownian.vectorProbability J)
+    L M H Geo μ hμ a (input α) (input_continuous α) (input_zero α) N D.nonempty
+    Variance hVariance νStar hνStar aStar Frozen ρ hρ hmono hparam hg
+    (by intros; exact neg_zero) hV (n * (h : ℝ)) (by positivity)
+  have hcoordinate : (Y (n * (h : ℝ))).1 = Part.parameter hparam (n * (h : ℝ)) :=
+    higherOrderUnpackLp_parameter Q D α γ (physicalColumns (J := J) α) _
+  change ‖Part.parameter hparam (n * (h : ℝ)) - Lp.const 2 (IndependentCopies.seeds (μ.prod (ULA.CanonicalBrownian.vectorProbability J)))
+      (M.parameter aStar)‖ ≤ _ at hcparam
+  rw [← hcoordinate] at hcparam
+  have hidentity : M.parameter aStar = aStar := rfl
+  have hresponse : (L.responseLip : ℝ) = 1 := rfl
+  rw [hidentity, hresponse] at hcparam
+  have hdiscθ : ‖(higherOrderPullbackParticleIterate (Fin N × J) Q hf D α γ h
+      (initial D α γ Geo μ hμ a Variance hVariance) n).1 - (Y (n * (h : ℝ))).1‖ ≤
+      K * Real.sqrt (h : ℝ) := (norm_fst_le _).trans hdisc
+  exact (numerical_target_triangle Q _ (Y (n * (h : ℝ))).1 aStar).trans
+    (add_le_add hdiscθ hcparam)
+/-- Backwards-compatible existential parameter bound. -/
 theorem parameter_bound [FiniteDimensional ℝ A]
     (hcloud : D.cloud = euclideanParticleEncoding N J)
     (hα : 0 < α) (hγ : 0 ≤ γ)
@@ -200,36 +334,11 @@ theorem parameter_bound [FiniteDimensional ℝ A]
           optimizerLawDistance a aStar μ νStar +
           (1 / ρ) * Real.sqrt (Geo.conditionNumber * Variance / (N : ℝ)) *
             (1 - Real.exp (-ρ * (n * (h : ℝ))))) := by
-  obtain ⟨hmax, K, hhmax, hK, hdiscretization⟩ := discretization_bound D α γ Geo μ hμ a
+  obtain ⟨hhmax, hK, _⟩ := explicit_discretization_guarantee D α γ Geo μ hμ a
     Variance hVariance hcloud hα hγ ρ hρ hmono
-  let Q := ParticleNoiseSpace.probability (J := J) μ N
-  let hf := ParticleNoiseSpace.noise_preserving (J := J) μ N
-  let L := higherOrderForceDynamics D α γ
-  let M := sourceModel D α γ
-  let H := higherOrder_compatibility D.F D.G D.parameterLip D.samplerLip
-    D.parameter_bound D.sampler_bound α γ (physicalColumns (J := J) α)
-  let Part := particle D α γ Geo μ hμ a Variance hVariance
-  let Y := fun t : ℝ ↦ higherOrderUnpackLp Q D (Part.state t)
-  refine ⟨hmax, K, hhmax, hK, ?_⟩
+  refine ⟨maximumStep D α γ Geo μ ρ, discretizationConstant D α γ Geo μ hμ a Variance hVariance ρ, hhmax, hK, ?_⟩
   intro h n hh hhstep
-  have hdisc := hdiscretization h n hh hhstep
-  have hparam := higherOrder_parameter_lipschitz D.F D.G α γ (physicalColumns (J := J) α)
-  have hcparam := AdditiveConstructed.parameter_bound (ULA.CanonicalBrownian.vectorProbability J)
-    L M H Geo μ hμ a (input α) (input_continuous α) (input_zero α) N D.nonempty
-    Variance hVariance νStar hνStar aStar Frozen ρ hρ hmono hparam hg
-    (by intros; exact neg_zero) hV (n * (h : ℝ)) (by positivity)
-  have hcoordinate : (Y (n * (h : ℝ))).1 = Part.parameter hparam (n * (h : ℝ)) :=
-    higherOrderUnpackLp_parameter Q D α γ (physicalColumns (J := J) α) _
-  change ‖Part.parameter hparam (n * (h : ℝ)) - Lp.const 2 (IndependentCopies.seeds (μ.prod (ULA.CanonicalBrownian.vectorProbability J)))
-      (M.parameter aStar)‖ ≤ _ at hcparam
-  rw [← hcoordinate] at hcparam
-  have hidentity : M.parameter aStar = aStar := rfl
-  have hresponse : (L.responseLip : ℝ) = 1 := rfl
-  rw [hidentity, hresponse] at hcparam
-  have hdiscθ : ‖(higherOrderPullbackParticleIterate (Fin N × J) Q hf D α γ h
-      (initial D α γ Geo μ hμ a Variance hVariance) n).1 - (Y (n * (h : ℝ))).1‖ ≤
-      K * Real.sqrt (h : ℝ) := (norm_fst_le _).trans hdisc
-  exact (numerical_target_triangle Q _ (Y (n * (h : ℝ))).1 aStar).trans
-    (add_le_add hdiscθ hcparam)
+  exact explicit_parameter_bound D α γ Geo μ hμ a Variance hVariance hcloud hα hγ
+    νStar hνStar aStar Frozen ρ hρ hmono hg hV h n hh hhstep
 
 end PBGSO.FullyUniformHigherOrder
