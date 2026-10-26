@@ -106,12 +106,14 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   [scope and module guide](PBGSO/README.md), and
   [audit of all eight numbered source results](PBGSO/exposition/source_audit.md).
   The general independent-map optimiser/sampler framework, all eight source
-  results and new actual M-MFPO/HOL-MYPGD finite-horizon bounds are proved under
+  results and new actual M-MFPO/HOL-MYPGD time-uniform bounds are proved under
   explicit assumptions. Actual Brownian integration, local stopping,
   original stationary product laws, optimal-law contraction and sharp original
   particle/parameter bounds are verified. Both methods construct their raw/L²
-  coordinates, physical Gaussian noise, integral references and mesh-uniform
-  constants. Source A2 means actual stationary weak frozen SDE invariance;
+  coordinates, physical Gaussian noise, exact restarts and uniform reference
+  moments. The discretisation term is D*sqrt(h) for every iteration under an
+  explicit positive small-step threshold, with constants allowed to depend
+  on fixed N. No numerical contraction or uniform moment bound is assumed. Source A2 means actual stationary weak frozen SDE invariance;
   constant-diffusion source2 uses the independent ordinary finite signed-work
   reading of universal A3. The broader extended-negative-work interpretation
   is outside that convention. Original interacting-solution existence and

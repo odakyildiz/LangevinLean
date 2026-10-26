@@ -22,9 +22,14 @@ full-system strong existence and same-driver uniqueness; actual Wiener-path
 transport derives the law comparison without a common-source frozen strong
 solver or ambient sample-measure separability.
 
-Both actual additive particle methods have new finite-horizon square-root-step
-parameter bounds with derived physical noise, Gaussian coupling, raw/L²
-coordinates, integral references and mesh-uniform constants. The sharp original
+Both actual additive particle methods have new time-uniform square-root-step
+parameter bounds for every iteration under an explicit positive small-step
+threshold. Source A3 constructs their contracting empirical metric; physical
+noise, Gaussian coupling, raw/L² coordinates, uniform reference moments and
+local errors are derived. Constants may depend on the fixed particle count.
+The numerical assumptions include globally jointly Lipschitz forces and
+finite-dimensional coordinates; no numerical contraction or uniform moment
+bound is assumed. The sharp original
 raw particle interaction and parameter arguments use computed local Brownian
 noise, genuine stopping and actual reference variance. The constant-diffusion source2 branch is also proved across arbitrary original
 sources under the explicitly independent ordinary finite signed-work reading

@@ -81,6 +81,7 @@ import PBGSO.DyadicPastLimit
 import PBGSO.DyadicPastSamples
 import PBGSO.DyadicStopping
 import PBGSO.EmpiricalMeasurability
+import PBGSO.EmpiricalMetric
 import PBGSO.EmpiricalMonotonicity
 import PBGSO.ExpectedBilinearLimits
 import PBGSO.FilteredBrownian
@@ -104,6 +105,8 @@ import PBGSO.Framework
 import PBGSO.FrozenCancellation
 import PBGSO.FullyConstructedHigherOrder
 import PBGSO.FullyConstructedMomentum
+import PBGSO.FullyUniformHigherOrder
+import PBGSO.FullyUniformMomentum
 import PBGSO.GaussianMethodBounds
 import PBGSO.GeneralMartingaleRealization
 import PBGSO.GeneralProcess
@@ -117,6 +120,10 @@ import PBGSO.HOLCovariance
 import PBGSO.HOLNoise
 import PBGSO.HOLNoiseRates
 import PBGSO.HOLPullback
+import PBGSO.HOLRestart
+import PBGSO.HOLRestartLocal
+import PBGSO.HOLUniform
+import PBGSO.HOLUniformLocal
 import PBGSO.HigherOrderConsistency
 import PBGSO.HigherOrderIntegralReference
 import PBGSO.HigherOrderMethod
@@ -125,6 +132,7 @@ import PBGSO.HypocoerciveCriterion
 import PBGSO.ImplementationCoordinates
 import PBGSO.ImplementationDynamics
 import PBGSO.ImplementationLpCoordinates
+import PBGSO.ImplementationMetric
 import PBGSO.IndependentCopies
 import PBGSO.InitialPathIndependence
 import PBGSO.IntegralAdaptation
@@ -151,12 +159,18 @@ import PBGSO.MeanFieldContraction
 import PBGSO.MethodBrownianMatching
 import PBGSO.MethodDiffusionCoordinates
 import PBGSO.MethodIntegralSegments
+import PBGSO.MethodLpEquivalences
 import PBGSO.MethodParticles
 import PBGSO.Methods
+import PBGSO.MetricFactor
 import PBGSO.MomentumBrownian
 import PBGSO.MomentumConsistency
 import PBGSO.MomentumIntegralConstruction
 import PBGSO.MomentumRates
+import PBGSO.MomentumUniform
+import PBGSO.MomentumUniformDefect
+import PBGSO.MomentumUniformLocal
+import PBGSO.MomentumUniformParticle
 import PBGSO.MonotoneLocalBound
 import PBGSO.MonotoneSquareRadius
 import PBGSO.NaturalFiniteWorkArbitraryLaw
@@ -280,10 +294,12 @@ import PBGSO.TargetBias
 import PBGSO.TimeGridContinuity
 import PBGSO.TimeGridCut
 import PBGSO.TimeGridEnergy
+import PBGSO.UniformDiscrete
+import PBGSO.UniformIntegralMoments
+import PBGSO.UniformStepSize
 import PBGSO.UniversalMomentGrowth
 import PBGSO.Volume
 import PBGSO.WeakContraction
-
 /-! General independent-map optimiser/sampler theory, actual predictable and
 local Brownian integration, original continuous equations and paths, raw
 stationarity and true law contraction, derived moment/finite-variation calculus,
