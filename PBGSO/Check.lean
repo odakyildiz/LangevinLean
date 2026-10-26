@@ -1950,3 +1950,5 @@ those hypotheses or settle the separate strict source/method coverage ledger. -/
 #print axioms PBGSO.IsCoupledWeakSolution.energy_lower
 #print axioms PBGSO.IsCoupledWeakSolution.energy_upper
 #print axioms PBGSO.IsCoupledWeakSolution.rms_decay
+#print axioms PBGSO.RawStationaryUniqueness.stationary_laws_unique_constant
+#print axioms PBGSO.RawStationaryUniqueness.stationary_laws_unique_linearGrowth

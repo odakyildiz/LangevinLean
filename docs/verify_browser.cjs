@@ -481,10 +481,29 @@ async function projectLinks(page, viewport) {
   await page.locator('.landing-card a[href="PBGSO/exposition/index.html"]').click();
   await page.waitForURL(url => url.pathname === '/PBGSO/exposition/index.html');
   await page.waitForLoadState('load');
-  check(await page.locator('#assumptions').count() === 1 && await page.locator('#source-inventory').count() === 1,
-    'PBGSO card opens the explicit assumptions and source-coverage overview');
-  check((await page.locator('#main').innerText()).includes('not proved here'),
-    'PBGSO overview retains its incomplete strong-SDE and Wasserstein scope');
+  check(await page.locator('#assumptions').count() === 1 && await page.locator('[data-source-result]').count() === 4,
+    'PBGSO card opens four explicit paper theorem statements and their assumptions');
+  check(await page.locator('#new-theory [data-new-theory]').count() === 2 &&
+    await page.locator('[data-new-theory="A"]').count() === 1 &&
+    await page.locator('[data-new-theory="B"]').count() === 1,
+    'PBGSO New Theory contains exactly the final Theorem New A and Theorem New B');
+  check(await page.locator('#standalone-verification').count() === 1 &&
+    await page.locator('#proof-roadmap').count() === 1,
+    'PBGSO provides runnable standalone verification and its mathematical proof roadmap');
+  check(await page.locator('.module-card').count() === 0 &&
+    await page.locator('a[href="technical.html"]').count() > 0,
+    'The exhaustive PBGSO module catalog is separate from the primary theorem page');
+  const assumptionColors = await page.evaluate(() => {
+    const base = getComputedStyle(document.body).color;
+    const added = [...document.querySelectorAll('.added-assumption[data-assumption-kind="added"]')];
+    const interpreted = [...document.querySelectorAll('.interpretation-assumption[data-assumption-kind="interpretation"]')];
+    return {base, added: added.map(e => getComputedStyle(e).color), interpreted: interpreted.map(e => getComputedStyle(e).color)};
+  });
+  check(assumptionColors.added.length > 0 && assumptionColors.interpreted.length > 0 &&
+    assumptionColors.added.every(color => color !== assumptionColors.base) &&
+    assumptionColors.interpreted.every(color => color !== assumptionColors.base) &&
+    assumptionColors.added[0] !== assumptionColors.interpreted[0],
+    'Added assumptions and semantic interpretations have distinct visible colors');
   await noPageOverflow(page);
   await page.locator('.site-nav .brand').click();
   await page.waitForURL(url => url.pathname === '/index.html');

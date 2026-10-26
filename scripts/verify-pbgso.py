@@ -18,10 +18,195 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'docs'))
 
-from build_pbgso import (OVERVIEW, assumption_inventory, outputs, proof_page,
+from build_pbgso import (CATALOG, OVERVIEW, assumption_inventory, outputs, proof_page,
                          source_inventory)
 from verify_site import Page
 from build_site import HELPERS
+
+
+# The landing-page contract is separate from declaration fidelity. Moving a
+# proof catalog must not silently remove source statements or hide stronger
+# analytic conditions in code panes or a distant audit file.
+from html.parser import HTMLParser
+
+
+class LandingNode:
+    def __init__(self, tag, attrs=None, parent=None):
+        self.tag, self.attrs, self.parent = tag, dict(attrs or []), parent
+        self.children = []
+
+    def walk(self):
+        yield self
+        for child in self.children:
+            if isinstance(child, LandingNode):
+                yield from child.walk()
+
+    def text(self):
+        if self.tag in ('script', 'style'):
+            return ''
+        return ' '.join(child.text() if isinstance(child, LandingNode) else child
+                        for child in self.children)
+
+    def classes(self):
+        return set(self.attrs.get('class', '').split())
+
+    def ancestors(self):
+        node = self.parent
+        while node is not None:
+            yield node
+            node = node.parent
+
+
+class LandingDocument(HTMLParser):
+    VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+            'link', 'meta', 'param', 'source', 'track', 'wbr'}
+
+    def __init__(self, text):
+        super().__init__(convert_charrefs=True)
+        self.root = LandingNode('document')
+        self.stack = [self.root]
+        self.feed(text)
+
+    def handle_starttag(self, tag, attrs):
+        node = LandingNode(tag, attrs, self.stack[-1])
+        self.stack[-1].children.append(node)
+        if tag not in self.VOID:
+            self.stack.append(node)
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in self.VOID:
+            self.handle_endtag(tag)
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack)-1, 0, -1):
+            if self.stack[index].tag == tag:
+                self.stack = self.stack[:index]
+                return
+
+    def handle_data(self, data):
+        self.stack[-1].children.append(data)
+
+    def by_id(self, identifier):
+        found = [n for n in self.root.walk() if n.attrs.get('id') == identifier]
+        assert len(found) == 1, f'Expected one PBGSO landing section #{identifier}'
+        return found[0]
+
+
+def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
+    """Check the reader-facing mathematical hierarchy and assumption markers.
+
+    This checks presentation contracts, not the truth of analytic assumptions.
+    Exact Lean contracts and the independent source audit remain necessary.
+    """
+    doc, technical = LandingDocument(overview), LandingDocument(catalog)
+    nodes = list(doc.root.walk())
+    main = doc.by_id('main')
+    assert not any('module-card' in n.classes() for n in main.walk()), \
+        'Move the PBGSO module catalog off the primary theorem page'
+    links = [n.attrs['href'] for n in main.walk() if n.tag == 'a' and 'href' in n.attrs]
+    wanted_catalog = str(Path(catalog_path).name)
+    assert any(urlsplit(href).path == wanted_catalog for href in links), \
+        'Primary PBGSO page must link to its separate technical catalog'
+
+    expected_ids = {r['id']: r['number'] for r in audit['results'] if r['kind'] == 'theorem'}
+    paper = [n for n in main.walk() if 'data-source-result' in n.attrs]
+    assert len(paper) == 4 and {n.attrs['data-source-result'] for n in paper} == set(expected_ids), \
+        'Primary PBGSO page must state exactly the four named main paper theorems'
+    for node in paper:
+        identifier = node.attrs['data-source-result']
+        headings = [n.text() for n in node.walk() if n.tag in ('h2', 'h3', 'h4')]
+        assert any(re.search(r'\bTheorem\s+'+re.escape(expected_ids[identifier])+r'\b', h, re.I)
+                   for h in headings), f'Missing paper theorem name/number: {identifier}'
+        assert any('katex' in n.classes() for n in node.walk()), \
+            f'Paper theorem needs its mathematical statement, not only a source link: {identifier}'
+        text = node.text()
+        assert re.search(r'\b(assumptions?|hypotheses)\b', text, re.I), \
+            f'Missing explicit assumptions: {identifier}'
+        has_added = any(n.attrs.get('data-assumption-kind') == 'added' for n in node.walk())
+        has_none = any('no-added-assumption' in n.classes() and
+                       re.search(r'\bnone\b', n.text(), re.I) for n in node.walk())
+        assert has_added or has_none, \
+            f'Each paper theorem must identify additions, or explicitly say none: {identifier}'
+
+    marked = [n for n in nodes if 'data-assumption-kind' in n.attrs or
+              {'added-assumption', 'interpretation-assumption'} & n.classes()]
+    assert marked, 'Missing reader-facing added-assumption/interpretation semantics'
+    assert any(n.attrs.get('data-assumption-kind') == 'interpretation' for n in marked), \
+        'The A2 SDE interpretation must be marked distinctly from added assumptions'
+    for node in marked:
+        kind = node.attrs.get('data-assumption-kind')
+        assert kind in ('added', 'interpretation'), 'Assumption colors need an explicit semantic kind'
+        expected_class = 'added-assumption' if kind == 'added' else 'interpretation-assumption'
+        assert expected_class in node.classes(), f'Assumption marker lacks its color class: {kind}'
+        other = 'interpretation-assumption' if kind == 'added' else 'added-assumption'
+        assert other not in node.classes(), 'An assumption cannot be both added and an interpretation'
+        assert node.text().strip(), 'An assumption color marker cannot be empty'
+        if kind == 'interpretation':
+            assert not re.search(r'FiniteCouplingWork|finite[\s-]+signed[\s-]+work', node.text(), re.I), \
+                'Universal finite signed work is a stronger condition, not merely an interpretation marker'
+    contraction = next(n for n in paper if n.attrs['data-source-result'] ==
+                       'thm:twisted_joint_strong_monotonicity')
+    assert any(n.attrs.get('data-assumption-kind') == 'added' and
+               re.search(r'FiniteCouplingWork|finite[\s-]+signed[\s-]+work', n.text(), re.I)
+               for n in contraction.walk()), \
+        'The constant-diffusion contraction must mark its finite signed-work strengthening as added'
+
+    new = doc.by_id('new-theory')
+    additions = [n for n in nodes if 'data-new-theory' in n.attrs]
+    assert len(additions) == 2 and {n.attrs['data-new-theory'] for n in additions} == {'A', 'B'}, \
+        'New Theory must contain exactly Theorem New A and Theorem New B'
+    for node in additions:
+        label = node.attrs['data-new-theory']
+        assert new in set(node.ancestors()), f'Theorem New {label} must be inside New Theory'
+        headings = [n.text() for n in node.walk() if n.tag in ('h2', 'h3', 'h4')]
+        assert any(re.search(r'\bTheorem\s+New\s+'+label+r'\b', h, re.I) for h in headings), \
+            f'Missing explicit final theorem label New {label}'
+        assert any('katex' in n.classes() for n in node.walk()), f'Missing New {label} bound'
+        assert re.search(r'\b(assumptions?|hypotheses)\b', node.text(), re.I), \
+            f'Missing New {label} assumptions'
+
+    standalone = doc.by_id('standalone-verification')
+    commands = '\n'.join(n.text() for n in standalone.walk() if n.tag == 'pre')
+    runners = re.findall(r'(?:bash|sh|python3(?:\s+-B)?|lake\s+env\s+lean)\s+'
+                         r'([\w./-]+\.(?:sh|py|lean))', commands)
+    assert runners, 'Standalone verification needs an executable local command'
+    output_directories = [Path(p) for p in re.findall(r'--output\s+([\w./-]+)', commands)]
+    for command in runners:
+        path = Path(command)
+        if path.is_absolute():
+            assert any(path.is_relative_to(directory) for directory in output_directories), \
+                f'Absolute standalone target is not a declared generated output: {command}'
+        else:
+            assert (root/path).is_file(), f'Standalone verification command does not exist: {command}'
+    standalone_files = {urlsplit(n.attrs['href']).path for n in standalone.walk()
+                        if n.tag == 'a' and 'href' in n.attrs and
+                        re.search(r'(?:^|/)standalone/', urlsplit(n.attrs['href']).path, re.I) and
+                        urlsplit(n.attrs['href']).path.endswith('.lean')}
+    assert len(standalone_files) >= 2, 'Link the actual separate New A and New B verification files'
+
+    roadmap = doc.by_id('proof-roadmap')
+    sections = [n for n in main.walk() if n.tag == 'section' and
+                not any(a.tag == 'section' for a in n.ancestors())]
+    assert sections and sections[-1] is roadmap, 'The substantial proof roadmap must finish the main page'
+    words = re.findall(r'\b[\w’\'-]+\b', roadmap.text())
+    assert len(words) >= 180, 'The final proof roadmap needs a substantial mathematical explanation'
+    roadmap_links = [n.attrs['href'] for n in roadmap.walk() if n.tag == 'a' and 'href' in n.attrs]
+    assert len(roadmap_links) >= 6, 'The proof roadmap must link its main proof stages'
+    for result in audit['results']:
+        if result['kind'] == 'theorem':
+            continue
+        targets = {str(Path(proof_page(d['file'])).name) for d in
+                   audit['formal_coverage'][result['id']]['declarations']}
+        assert any(Path(urlsplit(link).path).name in targets for link in roadmap_links), \
+            f'Proof roadmap omits the appendix result {result["id"]}'
+
+    cards = [n for n in technical.root.walk() if 'module-card' in n.classes()]
+    assert len(cards) == len(sources), 'The separate catalog must retain every PBGSO module'
+    technical_links = {urlsplit(n.attrs['href']).path for n in technical.root.walk()
+                       if n.tag == 'a' and 'href' in n.attrs}
+    assert all('proofs/'+Path(proof_page(source)).name in technical_links for source in sources), \
+        'The technical catalog must link every complete module proof page'
 
 
 def verify(require_complete=False):
@@ -110,10 +295,8 @@ def verify(require_complete=False):
             assert destination.relative_to(ROOT).parts[0] != 'papers', f'Main-only source link: {path}: {href}'
             if link.fragment and destination.suffix == '.html':
                 assert unquote(link.fragment) in parse(destination).ids, f'Broken anchor: {path}: {href}'
-    overview = (ROOT/OVERVIEW).read_text()
-    for phrase in ['not proved here', 'stationary', 'integrability', 'empirical', 'smoothing',
-                   'TV', 'critical point', 'right derivative']:
-        assert phrase in overview, f'Missing formal-scope qualification: {phrase}'
+    verify_landing((ROOT/OVERVIEW).read_text(), (ROOT/CATALOG).read_text(),
+                   audit, sources, CATALOG)
     unfinished = [(identifier, item) for identifier, item in coverage.items() if item['status'] != 'verified']
     unfinished_methods = [(identifier, item) for identifier, item in method_coverage.items() if item['status'] != 'verified']
     open_bridges = audit.get('open_formal_obligations', [])

@@ -492,6 +492,18 @@ realizations and transport infimum are proved; they are not assumed analytic
 conclusions. The old weak-generator versions display their quadratic test
 domain and synchronous-realization assumptions explicitly.
 
+`RawStationaryUniqueness.stationary_laws_unique_constant` and
+`stationary_laws_unique_linearGrowth` assemble the stationary-uniqueness
+part for the original raw solution class. Their `Family` contains actual
+stationary trajectories on each finite horizon and only direct A1
+canonical/path-source existence and same-driver uniqueness instances.
+Applying the corresponding original law contraction on every horizon and
+transport separation proves equality of both optimiser states and sampler
+laws. No quadratic generator domain, synchronous weak realization, energy
+identity or contraction estimate is supplied. The same branch qualifications
+remain: explicit finite signed work for the constant branch, and primitive
+coefficient realization/linear-growth regularity for the other branch.
+
 ### Source theorem 3: sharp original raw interaction and physical assembly
 
 `RawParticleInteraction.Data.finite_particle_interaction_bound` proves exactly
