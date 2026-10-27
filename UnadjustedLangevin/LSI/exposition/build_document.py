@@ -153,11 +153,16 @@ def audit_section(audit, math):
                     f'<td>{html.escape(check["paper_location"])}</td>'
                     f'<td><span class="badge" data-status="{slug(check["status"])}">{status}</span><p>{note}</p>' +
                     ' · '.join(links) + '</td></tr>')
+    verdict = audit["verdict"]
+    if re.match(r"\s*<(?:p|div|ul|ol)\b", verdict):
+        verdict = math(verdict)
+    else:
+        verdict = '<p>' + math(html.escape(verdict)) + '</p>'
     return ('<section class="chapter reference-audit" id="reference-audit">'
             '<h2><span class="chapter-number">' + html.escape(audit.get("label", "Reference audit")) +
             '</span>' + html.escape(audit.get("title", "Comparison with the reference paper")) +
             '</h2><div class="chapter-intro"><p>' + references +
-            '</p><p>' + math(html.escape(audit["verdict"])) + '</p></div>'
+            '</p>' + verdict + '</div>'
             '<div class="table-wrap"><table><thead><tr><th scope="col">Claim</th>'
             '<th scope="col">' + html.escape(audit.get("location_label", "Paper location")) +
             '</th><th scope="col">Lean comparison</th>'
@@ -190,11 +195,8 @@ def build():
                                               "label": "Strongly convex ULA proof"}])
     related_links = ''.join(f' · <a href="{relative(link["path"])}">'
                             f'{html.escape(link["label"])}</a>' for link in related)
-    prose = [content["intro"], content["closing"], audit["verdict"]]
-    prose.extend(html.escape(check[key]) for check in audit["checks"] for key in ["claim", "note"])
-    for section in content["sections"]:
-        prose.append(section["intro"])
-        prose.extend(step["body"] for step in section["steps"])
+    reference_notice = SHARED.REFERENCES.reference_notice(LSI.relative_to(ROOT).as_posix())
+    prose = SHARED.MATH.authored_strings((content, audit, reference_notice))
     math = SHARED.render_mathematics(prose)
     toc, chapters, shown = [], [], {}
     for number, section in enumerate(content["sections"], 1):
@@ -243,6 +245,7 @@ def build():
                                 Path(os.path.relpath(script_path, HERE)).as_posix(),
                                 Path(os.path.relpath(ROOT / "docs/references.py", HERE)).as_posix(),
                                 Path(os.path.relpath(ROOT / "docs/theme.py", HERE)).as_posix(),
+                                Path(os.path.relpath(ROOT / "docs/math_notation.py", HERE)).as_posix(),
                                 Path(os.path.relpath(ROOT / "docs/assets/theme.css", HERE)).as_posix(),
                                 Path(os.path.relpath(ROOT / "docs/assets/theme.js", HERE)).as_posix()] +
                    [Path(os.path.relpath(p, HERE)).as_posix() for p in SHARED.THEME.FONT_FILES]},
@@ -251,8 +254,8 @@ def build():
     page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<meta name="robots" content="noindex, nofollow, noarchive">'
-            '<title>' + html.escape(title) + '</title>'
-            '<meta name="description" content="' + html.escape(description, quote=True) + '">'
+            '<title>' + html.escape(SHARED.MATH.plain_math_text(title)) + '</title>'
+            '<meta name="description" content="' + html.escape(SHARED.MATH.plain_math_text(description), quote=True) + '">'
             '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() +
             SHARED.REFERENCES.REFERENCE_CSS + '</style>' + SHARED.THEME.theme_head() + '</head>'
             '<body data-mode="paired" data-theme-family="lsi"><header class="running-head"><a href="' + relative('index.html') + '">'
@@ -264,7 +267,7 @@ def build():
             '<header class="hero"><div class="eyebrow">' + html.escape(eyebrow) + '</div>'
             '<h1>' + html.escape(heading) + '</h1>'
             '<p class="subtitle">' + html.escape(subtitle) + '</p>'
-            + SHARED.REFERENCES.reference_notice(LSI.relative_to(ROOT).as_posix()) +
+            + reference_notice +
             '<div class="status-note"><strong>' + html.escape(status_label) + '</strong> ' +
             html.escape(status) + '</div>' +
             math(content["intro"]) +
@@ -280,6 +283,7 @@ def build():
             '<script type="application/json" id="lean-sources">' + embedded + '</script>'
             '<script type="application/json" id="source-manifest">' + json.dumps(manifest) + '</script>'
             '<script>' + script_path.read_text() + '</script></body></html>\n')
+    page = SHARED.MATH.render_prose_math(page, math)
     OUT.write_text(page)
     (HERE / "source_manifest.json").write_text(json.dumps(manifest, indent=2) + '\n')
     print(f"Built {OUT.relative_to(ROOT)}: {manifest['sections']} chapters, "

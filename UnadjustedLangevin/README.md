@@ -1,7 +1,7 @@
 # Unadjusted Langevin: Dalalyan's theorem in Lean
 
 The strongly convex Gaussian ULA theorem is proved in Lean, with both step-size
-regimes and the coefficient **1.65**. The proof constructs the reference
+regimes and the coefficient **$1.65$**. The proof constructs the reference
 process, proves that its distribution is the normalized Gibbs measure at every
 time, and bounds its gradient second moment. These properties follow from the
 stated assumptions on the potential.
@@ -23,25 +23,27 @@ Import `UnadjustedLangevin` to use the library. The pinned toolchain is Lean
 
 ## Public statements
 
-`ULA.Hilbert.dalalyan` proves, for `0 < h ≤ 2 / (m + L)`,
+`ULA.Hilbert.dalalyan` proves, for $0<h\le2/(m+L)$,
 
-```text
-W₂(ULA_hⁿ μ, π) ≤ (1 − mh)ⁿ W₂(μ, π) + 1.65 (L/m) √(hd).
-```
+$$
+W_2(\operatorname{ULA}_h^n\mu,\pi)
+\le(1-mh)^nW_2(\mu,\pi)+1.65\frac Lm\sqrt{hd}.
+$$
 
-`ULA.Hilbert.dalalyan_large_step` proves, for `2 / (m + L) ≤ h` and `hL < 2`,
+`ULA.Hilbert.dalalyan_large_step` proves, for $2/(m+L)\le h$ and $hL<2$,
 
-```text
-W₂(ULA_hⁿ μ, π) ≤ (Lh − 1)ⁿ W₂(μ, π) + 1.65 Lh/(2 − Lh) √(hd).
-```
+$$
+W_2(\operatorname{ULA}_h^n\mu,\pi)
+\le(Lh-1)^nW_2(\mu,\pi)+1.65\frac{Lh}{2-Lh}\sqrt{hd}.
+$$
 
-Here π is the normalized Gibbs law proportional to exp(−U), `d` is the
-Euclidean dimension, and `ULA_h` is the actual product-Gaussian update
-`x ↦ x − h∇U(x) + √(2h) ξ` on laws. The potential assumptions are exactly
-`Differentiable ℝ U`, positive m-strong convexity of U, and a globally
-L-Lipschitz gradient of U. No Hessian or C² assumption on U is introduced.
+Here $\pi$ is the normalized Gibbs law proportional to $e^{-U}$, $d$ is the
+Euclidean dimension, and $\operatorname{ULA}_h$ is the actual product-Gaussian update
+$x\mapsto x-h\nabla U(x)+\sqrt{2h}\,\xi$ on laws. The potential assumptions are exactly
+`Differentiable ℝ U`, positive $m$-strong convexity of $U$, and a globally
+$L$-Lipschitz gradient of $U$. No Hessian or $C^2$ assumption on $U$ is introduced.
 The dimension is finite and nonzero. The initial law is a probability measure
-with finite initial W₂; its finite second moment follows from that hypothesis
+with finite initial $W_2$; its finite second moment follows from that hypothesis
 and the proved Gibbs second moment.
 
 `ULA.Hilbert.dalalyan_of_gaussian_innovations` and
@@ -51,7 +53,7 @@ They use the actual standard Gaussian law of every innovation coordinate,
 independence across all iteration-coordinate pairs, and independence of the
 initial state from the whole noise sequence. Grouping coordinates into iid
 Gaussian vectors and identifying every algorithm output law are proved.
-Finite initial W₂ is derived from the actual L² initialization.
+Finite initial $W_2$ is derived from the actual $L^2$ initialization.
 
 `dalalyan_output_finite` proves finite output transport cost. The real-valued
 bounds therefore do not conceal infinite costs behind `ENNReal.toReal`.
@@ -60,11 +62,11 @@ bounds therefore do not conceal infinite costs behind `ENNReal.toReal`.
 
 | Modules | Checked content |
 | --- | --- |
-| `StrongConvexity`, `Analysis/Smooth`, `SharpContraction`, `PotentialAssumptions` | Shared quadratic lower and upper bounds, both sharp Euler contractions, and m≤L in nonzero dimension. |
+| `StrongConvexity`, `Analysis/Smooth`, `SharpContraction`, `PotentialAssumptions` | Shared quadratic lower and upper bounds, both sharp Euler contractions, and $m\le L$ in nonzero dimension. |
 | `Gibbs`, `GibbsScore`, `StationaryMoments`, `GibbsConcentration` | Finite positive normalization, Gibbs moments, sharp score bound, and mode concentration. |
-| `Generator`, `GeneratorDirichlet` | Integration of the generator, absolute integrability, Dirichlet identity, symmetry, and dissipativity for compact C² tests. |
+| `Generator`, `GeneratorDirichlet` | Integration of the generator, absolute integrability, Dirichlet identity, symmetry, and dissipativity for compact $C^2$ tests. |
 | `CanonicalBrownian`, `GaussianHilbert`, `LpCharacteristic` | An explicit independent Brownian source from Gaussian series, with its finite-dimensional laws proved. |
-| `LangevinIntegral`, `LangevinUniqueness`, `BrownianLangevin` | Finite-horizon continuous L² integral solutions, uniqueness, and exact Brownian noise moments. |
+| `LangevinIntegral`, `LangevinUniqueness`, `BrownianLangevin` | Finite-horizon continuous $L^2$ integral solutions, uniqueness, and exact Brownian noise moments. |
 | `GaussianProposalDensity`, `GaussianProposalPairDensity`, `Metropolis`, `MALAInvariance` | The actual Gaussian proposal density and exact Gibbs invariance of the Metropolis-adjusted step. |
 | `MALAError`, `MALACoupling`, `EulerLimit`, `CouplingLimit`, `GibbsStationarity` | Vanishing rejection error, a stationary coupling, matching-noise Euler convergence, and Gibbs stationarity of the actual integral solution. |
 | `BrownianSegmentsGlobal`, `ProductBrownian`, `CanonicalULA` | Segment consistency and complete stationary reference construction on every initial-coupling extension. |
@@ -80,27 +82,29 @@ complete Wasserstein metric theory.
 
 ## Integration by parts and Gibbs stationarity
 
-For compactly supported C² test functions, ordinary integration by parts gives
+For compactly supported $C^2$ test functions, ordinary integration by parts gives
 
-```text
-∫ (Δφ − ⟨∇U,∇φ⟩) dπ = 0,
-∫ φ Lψ dπ = −∫ ⟨∇φ,∇ψ⟩ dπ.
-```
+$$
+\begin{aligned}
+\int(\Delta\varphi-\langle\nabla U,\nabla\varphi\rangle)\,d\pi&=0,\\
+\int\varphi L\psi\,d\pi&=-\int\langle\nabla\varphi,\nabla\psi\rangle\,d\pi.
+\end{aligned}
+$$
 
-Only exp(−U)'s first derivative is used. The C² condition belongs to the test
+Only $e^{-U}$'s first derivative is used. The $C^2$ condition belongs to the test
 functions. These identities alone do not identify the law of a constructed
 process, so the formal proof also supplies that identification.
 
 The actual Gaussian Metropolis step preserves Gibbs by detailed balance. Its
-expected rejected displacement is bounded by C h√h under the original
-potential assumptions. A synchronous coupling compares n ULA steps to this
-stationary chain with expected distance at most n C h√h. On a fixed horizon,
-`h=T/n`, this tends to zero. Deterministic Banach-space Euler convergence
-identifies the limit with the constructed L² Langevin solution, and
+expected rejected displacement is bounded by $Ch\sqrt h$ under the original
+potential assumptions. A synchronous coupling compares $n$ ULA steps to this
+stationary chain with expected distance at most $nCh\sqrt h$. On a fixed horizon,
+$h=T/n$, this tends to zero. Deterministic Banach-space Euler convergence
+identifies the limit with the constructed $L^2$ Langevin solution, and
 characteristic functions identify its Gibbs law. This completes stationarity
 without assuming a Dynkin formula or weak-forward-equation uniqueness.
 
-The integral solution is a continuous curve in L² satisfying a Bochner integral
+The integral solution is a continuous curve in $L^2$ satisfying a Bochner integral
 equation. The convergence theorem uses this representation. It does not require
 a separate theorem on continuity of the individual sample paths.
 
@@ -135,7 +139,7 @@ The coupling estimate follows Section 6 of
 [Dalalyan (COLT 2017)](https://proceedings.mlr.press/v65/dalalyan17a.html).
 The corrected coefficient from
 [Dalalyan–Karagulyan](https://arxiv.org/abs/1710.00095) is derived independently
-in Lean: `(7/6) √2 ≤ 33/20 = 1.65`.
+in Lean: $(7/6)\sqrt2\le33/20=1.65$.
 
 For fixed positive step size, the bound tends to a positive constant as the
 iteration count tends to infinity. That constant tends to zero with the step

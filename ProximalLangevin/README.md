@@ -10,7 +10,7 @@ v3 PDF is authoritative; the original request linked v1.
 and MYPGD theorems are proved for the Gaussian algorithms, from the displayed assumptions on the
 potentials, step sizes, initialization, and innovations. Their rates or constants differ from the printed statements.
 The proof also gives mean-field integral equations with solutions continuous
-in L², a smoothing comparison, and convergence from independent particle
+in $L^2$, a smoothing comparison, and convergence from independent particle
 initializations. The exact published formulas,
 expected path-supremum bounds and PDE claims remain unproved; the page
 records the distinction for each result.
@@ -123,12 +123,12 @@ not reproduced, and no propagation-of-chaos estimate is assumed.
 - Integrability of the averaged mean-field drift and a corrected $W_2$ Lipschitz
   estimate, using $L_1+1/\lambda$ for split smoothing. This is weaker in metric
   than the source's $W_1$ statement.
-- Constructed continuous L² mean-field integral equations, with deterministic
+- Constructed continuous $L^2$ mean-field integral equations, with deterministic
   parameter evolution and Brownian noise in the latent coordinates; a finite smoothing comparison
   $\sup_{t\le T}\|Y_t^\eta-Y_t\|_2\le C_T\eta$ under the stated additional
   smoothness assumptions.
 - Particle and mean-field processes with independent identically distributed initializations with a derived
-  $N$-independent coefficient and tagged error $C_T/\sqrt N$, both in the supremum over time of the L² norms
+  $N$-independent coefficient and tagged error $C_T/\sqrt N$, both in the supremum over time of the $L^2$ norms
   and in $W_2$ at each fixed time. Initialization, independent
   Brownian paths, empirical force variance and parameter-noise scale are
   constructed, rather than assumed. The C.2 process norm is different
@@ -168,9 +168,9 @@ finite-valued assumptions used here.
 | `SplittingCanonical`, `SplittingTransport`, `SplittingRate`, `SplittingEndpoint`, `SplittingProjection`, `SplittingTheorem` | Constructed stationary coupling, transport recurrence and final PIPGLA theorem. |
 | `MYPGDNoise`, `MYPGDTransport`, `MYPGDAlgorithm`, `MYPGD`, `MYPGDTheorem` | Exact removal of parameter noise, Gaussian distribution comparison and MYPGD bound relative to the original maximizer. |
 | `PIPULA`, `PIPULAConsistency` | Full-envelope finite-time bound and qualified assumption-consistency theorem. |
-| `MeanFieldDrift`, `MeanFieldProcess`, `MeanFieldSmoothing` | Averaged drift, constructed continuous L² equations and finite smoothing comparison. |
+| `MeanFieldDrift`, `MeanFieldProcess`, `MeanFieldSmoothing` | Averaged drift, constructed continuous $L^2$ equations and finite smoothing comparison. |
 | `MeanFieldVariance`, `MeanFieldCopies`, `MeanFieldParticleDrift`, `MeanFieldForcing`, `MeanFieldParticles` | Exact iid variance, physical particle equations and derived finite-horizon particle limit. |
-| `MeanFieldNoise`, `MeanFieldBrownianFamily`, `MeanFieldInitialSource`, `MeanFieldCanonical`, `MeanFieldParticleLaw` | Independent initialization and Brownian inputs; tagged-particle L² bounds and Wasserstein bounds at fixed times. |
+| `MeanFieldNoise`, `MeanFieldBrownianFamily`, `MeanFieldInitialSource`, `MeanFieldCanonical`, `MeanFieldParticleLaw` | Independent initialization and Brownian inputs; tagged-particle $L^2$ bounds and Wasserstein bounds at fixed times. |
 | `Recurrence`, `Corrections` | Conditional scalar algebra and algebraic proofs of corrections. |
 
 ## Build

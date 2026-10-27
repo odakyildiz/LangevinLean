@@ -1,4 +1,4 @@
-"""Explicit added regularity for the corrected source-paper theorems.
+r"""Explicit added regularity for the corrected source-paper theorems.
 
 These panels belong with the paper results.  They are distinct from the source's
 A1--A4 and from the independent new-theory assumptions.  A panel describes
@@ -138,7 +138,7 @@ REGULARITY_PANELS = [
         "id": "R7",
         "title": "Stochastic initialization and uniform moment control",
         "prose": r"""Use square-integrable initial clouds, the actual
-        continuous L² Brownian integral equation, Brownian increments independent
+        continuous \(L^2\) Brownian integral equation, Brownian increments independent
         across their declared particle coordinates and independent of the
         initial state, and compatible coupled initializations. Initialize the
         frozen posterior comparison with its actual Gibbs law. The Gibbs
@@ -149,7 +149,7 @@ REGULARITY_PANELS = [
         with \(V_0\) independent of the particle count, and a uniform normalized
         initialization radius when quoting a count-independent transient.
         These are sampling/initialization and moment assumptions in addition
-        to analytic regularity. The solution class is continuous in L² and
+        to analytic regularity. The solution class is continuous in \(L^2\) and
         solves the actual Brownian integral equation; a separate progressively
         measurable, almost-sure continuous-path realization is not asserted.
         Numerical errors and their

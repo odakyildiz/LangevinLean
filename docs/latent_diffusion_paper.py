@@ -42,7 +42,9 @@ PAPER_RESULTS = {
     },
     "thm:exp_convg_informal": {
         "title": "Unique tilted optimizer and exponential parameter convergence",
-        "statement": '<p>Let \\(M\\ge1\\), and let the actual tilted potentials \\(U_m=-\\log\\rho^m\\) satisfy A1–A3. On the explicitly added regular density and transport domain R1–R5, the average tilted evidence has a unique maximizer \\(u_\\star=(\\theta_\\star,\\phi_\\star)\\). The classical parameter/density equations satisfy</p>\n \\[\\|u_t-u_\\star\\|\\le\\sqrt{\\frac{2[\\widetilde F(u_0,q_0)-\\widetilde F_\\star]}{\\lambda}}e^{-\\lambda t},\\qquad t\\ge0.\\]\n <p>The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the blue regularity hypotheses.</p>',
+        "statement": r"""<p>Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) satisfy A1–A3. On the explicitly added regular density and transport domain R1–R5, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/density equations satisfy</p>
+ \[\|u_t-u_\star\|\le\sqrt{\frac{2[\widetilde F(u_0,q_0)-\widetilde F_\star]}{\lambda}}e^{-\lambda t},\qquad t\ge0.\]
+ <p>The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the blue regularity hypotheses.</p>""",
         "correction": r"""A2 must be interpreted on an admissible initial class,
         or require smooth densities only for positive time. Its literal
         quantification over all \(\mathcal P_2\) initial laws is contradicted by
@@ -74,7 +76,7 @@ PAPER_RESULTS = {
         batch method, as the paper itself states at main line 314. It gives no
         guarantee for Algorithm 1's changed minibatch temperature or the adaptive
         algorithm.""",
-        "scope": 'The corrected full-batch result uses actual continuous L² Brownian integral dynamics and stable Euler recursion under R7, with a fixed per-copy variance bound V₀ independent of particle count. Global reference paths, Gibbs stationarity, score centering at the evidence optimum, moment bounds and finite-particle fluctuations are derived from the primitive model and initialization data. The separate orange new-theory result extends the error budget to a centered stochastic oracle.'    },
+        "scope": 'The corrected full-batch result uses actual continuous \\(L^2\\) Brownian integral dynamics and stable Euler recursion under R7, with a fixed per-copy variance bound \\(V_0\\) independent of particle count. Global reference paths, Gibbs stationarity, score centering at the evidence optimum, moment bounds and finite-particle fluctuations are derived from the primitive model and initialization data. The separate orange new-theory result extends the error budget to a centered stochastic oracle.'    },
     "app:lemma_1st_var": {
         "title": "First variations of the free energy",
         "statement": r"""<p>For one datum, write
@@ -153,7 +155,7 @@ PAPER_RESULTS = {
         <p>The potential term uses joint strong convexity along optimal
         displacement interpolations; the negative entropy term uses
         displacement convexity.</p>""",
-        "correction": "The normalized product distance is essential for the constant to remain independent of M. The corrected theorem uses finite entropy and integrable potentials along the full displacement interpolation; finite second moments alone do not imply those conditions.",
+        "correction": 'The normalized product distance is essential for the constant to remain independent of \\(M\\). The corrected theorem uses finite entropy and integrable potentials along the full displacement interpolation; finite second moments alone do not imply those conditions.',
         "scope": 'Entropy displacement convexity is proved from the positive Jacobian change-of-variables formula. Joint A3 convexity gives the potential part, and the normalized data average yields the actual product transport inequality on R4. Entropy convexity itself is not an assumed bridge.',
     },
     "lem:lower_deriv": {
@@ -173,7 +175,9 @@ PAPER_RESULTS = {
     },
     "thm:sLC_implies_xLSI": {
         "title": "Strong log-concavity implies extended log-Sobolev control",
-        "statement": "<p>For \\(M\\ge1\\), jointly \\(\\lambda\\)-strongly convex tilted potentials with \\(\\lambda>0\\), and the finite-energy density/transport domain R1–R4,</p>\n \\[2\\lambda[\\widetilde F(u,q)-\\widetilde F_\\star]\\le I(u,q).\\]\n <p>Sum the actual entropy and potential tangent pairings first. Completing one square for the averaged parameter force and the normalized latent squares proves the inequality with exactly the source Fisher information. The posterior optimizer is independently constructed before it is used.</p>",
+        "statement": r"""<p>For \(M\ge1\), jointly \(\lambda\)-strongly convex tilted potentials with \(\lambda>0\), and the finite-energy density/transport domain R1–R4,</p>
+ \[2\lambda[\widetilde F(u,q)-\widetilde F_\star]\le I(u,q).\]
+ <p>Sum the actual entropy and potential tangent pairings first. Completing one square for the averaged parameter force and the normalized latent squares proves the inequality with exactly the source Fisher information. The posterior optimizer is independently constructed before it is used.</p>""",
         "correction": "The proof chooses an admissible minimizer at supplement line 587 before its existence has been established in that chain. The checked marginal/posterior construction supplies it first. The entropy and potential tangent inequalities are then proved from the explicit regularity data.",
         "scope": 'Under A3 and R1–R4, sum the actual entropy and potential tangent pairings toward the constructed posterior optimizer and complete the normalized parameter and latent squares. This proves extended LSI for the exact source Fisher information without assuming a first-order inequality.',
     },
@@ -206,7 +210,7 @@ PAPER_RESULTS = {
           \widetilde F(x)\le\liminf_n\widetilde F(x_n).\]
         <p>Dominated convergence proves this statement on the explicitly
         identified probability-law domain.</p>""",
-        "correction": "Joint continuity of R is used at supplement line 665 but is not an explicit displayed assumption. The corrected proof instead states the sufficient R6 pointwise density/potential continuity and local integrable domination for the total energy. The limiting argument uses a complete admissible R6 domain; differentiable densities alone do not form a complete Wasserstein space.",
+        "correction": 'Joint continuity of \\(R\\) is used at supplement line 665 but is not an explicit displayed assumption. The corrected proof instead states the sufficient R6 pointwise density/potential continuity and local integrable domination for the total energy. The limiting argument uses a complete admissible R6 domain; differentiable densities alone do not form a complete Wasserstein space.',
         "scope": 'On the complete regular density domain specified by R6, pointwise density/potential continuity and a local integrable energy envelope prove continuity of the actual density energy by dominated convergence, hence its lower semicontinuity. Pointwise density continuity is an explicit added domain condition, not an inference from Wasserstein convergence alone.',
     },
     "lem:cauchy": {
@@ -221,7 +225,7 @@ PAPER_RESULTS = {
         <p>The Cauchy property yields a limit in the complete ambient space;
         lower semicontinuity and optimal-energy convergence identify it as a
         minimizer.</p>""",
-        "correction": "The printed hypothesis gives an arbitrary Cauchy sequence unrelated to the flow, then concludes convergence of a flow subsequence. The proof needs the Cauchy sequence to be the stated flow sequence and its energies to approach the infimum. Completeness of all P₂ does not ensure that its limit retains a differentiable density; the energy domain and admissibility of the limit need separate treatment.",
+        "correction": 'The printed hypothesis gives an arbitrary Cauchy sequence unrelated to the flow, then concludes convergence of a flow subsequence. The proof needs the Cauchy sequence to be the stated flow sequence and its energies to approach the infimum. Completeness of all \\(\\mathcal P_2\\) does not ensure that its limit retains a differentiable density; the energy domain and admissibility of the limit need separate treatment.',
         "scope": 'For the actual energy in a complete R6 chart, a Cauchy flow sequence whose energies approach the infimum has an admissible minimizing limit. Energy lower semicontinuity is proved from the density envelope; the original unrelated-Cauchy-sequence formulation is corrected.',
     },
     "thm:xLSI_implies_xTalagrand": {
@@ -275,7 +279,7 @@ PAPER_RESULTS = {
         <p>The cloud norm averages physical squared particle distances by
         \(MN\). Both the empirical statistic's measurability/integrability and
         its bound by this actual coupling norm are proved.</p>""",
-        "correction": "Arbitrary independent target samples do not satisfy the identity equating their pairwise L² cost to W₂ at supplement line 781. The corrected theorem uses a constructed synchronous stationary posterior reference and an explicit initial coupling norm as its prefactor. The solution class is continuous L² Brownian integral solutions. Replicating each datum potential N times identifies the target with the original M-datum optimizer; different data may have different posterior laws.",
+        "correction": 'Arbitrary independent target samples do not satisfy the identity equating their pairwise \\(L^2\\) cost to \\(W_2\\) at supplement line 781. The corrected theorem uses a constructed synchronous stationary posterior reference and an explicit initial coupling norm as its prefactor. The solution class is continuous \\(L^2\\) Brownian integral solutions. Replicating each datum potential \\(N\\) times identifies the target with the original \\(M\\)-datum optimizer; different data may have different posterior laws.',
         "scope": 'The connected source endpoint constructs the actual optimizer and posterior reference, proves its posterior marginals at every time, derives full normalized cloud contraction, and proves the displayed per-datum empirical Wasserstein RMS estimate. All sampling, initial-law, local domination and coupling conditions are explicit R1/R2/R7 assumptions. No reference, zero-score, stationary-law or empirical-comparison conclusion is an input.',
     },
     "lem:spatial_discretization": {
@@ -292,8 +296,8 @@ PAPER_RESULTS = {
         <p>It is \(O(N^{-1/2})\) uniformly in time when the initial coupling
         error is zero. Independence from \(M\) requires a moment bound uniform
         in the data, or a bounded averaged replacement.</p>""",
-        "correction": "The statement omits the matched initialization that the proof uses at supplement line 837. The heterogeneous initial laws and force moments must be specified; a single undeclared Z₀ does not give a uniform data-independent constant. Any origin-based moment expression must also control the drift's offset or be centered about an equilibrium.",
-        "scope": 'Under R7 matched initial coupling, independent centered particle scores and one fixed per-copy variance bound V₀, the continuous L² interacting/mean-field integral comparison yields the stated uniform finite-particle estimate. The empirical fluctuation and its inverse-square-root rate are derived from the score variables.',
+        "correction": "The statement omits the matched initialization that the proof uses at supplement line 837. The heterogeneous initial laws and force moments must be specified; a single undeclared \\(Z_0\\) does not give a uniform data-independent constant. Any origin-based moment expression must also control the drift's offset or be centered about an equilibrium.",
+        "scope": 'Under R7 matched initial coupling, independent centered particle scores and one fixed per-copy variance bound \\(V_0\\), the continuous \\(L^2\\) interacting/mean-field integral comparison yields the stated uniform finite-particle estimate. The empirical fluctuation and its inverse-square-root rate are derived from the score variables.',
     },
     "lem:temporal_discretization": {
         "title": "Uniform Euler–Maruyama time-discretization error",
@@ -318,7 +322,7 @@ PAPER_RESULTS = {
         \(\widetilde\ell^m\). The checked force-level proof uses the stated
         stronger stable-step restriction; it does not claim the full printed
         step-size interval without the corresponding sharper gradient estimate.""",
-        "scope": 'Under R7, the actual continuous L² Brownian integral equation and stable Euler recursion yield the corrected square-root-in-step-size temporal error, with explicit normalized drift and Brownian modulus constants. The proof uses the declared particle-indexed noise and compatible initial states.'    },
+        "scope": 'Under R7, the actual continuous \\(L^2\\) Brownian integral equation and stable Euler recursion yield the corrected square-root-in-step-size temporal error, with explicit normalized drift and Brownian modulus constants. The proof uses the declared particle-indexed noise and compatible initial states.'    },
     "thrm_app:error-bound": {
         "title": "Appendix full-batch parameter error theorem",
         "statement": r"""<p>This is the appendix repetition of the main
@@ -515,7 +519,7 @@ PAPER_CORRECTIONS = [
     },
     {
         "id": "C-RANDOM-TIME",
-        "title": "Restore the factor K for an unbiased random-time loss estimator",
+        "title": 'Restore the factor \\(K\\) for an unbiased random-time loss estimator',
         "prose": r"""For a summed diffusion objective
         \(c(z_0)+\sum_{k=1}^{K}L_k\), uniformly sampled
         \(J\in\{1,\ldots,K\}\) gives the unbiased estimator

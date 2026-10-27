@@ -20,6 +20,10 @@ THEME_SPEC = importlib.util.spec_from_file_location(
     "langevin_theme", ROOT / "docs/theme.py")
 THEME = importlib.util.module_from_spec(THEME_SPEC)
 THEME_SPEC.loader.exec_module(THEME)
+MATH_SPEC = importlib.util.spec_from_file_location(
+    "langevin_math_notation", ROOT / "docs/math_notation.py")
+MATH = importlib.util.module_from_spec(MATH_SPEC)
+MATH_SPEC.loader.exec_module(MATH)
 OUT = HERE / "dist" / "index.html"
 VENDOR = HERE / "vendor" / "katex"
 TEMPLATES = HERE / "templates"
@@ -162,13 +166,23 @@ def load_document():
 
 
 def render_mathematics(texts):
-    formulas = sorted({(m[1] is not None, html.unescape(m[1] or m[2])) for text in texts for m in TEX.finditer(text)})
+    formulas = set()
+    def collect(text):
+        formulas.update((m[1] is not None, html.unescape(m[1] or m[2]))
+                        for m in TEX.finditer(text))
+        return text
+    for text in texts:
+        MATH.render_prose_math(text, collect)
+    formulas = sorted(formulas)
     js = "const fs=require('fs'),k=require(process.argv[1]);process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(([displayMode,t])=>{try{return k.renderToString(t,{displayMode,throwOnError:true,strict:'ignore',output:'htmlAndMathml',trust:false})}catch(e){console.error(JSON.stringify(t)+'\\n'+e.message);process.exit(1)}})));"
     result = subprocess.run(["node","-e",js,str(VENDOR/"katex.min.js")], input=json.dumps(formulas), text=True, capture_output=True)
     if result.returncode:
         raise ValueError("Mathematics rendering failed:\n"+result.stderr)
     rendered = dict(zip(formulas,json.loads(result.stdout)))
-    return lambda text: TEX.sub(lambda m: rendered[(m[1] is not None,html.unescape(m[1] or m[2]))],text)
+    def render(text):
+        return TEX.sub(lambda m: rendered[(m[1] is not None,
+                                          html.unescape(m[1] or m[2]))], text)
+    return lambda text: MATH.render_prose_math(text, render)
 
 
 def katex_css():
@@ -250,7 +264,12 @@ def symbol_help(source):
     entries = [(symbol, keys, meaning) for symbol, keys, meaning in SYMBOL_INPUT if symbol in source]
     if not entries:
         return ""
-    rows = ''.join(f'<tr><td><code>{html.escape(symbol)}</code></td><td><code>{html.escape(keys)}</code></td><td>{html.escape(meaning)}</td></tr>' for symbol,keys,meaning in entries)
+    def literal_meaning(meaning):
+        text = html.escape(meaning)
+        for literal in ["ℝ≥0∞", "ℤ"]:
+            text = text.replace(literal, '<code>' + literal + '</code>')
+        return text
+    rows = ''.join(f'<tr><td><code>{html.escape(symbol)}</code></td><td><code>{html.escape(keys)}</code></td><td>{literal_meaning(meaning)}</td></tr>' for symbol,keys,meaning in entries)
     return '<details class="symbol-help"><summary>How to type the symbols in these lines</summary><p>These are Lean editor input sequences, not text to paste literally into the proof. Type the backslash abbreviation, then press Tab to accept the Unicode character.</p><table class="typing-table"><thead><tr><th>Symbol</th><th>Keystrokes</th><th>Meaning</th></tr></thead><tbody>'+rows+'</tbody></table><p>For the decorated affine-map arrow and ASCII alternatives, see the <a href="#lean-unicode">full typing guide</a>.</p></details>'
 
 
@@ -308,13 +327,9 @@ def build():
     sections,sources = load_document()
     guide = (TEMPLATES/"beginner_guide.html.inc").read_text()
     main_statement = (TEMPLATES/"main_theorem.html.inc").read_text()
-    texts = [INTRO,CLOSING,guide,main_statement,READING_NOTE]
-    for s in sections:
-        texts.extend([s["intro"],s.get("setup_note","")])
-        for d in s["declarations"]:
-            texts.extend([d["statement"],d.get("statement_note","")])
-            for step in d["steps"]:
-                texts.extend([step["prose"],step.get("note","")])
+    reference_notice = REFERENCES.reference_notice("UnadjustedLangevin")
+    texts = MATH.authored_strings((sections, INTRO, CLOSING, guide, main_statement,
+                                  READING_NOTE, reference_notice))
     math = render_mathematics(texts)
     path = "UnadjustedLangevin/CanonicalULA.lean"
     main_declarations = declarations(sources[path].splitlines())
@@ -354,7 +369,7 @@ def build():
             full = code_block(path,d["start"],d["end"],sources,fid,"full-proof")
             articles.append(f'<article class="declaration" id="{did}" data-file="{path}" data-name="{item["name"]}"><h3><span class="declaration-title">{label} {decl_count}.</span> {html.escape(item["title"])}<a class="permalink" href="#{did}" aria-label="Link to {html.escape(item["title"])}">§</a><span class="formal-name">{item["name"]}</span></h3><div class="proof-pair statement"><div class="math-text">{math(item["statement"])}</div><div class="pair-code"><div class="code-label">Formal statement · {d["start"]}–{se}</div>{formal}</div>{statement_note}</div><span class="proof-label">'+("Construction." if label=="Definition" else "Proof.")+"</span>"+"".join(rows)+f'<div class="proof-end" aria-label="End of proof">□</div><details class="full-proof" open><summary>Complete Lean '+("definition" if label=="Definition" else "proof")+f' · {item["name"]}</summary><div class="full-actions"><a class="source-link" href="#{mid}">{path} · {d["start"]}–{d["end"]}</a><button class="copy-code" data-code="{fid}" type="button">Copy Lean</button></div>{full}<p class="full-context">Exact declaration. Imports, namespaces, and ambient variables appear in the <a href="#{mid}">complete module</a>.</p></details></article>')
         setup_note = lean_note(s.get("setup_note",""),'',math,"Lean note · imports and surrounding context", "setup")
-        chapters.append(f'<section class="chapter" id="{sid}" data-number="{number}" data-title="{html.escape(s["title"],quote=True)}"><h2><span class="chapter-number">§ {number}</span>{html.escape(s["title"])}</h2><div class="chapter-intro">{math(s["intro"])}</div><p class="source-caption">Source: <a href="#module-{slug(path)}">{path}</a></p>{setup_note}'+"".join(articles)+'</section>')
+        chapters.append(f'<section class="chapter" id="{sid}" data-number="{number}" data-title="{html.escape(MATH.plain_math_text(s["title"]),quote=True)}"><h2><span class="chapter-number">§ {number}</span>{html.escape(s["title"])}</h2><div class="chapter-intro">{math(s["intro"])}</div><p class="source-caption">Source: <a href="#module-{slug(path)}">{path}</a></p>{setup_note}'+"".join(articles)+'</section>')
     modules = []
     for path,source in sources.items():
         mid = "module-"+slug(path)
@@ -366,13 +381,14 @@ def build():
     manifest = dict(format=2,declarations=decl_count,steps=step_count,
                     sources={p:hashlib.sha256(v.encode()).hexdigest() for p,v in sources.items()},
                     inputs={path:hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
-                            for path in ["docs/references.py", "docs/theme.py",
+                            for path in ["docs/references.py", "docs/theme.py", "docs/math_notation.py",
                                          "docs/assets/theme.css", "docs/assets/theme.js"] +
                             [p.relative_to(ROOT).as_posix() for p in THEME.FONT_FILES]})
     page = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>The unadjusted Langevin algorithm — a proof with Lean</title><meta name="description" content="A sequential mathematical proof with exact Lean source beside every step."><style>'+katex_css()+'\n'+(HERE/"document.css").read_text()+REFERENCES.REFERENCE_CSS+'</style>'+THEME.theme_head()+'</head><body data-theme-family="ula">'
     page += '<header class="running-head"><div class="running-title"><a href="../../../index.html">Project home</a> / <a href="../index.html">ULA overview</a> / <a href="#main-theorem">Main theorem</a> / <span id="current-section">A sequential proof</span></div><div class="controls">'+THEME.theme_control()+'<label><span>Read</span><select id="reading-mode" aria-label="Reading mode"><option value="paired">Mathematics + Lean</option><option value="math">Mathematics only</option></select></label><button type="button" id="toggle-notes" aria-expanded="false">Open Lean notes</button><button type="button" id="toggle-full" aria-expanded="true">Fold full proofs</button><button type="button" id="print-document">Print</button></div><div class="progress" id="reading-progress" aria-hidden="true"></div></header>'
-    page += '<main id="top"><header class="title-page">'+math(INTRO)+REFERENCES.reference_notice("UnadjustedLangevin")+main_overview+math(READING_NOTE)+math(guide)+'<details class="contents" open><summary>Contents</summary><p><a href="#main-theorem">Main theorem and proof roadmap</a></p><ol>'+"".join(toc)+'<li><a href="#complete-sources">Complete sources</a></li></ol></details></header>'+"".join(chapters)+math(CLOSING)+appendix+'</main><div class="status" id="status" role="status" aria-live="polite"></div>'
+    page += '<main id="top"><header class="title-page">'+math(INTRO)+reference_notice+main_overview+math(READING_NOTE)+math(guide)+'<details class="contents" open><summary>Contents</summary><p><a href="#main-theorem">Main theorem and proof roadmap</a></p><ol>'+"".join(toc)+'<li><a href="#complete-sources">Complete sources</a></li></ol></details></header>'+"".join(chapters)+math(CLOSING)+appendix+'</main><div class="status" id="status" role="status" aria-live="polite"></div>'
     page += '<script type="application/json" id="lean-sources">'+embedded+'</script><script type="application/json" id="source-manifest">'+json.dumps(manifest,ensure_ascii=False)+'</script><script>'+(HERE/"document.js").read_text()+'</script></body></html>\n'
+    page = MATH.render_prose_math(page, math)
     OUT.parent.mkdir(parents=True,exist_ok=True)
     OUT.write_text(page)
     write_entry_points()

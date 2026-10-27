@@ -25,6 +25,7 @@ import unittest
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from build_site import HELPERS, ROOT, imports, load, module_page
+from math_notation import plain_math_text
 from full_proofs import full_proof_inventory
 from report_citations import PROJECT_URL, REPORT_ORDER, REPORTS, report_owner
 from report_links import CITE, ReportCatalog, citation_target
@@ -41,7 +42,7 @@ def require(condition, message):
 
 
 def normalized_title(value):
-    return ' '.join(unicodedata.normalize('NFKC', unescape(value)).split())
+    return ' '.join(unicodedata.normalize('NFKC', plain_math_text(unescape(value))).split())
 
 
 def sections(plans):

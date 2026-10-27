@@ -53,10 +53,12 @@ python3 -B scripts/verify-average-lmc-coverage.py --require-resolved
 printf '\nChecking the complete module proof atlas\n'
 python3 -B docs/build_site.py --check
 python3 -B docs/test_paper_prose.py
+python3 -B docs/test_math_notation.py
 python3 -B docs/verify_exposition.py
 python3 -B docs/verify_report_citations.py --self-test
 python3 -B docs/verify_report_citations.py
 python3 -B docs/verify_site.py
+python3 -B docs/verify_math_notation.py
 
 printf '\nChecking the isolated Mathlib-only IPLA standalone\n'
 python3 -B IPLA/verify.py

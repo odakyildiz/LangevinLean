@@ -38,7 +38,7 @@
 <p>The final value of one segment is the initial value of the next. The noise at the end of the segment is the Gaussian increment in the recursion, and the reference distribution is stationary:</p>
 \[Y_{k,h}=Y_{k+1,0},\qquad B_{k,h}=\sqrt{2h}\,\xi_k,
  \qquad\operatorname{Law}(Y_{k,0})=\pi.\]
-<p>These equalities hold in L². The <a href="#decl-unadjustedlangevin-hilbertdalalyan-L2Reference">conditional comparison theorem</a> assumes the stated reference properties. The final ULA theorem proves their existence. For stationarity, the proof uses invariant Metropolis approximations and bounds the expected rejected displacement so that it tends to zero with the time mesh.</p>
+<p>These equalities hold in \(L^2\). The <a href="#decl-unadjustedlangevin-hilbertdalalyan-L2Reference">conditional comparison theorem</a> assumes the stated reference properties. The final ULA theorem proves their existence. For stationarity, the proof uses invariant Metropolis approximations and bounds the expected rejected displacement so that it tends to zero with the time mesh.</p>
 </details>
 
 <p class="theorem-scope">The final theorem derives the reference properties from the assumptions on the potential and the independent Gaussian innovations. It proves normalization and moments, constructs the Gaussian process and integral solution, proves Gibbs stationarity, and extends each initial coupling independently of the Gaussian variables. Its estimate holds uniformly over these couplings, so taking their infimum gives the initial Wasserstein term. No Hessian or optimal-coupling assumption is required.</p>

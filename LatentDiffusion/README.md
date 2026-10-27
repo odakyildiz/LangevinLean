@@ -37,10 +37,11 @@ from the remaining application obligations.
 `LatentDiffusion.particle_oracle_parameter_bound` in `MainResults.lean`
 bounds the actual parameter RMS error of the lifted pointwise Euler recursion:
 
-```text
-E_n ≤ (1 − mh/2)^n R0 + (2/m) √(V/K)
-      + (L/m) [hG + (4/3) W √h] + √(h σ²/m),    K = M N.
-```
+$$
+E_n\le(1-mh/2)^nR_0+\frac2m\sqrt{\frac VK}
++\frac Lm\left[hG+\frac43W\sqrt h\right]+\sqrt{\frac{h\sigma^2}{m}},
+\qquad K=MN.
+$$
 
 The hypotheses include stable step size, heterogeneous joint convexity and
 Lipschitz gradients, an integral reference with drift/noise moment bounds,
@@ -52,10 +53,10 @@ The printed minibatch algorithm's temperature is separately
 audited and is not silently covered by this theorem.
 
 `Accuracy.budget_le_epsilon` gives explicit particle count, step size and
-logarithmic burn-in criteria allocating ε/5 to each of the five terms.
+logarithmic burn-in criteria allocating $\varepsilon/5$ to each of the five terms.
 Interpreting these as complexity rates requires the constants to remain bounded
 independently of particle count and step size. `Marginal.lean` also proves the
-one-sided model-bias estimate √(2(δ+ε)/m) for approximate tilted optimizers.
+one-sided model-bias estimate $\sqrt{2(\delta+\varepsilon)/m}$ for approximate tilted optimizers.
 “New” means new relative to the supplied manuscript, not a literature priority
 claim.
 

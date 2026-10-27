@@ -4,7 +4,7 @@ The [standard proof overview](index.html) pairs each main mathematical statement
 
 The main review scope consists of Theorem 1 (average-smoothness LMC), Proposition 1 (decreasing steps), Theorem 2 with source label `th:3` (Laplacian-smooth LMC), and Theorem 3 together with Proposition 3 (SGLD). Their laws are the actual independent Gaussian and finite-index recursions. Their analytic estimates, moments and recurrences are derived from the source hypotheses.
 
-The Laplacian argument constructs a weighted Dynkin identity through actual Gaussian Euler steps and their uniform L² limit. Compact C² score approximations keep the potential's source C³ regularity. Stationarity transfers their approximation errors without a dimension loss, and bounded radial clipping allows every square-integrable initial coupling error.
+The Laplacian argument constructs a weighted Dynkin identity through actual Gaussian Euler steps and their uniform $L^2$ limit. Compact $C^2$ score approximations keep the potential's source $C^3$ regularity. Stationarity transfers their approximation errors without a dimension loss, and bounded radial clipping allows every square-integrable initial coupling error.
 
 The source inventory also records auxiliary statements whose full standalone generality is outside the main review scope. In particular, the broader Gaussian perturbation and two pathwise comparison inequalities remain outside this scope rather than being labelled proved using stronger main-theorem hypotheses.
 

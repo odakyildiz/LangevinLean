@@ -4,6 +4,7 @@ from __future__ import annotations
 import html
 import re
 from pathlib import Path
+from math_notation import render_prose_math
 
 E = html.escape
 
@@ -104,10 +105,9 @@ def overview_document(sources, parsed, math):
             '<p>Orange identifies a strengthening or additional regularity condition. Blue explains the '
             'solution meaning used in the formalization. Each theorem specifies which conditions it uses. '
             'The right column contains exact Lean source, with its shared variables available to expand; '
-            'proofs open through the linked declaration names. Raw-SDE endpoints may use an arbitrary finite horizon T; choosing T equal to the displayed time gives the all-time statement.</p>')
+            'proofs open through the linked declaration names. Raw-SDE endpoints may use an arbitrary finite horizon \\(T\\); choosing \\(T\\) equal to the displayed time gives the all-time statement.</p>')
 
-    body += row('framework-setting', 'The paper’s state spaces and notation', r'''
-<p>The paper’s objective has the integrable gradient representation</p>'''
+    body += row('framework-setting', 'The paper’s state spaces and notation', '\n<p>The paper’s objective has the integrable gradient representation</p>'
         + eq(r'\nabla_\theta\ell(\theta)=\int_{\mathsf X}F(\theta,x)\,\pi_\theta(\mathrm dx),\qquad F(\theta,\cdot)\in\mathrm L^1(\pi_\theta).',
              r'\begin{gathered}\nabla_\theta\ell(\theta)=\int F(\theta,x)\,\pi_\theta(\mathrm dx),\\F(\theta,\cdot)\in\mathrm L^1(\pi_\theta).\end{gathered}')
         + r'''<p>The optimiser state is \(\vartheta\in\Theta\times\mathsf M\), with \(\theta=\Pi_\theta(\vartheta)\). The sampler state is \(Z\in\mathsf X\times\mathsf V\), with \(X=\Pi_x(Z)\). These finite-dimensional Euclidean spaces can have different dimensions. The Brownian motion takes values in \(\mathsf B\).</p>'''
@@ -115,15 +115,14 @@ def overview_document(sources, parsed, math):
              r'\begin{gathered}G_\nu(\vartheta)=\int F(\Pi_\theta\vartheta,\Pi_xz)\,\nu(\mathrm dz),\\\nu_t=\operatorname{Law}(Z_t).\end{gathered}')
         + eq(r'\begin{aligned}\mathrm d\vartheta_t&=\Psi_t(\vartheta_t,G_{\nu_t}(\vartheta_t))\,\mathrm dt,\\\mathrm dZ_t&=b_{\Pi_\theta\vartheta_t}(Z_t)\,\mathrm dt+\sigma_{\Pi_\theta\vartheta_t}(Z_t)\,\mathrm dB_t.\end{aligned}',
              r'\begin{gathered}\mathrm d\vartheta_t=\Psi_t(\vartheta_t,G_{\nu_t}(\vartheta_t))\,\mathrm dt,\\\begin{aligned}\mathrm dZ_t&=b_{\Pi_\theta\vartheta_t}(Z_t)\,\mathrm dt\\&\quad+\sigma_{\Pi_\theta\vartheta_t}(Z_t)\,\mathrm dB_t.\end{aligned}\end{gathered}')
-        + r'''<p>The particle system replaces \(G_{\nu_t}\) by \(N^{-1}\sum_i F(\Pi_\theta\vartheta_t^N,\Pi_xZ_t^i)\), with \(\nu_t^N=N^{-1}\sum_i\delta_{Z_t^i}\) and independent Brownian drivers \(B^i\). The independent maps \(F,\Psi,b,\sigma\) need not come from a common potential.</p>
-<p><strong>Lean notation.</strong> <code>S</code> represents \(\Theta\times\mathsf M\), <code>Z</code> represents \(\mathsf X\times\mathsf V\), <code>M.parameter</code> and <code>M.position</code> are \(\Pi_\theta,\Pi_x\), and <code>M.meanGradient ν s</code> is \(G_\nu(\vartheta)\). Internal source variable <code>s</code> denotes the paper’s \(\vartheta\).</p>''', declarations('PBGSO/Framework.lean', 'Model', 'meanGradient', 'meanGradient_of_marginal', 'particleGradient'))
+        + '<p>The particle system replaces \\(G_{\\nu_t}\\) by \\(N^{-1}\\sum_i F(\\Pi_\\theta\\vartheta_t^N,\\Pi_xZ_t^i)\\), with \\(\\nu_t^N=N^{-1}\\sum_i\\delta_{Z_t^i}\\) and independent Brownian drivers \\(B^i\\). The independent maps \\(F,\\Psi,b,\\sigma\\) need not come from a common potential.</p>\n<p><strong>Lean notation.</strong> <code>S</code> represents \\(\\Theta\\times\\mathsf M\\), <code>Z</code> represents \\(\\mathsf X\\times\\mathsf V\\), <code>M.parameter</code> and <code>M.position</code> are \\(\\Pi_\\theta,\\Pi_x\\), and <code>M.meanGradient ν s</code> is \\(G_\\nu(\\vartheta)\\). Internal source variable <code>s</code> denotes the paper’s \\(\\vartheta\\).</p>', declarations('PBGSO/Framework.lean', 'Model', 'meanGradient', 'meanGradient_of_marginal', 'particleGradient'))
 
     body += row('metric-setting', 'Distance and twisted metric',
         eq(r'\mathbf d((\vartheta,\nu),(\tilde\vartheta,\tilde\nu))=\sqrt{\|\vartheta-\tilde\vartheta\|^2+W_2^2(\nu,\tilde\nu)}.',
            r'\begin{gathered}\mathbf d((\vartheta,\nu),(\tilde\vartheta,\tilde\nu))\\=\sqrt{\|\vartheta-\tilde\vartheta\|^2+W_2^2(\nu,\tilde\nu)}.\end{gathered}')
         + eq(r'D=\operatorname{diag}(D_\vartheta,D_z),\qquad \kappa=\frac{\lambda_{\max}(D)}{\lambda_{\min}(D)}.',
              r'\begin{gathered}D=\operatorname{diag}(D_\vartheta,D_z),\\\kappa=\frac{\lambda_{\max}(D)}{\lambda_{\min}(D)}.\end{gathered}')
-        + r'''<p>The paper uses symmetric positive definite weights and sharp spectral comparisons. Lean stores certified bounds \(0&lt;\underline\lambda\le\overline\lambda\), satisfying \(\underline\lambda\|y\|^2\le\langle y,Dy\rangle\le\overline\lambda\|y\|^2\). Taking \(\underline\lambda=\lambda_{\min}(D)\), \(\overline\lambda=\lambda_{\max}(D)\) gives the paper’s \(\kappa\). Any nonsharp certified bounds give the same statements with the corresponding larger ratio \(\overline\lambda/\underline\lambda\).</p>''', declarations('PBGSO/PaperTheorems.lean', 'TwistedGeometry', 'conditionNumber'))
+        + '<p>The paper uses symmetric positive definite weights and sharp spectral comparisons. Lean stores certified bounds \\(0&lt;\\underline\\lambda\\le\\overline\\lambda\\), satisfying \\(\\underline\\lambda\\|y\\|^2\\le\\langle y,Dy\\rangle\\le\\overline\\lambda\\|y\\|^2\\). Taking \\(\\underline\\lambda=\\lambda_{\\min}(D)\\), \\(\\overline\\lambda=\\lambda_{\\max}(D)\\) gives the paper’s \\(\\kappa\\). Any nonsharp certified bounds give the same statements with the corresponding larger ratio \\(\\overline\\lambda/\\underline\\lambda\\).</p>', declarations('PBGSO/PaperTheorems.lean', 'TwistedGeometry', 'conditionNumber'))
 
     body += row('assumption-a1', 'A1 — Well-posedness', r'''
 <p>For every deterministic \(\vartheta_0\) and every \(Z_0\), independent of \(B\), with law \(\nu_0\in\mathcal P_2(\mathsf X\times\mathsf V)\), the original mean-field SDE has a pathwise unique strong solution on every finite time interval, and \(\nu_t\in\mathcal P_2\) for all finite \(t\ge0\). In addition, either (i) \(\sigma_\theta(z)\) is constant, or (ii) for one \(K\ge0\),</p>'''
@@ -168,12 +167,12 @@ def overview_document(sources, parsed, math):
         '<p>Along the independent-copy mean-field path, the observation is square-integrable and, for a finite nonnegative constant,</p>'
         + eq(r'\sup_{t\ge0}\mathbb E\left\|F(\Pi_\theta\bar\vartheta_t,\Pi_x\bar Z_t)-G_{\bar\nu_t}(\bar\vartheta_t)\right\|^2\le V_F<\infty.',
              r'\begin{gathered}\sup_{t\ge0}\mathbb E\bigl\|F(\Pi_\theta\bar\vartheta_t,\Pi_x\bar Z_t)\\-G_{\bar\nu_t}(\bar\vartheta_t)\bigr\|^2\le V_F<\infty.\end{gathered}'),
-        [(source3,source3name,'Observation domain','hF'),(source3,source3name,'Exact variance hypothesis (V = V_F)','hVar')], assumption='A5')
+        [(source3,source3name,'Observation domain','hF'),(source3,source3name,'Exact variance hypothesis (\\(V=V_F\\))','hVar')], assumption='A5')
 
     body += row('regularity-r1', 'R1 — Explicit Borel regularity', r'''
 <p>The following maps are jointly Borel:</p>'''
         + eq(r'(\vartheta,z)\mapsto F(\Pi_\theta\vartheta,\Pi_xz),\qquad (\vartheta,z)\mapsto b_{\Pi_\theta\vartheta}(z),\qquad(t,\vartheta,g)\mapsto\Psi_t(\vartheta,g).',
-             r'\begin{gathered}(\vartheta,z)\mapsto F(\Pi_\theta\vartheta,\Pi_xz),\\(\vartheta,z)\mapsto b_{\Pi_\theta\vartheta}(z),\\(t,\vartheta,g)\mapsto\Psi_t(\vartheta,g).\end{gathered}')
+             '\\begin{gathered}(\\vartheta,z)\\mapsto F(\\Pi_\\theta\\vartheta,\\Pi_xz),\\\\(\\vartheta,z)\\mapsto b_{\\Pi_\\theta\\vartheta}(z),\\\\(t,\\vartheta,g)\\mapsto\\Psi_t(\\vartheta,g).\\end{gathered}')
         + '<p>Use R1 for Theorems 3 and 4 and for the constant-diffusion branch of Theorem 2. That branch also assumes each frozen drift is Borel, as shown in its complete Lean statement.</p>',
         [(source3,source3name,'Observation measurability','hBorelF'),(source3,source3name,'Drift measurability','hBorelb'),(source3,source3name,'Response measurability','hBorelΨ')], assumption='R1', added=True)
     body += row('regularity-r2', 'R2 — Finite signed work for constant-diffusion contraction', r'''
@@ -185,7 +184,7 @@ def overview_document(sources, parsed, math):
     body += row('regularity-r3', 'R3 — Explicit realization regularity in the linear-growth branch', r'''
 <p>Each frozen drift and diffusion column is Borel, and \(\Pi_\theta\) is continuous. Along the canonical strong solutions, the functions</p>'''
         + eq(r'(r,\omega)\mapsto b_{\Pi_\theta\vartheta_r}(Z_r(\omega)),\qquad(r,\omega)\mapsto\sigma_{\Pi_\theta\vartheta_r}(Z_r(\omega))e_i',
-             r'\begin{gathered}(r,\omega)\mapsto b_{\Pi_\theta\vartheta_r}(Z_r(\omega)),\\(r,\omega)\mapsto\sigma_{\Pi_\theta\vartheta_r}(Z_r(\omega))e_i\end{gathered}')
+             '\\begin{gathered}(r,\\omega)\\mapsto b_{\\Pi_\\theta\\vartheta_r}(Z_r(\\omega)),\\\\(r,\\omega)\\mapsto\\sigma_{\\Pi_\\theta\\vartheta_r}(Z_r(\\omega))e_i\\end{gathered}')
         + '<p>are jointly strongly measurable, and the drift is progressively strongly measurable with respect to the driver filtration. The linear-growth inequality is exactly A1(ii). These are coefficient regularity assumptions; the proof derives the moment and energy estimates.</p>',
         declarations('PBGSO/RawSamplerGrowth.lean','Regularity'), assumption='R3', added=True)
     body += '</section><section class="section" id="paper-theorems"><h2>Main theorems of the paper — proved</h2>'
@@ -224,7 +223,7 @@ def overview_document(sources, parsed, math):
         '<p><strong>Assumptions:</strong> A1–A5 and the coupled initialisation/native interacting solution of Theorem 3. The parameter map is the Euclidean coordinate projection.</p>'
         + badge('R1; also R3 in the linear-growth branch.')
         + eq(r'\mathbf d_0=\mathbf d((\vartheta_0^N,\nu_0),(\vartheta_\star,\nu_{\theta_\star})).',
-             r'\begin{gathered}\mathbf d_0=\mathbf d((\vartheta_0^N,\nu_0),\\(\vartheta_\star,\nu_{\theta_\star})).\end{gathered}')
+             '\\begin{gathered}\\mathbf d_0=\\mathbf d((\\vartheta_0^N,\\nu_0),\\\\(\\vartheta_\\star,\\nu_{\\theta_\\star})).\\end{gathered}')
         + r'<div class="theorem-conclusion"><p>For every \(t\ge0\),</p>'
         + eq(r'\|\theta_t^N-\theta_\star\|_{\mathrm L^2}\le\sqrt\kappa\,e^{-\rho t}\mathbf d_0+\frac{L_\Psi}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t}).',
              r'\begin{gathered}\|\theta_t^N-\theta_\star\|_{\mathrm L^2}\\\le\sqrt\kappa\,e^{-\rho t}\mathbf d_0\\+\frac{L_\Psi}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t}).\end{gathered}')
@@ -234,20 +233,16 @@ def overview_document(sources, parsed, math):
          ('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_linearGrowth','Linear-growth parameter theorem'),
          ('PBGSO/RawConstructedParticleJointLimit.lean','parameter_joint_limit','Joint limit consequence')], source='thm:parameter_error_full')
     body += '</section><section class="section" id="new-theory"><h2>Numerics — explicit assumptions and time-uniform bounds</h2>'
-    body += math(r'<p>Theorem New A and Theorem New B are new results for the paper’s actual numerical updates. We keep the paper’s \(\hat\theta_n\), \(\hat X_n^i\), \(\hat U_n^i\), \(\hat V_n^i\) and \(t_n=nh\). All constants below are defined mathematically; no coefficient is specified only by a Lean function name.</p>')
+    body += math('<p>Theorem New A and Theorem New B are new results for the paper’s actual numerical updates. We keep the paper’s \\(\\hat\\theta_n\\), \\(\\hat X_n^i\\), \\(\\hat U_n^i\\), \\(\\hat V_n^i\\) and \\(t_n=nh\\). All constants below are defined mathematically; no coefficient is specified only by a Lean function name.</p>')
 
-    body += row('numerical-n1','N1 — Added global force regularity', r'''
-<p>Let \(F_x(\theta,x)\) denote the sampler force: in the paper it is \(\nabla_xE(\theta,x)\) for M-MFPO and \(\nabla_xE^\lambda(\theta,x)\) for HOL-MYPGD. This additional notation avoids reusing the paper’s \(G_\nu\), which denotes the population gradient. The verified theorem also permits independent, nonconservative forces \(F,F_x\).</p>
-<p>On the paper’s finite-dimensional optimiser and Euclidean sampler spaces, take \(\ell_F,\ell_x\ge0\), with</p>'''
+    body += row('numerical-n1','N1 — Added global force regularity', '\n<p>Let \\(F_x(\\theta,x)\\) denote the sampler force: in the paper it is \\(\\nabla_xE(\\theta,x)\\) for M-MFPO and \\(\\nabla_xE^\\lambda(\\theta,x)\\) for HOL-MYPGD. This additional notation avoids reusing the paper’s \\(G_\\nu\\), which denotes the population gradient. The verified theorem also permits independent, nonconservative forces \\(F,F_x\\).</p>\n<p>On the paper’s finite-dimensional optimiser and Euclidean sampler spaces, take \\(\\ell_F,\\ell_x\\ge0\\), with</p>'
         + eq(r'\|F(\theta,x)-F(\tilde\theta,\tilde x)\|\le\ell_F(\|\theta-\tilde\theta\|+\|x-\tilde x\|),',
              r'\begin{gathered}\|F(\theta,x)-F(\tilde\theta,\tilde x)\|\\\le\ell_F(\|\theta-\tilde\theta\|+\|x-\tilde x\|),\end{gathered}')
         + eq(r'\|F_x(\theta,x)-F_x(\tilde\theta,\tilde x)\|\le\ell_x(\|\theta-\tilde\theta\|+\|x-\tilde x\|).',
              r'\begin{gathered}\|F_x(\theta,x)-F_x(\tilde\theta,\tilde x)\|\\\le\ell_x(\|\theta-\tilde\theta\|+\|x-\tilde x\|).\end{gathered}')
         + '<p>Force values may grow linearly. No second derivative, Hessian bound or common potential is required. In Lean, <code>D.F</code> is the observation and <code>D.G</code> is the sampler force.</p>',
         declarations('PBGSO/ParticleMethodLp.lean','ParticleForceData'), assumption='N1', added=True)
-    body += row('numerical-n2','N2 — Initial laws, contraction and reference variance', r'''
-<p>Take \(N\ge1\), deterministic initial optimiser state, and i.i.d. initial sampler states with common law \(\nu_0\in\mathcal P_2\), independently of the independent Brownian drivers. Assume A3 with \(\rho&gt;0\), A5 with \(V_F\ge0\), and target zero mean observation \(G_{\nu_{\theta_\star}}(\vartheta_\star)=0\) for the chosen complete-state model.</p>
-<p>Use the physical noise from the paper: \(\sqrt{2\gamma}\,\mathrm dB^i\) for M-MFPO, and \(\sqrt{2\alpha}\,\mathrm dB^i\) in the final HOL auxiliary coordinate. The optimiser receives no thermal noise.</p>''',
+    body += row('numerical-n2','N2 — Initial laws, contraction and reference variance', '\n<p>Take \\(N\\ge1\\), deterministic initial optimiser state, and i.i.d. initial sampler states with common law \\(\\nu_0\\in\\mathcal P_2\\), independently of the independent Brownian drivers. Assume A3 with \\(\\rho&gt;0\\), A5 with \\(V_F\\ge0\\), and target zero mean observation \\(G_{\\nu_{\\theta_\\star}}(\\vartheta_\\star)=0\\) for the chosen complete-state model.</p>\n<p>Use the physical noise from the paper: \\(\\sqrt{2\\gamma}\\,\\mathrm dB^i\\) for M-MFPO, and \\(\\sqrt{2\\alpha}\\,\\mathrm dB^i\\) in the final HOL auxiliary coordinate. The optimiser receives no thermal noise.</p>',
         [('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Source A3 premise','hmono'),
          ('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Zero mean target premise','hg'),
          ('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Initial second moment','*','hμ'),
@@ -269,7 +264,7 @@ def overview_document(sources, parsed, math):
         + r'<div class="theorem-conclusion" data-time-uniform="true"><p>For every iteration \(n\in\mathbb N\), with all constants independent of time and step size,</p>'
         + eq(r'\|\hat\theta_n-\theta_\star\|_{\mathrm L^2}\le D_M\sqrt h+\sqrt\kappa\,e^{-\rho nh}\mathbf d_0+\frac{2+\gamma}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho nh}).',
              r'\begin{gathered}\|\hat\theta_n-\theta_\star\|_{\mathrm L^2}\le D_M\sqrt h\\+\sqrt\kappa\,e^{-\rho nh}\mathbf d_0\\+\frac{2+\gamma}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho nh}).\end{gathered}')
-        + '</div><p>The full-state raw maximum-component L² error is also at most the same discretisation term. The factor in the particle floor is the certified response constant used by this endpoint. Constants can depend on fixed population and initial law; they do not grow with iteration count.</p>',
+        + '</div><p>The full-state raw maximum-component \\(L^2\\) error is also at most the same discretisation term. The factor in the particle floor is the certified response constant used by this endpoint. Constants can depend on fixed population and initial law; they do not grow with iteration count.</p>',
         [('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Explicit proved parameter bound'),
          ('PBGSO/FullyUniformMomentum.lean','explicit_discretization_bound','Explicit full-state discretisation bound')], new='A')
     body += row('theorem-new-b','Theorem New B — HOL-MYPGD final discretisation bound',
@@ -279,7 +274,7 @@ def overview_document(sources, parsed, math):
         + r'<div class="theorem-conclusion" data-time-uniform="true"><p>For every iteration \(n\in\mathbb N\), with all constants independent of time and step size,</p>'
         + eq(r'\|\hat\theta_n-\theta_\star\|_{\mathrm L^2}\le D_H\sqrt h+\sqrt\kappa\,e^{-\rho nh}\mathbf d_0+\frac1\rho\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho nh}).',
              r'\begin{gathered}\|\hat\theta_n-\theta_\star\|_{\mathrm L^2}\le D_H\sqrt h\\+\sqrt\kappa\,e^{-\rho nh}\mathbf d_0\\+\frac1\rho\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho nh}).\end{gathered}')
-        + '</div><p>The full-state raw maximum-component L² error has the same uniform discretisation coefficient. This is the stationary zero-observation target of the forces actually implemented; a smoothed sampler may have a different target from the original unsmoothed objective. No uniformity in particle count is claimed.</p>',
+        + '</div><p>The full-state raw maximum-component \\(L^2\\) error has the same uniform discretisation coefficient. This is the stationary zero-observation target of the forces actually implemented; a smoothed sampler may have a different target from the original unsmoothed objective. No uniformity in particle count is claimed.</p>',
         [('PBGSO/FullyUniformHigherOrder.lean','explicit_parameter_bound','Explicit proved parameter bound'),
          ('PBGSO/FullyUniformHigherOrder.lean','explicit_discretization_bound','Explicit full-state discretisation bound')], new='B')
     body += '</section>'
@@ -335,7 +330,7 @@ def overview_document(sources, parsed, math):
             ('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_constant','Stationary comparison and interaction → Theorem 4'),
         ]),
         ('03', 'M-MFPO → Theorem New A', [
-            ('PBGSO/ParticleMethodLp.lean','meanForce_lipschitz','Empirical forces and actual raw/L² updates'),
+            ('PBGSO/ParticleMethodLp.lean','meanForce_lipschitz','Empirical forces and actual raw/\\(L^2\\) updates'),
             ('PBGSO/ImplementationMetric.lean','momentum_metric','Source A3 → actual contracting particle metric'),
             ('PBGSO/UniformIntegralMoments.lean','uniform_moment','Derived moments uniform over all time'),
             ('PBGSO/MomentumUniformDefect.lean','obabo_affine_local_defect','Actual Gaussian OBABO local error'),
@@ -361,18 +356,18 @@ def overview_document(sources, parsed, math):
     body += '<h3>Appendix and scope checks</h3><ul>'
     for node in [
         ('PBGSO/ContinuousFlowMeasure.lean','phase_flow_measurePreserving_source','Volume lemma: continuous frictionless flow preserves measure'),
-        ('PBGSO/FlowSourceRegularity.lean','phase_flow_fderiv_det_one_source','Volume lemma: source C¹ force and global ODE imply determinant one'),
+        ('PBGSO/FlowSourceRegularity.lean','phase_flow_fderiv_det_one_source','Volume lemma: source \\(C^1\\) force and global ODE imply determinant one'),
         ('PBGSO/Volume.lean','interwovenBAB_preserves','Volume lemma: discrete frictionless splitting preserves measure'),
         ('PBGSO/DiscreteVolume.lean','interwovenBAB_fderiv_det_one','Volume lemma: discrete splitting has determinant one'),
         ('PBGSO/ProjectedFiniteWork.lean','canonical_projected_source_criterion_finite','Projected criterion: finite sampler-work domain is explicit'),
         ('PBGSO/HOLCoefficientAudit.lean','hol_linear_coefficient_not_exact','HOL scope check: printed coefficients are not the full exact linear flow'),
-        ('PBGSO/FiniteWorkScopeAudit.lean','exists_p2_nonintegrable_work','A3 scope check: a P₂ law need not have finite signed work'),
+        ('PBGSO/FiniteWorkScopeAudit.lean','exists_p2_nonintegrable_work','A3 scope check: a \\(\\mathcal P_2\\) law need not have finite signed work'),
     ]:
         body += '<li>' + proof(*node) + '</li>'
     body += ('</ul><p>Application-specific smoothing bias and the full-space TV prior assumptions are recorded in the '
              f'<a href="{relative(CATALOG,page)}#limitations">model and target audit</a>. '
              'They are separate from the two numerical bounds stated here.</p></div></section></div>')
-    document = shell(page, 'PBGSO paper theorems and new discretisation bounds', body, 'PBGSO')
+    document = shell(page, 'PBGSO paper theorems and new discretisation bounds', render_prose_math(body, math), 'PBGSO')
     document = document.replace('<body data-theme-family="modern">', '<body data-theme-family="modern" class="pbgso-page">')
     return document.replace('</head>', '<link rel="stylesheet" href="' +
                             relative('docs/assets/pbgso.css', page) + '"></head>')
@@ -383,26 +378,25 @@ def numerical_constants(row, eq, declarations):
     expanded = 'PBGSO/UniformConstantExpansions.lean'
     mfile = 'PBGSO/FullyUniformMomentum.lean'
     hfile = 'PBGSO/FullyUniformHigherOrder.lean'
-    result = row('numerical-models', 'The two method models and their raw coordinates', r'''
-<p>As in the paper’s algorithm section, suppress the population superscript in the method coordinates. For M-MFPO:</p>'''
+    result = row('numerical-models', 'The two method models and their raw coordinates', '\n<p>As in the paper’s algorithm section, suppress the population superscript in the method coordinates. For M-MFPO:</p>'
         + eq(r'\begin{aligned}\dot\theta_t&=m_t,\qquad\dot m_t=-N^{-1}\sum_i F(\theta_t,X_t^i)-\gamma m_t,\\\mathrm dX_t^i&=V_t^i\,\mathrm dt,\\\mathrm dV_t^i&=(-F_x(\theta_t,X_t^i)-\gamma V_t^i)\,\mathrm dt+\sqrt{2\gamma}\,\mathrm dB_t^i.\end{aligned}',
              r'\begin{aligned}\dot\theta_t&=m_t,\\\dot m_t&=-N^{-1}\sum_i F(\theta_t,X_t^i)-\gamma m_t,\\\mathrm dX_t^i&=V_t^i\,\mathrm dt,\\\mathrm dV_t^i&=(-F_x(\theta_t,X_t^i)-\gamma V_t^i)\,\mathrm dt\\&\quad+\sqrt{2\gamma}\,\mathrm dB_t^i.\end{aligned}')
         + '<p>For HOL-MYPGD:</p>'
         + eq(r'\begin{aligned}\dot\theta_t&=-N^{-1}\sum_iF(\theta_t,X_t^i),\qquad\mathrm dX_t^i=U_t^i\,\mathrm dt,\\\mathrm dU_t^i&=(-F_x(\theta_t,X_t^i)+\gamma V_t^i)\,\mathrm dt,\\\mathrm dV_t^i&=(-\gamma U_t^i-\alpha V_t^i)\,\mathrm dt+\sqrt{2\alpha}\,\mathrm dB_t^i.\end{aligned}',
              r'\begin{aligned}\dot\theta_t&=-N^{-1}\sum_iF(\theta_t,X_t^i),\\\mathrm dX_t^i&=U_t^i\,\mathrm dt,\\\mathrm dU_t^i&=(-F_x(\theta_t,X_t^i)+\gamma V_t^i)\,\mathrm dt,\\\mathrm dV_t^i&=(-\gamma U_t^i-\alpha V_t^i)\,\mathrm dt\\&\quad+\sqrt{2\alpha}\,\mathrm dB_t^i.\end{aligned}')
-        + r'<p>Write \(y\) for the implementation phase, an additional symbol distinct from the paper’s sampler \(Z\). Its four coordinates are \(((m,V^{[N]}),(\theta,X^{[N]}))\) for M-MFPO and \((\theta,X^{[N]},U^{[N]},V^{[N]})\) for HOL. The exact raw norm is \(\|y\|_{\max,2}=\max_{1\le k\le4}\|y_k\|_{\mathrm L^2}\). The numerical and continuous initial phases coincide.</p>',
+        + '<p>Write \\(y\\) for the implementation phase, an additional symbol distinct from the paper’s sampler \\(Z\\). Its four coordinates are \\(((m,V^{[N]}),(\\theta,X^{[N]}))\\) for M-MFPO and \\((\\theta,X^{[N]},U^{[N]},V^{[N]})\\) for HOL. The exact raw norm is \\(\\|y\\|_{\\max,2}=\\max_{1\\le k\\le4}\\|y_k\\|_{\\mathrm L^2}\\). The numerical and continuous initial phases coincide.</p>',
         [('PBGSO/HypocoerciveCriterion.lean','heavyBallModel','Actual kinetic model'),
          ('PBGSO/ImplementationDynamics.lean','higherOrderModel','Actual higher-order model')])
     result += row('numerical-force-constants', 'Explicit force and cloud constants', r'''
 <p>Let \(d=Nd_x\), and let the standard cloud map be the concrete reindexing \(\mathcal E_N:\mathbb R^{Nd_x}\to(\mathbb R^{d_x})^N\), \((\mathcal E_Nx)_i=(x_{i,j})_{j=1}^{d_x}\). Its domain has the Euclidean norm and its target the maximum of particle Euclidean norms. Define the actual finite-cloud maps</p>'''
         + eq(r'\bar F_N(\theta,x)=\frac1N\sum_{i=1}^NF(\theta,(\mathcal E_Nx)_i),\qquad\mathcal F_{x,N}(\theta,x)=\mathcal E_N^{-1}\bigl((F_x(\theta,(\mathcal E_Nx)_i))_{i=1}^N\bigr).',
              r'\begin{gathered}\bar F_N(\theta,x)=N^{-1}\sum_iF(\theta,(\mathcal E_Nx)_i),\\\mathcal F_{x,N}(\theta,x)\\=\mathcal E_N^{-1}\bigl((F_x(\theta,(\mathcal E_Nx)_i))_i\bigr).\end{gathered}')
-        + r'<p>For the paper’s positive position dimension \(d_x\ge1\), the exact norm identities \(\|\mathcal E_N\|=1\), \(\|\mathcal E_N^{-1}\|=\sqrt N\) give the explicit certified force constants</p>'
+        + '<p>For the paper’s positive position dimension \\(d_x\\ge1\\), the exact norm identities \\(\\|\\mathcal E_N\\|=1\\), \\(\\|\\mathcal E_N^{-1}\\|=\\sqrt N\\) give the explicit certified force constants</p>'
         + eq(r'L_F=2\ell_F,\qquad L_x=2\sqrt N\,\ell_x.')
         + r'<p>The formal development also permits \(d_x=0\); then use \(L_F=\ell_F\), \(L_x=0\). Both cases are proved in Lean, so no positive-dimension assumption is hidden.</p>'
         + eq(r'f_0=\|F(0,0)\|,\qquad g_0=\sqrt N\,\|F_x(0,0)\|,\qquad b_\circ=\max\{f_0,g_0\}.',
              r'\begin{gathered}f_0=\|F(0,0)\|,\\g_0=\sqrt N\,\|F_x(0,0)\|,\\b_\circ=\max\{f_0,g_0\}.\end{gathered}')
-        + r'<p>The origin identities on the right prove that these are exactly the L² norms of the lifted mean and sampler forces. In either raw phase, the full drift at zero has norm \(b_\circ\). These formulas specify the coordinate norms, the force values and every input used below; \(G_\nu\) retains its meaning from the paper.</p>',
+        + '<p>The origin identities on the right prove that these are exactly the \\(L^2\\) norms of the lifted mean and sampler forces. In either raw phase, the full drift at zero has norm \\(b_\\circ\\). These formulas specify the coordinate norms, the force values and every input used below; \\(G_\\nu\\) retains its meaning from the paper.</p>',
         [('PBGSO/ParticleMethodLp.lean','euclideanParticleEncoding','Standard cloud coordinates'),
          ('PBGSO/CloudEncodingConstants.lean','meanLip_euclidean','Exact positive-dimension empirical constant'),
          ('PBGSO/CloudEncodingConstants.lean','samplerForceLip_euclidean','Exact positive-dimension sampler constant'),
@@ -426,7 +420,7 @@ def numerical_constants(row, eq, declarations):
     result += row('numerical-h-constants', 'New B — Fully expanded local coefficients',
         eq(r'K_H=4(L_F+L_x+1+2\gamma+\alpha),\qquad\beta_H=\sqrt\alpha\sqrt{2d}.',
            r'\begin{gathered}K_H=4(L_F+L_x+1+2\gamma+\alpha),\\\beta_H=\sqrt\alpha\sqrt{2d}.\end{gathered}')
-        + r'<p>The coefficient-remainder constants below are distinct from the paper’s step-dependent \(\mu_{ij}\):</p>'
+        + '<p>The coefficient-remainder constants below are distinct from the paper’s step-dependent \\(\\mu_{ij}\\):</p>'
         + eq(r'r_{12}=\frac{\gamma^2}{2\alpha},\quad r_{13}=\frac\gamma2,\quad r_{22}=\frac{\gamma^2}{2},\quad r_{23}=\frac{\gamma\alpha}{2},\quad r_{31}=\frac\gamma2,',
              r'\begin{gathered}r_{12}=\frac{\gamma^2}{2\alpha},\quad r_{13}=\frac\gamma2,\\r_{22}=\frac{\gamma^2}{2},\quad r_{23}=\frac{\gamma\alpha}{2},\quad r_{31}=\frac\gamma2,\end{gathered}')
         + eq(r'r_{32}=\frac{2\gamma^3}{\alpha}+\frac{\gamma^3}{2}+\frac{\gamma\alpha}{2},\qquad r_{33}=\frac{3\gamma^2}{2}+\frac{\alpha^2}{2}+\frac{\alpha\gamma^2}{2}.',
