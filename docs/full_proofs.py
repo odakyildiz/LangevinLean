@@ -283,7 +283,7 @@ def paper_references(library):
 
 def full_proof_documents(configurations, notes, sources, catalog=None):
     """Build one mathematical proof document for each homepage entry."""
-    from build_site import latex_heading, tex_escape
+    from build_site import latex_heading, tex_escape, latex_prose, E
 
     from report_links import ReportCatalog, step_label
     if catalog is None:
@@ -338,7 +338,7 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
                 document.append("The supporting proofs below establish the following steps.\n"
                                 + r"\begin{enumerate}" + "\n")
                 for node in sorted(config["diagram"], key=lambda node: (node["row"], node["col"])):
-                    document.append(r"\item \textbf{" + tex_escape(node["title"]) + "}. "
+                    document.append(r"\item \textbf{" + latex_prose(E(node["title"])).strip() + "}. "
                                     + prose(node["detail"]) + r" See Section~\ref{"
                                     + _module_label(node["file"]) + "}.\n")
                 document.append(r"\end{enumerate}" + "\n")

@@ -18,6 +18,7 @@ import re
 from html.parser import HTMLParser
 from references import REFERENCE_CSS, reference_notice
 from theme import asset_href, theme_head, theme_control
+from math_notation import authored_strings, plain_math_text, render_prose_math
 
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
@@ -113,7 +114,7 @@ def shell(page, title, body, active=None):
     return ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<meta name="robots" content="noindex, nofollow, noarchive">'
-            f'<title>{E(title)} · LangevinLean</title>'
+            f'<title>{E(plain_math_text(title))} · LangevinLean</title>'
             f'<link rel="stylesheet" href="{relative("docs/assets/katex.css",page)}">'
             f'<link rel="stylesheet" href="{asset_href(relative("docs/assets/site.css",page), SITE_CSS)}">'
             f'<link rel="stylesheet" href="{asset_href(relative("docs/assets/references.css",page), REFERENCE_CSS)}">'
@@ -317,7 +318,7 @@ def module_document(path, note, sources, parsed, math, catalog=None):
         location = catalog.locations.get(path)
         body += (citation_panel(library, plan['title'], plan['revision'], page, section=location)
                  if location else citation_panel(None, None, None, page))
-    return page, shell(page, note['title'], body, lib)
+    return page, shell(page, note['title'], render_prose_math(body, math), lib)
 
 
 def commands(value, identifier, label="Copy commands"):
@@ -352,7 +353,7 @@ def supplement_document(page, config, sources, parsed, math, catalog=None):
         from report_citations import citation_panel
         plan = catalog.plans[library]
         body += citation_panel(library, plan['title'], plan['revision'], page)
-    return shell(page, config['title'], body, library)
+    return shell(page, config['title'], render_prose_math(body, math), library)
 
 
 class LatexProse(HTMLParser):
@@ -445,13 +446,12 @@ def latex_code(text):
 
 
 def latex_heading(text):
-    # Unicode is supported in PDF bookmarks, while typeset mathematical symbols
-    # need the explicit math-font conversion above.
+    # Headings use the same authored math as prose; bookmarks use readable text.
     plain = {'\\':r'\textbackslash{}','_':r'\_','%':r'\%','&':r'\&',
              '#':r'\#','$':r'\$','{':r'\{','}':r'\}',
              '~':r'\textasciitilde{}','^':r'\textasciicircum{}'}
-    bookmark = ''.join(plain.get(c,c) for c in text)
-    return r'\texorpdfstring{' + tex_escape(text, breakable=True) + '}{' + bookmark + '}'
+    bookmark = ''.join(plain.get(c,c) for c in plain_math_text(text))
+    return r'\texorpdfstring{' + latex_prose(E(text)).strip() + '}{' + bookmark + '}'
 
 
 def latex_prose(value):
@@ -532,14 +532,10 @@ def main():
     from report_links import ReportCatalog
     from report_citations import bib_outputs
     catalog = ReportCatalog(full_proof_inventory(CONFIG, notes, sources), notes, sources, parsed)
-    prose = [note['summary'] for note in notes.values()]
-    prose += [step['body'] for note in notes.values() for step in note['steps']]
-    prose += [result['body'] for config in CONFIG.values() for result in config['results']]
-    prose += [part['body'] for config in CONFIG.values() for part in config.get('proof', [])]
-    prose += [node[key] for config in CONFIG.values() for node in config['diagram']
-              for key in ('title', 'detail')]
-    prose += [page['intro'] for page in AVERAGE_PAGES.values()]
-    prose += [section['body'] for page in AVERAGE_PAGES.values() for section in page['sections']]
+    from references import PAPERS, DEVELOPMENTS
+    prose = list(authored_strings(notes)) + list(authored_strings(CONFIG))
+    prose += list(authored_strings(AVERAGE_PAGES))
+    prose += list(authored_strings(PAPERS)) + list(authored_strings(DEVELOPMENTS))
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css(), 'docs/assets/references.css':REFERENCE_CSS}
     for path,note in notes.items():
@@ -568,7 +564,7 @@ def main():
         catalog.plans, indent=2, ensure_ascii=False) + '\n'
     for page, config in AVERAGE_PAGES.items():
         outputs[page] = supplement_document(page, config, sources, parsed, math, catalog)
-    inputs = ['docs/report_citations.py','docs/report_links.py','docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
+    inputs = ['docs/math_notation.py','docs/report_citations.py','docs/report_links.py','docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
               'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']

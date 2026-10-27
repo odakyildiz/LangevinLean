@@ -18,7 +18,7 @@ class Page(HTMLParser):
         self.block = self.line = None
         self.line_depth = 0
         self.text = []
-        self.styles = self.scripts = 0
+        self.styles = self.scripts = self.annotations = 0
         self.boxes = []
         self.robots = []
         self.references = []
@@ -37,6 +37,7 @@ class Page(HTMLParser):
             if url: self.resources.append(url)
         if tag=='style': self.styles+=1
         if tag=='script': self.scripts+=1
+        if tag=='annotation': self.annotations+=1
         if tag=='pre' and 'data-source' in attrs: self.block={**attrs,'lines':[]}
         if tag=='span' and self.block is not None:
             if attrs.get('class')=='line-text': self.line=''; self.line_depth=1
@@ -44,6 +45,7 @@ class Page(HTMLParser):
     def handle_endtag(self,tag):
         if tag=='style': self.styles-=1
         if tag=='script': self.scripts-=1
+        if tag=='annotation': self.annotations-=1
         if tag=='span' and self.line is not None:
             self.line_depth-=1
             if not self.line_depth:
@@ -52,7 +54,7 @@ class Page(HTMLParser):
             self.blocks.append(self.block);self.block=None
     def handle_data(self,data):
         if self.line is not None: self.line+=data
-        elif not self.styles and not self.scripts: self.text.append(data)
+        elif not self.styles and not self.scripts and not self.annotations: self.text.append(data)
 
 
 def digest(path):

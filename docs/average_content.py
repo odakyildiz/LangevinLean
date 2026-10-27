@@ -66,8 +66,8 @@ convex with \(M_\infty\)-Lipschitz gradient, \(m&gt;0\), and assume exactly</p>
 \[W_2(\nu_k,\pi)\le(1-mh)^kW_2(\nu_0,\pi)
 +\frac{(2M_\infty\sqrt{M_{\rm av}}+M_\Delta)h\sqrt p}{m}.\]
 <p>The proof derives a weighted Dynkin identity for the constructed stationary
-Brownian diffusion from fresh Gaussian Euler steps. Compact C² approximations
-of its score preserve precisely the source C³ assumption; the Gibbs score
+Brownian diffusion from fresh Gaussian Euler steps. Compact \(C^2\) approximations
+of its score preserve precisely the source \(C^3\) assumption; the Gibbs score
 moment and gradient-generator bound retain the exact average smoothness.
 Clipping and the transport infimum give the displayed constant without an
 optimal-coupling premise. An extended version covers arbitrary probability
@@ -133,7 +133,7 @@ AVERAGE_CONFIG = {
             node('variable', 3, 0, 'AverageLMC/Theorem.lean',
                  'Prove constant and decreasing-step convergence', 'Actual laws, exact warmup and accuracy count', ('recurrence',)),
             node('laplacian', 2, 1, 'AverageLMC/LaplacianTheorem.lean',
-                 'Prove the exact Laplacian LMC bound', 'Gibbs C² cutoffs and dimension-preserving duality', ('dynkin',)),
+                 'Prove the exact Laplacian LMC bound', 'Gibbs \\(C^2\\) cutoffs and dimension-preserving duality', ('dynkin',)),
             node('sgld', 2, 2, 'AverageLMC/SGLDTheorem.lean',
                  'Prove the actual SGLD main theorem', 'Exact estimator variance and RMS constants', ('recurrence', 'estimator')),
             node('audit', 3, 1, 'AverageLMC/Check.lean',

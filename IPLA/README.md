@@ -13,15 +13,15 @@ the argument. Its [module guide](LSI/README.md) records the assumptions.
 The strongly convex result is `IPLA.theorem1` in [Theorem.lean](Theorem.lean). It proves
 the general-dimension extension of equation (34) of
 [arXiv:2409.07101v2](https://arxiv.org/html/2409.07101v2), using its Appendix B
-proof with independent parameter dimension `dθ` and latent dimension `dx`.
+proof with independent parameter dimension $d_\theta$ and latent dimension $d_x$.
 There is no equality, ordering, or padding requirement between the dimensions;
-both may be zero. Setting `dθ = dx = d` recovers the printed equation.
+both may be zero. Setting $d_\theta=d_x=d$ recovers the printed equation.
 The smoothness constant bounds the same potential as in Appendix B, including
 a prior when one is present. Standard notation is used throughout:
-`U y (pair θ x)`, with fixed observed data `y`, parameter `θ`, and latent `x`.
+$U_y(\theta,x)$ (represented in Lean by `U y (pair θ x)`), with fixed observed data $y$, parameter $\theta$, and latent $x$.
 
 The only potential assumptions are differentiability, joint positive strong
-convexity of `U y`, and a globally Lipschitz joint gradient. The theorem specifies
+convexity of $U_y$, and a globally Lipschitz joint gradient. The theorem specifies
 the actual independent Gaussian IPLA recursion and a square-integrable
 initialization. It does not accept a reference process, Gibbs stationarity,
 marginal log-concavity, a concentration estimate, or finite transport as extra
@@ -31,16 +31,16 @@ is unique under the same potential assumptions.
 Read the [offline exposition](exposition/index.html) or its
 [statement and assumption audit](exposition/README.md). It gives the exact
 mathematical statement, a coefficient-by-coefficient correspondence with Lean,
-the smoothness assumptions on the source's Φ and Ψ potentials, and a list of
+the smoothness assumptions on the source's $\Phi$ and $\Psi$ potentials, and a list of
 the proof steps and files. The
 exposition includes the final declaration copied directly from the source;
 the module pages give the corresponding mathematical proofs.
 
-For the rescaled state, the dimension is `dθ + N*dx`, proved explicitly by
+For the rescaled state, the dimension is $d_\theta+Nd_x$, proved explicitly by
 `IPLA.finrank_state` in [Geometry.lean](Geometry.lean). There is one shared
-parameter block and `N` latent blocks. The bound has equilibrium
-radius `sqrt (2*dθ/(N*m))` and discretization term
-`(33/20)*(L/m)*sqrt (dx + dθ/N)*sqrt γ`. Neither coefficient replaces one
+parameter block and $N$ latent blocks. The bound has equilibrium
+radius $\sqrt{2d_\theta/(Nm)}$ and discretization term
+$\frac{33}{20}\frac Lm\sqrt{d_x+d_\theta/N}\sqrt\gamma$. Neither coefficient replaces one
 dimension by the other.
 
 The final proof directly applies

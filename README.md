@@ -125,15 +125,15 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   results and new actual M-MFPO/HOL-MYPGD time-uniform bounds are proved under
   explicit assumptions. Actual Brownian integration, local stopping,
   original stationary product laws, optimal-law contraction and sharp original
-  particle/parameter bounds are verified. Both methods construct their raw/L²
+  particle/parameter bounds are verified. Both methods construct their raw/$L^2$
   coordinates, physical Gaussian noise, exact restarts and uniform reference
-  moments. The discretisation term is D*sqrt(h) for every iteration under an
+  moments. The discretisation term is $D\sqrt h$ for every iteration under an
   explicit positive small-step threshold, with constants allowed to depend
-  on fixed N. The explicit headline endpoints are
+  on fixed $N$. The explicit headline endpoints are
   `FullyUniformMomentum.explicit_parameter_bound` and
   `FullyUniformHigherOrder.explicit_parameter_bound`; each also certifies the
   full raw-state error through `explicit_discretization_bound`. The proved metric
-  comparison constants are `sqrt(lower_N)/2` and `2*sqrt(upper_N)`,
+  comparison constants are $\sqrt{\operatorname{lower}_N}/2$ and $2\sqrt{\operatorname{upper}_N}$,
   and cloud dimensions, force origins and local coefficients have proved
   arithmetic expansions. No numerical contraction or uniform moment bound is
   assumed. Older existential endpoints remain corollaries. Source A2 means
@@ -170,7 +170,7 @@ justified when $\rho\ge\kappa$, or with $\rho$ replaced by
 $\max(\kappa,\rho)$. The proved accuracy guarantee retains the exponential tail and states its
 iteration count separately.
 
-The continuous equations have solutions continuous in L² on each finite time
+The continuous equations have solutions continuous in $L^2$ on each finite time
 interval, driven by Brownian coordinate processes with the stated joint laws.
 The proof establishes their integral equations, independence properties,
 distributions at fixed times, and stationarity.
@@ -234,7 +234,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 The dependency runs from IPLA to `UnadjustedLangevin`; the ULA library has no
 IPLA imports. IPLA applies the existing ULA estimate to its lifted potential,
 then uses the parameter projection and concentration bound. The particle state
-has dimension `dθ + N * dx`, with independent parameter and latent dimensions.
+has dimension $d_\theta+Nd_x$, with independent parameter and latent dimensions.
 
 Future sampling methods can have their own top-level library and exposition,
 importing the shared ULA analysis and probability modules as needed. Keep each

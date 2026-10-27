@@ -36,7 +36,7 @@ hypotheses explicit.
 ## The proof
 
 The normalization is $2\alpha H_\nu(\rho)\le I_\nu(\rho)$. `IsLogSobolev`
-tests positive C¹ normalized relative densities, using Mathlib's extended KL
+tests positive $C^1$ normalized relative densities, using Mathlib's extended KL
 and the squared relative score. The actual positive-time Gaussian density is
 proved to belong to this class; its Fisher information is proved finite before
 LSI is used to obtain finite KL.
@@ -53,13 +53,13 @@ The proof has the following steps:
    second moment of the gradient.
 3. [InterpolationDensity.lean](InterpolationDensity.lean) and
    [GaussianEntropy.lean](GaussianEntropy.lean) construct the positive
-   Gaussian-mixture density, prove that its relative density is C¹, express
+   Gaussian-mixture density, prove that its relative density is $C^1$, express
    its score as a conditional mean, and prove finiteness of its Fisher information. [GaussianDrift.lean](GaussianDrift.lean) proves the exact
    displacement and frozen gradient-error energies.
 4. [GaussianTimeDerivative.lean](GaussianTimeDerivative.lean) differentiates
-   the mixture density in time and proves spacetime L¹ estimates.
+   the mixture density in time and proves spacetime $L^1$ estimates.
    [GaussianWeakEquation.lean](GaussianWeakEquation.lean) proves the
-   weak equation on the whole space for bounded C¹ tests with finite gradient energy.
+   weak equation on the whole space for bounded $C^1$ tests with finite gradient energy.
    [GaussianMeasurability.lean](GaussianMeasurability.lean) and
    [GaussianEnergyIntegrability.lean](GaussianEnergyIntegrability.lean) provide
    the measurable score field and compact-time energy estimates.

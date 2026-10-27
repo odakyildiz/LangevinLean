@@ -32,22 +32,22 @@ solver or ambient sample-measure separability.
 Both actual additive particle methods have new time-uniform square-root-step
 parameter bounds for every iteration under an explicit positive small-step
 threshold. Source A3 constructs their contracting empirical metric; physical
-noise, Gaussian coupling, raw/L² coordinates, uniform reference moments and
+noise, Gaussian coupling, raw/$L^2$ coordinates, uniform reference moments and
 local errors are derived. Constants may depend on the fixed particle count.
 The numerical assumptions N1–N3 separately state global force Lipschitz
-regularity, the original initial/A3/A5 data, and an actual canonical L² frozen
+regularity, the original initial/A3/A5 data, and an actual canonical $L^2$ frozen
 target trajectory. No numerical contraction or uniform moment bound is
 assumed. The explicit endpoints are `FullyUniformMomentum.explicit_parameter_bound`
 and `FullyUniformHigherOrder.explicit_parameter_bound`; each also has an
 `explicit_discretization_bound` for the full raw state. Their metric constants
-are numeric (`sqrt(lower_N)/2` and `2*sqrt(upper_N)`), and the force/cloud,
+are numeric ($\sqrt{\operatorname{lower}_N}/2$ and $2\sqrt{\operatorname{upper}_N}$), and the force/cloud,
 zero-origin and local-error arithmetic expansions are proved. Older
 existential statements remain corollaries, and finite-horizon results remain
 available. The sharp original raw particle interaction and parameter arguments use computed local Brownian
 noise, genuine stopping and actual reference variance. The constant-diffusion source2 branch is also proved across arbitrary original
 sources under the explicitly independent ordinary finite signed-work reading
 of universal A3. The broader extended-negative-work interpretation is outside
-this convention; a proved dissipative cubic/P₂ witness records the difference.
+this convention; a proved dissipative cubic/$P_2$ witness records the difference.
 Natural independent reference clouds and the complete physical pair are
 constructed. Source A4/A5 derive stationary-target comparison work without
 that universal finite-work convention. Exact assumptions accompany every Lean header. The source audit
@@ -77,7 +77,7 @@ The proved accuracy guarantee includes every exponential tail term; its
 iteration count is stated separately from the formula obtained by dropping
 that term.
 The continuous equations have Brownian coordinate processes with the stated
-joint laws and solutions continuous in L² on each finite time interval. A separate almost-surely continuous
+joint laws and solutions continuous in $L^2$ on each finite time interval. A separate almost-surely continuous
 sample-path modification theorem is not asserted. Empirical experiment results
 remain observations, separate from the analytic guarantees.
 
@@ -214,6 +214,14 @@ module atlas and source audit are authored in
 `--require-resolved` coverage gate checks the main sampling theorems; the audit
 records broader auxiliary coverage separately. It does not assert literal full-paper coverage. Its
 PDF report is built with the shared report catalog and cites shared proofs.
+
+Write mathematical expressions, variables, norms, regularity classes and bounds
+inside LaTeX math delimiters, including headings, diagram labels, tables and
+explanatory source notes. Web output uses bundled KaTeX; PDF exports preserve
+the same authored LaTeX. Literal Lean source and commands retain their exact
+syntax. Run `python3 docs/test_math_notation.py` and
+`python3 docs/verify_math_notation.py` to check the renderers and visible notation
+across generated pages, archived expositions and Markdown documentation.
 
 Keep each mathematical statement and proof self-contained in ordinary notation.
 Use dry mathematical language: state the hypotheses, define each quantity,

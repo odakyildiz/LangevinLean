@@ -13,7 +13,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from exposition.proof_map import lean_link, page_css, proof_map_section, source_browser
+from exposition.proof_map import NODES as PROOF_NODES, lean_link, page_css, proof_map_section, source_browser
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -25,6 +25,10 @@ THEME_SPEC = importlib.util.spec_from_file_location(
     "langevin_theme", ROOT / "docs/theme.py")
 THEME = importlib.util.module_from_spec(THEME_SPEC)
 THEME_SPEC.loader.exec_module(THEME)
+MATH_SPEC = importlib.util.spec_from_file_location(
+    "langevin_math_notation", ROOT / "docs/math_notation.py")
+MATH = importlib.util.module_from_spec(MATH_SPEC)
+MATH_SPEC.loader.exec_module(MATH)
 EXPO = HERE / 'exposition'
 AUDIT_THEOREMS = [
     'IPLA.theorem1',
@@ -139,17 +143,33 @@ set_option linter.unusedSectionVars false
 TEX = re.compile(r'\\\[(.*?)\\\]|\\\((.*?)\\\)', re.S)
 
 
-def mathematics(text):
-    formulas = [(m[1] is not None, m[1] or m[2]) for m in TEX.finditer(text)]
+def render_mathematics(texts):
+    formulas = set()
+    def collect(text):
+        formulas.update((m[1] is not None, html.unescape(m[1] or m[2]))
+                        for m in TEX.finditer(text))
+        return text
+    for text in texts:
+        MATH.render_prose_math(text, collect)
+    formulas = sorted(formulas)
     js = """const fs=require('fs'),k=require(process.argv[1]);
 process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(
  ([displayMode,t])=>k.renderToString(t,{displayMode,throwOnError:true,
  strict:'ignore',output:'htmlAndMathml',trust:false}))));"""
     result = subprocess.run(['node', '-e', js, str(VENDOR/'katex.min.js')],
                             input=json.dumps(formulas), text=True, capture_output=True, check=True)
-    rendered = iter(json.loads(result.stdout))
-    return TEX.sub(lambda m: '<div class="math">'+next(rendered)+'</div>'
-                   if m[1] is not None else next(rendered), text)
+    rendered = dict(zip(formulas, json.loads(result.stdout)))
+    def render(text):
+        def substitute(match):
+            formula = rendered[(match[1] is not None,
+                                html.unescape(match[1] or match[2]))]
+            return '<div class="math">'+formula+'</div>' if match[1] is not None else formula
+        return TEX.sub(substitute, text)
+    return lambda text: MATH.render_prose_math(text, render)
+
+
+def mathematics(text):
+    return render_mathematics([text])(text)
 
 
 def code_block(source, language=""):
@@ -159,7 +179,7 @@ def code_block(source, language=""):
             '<pre><code>' + html.escape(source) + '</code></pre></div>')
 
 
-def markdown(text):
+def markdown(text, math=mathematics):
     # Protect fenced code before math, then extract math before ordinary
     # Markdown processing so formula pipes cannot become table separators.
     raw = []
@@ -168,14 +188,14 @@ def markdown(text):
         return f'@@RAW{len(raw)-1}@@'
     text = re.sub(r'```([^\n]*)\n(.*?)```',
                   lambda m: token(code_block(m[2], m[1])), text, flags=re.S)
-    text = TEX.sub(lambda m: token(mathematics(m[0])), text)
+    def code_link(match):
+        value = match[1]
+        linked = (re.fullmatch(r'(?:IPLA|UnadjustedLangevin)/[\w/]+\.lean',
+                              value) and (ROOT/value).is_file())
+        return token('<code>' + (lean_link(value) if linked else html.escape(value)) + '</code>')
+    text = re.sub(r'`([^`]+)`', code_link, text)
+    text = TEX.sub(lambda m: token(math(m[0])), text)
     def inline(s):
-        def code_link(match):
-            value = match[1]
-            linked = (re.fullmatch(r'(?:IPLA|UnadjustedLangevin)/[\w/]+\.lean',
-                                  value) and (ROOT/value).is_file())
-            return token('<code>' + (lean_link(value) if linked else html.escape(value)) + '</code>')
-        s = re.sub(r'`([^`]+)`', code_link, s)
         s = html.escape(s)
         s = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', s)
         s = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', s)
@@ -254,19 +274,25 @@ def katex_css():
 def exposition(sources):
     statement = (HERE/'Theorem.lean').read_text().split('theorem theorem1', 1)[1].split(' := by', 1)[0]
     statement = 'theorem theorem1' + statement
-    body = markdown((EXPO/'README.md').read_text())
+    readme = (EXPO/'README.md').read_text()
+    reference_notice = REFERENCES.reference_notice("IPLA")
+    # Markdown code is literal source, including any TeX delimiter examples.
+    prose = re.sub(r'```.*?```|`[^`]+`', '', readme, flags=re.S)
+    math = render_mathematics(MATH.authored_strings((prose, PROOF_NODES, reference_notice)))
+    body = markdown(readme, math)
     body = body.replace('<h2 id="integration-by-parts-and-stationarity">',
                         '<span id="what-the-generator-argument-establishes"></span>'
                         '<h2 id="integration-by-parts-and-stationarity">', 1)
     body = body.replace('<h2 id="mathematical-statement">',
-                        proof_map_section(sources, mathematics, katex_css()) + '<h2 id="mathematical-statement">', 1)
+                        proof_map_section(sources, math, katex_css()) + '<h2 id="mathematical-statement">', 1)
     exact = '<section id="exact-lean"><h2>Exact final Lean declaration</h2><p>This is copied directly from Theorem.lean. The proof body is omitted from this exposition.</p>' + code_block(statement, 'lean') + '</section>'
     data = {p: hashlib.sha256(s.encode()).hexdigest() for p,s in sources}
     data['IPLA/Standalone.lean'] = hashlib.sha256((HERE/'Standalone.lean').read_bytes()).hexdigest()
     (EXPO/'source_manifest.json').write_text(json.dumps(data, indent=2)+'\n')
     config = '''body{margin:0;color:#182b39;background:#f3f6f7;font:17px/1.65 system-ui,sans-serif}main{max-width:1050px;margin:36px auto;background:#fff;padding:46px 54px;border:1px solid #dce4e8;border-radius:14px}h1{font-size:34px;line-height:1.2}h2{font-size:25px;margin-top:2.5em;border-top:1px solid #dce4e8;padding-top:1em}h3{font-size:21px;margin-top:2em}a{color:#006c7a}a:focus-visible{outline:3px solid #b8781a;outline-offset:3px;border-radius:2px}code{font:0.88em ui-monospace,monospace;background:#eef3f5;padding:2px 4px;border-radius:3px;overflow-wrap:anywhere}pre{background:#102c3b;color:#edf6f7;padding:22px;border-radius:8px;overflow-x:auto;line-height:1.55}pre code{background:none;padding:0}table{border-collapse:collapse;width:100%;min-width:600px;font-size:15px;line-height:1.5}th,td{text-align:left;border:1px solid #d7e1e5;padding:12px;vertical-align:top}th{background:#eaf2f4}tbody tr:nth-child(even){background:#f8fbfc}td code{overflow-wrap:anywhere}.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.math{overflow-x:auto;margin:1.5em 0}.katex{font-size:1.08em}.topnav{display:flex;gap:20px;flex-wrap:wrap;font-size:15px}.notice{padding:18px 22px;border-left:5px solid #b8781a;background:#fff6e4;margin:25px 0}.footer{font-size:13px;color:#526875;margin-top:40px}@media(max-width:700px){main{margin:0;padding:24px 18px;border:0;border-radius:0}h1{font-size:28px}body{font-size:16px}}@media print{body{background:white}main{border:0;margin:0;padding:0}.topnav{display:none}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f4f4;color:black}table{font-size:11px;min-width:0}}'''
     config += page_css() + REFERENCES.REFERENCE_CSS
-    result = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>IPLA — theorem and assumption audit</title><style>'+katex_css()+config+'</style>'+THEME.theme_head()+'</head><body data-theme-family="ipla"><main><nav class="topnav">'+THEME.theme_control()+'<a href="../../index.html">Project home</a><a href="index.html">IPLA overview</a><a href="#proof-map">Proof map</a><a href="#mathematical-statement">Mathematical statement</a><a href="#complete-assumption-audit">Assumption audit</a><a href="#lean-files">Lean files</a><a href="#what-the-generator-argument-establishes">Generator identities</a><a href="#exact-lean">Exact Lean statement</a><a href="../Standalone.lean" download>Download standalone Lean</a></nav>'+REFERENCES.reference_notice("IPLA")+'<div class="notice"><strong>Complete formalization from the joint assumptions.</strong> The IPLA algorithm with independent standard Gaussian innovations satisfies the general-dimension extension of equation (34), with independent parameter and latent dimensions. The Appendix B correspondence and source smoothness clarification are described below. Gibbs stationarity and marginal concentration are proved. The final declaration has no additional analytic premises.</div>'+body+exact+'<p class="footer">Generated from repository sources by IPLA/build_artifacts.py. Equations, fonts and the Lean source viewer are embedded; this page works offline. KaTeX licensing: <a href="katex-LICENSE.txt">license</a>. Source hashes: <a href="source_manifest.json">manifest</a>.</p></main>'+source_browser(sources)+'</body></html>'
+    result = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><title>IPLA — theorem and assumption audit</title><style>'+katex_css()+config+'</style>'+THEME.theme_head()+'</head><body data-theme-family="ipla"><main><nav class="topnav">'+THEME.theme_control()+'<a href="../../index.html">Project home</a><a href="index.html">IPLA overview</a><a href="#proof-map">Proof map</a><a href="#mathematical-statement">Mathematical statement</a><a href="#complete-assumption-audit">Assumption audit</a><a href="#lean-files">Lean files</a><a href="#what-the-generator-argument-establishes">Generator identities</a><a href="#exact-lean">Exact Lean statement</a><a href="../Standalone.lean" download>Download standalone Lean</a></nav>'+reference_notice+'<div class="notice"><strong>Complete formalization from the joint assumptions.</strong> The IPLA algorithm with independent standard Gaussian innovations satisfies the general-dimension extension of equation (34), with independent parameter and latent dimensions. The Appendix B correspondence and source smoothness clarification are described below. Gibbs stationarity and marginal concentration are proved. The final declaration has no additional analytic premises.</div>'+body+exact+'<p class="footer">Generated from repository sources by IPLA/build_artifacts.py. Equations, fonts and the Lean source viewer are embedded; this page works offline. KaTeX licensing: <a href="katex-LICENSE.txt">license</a>. Source hashes: <a href="source_manifest.json">manifest</a>.</p></main>'+source_browser(sources)+'</body></html>'
+    result = MATH.render_prose_math(result, math)
     (EXPO/'proof.html').write_text(result)
     (EXPO/'katex-LICENSE.txt').write_text((VENDOR/'LICENSE').read_text())
 

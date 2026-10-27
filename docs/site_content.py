@@ -141,6 +141,7 @@ CONFIG = {
 
 
 def home_document(lib, config, notes, sources, parsed, math, catalog=None):
+    from math_notation import render_prose_math
     page = lib + '/exposition/index.html'
     if catalog:
         typeset = math
@@ -219,7 +220,7 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
         from report_citations import citation_panel
         plan = catalog.plans[lib]
         body += citation_panel(lib, plan['title'], plan['revision'], page)
-    return shell(page,config['title'],body,lib)
+    return shell(page,config['title'],render_prose_math(body,math),lib)
 
 
 def project_document(notes, catalog=None):

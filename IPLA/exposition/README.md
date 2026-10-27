@@ -260,7 +260,7 @@ An integrated generator identity by itself does not identify the law of a
 constructed stochastic solution. The Metropolis and Euler limit argument in `GibbsStationarity.lean` proves
 this identification: each Metropolis approximation preserves the Gibbs
 distribution, its distance from the Euler approximation tends to zero, and
-the Euler approximation converges to the constructed L² integral solution.
+the Euler approximation converges to the constructed \(L^2\) integral solution.
 
 ## Standalone compilation and audit
 

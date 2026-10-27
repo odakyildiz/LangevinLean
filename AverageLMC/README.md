@@ -8,10 +8,10 @@ The review scope is the three main sampling theorems, the decreasing-step propos
 
 - **Theorem 1 (`th:1`):** the actual Gaussian LMC one-step bound with the exact coordinate-average smoothness and signed score correction, and its exponential constant-step convergence estimate.
 - **Proposition 1 (`prop:VSS`):** the actual decreasing-step chain with the literal warmup ceiling, positive-part schedule and accuracy iteration count.
-- **Theorem 2 (`th:3`):** the actual LMC bound under precisely C³ regularity and the stated gradient-of-Laplacian condition, with persistent error `(2 M_infinity sqrt(M_av) + M_Delta) h sqrt(p) / m`.
+- **Theorem 2 (`th:3`):** the actual LMC bound under precisely $C^3$ regularity and the stated gradient-of-Laplacian condition, with persistent error $\bigl(2M_\infty\sqrt{M_{\mathrm{av}}}+M_\Delta\bigr)h\sqrt p/m$.
 - **Theorem 3 (`th:sgld`) and Proposition 3 (`prop:th:sgld`):** the actual independent Gaussian/uniform-index control-variate SGLD law, exact estimator variance, component RMS recurrence and printed constant-step error bound.
 
-The constants are defined from the actual potentials. The main endpoints derive their recurrences, Gibbs stationarity, Gaussian freshness, coordinate smoothing, moments and gradient-generator estimate. They introduce no Hessian Lipschitz assumption, C⁴ regularity or convexity assumption on individual SGLD components. Extended-nonnegative main bounds cover every probability initialization. The local signed-energy formula uses its finite-transport interpretation; bounded initial errors in the variable-step statement themselves provide the required finiteness.
+The constants are defined from the actual potentials. The main endpoints derive their recurrences, Gibbs stationarity, Gaussian freshness, coordinate smoothing, moments and gradient-generator estimate. They introduce no Hessian Lipschitz assumption, $C^4$ regularity or convexity assumption on individual SGLD components. Extended-nonnegative main bounds cover every probability initialization. The local signed-energy formula uses its finite-transport interpretation; bounded initial errors in the variable-step statement themselves provide the required finiteness.
 
 The source inventory records broader auxiliary statements separately. Their full standalone generality is outside the main sampling theorem scope, so literal full-paper proof coverage is not claimed.
 
