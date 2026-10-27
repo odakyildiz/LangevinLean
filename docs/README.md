@@ -209,10 +209,10 @@ This development stays outside
 the published PDF report catalog, and its source coverage remains partial.
 
 `AverageLMC` is contribution 09 after latent diffusion. Its paired overview,
-module atlas, source audit and separate counterexample pages are authored in
+module atlas and source audit are authored in
 `average_content.py` and `AverageLMC/exposition/module_notes.json`. The
-`--require-resolved` coverage gate checks the main sampling theorems and
-verified source mistakes; it does not assert literal full-paper coverage. Its
+`--require-resolved` coverage gate checks the main sampling theorems; the audit
+records broader auxiliary coverage separately. It does not assert literal full-paper coverage. Its
 PDF report is built with the shared report catalog and cites shared proofs.
 
 Keep each mathematical statement and proof self-contained in ordinary notation.

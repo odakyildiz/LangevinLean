@@ -289,9 +289,9 @@ def project_document(notes, catalog=None):
            '<h2><a href="AverageLMC/exposition/index.html">Langevin Monte Carlo with Average Smoothness</a></h2>'
            '<p>LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.</p>'
            '</div><div class="entry-meta"><p class="entry-source">Source: Dalalyan and Karagulyan, supplied average-smoothness manuscript.</p>'
-           '<p class="card-scope">Main sampling proofs and separate checked counterexamples to manuscript mistakes; broader auxiliary coverage remains explicit.</p>'
+           '<p class="card-scope">Main sampling proofs with exact source hypotheses and constants; broader auxiliary coverage remains explicit.</p>'
            '<p><a href="docs/pdf/AverageLMC/FullProof.pdf">Full proof (PDF)</a> · '
-           '<a href="AverageLMC/exposition/mistakes.html">Source mistakes and counterexamples</a></p></div></article>')
+           '<a href="AverageLMC/exposition/reference_audit.json">Source audit and formal scope</a></p></div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
            '<div class="reading-note"><h2>Read the proofs</h2><p>The established reports have one PDF containing theorem statements, mathematical arguments and supporting proofs. The PBGSO and latent-diffusion developments have web overviews with their current scope and exact Lean statements. The web pages pair the arguments with Lean.</p></div>'
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')

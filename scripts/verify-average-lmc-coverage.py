@@ -3,9 +3,8 @@
 
 The default verifies exact source statements, their full inventory, checked
 declaration references, and absence of proof holes. --require-complete rejects
-both unproved endpoints and a refuted source result. --require-resolved checks
-the revised review scope: proved main statements and linked, checked
-counterexamples to false source statements.
+unproved or excluded source results. --require-resolved checks the main
+sampling theorems and supporting propositions under their source hypotheses.
 """
 from __future__ import annotations
 
@@ -61,10 +60,6 @@ def verify(require_complete=False, require_resolved=False):
         "AverageLMC/GradientStep.lean": ["gradient_step", "gradient_descent"],
         "AverageLMC/Recurrence.lean": ["constant_step_normalized"],
         "AverageLMC/Complexity.lean": ["variable_step_accuracy"],
-        "AverageLMC/GLMObstruction.lean": ["counterexamplePotential_hessian_lipschitz_lower",
-                                           "counterexampleComponent_derivative_bound"],
-        "AverageLMC/GaussianObstruction.lean": ["stdGaussian_cube_bound_fails"],
-        "AverageLMC/GLMCounterexample.lean": ["no_uniform_glmHessian_bound"],
     }
     for path, names in certificates.items():
         for name in names:
@@ -77,9 +72,6 @@ def verify(require_complete=False, require_resolved=False):
         for proof in proofs:
             assert proof["declaration"] in parsed[proof["file"]], \
                 f"Missing result proof correspondence: {result['id']}"
-        for proof in result.get("counterexamples", []):
-            assert proof["declaration"] in parsed[proof["file"]], \
-                f"Missing counterexample certificate: {result['id']}"
         if result["status"] != "proved" or not proofs:
             unfinished_results.append(result["id"])
     labels = {entry["label"] for entry in audit["source_labels"]}
@@ -91,37 +83,22 @@ def verify(require_complete=False, require_resolved=False):
             assert name in parsed[path]
         if endpoint["status"] != "proved" or not path or not name:
             missing.append(endpoint["id"])
-    refuted = [entry["id"] for entry in audit["results"] if entry["status"] == "refuted"]
-    complete = not missing and not unfinished_results and not refuted
+    complete = not missing and not unfinished_results
     assert audit["formalization_complete"] == complete, "Incorrect completion flag"
-    from average_content import AVERAGE_PAGES
     scope = audit["review_scope"]
+    main_results = {"th:1", "prop:VSS", "th:3", "th:sgld", "prop:th:sgld"}
+    assert set(scope["results"]) == main_results, "Missing main sampling result from review scope"
     by_id = {result["id"]: result for result in audit["results"]}
-    unresolved = []
-    for identifier in scope["results"]:
-        result = by_id[identifier]
-        proved = result["status"] == "proved" and result.get("proofs")
-        counterexample = (result["status"] == "refuted" and result.get("counterexamples")
-                          and result.get("counterexample_page") in AVERAGE_PAGES)
-        if not (proved or counterexample):
-            unresolved.append(identifier)
-    for page in scope["counterexample_pages"]:
-        assert page in AVERAGE_PAGES, f"Missing separate counterexample page: {page}"
-        references = [ref for section in AVERAGE_PAGES[page]["sections"]
-                      for ref in section.get("references", [])]
-        assert references, f"Counterexample page has no checked certificate: {page}"
-        for ref in references:
-            assert ref["name"] in parsed[ref["file"]], f"Missing page certificate: {page}"
+    unresolved = [identifier for identifier in scope["results"]
+                  if by_id[identifier]["status"] != "proved" or not by_id[identifier].get("proofs")]
     resolved = not unresolved
     assert scope["complete"] == resolved, "Incorrect review-scope completion flag"
     print(f"AverageLMC: {sum(audit['counts'].values())} exact source results and "
           f"{len(recorded_labels)} labels verified; checked certificates present.")
     print("Full-paper formalization: " + ("COMPLETE" if complete else "INCOMPLETE"))
-    print("Main-theorem and counterexample review scope: " + ("COMPLETE" if resolved else "INCOMPLETE"))
-    if refuted:
-        print("Refuted source results: " + ", ".join(refuted))
+    print("Main-theorem review scope: " + ("COMPLETE" if resolved else "INCOMPLETE"))
     if require_complete and not complete:
-        raise SystemExit("Exact full-paper coverage cannot pass. Open/refuted results: " +
+        raise SystemExit("Exact full-paper coverage cannot pass. Unproved or excluded results: " +
                          ", ".join(unfinished_results) + "; endpoints: " + ", ".join(missing))
     if require_resolved and not resolved:
         raise SystemExit("Main-theorem review scope is unfinished: " + ", ".join(unresolved))

@@ -47,7 +47,7 @@ printf '\nChecking latent-diffusion statements and source fidelity\n'
 python3 -B scripts/verify-latent-diffusion.py
 lake env lean LatentDiffusion/exposition/statement_checks.lean
 
-printf '\nChecking average-smoothness main theorems and source counterexamples\n'
+printf '\nChecking average-smoothness main sampling theorems\n'
 python3 -B scripts/verify-average-lmc-coverage.py --require-resolved
 
 printf '\nChecking the complete module proof atlas\n'
