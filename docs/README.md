@@ -208,6 +208,13 @@ checks do not certify complete source coverage.
 This development stays outside
 the published PDF report catalog, and its source coverage remains partial.
 
+`AverageLMC` is contribution 09 after latent diffusion. Its paired overview,
+module atlas, source audit and separate counterexample pages are authored in
+`average_content.py` and `AverageLMC/exposition/module_notes.json`. The
+`--require-resolved` coverage gate checks the main sampling theorems and
+verified source mistakes; it does not assert literal full-paper coverage. Its
+PDF report is built with the shared report catalog and cites shared proofs.
+
 Keep each mathematical statement and proof self-contained in ordinary notation.
 Use dry mathematical language: state the hypotheses, define each quantity,
 and explain each inference. Include the inequalities, integrability conditions,
@@ -275,6 +282,8 @@ lake env lean KineticLangevin/Check.lean
 lake env lean KIPLMC/Check.lean
 lake env lean PBGSO/Check.lean
 lake env lean LatentDiffusion/Check.lean
+lake env lean AverageLMC/Check.lean
+python3 scripts/verify-average-lmc-coverage.py --require-resolved
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 

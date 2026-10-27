@@ -17,7 +17,8 @@ for audit in \
   KineticLangevin/Check.lean \
   KIPLMC/Check.lean \
   PBGSO/Check.lean \
-  LatentDiffusion/Check.lean
+  LatentDiffusion/Check.lean \
+  AverageLMC/Check.lean
 do
   printf '\nAuditing %s\n' "$audit"
   lake env lean "$audit"
@@ -45,6 +46,9 @@ done
 printf '\nChecking latent-diffusion statements and source fidelity\n'
 python3 -B scripts/verify-latent-diffusion.py
 lake env lean LatentDiffusion/exposition/statement_checks.lean
+
+printf '\nChecking average-smoothness main theorems and source counterexamples\n'
+python3 -B scripts/verify-average-lmc-coverage.py --require-resolved
 
 printf '\nChecking the complete module proof atlas\n'
 python3 -B docs/build_site.py --check

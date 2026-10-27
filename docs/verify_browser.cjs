@@ -462,11 +462,19 @@ async function projectLinks(page, viewport) {
   const destination = path.join(outputDir, 'project-home-' + page.viewportSize().width + '.png');
   await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
   screenshots.push(destination);
-  check(await page.locator('.landing-card').count() === 7, 'Project home has six established theorem cards, the PBGSO source-based card and the particle entropy footnote');
+  check(await page.locator('.landing-card').count() === 9, 'Project home has nine contribution cards');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Unadjusted Langevin under Strong Convexity'),
     'ULA card states the strong convexity assumption');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Interacting Particle Langevin under Strong Convexity'),
     'IPLA card states the strong convexity assumption');
+  const latentCard = page.locator('.landing-card').nth(7);
+  const averageCard = page.locator('.landing-card').nth(8);
+  check(await latentCard.locator('h2 a[href="LatentDiffusion/exposition/index.html"]').count() === 1 &&
+    (await latentCard.locator('.entry-index').textContent()).trim() === '08',
+    'Latent diffusion is contribution 08');
+  check(await averageCard.locator('h2 a[href="AverageLMC/exposition/index.html"]').count() === 1 &&
+    (await averageCard.locator('.entry-index').textContent()).trim() === '09',
+    'Average-smoothness LMC follows latent diffusion as contribution 09');
   for (const library of LIBRARIES) {
     const relative = library.key + '/exposition/index.html';
     await page.locator('.landing-card a[href="' + relative + '"]').click();

@@ -64,6 +64,7 @@ def verify():
     assert not any(workflows.glob('*.yml')) and not any(workflows.glob('*.yaml')), 'GitHub Actions workflows are prohibited; run checks locally'
     sources,parsed,notes=load()
     from site_content import CONFIG
+    from average_content import AVERAGE_PAGES
     manifest=json.loads((ROOT/'docs/coverage.json').read_text())
     from full_proofs import full_proof_inventory
     volumes=full_proof_inventory(CONFIG,notes,sources)
@@ -79,7 +80,7 @@ def verify():
         if path not in cache:
             doc=Page();doc.feed(path.read_text());cache[path]=doc
         return cache[path]
-    outputs=[module_page(p) for p in sources]+[l+'/exposition/index.html' for l in CONFIG]+['index.html']
+    outputs=[module_page(p) for p in sources]+[l+'/exposition/index.html' for l in CONFIG]+['index.html']+list(AVERAGE_PAGES)
     links=blocks=0
     for path in outputs:
         target=ROOT/path
@@ -95,6 +96,8 @@ def verify():
                 source_path=path.removeprefix('docs/modules/').removesuffix('.html')+'.lean'
                 library=next(lib for lib in LIBRARIES if source_path.startswith(lib))
                 if '/LSI/' in source_path: library+='/LSI'
+            elif path in AVERAGE_PAGES:
+                library=AVERAGE_PAGES[path]['library']
             else:
                 library=path.removesuffix('/exposition/index.html')
             development=DEVELOPMENTS[library]
