@@ -67,10 +67,10 @@ PAPERS = {
 
 DEVELOPMENTS = {
     'AverageLMC': dict(
-        label="Supplied manuscript; checked sampling proofs and separate source mistakes",
+        label="Supplied manuscript; checked main sampling proofs",
         status="corrected", papers=["average-lmc"],
-        scope="The exact supplied manuscript is the correspondence authority. Its main average-smoothness LMC, decreasing-step, Laplacian-smooth LMC and fixed-point control-variate SGLD statements are proved for actual Gaussian sampling laws with the source constants. Extended transport endpoints cover arbitrary probability initializations. The Laplacian proof uses exactly C3 regularity and the gradient-of-Laplacian condition. Verified counterexamples to the false Gaussian-design proposition, its empirical fourth-moment event and an intermediate SGLD transient comparison have separate pages linked from the top of the overview. The complete source inventory distinguishes this main-theorem review scope from broader auxiliary statements not reproduced in full standalone generality; literal full-paper proof coverage is not claimed.",
-        card="Actual average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds, with separate checked counterexamples to manuscript mistakes."),
+        scope="The exact supplied manuscript is the correspondence authority. Its main average-smoothness LMC, decreasing-step, Laplacian-smooth LMC and fixed-point control-variate SGLD statements are proved for actual Gaussian sampling laws with the source constants. Extended transport endpoints cover arbitrary probability initializations. The Laplacian proof uses exactly C3 regularity and the gradient-of-Laplacian condition. The complete source inventory distinguishes this main-theorem review scope from broader auxiliary statements not reproduced in full standalone generality; literal full-paper proof coverage is not claimed.",
+        card="Actual average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact source hypotheses and constants."),
     "KineticLangevin": dict(
         label="Published source; corrected checked proofs", status="corrected",
         papers=["dalalyan-riou-durand"],

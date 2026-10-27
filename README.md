@@ -116,9 +116,8 @@ HTML includes the offline fonts, formula rendering, and source viewers.
 - **Average smoothness LMC (contribution 09):** [sampling proofs](AverageLMC/exposition/index.html),
   following latent diffusion on the homepage. LMC, decreasing-step, Laplacian LMC
   and control-variate SGLD bounds retain the source hypotheses and constants.
-  [Separate counterexample pages](AverageLMC/exposition/mistakes.html) record
-  verified manuscript mistakes; the [source audit](AverageLMC/exposition/reference_audit.json)
-  distinguishes this review scope from broader auxiliary coverage.
+  The [source audit](AverageLMC/exposition/reference_audit.json) distinguishes
+  this main sampling theorem scope from broader auxiliary coverage.
 - **PBGSO:** [general framework, assumptions and exact theorem statements](PBGSO/exposition/index.html),
   [scope and module guide](PBGSO/README.md), and
   [audit of all eight numbered source results](PBGSO/exposition/source_audit.md).
@@ -226,7 +225,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`KIPLMC/`](KIPLMC/exposition/README.md) | KIPLD convergence, KIPLMC1/KIPLMC2 parameter root-mean-square error bounds, changes of variables for the diffusion and algorithms, target concentration, and the analytic logistic example. |
 | [`LatentDiffusion/`](LatentDiffusion/exposition/index.html) | All 19 corrected source results under explicit added regularity: actual density/KL identities, product transport and entropy calculus, classical-flow convergence, constructed mean-field and particle equations, and full-batch RMS error; separate new theory and accuracy choices. |
 | [`PBGSO/`](PBGSO/README.md) | General optimiser/sampler framework, actual predictable Brownian integration and continuous adapted modifications, stationary product laws and optimal law contraction, source appendix criteria and fully constructed additive particle numerical bounds; original raw stationarity via actual Wiener-path transfer and primitive linear-growth optimal law contraction across sources; constant-diffusion contraction uses the explicit ordinary finite signed-work A3 convention; actual independent reference clouds and physical particle/reference pairing are constructed. |
-| [`AverageLMC/`](AverageLMC/README.md) | Average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD proofs, with separate checked manuscript counterexamples. |
+| [`AverageLMC/`](AverageLMC/README.md) | Average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD proofs with exact source hypotheses and constants. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
