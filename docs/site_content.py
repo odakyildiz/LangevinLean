@@ -151,8 +151,9 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     body=(f'<div id="legacy-destination" hidden data-url="{relative(config["archive"],page)}"></div>'
           f'<header class="hero"><div class="eyebrow">{config["label"]}</div>'
           f'<h1>{config["title"]}</h1><p class="subtitle">{config["subtitle"]}{footref}</p>'
-          + reference_notice(lib) +
-          f'<p class="status">{config["status"]}</p></header>')
+          + reference_notice(lib)
+          + (f'<p class="status">{config["top_notice"]}</p>' if config.get('top_notice') else '')
+          + f'<p class="status">{config["status"]}</p></header>')
     proof_library=lib
     body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
@@ -276,8 +277,23 @@ def project_document(notes, catalog=None):
            '<p class="card-scope">Eight source results and two new actual method bounds verified with explicit assumptions, '
            'including the finite signed-work convention for constant-diffusion contraction.</p>'
            '<p><a href="PBGSO/exposition/index.html#assumptions">Assumptions and formal scope</a></p></div></article>')
+    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">08</span>'
+           '<div class="entry-main"><div class="eyebrow">Latent diffusion and inference</div>'
+           '<h2><a href="LatentDiffusion/exposition/index.html">Latent Diffusion</a></h2>'
+           '<p>Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.</p>'
+           '</div><div class="entry-meta"><p class="entry-source">Source: Wang, Kuntz and Akyildiz, local latent-diffusion manuscript.</p>'
+           '<p class="card-scope">Conditional analytic bridges, corrected minibatch scaling and a time-zero regularity obstruction are explicit; source coverage remains partial.</p>'
+           '<p><a href="LatentDiffusion/exposition/source_audit.md">Source audit and formal scope</a></p></div></article>')
+    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">09</span>'
+           '<div class="entry-main"><div class="eyebrow">Average-smoothness sampling</div>'
+           '<h2><a href="AverageLMC/exposition/index.html">Langevin Monte Carlo with Average Smoothness</a></h2>'
+           '<p>LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.</p>'
+           '</div><div class="entry-meta"><p class="entry-source">Source: Dalalyan and Karagulyan, supplied average-smoothness manuscript.</p>'
+           '<p class="card-scope">Main sampling proofs and separate checked counterexamples to manuscript mistakes; broader auxiliary coverage remains explicit.</p>'
+           '<p><a href="docs/pdf/AverageLMC/FullProof.pdf">Full proof (PDF)</a> · '
+           '<a href="AverageLMC/exposition/mistakes.html">Source mistakes and counterexamples</a></p></div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
-           '<div class="reading-note"><h2>Read the proofs</h2><p>The established reports have one PDF containing theorem statements, mathematical arguments and supporting proofs. The PBGSO source-based development has a web overview with its current scope and exact Lean statements. The web pages pair the arguments with Lean.</p></div>'
+           '<div class="reading-note"><h2>Read the proofs</h2><p>The established reports have one PDF containing theorem statements, mathematical arguments and supporting proofs. The PBGSO and latent-diffusion developments have web overviews with their current scope and exact Lean statements. The web pages pair the arguments with Lean.</p></div>'
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'
@@ -297,3 +313,6 @@ CONFIG.update(ENTROPY_CONFIG)
 
 from kinetic_overviews import KINETIC_CONFIG
 CONFIG.update(KINETIC_CONFIG)
+
+from average_content import AVERAGE_CONFIG
+CONFIG.update(AVERAGE_CONFIG)

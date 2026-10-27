@@ -295,11 +295,14 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
     for library, plan in catalog.plans.items():
         prose = lambda value: catalog.latex_prose(value, current=library)
         document = [_preamble(plan["title"], latex_heading, plan)]
+        argument_summary = ('Chapter 2 gives their proofs. '
+                            if configurations[library].get('proof')
+                            else 'Chapter 2 describes the proof organization. ')
         document += [
             r"\chapter*{About this document}" + "\n",
             r"\addcontentsline{toc}{chapter}{About this document}" + "\n",
             "Chapter 1 states the assumptions and convergence estimates. "
-            "Chapter 2 gives their proofs. Chapter 3 proves the supporting "
+            + argument_summary + "Chapter 3 proves the supporting "
             "lemmas, in an order in which each lemma precedes its applications.\n\n"
             "Prepared by the LangevinLean Project with AI assistance, these notes form "
             "part of an ongoing effort to formalize Langevin algorithms comprehensively. "
@@ -330,7 +333,8 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
                     document.append("\\" + level + "{" + latex_heading(part["title"]) + "}\n")
                     document.append(prose(part["body"]))
             elif config.get("diagram"):
-                document.append(r"\section{Proof organization}" + "\n")
+                document.append((r"\section{Proof organization}" if extension
+                                 else r"\chapter{Proof organization}") + "\n")
                 document.append("The supporting proofs below establish the following steps.\n"
                                 + r"\begin{enumerate}" + "\n")
                 for node in sorted(config["diagram"], key=lambda node: (node["row"], node["col"])):

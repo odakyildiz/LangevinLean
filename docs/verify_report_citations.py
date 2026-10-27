@@ -64,8 +64,8 @@ def sections(plans):
 
 
 def validate_plans(plans, notes, sources, parsed):
-    require(len(plans) == 7 and set(plans) == set(REPORTS),
-            'The seven project reports must each have an inventory')
+    require(set(plans) == set(REPORTS),
+            'Every project report must have an inventory')
     require(list(plans) == list(REPORT_ORDER), 'Reports are not in dependency order')
     rank = {library: index for index, library in enumerate(plans)}
     owners = {}
@@ -192,7 +192,7 @@ def bib_entries(value, label):
 def validate_bibliographies(plans, root=ROOT):
     combined = bib_entries((root / 'docs/bib/all-reports.bib').read_text(), 'all-reports.bib')
     expected = {REPORTS[library]['key'] for library in plans}
-    require(set(combined) == expected, 'Combined BibTeX does not cover exactly the seven reports')
+    require(set(combined) == expected, 'Combined BibTeX does not cover exactly the project reports')
     for library, plan in plans.items():
         path = root / f'docs/bib/{library}.bib'
         entries = bib_entries(path.read_text(), str(path.relative_to(root)))
@@ -331,6 +331,8 @@ def generated_checks(plans, catalog, root=ROOT):
     html_links, tex_citations, pages = set(), 0, 0
     source_for_page = {module_page(path): path for path in catalog.notes}
     overview_for_page = {library + '/exposition/index.html': library for library in plans}
+    from average_content import AVERAGE_PAGES
+    overview_for_page.update({page: config['library'] for page, config in AVERAGE_PAGES.items()})
     for relative in coverage['outputs']:
         if relative.endswith('.tex'):
             tex_citations += validate_tex_content((root / relative).read_text(), relative, registry)
@@ -378,7 +380,7 @@ def validate_pdfs(plans, html_links, root=ROOT):
     manifest = json.loads((root / 'docs/pdf/manifest.json').read_text())
     records = manifest['documents']
     require(set(records) == {plan['latex'] for plan in plans.values()},
-            'PDF manifest does not cover exactly the seven modular reports')
+            'PDF manifest does not cover exactly the modular reports')
     destinations, count = {}, 0
     for library, plan in plans.items():
         path = root / plan['pdf']
@@ -448,7 +450,7 @@ def verify(pdf=False):
     bibs = validate_bibliographies(plans)
     pages, citations, html_links = generated_checks(plans, catalog)
     pdf_steps = validate_pdfs(plans, html_links) if pdf else None
-    result = (f'Checked seven modular reports, {modules} uniquely owned proof modules, '
+    result = (f'Checked {len(plans)} modular reports, {modules} uniquely owned proof modules, '
               f'{authored} authored use-site citations, {citations} generated TeX report citations, '
               f'{pages} HTML citation panels, and {bibs} corporate-author BibTeX records.')
     if pdf:

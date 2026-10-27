@@ -22,7 +22,7 @@ from theme import asset_href, theme_head, theme_control
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
 SITE_CSS = (HERE / "assets/site.css").read_text()
-LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC"]
+LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC", "AverageLMC"]
 SPEC = importlib.util.spec_from_file_location("proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
@@ -106,7 +106,7 @@ def shell(page, title, body, active=None):
     navigation=[('UnadjustedLangevin','ULA · SC'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
                 ('ProximalLangevin','Proximal'), ('KineticLangevin','Kinetic'), ('KIPLMC','KIPLMC'),
-                ('PBGSO','PBGSO')]
+                ('PBGSO','PBGSO'), ('AverageLMC','Average LMC')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
                   for lib,label in navigation)
@@ -325,6 +325,36 @@ def commands(value, identifier, label="Copy commands"):
             f'<pre class="commands"><code id="{identifier}">{E(value)}</code></pre>')
 
 
+def supplement_document(page, config, sources, parsed, math, catalog=None):
+    """Source corrections use the same paired mathematics and Lean template."""
+    library = config['library']
+    if catalog:
+        typeset = math
+        math = lambda value: catalog.resolve_html(typeset(value), page)
+    body = (f'<header class="hero"><div class="eyebrow">{E(config["label"])}</div>'
+            f'<h1>{E(config["title"])}</h1>' + reference_notice(library) +
+            math(config['intro']) + '</header>' + toolbar())
+    for index, section in enumerate(config['sections'], 1):
+        body += (f'<section class="section" id="section-{index}"><h2>{E(section["title"])}</h2>'
+                 '<div class="pair"><div class="math-pane">' + math(section['body']) +
+                 '</div><div class="lean-pane">')
+        for reference in section.get('references', []):
+            path, name = reference['file'], reference['name']
+            decl = parsed[path][name]
+            body += code(path, decl['start'], decl['end'], sources, page,
+                         name=name, identifier=anchor(name))
+            body += (f'<p><a href="{relative(module_page(path),page)}#{anchor(name)}">'
+                     'Complete module proof and commentary →</a></p>')
+        body += '</div></div></section>'
+    body += (f'<p><a href="{relative(library+"/exposition/index.html",page)}">'
+             'Return to the main theorem overview</a></p>')
+    if catalog:
+        from report_citations import citation_panel
+        plan = catalog.plans[library]
+        body += citation_panel(library, plan['title'], plan['revision'], page)
+    return shell(page, config['title'], body, library)
+
+
 class LatexProse(HTMLParser):
     """Translate the small prose HTML vocabulary; preserve TeX math verbatim."""
     def __init__(self):
@@ -497,6 +527,7 @@ def main():
     args = parser.parse_args()
     sources, parsed, notes = load()
     from site_content import CONFIG, home_document, project_document
+    from average_content import AVERAGE_PAGES
     from full_proofs import full_proof_inventory
     from report_links import ReportCatalog
     from report_citations import bib_outputs
@@ -507,6 +538,8 @@ def main():
     prose += [part['body'] for config in CONFIG.values() for part in config.get('proof', [])]
     prose += [node[key] for config in CONFIG.values() for node in config['diagram']
               for key in ('title', 'detail')]
+    prose += [page['intro'] for page in AVERAGE_PAGES.values()]
+    prose += [section['body'] for page in AVERAGE_PAGES.values() for section in page['sections']]
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css(), 'docs/assets/references.css':REFERENCE_CSS}
     for path,note in notes.items():
@@ -526,19 +559,24 @@ def main():
     outputs['index.html'] = project_document(notes,catalog)
     from build_pbgso import outputs as pbgso_outputs, authoring_inputs as pbgso_inputs
     outputs.update(pbgso_outputs())
+    from build_latent_diffusion import outputs as latent_outputs, authoring_inputs as latent_inputs
+    outputs.update(latent_outputs())
     from full_proofs import full_proof_documents, full_proof_inventory
     outputs.update(full_proof_documents(CONFIG, notes, sources, catalog))
     outputs.update(bib_outputs(catalog.plans))
     outputs['docs/full_proofs.json'] = json.dumps(
         catalog.plans, indent=2, ensure_ascii=False) + '\n'
+    for page, config in AVERAGE_PAGES.items():
+        outputs[page] = supplement_document(page, config, sources, parsed, math, catalog)
     inputs = ['docs/report_citations.py','docs/report_links.py','docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
-              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/references.py',
+              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/references.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']
-    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC')]
+    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC', 'AverageLMC')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += pbgso_inputs()
+    inputs += latent_inputs()
     inputs += [p.relative_to(ROOT).as_posix() for p in sorted((HERE/'assets/fonts').glob('*'))
                if p.is_file()]
     inputs += ['UnadjustedLangevin/exposition/build_document.py']

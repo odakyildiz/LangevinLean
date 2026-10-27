@@ -20,9 +20,11 @@ REPORT_ORDER = (
     "ProximalLangevin",
     "KineticLangevin",
     "KIPLMC",
+    "AverageLMC",
 )
 
 REPORTS = {
+    "AverageLMC": dict(key="LangevinLean2026AverageLMC", short="Average LMC", number="LL-09"),
     "UnadjustedLangevin": dict(key="LangevinLean2026ULASC", short="ULA-SC", number="LL-01"),
     "UnadjustedLangevin/LSI": dict(key="LangevinLean2026ULALSI", short="ULA-LSI", number="LL-02"),
     "IPLA": dict(key="LangevinLean2026IPLA", short="IPLA-SC", number="LL-03"),
