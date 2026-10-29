@@ -116,7 +116,7 @@ concentration radius from the same joint-potential assumptions.
 
 The separate [ULA proof under LSI](LSI/exposition/index.html) follows
 [Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf).
-For $0<h\le\alpha/(4L^2)$, its published KL bound is
+For $0<h\le\alpha/(4L^2)$, its published KL bound in dimension $n$ is
 
 $$
 H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+\frac{8hnL^2}{\alpha}.

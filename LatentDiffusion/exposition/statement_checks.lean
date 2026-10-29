@@ -36,6 +36,21 @@ def check_LatentDiffusion_SourceObstruction_not_solutionRegularity_of_null_singl
 -- LatentDiffusion/SourceObstruction.lean:54
 def check_LatentDiffusion_SourceObstruction_not_solutionRegularity_of_noAtoms := @LatentDiffusion.SourceObstruction.not_solutionRegularity_of_noAtoms
 
+-- LatentDiffusion/Marginal.lean:17
+def check_LatentDiffusion_averageMarginalPotential_strongConvex := @LatentDiffusion.averageMarginalPotential_strongConvex
+
+-- LatentDiffusion/Marginal.lean:43
+def check_LatentDiffusion_averageMarginalPotential_coercive := @LatentDiffusion.averageMarginalPotential_coercive
+
+-- LatentDiffusion/Marginal.lean:62
+def check_LatentDiffusion_existsUnique_averageMarginalMinimizer := @LatentDiffusion.existsUnique_averageMarginalMinimizer
+
+-- LatentDiffusion/RegularModel.lean:66
+def check_LatentDiffusion_RegularModel_existsUnique_variationalOptimizer := @LatentDiffusion.RegularModel.existsUnique_variationalOptimizer
+
+-- LatentDiffusion/RegularModel.lean:78
+def check_LatentDiffusion_RegularModel_posterior_memLp := @LatentDiffusion.RegularModel.posterior_memLp
+
 -- LatentDiffusion/RegularConvergence.lean:478
 def check_LatentDiffusion_RegularConvergence_existsUnique_optimizer_and_flow_convergence := @LatentDiffusion.RegularConvergence.existsUnique_optimizer_and_flow_convergence
 
@@ -210,9 +225,6 @@ def check_LatentDiffusion_RegularSourceTheorem_optimizer_replication := @LatentD
 -- LatentDiffusion/RegularModel.lean:108
 def check_LatentDiffusion_RegularModel_existsUnique_p2_literalOptimizer := @LatentDiffusion.RegularModel.existsUnique_p2_literalOptimizer
 
--- LatentDiffusion/RegularModel.lean:66
-def check_LatentDiffusion_RegularModel_existsUnique_variationalOptimizer := @LatentDiffusion.RegularModel.existsUnique_variationalOptimizer
-
 -- LatentDiffusion/SourceCalculus.lean:44
 def check_LatentDiffusion_SourceCalculus_parameter_freeEnergy_hasFDerivAt := @LatentDiffusion.SourceCalculus.parameter_freeEnergy_hasFDerivAt
 
@@ -248,6 +260,9 @@ def check_LatentDiffusion_RegularMeanField_exists_meanField := @LatentDiffusion.
 
 -- LatentDiffusion/RegularSourceTheorem.lean:512
 def check_LatentDiffusion_RegularSourceTheorem_meanField_actual_empirical_convergence := @LatentDiffusion.RegularSourceTheorem.meanField_actual_empirical_convergence
+
+-- LatentDiffusion/RegularSourceTheorem.lean:404
+def check_LatentDiffusion_RegularSourceTheorem_empiricalProduct_rms_le_l2 := @LatentDiffusion.RegularSourceTheorem.empiricalProduct_rms_le_l2
 
 -- LatentDiffusion/RegularMeanField.lean:189
 def check_LatentDiffusion_RegularMeanField_exists_spatial_comparison := @LatentDiffusion.RegularMeanField.exists_spatial_comparison

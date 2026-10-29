@@ -173,13 +173,13 @@ def overview_document(sources, parsed, math):
 <p>The following maps are jointly Borel:</p>'''
         + eq(r'(\vartheta,z)\mapsto F(\Pi_\theta\vartheta,\Pi_xz),\qquad (\vartheta,z)\mapsto b_{\Pi_\theta\vartheta}(z),\qquad(t,\vartheta,g)\mapsto\Psi_t(\vartheta,g).',
              '\\begin{gathered}(\\vartheta,z)\\mapsto F(\\Pi_\\theta\\vartheta,\\Pi_xz),\\\\(\\vartheta,z)\\mapsto b_{\\Pi_\\theta\\vartheta}(z),\\\\(t,\\vartheta,g)\\mapsto\\Psi_t(\\vartheta,g).\\end{gathered}')
-        + '<p>Use R1 for Theorems 3 and 4 and for the constant-diffusion branch of Theorem 2. That branch also assumes each frozen drift is Borel, as shown in its complete Lean statement.</p>',
+        + '<p>Use R1 for Theorems 3 and 4 and for the constant-diffusion branch of Theorem 2. The constant-diffusion branches of Theorems 2 and 4 also assume each frozen drift is Borel, as shown in their complete Lean statements.</p>',
         [(source3,source3name,'Observation measurability','hBorelF'),(source3,source3name,'Drift measurability','hBorelb'),(source3,source3name,'Response measurability','hBorelΨ')], assumption='R1', added=True)
     body += row('regularity-r2', 'R2 — Finite signed work for constant-diffusion contraction', r'''
 <p>For every optimiser pair and every joint probability law with finite quadratic moment, require the ordinary finite signed-integral domain:</p>'''
         + eq(r'\int\left|\langle z-\tilde z,D_z[b_{\Pi_\theta\vartheta}(z)-b_{\Pi_\theta\tilde\vartheta}(\tilde z)]\rangle\right|\,\Lambda(\mathrm dz,\mathrm d\tilde z)<\infty.',
              r'\begin{gathered}\Delta b=b_{\Pi_\theta\vartheta}(z)-b_{\Pi_\theta\tilde\vartheta}(\tilde z),\\\int|\langle z-\tilde z,D_z\Delta b\rangle|\,\mathrm d\Lambda<\infty.\end{gathered}')
-        + '<p>This <code>FiniteCouplingWork</code> condition is used for the constant-diffusion branch of Theorem 2 and its stationary uniqueness corollary. It strengthens an extended-negative-work reading of A3; it is not imposed separately on Theorems 3 or 4.</p>',
+        + '<p>The Lean integrand also contains the weighted Hilbert–Schmidt diffusion term of A3; it vanishes under constant diffusion, the only branch that uses R2. This <code>FiniteCouplingWork</code> condition is used for the constant-diffusion branch of Theorem 2 and its stationary uniqueness corollary. It strengthens an extended-negative-work reading of A3; it is not imposed separately on Theorems 3 or 4.</p>',
         declarations('PBGSO/DiracOptimizerGrowth.lean','FiniteCouplingWork'), assumption='R2', added=True)
     body += row('regularity-r3', 'R3 — Explicit realization regularity in the linear-growth branch', r'''
 <p>Each frozen drift and diffusion column is Borel, and \(\Pi_\theta\) is continuous. Along the canonical strong solutions, the functions</p>'''
@@ -206,9 +206,10 @@ def overview_document(sources, parsed, math):
         + '<p>With A2, the target is stationary and</p>'
         + eq(r'W_2(\mu_t,\mu_\star)\le\sqrt\kappa\,e^{-\rho t}W_2(\mu_0,\mu_\star),\qquad\mu_t=\delta_{\vartheta_t}\otimes\nu_t.',
              r'\begin{gathered}W_2(\mu_t,\mu_\star)\le\sqrt\kappa\,e^{-\rho t}W_2(\mu_0,\mu_\star),\\\mu_t=\delta_{\vartheta_t}\otimes\nu_t.\end{gathered}')
-        + '</div><p>The stationary law is unique among finite-second-moment laws of the form prescribed by the paper, with a deterministic optimiser and the stated solution hypotheses.</p>',
+        + '</div><p>The second bound follows from the first, with the stationary target of Theorem 1 as comparison solution, and the product identity \\(W_2(\\delta_\\vartheta\\otimes\\nu,\\delta_{\\tilde\\vartheta}\\otimes\\tilde\\nu)=\\mathbf d((\\vartheta,\\nu),(\\tilde\\vartheta,\\tilde\\nu))\\) for \\(\\nu,\\tilde\\nu\\in\\mathcal P_2\\). The stationary law is unique among finite-second-moment laws of the form prescribed by the paper, with a deterministic optimiser and the stated solution hypotheses.</p>',
         [('PBGSO/NaturalFiniteWorkArbitraryLaw.lean','law_distance_decay','Constant-diffusion contraction'),
          ('PBGSO/RawSamplerGrowthArbitraryLaw.lean','law_distance_decay','Linear-growth contraction'),
+         ('PBGSO/ProductTransport.lean','wasserstein_product_eq','Product-law Wasserstein identity'),
          ('PBGSO/RawStationaryUniqueness.lean','stationary_laws_unique_constant','Stationary uniqueness: constant diffusion'),
          ('PBGSO/RawStationaryUniqueness.lean','stationary_laws_unique_linearGrowth','Stationary uniqueness: linear growth')], source='thm:twisted_joint_strong_monotonicity')
     body += row('theorem-3','Theorem 3 — Finite-particle interaction error',
@@ -228,7 +229,7 @@ def overview_document(sources, parsed, math):
         + eq(r'\|\theta_t^N-\theta_\star\|_{\mathrm L^2}\le\sqrt\kappa\,e^{-\rho t}\mathbf d_0+\frac{L_\Psi}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t}).',
              r'\begin{gathered}\|\theta_t^N-\theta_\star\|_{\mathrm L^2}\\\le\sqrt\kappa\,e^{-\rho t}\mathbf d_0\\+\frac{L_\Psi}{\rho}\sqrt{\frac{\kappa V_F}{N}}(1-e^{-\rho t}).\end{gathered}')
         + eq(r'\lim_{N\to\infty}\limsup_{t\to\infty}\|\theta_t^N-\theta_\star\|_{\mathrm L^2}=0.')
-        + '</div><p>The limit is for a family with common constants and initial law. The verified family theorem also gives a joint time/population limit. The critical-point target is the one in A2.</p>',
+        + '</div><p>The limit is for a family with common constants and initial law. The verified family theorem also gives a joint time/population limit. The critical-point target is the one in A2. In Lean, A2 enters as a canonical target solution whose optimiser stays at \\(\\vartheta_\\star\\) and whose sampler law stays \\(\\nu_{\\theta_\\star}\\) (premises <code>hopt</code>, <code>hlaw</code>); Theorem 1 proves this stationarity from A1 and A2.</p>',
         [('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_constant','Constant-diffusion parameter theorem'),
          ('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_linearGrowth','Linear-growth parameter theorem'),
          ('PBGSO/RawConstructedParticleJointLimit.lean','parameter_joint_limit','Joint limit consequence')], source='thm:parameter_error_full')
@@ -330,7 +331,7 @@ def overview_document(sources, parsed, math):
             ('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_constant','Stationary comparison and interaction → Theorem 4'),
         ]),
         ('03', 'M-MFPO → Theorem New A', [
-            ('PBGSO/ParticleMethodLp.lean','meanForce_lipschitz','Empirical forces and actual raw/\\(L^2\\) updates'),
+            ('PBGSO/ParticleMethodLp.lean','meanForce_lipschitz','Empirical mean force: global Lipschitz bound from N1'),
             ('PBGSO/ImplementationMetric.lean','momentum_metric','Source A3 → actual contracting particle metric'),
             ('PBGSO/UniformIntegralMoments.lean','uniform_moment','Derived moments uniform over all time'),
             ('PBGSO/MomentumUniformDefect.lean','obabo_affine_local_defect','Actual Gaussian OBABO local error'),

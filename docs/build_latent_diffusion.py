@@ -165,7 +165,7 @@ def panels():
     add("source-model-regularity", "assumptions", "original", "A1 — Model regularity", "\n<p>Put \\(a=(\\theta,\\phi)\\), \\(\\tilde\\rho_a(z)=\\tilde p_a(x,z)\\), and \\(\\tilde\\pi_a(z)=\\tilde\\rho_a(z)/A_a\\). For every \\(z\\), the maps \\(a\\mapsto\\tilde\\pi_a(z)\\) and \\(a\\mapsto A_a\\) are differentiable. For every \\(a\\), the spatial map \\(z\\mapsto\\tilde\\pi_a(z)\\) is \\(C^2\\), and \\(\\tilde\\rho_a(z)>0\\) everywhere.</p>\n<p>Here \\(A_a\\) is the model's normalizing constant. The regularity contract records these conditions; it does not establish differentiation under integrals or boundary integration by parts.</p>",
         ref("SourceAssumptions", "normalizedPosterior", "ModelRegularity"))
     add("source-solution-regularity", "assumptions", "original", "A2 — Classical solutions for every initial law", r'''
-<p>For every parameter \(a_0\) and every collection \(\mu_0^{1:M}\in\mathcal P_2(Z)^M\), the source assumes a classical solution of its gradient flow with those initial values. The parameter path is \(C^1\) on \([0,\infty)\). Each law has a positive Lebesgue density \(q_t^m(z)\), jointly \(C^{1,2}\) in time and space on \([0,\infty)\times Z\).</p>
+<p>For every parameter \(a_0\) and every collection \(\mu_0^{1:M}\in\mathcal P_2(Z)^M\), the source assumes a classical solution of its gradient flow with those initial values. The parameter path is \(C^1\) on \([0,\infty)\). Each law remains in \(\mathcal P_2(Z)\) and has a positive Lebesgue density \(q_t^m(z)\), jointly \(C^{1,2}\) in time and space on \([0,\infty)\times Z\).</p>
 <p>The Lean contract uses a supplied reference measure \(\nu\), instantiated by Lebesgue measure, and the actual flow equation as an explicit predicate. Its \(C^{1,2}\) contract requires continuous first time derivatives and first and second spatial derivatives, including right time derivatives at zero.</p>
 <p><strong>Source issue.</strong> The universal quantifier includes singular initial laws, while the density and positivity conditions include \(t=0\). This premise is displayed literally and is not claimed to follow from A1, A3 or A4. The source audit records the resulting limitation.</p>''',
         ref("SourceAssumptions", "ClassicalDensityRegularity", "ClassicalSolution", "SolutionRegularity"))
@@ -210,13 +210,16 @@ def panels():
         + eq(r'V(a)=-\frac1M\sum_{m=1}^M\log\int_{\mathbb R^{d_z}}e^{-U_m(a,z)}\,\mathrm dz.')
         + r'''<p>Then \(V\) is \(\lambda\)-strongly convex and coercive, and has a unique global minimizer. Consequently, the actual average log evidence \(-V\) has a unique maximizer.</p>
 <p>The regular model constructs its actual positive normalizers and posterior laws, proves finite second moments, and identifies the unique joint variational optimizer \((a_\star,q_\star)\), with \(q_\star^m=\pi_{a_\star}^m\).</p>''',
-        ref("RegularConvergence", "existsUnique_optimizer_and_flow_convergence"))
-    add("continuous-energy-decay", "source-results", "bridge", "Continuous theorem, decay component — Parameter and product-state convergence", '\n<p>Under the blue \\(R\\) regularity hypotheses, the classical equations prove de Bruijn; regular transport and A3 prove extended LSI. Grönwall therefore gives</p>'
-        + eq(r'2\lambda E(t)\le I(t)\quad(0\le t<T),\qquad E(t)\le E(0)e^{-2\lambda t}\quad(0\le t\le T).')
+        ref("Marginal", "averageMarginalPotential_strongConvex", "averageMarginalPotential_coercive",
+            "existsUnique_averageMarginalMinimizer")
+        + ref("RegularModel", "existsUnique_variationalOptimizer", "posterior_memLp")
+        + ref("RegularConvergence", "existsUnique_optimizer_and_flow_convergence"))
+    add("continuous-energy-decay", "source-results", "bridge", "Continuous theorem, decay component — Parameter and product-state convergence", '\n<p>Let \\(E(t)\\) be the energy gap from the flow state to the target state of its regular transport data, and \\(I(t)\\) the source Fisher information. Under the blue \\(R\\) regularity hypotheses, the classical equations prove de Bruijn; regular transport and A3 prove extended LSI. Grönwall therefore gives</p>'
+        + eq(r'2\lambda E(t)\le I(t),\qquad E(t)\le E(0)e^{-2\lambda t}\qquad(t\ge0).')
         + r'''<p>Under the marginal optimizer hypotheses above, put \(F_\star=\mathcal F(a_\star,\pi_{a_\star})\). The actual normalized product distance and parameter error obey</p>'''
         + eq(r'd((a_t,q_t),(a_\star,\pi_{a_\star}))\le\sqrt{2E(t)/\lambda}\le\sqrt{2E(0)/\lambda}\,e^{-\lambda t},')
         + eq(r'\|a_t-a_\star\|\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t}.')
-        + "<p>The sharp prefactor follows from quadratic growth and the actual transport inequality. The chain uses the proved density energy derivative and entropy/transport calculus. R1–R7 identify the additional analytic domain; A1–A4 retain the paper's original colour and provenance.</p>",
+        + "<p>The sharp prefactor follows from quadratic growth and the actual transport inequality. The chain uses the proved density energy derivative and entropy/transport calculus. R1–R4 identify the additional analytic domain; A1–A4 retain the paper's original colour and provenance. The estimates hold for every classical solution in this domain; existence of a classical density solution is not constructed.</p>",
         ref("RegularConvergence", "ClassicalFlow", "deBruijn", "extendedLSI", "energy_decay",
             "full_product_exponential_convergence", "parameter_exponential_convergence")
         + ref("RegularProductMetricFlow", "distance_right_slope", "kinetic_energy_eq_fisher")
@@ -503,7 +506,7 @@ def paper_document(path):
     body += '</code></pre>'
     from report_citations import citation_panel
     body += citation_panel(None, None, None, page)
-    return shell(page, title, body).replace('</head>', '<style>.paper-source{font:13px/1.7 var(--font-code);white-space:pre-wrap;overflow-wrap:anywhere}'
+    return shell(page, title, body, "LatentDiffusion").replace('</head>', '<style>.paper-source{font:13px/1.7 var(--font-code);white-space:pre-wrap;overflow-wrap:anywhere}'
                                            '.paper-source-line:target{background:#f5cf7555;outline:1px solid #c89a3c}'
                                            '.paper-source-line>a{color:var(--muted);text-decoration:none}</style></head>')
 
@@ -547,7 +550,8 @@ def overview(sources, parsed, math):
             '<div class="eyebrow">Part I · Paper results and corrections &nbsp; / &nbsp; Part II · New theory</div>'
             '<h1>Training Latent Diffusion Models with Interacting Particle Algorithms</h1>'
             '<p class="subtitle">The paper’s statements first; additional assumptions and new theorems second. Mathematics and exact Lean code appear side by side.</p>'
-            '<p>Source: Wang, Kuntz and Akyildiz, local manuscript. '
+            '<p class="reference-notice"><strong>Source:</strong> Tim Y. J. Wang, Juan Kuntz and O. Deniz Akyildiz, '
+            '<em>Training Latent Diffusion Models with Interacting Particle Algorithms</em>, local manuscript.</p><p>'
             '<a href="paper/main_aistats.html">Main text with line numbers</a> · '
             '<a href="paper/supp_aistats.html">Supplement with line numbers</a> · '
             '<a href="source_audit.md">Source audit and coverage</a> · '
@@ -666,7 +670,7 @@ def overview(sources, parsed, math):
              + '</p></section></div>')
     from report_citations import citation_panel
     body += citation_panel(None, None, None, PAGE)
-    document = shell(PAGE, "Latent diffusion: assumptions and checked results", render_prose_math(body, math))
+    document = shell(PAGE, "Latent diffusion: assumptions and checked results", render_prose_math(body, math), "LatentDiffusion")
     return document.replace('<body data-theme-family="modern">', '<body data-theme-family="modern" class="pbgso-page">').replace(
         '</head>', '<link rel="stylesheet" href="' + relative("docs/assets/pbgso.css", PAGE) + '"><style>' + EXTRA_CSS + '</style></head>')
 
@@ -688,7 +692,7 @@ def module_document(path, sources, parsed, math):
     body += code(path, 1, len(sources[path].splitlines()), sources, page, "module") + '</details>'
     from report_citations import citation_panel
     body += citation_panel(None, None, None, page)
-    return shell(page, title, render_prose_math(body, math))
+    return shell(page, title, render_prose_math(body, math), "LatentDiffusion")
 
 
 def inventory_document(sources, parsed):

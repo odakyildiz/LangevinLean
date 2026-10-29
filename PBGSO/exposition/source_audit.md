@@ -620,11 +620,15 @@ flow regularity and measure preservation are not premises.
 
 ### Both new actual numerical method bounds
 
+`FullyUniformMomentum.explicit_parameter_bound` and
+`FullyUniformHigherOrder.explicit_parameter_bound` prove time-uniform
+parameter bounds for the actual nonlinear particle algorithms. They combine
+the source continuous-time relaxation/particle floor with $D_j\sqrt h$ at every
+iteration for $0<h\le h_{\star,j}$, with explicit constants independent of
+iteration count, step size and horizon (for fixed $N$). The earlier
 `FullyConstructedMomentum.numerical_parameter_bound` and
-`FullyConstructedHigherOrder.parameter_bound` prove finite-horizon
-square-root-step parameter bounds for the actual nonlinear particle algorithms.
-The displayed budgets combine the source continuous-time relaxation/particle
-floor with `O($\sqrt h$)` discretization on each fixed horizon. Physical Brownian
+`FullyConstructedHigherOrder.parameter_bound` remain finite-horizon
+`O($\sqrt h$)` supporting results. Physical Brownian
 inputs, Gaussian coupling, raw/$L^2$ field and step identities, reference integral
 equations, zero initial discretization error and mesh-independent
 moment/modulus constants are all constructed. No final discretization error,
@@ -637,7 +641,7 @@ reference variance are explicit. The kinetic friction conditions and HOL
 `alpha > 0`, `gamma >= 0` appear in the exact headers. An arbitrary invertible
 cloud encoding transforms raw covariance; independent isotropic particle noise
 uses the proved Euclidean encoding. The targets are stationary critical points.
-No global minimization or uniform-in-time numerical mixing is asserted.
+No global minimization, uniformity in $N$ or numerical invariant law is asserted.
 
 `FullyConstructedHigherOrder.original_parameter_bound` additionally derives
 `L*epsilon/m` from actual coupled original/surrogate target variables within

@@ -33,13 +33,13 @@ x_{k+1}^i&=x_k^i-\gamma\nabla_xU_y(\theta_k,x_k^i)+\sqrt{2\gamma}\,\xi_k^i.
 \le{}&\sqrt{\frac{2d_\theta}{Nm}}+(1-m\gamma)^kW_2(\mu_0,\Pi_N)\\
 &+\frac{33}{20}\frac Lm\sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma.
 \end{aligned}\]
-<p>The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal and the existence of its minimizer. Thus \(\theta_\star\) is a maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).</p>'''
+<p>The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal. Existence and uniqueness of its minimizer are proved separately from the same assumptions, so \(\theta_\star\) exists and is the unique maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).</p>'''
 
 PROX_SETUP = r'''<p>Write \(U=g_1+g_2\) on \(\mathbb R^{d_\theta+d_x}\). Assume \(g_1\) is differentiable, \(m\)-strongly convex for \(m>0\), and has \(L_1\)-Lipschitz gradient. Assume \(g_2\) is finite-valued, convex, bounded below, and \(K\)-Lipschitz. Define its proximal map and Moreau envelope by</p>
 \[P_\eta(x)=\operatorname*{argmin}_p\left\{g_2(p)+\frac{\|p-x\|^2}{2\eta}\right\},\quad
 g_2^\eta(x)=g_2(P_\eta(x))+\frac{\|P_\eta(x)-x\|^2}{2\eta},\]
 \[V_\eta=g_1+g_2^\eta,\qquad L_\eta=L_1+\eta^{-1},\qquad\eta>0.\]
-<p>Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are independent over coordinates and time and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.</p>'''
+<p>Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are standard, independent over coordinates and time, and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.</p>'''
 
 PROX_SETUP += r'''<p>Precisely, the scaled state, lifted potential, and normalized target are</p>
 \[z=(\theta,x^1/\sqrt N,\ldots,x^N/\sqrt N),\qquad
@@ -91,14 +91,14 @@ CONFIG = {
         archive='UnadjustedLangevin/exposition/dist/index.html',archive_label='Extended teaching document and Lean notes',
         extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · full proof and reference audit')],
         results=[dict(title='The small-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan',body=ULA_SETUP+r'''<p>If \(0&lt;h\le2/(m+L)\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(1-mh)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac Lm\sqrt{hd}.\]<p>The rational coefficient \(33/20\) is exactly \(1.65\). The initial distance is the infimum of root mean square costs over all couplings of the two initial measures.</p>'''),
-                 dict(title='The larger-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The assumption \(Lh<2\) makes the denominator positive. The two estimates follow from the same error recurrence with the contraction factor appropriate to each step interval.</p>''')],
+                 dict(title='The larger-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The assumption \(Lh&lt;2\) makes the denominator positive. The two estimates follow from the same error recurrence with the contraction factor appropriate to each step interval.</p>''')],
         diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contraction of the gradient step',r'\(q=1-mh\) or \(Lh-1\)'),
                  node('gibbs',0,1,'UnadjustedLangevin/Gibbs.lean','Normalization of the Gibbs measure',r'Positive normalization and \(L^2\) moments'),
                  node('brownian',0,2,'UnadjustedLangevin/CanonicalBrownian.lean','Gaussian construction of Brownian motion','Independent Gaussian coordinates'),
-                 node('local',1,0,'UnadjustedLangevin/LocalError.lean','The local discretization error','Integrate the Lipschitz drift error',('geometry',)),
+                 node('local',1,0,'UnadjustedLangevin/LocalError.lean','The local discretization error','Integrate the Lipschitz drift error'),
                  node('stationary',1,1,'UnadjustedLangevin/GibbsStationarity.lean','Stationarity of the Gibbs measure','Metropolis invariance and Euler limit',('gibbs','brownian')),
                  node('integral',1,2,'UnadjustedLangevin/LangevinIntegral.lean','Existence of the integral solution',r'\(L^2\) Picard construction',('brownian',)),
-                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','The scalar error recurrence',r'\(a_{k+1}\le q a_k+b\)',('local',)),
+                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','The scalar error recurrence',r'\(a_{k+1}\le q a_k+b\)',('geometry','local')),
                  node('coupling',2,1,'UnadjustedLangevin/HilbertDalalyan.lean','Coupling with the same Brownian motion','Cancellation of the common increment',('local','stationary','integral')),
                  node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Distributions of the Gaussian recursion','Independence determines each transition',('brownian',)),
                  node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','The ULA convergence theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
@@ -111,10 +111,10 @@ CONFIG = {
                  node('gibbs',0,1,'IPLA/Foundations.lean','Normalization of the particle target','Positive normalizing constant and finite moments'),
                  node('marginal',0,2,'IPLA/MarginalConcentration.lean','The parameter marginal density',r'Density proportional to \(\ell_y(\theta)^N\)'),
                  node('algorithm',1,0,'IPLA/ULAAdapter.lean','IPLA as a ULA recursion',r'The same distribution; step \(\gamma/N\)',('geometry',)),
-                 node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','The ULA convergence estimate','Application to the particle potential',('geometry','gibbs')),
+                 node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','The ULA convergence estimate',r'Gaussian innovations and \(L^2\) initialization',('geometry','gibbs')),
                  node('convex',1,2,'IPLA/StrongLogConcavity.lean','Strong convexity of the negative log marginal','Prékopa–Leindler and tensorization',('marginal',)),
                  node('scaling',2,0,'IPLA/Scaling.lean','Substitution of the scaled constants',r'Exact \(N\), step, and dimension factors',('algorithm',)),
-                 node('projection',2,1,'IPLA/Transport.lean','Projection to the parameter coordinates',r'Parameter projection: \(\|P_\theta\|\le1\)',('ula',)),
+                 node('projection',2,1,'UnadjustedLangevin/Projection.lean','Projection to the parameter coordinates',r'RMS \(\le W_2+r\) for \(\|P_\theta\|\le1\)',('ula',)),
                  node('concentration',2,2,'IPLA/Concentration.lean','The equilibrium parameter second moment',r'RMS \(\le\sqrt{2d_\theta/(Nm)}\)',('convex','marginal')),
                  node('theorem',3,1,'IPLA/Theorem.lean','The IPLA parameter bound','Possibly unequal parameter and latent dimensions',('scaling','projection','concentration'),True)]),
     'ProximalLangevin':dict(label='Proximal',title='Proximal particle Langevin',subtitle='Proximal maps, parameter error estimates and mean-field limits.',
@@ -129,7 +129,7 @@ CONFIG = {
                  node('bias',0,2,'ProximalLangevin/Perturbation.lean','Difference of the marginal maximizers','Pointwise potential bounds and strong convexity'),
                  node('myipla',1,0,'ProximalLangevin/MYIPLA.lean','IPLA for the smoothed potential',r'Reuse ULA with \(L_\eta=L_1+\eta^{-1}\)',('prox','moreau')),
                  node('splitting',1,1,'ProximalLangevin/SplittingOneStep.lean','A one-step coupling estimate for splitting','Expansion of the squared coupling error',('prox','moreau')),
-                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Existence of the mean-field solution',r'\(L^2\) integral equation and uniqueness',('moreau',)),
+                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Existence of the mean-field solution',r'\(L^2\) integral equation by Picard iteration',('moreau',)),
                  node('mytheorem',2,0,'ProximalLangevin/Theorem.lean','MYIPLA error relative to the original maximizer','Smoothing + concentration + ULA',('myipla','bias'),True),
                  node('endpoint',2,1,'ProximalLangevin/SplittingEndpoint.lean','The recurrence for the splitting distributions','Coupling comparison and Wasserstein infimum',('splitting',)),
                  node('particles',2,2,'ProximalLangevin/MeanFieldParticles.lean','Comparison with independent mean-field particles',r'Uniform \(L^2\) error \(O(N^{-1/2})\)',('meanfield',)),
@@ -158,8 +158,8 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     proof_library=lib
     body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
-    body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorem</a><a href="#proof-map">Proof roadmap</a>'
-    if config.get('proof'):body+='<a href="#mathematical-proof">Detailed proof</a>'
+    body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorems</a><a href="#proof-map">Proof roadmap</a>'
+    if config.get('proof'):body+='<a href="#mathematical-proof">Mathematical argument</a>'
     body+='<a href="#modules">Supporting proofs</a><a href="#verification">Compile and verify</a></nav>'+toolbar()
     body+='<section class="section" id="main-results"><h2>Theorems</h2>'
     for i,result in enumerate(config['results'],1):
@@ -274,22 +274,22 @@ def project_document(notes, catalog=None):
            '<div class="entry-main"><div class="eyebrow">General stochastic optimisation</div>'
            '<h2><a href="PBGSO/exposition/index.html">Particle-based Generalised Stochastic Optimisation</a></h2>'
            '<p>General optimiser and sampler models, explicit analytic assumptions, comparison proofs and new concrete method bounds.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Zhang and Akyildiz, local PBGSO manuscript.</p>'
+           '</div><div class="entry-meta"><p class="entry-source">Source: Zhang and Akyildiz (manuscript).</p>'
            '<p class="card-scope">Eight source results and two new actual method bounds verified with explicit assumptions, '
            'including the finite signed-work convention for constant-diffusion contraction.</p>'
            '<p><a href="PBGSO/exposition/index.html#assumptions">Assumptions and formal scope</a></p></div></article>')
     body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">08</span>'
            '<div class="entry-main"><div class="eyebrow">Latent diffusion and inference</div>'
-           '<h2><a href="LatentDiffusion/exposition/index.html">Latent Diffusion</a></h2>'
+           '<h2><a href="LatentDiffusion/exposition/index.html">Training Latent Diffusion Models with Interacting Particle Algorithms</a></h2>'
            '<p>Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Wang, Kuntz and Akyildiz, local latent-diffusion manuscript.</p>'
-           '<p class="card-scope">Conditional analytic bridges, corrected minibatch scaling and a time-zero regularity obstruction are explicit; source coverage remains partial.</p>'
+           '</div><div class="entry-meta"><p class="entry-source">Source: Wang, Kuntz and Akyildiz (manuscript).</p>'
+           '<p class="card-scope">All 19 corrected source results proved under explicit added regularity; corrected minibatch scaling and a time-zero regularity obstruction are recorded.</p>'
            '<p><a href="LatentDiffusion/exposition/source_audit.md">Source audit and formal scope</a></p></div></article>')
     body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">09</span>'
            '<div class="entry-main"><div class="eyebrow">Average-smoothness sampling</div>'
            '<h2><a href="AverageLMC/exposition/index.html">Langevin Monte Carlo with Average Smoothness</a></h2>'
            '<p>LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Dalalyan and Karagulyan, supplied average-smoothness manuscript.</p>'
+           '</div><div class="entry-meta"><p class="entry-source">Source: Dalalyan and Karagulyan (manuscript).</p>'
            '<p class="card-scope">Main sampling proofs with exact source hypotheses and constants; broader auxiliary coverage remains explicit.</p>'
            '<p><a href="docs/pdf/AverageLMC/FullProof.pdf">Full proof (PDF)</a> · '
            '<a href="AverageLMC/exposition/reference_audit.json">Source audit and formal scope</a></p></div></article>')

@@ -107,7 +107,7 @@ def shell(page, title, body, active=None):
     navigation=[('UnadjustedLangevin','ULA · SC'),
                 ('UnadjustedLangevin/LSI','ULA · LSI'),('IPLA','IPLA'),
                 ('ProximalLangevin','Proximal'), ('KineticLangevin','Kinetic'), ('KIPLMC','KIPLMC'),
-                ('PBGSO','PBGSO'), ('AverageLMC','Average LMC')]
+                ('PBGSO','PBGSO'), ('LatentDiffusion','Latent diffusion'), ('AverageLMC','Average LMC')]
     nav = ''.join(f'<a href="{relative(lib+"/exposition/index.html",page)}"' +
                   (' aria-current="page"' if active == lib else '') + f'>{label}</a>'
                   for lib,label in navigation)

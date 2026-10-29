@@ -153,7 +153,7 @@ REGULARITY_PANELS = [
         solves the actual Brownian integral equation; a separate progressively
         measurable, almost-sure continuous-path realization is not asserted.
         Numerical errors and their
-        recurrences are proved from these inputs, rather than assumed. For
+        recurrences are proved from these inputs, rather than assumed.
         Count-independent temporal constants also require a uniform bound on
         the normalized force at the origin, as well as the state moment bound.
         For Euler discretization use the explicit additional restriction

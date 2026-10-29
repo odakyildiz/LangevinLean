@@ -24,9 +24,9 @@ PAPER_RESULTS = {
           +\frac1M\sum_m\mathrm{KL}(q^m\Vert\pi_u^m).\]
         <p>Consequently \((u_\star,q_\star)\) is a global minimizer exactly when
         \(u_\star\) globally maximizes \(\widetilde\ell\) and
-        \(q_\star^m=\pi_{u_\star}^m\) for every datum. In particular a parameter
-        maximizer exists if and only if it is the parameter component of some
-        global variational minimizer.</p>""",
+        \(q_\star^m=\pi_{u_\star}^m\) for every datum. In particular \(u\)
+        maximizes \(\widetilde\ell\) if and only if it is the parameter
+        component of some global variational minimizer.</p>""",
         "correction": r"""The normalizer integrates the tilted density over
         \(z=z_0\), the latent variable on which it was defined in
         <code>eq:ptildedef</code> (main, lines 100–102). The occurrence of
@@ -42,7 +42,7 @@ PAPER_RESULTS = {
     },
     "thm:exp_convg_informal": {
         "title": "Unique tilted optimizer and exponential parameter convergence",
-        "statement": r"""<p>Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) satisfy A1–A3. On the explicitly added regular density and transport domain R1–R5, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/density equations satisfy</p>
+        "statement": r"""<p>Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) be differentiable and satisfy A3. On the explicitly added regular density and transport domain R1–R4, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/density equations satisfy</p>
  \[\|u_t-u_\star\|\le\sqrt{\frac{2[\widetilde F(u_0,q_0)-\widetilde F_\star]}{\lambda}}e^{-\lambda t},\qquad t\ge0.\]
  <p>The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the blue regularity hypotheses.</p>""",
         "correction": r"""A2 must be interpreted on an admissible initial class,
@@ -53,7 +53,7 @@ PAPER_RESULTS = {
         strongly convex in the normalized product norm
         \(\|u\|^2+M^{-1}\sum_m\|z^m\|^2\); the sketch at main lines 168–174
         must use that norm when retaining the constant \(\lambda\).""",
-        "scope": 'The actual strongly convex density model has a unique evidence maximizer and finite-second-moment posteriors. Under R1–R5, the classical flow equations prove de Bruijn; regular transport proves extended LSI and the parameter and product-state exponential estimates. Dissipation and first-order transport inequalities are not added assumptions.'    },
+        "scope": 'The actual strongly convex density model has a unique evidence maximizer and finite-second-moment posteriors. Under R1–R4, the classical flow equations prove de Bruijn; regular transport proves extended LSI and the parameter and product-state exponential estimates. Dissipation and first-order transport inequalities are not added assumptions.'    },
     "thrm:error-bound": {
         "title": "Nonasymptotic error of the full-batch Euler scheme",
         "statement": r"""<p>For the full-batch exact-gradient Euler–Maruyama
@@ -67,7 +67,12 @@ PAPER_RESULTS = {
         \((h,N,T)\), and \(0\lt\rho\lt1\) may depend on \(h\). The checked
         contraction factor is \(\rho=1-\lambda h/2\), with
         \(\rho^T\le e^{-\lambda hT/2}\). Uniform constants require the stated initialization and
-        moment controls.</p>""",
+        moment controls. With \(K=MN\), latent dimension \(d_z\) and the R7
+        per-copy score variance bound \(V_0\), the checked bound has
+        \(C=\|X_0-S_0\|_{L^2}\), the normalized initial distance from the
+        Euler initialization \(X_0\) to the posterior-initialized reference
+        \(S_0\), and
+        \(C_{h,N}=\frac2\lambda\sqrt{V_0/K}+\frac L\lambda\bigl(h\sqrt{Ld_z}+\frac43\sqrt{2d_z}\sqrt h\bigr)\).</p>""",
         "correction": r"""The temporal lemma contains an extra square-root
         factor; its corrected general estimate is \(C\sqrt h\), not the
         \(O(h)\) accidentally written there. The empirical comparison needs a
@@ -175,11 +180,11 @@ PAPER_RESULTS = {
     },
     "thm:sLC_implies_xLSI": {
         "title": "Strong log-concavity implies extended log-Sobolev control",
-        "statement": r"""<p>For \(M\ge1\), jointly \(\lambda\)-strongly convex tilted potentials with \(\lambda>0\), and the finite-energy density/transport domain R1–R4,</p>
+        "statement": r"""<p>For \(M\ge1\), jointly \(\lambda\)-strongly convex tilted potentials with \(\lambda>0\), and the finite-energy density/transport domain R1, R3 and R4,</p>
  \[2\lambda[\widetilde F(u,q)-\widetilde F_\star]\le I(u,q).\]
  <p>Sum the actual entropy and potential tangent pairings first. Completing one square for the averaged parameter force and the normalized latent squares proves the inequality with exactly the source Fisher information. The posterior optimizer is independently constructed before it is used.</p>""",
         "correction": "The proof chooses an admissible minimizer at supplement line 587 before its existence has been established in that chain. The checked marginal/posterior construction supplies it first. The entropy and potential tangent inequalities are then proved from the explicit regularity data.",
-        "scope": 'Under A3 and R1–R4, sum the actual entropy and potential tangent pairings toward the constructed posterior optimizer and complete the normalized parameter and latent squares. This proves extended LSI for the exact source Fisher information without assuming a first-order inequality.',
+        "scope": 'Under A3, R1, R3 and R4, sum the actual entropy and potential tangent pairings toward the constructed posterior optimizer and complete the normalized parameter and latent squares. This proves extended LSI for the exact source Fisher information without assuming a first-order inequality.',
     },
     "lem:distance_deriv": {
         "title": "Metric-speed control of distance along the flow",
@@ -262,12 +267,13 @@ PAPER_RESULTS = {
         inequality uses the corrected Talagrand statement; the second uses
         dissipation, xLSI and Grönwall.</p>""",
         "correction": "Read A2 on a consistent initial class and supply the analytic entropy/transport hypotheses, the corrected Talagrand definition, and the corrected Cauchy-flow argument. An independent optimizer construction avoids the circular use of a minimizer in the source xLSI proof.",
-        "scope": 'The source normalized product-state bound combines the proved transport Talagrand inequality and extended LSI with the actual classical de Bruijn identity and Grönwall decay under R1–R6. The actual marginal/posterior construction identifies the unique target.',
+        "scope": 'The source normalized product-state bound combines the proved transport Talagrand inequality and extended LSI with the actual classical de Bruijn identity and Grönwall decay under R1–R4. The actual marginal/posterior construction identifies the unique target.',
     },
     "lem:cont-time-convg": {
         "title": "Continuous mean-field solution and empirical-cloud comparison",
-        "statement": r"""<p>Under R7, construct the unique continuous
-        \(L^2\) Brownian mean-field integral solution \(Y_t\) and a synchronous
+        "statement": r"""<p>Under R7, construct a continuous
+        \(L^2\) Brownian mean-field integral solution \(Y_t\), with
+        deterministic initial parameter, and a synchronous
         stationary posterior reference \(S_t\). The reference parameter is the
         actual optimizer \(u_\star\), and every physical reference particle for
         datum \(m\) has law \(\pi_{u_\star}^m\). For their per-datum empirical
@@ -293,7 +299,11 @@ PAPER_RESULTS = {
         finite constant \(C_{\mathrm{sp}}\), the corrected source estimate is</p>
         \[(\mathbb E\xi_t^N)^{1/2}\le
           (1-e^{-\lambda t})\frac{C_{\mathrm{sp}}}{\lambda\sqrt N}.\]
-        <p>It is \(O(N^{-1/2})\) uniformly in time when the initial coupling
+        <p>With a per-copy centered score variance bound \(V_0\) over the
+        \(K=MN\) copies, the checked constant is
+        \(C_{\mathrm{sp}}=\sqrt{V_0/M}\), so the bound equals
+        \((1-e^{-\lambda t})\sqrt{V_0/K}/\lambda\).
+        It is \(O(N^{-1/2})\) uniformly in time when the initial coupling
         error is zero. Independence from \(M\) requires a moment bound uniform
         in the data, or a bounded averaged replacement.</p>""",
         "correction": "The statement omits the matched initialization that the proof uses at supplement line 837. The heterogeneous initial laws and force moments must be specified; a single undeclared \\(Z_0\\) does not give a uniform data-independent constant. Any origin-based moment expression must also control the drift's offset or be centered about an equilibrium.",
@@ -355,10 +365,12 @@ PAPER_CORRECTIONS = [
         Restrict the initial class to the required smooth densities, or require
         smoothing only for \(t>0\) and continuity in \(W_2\) at zero. Merely
         restricting to absolutely continuous laws still permits discontinuous
-        initial densities. The Dirac obstruction is proved; the repaired flow
-        existence theorem is proved in the continuous \(L^2\) Brownian integral
-        solution class under R7. The corrected density calculus uses the
-        explicitly regular classical initial class in R1–R3.""",
+        initial densities. The Dirac obstruction is proved. Existence is proved
+        for the particle and mean-field equations in the continuous \(L^2\)
+        Brownian integral solution class under R7. The corrected density
+        calculus and decay estimates apply to every classical solution in the
+        explicitly regular class R1–R4; existence of such a classical density
+        solution is not constructed.""",
         "references": [reference(MAIN, 151, 154, "assump:solution_reg"), reference(SUPP, 436, 455, "eq:multi_datapoint_prodmetric")],
         "refs": [("LatentDiffusion/SourceObstruction.lean", "not_solutionRegularity_of_null_singleton"), ("LatentDiffusion/SourceObstruction.lean", "not_solutionRegularity_of_noAtoms")],
         "status": 'The literal time-zero premise is refuted in Lean; R1 states the corrected admissible initial domain.',
@@ -436,7 +448,7 @@ PAPER_CORRECTIONS = [
         \(\lambda\inf_{b\in\mathcal M_\star}d(a,b)^2\) for the given state
         \(a\). The source instead takes an extra infimum over \(a\), making
         that term zero whenever a minimizer exists. Remove the extra infimum.
-        R2–R6 supply the density, characteristic and complete-domain hypotheses;
+        R2, R3, R5 and R6 supply the density, characteristic and complete-domain hypotheses;
         the dissipation, speed control and minimizing-limit steps are proved below.""",
         "references": [reference(SUPP, 614, 620, "defn:xTalagrand"), reference(SUPP, 688, 711, "thm:xLSI_implies_xTalagrand")],
         "refs": [('LatentDiffusion/RegularFlowTalagrand.lean', 'exists_minimizer_talagrand'), ('LatentDiffusion/RegularFlowTalagrand.lean', 'distance_right_slope')],

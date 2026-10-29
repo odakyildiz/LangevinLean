@@ -1,6 +1,6 @@
 # Latent diffusion: corrected source results and explicit regularity
 
-The source is **Training Latent Diffusion Models with Interacting Particle Algorithms**, Tim $Y$. J. Wang, Juan Kuntz and O. Deniz Akyildiz, in `papers/Latent_diffusion/main_aistats.tex` and `supp_aistats.tex`. The machine-readable `reference_audit.json` preserves exact TeX, line locations and source hashes for all **19 named theorem/proposition/lemma statements**, including appendix repetitions. The main webpage presents the corrected mathematical statements, precise corrections and extracted Lean contracts before the separate new theory.
+The source is **Training Latent Diffusion Models with Interacting Particle Algorithms**, Tim Y. J. Wang, Juan Kuntz and O. Deniz Akyildiz, in `papers/Latent_diffusion/main_aistats.tex` and `supp_aistats.tex`. The machine-readable `reference_audit.json` preserves exact TeX, line locations and source hashes for all **19 named theorem/proposition/lemma statements**, including appendix repetitions. The main webpage presents the corrected mathematical statements, precise corrections and extracted Lean contracts before the separate new theory.
 
 The source theorem statements are proved on an explicit regular domain. This does not assert that false or inconsistent printed statements are literally true. The ledger distinguishes `corrected_statement_fully_proved` from `original_statement_fully_reconstructed`; a correction can have a complete proof while its exact printed predecessor remains false. Original assumptions A1–A4 are green, added source regularity R1–R7 is blue, formula corrections are rose, and independent new-theory assumptions N1–N7 are orange.
 
@@ -18,7 +18,7 @@ $$
 Finite KL is established before conversion to real arithmetic. Normalizers, posterior probability laws and their finite second moments are constructed from actual density integrals. The normalized geometry retains the source strong-convexity constant independently of the number of data or particle replicas.
 
 - **A1: model regularity**, main lines 143–150: differentiable parameter-dependent normalizers and posterior densities, positive tilted density, and spatial $C^2$ posterior regularity.
-- **A2: classical solution regularity**, main lines 151–154: a $C^1$ parameter path and positive $C^{1,2}$ density paths. The literal time-zero claim for *every* $\mathcal P_2$ initial law is false: a Dirac law cannot have a Lebesgue density. The proved correction uses an admissible regular initial class (R1).
+- **A2: classical solution regularity**, main lines 151–154: a $C^1$ parameter path and positive $C^{1,2}$ density paths. The literal time-zero claim for *every* $\mathcal P_2$ initial law is false: a Dirac law cannot have a Lebesgue density. The proved correction uses an admissible regular initial class (R1). The continuous estimates apply to every classical solution in the R1–R4 class; existence of such a classical density solution is not constructed.
 - **A3: joint strong log-concavity**, main lines 155–157: each $U_m$ is jointly $\lambda$-strongly convex, with $\lambda>0$.
 - **A4: joint gradient Lipschitz continuity**, main lines 200–207 and supplement 753–759: the gradient bound concerns the tilted potential, including the tilt penalty.
 
