@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,6 +59,24 @@ For the substantive entropy calculation one works with \(L>0\), so that the step
 
 When the state space is a singleton, every probability law is the same point mass and KL is zero. In the nondegenerate case, the compatibility argument rules out zero smoothness when the LSI constant is positive, permitting the subsequent divisions by \(L\). Independently of dimension, the step restriction itself gives \(L>0\): with the convention \(\alpha/0=0\), \(L=0\) would turn \(0<h\le\alpha/(4L^2)\) into \(0<h\le0\). The finiteness induction uses this positivity in every dimension.
 
+\begin{leanbox}{Lean: \texttt{probabilityMeasure\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton}, \texttt{positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step}}
+\leansource{\texttt{probabilityMeasure\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 32–45}
+\begin{leancode}
+\leanline{0}{theorem\ probabilityMeasure\_eq\_of\_subsingleton\ [Subsingleton\ E]}
+\leanline{4}{(μ\ ν\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ :\ μ\ =\ ν}
+\end{leancode}
+\leansource{\texttt{positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 49–55}
+\begin{leancode}
+\leanline{0}{theorem\ positive\_smoothness\_of\_step\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))\ :\ 0\ <\ L}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{probability\allowbreak{}Measure\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton}: the cases are separated by \texttt{by\_\allowbreak{}cases hzero : (0 : E) \ensuremath{\in} s}; the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{Set.\allowbreak{}mem\_\allowbreak{}univ}, \texttt{iff\_\allowbreak{}true}, \texttt{Subsingleton.\allowbreak{}elim}, \texttt{Set.\allowbreak{}eq\_\allowbreak{}empty\_\allowbreak{}iff\_\allowbreak{}forall\_\allowbreak{}not\allowbreak{}Mem.\allowbreak{}mpr}.
+
+
+
+\texttt{positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step}: the intermediate fact is \texttt{hz}, in source order; the source steps apply or rewrite \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}zero}, \texttt{ne\_\allowbreak{}eq}, \texttt{Of\allowbreak{}Nat.\allowbreak{}of\allowbreak{}Nat\_\allowbreak{}ne\_\allowbreak{}zero}, \texttt{not\_\allowbreak{}false\_\allowbreak{}eq\_\allowbreak{}true}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of entropy at every ULA iterate}{Finiteness of entropy at every ULA iterate}}
 
@@ -50,6 +91,20 @@ The endpoint law is exactly \(\rho_{k+1}\), so this proves the finite-entropy in
 
 The induction begins with the assumed finite initial KL. Finite current KL supplies its score moment; the positive-time Gaussian transition has finite Fisher energy; LSI then gives finite next KL. Thus each entropy term is finite before the recurrence is iterated.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite}}
+\leansource{\texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 60–78}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_kl\_finite}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (ulaLaws\ U\ h\ μ\ k)\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite} inducts over the iteration. Its successor uses the current finite KL to obtain \texttt{hgradient}, then \texttt{hmem} converts this to second-moment membership, and \texttt{hfinite} applies the positive-time Fisher/\allowbreak{}LSI finiteness result. Rewriting with \texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint} identifies the next iterate. \texttt{discrete\_\allowbreak{}entropy\_\allowbreak{}recurrence\_\allowbreak{}bound} obtains \texttt{hq} and the positive denominator \texttt{hden}. \texttt{hden\_\allowbreak{}lower} is the elementary exponential lower bound; \texttt{hfloor} turns it into the forcing floor. \texttt{hp} identifies the power of the exponential, and \texttt{hrec} invokes the affine recurrence bound before the final comparison.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -67,6 +122,20 @@ The final theorem splits off the singleton case before invoking this positive-di
 
 From \(h\le\alpha/(4L^2)\) and \(\alpha\le L\), derive \(hL\le1/4\) and \(\alpha h\le1/4\). These numerical consequences are checked before invoking the scalar absorption and geometric-denominator lemmas.
 
+\begin{leanbox}{Lean: \texttt{lsi\_\allowbreak{}step\_\allowbreak{}bounds}}
+\leansource{\texttt{lsi\_\allowbreak{}step\_\allowbreak{}bounds} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 82–96}
+\begin{leancode}
+\leanline{0}{theorem\ lsi\_step\_bounds\ [Nontrivial\ E]}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))\ :}
+\leanline{4}{α\ ≤\ (L\ :\ ℝ)\ ∧\ 0\ <\ L\ ∧\ h\ *\ (L\ :\ ℝ)\ ≤\ 1\ /\ 4\ ∧\ α\ *\ h\ ≤\ 1\ /\ 4}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lsi\_\allowbreak{}step\_\allowbreak{}bounds}: the intermediate facts include \texttt{h\ensuremath{\alpha}\allowbreak{}L}, \texttt{h\allowbreak{}L}, \texttt{hs}, \texttt{hmul}, \texttt{hh\allowbreak{}L}, in source order. The remaining scalar rearrangements are checked by \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -84,6 +153,40 @@ The integral form identifies \(I_t\) with \(\int\|\mathcal S(t,y)\|^2d\rho_t(y)\
 
 At positive elapsed time, the constructed relative density is positive, \(C^1\), and normalized, with finite Fisher and KL. It therefore belongs to the original LSI test class, giving \(2\alpha H(t)\le I_t\) for the interpolation law.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}fisher}, \texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}relativeFisher}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}fisher} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 101–127}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_entropy\_le\_fisher}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (L\ :\ ℝ≥0)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{2\ *\ α\ *\ (InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ t)}
+\leanline{6}{(ULA.gibbsMeasure\ U)).toReal\ ≤}
+\leanline{8}{∫\ y,\ ‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t}
+\end{leancode}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}relativeFisher} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 132–151}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_entropy\_le\_relativeFisher}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (L\ :\ ℝ≥0)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{2\ *\ α\ *\ (InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ t)}
+\leanline{6}{(ULA.gibbsMeasure\ U)).toReal\ ≤}
+\leanline{8}{(relativeFisher\ (ULA.gibbsMeasure\ U)\ (interpolationRelativeDensity\ U\ μ\ t)).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}fisher}: the intermediate facts include \texttt{h\allowbreak{}G}, \texttt{hgrad}, \texttt{h\allowbreak{}KLt}, \texttt{hint}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mul}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{tilted\allowbreak{}Measure\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density}, \texttt{interpolation\allowbreak{}Relative\allowbreak{}Score\allowbreak{}Field\_\allowbreak{}eq}.
+
+
+
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}relative\allowbreak{}Fisher}: the intermediate facts include \texttt{h\allowbreak{}G}, \texttt{hgrad}, \texttt{h\allowbreak{}KLt}, \texttt{h\allowbreak{}FI}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mul}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -109,6 +212,23 @@ The singleton case instead uses equality of probability laws and nonnegativity o
 
 The entropy curve has local absolute continuity, the almost-everywhere production bound, and an upper initial majorant continuous at zero. Together with the entropy-derived score moment, these supply every premise of the scalar one-step comparison.
 
+\begin{leanbox}{Lean: \texttt{interpolation\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step}}
+\leansource{\texttt{interpolation\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 156–201}
+\begin{leancode}
+\leanline{0}{theorem\ interpolation\_kl\_one\_step}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ h)\ (ULA.gibbsMeasure\ U)).toReal\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ h)\ *\ (InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +}
+\leanline{8}{6\ *\ h\ \textasciicircum{}\ 2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step}: the intermediate facts include \texttt{hgrad}, \texttt{h\allowbreak{}AC}, \texttt{hlsi}, \texttt{hprod}, \texttt{hbound}, in source order; the source steps apply or rewrite \texttt{probability\allowbreak{}Measure\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton}, \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Measure}, \texttt{interpolation\allowbreak{}Entropy\allowbreak{}Majorant\_\allowbreak{}zero}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -126,6 +246,23 @@ Here \(H_k=H(\rho_k\mid\nu)\), a finite real number by the preceding induction, 
 
 Use the exact interpolation endpoints to replace the scalar initial and final entropies by \(H_k\) and \(H_{k+1}\). The comparison then gives \(H_{k+1}\le e^{-\alpha h}H_k+6h^2dL^2\) without any separately assumed recurrence.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step}}
+\leansource{\texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 205–220}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_kl\_one\_step}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ (k\ +\ 1)\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ h)\ *\ ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ k\ +}
+\leanline{8}{6\ *\ h\ \textasciicircum{}\ 2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} first installs the probability instance for the current iterate. It obtains \texttt{hfinite} from \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite}, with \texttt{positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step} providing positive smoothness from the admissible positive step. \texttt{interpolation\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} is then applied to that current law. The final \texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint} rewrite changes the interpolation endpoint into the successor iterate. Substituting the lifted potential, its gradient bound and scaled step yields the particle recurrence; the particle-count cancellation in the forcing is scalar algebra, not a further probabilistic premise.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -147,13 +284,31 @@ The final hypotheses are differentiability, globally Lipschitz gradient, the Gib
 
 Apply the geometric recurrence estimate to the finite sequence of relative entropies. The positive denominator bound converts the forcing sum into \(8hdL^2/\alpha\), yielding the final statement under only the displayed potential, LSI, step, and initial-entropy assumptions.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}bound}}
+\leansource{\texttt{ula\_\allowbreak{}kl\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 227–253}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_kl\_bound}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (ulaLaws\ U\ h\ μ\ k)\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ k\ ≤}
+\leanline{8}{Real.exp\ (-α\ *\ h\ *\ k)\ *\ (InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +}
+\leanline{10}{8\ *\ h\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}kl\_\allowbreak{}bound}: the intermediate facts include \texttt{h\allowbreak{}L}, \texttt{h\ensuremath{\alpha}h}, \texttt{hstep}, in source order; the source steps apply or rewrite \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite}, \texttt{probability\allowbreak{}Measure\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton}, \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Measure}, \texttt{ula\allowbreak{}Entropy\_\allowbreak{}zero}, \texttt{discrete\_\allowbreak{}entropy\_\allowbreak{}recurrence\_\allowbreak{}bound}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

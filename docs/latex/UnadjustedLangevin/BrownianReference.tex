@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,118 +32,477 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Assemble continuous Brownian reference segments}{Assemble continuous Brownian reference segments}}
+\title{\texorpdfstring{Brownian reference segments for the coupling argument}{Brownian reference segments for the coupling argument}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-At absolute time \(nh\), solve the square-mean integral equation on the next interval using input \(\sqrt2(B_{nh+t}-B_{nh})\). The endpoint at local time \(h\) is used as the initial class of the next segment. Thus consecutive segments agree at the endpoints as \(L^2\) classes.
+We keep the setting of the previous section: \(P\) is a probability measure on \(\Omega\), \(\iota\) is a finite set with \(d=|\iota|\) elements, \((W^i)_{i\in\iota}\) are real pre-Brownian motions with \(B_t=(W^i_t)_{i\in\iota}\), \(L^2=L^2(P;\mathbb R^\iota)\), the gradient \(g=\nabla U\) is \(L\)-Lipschitz, \(\mathcal G[X]=[g\circ X]\) is its action on \(L^2\), and \(N_a(t)=\sqrt2([B_{a+t}]-[B_a])\) is the Langevin input started at time \(a\). Fix a step \(h\) and an initial vector \(X_0\in L^2\).
 
 
 
-Normalize the endpoint input to define the Euler innovation. Multiplication by \(\sqrt{2h}\) recovers the same reference increment. Continuity, the integral equation, joining, and the noise moments follow from the construction. If every segment time has Gibbs law, the Gibbs gradient moment gives the remaining reference drift bound. That stationary-law property is still a hypothesis here and is proved separately.
+
+On the \(n\)-th time interval \([nh,(n+1)h]\) we take a solution of the integral equation driven by \(N_{nh}\), started at a knot \(K_n\in L^2\); the knots are defined recursively by \(K_0=X_0\) and \(K_{n+1}\) equal to the endpoint of the \(n\)-th segment. The resulting family of segments \(Y^{(n)}:\mathbb R\to L^2\) represents the Langevin diffusion started at \(X_0\), observed on consecutive intervals of length \(h\), with every segment driven by increments of the same Brownian vector. We also define the normalised endpoint increments \(\xi_n=N_{nh}(h)/\sqrt{2h}\), which serve as the innovations of the Euler scheme, and prove \(N_{nh}(h)=\sqrt{2h}\,\xi_n\) as an identity in \(L^2\).
+
+
+
+
+Finally we verify that the segments, inputs and innovations satisfy all requirements of a stationary reference in the coupling proof of the error bound for the unadjusted Langevin algorithm (continuity, joining, endpoint noise, integral equation, gradient and noise moment bounds), under the explicit hypothesis that every \(Y^{(n)}(t)\), \(t\in[0,h]\), has the Gibbs law \(\pi\). That hypothesis is not proved here; it is established in the section on Gibbs stationarity and discharged in the construction of the canonical reference.
 
 
 \section{\texorpdfstring{A Brownian-driven segment from a given initial class}{A Brownian-driven segment from a given initial class}}
 
 
-Choose the integral solution supplied by finite-horizon existence for the integral equation driven by the continuous Brownian class for the segment starting at absolute time \(nh\), with the supplied initial \(L^2\) variable. Select one of the solutions whose existence was proved. It has the stated integral equation and continuity properties.
+\textbf{Definition.} Let \(h\ge0\), \(n\in\mathbb N\) and \(X\in L^2\). The start time \(a=nh\) satisfies \(a\ge0\), because \(n\ge0\) and \(h\ge0\). The finite-horizon existence theorem of the previous section, applied with initial value \(X\), start time \(nh\) and horizon \(h\), asserts that the set of curves \(Y:\mathbb R\to L^2\) with
+
+
+\[\begin{gathered}Y\text{ continuous},\qquad Y(0)=X,\\Y(t)-X=-\int_0^t\mathcal G\bigl(Y(s)\bigr)\,ds+N_{nh}(t)\quad(t\in[0,h]),\\\|N_{nh}(t)\|_2=\sqrt{2d}\sqrt t\quad(t\in[0,h]).\end{gathered}\]
+
+
+is nonempty. By the axiom of choice we fix one element of this set and denote it by \(S_n(X):\mathbb R\to L^2\). It is the segment started at the class \(X\) and driven by the Brownian increments after time \(nh\).
 
 
 
-Fix a segment length \(h>0\), an index \(n\), and an initial random vector \(K\). The local reference is a solution of \(Y_t-K=-\int_0^t\nabla U(Y_s)ds+\sqrt2(B_{nh+t}-B_{nh})\). Existence has already been proved for this input. Selecting such a solution introduces no extra equation or numerical estimate; all its analytic properties are inherited from that existence result.
 
+The choice is made once for every triple \((n,X,h)\); nothing else about \(S_n(X)\) is used than the four listed properties, which are recorded in the next step. (Solutions are in fact unique on \([0,h]\) by a Grönwall argument proved elsewhere, but uniqueness is not needed here.)
+
+\begin{leanbox}{Lean: \texttt{brownianSegmentFrom}}
+\leansource{\texttt{brownianSegmentFrom} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 26–32}
+\begin{leancode}
+\leanline{0}{def\ brownianSegmentFrom\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (n\ :\ ℕ)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{ℝ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ :=}
+\leanline{2}{Classical.choose\ (exists\_lp\_langevin\_integral\_of\_brownian\ P\ U\ L\ hLip\ initial\ W\ hW}
+\leanline{4}{((n\ :\ ℝ)\ *\ h)\ h\ (mul\_nonneg\ (Nat.cast\_nonneg\ n)\ hh)\ hh)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Segment\allowbreak{}From} is defined as \texttt{Classical.\allowbreak{}choose (exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}brownian P U L h\allowbreak{}Lip initial W h\allowbreak{}W ((n : \ensuremath{\mathbb R}) * h) h (mul\_\allowbreak{}nonneg (Nat.\allowbreak{}cast\_\allowbreak{}nonneg n) hh) hh)}. \texttt{Classical.\allowbreak{}choose} takes a proof of an existence statement \(\exists Y,\ \Phi(Y)\) and returns a witness; this is the choice in the definition. The start time is \texttt{(n : \ensuremath{\mathbb R}) * h}, the natural number \(n\) coerced to a real number times \(h\), and its nonnegativity is supplied by \texttt{mul\_\allowbreak{}nonneg (Nat.\allowbreak{}cast\_\allowbreak{}nonneg n) hh}, the product of \(n\ge0\) and \texttt{hh : 0 \ensuremath{\le} h}. The argument \texttt{initial} is the starting class \(X\).
+\end{leanbox}
 
 \section{\texorpdfstring{The defining properties of the segment}{The defining properties of the segment}}
 
 
-The selected solution has continuity, the time-zero initial value, the gradient integral equation on \([0,h]\), and the exact noise norm. These four properties describe the selected segment independently of which solution is selected.
+\textbf{Claim.} Let \(h\ge0\), \(n\in\mathbb N\) and \(X\in L^2\). The segment \(S_n(X)\) is continuous, satisfies \(S_n(X)(0)=X\), and for every \(t\in[0,h]\)
+
+
+\[S_n(X)(t)-X=-\int_0^t\mathcal G\bigl(S_n(X)(s)\bigr)\,ds+N_{nh}(t),\qquad \|N_{nh}(t)\|_2=\sqrt{2d}\,\sqrt t.\]
+
+
+\textbf{Proof.} By definition \(S_n(X)\) is an element of the set of curves having exactly these four properties. \(\square\)
 
 
 
-The four properties have distinct later uses. Continuity makes the drift time integral meaningful. The initial-value identity permits adjoining intervals. The integral equation gives the local Euler drift defect after subtraction. Finally the exact Brownian norm controls reference increments quantitatively. These four properties are used in the subsequent coupling estimate.
 
+Each property is used later. Continuity makes the Bochner integral of \(s\mapsto\mathcal G(S_n(X)(s))\) meaningful and is part of the reference requirements; the value at \(0\) is used to join consecutive segments; the integral equation gives the local error of one Euler step after subtraction; the norm identity bounds the size of the input on the segment.
+
+\begin{leanbox}{Lean: \texttt{brownianSegmentFrom\_\allowbreak{}spec}}
+\leansource{\texttt{brownianSegmentFrom\_\allowbreak{}spec} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 35–49}
+\begin{leancode}
+\leanline{0}{theorem\ brownianSegmentFrom\_spec\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (n\ :\ ℕ)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{Continuous\ (brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ n\ initial)\ ∧}
+\leanline{6}{brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ n\ initial\ 0\ =\ initial\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{8}{brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ n\ initial\ t\ -\ initial\ =}
+\leanline{10}{-(∫\ s\ in\ 0..t,\ lpDrift\ P\ (gradient\ U)\ hLip}
+\leanline{12}{(brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ n\ initial\ s))\ +}
+\leanline{12}{brownianLangevinNoise\ P\ W\ hW\ ((n\ :\ ℝ)\ *\ h)\ t)\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ h,\ ‖brownianLangevinNoise\ P\ W\ hW\ ((n\ :\ ℝ)\ *\ h)\ t‖\ =}
+\leanline{8}{Real.sqrt\ (2\ *\ (Fintype.card\ ι\ :\ ℝ))\ *\ Real.sqrt\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Segment\allowbreak{}From\_\allowbreak{}spec} is \texttt{Classical.\allowbreak{}choose\_\allowbreak{}spec} of the same existence proof: the chosen witness satisfies the property whose existence was asserted. The statement is a conjunction \texttt{A ∧ B ∧ C ∧ D} of continuity, the value \texttt{… 0 = initial}, the integral equation for \texttt{t \ensuremath{\in} Icc 0 h} and the norm identity. Later proofs extract the components with projections: \texttt{.\allowbreak{}1} is continuity, \texttt{.\allowbreak{}2.\allowbreak{}1} the initial value and \texttt{.\allowbreak{}2.\allowbreak{}2.\allowbreak{}1} the integral equation.
+\end{leanbox}
 
 \section{\texorpdfstring{The successive reference knots}{The successive reference knots}}
 
 
-Set the zeroth knot to the prescribed initial variable. Define the next knot to be the endpoint at local time \(h\) of the segment started at the current knot. This recursion ensures consecutive segments meet exactly as \(L^2\) classes.
+\textbf{Definition.} Let \(h\ge0\) and \(X_0\in L^2\). The knots \(K_n\in L^2\), \(n\in\mathbb N\), are defined by recursion on \(n\):
 
 
+\[K_0=X_0,\qquad K_{n+1}=S_n(K_n)(h).\]
 
-Write \(K_0=Y^{\mathrm{in}}\) and \(K_{n+1}=Y^{(n)}_h\), where the \(n\)-th local solution starts at \(K_n\). This is an ordinary recursion in the space of square-integrable states. Each endpoint belongs to that space by the solution construction. It fixes all future segment initial values from the same original state and Brownian source.
 
+Each \(K_n\) is an element of \(L^2\): \(K_0\) by assumption, and \(K_{n+1}\) because \(S_n(K_n)\) takes values in \(L^2\). The knot \(K_{n+1}\) is the value at time \((n+1)h\) of the process started at \(X_0\) at time \(0\), obtained by running the integral equation through the intervals \([0,h],[h,2h],\dots,[nh,(n+1)h]\), each time starting from the endpoint of the previous interval.
+
+\begin{leanbox}{Lean: \texttt{brownianKnots}}
+\leansource{\texttt{brownianKnots} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 52–59}
+\begin{leancode}
+\leanline{0}{def\ brownianKnots\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{ℕ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n\ +\ 1\ =>\ brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ n}
+\leanline{6}{(brownianKnots\ U\ L\ hLip\ W\ hW\ h\ hh\ initial\ n)\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Knots} is defined by pattern matching on the natural number: the clause \texttt{| 0 => initial} is \(K_0=X_0\) and the clause \texttt{| n + 1 => brownian\allowbreak{}Segment\allowbreak{}From P U L h\allowbreak{}Lip W h\allowbreak{}W h hh n (brownian\allowbreak{}Knots U L h\allowbreak{}Lip W h\allowbreak{}W h hh initial n) h} is \(K_{n+1}=S_n(K_n)(h)\). Lean accepts the recursion because the recursive call is at the smaller index \(n\).
+\end{leanbox}
 
 \section{\texorpdfstring{The reference segments}{The reference segments}}
 
 
-At index \(n\), select a restarted Brownian-driven segment with the recursively constructed \(n\)-th knot as initial state. The absolute noise start is \(nh\), so all segments are driven by increments of the same Brownian process.
+\textbf{Definition.} Let \(h\ge0\) and \(X_0\in L^2\). The \(n\)-th reference segment is
 
 
+\[Y^{(n)}=S_n(K_n):\mathbb R\to L^2,\qquad n\in\mathbb N.\]
 
-The segment index changes both its initial state and its absolute noise interval. Its equation uses increments beginning at \(nh\), rather than restarting an unrelated Brownian process at each iteration. Consequently the endpoint increment used for the Euler innovation is the same increment appearing in this reference segment. The two equal endpoint increments therefore cancel in the synchronous comparison.
 
+Its local time \(t\in[0,h]\) corresponds to the absolute time \(nh+t\). The segment starts from the knot \(K_n\) and is driven by the input \(N_{nh}(t)=\sqrt2([B_{nh+t}]-[B_{nh}])\) for \(nh,t\ge0\), that is, by the increments of the same Brownian vector \(B\) after time \(nh\). In particular its endpoint input \(N_{nh}(h)=\sqrt2([B_{(n+1)h}]-[B_{nh}])\) is the Brownian increment over the \(n\)-th interval, which will also drive the \(n\)-th Euler step.
+
+\begin{leanbox}{Lean: \texttt{brownianSegments}}
+\leansource{\texttt{brownianSegments} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 62–68}
+\begin{leancode}
+\leanline{0}{def\ brownianSegments\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(n\ :\ ℕ)\ :\ ℝ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ :=}
+\leanline{2}{brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ n}
+\leanline{4}{(brownianKnots\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ initial\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Segments P U L h\allowbreak{}Lip W h\allowbreak{}W h hh initial n} is defined as \texttt{brownian\allowbreak{}Segment\allowbreak{}From P U L h\allowbreak{}Lip W h\allowbreak{}W h hh n (brownian\allowbreak{}Knots P U L h\allowbreak{}Lip W h\allowbreak{}W h hh initial n)}, which is \(S_n(K_n)\). The index \(n\) enters twice: as the start time \(nh\) of the Brownian input and through the knot.
+\end{leanbox}
 
 \section{\texorpdfstring{The starting value of each segment}{The starting value of each segment}}
 
 
-The chosen-segment specification states its value at zero equals its supplied initial state. Here that state is the \(n\)-th knot, so \(Y^{(n)}_0=K_n\) follows directly by specialization.
+\textbf{Claim.} For \(h\ge0\), \(X_0\in L^2\) and every \(n\in\mathbb N\), \(Y^{(n)}(0)=K_n\).
 
 
 
-At local time zero the drift integral and Brownian increment both vanish. The segment equation thus gives \(Y^{(n)}_0=K_n\). Together with \(K_n=Y^{(n-1)}_h\) for \(n>0\), this proves exact joining. The error from joining segments is therefore zero at every boundary.
 
+\textbf{Proof.} By definition \(Y^{(n)}=S_n(K_n)\), and the second property of the segment (with \(X=K_n\)) gives \(S_n(K_n)(0)=K_n\). \(\square\)
+
+
+
+
+Combined with the recursion \(K_{n+1}=S_n(K_n)(h)=Y^{(n)}(h)\), this gives the joining identity \(Y^{(n)}(h)=K_{n+1}=Y^{(n+1)}(0)\) for every \(n\): consecutive segments agree at the common time \((n+1)h\) as elements of \(L^2\), so the concatenated process has no jumps at the knots.
+
+\begin{leanbox}{Lean: \texttt{brownianSegments\_\allowbreak{}start}}
+\leansource{\texttt{brownianSegments\_\allowbreak{}start} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 71–77}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ brownianSegments\_start\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ initial\ n\ 0\ =}
+\leanline{6}{brownianKnots\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ initial\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Segments\_\allowbreak{}start} is the projection \texttt{(brownian\allowbreak{}Segment\allowbreak{}From\_\allowbreak{}spec P U L h\allowbreak{}Lip W h\allowbreak{}W h hh n \_\allowbreak{}).\allowbreak{}2.\allowbreak{}1}, the initial-value component of the specification, with the starting class left for Lean to infer (the placeholder \texttt{\_\allowbreak{}} is the knot \(K_n\)). The attribute \texttt{@[simp]} lets the simplifier rewrite \(Y^{(n)}(0)\) to \(K_n\).
+\end{leanbox}
 
 \section{\texorpdfstring{The initial reference knot}{The initial reference knot}}
 
 
-Apply the segment-start identity at \(n=0\), then unfold the zeroth knot. The constructed reference therefore begins at exactly the prescribed random variable, preserving its chosen joint realization with the numerical initialization.
+\textbf{Claim.} For \(h\ge0\) and \(X_0\in L^2\), \(Y^{(0)}(0)=X_0\).
 
 
 
-The first knot is the prescribed random vector, not merely a new variable with the same law. Hence the first reference segment retains the exact initial coupling with the numerical chain. For each arbitrary initial coupling, their root mean-square separation must remain the initial error used by the synchronous argument.
 
+\textbf{Proof.} By the previous step with \(n=0\), \(Y^{(0)}(0)=K_0\), and \(K_0=X_0\) by the definition of the knots. \(\square\)
+
+
+
+
+The equality is an identity in \(L^2\), not only of laws: the reference process starts from the given random vector \(X_0\) itself. This matters for the coupling argument, where \(X_0\) is chosen jointly with the initial state of the Euler chain, and the initial error is the \(L^2\) distance between these two specific random vectors.
+
+\begin{leanbox}{Lean: \texttt{brownianSegments\_\allowbreak{}initial}}
+\leansource{\texttt{brownianSegments\_\allowbreak{}initial} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 81–87}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ brownianSegments\_initial\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh\ initial\ 0\ 0\ =\ initial}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The proof of \texttt{brownian\allowbreak{}Segments\_\allowbreak{}initial} rewrites with \texttt{brownian\allowbreak{}Segments\_\allowbreak{}start}, which turns the goal into \(K_0=X_0\), and closes it with \texttt{rfl}, because the first clause of \texttt{brownian\allowbreak{}Knots} makes both sides identical by definition.
+\end{leanbox}
 
 \section{\texorpdfstring{The endpoint Euler innovations}{The endpoint Euler innovations}}
 
 
-Normalize the segment endpoint noise by \(1/\sqrt{2h}\). This defines the \(L^2\) innovation used by the Euler chain, so it shares the exact Brownian increment driving the reference segment.
+\textbf{Definition.} Let \(h>0\) and \(n\in\mathbb N\). The \(n\)-th \emph{Euler innovation} is
 
 
+\[\xi_n=\frac{1}{\sqrt{2h}}\,N_{nh}(h)\in L^2.\]
 
-The endpoint input is \(N_{nh}(h)=\sqrt2(B_{(n+1)h}-B_{nh})\). Dividing it by \(\sqrt{2h}\) gives \((B_{(n+1)h}-B_{nh})/\sqrt h\), the standard Brownian increment normalization. Defining the innovation from the same input ensures that multiplication by the Euler amplitude recovers the reference noise exactly; its Gaussian law is verified separately.
 
+Since \(nh\ge0\) and \(h\ge0\), the first step of the previous section gives \(N_{nh}(h)=[\sqrt2(B_{(n+1)h}-B_{nh})]\), hence
+
+
+\[\xi_n=\Bigl[\frac{B_{(n+1)h}-B_{nh}}{\sqrt h}\Bigr],\]
+
+
+and each coordinate of \(\xi_n\) is \(\mathcal N(0,1)\), because \(W^i_{(n+1)h}-W^i_{nh}\sim\mathcal N(0,h)\) and division by \(\sqrt h\) divides the variance by \(h\). The joint law of the innovations (independence across \(n\) and across coordinates) is not used in this section; it is established for the canonical Brownian source in later sections.
+
+\begin{leanbox}{Lean: \texttt{brownianEulerNoise}}
+\leansource{\texttt{brownianEulerNoise} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 90–93}
+\begin{leancode}
+\leanline{0}{def\ brownianEulerNoise\ (W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)\ (h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ :=}
+\leanline{2}{(Real.sqrt\ (2\ *\ h))⁻¹\ •\ brownianLangevinNoise\ P\ W\ hW\ ((n\ :\ ℝ)\ *\ h)\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Euler\allowbreak{}Noise P W h\allowbreak{}W h n} is defined as \texttt{(Real.\allowbreak{}sqrt (2 * h))\ensuremath{{}^{-1}} \ensuremath{\bullet} brownian\allowbreak{}Langevin\allowbreak{}Noise P W h\allowbreak{}W ((n : \ensuremath{\mathbb R}) * h) h}. The definition is stated for every real \(h\); for \(h\le0\) one has \(\sqrt{2h}=0\) and Lean's convention \(0^{-1}=0\) makes the value \(0\). All uses below assume \texttt{0 < h}, where the definition is the displayed quotient. The coordinate laws mentioned after the definition are not part of this declaration.
+\end{leanbox}
 
 \section{\texorpdfstring{Identification of endpoint noise}{Identification of endpoint noise}}
 
 
-For \(h>0\), \(\sqrt{2h}\ne0\). Multiply the normalized noise class by \(\sqrt{2h}\) and cancel the inverse scalar. The resulting equality identifies the Euler noise contribution with the same Brownian endpoint input in the integral equation.
+\textbf{Claim.} Let \(P\) be any measure on \(\Omega\), \((W^i)_{i\in\iota}\) pre-Brownian motions, \(h>0\) and \(n\in\mathbb N\). Then
+
+
+\[N_{nh}(h)=\sqrt{2h}\;\xi_n\qquad\text{in }L^2.\]
+
+
+\textbf{Proof.} Since \(h>0\), \(2h>0\) and therefore \(\sqrt{2h}>0\); in particular \(\sqrt{2h}\neq0\). Using the definition of \(\xi_n\) and the rule \(c(c'x)=(cc')x\) for scalar multiplication,
+
+
+\[\sqrt{2h}\;\xi_n=\sqrt{2h}\Bigl(\frac1{\sqrt{2h}}N_{nh}(h)\Bigr)=\Bigl(\sqrt{2h}\cdot\frac1{\sqrt{2h}}\Bigr)N_{nh}(h)=1\cdot N_{nh}(h)=N_{nh}(h).\qquad\square\]
+
+
+This is an identity between elements of \(L^2\), stronger than equality of laws. When the Euler update \(X_{n+1}=X_n-h\,g(X_n)+\sqrt{2h}\,\xi_n\) is compared with the reference endpoint \(Y^{(n)}(h)=Y^{(n)}(0)-\int_0^h\mathcal G(Y^{(n)}(s))\,ds+N_{nh}(h)\), the two noise terms are equal and cancel in the difference. The positivity \(h>0\) is needed to divide by \(\sqrt{2h}\).
+
+\begin{leanbox}{Lean: \texttt{brownianEulerNoise\_\allowbreak{}endpoint}}
+\leansource{\texttt{brownianEulerNoise\_\allowbreak{}endpoint} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 98–103}
+\begin{leancode}
+\leanline{0}{theorem\ brownianEulerNoise\_endpoint\ (W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)\ (h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (n\ :\ ℕ)\ :}
+\leanline{4}{brownianLangevinNoise\ P\ W\ hW\ ((n\ :\ ℝ)\ *\ h)\ h\ =}
+\leanline{6}{Real.sqrt\ (2\ *\ h)\ •\ brownianEulerNoise\ P\ W\ hW\ h\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}endpoint} is preceded by \texttt{omit [Is\allowbreak{}Probability\allowbreak{}Measure P] in}, which removes the section assumption that \(P\) is a probability measure, so the identity holds for every measure. The hypothesis \texttt{hh : 0 < h} is \(h>0\).
 
 
 
-Positivity of \(h\) makes \(\sqrt{2h}\) strictly positive, so scalar division and multiplication cancel. Thus \(\sqrt{2h}\,\xi_n=N_{nh}(h)\) as square-integrable random vectors. This equality is stronger than agreement in distribution: it allows the two noise terms to disappear when subtracting the Euler update and the reference endpoint equation on their common space.
+\begin{enumerate}
 
+
+\item \texttt{hs : Real.\allowbreak{}sqrt (2 * h) ≠ 0} is obtained from \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}pos.\allowbreak{}mpr}, which turns \(2h>0\) (proved by \texttt{positivity}) into \(\sqrt{2h}>0\), followed by \texttt{ne\_\allowbreak{}of\_\allowbreak{}gt}.
+
+\item \texttt{simp only [brownian\allowbreak{}Euler\allowbreak{}Noise, smul\_\allowbreak{}smul, mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}} hs, one\_\allowbreak{}smul]} unfolds \(\xi_n\), merges the two scalar multiplications (\texttt{smul\_\allowbreak{}smul}), cancels \(\sqrt{2h}\cdot(\sqrt{2h})^{-1}=1\) using \texttt{hs}, and removes the factor \(1\); this is the displayed chain of equalities.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The stationary Brownian reference}{The stationary Brownian reference}}
 
 
-Use the constructed segments as the reference family. Their specification proves continuity and the integral equation; recursive knots prove endpoint compatibility; normalized noise proves endpoint matching; Gibbs-score moment transfer proves the drift bound. The supplied all-time Gibbs-law premise remains visible and is later proved by the stationarity construction.
+Recall the Gibbs measure of \(U\): with the partition function \(Z=\int_{\mathbb R^\iota}e^{-U(x)}\,dx\in(0,\infty]\),
+
+
+\[\pi(dx)=Z^{-1}e^{-U(x)}\,dx .\]
+
+
+If \(U\) is continuous then \(Z>0\), and if moreover \(Z<\infty\) then \(\pi\) is a probability measure. A \emph{stationary reference} for \(\pi\) with step \(h\) and innovations \((\xi_n)_{n\in\mathbb N}\subseteq L^2\) (as defined in the section on Dalalyan's argument) is a pair of families of curves \(Y^{(n)},M^{(n)}:\mathbb R\to L^2\), \(n\in\mathbb N\), such that for all \(n\in\mathbb N\) and all \(t\in[0,h]\):
 
 
 
-Assuming every reference time has Gibbs law, the score moment gives \(\|\nabla U(Y_t^{(n)})\|_2\le\sqrt{Ld}\). The Brownian construction supplies \(\|N_{nh}(t)\|_2=\sqrt{2d}\sqrt t\). Along with segment joining and endpoint noise matching, these bounds meet the analytic coupling hypotheses. Stationarity remains an explicit input at this intermediate stage, rather than a consequence of the integral equation alone.
+\begin{enumerate}
 
+
+\item (R1) \(Y^{(n)}\) is continuous;
+
+\item (R2) \(Y^{(n)}(h)=Y^{(n+1)}(0)\);
+
+\item (R3) \(M^{(n)}(h)=\sqrt{2h}\,\xi_n\);
+
+\item (R4) the law of \(Y^{(n)}(0)\) is \(\pi\);
+
+\item (R5) \(Y^{(n)}(t)-Y^{(n)}(0)=-\int_0^t\mathcal G(Y^{(n)}(s))\,ds+M^{(n)}(t)\);
+
+\item (R6) \(\|\mathcal G(Y^{(n)}(t))\|_2\le\sqrt{Ld}\);
+
+\item (R7) \(\|M^{(n)}(t)\|_2\le\sqrt{2d}\,\sqrt t\).
+
+\end{enumerate}
+
+
+
+\textbf{Claim.} Let \(P\) be a probability measure, \(U:\mathbb R^\iota\to\mathbb R\) differentiable with \(L\)-Lipschitz gradient, \(Z<\infty\), \((W^i)_{i\in\iota}\) pre-Brownian motions, \(h>0\) and \(X_0\in L^2\). Assume
+
+
+\[\text{the law of }Y^{(n)}(t)\text{ is }\pi\qquad\text{for all }n\in\mathbb N\text{ and }t\in[0,h].\qquad(1)\]
+
+
+Then \(Y^{(n)}\) (the segments of this section) and \(M^{(n)}=N_{nh}\) form a stationary reference for \(\pi\) with step \(h\) and innovations \(\xi_n=N_{nh}(h)/\sqrt{2h}\).
+
+
+
+
+\textbf{Proof.} We verify (R1)–(R7); \(h\ge0\) is used in the form \(h>0\Rightarrow h\ge0\).
+
+
+
+
+(R1) \(Y^{(n)}=S_n(K_n)\) is continuous by the specification of the segment.
+
+
+
+
+(R2) By the recursion of the knots and the starting value of segment \(n+1\), \(Y^{(n)}(h)=S_n(K_n)(h)=K_{n+1}=S_{n+1}(K_{n+1})(0)=Y^{(n+1)}(0)\).
+
+
+
+
+(R3) This is the endpoint identity \(N_{nh}(h)=\sqrt{2h}\,\xi_n\) of the previous step, which uses \(h>0\).
+
+
+
+
+(R4) Apply (1) at \(t=0\), which lies in \([0,h]\) because \(h\ge0\).
+
+
+
+
+(R5) The specification of \(S_n(K_n)\) gives \(Y^{(n)}(t)-K_n=-\int_0^t\mathcal G(Y^{(n)}(s))\,ds+N_{nh}(t)\) for \(t\in[0,h]\), and \(K_n=Y^{(n)}(0)\).
+
+
+
+
+(R6) Fix \(t\in[0,h]\) and put \(V=Y^{(n)}(t)\), whose law is \(\pi\) by (1). The class \(\mathcal G(V)\) is represented by \(g\circ V\), so by the change-of-variables formula for the image measure,
+
+
+\[\|\mathcal G(V)\|_2^2=\mathbb E\,\|\nabla U(V)\|^2=\int_{\mathbb R^\iota}\|\nabla U(x)\|^2\,\pi(dx)\le L\,d,\]
+
+
+where the last inequality is the Gibbs gradient moment bound \cite[Section~3.27.6]{LangevinLean2026ULASC}, valid for differentiable \(U\) with \(L\)-Lipschitz gradient and \(Z<\infty\) on a space of dimension \(d\). Taking nonnegative square roots gives (R6); this is the moment transfer \cite[Section~3.28.1]{LangevinLean2026ULASC}.
+
+
+
+
+(R7) Since \(nh\ge0\) and \(t\ge0\), the norm identity of the previous section gives \(\|N_{nh}(t)\|_2=\sqrt{2d}\sqrt t\), in particular \(\le\). \(\square\)
+
+
+
+
+Hypothesis (1) is used only for (R4) and (R6). It is a statement about the constructed process and is not a consequence of the integral equation alone: it requires in addition that \(X_0\) has law \(\pi\) and is independent of the Brownian increments, and its proof (by comparison with Metropolis-adjusted chains) is given in later sections.
+
+\begin{leanbox}{Lean: \texttt{brownianReference}}
+\leansource{\texttt{brownianReference} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 108–138}
+\begin{leancode}
+\leanline{0}{def\ brownianReference\ (U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hstationary\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{6}{P.map\ (brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ initial\ n\ t)\ =\ gibbsMeasure\ U)\ :}
+\leanline{4}{L2Reference\ P\ (Fintype.card\ ι)\ U\ h\ L\ hLip}
+\leanline{6}{(brownianEulerNoise\ P\ W\ hW\ h)\ (gibbsMeasure\ U)\ where}
+\leanline{2}{segment\ :=\ brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ initial}
+\leanline{2}{increment\ :=\ fun\ n\ ↦\ brownianLangevinNoise\ P\ W\ hW\ ((n\ :\ ℝ)\ *\ h)}
+\leanline{2}{continuous\ n\ :=\ (brownianSegmentFrom\_spec\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ n\ \_).1}
+\leanline{2}{join\ n\ :=\ by}
+\leanline{4}{change\ brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ initial\ n\ h\ =}
+\leanline{6}{brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ (n\ +\ 1)}
+\leanline{8}{(brownianKnots\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ initial\ (n\ +\ 1))\ 0}
+\leanline{4}{rw\ [(brownianSegmentFrom\_spec\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ (n\ +\ 1)\ \_).2.1]}
+\leanline{4}{rfl}
+\leanline{2}{noiseEndpoint\ :=\ brownianEulerNoise\_endpoint\ P\ W\ hW\ h\ hh}
+\leanline{2}{stationary\ n\ :=\ hstationary\ n\ 0\ ⟨le\_rfl,\ hh.le⟩}
+\leanline{2}{integralEquation\ n\ t\ ht\ :=\ by}
+\leanline{4}{change\ brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ n\ \_\ t\ -}
+\leanline{6}{brownianSegmentFrom\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ n\ \_\ 0\ =\ \_}
+\leanline{4}{rw\ [(brownianSegmentFrom\_spec\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ n\ \_).2.1]}
+\leanline{4}{exact\ (brownianSegmentFrom\_spec\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ n\ \_).2.2.1\ t\ ht}
+\leanline{2}{scoreBound\ n\ t\ ht\ :=\ by}
+\leanline{4}{simpa\ using\ lpDrift\_norm\_le\_of\_gibbs\_law\ P\ U\ L\ hdiff\ hLip\ hZ}
+\leanline{6}{(brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ initial\ n\ t)\ (hstationary\ n\ t\ ht)}
+\leanline{2}{noiseBound\ n\ t\ ht\ :=}
+\leanline{4}{(brownianLangevinNoise\_norm\ P\ W\ hW\ ((n\ :\ ℝ)\ *\ h)\ t}
+\leanline{6}{(mul\_nonneg\ (Nat.cast\_nonneg\ n)\ hh.le)\ ht.1).le}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Reference} is a definition whose value is a term of the structure \texttt{L2\allowbreak{}Reference P (Fintype.\allowbreak{}card \ensuremath{\iota}) U h L h\allowbreak{}Lip (brownian\allowbreak{}Euler\allowbreak{}Noise P W h\allowbreak{}W h) (gibbs\allowbreak{}Measure U)}, defined in the section on Dalalyan's argument. A term of a structure is a tuple of data and proofs, one for each field; the fields are the curves \texttt{segment} (\(Y^{(n)}\)) and \texttt{increment} (\(M^{(n)}\)) and the properties \texttt{continuous}, \texttt{join}, \texttt{noise\allowbreak{}Endpoint}, \texttt{stationary}, \texttt{integral\allowbreak{}Equation}, \texttt{score\allowbreak{}Bound} and \texttt{noise\allowbreak{}Bound}, which are (R1), (R2), (R3), (R4), (R5), (R6) and (R7).
+
+
+
+
+The hypotheses: \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U}; \texttt{h\allowbreak{}Z : gibbs\allowbreak{}Partition U ≠ \ensuremath{\top}}, where \texttt{gibbs\allowbreak{}Partition U} is \(Z\) computed as an integral with values in the extended nonnegative reals \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} and \texttt{\ensuremath{\top}} is \(+\infty\); \texttt{hh : 0 < h}, whose consequence \(h\ge0\) is written \texttt{hh.\allowbreak{}le}; and \texttt{hstationary}, which is (1). In it, \texttt{P.\allowbreak{}map X} is the image measure of \(P\) under \(X\), that is, the law of \(X\), and \texttt{gibbs\allowbreak{}Measure U} is \(\pi\). The fields are filled as follows.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{segment := brownian\allowbreak{}Segments P U L h\allowbreak{}Lip W h\allowbreak{}W h hh.\allowbreak{}le initial} and \texttt{increment := fun n \ensuremath{\mapsto} brownian\allowbreak{}Langevin\allowbreak{}Noise P W h\allowbreak{}W ((n : \ensuremath{\mathbb R}) * h)}.
+
+\item \texttt{continuous n} is the projection \texttt{.\allowbreak{}1} of \texttt{brownian\allowbreak{}Segment\allowbreak{}From\_\allowbreak{}spec}.
+
+\item \texttt{join n}: \texttt{change} restates the goal as \(Y^{(n)}(h)=S_{n+1}(K_{n+1})(0)\); the rewrite with the initial-value component \texttt{.\allowbreak{}2.\allowbreak{}1} of the specification of segment \texttt{n + 1} replaces the right side by \(K_{n+1}\), and \texttt{rfl} closes \(Y^{(n)}(h)=K_{n+1}\), which holds by the definition of \texttt{brownian\allowbreak{}Knots}.
+
+\item \texttt{noise\allowbreak{}Endpoint := brownian\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}endpoint P W h\allowbreak{}W h hh} is (R3).
+
+\item \texttt{stationary n := hstationary n 0 \ensuremath{\langle}le\_\allowbreak{}rfl, hh.\allowbreak{}le\ensuremath{\rangle}} evaluates (1) at \(t=0\); the anonymous constructor proves \(0\in[0,h]\).
+
+\item \texttt{integral\allowbreak{}Equation n t ht}: after \texttt{change}, the rewrite with \texttt{.\allowbreak{}2.\allowbreak{}1} replaces \(Y^{(n)}(0)\) by \(K_n\), and \texttt{.\allowbreak{}2.\allowbreak{}2.\allowbreak{}1 t ht} is the integral equation of the specification.
+
+\item \texttt{score\allowbreak{}Bound n t ht} applies \texttt{lp\allowbreak{}Drift\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}law P U L hdiff h\allowbreak{}Lip h\allowbreak{}Z} to \(Y^{(n)}(t)\) and to its law \texttt{hstationary n t ht}; that lemma bounds the norm by \(\sqrt{L\cdot\dim}\), and \texttt{simpa} rewrites the dimension of \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota}} as \texttt{Fintype.\allowbreak{}card \ensuremath{\iota}}.
+
+\item \texttt{noise\allowbreak{}Bound n t ht} is \texttt{brownian\allowbreak{}Langevin\allowbreak{}Noise\_\allowbreak{}norm} at start time \(nh\ge0\) (\texttt{mul\_\allowbreak{}nonneg (Nat.\allowbreak{}cast\_\allowbreak{}nonneg n) hh.\allowbreak{}le}) and \(t\ge0\) (\texttt{ht.\allowbreak{}1}); the suffix \texttt{.\allowbreak{}le} weakens the equality to an inequality.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The reference under strong convexity}{The reference under strong convexity}}
 
 
-Positive strong convexity gives a finite positive Gibbs partition and finite target moments. Apply the reference construction using these target properties and the Brownian endpoint-noise identities. Its all-time stationary-law premise remains explicit at this stage and is supplied later by the invariant-approximation argument.
+Recall that \(U\) is \(m\)-strongly convex on \(\mathbb R^\iota\) if for all \(x,y\) and all \(a,b\ge0\) with \(a+b=1\),
+
+
+\[U(ax+by)\le aU(x)+bU(y)-\frac m2\,ab\,\|x-y\|^2 .\]
+
+
+\textbf{Claim.} Let \(P\) be a probability measure, \(m>0\), \(U:\mathbb R^\iota\to\mathbb R\) differentiable and \(m\)-strongly convex with \(L\)-Lipschitz gradient, \((W^i)_{i\in\iota}\) pre-Brownian motions, \(h>0\), \(X_0\in L^2\), and assume the stationarity hypothesis (1) of the previous step. Then the same families \(Y^{(n)}\), \(N_{nh}\), \(\xi_n\) form a stationary reference for \(\pi\).
 
 
 
-Positive strong convexity implies a finite positive Gibbs partition and a finite second moment. These normalization and integrability facts verify the target normalization and integrability requirements before the reference is assembled. The remaining law premise says that the constructed solution has this target distribution at every segment time. A later stationarity proof supplies that premise using invariant approximations and a continuous-limit argument.
 
+\textbf{Proof.} The only hypothesis of the previous step that is not assumed here is \(Z<\infty\). It follows from strong convexity \cite[Section~3.26.10]{LangevinLean2026ULASC}: the first-order inequality \(U(x)\ge U(0)+\langle\nabla U(0),x\rangle+\frac m2\|x\|^2\), the Cauchy–Schwarz inequality and Young's inequality \(\|\nabla U(0)\|\,\|x\|\le\frac m4\|x\|^2+\|\nabla U(0)\|^2/m\) give the quadratic lower bound \(U(x)\ge U(0)-\|\nabla U(0)\|^2/m+\frac m4\|x\|^2\) for all \(x\), so \(e^{-U(x)}\le C e^{-m\|x\|^2/4}\) with \(C=e^{-U(0)+\|\nabla U(0)\|^2/m}\), and the Gaussian function on the right is Lebesgue integrable. Hence \(Z<\infty\), and the previous step applies. \(\square\)
+
+
+
+
+After this step the stationarity hypothesis (1) is the only assumption on the reference that remains to be proved.
+
+\begin{leanbox}{Lean: \texttt{brownianReference\_\allowbreak{}of\_\allowbreak{}strongConvex}}
+\leansource{\texttt{brownianReference\_\allowbreak{}of\_\allowbreak{}strongConvex} \quad UnadjustedLangevin/\allowbreak{}BrownianReference.lean, lines 142–153}
+\begin{leancode}
+\leanline{0}{def\ brownianReference\_of\_strongConvex}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(W\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hstationary\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{6}{P.map\ (brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ initial\ n\ t)\ =\ gibbsMeasure\ U)\ :}
+\leanline{4}{L2Reference\ P\ (Fintype.card\ ι)\ U\ h\ L\ hLip}
+\leanline{6}{(brownianEulerNoise\ P\ W\ hW\ h)\ (gibbsMeasure\ U)\ :=}
+\leanline{2}{brownianReference\ P\ U\ L\ hdiff\ hLip\ (gibbsPartition\_ne\_top\ U\ m\ hm\ hdiff\ hsc)}
+\leanline{4}{W\ hW\ h\ hh\ initial\ hstationary}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Reference\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex} replaces \texttt{h\allowbreak{}Z} by \texttt{hm : 0 < m} and \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m U}. Mathlib's \texttt{Strong\allowbreak{}Convex\allowbreak{}On s m f} is the inequality \(f(ax+by)\le af(x)+bf(y)-\frac m2ab\|x-y\|^2\) for \(x,y\in s\), \(a,b\ge0\), \(a+b=1\) (with \texttt{s} convex); here \texttt{s = Set.\allowbreak{}univ} is the whole space. The definition is the single term \texttt{brownian\allowbreak{}Reference P U L hdiff h\allowbreak{}Lip (gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top U m hm hdiff hsc) W h\allowbreak{}W h hh initial hstationary}: the finiteness of the partition function is supplied by \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top} from the section on the Gibbs measure, and every other argument is passed through unchanged.
+\end{leanbox}
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
 
 \end{document}

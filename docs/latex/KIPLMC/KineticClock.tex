@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,37 @@ The velocity projection multiplied by \(c\), paired with the unchanged position 
 
 Velocity scaling is a bounded linear map on the full phase space. It therefore commutes with Bochner integration and preserves continuity of the constructed paths. Its position component is the identity, so physical parameter observables are unaffected.
 
+\begin{leanbox}{Lean: \texttt{velocityScaleLinear}, \texttt{velocityScaleLinear\_\allowbreak{}apply}, \texttt{kineticNegativeDrift\_\allowbreak{}clock}}
+\leansource{\texttt{velocityScaleLinear} \quad KIPLMC/\allowbreak{}KineticClock.lean, lines 12–13}
+\begin{leancode}
+\leanline{0}{def\ velocityScaleLinear\ (c\ :\ ℝ)\ :\ (E×E)\ →L[ℝ]\ (E×E)\ :=}
+\leanline{2}{(c\ •\ ContinuousLinearMap.fst\ ℝ\ E\ E).prod\ (ContinuousLinearMap.snd\ ℝ\ E\ E)}
+\end{leancode}
+\leansource{\texttt{velocityScaleLinear\_\allowbreak{}apply} \quad KIPLMC/\allowbreak{}KineticClock.lean, lines 15–16}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ velocityScaleLinear\_apply\ (c\ :\ ℝ)\ (z\ :\ E×E)\ :}
+\leanline{4}{velocityScaleLinear\ c\ z=rescaleVelocity\ c\ z}
+\end{leancode}
+\leansource{\texttt{kineticNegativeDrift\_\allowbreak{}clock} \quad KIPLMC/\allowbreak{}KineticClock.lean, lines 19–25}
+\begin{leancode}
+\leanline{0}{theorem\ kineticNegativeDrift\_clock\ (g\ :\ E\ →\ E)\ (c\ γ\ :\ ℝ)\ (hc\ :\ c≠0)\ (z\ :\ E×E)\ :}
+\leanline{4}{c⁻¹\ •\ velocityScaleLinear\ c⁻¹\ (KineticLangevin.kineticNegativeDrift\ g\ (c*γ)\ 1\ z)\ =}
+\leanline{6}{KineticLangevin.kineticNegativeDrift\ (fun\ x\ ↦\ (c\textasciicircum{}2)⁻¹\ •\ g\ x)\ γ\ 1}
+\leanline{8}{(velocityScaleLinear\ c⁻¹\ z)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Scale\allowbreak{}Linear} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{velocity\allowbreak{}Scale\allowbreak{}Linear\_\allowbreak{}apply} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+
+
+
+
+\texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift\_\allowbreak{}clock} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026Kinetic}.
@@ -48,13 +102,28 @@ For \(0\le t\le T\), positivity of \(c\) gives \(t/c\in[0,T/c]\). Apply the cont
 
 Apply the map to the original solution equation and perform the positive time substitution inside its drift integral. The force, friction, and thermal input transform with their stated factors. This proves an identity between integral solutions, not merely between formal differential equations.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}clock}}
+\leansource{\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}clock} \quad KIPLMC/\allowbreak{}KineticClock.lean, lines 29–57}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_integral\_clock\ (g\ :\ E\ →\ E)\ (hg\ :\ Continuous\ g)\ (c\ γ\ T\ :\ ℝ)\ (hc\ :\ 0<c)}
+\leanline{4}{(initial\ :\ E×E)\ (B\ :\ ℝ\ →\ E)\ (Y\ :\ ℝ\ →\ E×E)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(heY\ :\ ∀\ s\ ∈\ Icc\ 0\ (T/c),Y\ s-initial\ =}
+\leanline{6}{-(∫\ r\ in\ 0..s,KineticLangevin.kineticNegativeDrift\ g\ (c*γ)\ 1\ (Y\ r))+(B\ s,0))\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{6}{rescaleVelocity\ c⁻¹\ (Y\ (t/c))-rescaleVelocity\ c⁻¹\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,KineticLangevin.kineticNegativeDrift\ (fun\ x\ ↦\ (c\textasciicircum{}2)⁻¹\ •\ g\ x)\ γ\ 1}
+\leanline{10}{(rescaleVelocity\ c⁻¹\ (Y\ (s/c))))+(c⁻¹\ •\ B\ (t/c),0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}clock} gives the formal counterpart of this step. The main intermediate facts are \texttt{D}, \texttt{F}, \texttt{h\allowbreak{}F}, \texttt{h\allowbreak{}Int}, \texttt{htc}, \texttt{he} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}, \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ The proposal normalizer is defined as the reciprocal of the Gaussian integral. G
 
 The Gaussian normalizer has time dependence \((4\pi t)^{-d/2}\). Expressing it as a real power separates the positive constant from the time power and permits ordinary scalar differentiation.
 
+\begin{leanbox}{Lean: \texttt{gaussianProposalNormalizer\_\allowbreak{}eq\_\allowbreak{}rpow}}
+\leansource{\texttt{gaussianProposalNormalizer\_\allowbreak{}eq\_\allowbreak{}rpow} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 26–34}
+\begin{leancode}
+\leanline{0}{theorem\ gaussianProposalNormalizer\_eq\_rpow\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ =}
+\leanline{6}{(4\ *\ Real.pi\ *\ t)\ \textasciicircum{}\ (-(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}eq\_\allowbreak{}rpow}: the intermediate fact is \texttt{heq}, in source order; the source steps apply or rewrite \texttt{Gaussian\allowbreak{}Fourier.\allowbreak{}integral\_\allowbreak{}rexp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}norm}, \texttt{Module.\allowbreak{}finrank}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.1]{LangevinLean2026ULASC}; \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.2]{LangevinLean2026ULASC}.
@@ -49,6 +82,16 @@ Because \(4\pi t>0\), the identity \((4\pi t)^{p-1}=(4\pi t)^p/(4\pi t)\) is val
 
 The local equality with the explicit power transfers this derivative to the normalizer defined by the Gaussian integral. Thus the density normalization contributes logarithmic derivative \(-d/(2t)\).
 
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}gaussianProposalNormalizer}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}gaussianProposalNormalizer} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 39–64}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_gaussianProposalNormalizer\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{HasDerivAt\ (ULA.gaussianProposalNormalizer\ (H\ :=\ E))}
+\leanline{6}{(-(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ (2\ *\ t)\ *\ ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Normalizer}: the intermediate facts include \texttt{p}, \texttt{hp}, \texttt{hd}, \texttt{he}, \texttt{hder}, in source order; the source steps apply or rewrite \texttt{gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}eq\_\allowbreak{}rpow}, \texttt{Real.\allowbreak{}rpow\_\allowbreak{}sub}, \texttt{id\_\allowbreak{}eq}, \texttt{mul\_\allowbreak{}one}, \texttt{hd'.\allowbreak{}congr\_\allowbreak{}of\_\allowbreak{}eventually\allowbreak{}Eq}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}.
@@ -62,6 +105,16 @@ The real component kernel is \(K_t(x,y)=N_t\exp(-\|y-x+tg_x\|^2/(4t))\). The gra
 
 The frozen kernel is the Gaussian density conditional on the initial state. Its center moves linearly with time through the fixed vector \(\nabla U(x)\), while its covariance grows as \(2tI_d\).
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianKernel}}
+\leansource{\texttt{frozenGaussianKernel} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 67–69}
+\begin{leancode}
+\leanline{0}{def\ frozenGaussianKernel\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ *}
+\leanline{4}{Real.exp\ (-‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel} is a definition with defining expression \texttt{E) t *}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}.
@@ -75,6 +128,17 @@ Define the explicit candidate derivative \(\dot K_t=K_t[-d/(2t)+\|y-x\|^2/(4t^2)
 
 The derivative field is defined by the explicit normalizer and exponent formula. Naming this function before differentiation makes later measurability and integrability statements refer to one fixed spacetime integrand.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianKernelDot}}
+\leansource{\texttt{frozenGaussianKernelDot} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 72–75}
+\begin{leancode}
+\leanline{0}{def\ frozenGaussianKernelDot\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{frozenGaussianKernel\ U\ t\ x\ y\ *}
+\leanline{4}{(-(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ (2\ *\ t)\ +\ ‖y\ -\ x‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t\ \textasciicircum{}\ 2)\ -}
+\leanline{6}{‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ /\ 4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot} is a definition with defining expression \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel U t x y *}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Expanding the frozen Gaussian exponent}{Expanding the frozen Gaussian exponent}}
 
@@ -85,6 +149,17 @@ Set \(z=y-x\). The squared-norm identity gives \(\|z+sg_x\|^2=\|z\|^2+2s\langle 
 
 Expanding \(\|y-x+t g\|^2\) and dividing by \(4t\) yields \(\|y-x\|^2/(4t)+\langle y-x,g\rangle/2+t\|g\|^2/4\). The middle term has zero time derivative, simplifying the formula.
 
+\begin{leanbox}{Lean: \texttt{frozen\_\allowbreak{}exponent\_\allowbreak{}eq}}
+\leansource{\texttt{frozen\_\allowbreak{}exponent\_\allowbreak{}eq} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 78–86}
+\begin{leancode}
+\leanline{0}{private\ theorem\ frozen\_exponent\_eq\ (U\ :\ E\ →\ ℝ)\ (s\ :\ ℝ)\ (hs\ :\ s\ ≠\ 0)\ (x\ y\ :\ E)\ :}
+\leanline{4}{-‖y\ -\ (x\ -\ s\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ s)\ =}
+\leanline{6}{-(‖y\ -\ x‖\ \textasciicircum{}\ 2\ /\ 4)\ /\ s\ -\ inner\ ℝ\ (y\ -\ x)\ (gradient\ U\ x)\ /\ 2\ -}
+\leanline{8}{s\ *\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ /\ 4}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\_\allowbreak{}exponent\_\allowbreak{}eq}: the intermediate fact is \texttt{he}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, \texttt{inner\_\allowbreak{}smul\_\allowbreak{}right}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}pow}, \texttt{sq\_\allowbreak{}abs}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Differentiating the frozen Gaussian kernel}{Differentiating the frozen Gaussian kernel}}
 
@@ -99,6 +174,16 @@ Apply the exponential chain rule and multiply by the normalizer. Its derivative 
 
 Combine the normalizer derivative with the derivative of the expanded exponent. The cross term contributes no time derivative, leaving exactly the stated squared-position and squared-gradient terms.
 
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}frozenGaussianKernel}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}frozenGaussianKernel} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 90–114}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_frozenGaussianKernel\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{HasDerivAt\ (fun\ s\ ↦\ frozenGaussianKernel\ U\ s\ x\ y)}
+\leanline{6}{(frozenGaussianKernelDot\ U\ t\ x\ y)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Kernel}: the intermediate facts include \texttt{A}, \texttt{B}, \texttt{C}, \texttt{heq}, \texttt{hexp}, in source order; the source steps apply or rewrite \texttt{div\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}inv}, \texttt{Pi.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{mul\_\allowbreak{}assoc}, \texttt{frozen\_\allowbreak{}exponent\_\allowbreak{}eq}, \texttt{ht.\allowbreak{}ne'}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{An absolute bound on the kernel time derivative}{An absolute bound on the kernel time derivative}}
 
@@ -113,6 +198,17 @@ Bound the absolute value of each derivative-coefficient term by their nonnegativ
 
 Take absolute values term by term in the explicit derivative. Nonnegativity of the kernel allows its factor to be retained, producing a sum of Gaussian-weighted nonnegative energy terms.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}frozenGaussianKernelDot\_\allowbreak{}le}}
+\leansource{\texttt{norm\_\allowbreak{}frozenGaussianKernelDot\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 119–174}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_frozenGaussianKernelDot\_le\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{‖frozenGaussianKernelDot\ U\ t\ x\ y‖\ ≤}
+\leanline{6}{ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ *}
+\leanline{8}{(((Module.finrank\ ℝ\ E\ :\ ℝ)\ +\ 4)\ /\ t\ +\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{norm\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}le}: the intermediate facts include \texttt{r}, \texttt{e}, \texttt{A}, \texttt{ht2}, \texttt{hformula}, in source order; the source steps apply or rewrite \texttt{div\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{neg\_\allowbreak{}nonpos.\allowbreak{}mpr}, \texttt{abs\_\allowbreak{}mul}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{ULA.\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}pos}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}, \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -126,6 +222,15 @@ At positive time the Gaussian normalizer has the continuous explicit form \((4\p
 
 At positive time the normalizer is continuous, hence measurable. Its reciprocal-power expression also permits a measurable extension when the proof organizes all times in one ambient domain.
 
+\begin{leanbox}{Lean: \texttt{gaussianProposalNormalizer\_\allowbreak{}measurable}}
+\leansource{\texttt{gaussianProposalNormalizer\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 179–183}
+\begin{leancode}
+\leanline{0}{theorem\ gaussianProposalNormalizer\_measurable\ :}
+\leanline{4}{Measurable\ (ULA.gaussianProposalNormalizer\ (H\ :=\ E))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}measurable}: the intermediate fact is \texttt{hm}, in source order; the source steps apply or rewrite \texttt{hm.\allowbreak{}integral\_\allowbreak{}prod\_\allowbreak{}right.\allowbreak{}measurable.\allowbreak{}inv}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}.
@@ -139,6 +244,16 @@ Lipschitzness makes \(x\mapsto g_x\) continuous and measurable. Combine this wit
 
 The explicit derivative uses only measurable gradient, norms, scalar operations, and the Gaussian exponential. Their composition is jointly measurable in time, initial state, and observation.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianKernelDot\_\allowbreak{}measurable}}
+\leansource{\texttt{frozenGaussianKernelDot\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 186–192}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianKernelDot\_measurable\ (U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Measurable\ (fun\ p\ :\ (ℝ\ ×\ E)\ ×\ E\ ↦\ frozenGaussianKernelDot\ U\ p.1.1\ p.2\ p.1.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}measurable}: the intermediate facts include \texttt{hg}, \texttt{hn}, in source order.
+\end{leanbox}
 
 \section{\texorpdfstring{The candidate time derivative of the mixture}{The candidate time derivative of the mixture}}
 
@@ -149,6 +264,16 @@ Define \(\dot p_t(y)=\int\dot K_t(x,y)\,d\mu(x)\). At this point it is an ordina
 
 Integrating the explicit kernel derivative over the initial probability defines the candidate mixture time derivative. Its later identification as a derivative requires the uniform integrable bound proved separately.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensityTimeDerivative}}
+\leansource{\texttt{interpolationLebesgueDensityTimeDerivative} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 195–197}
+\begin{leancode}
+\leanline{0}{def\ interpolationLebesgueDensityTimeDerivative}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ (t\ :\ ℝ)\ (y\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{∫\ x,\ frozenGaussianKernelDot\ U\ t\ x\ y\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Time\allowbreak{}Derivative} is a definition with defining expression \texttt{\ensuremath{\int} x, frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot U t x y \ensuremath{\partial}\ensuremath{\mu}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Joint measurability of the mixture derivative}{Joint measurability of the mixture derivative}}
 
@@ -159,6 +284,17 @@ The component derivative is jointly measurable in \((t,y,x)\). Its strongly meas
 
 Parameter integration of the jointly measurable derivative field gives a measurable candidate in time and observation. Absolute integrability, when invoked later, ensures it is also the ordinary integral required by the chain rule.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensityTimeDerivative\_\allowbreak{}measurable}}
+\leansource{\texttt{interpolationLebesgueDensityTimeDerivative\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 200–205}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgueDensityTimeDerivative\_measurable}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Measurable\ (fun\ p\ :\ ℝ\ ×\ E\ ↦\ interpolationLebesgueDensityTimeDerivative\ U\ μ\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Time\allowbreak{}Derivative\_\allowbreak{}measurable}: the source steps apply or rewrite \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}measurable}.
+\end{leanbox}
 
 \section{\texorpdfstring{The time derivative of the mixture}{The time derivative of the mixture}}
 
@@ -177,6 +313,21 @@ Differentiation under an integral with this common integrable derivative bound g
 
 The integral on the left agrees with the mixture density on the positive-time neighborhood. Hence \(\partial_tp_t(y)=\dot p_t(y)\) at every observation. This argument does not require invertibility of the Euler map or a step-size restriction.
 
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}interpolationLebesgueDensity\_\allowbreak{}time}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}interpolationLebesgueDensity\_\allowbreak{}time} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 210–275}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_interpolationLebesgueDensity\_time}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ frozenGaussianKernelDot\ U\ t\ x\ y)\ μ\ ∧}
+\leanline{6}{HasDerivAt\ (fun\ s\ ↦\ interpolationLebesgueDensity\ U\ μ\ s\ y)}
+\leanline{8}{(interpolationLebesgueDensityTimeDerivative\ U\ μ\ t\ y)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\_\allowbreak{}fisher\_\allowbreak{}bound} uses the differentiated mixture formula and weighted Cauchy–Schwarz to bound the mixture score by the averaged component-score energy. \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}time} justifies differentiation of the Gaussian probability mixture with the positive-time kernel domination estimates. \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}weak\_\allowbreak{}identity} applies the Gaussian flux integration-by-parts result under its bounded-test and finite-energy premises. The statements use the same interpolation density and initial gradient moment, so these results can be combined with the relative-density identity and the log-Sobolev inequality. Their conclusions concern positive times; none assumes differentiability at zero.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -190,6 +341,16 @@ The spatial Fisher calculation uses precision notation \(q_a(c,y)=Z_a^{-1}e^{-a\
 
 Both kernels have the same Gaussian center and covariance. Substituting their normalizers and exponents proves equality pointwise, allowing spatial and time results developed in the two notations to be combined.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianKernel\_\allowbreak{}eq\_\allowbreak{}realGaussianKernel}}
+\leansource{\texttt{frozenGaussianKernel\_\allowbreak{}eq\_\allowbreak{}realGaussianKernel} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 279–284}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianKernel\_eq\_realGaussianKernel\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ :\ E)\ :}
+\leanline{4}{frozenGaussianKernel\ U\ t\ x\ y\ =}
+\leanline{6}{realGaussianKernel\ (1\ /\ (4\ *\ t))\ (x\ -\ t\ •\ gradient\ U\ x)\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}eq\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}: the proof is the application \texttt{unfold frozen\allowbreak{}Gaussian\allowbreak{}Kernel real\allowbreak{}Gaussian\allowbreak{}Kernel ULA.\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Normalizer}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}.
@@ -203,6 +364,18 @@ Retain the Gaussian factor instead of replacing it by its supremum. With \(r=y-x
 
 The weighted bound retains the kernel's Gaussian decay and separates the initial-gradient square from displacement-dependent terms. This is the form suitable for integrating first in the observation.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}frozenGaussianKernelDot\_\allowbreak{}le\_\allowbreak{}weighted}}
+\leansource{\texttt{norm\_\allowbreak{}frozenGaussianKernelDot\_\allowbreak{}le\_\allowbreak{}weighted} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 288–319}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_frozenGaussianKernelDot\_le\_weighted}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{‖frozenGaussianKernelDot\ U\ t\ x\ y‖\ ≤\ frozenGaussianKernel\ U\ t\ x\ y\ *}
+\leanline{6}{((Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ (2\ *\ t)\ +}
+\leanline{8}{‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (2\ *\ t\ \textasciicircum{}\ 2)\ +\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{norm\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}le\_\allowbreak{}weighted}: the intermediate facts include \texttt{r}, \texttt{hvec}, \texttt{hn}, \texttt{hdis0}, \texttt{h\allowbreak{}K}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{norm\_\allowbreak{}mul}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -216,6 +389,16 @@ Define the nonnegative weight \(\mathcal E_t(x,y)=K_t(x,y)(1+\|g_x\|^2+\|y-c_t(x
 
 The energy combines one, displacement square, and initial-gradient square under the Gaussian kernel. These are chosen to dominate every polynomial term appearing in the explicit time derivative.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianEnergy}}
+\leansource{\texttt{frozenGaussianEnergy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 322–324}
+\begin{leancode}
+\leanline{0}{def\ frozenGaussianEnergy\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{frozenGaussianKernel\ U\ t\ x\ y\ *}
+\leanline{4}{(1\ +\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ +\ ‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Energy} is a definition with defining expression \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel U t x y *}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Nonnegativity of the Gaussian weight}{Nonnegativity of the Gaussian weight}}
 
@@ -226,6 +409,15 @@ At positive time the normalizer and the Gaussian exponential are positive, so \(
 
 Every component is a nonnegative square or constant multiplied by a nonnegative kernel. Their sum is therefore nonnegative, permitting nonnegative Fubini before finiteness is established.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianEnergy\_\allowbreak{}nonneg}}
+\leansource{\texttt{frozenGaussianEnergy\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 326–329}
+\begin{leancode}
+\leanline{0}{private\ theorem\ frozenGaussianEnergy\_nonneg\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{0\ ≤\ frozenGaussianEnergy\ U\ t\ x\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Energy\_\allowbreak{}nonneg}: the source steps apply or rewrite \texttt{mul\_\allowbreak{}nonneg}, \texttt{ULA.\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}pos}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -239,6 +431,17 @@ For fixed \(x\), Gaussian normalization gives \(\int K_t(x,y)dy=1\), and the cen
 
 For each fixed initial state, integrate the kernel to one and its displacement square using the Gaussian moment formula. The resulting expression depends only on time, dimension, and the initial-gradient norm.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianEnergy\_\allowbreak{}integral}}
+\leansource{\texttt{frozenGaussianEnergy\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 332–359}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianEnergy\_integral\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (x\ :\ E)\ :}
+\leanline{4}{Integrable\ (frozenGaussianEnergy\ U\ t\ x)\ volume\ ∧}
+\leanline{6}{(∫\ y,\ frozenGaussianEnergy\ U\ t\ x\ y)\ =}
+\leanline{8}{1\ +\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ +\ 2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Energy\_\allowbreak{}integral}: the intermediate facts include \texttt{h\allowbreak{}K}, \texttt{h\allowbreak{}Ki}, \texttt{hmoment}, \texttt{hfun}, in source order; the source steps apply or rewrite \texttt{ULA.\allowbreak{}integrable\_\allowbreak{}radial\allowbreak{}Gaussian\allowbreak{}Density\_\allowbreak{}real}, \texttt{ULA.\allowbreak{}integral\_\allowbreak{}radial\allowbreak{}Gaussian\allowbreak{}Density\_\allowbreak{}real}, \texttt{hmoment.\allowbreak{}1}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}def}, \texttt{integral\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.6]{LangevinLean2026ULASC}; \cite[Section~3.37.7]{LangevinLean2026ULASC}.
@@ -252,6 +455,18 @@ The common energy is jointly measurable. For every initial \(x\), its output sec
 
 The initial-gradient square is integrable by the score-energy hypothesis, and all remaining terms are finite constants. The component integral calculation therefore proves integrability of the full pair energy.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}frozenGaussianEnergy}}
+\leansource{\texttt{integrable\_\allowbreak{}frozenGaussianEnergy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 363–374}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_frozenGaussianEnergy}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ E\ ×\ E\ ↦\ frozenGaussianEnergy\ U\ t\ p.1\ p.2)\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Energy}: the intermediate fact is \texttt{hg}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}prod\_\allowbreak{}iff}, \texttt{fun\_\allowbreak{}prop}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Energy\_\allowbreak{}integral}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}def}, \texttt{integrable\_\allowbreak{}const}.
+\end{leanbox}
 
 \section{\texorpdfstring{The integral of the Gaussian weight}{The integral of the Gaussian weight}}
 
@@ -262,6 +477,19 @@ Joint integrability allows Fubini, giving \(\int\mathcal E_t\,d(\mu\otimes dy)=\
 
 Integrating the component formula over the starting law replaces the squared gradient by \(G_0\). This gives an explicit finite energy expression, retaining its time dependence for uniform compact-interval estimates.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}frozenGaussianEnergy}}
+\leansource{\texttt{integral\_\allowbreak{}frozenGaussianEnergy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 377–387}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_frozenGaussianEnergy}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{(∫\ p\ :\ E\ ×\ E,\ frozenGaussianEnergy\ U\ t\ p.1\ p.2\ ∂μ.prod\ volume)\ =}
+\leanline{6}{1\ +\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +\ 2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Energy}: the source steps apply or rewrite \texttt{integral\_\allowbreak{}prod}, \texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Energy}, \texttt{integral\_\allowbreak{}add}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}def}, \texttt{integrable\_\allowbreak{}const}.
+\end{leanbox}
 
 \section{\texorpdfstring{A uniform coefficient on a positive time interval}{A uniform coefficient on a positive time interval}}
 
@@ -272,6 +500,15 @@ Set \(C_t=d/(2t)+1/(2t^2)+1\). It is positive for \(t>0\), and is bounded above 
 
 On a positive compact interval, \(t\) is bounded above and \(1/t\) is bounded above by the reciprocal of the lower endpoint. One coefficient can therefore dominate all scalar time factors uniformly.
 
+\begin{leanbox}{Lean: \texttt{gaussianTimeCoefficient}}
+\leansource{\texttt{gaussianTimeCoefficient} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 391–392}
+\begin{leancode}
+\leanline{0}{def\ gaussianTimeCoefficient\ (t\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ (2\ *\ t)\ +\ 1\ /\ (2\ *\ t\ \textasciicircum{}\ 2)\ +\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\allowbreak{}Time\allowbreak{}Coefficient} is a definition with defining expression \texttt{(Module.\allowbreak{}finrank \ensuremath{\mathbb R} E : \ensuremath{\mathbb R}) /\allowbreak{} (2 * t) + 1 /\allowbreak{} (2 * t \textasciicircum{} 2) + 1}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Derivative domination by the Gaussian weight}{Derivative domination by the Gaussian weight}}
 
@@ -282,6 +519,17 @@ In the weighted derivative bound, denote the three nonnegative coefficients by \
 
 Multiply that coefficient by the nonnegative Gaussian weight. The pointwise derivative bound then holds throughout the interval with one common integrable function, which is the domination hypothesis for the space-time integral.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}frozenGaussianKernelDot\_\allowbreak{}le\_\allowbreak{}energy}}
+\leansource{\texttt{norm\_\allowbreak{}frozenGaussianKernelDot\_\allowbreak{}le\_\allowbreak{}energy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 395–425}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_frozenGaussianKernelDot\_le\_energy\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)}
+\leanline{4}{(ht\ :\ 0\ <\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{‖frozenGaussianKernelDot\ U\ t\ x\ y‖\ ≤}
+\leanline{6}{gaussianTimeCoefficient\ (E\ :=\ E)\ t\ *\ frozenGaussianEnergy\ U\ t\ x\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{norm\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}le\_\allowbreak{}energy}: the intermediate facts include \texttt{h}, \texttt{A}, \texttt{B}, \texttt{h\ensuremath{{}_{2}}}, \texttt{h\ensuremath{{}_{3}}}, in source order; the source steps apply or rewrite \texttt{add\_\allowbreak{}le\_\allowbreak{}add}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, \texttt{one\_\allowbreak{}mul}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -295,6 +543,18 @@ The component time derivative is jointly measurable, and its norm is bounded by 
 
 The energy envelope has finite pair integral and the derivative is measurable. Absolute-value domination consequently proves integrability of the kernel time derivative under the Gaussian pair measure.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}frozenGaussianKernelDot}}
+\leansource{\texttt{integrable\_\allowbreak{}frozenGaussianKernelDot} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 429–439}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_frozenGaussianKernelDot}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ E\ ×\ E\ ↦\ frozenGaussianKernelDot\ U\ t\ p.1\ p.2)\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot}: the intermediate fact is \texttt{hg}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Energy}, \texttt{const\_\allowbreak{}mul}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{norm\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}le\_\allowbreak{}energy}.
+\end{leanbox}
 
 \section{\texorpdfstring{Spatial integrability of the mixture derivative}{Spatial integrability of the mixture derivative}}
 
@@ -305,6 +565,21 @@ Fubini applied to the jointly integrable component derivative first gives \(\dot
 
 The norm of the mixture derivative is at most the mixture of the kernel derivative norms. Fubini and the finite pair bound therefore give spatial integrability after the initial state is averaged out.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}interpolationLebesgueDensityTimeDerivative}}
+\leansource{\texttt{integrable\_\allowbreak{}interpolationLebesgueDensityTimeDerivative} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 444–471}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_interpolationLebesgueDensityTimeDerivative}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (interpolationLebesgueDensityTimeDerivative\ U\ μ\ t)\ volume\ ∧}
+\leanline{6}{(∫\ y,\ ‖interpolationLebesgueDensityTimeDerivative\ U\ μ\ t\ y‖)\ ≤}
+\leanline{8}{gaussianTimeCoefficient\ (E\ :=\ E)\ t\ *}
+\leanline{10}{(1\ +\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +\ 2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Time\allowbreak{}Derivative}: the intermediate facts include \texttt{hprod}, \texttt{hi}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}mono}, \texttt{hi.\allowbreak{}norm}, \texttt{hprod.\allowbreak{}norm}, \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{integral\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Energy}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 \section{\texorpdfstring{Spacetime integrability of the mixture derivative}{Spacetime integrability of the mixture derivative}}
 
@@ -315,10 +590,24 @@ Joint measurability of \(\dot p\) permits the product integrability criterion on
 
 The uniform compact-time coefficient and the energy integral provide an integrable time majorant. Integrating that majorant over the finite interval proves the full spacetime \(L^1\) estimate used by bounded entropy calculus.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}interpolationLebesgueDensityTimeDerivative\_\allowbreak{}spacetime}}
+\leansource{\texttt{integrable\_\allowbreak{}interpolationLebesgueDensityTimeDerivative\_\allowbreak{}spacetime} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 476–505}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_interpolationLebesgueDensityTimeDerivative\_spacetime}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)}
+\leanline{4}{(a\ b\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ ℝ\ ×\ E\ ↦\ interpolationLebesgueDensityTimeDerivative\ U\ μ\ p.1\ p.2)}
+\leanline{6}{((volume.restrict\ (Icc\ a\ b)).prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density\allowbreak{}Time\allowbreak{}Derivative\_\allowbreak{}spacetime}: the intermediate facts include \texttt{C}, \texttt{hm}, \texttt{htpos}, \texttt{hd}, \texttt{hmom}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}prod\_\allowbreak{}iff}, \texttt{hm.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{norm\_\allowbreak{}nonneg}, \texttt{hbound.\allowbreak{}trans}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul}.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,44 +32,261 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Proposition 1: scalar warmup, variable steps and iteration count}{Proposition 1: scalar warmup, variable steps and iteration count}}
+\title{\texorpdfstring{The decreasing-step schedule and its iteration count}{The decreasing-step schedule and its iteration count}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Use \(a=\kappa_{\mathrm{av}}+1>0\), \(\kappa=\kappa_{\max}\ge1\), and \(\varepsilon_0>0\). The paper's exact positive logarithm, warmup ceiling, decreasing-step schedule and accuracy ceiling are represented explicitly. Given \(0\le r_0\le\varepsilon_0^2\) and the normalized scalar one-step recurrence, the module proves \(r_k\le a/(\kappa+k-k_0)\) for \(k\ge k_0\), then \(r_k\le\varepsilon^2\) at the stated iteration count. All stochastic, coupling and Wasserstein facts needed to establish that recurrence remain external proof obligations.
+This section carries out the scalar part of Proposition 1, the decreasing-step version of Langevin Monte Carlo. Throughout, \(\kappa=\kappa_\infty=M_\infty/m\), \(a=\kappa_{\rm av}+1\), and \(r_k=\frac mp\mathsf W_2^2(\nu_k,\pi)\) is the normalized error, so that the assumption \(\mathsf W_2^2(\nu_0,\pi)\le\varepsilon_0^2p/m\) of the proposition reads \(r_0\le\varepsilon_0^2\). With \(\log_+x=\max(\log x,0)\), the warmup length and the step sizes of the proposition are
 
 
-\section{\texorpdfstring{Encode the exact positive logarithm and two-phase schedule}{Encode the exact positive logarithm and two-phase schedule}}
+\[\begin{aligned}
+k_0&=\Bigl\lceil\frac\kappa2\log_+\Bigl(\frac{2\kappa\varepsilon_0^2}{a}\Bigr)\Bigr\rceil,\\
+h_k&=\frac1{M_\infty+m(k-k_0)_+},\\
+t_k&=mh_k=\frac1{\kappa+(k-k_0)_+}.
+\end{aligned}\]
 
 
-The definitions are \[\log_+(z)=\max\{\log z,0\},\qquad k_0=\left\lceil\frac\kappa2\log_+\!\left(\frac{2\kappa\varepsilon_0^2}{a}\right)\right\rceil,\qquad t_k=\frac1{\kappa+(k-k_0)_+}.\] The ceiling is the least nonnegative integer above the displayed value, and \((k-k_0)_+\) is the nonnegative part of the integer difference. Thus the difference is exactly zero before warmup ends; for \(k\ge k_0\) it is the ordinary integer difference. The dimensionless step \(t_k=mh_k\) corresponds to the paper's \(h_k=1/(M_{\max}+m(k-k_0)_+)\). These are definitions, with no hidden decay or convergence assumptions.
+Assuming that the normalized one-step recurrence \(r_{k+1}\le\frac{1-t_k}{1+t_k}r_k+\frac{a\,t_k^2}{1+t_k}\) holds at every step, we prove \(r_k\le a/(\kappa+k-k_0)\) for all \(k\ge k_0\), which after multiplication by \(p/m\) is the error bound of the proposition, and we prove that \(r_k\le\varepsilon^2\) as soon as \(k\ge k_\varepsilon=k_0+\lceil(a/\varepsilon^2-\kappa)_+\rceil\). The recurrence itself is a consequence of the one-step bound of Theorem 1, which is proved elsewhere; the present section uses it as a hypothesis.
 
 
-\section{\texorpdfstring{Verify the smoothness restriction for the full schedule}{Verify the smoothness restriction for the full schedule}}
+\section{\texorpdfstring{The positive logarithm, the warmup length and the schedule}{The positive logarithm, the warmup length and the schedule}}
 
 
-For \(\kappa>0\), the cast natural difference is nonnegative, so \(\kappa+(k-k_0)_+\ge\kappa>0\). Positivity of the reciprocal and monotonicity of reciprocals give \[0<t_k\le1/\kappa.\] When \(\kappa=\kappa_{\max}=M_{\max}/m\), this is the arithmetic behind \(h_kM_{\max}\le1\). It verifies the schedule's restriction for every step, including those in the warmup phase; it does not assert the one-step stochastic inequality itself.
+\textbf{Definitions.} For \(x>0\) let \(\log_+x=\max(\log x,0)\). For real \(y\), \(\lceil y\rceil\) denotes the smallest natural number \(n\) with \(y\le n\) (so \(\lceil y\rceil=0\) when \(y\le0\)), and for natural numbers \((k-k_0)_+=\max(k-k_0,0)\). Given \(\kappa,a,\varepsilon_0\in\mathbb R\), define
 
 
-\section{\texorpdfstring{Use the warmup ceiling to reduce the initial error}{Use the warmup ceiling to reduce the initial error}}
+\[k_0=k_0(\kappa,a,\varepsilon_0)=\Bigl\lceil\frac\kappa2\log_+\Bigl(\frac{2\kappa\varepsilon_0^2}{a}\Bigr)\Bigr\rceil,\qquad t_k=\frac1{\kappa+(k-k_0)_+}\quad(k\in\mathbb N).\]
 
 
-Let \(R=2\kappa\varepsilon_0^2/a>0\). The natural ceiling gives \[k_0\ge\frac\kappa2\max\{\log R,0\}\ge\frac\kappa2\log R.\] Multiplying and dividing by the positive \(\kappa\) yields \(-2k_0/\kappa\le-\log R\). Exponentiate this inequality and multiply by the nonnegative \(\varepsilon_0^2\): \[e^{-2k_0/\kappa}\varepsilon_0^2\le e^{-\log R}\varepsilon_0^2=\frac a{2\kappa}.\] The final equality uses \(e^{\log R}=R\) on its verified positive domain and cancels nonzero parameters. The same proof covers \(R\le1\), where the positive logarithm is zero and the warmup length can vanish.
+With \(\kappa=\kappa_\infty\) and \(a=\kappa_{\rm av}+1\), \(k_0\) is the warmup length of Proposition 1, and \(t_k=mh_k\) because \(\frac m{M_\infty+m(k-k_0)_+}=\frac1{\kappa_\infty+(k-k_0)_+}\). For \(k\le k_0\) the step is constant, \(t_k=1/\kappa\); afterwards \(t_k=1/(\kappa+k-k_0)\) decreases harmonically.
 
 
-\section{\texorpdfstring{Join warmup to the harmonic tail}{Join warmup to the harmonic tail}}
 
 
-Assume \(0\le r_0\le\varepsilon_0^2\) and, for every natural \(k\), \[r_{k+1}\le\frac{1-t_k}{1+t_k}r_k+\frac{at_k^2}{1+t_k},\qquad t_k=\frac1{\kappa+(k-k_0)_+}.\] Before \(k_0\), natural subtraction gives \(t_k=1/\kappa\). The finite-horizon constant-step theorem therefore gives \[r_{k_0}\le e^{-2k_0/\kappa}r_0+\frac a{2\kappa}\le\frac a\kappa,\] where the second inequality uses the initialization bound and the warmup-decay lemma. Shift the sequence to \(s_n=r_{k_0+n}\). Cancellation of the natural subtraction gives \(t_{k_0+n}=1/(\kappa+n)\), so the harmonic tail theorem applies and proves \(s_n\le a/(\kappa+n)\). For any \(k\ge k_0\), choose \(n=k-k_0\) and use \(k_0+(k-k_0)=k\), obtaining \[r_k\le\frac a{\kappa+(k-k_0)}.\] This is precisely the scalar calculation in the proof of Proposition 1, with the recurrence kept as an explicit hypothesis rather than disguised as a convexity or smoothness assumption.
+\textbf{Claim.} If \(\kappa>0\), then \(0<t_k\le1/\kappa\) for every \(k_0\) and every \(k\in\mathbb N\).
 
 
-\section{\texorpdfstring{Verify the accuracy ceiling and conclude the conditional rate}{Verify the accuracy ceiling and conclude the conditional rate}}
 
 
-The exact iteration threshold is \[k_\varepsilon=k_0+\left\lceil\max\left\{\frac a{\varepsilon^2}-\kappa,0\right\}\right\rceil.\] Suppose \(\varepsilon>0\) and \(k\ge k_\varepsilon\). Natural arithmetic first gives \(k\ge k_0\) and then bounds \(k-k_0\) below by that ceiling. After casting to \(\mathbb R\), \[k-k_0\ge\max\{a/\varepsilon^2-\kappa,0\}\ge a/\varepsilon^2-\kappa.\] Thus \(\kappa+(k-k_0)\ge a/\varepsilon^2\). Both denominators used in rearrangement are positive, proving \[\frac a{\kappa+(k-k_0)}\le\varepsilon^2.\] The arithmetic envelope theorem proves this implication without a recurrence. The final accuracy theorem combines it with the preceding conditional scalar Proposition 1 to obtain \(r_k\le\varepsilon^2\). It proves no independent assertion that actual LMC errors obey the required recurrence.
+\textbf{Proof.} The denominator \(\kappa+(k-k_0)_+\) is at least \(\kappa>0\), because \((k-k_0)_+\ge0\). Hence \(t_k>0\), and since \(x\mapsto1/x\) is decreasing on \((0,\infty)\), \(t_k\le1/\kappa\). \(\square\)
 
+
+
+
+In terms of the step size, \(t_k\le1/\kappa_\infty\) is \(h_kM_\infty\le1\): every step of the schedule satisfies the step condition of Theorem 1 under which the last term of the one-step bound is nonpositive.
+
+\begin{leanbox}{Lean: \texttt{positiveLog}, \texttt{warmup}, \texttt{variableStep} and 1 more}
+\leansource{\texttt{positiveLog} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 17–17}
+\begin{leancode}
+\leanline{0}{noncomputable\ def\ positiveLog\ (x\ :\ ℝ)\ :\ ℝ\ :=\ max\ (Real.log\ x)\ 0}
+\end{leancode}
+\leansource{\texttt{warmup} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 20–21}
+\begin{leancode}
+\leanline{0}{noncomputable\ def\ warmup\ (κ\ a\ ε₀\ :\ ℝ)\ :\ ℕ\ :=}
+\leanline{2}{⌈κ\ /\ 2\ *\ positiveLog\ (2\ *\ κ\ *\ ε₀\ \textasciicircum{}\ 2\ /\ a)⌉₊}
+\end{leancode}
+\leansource{\texttt{variableStep} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{noncomputable\ def\ variableStep\ (κ\ :\ ℝ)\ (k₀\ k\ :\ ℕ)\ :\ ℝ\ :=}
+\leanline{2}{1\ /\ (κ\ +\ ((k\ -\ k₀\ :\ ℕ)\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{variableStep\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 28–35}
+\begin{leancode}
+\leanline{0}{theorem\ variableStep\_le\ \{κ\ :\ ℝ\}\ (hκ\ :\ 0\ <\ κ)\ (k₀\ k\ :\ ℕ)\ :}
+\leanline{4}{0\ <\ variableStep\ κ\ k₀\ k\ ∧\ variableStep\ κ\ k₀\ k\ ≤\ 1\ /\ κ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{positive\allowbreak{}Log x} is \texttt{max (Real.\allowbreak{}log x) 0}. Mathlib's \texttt{Real.\allowbreak{}log} is defined on all of \(\mathbb R\) (with \(\log0=0\) and \(\log x=\log|x|\)); only positive arguments occur below.
+
+\item \texttt{warmup \ensuremath{\kappa} a \ensuremath{\varepsilon}\ensuremath{{}_{0}}} is \texttt{⌈\ensuremath{\kappa} /\allowbreak{} 2 * positive\allowbreak{}Log (2 * \ensuremath{\kappa} * \ensuremath{\varepsilon}\ensuremath{{}_{0}} \textasciicircum{} 2 /\allowbreak{} a)⌉\ensuremath{{}_{+}}}, where \texttt{⌈·⌉\ensuremath{{}_{+}}} is the natural-number ceiling \texttt{Nat.\allowbreak{}ceil}, equal to \(0\) on nonpositive arguments. This is \(k_0\).
+
+\item \texttt{variable\allowbreak{}Step \ensuremath{\kappa} k\ensuremath{{}_{0}} k} is \texttt{1 /\allowbreak{} (\ensuremath{\kappa} + ((k -\allowbreak{} k\ensuremath{{}_{0}} : \ensuremath{\mathbb N}) : \ensuremath{\mathbb R}))}. The subtraction \texttt{k -\allowbreak{} k\ensuremath{{}_{0}}} is performed in \(\mathbb N\), where it is truncated at \(0\); this is \((k-k_0)_+\), which is then cast to \(\mathbb R\).
+
+\item \texttt{variable\allowbreak{}Step\_\allowbreak{}le} proves the two inequalities with \texttt{constructor}: positivity of the denominator follows from \texttt{Nat.\allowbreak{}cast\_\allowbreak{}nonneg} and is closed by \texttt{positivity}; the upper bound is \texttt{one\_\allowbreak{}div\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}div\_\allowbreak{}of\_\allowbreak{}le h\ensuremath{\kappa}}, the antitonicity of \(x\mapsto1/x\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The warmup length reduces the initial error}{The warmup length reduces the initial error}}
+
+
+\textbf{Claim.} Let \(\kappa>0\), \(a>0\) and \(\varepsilon_0>0\), and let \(k_0=k_0(\kappa,a,\varepsilon_0)\). Then
+
+
+\[e^{-2k_0/\kappa}\,\varepsilon_0^2\le\frac a{2\kappa}.\]
+
+
+\textbf{Proof.} Let \(x=2\kappa\varepsilon_0^2/a\), which is positive. By the definition of the ceiling, \(k_0\ge\frac\kappa2\log_+x\), and \(\log_+x\ge\log x\) by the definition of the maximum. Hence \(k_0\ge\frac\kappa2\log x\), and multiplying by \(-2/\kappa<0\) reverses the inequality:
+
+
+\[-\frac{2k_0}\kappa\le-\log x.\]
+
+
+The exponential is increasing and \(\varepsilon_0^2\ge0\), so
+
+
+\[e^{-2k_0/\kappa}\varepsilon_0^2\le e^{-\log x}\varepsilon_0^2=\frac{\varepsilon_0^2}{x}=\frac{a\,\varepsilon_0^2}{2\kappa\varepsilon_0^2}=\frac a{2\kappa}.\qquad\square\]
+
+
+When \(x\le1\) the positive logarithm vanishes and \(k_0=0\); the argument covers this case, since \(\log x\le0=\log_+x\). The inequality says that after \(k_0\) constant steps the contribution of the initial error, \(e^{-2k_0/\kappa}r_0\le e^{-2k_0/\kappa}\varepsilon_0^2\), is at most the persistent error \(a/(2\kappa)\) of the constant-step bound with \(t=1/\kappa\).
+
+\begin{leanbox}{Lean: \texttt{warmup\_\allowbreak{}decay}}
+\leansource{\texttt{warmup\_\allowbreak{}decay} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 39–56}
+\begin{leancode}
+\leanline{0}{theorem\ warmup\_decay\ \{κ\ a\ ε₀\ :\ ℝ\}\ (hκ\ :\ 0\ <\ κ)\ (ha\ :\ 0\ <\ a)}
+\leanline{4}{(hε₀\ :\ 0\ <\ ε₀)\ :}
+\leanline{4}{Real.exp\ (-2\ *\ (warmup\ κ\ a\ ε₀\ :\ ℝ)\ /\ κ)\ *\ ε₀\ \textasciicircum{}\ 2\ ≤\ a\ /\ (2\ *\ κ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{warmup\_\allowbreak{}decay} has the hypotheses \texttt{h\ensuremath{\kappa} : 0 < \ensuremath{\kappa}}, \texttt{ha : 0 < a} and \texttt{h\ensuremath{\varepsilon}\ensuremath{{}_{0}} : 0 < \ensuremath{\varepsilon}\ensuremath{{}_{0}}}. \texttt{hr} is \(x>0\) (\texttt{positivity}), \texttt{hc} is the ceiling inequality \texttt{Nat.\allowbreak{}le\_\allowbreak{}ceil}, \texttt{hl} is \(\log x\le\log_+x\) (\texttt{le\_\allowbreak{}max\_\allowbreak{}left}), and \texttt{hexp} is \(-2k_0/\kappa\le-\log x\), obtained with \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} h\ensuremath{\kappa}} and \texttt{nlinarith}. The \texttt{calc} block first applies the monotonicity of the exponential (\texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp.\allowbreak{}mpr hexp}) multiplied by \(\varepsilon_0^2\ge0\), then evaluates \(e^{-\log x}\varepsilon_0^2\) with \texttt{Real.\allowbreak{}exp\_\allowbreak{}neg}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}log hr} and \texttt{field\_\allowbreak{}simp}.
+\end{leanbox}
+
+\section{\texorpdfstring{The error bound after the warmup}{The error bound after the warmup}}
+
+
+\textbf{Claim.} Let \(a>0\), \(\kappa\ge1\), \(\varepsilon_0>0\), let \(k_0=k_0(\kappa,a,\varepsilon_0)\) and let \(t_k\) be the schedule of Step 1. Let \((r_k)_{k\ge0}\) be real numbers with \(0\le r_0\le\varepsilon_0^2\) such that
+
+
+\[r_{k+1}\le\frac{1-t_k}{1+t_k}\,r_k+\frac{a\,t_k^2}{1+t_k}\qquad\text{for every }k\in\mathbb N.\qquad(1)\]
+
+
+Then for every \(k\ge k_0\),
+
+
+\[r_k\le\frac a{\kappa+(k-k_0)}.\]
+
+
+\textbf{Proof.} \emph{Warmup phase.} For \(j<k_0\) we have \((j-k_0)_+=0\), so \(t_j=1/\kappa\), and (1) is the constant-step recurrence with \(t=1/\kappa\). Since \(\kappa\ge1\), \(0<1/\kappa\le1\); moreover \(a\ge0\) and \(r_0\ge0\). The finite-horizon constant-step bound of the previous section, with horizon \(n=k_0\), gives
+
+
+\[r_{k_0}\le e^{-2k_0/\kappa}\,r_0+\frac a{2\kappa},\]
+
+
+because \(e^{-2(1/\kappa)k_0}=e^{-2k_0/\kappa}\) and \(\frac a2\cdot\frac1\kappa=\frac a{2\kappa}\). Multiplying \(r_0\le\varepsilon_0^2\) by \(e^{-2k_0/\kappa}\ge0\) and using Step 2,
+
+
+\[e^{-2k_0/\kappa}\,r_0\le e^{-2k_0/\kappa}\,\varepsilon_0^2\le\frac a{2\kappa},\qquad\text{hence}\qquad r_{k_0}\le\frac a{2\kappa}+\frac a{2\kappa}=\frac a\kappa.\]
+
+
+\emph{Decreasing phase.} Put \(s_n=r_{k_0+n}\) for \(n\in\mathbb N\). Then \(s_0\le a/\kappa\), and since \((k_0+n-k_0)_+=n\), the step at index \(k_0+n\) is \(t_{k_0+n}=1/(\kappa+n)\); thus (1) at \(k=k_0+n\) is exactly the recurrence (5) of the previous section for \((s_n)\). Its induction (part (2) of the last step there, with \(a\ge0\) and \(\kappa\ge1\)) gives \(s_n\le a/(\kappa+n)\) for every \(n\). For \(k\ge k_0\), take \(n=k-k_0\), so that \(k_0+n=k\). \(\square\)
+
+
+
+
+Multiplying the conclusion by \(p/m\) gives \(\mathsf W_2^2(\nu_k,\pi)\le\frac{\kappa_{\rm av}+1}{\kappa_\infty+k-k_0}\cdot\frac pm\), the error bound of Proposition 1. The hypothesis \(\kappa\ge1\) is used twice: for \(t=1/\kappa\le1\) in the warmup and for \(x=\kappa+n\ge1\) in the decreasing phase; in the application it is \(M_\infty\ge m\).
+
+\begin{leanbox}{Lean: \texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized}}
+\leansource{\texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 59–96}
+\begin{leancode}
+\leanline{0}{theorem\ variable\_step\_normalized\ (r\ :\ ℕ\ →\ ℝ)\ (a\ κ\ ε₀\ :\ ℝ)}
+\leanline{4}{(ha\ :\ 0\ <\ a)\ (hκ\ :\ 1\ ≤\ κ)\ (hε₀\ :\ 0\ <\ ε₀)}
+\leanline{4}{(hr0\ :\ 0\ ≤\ r\ 0)\ (hinit\ :\ r\ 0\ ≤\ ε₀\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ ∀\ k,\ r\ (k\ +\ 1)\ ≤}
+\leanline{6}{(1\ -\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k)\ /}
+\leanline{8}{(1\ +\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k)\ *\ r\ k\ +}
+\leanline{6}{a\ *\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k\ \textasciicircum{}\ 2\ /}
+\leanline{8}{(1\ +\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k))}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ warmup\ κ\ a\ ε₀\ ≤\ k)\ :}
+\leanline{4}{r\ k\ ≤\ a\ /\ (κ\ +\ ((k\ -\ warmup\ κ\ a\ ε₀\ :\ ℕ)\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized} states (1) as \texttt{hstep} with \texttt{variable\allowbreak{}Step \ensuremath{\kappa} (warmup \ensuremath{\kappa} a \ensuremath{\varepsilon}\ensuremath{{}_{0}}) k} in place of \(t_k\), and the conclusion for \texttt{k} with \texttt{hk : warmup \ensuremath{\kappa} a \ensuremath{\varepsilon}\ensuremath{{}_{0}} \ensuremath{\le} k}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hfirst} applies \texttt{constant\_\allowbreak{}step\_\allowbreak{}normalized\_\allowbreak{}up\_\allowbreak{}to} with \(t=1/\kappa\) and horizon \texttt{k\ensuremath{{}_{0}}}. Its finite-horizon hypothesis is checked for \(j<k_0\) by computing \texttt{hj0 : j -\allowbreak{} k\ensuremath{{}_{0}} = 0} (\texttt{Nat.\allowbreak{}sub\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}of\_\allowbreak{}le}) and simplifying \texttt{hstep j} with it. \texttt{heq} rewrites \(-2\cdot\frac1\kappa\cdot k_0\) as \(-2k_0/\kappa\).
+
+\item \texttt{hdecay} is \texttt{warmup\_\allowbreak{}decay}, \texttt{hmul} multiplies \texttt{hinit} by the nonnegative exponential (\texttt{Real.\allowbreak{}exp\_\allowbreak{}nonneg}), and \texttt{hwarm}, the bound \(r_{k_0}\le a/\kappa\), follows by \texttt{linarith} after rewriting \(a\cdot\frac1\kappa/2=\frac a{2\kappa}\) (\texttt{heq\ensuremath{{}_{2}}}) and \(\frac a{2\kappa}+\frac a{2\kappa}=\frac a\kappa\) (\texttt{hadd}).
+
+\item \texttt{htail} applies \texttt{variable\_\allowbreak{}step\_\allowbreak{}tail} to the shifted sequence \texttt{fun n \ensuremath{\mapsto} r (k\ensuremath{{}_{0}} + n)}; the index identity \texttt{heq\ensuremath{{}_{3}}}, \((k_0+n)-k_0=n\) in \(\mathbb N\), is proved by \texttt{omega}, and \texttt{hstep (k\ensuremath{{}_{0}} + n)} rewritten with it is the shifted recurrence. Finally \texttt{Nat.\allowbreak{}add\_\allowbreak{}sub\_\allowbreak{}of\_\allowbreak{}le hk} gives \(k_0+(k-k_0)=k\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The iteration count reaches the prescribed accuracy}{The iteration count reaches the prescribed accuracy}}
+
+
+\textbf{Definition.} For \(\kappa,a,\varepsilon_0,\varepsilon\in\mathbb R\), the iteration count of Proposition 1 is
+
+
+\[k_\varepsilon=k_0(\kappa,a,\varepsilon_0)+\Bigl\lceil\max\Bigl(\frac a{\varepsilon^2}-\kappa,\,0\Bigr)\Bigr\rceil.\]
+
+
+\textbf{Claim.} (1) Let \(\kappa>0\), \(a>0\) and \(\varepsilon>0\). If \(k\in\mathbb N\) satisfies \(k\ge k_\varepsilon\), then \(k\ge k_0\) and
+
+
+\[\frac a{\kappa+(k-k_0)}\le\varepsilon^2.\]
+
+
+(2) Under the hypotheses of Step 3 and \(\varepsilon>0\), \(r_k\le\varepsilon^2\) for every \(k\ge k_\varepsilon\).
+
+
+
+
+\textbf{Proof.} (1) Write \(N=\lceil\max(a/\varepsilon^2-\kappa,0)\rceil\in\mathbb N\), so \(k\ge k_0+N\). Then \(k\ge k_0\), and \(k-k_0\ge N\) as natural numbers. By the definition of the ceiling and of the maximum,
+
+
+\[k-k_0\ge N\ge\max\Bigl(\frac a{\varepsilon^2}-\kappa,0\Bigr)\ge\frac a{\varepsilon^2}-\kappa,\qquad\text{so}\qquad\kappa+(k-k_0)\ge\frac a{\varepsilon^2}.\]
+
+
+The number \(\kappa+(k-k_0)\) is positive because \(\kappa>0\). Multiplying the last inequality by \(\varepsilon^2>0\) gives \(a\le\varepsilon^2(\kappa+(k-k_0))\), and dividing by \(\kappa+(k-k_0)>0\) gives the claim.
+
+
+
+
+(2) Since \(\kappa\ge1>0\), part (1) gives \(k\ge k_0\) and \(a/(\kappa+(k-k_0))\le\varepsilon^2\). Step 3 gives \(r_k\le a/(\kappa+(k-k_0))\), and the two inequalities combine. \(\square\)
+
+
+
+
+In the original variables, \(r_k\le\varepsilon^2\) is \(\mathsf W_2^2(\nu_k,\pi)\le\varepsilon^2p/m\), and \(k_\varepsilon=k_0+\lceil((\kappa_{\rm av}+1)/\varepsilon^2-\kappa_\infty)_+\rceil\) is the iteration count of Proposition 1. The hypothesis \(a>0\) of part (1) is not used in its proof.
+
+\begin{leanbox}{Lean: \texttt{variableIterations}, \texttt{variable\_\allowbreak{}iterations\_\allowbreak{}envelope}, \texttt{variable\_\allowbreak{}step\_\allowbreak{}accuracy}}
+\leansource{\texttt{variableIterations} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 99–100}
+\begin{leancode}
+\leanline{0}{noncomputable\ def\ variableIterations\ (κ\ a\ ε₀\ ε\ :\ ℝ)\ :\ ℕ\ :=}
+\leanline{2}{warmup\ κ\ a\ ε₀\ +\ ⌈max\ (a\ /\ ε\ \textasciicircum{}\ 2\ -\ κ)\ 0⌉₊}
+\end{leancode}
+\leansource{\texttt{variable\_\allowbreak{}iterations\_\allowbreak{}envelope} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 104–123}
+\begin{leancode}
+\leanline{0}{theorem\ variable\_iterations\_envelope\ \{κ\ a\ ε₀\ ε\ :\ ℝ\}}
+\leanline{4}{(hκ\ :\ 0\ <\ κ)\ (\_ha\ :\ 0\ <\ a)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{\{k\ :\ ℕ\}\ (hk\ :\ variableIterations\ κ\ a\ ε₀\ ε\ ≤\ k)\ :}
+\leanline{4}{warmup\ κ\ a\ ε₀\ ≤\ k\ ∧}
+\leanline{6}{a\ /\ (κ\ +\ ((k\ -\ warmup\ κ\ a\ ε₀\ :\ ℕ)\ :\ ℝ))\ ≤\ ε\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{variable\_\allowbreak{}step\_\allowbreak{}accuracy} \quad AverageLMC/\allowbreak{}Complexity.lean, lines 126–136}
+\begin{leancode}
+\leanline{0}{theorem\ variable\_step\_accuracy\ (r\ :\ ℕ\ →\ ℝ)\ (a\ κ\ ε₀\ ε\ :\ ℝ)}
+\leanline{4}{(ha\ :\ 0\ <\ a)\ (hκ\ :\ 1\ ≤\ κ)\ (hε₀\ :\ 0\ <\ ε₀)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hr0\ :\ 0\ ≤\ r\ 0)\ (hinit\ :\ r\ 0\ ≤\ ε₀\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ ∀\ k,\ r\ (k\ +\ 1)\ ≤}
+\leanline{6}{(1\ -\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k)\ /}
+\leanline{8}{(1\ +\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k)\ *\ r\ k\ +}
+\leanline{6}{a\ *\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k\ \textasciicircum{}\ 2\ /}
+\leanline{8}{(1\ +\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k))}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ variableIterations\ κ\ a\ ε₀\ ε\ ≤\ k)\ :\ r\ k\ ≤\ ε\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{variable\allowbreak{}Iterations \ensuremath{\kappa} a \ensuremath{\varepsilon}\ensuremath{{}_{0}} \ensuremath{\varepsilon}} is \texttt{warmup \ensuremath{\kappa} a \ensuremath{\varepsilon}\ensuremath{{}_{0}} + ⌈max (a /\allowbreak{} \ensuremath{\varepsilon} \textasciicircum{} 2 -\allowbreak{} \ensuremath{\kappa}) 0⌉\ensuremath{{}_{+}}}, the count \(k_\varepsilon\).
+
+\item \texttt{variable\_\allowbreak{}iterations\_\allowbreak{}envelope} has the hypotheses \texttt{h\ensuremath{\kappa} : 0 < \ensuremath{\kappa}}, \texttt{\_\allowbreak{}ha : 0 < a} (unused) and \texttt{h\ensuremath{\varepsilon} : 0 < \ensuremath{\varepsilon}}, and returns the conjunction of \(k\ge k_0\) and the envelope bound. \texttt{hk\ensuremath{{}_{0}}} and \texttt{hnat} are the two natural-number inequalities, obtained by \texttt{omega} after unfolding the count; \texttt{hc} passes to real numbers through \texttt{Nat.\allowbreak{}le\_\allowbreak{}ceil} and \texttt{exact\_\allowbreak{}mod\_\allowbreak{}cast}; \texttt{hden} is the positivity of \(\kappa+(k-k_0)\). The goal is reduced by \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} hden} to \(a\le\varepsilon^2(\kappa+(k-k_0))\), which \texttt{nlinarith} derives from \texttt{hq} (\(a/\varepsilon^2\le\kappa+(k-k_0)\)) cleared of its denominator by \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} he}.
+
+\item \texttt{variable\_\allowbreak{}step\_\allowbreak{}accuracy} chains \texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized}, applied with \texttt{he.\allowbreak{}1} (\(k\ge k_0\)), and the envelope bound \texttt{he.\allowbreak{}2}.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

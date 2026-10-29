@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,10 +58,45 @@ The infimum of coupling costs gives \(K W_2(\mu,\nu)\). The coupling integral id
 
 Integrability includes the observable’s value at zero. Its Lipschitz constant bounds the integrand difference by the pair distance, and \(\|\cdot\|_1\le\|\cdot\|_2\) bounds its first moment by its quadratic cost. The input second moments make the infimum finite; no optimal coupling is required.
 
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}lipschitz\_\allowbreak{}observable}, \texttt{integral\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2}}
+\leansource{\texttt{memLp\_\allowbreak{}lipschitz\_\allowbreak{}observable} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 34–44}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_lipschitz\_observable\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{φ\ :\ E\ →\ F\}\ \{K\ :\ ℝ≥0\}\ (hφ\ :\ LipschitzWith\ K\ φ)}
+\leanline{4}{\{X\ :\ Ω\ →\ E\}\ (hX\ :\ MemLp\ X\ 2\ P)\ :\ MemLp\ (fun\ ω\ =>\ φ\ (X\ ω))\ 2\ P}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 50–108}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_lipschitz\_wasserstein2}
+\leanline{4}{(μ\ ν\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ E\ =>\ x)\ 2\ μ)\ (hν\ :\ MemLp\ (fun\ x\ :\ E\ =>\ x)\ 2\ ν)}
+\leanline{4}{\{φ\ :\ E\ →\ F\}\ \{K\ :\ ℝ≥0\}\ (hφ\ :\ LipschitzWith\ K\ φ)\ :}
+\leanline{4}{‖(∫\ x,\ φ\ x\ ∂μ)\ -\ ∫\ x,\ φ\ x\ ∂ν‖\ ≤}
+\leanline{6}{(K\ :\ ℝ)\ *\ ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The nonzero value \(\varphi(0)\) must be retained when proving integrability. Write \(\varphi(X)=[\varphi(X)-\varphi(0)]+\varphi(0)\). The first term is in \(L^2\) because its Lipschitz map vanishes at zero; the second is a constant in \(L^2\) on a probability space. This proves \texttt{mem\allowbreak{}Lp\_\allowbreak{}lipschitz\_\allowbreak{}observable}, including the offset.
 
 
 
+For the transport estimate, take any coupling \(c\) of \(\mu,\nu\). Its marginal identities pull the given second moments onto its two coordinate random variables. Applying the observable lemma to both coordinates proves their \(L^2\) membership and hence their Bochner integrability. The fact \texttt{hid} then changes variables using those marginals and combines the two integrals:
 
+
+
+The successive inequalities in \texttt{hfamily} are the integral triangle inequality, the probability-space comparison \(\|F\|_1\le\|F\|_2\), and the pointwise Lipschitz bound \(\|\varphi(x)-\varphi(y)\|\le K\|x-y\|\). They give the same upper bound \(K\,\operatorname{cost}(c)\) for every coupling. Taking the infimum in the extended nonnegative reals proves \texttt{hbound}. Finite input second moments already imply finite \(W_2\), so the product \(KW_2\) is finite and the final conversion to real numbers preserves the inequality.
+
+
+
+Formal correspondence: memLp\_lipschitz\_observable : A Lipschitz observable with a nonzero offset still preserves finite second moments on a probability space. integral\_lipschitz\_wasserstein2 : Actual expectations of a Lipschitz observable are Lipschitz in \(W_2\). Both input probability laws have finite second moment; infinity is never removed by an unguarded real conversion.
+
+
+
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}lipschitz\_\allowbreak{}observable}: the intermediate facts include \texttt{hcenter}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{Function.\allowbreak{}comp\_\allowbreak{}def}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{sub\_\allowbreak{}add\_\allowbreak{}cancel}.
+
+
+
+\texttt{integral\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2}: the intermediate facts include \texttt{hfinite}, \texttt{hfamily}, \texttt{hfst}, \texttt{hbound}, \texttt{hr}, in source order; the source steps apply or rewrite \texttt{c.\allowbreak{}fst}, \texttt{hh.\allowbreak{}comp\_\allowbreak{}of\_\allowbreak{}map}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mul}, \texttt{ENNReal.\allowbreak{}coe\_\allowbreak{}to\allowbreak{}Real}, \texttt{ULA.\allowbreak{}wasserstein2\allowbreak{}Real}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.2]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}.
@@ -52,7 +110,61 @@ The orthogonal projection \(P_\theta\) keeps the parameter coordinates and satis
 
 Projection preserves the joint-gradient Lipschitz and linear-growth bounds. Finite latent second moment implies finite first moment, so the resulting parameter force is a finite Bochner expectation. It is the integrated parameter block of the specified potential gradient, rather than an independently assumed vector field.
 
+\begin{leanbox}{Lean: \texttt{jointParameterCLM}, \texttt{jointParameterCLM\_\allowbreak{}apply}, \texttt{norm\_\allowbreak{}jointParameterCLM\_\allowbreak{}apply\_\allowbreak{}le} and 2 more}
+\leansource{\texttt{jointParameterCLM} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 113–118}
+\begin{leancode}
+\leanline{0}{def\ jointParameterCLM\ \{dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{IPLA.Joint\ dθ\ dx\ →L[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ :=}
+\leanline{2}{LinearMap.toContinuousLinearMap}
+\leanline{4}{\{\ toFun\ :=\ fun\ z\ =>\ WithLp.toLp\ 2\ (fun\ j\ =>\ z\ (Sum.inl\ j))}
+\leanline{6}{map\_add'\ :=\ by\ intro\ x\ y;\ ext\ j;\ rfl}
+\leanline{6}{map\_smul'\ :=\ by\ intro\ a\ x;\ ext\ j;\ rfl\ \}}
+\end{leancode}
+\leansource{\texttt{jointParameterCLM\_\allowbreak{}apply} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 120–121}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointParameterCLM\_apply\ \{dθ\ dx\ :\ ℕ\}\ (z\ :\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(j\ :\ Fin\ dθ)\ :\ jointParameterCLM\ z\ j\ =\ z\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}jointParameterCLM\_\allowbreak{}apply\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 123–129}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_jointParameterCLM\_apply\_le\ \{dθ\ dx\ :\ ℕ\}\ (z\ :\ IPLA.Joint\ dθ\ dx)\ :}
+\leanline{4}{‖jointParameterCLM\ z‖\ ≤\ ‖z‖}
+\end{leancode}
+\leansource{\texttt{parameterGradient} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 132–134}
+\begin{leancode}
+\leanline{0}{def\ parameterGradient\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{EuclideanSpace\ ℝ\ (Fin\ dθ)\ :=\ jointParameterCLM\ (gradient\ U\ (IPLA.pair\ θ\ x))}
+\end{leancode}
+\leansource{\texttt{meanFieldDrift} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 137–139}
+\begin{leancode}
+\leanline{0}{def\ meanFieldDrift\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (ν\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dx)))\ :}
+\leanline{4}{EuclideanSpace\ ℝ\ (Fin\ dθ)\ :=\ ∫\ x,\ parameterGradient\ U\ θ\ x\ ∂ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: jointParameterCLM : The parameter block of a parameter/\allowbreak{}latent joint vector. parameterGradient : The parameter component of the actual joint gradient. meanFieldDrift : The actual averaged parameter drift, as a Bochner integral.
 
+
+
+\texttt{joint\allowbreak{}Parameter\allowbreak{}CLM} is a definition with defining expression \texttt{intro x y; ext j; rfl}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{joint\allowbreak{}Parameter\allowbreak{}CLM\_\allowbreak{}apply} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{norm\_\allowbreak{}joint\allowbreak{}Parameter\allowbreak{}CLM\_\allowbreak{}apply\_\allowbreak{}le}: the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq}, \texttt{joint\allowbreak{}Parameter\allowbreak{}CLM\_\allowbreak{}apply}, \texttt{le\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}nonneg}, \texttt{sq\_\allowbreak{}nonneg}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{parameter\allowbreak{}Gradient} is a definition with defining expression \texttt{joint\allowbreak{}Parameter\allowbreak{}CLM (gradient U (IPLA.\allowbreak{}pair \ensuremath{\theta} x))}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Drift} is a definition with defining expression \texttt{\ensuremath{\int} x, parameter\allowbreak{}Gradient U \ensuremath{\theta} x \ensuremath{\partial}\ensuremath{\nu}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}.
@@ -66,6 +178,38 @@ Decomposing the pair difference into parameter and latent inclusions gives \(\|(
 
 For \(\theta=\theta'\) the latent observable is \(L\)-Lipschitz. Fixing the latent coordinate similarly gives the separate parameter bound. The sum on the right comes from the triangle inequality on the two orthogonal coordinate inclusions.
 
+\begin{leanbox}{Lean: \texttt{pair\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}, \texttt{parameterGradient\_\allowbreak{}difference\_\allowbreak{}le}, \texttt{parameterGradient\_\allowbreak{}latent\_\allowbreak{}lipschitz}}
+\leansource{\texttt{pair\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 141–151}
+\begin{leancode}
+\leanline{0}{theorem\ pair\_norm\_sub\_le\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(θ\ θ'\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (x\ x'\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{‖IPLA.pair\ θ\ x\ -\ IPLA.pair\ θ'\ x'‖\ ≤\ ‖θ\ -\ θ'‖\ +\ ‖x\ -\ x'‖}
+\end{leancode}
+\leansource{\texttt{parameterGradient\_\allowbreak{}difference\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 153–164}
+\begin{leancode}
+\leanline{0}{theorem\ parameterGradient\_difference\_le\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(θ\ θ'\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (x\ x'\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{‖parameterGradient\ U\ θ\ x\ -\ parameterGradient\ U\ θ'\ x'‖\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ (‖θ\ -\ θ'‖\ +\ ‖x\ -\ x'‖)}
+\end{leancode}
+\leansource{\texttt{parameterGradient\_\allowbreak{}latent\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 166–172}
+\begin{leancode}
+\leanline{0}{theorem\ parameterGradient\_latent\_lipschitz\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :\ LipschitzWith\ L\ (parameterGradient\ U\ θ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pair\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}: the intermediate facts include \texttt{hid}, \texttt{hs}, in source order. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{parameter\allowbreak{}Gradient\_\allowbreak{}difference\_\allowbreak{}le}: the source steps apply or rewrite \texttt{map\_\allowbreak{}sub}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+
+
+
+\texttt{parameter\allowbreak{}Gradient\_\allowbreak{}latent\_\allowbreak{}lipschitz}: the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{sub\_\allowbreak{}self}, \texttt{norm\_\allowbreak{}zero}, \texttt{zero\_\allowbreak{}add}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.9.1]{LangevinLean2026IPLA}.
@@ -96,16 +240,52 @@ For arbitrary coupling \((X,Y)\), the \(L\)-Lipschitz joint gradient gives \(\|\
 
 The Moreau substitution gives \(L_1+\eta^{-1}\). Alternatively insert intermediate force \(b_V(\theta',\mu)\): its parameter change is at most \(L\|\theta-\theta'\|\) and its law change at most \(LW_2(\mu,\nu)\). Their sum proves the claim with constant \(L_1+1/\eta\) for split smoothing.
 
+\begin{leanbox}{Lean: \texttt{meanFieldDrift\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2}, \texttt{moreau\_\allowbreak{}meanFieldDrift\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2}}
+\leansource{\texttt{meanFieldDrift\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 176–204}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldDrift\_lipschitz\_wasserstein2\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(θ\ θ'\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(μ\ ν\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dx)))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ (hν\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ ν)\ :}
+\leanline{4}{‖meanFieldDrift\ U\ θ\ μ\ -\ meanFieldDrift\ U\ θ'\ ν‖\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ (‖θ\ -\ θ'‖\ +\ ULA.wasserstein2Real\ μ\ ν)}
+\end{leancode}
+\leansource{\texttt{moreau\_\allowbreak{}meanFieldDrift\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2} \quad ProximalLangevin/\allowbreak{}MeanFieldDrift.lean, lines 208–230}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_meanFieldDrift\_lipschitz\_wasserstein2\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L₁\ :\ ℝ≥0\}\ \{eta\ :\ ℝ\}}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ g₂\ z)\ (heta\ :\ 0\ <\ eta)}
+\leanline{4}{(θ\ θ'\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(μ\ ν\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dx)))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ (hν\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ ν)\ :}
+\leanline{4}{‖meanFieldDrift\ (smoothedPotential\ g₁\ g₂\ eta)\ θ\ μ\ -}
+\leanline{6}{meanFieldDrift\ (smoothedPotential\ g₁\ g₂\ eta)\ θ'\ ν‖\ ≤}
+\leanline{6}{((L₁\ :\ ℝ)\ +\ eta⁻¹)\ *\ (‖θ\ -\ θ'‖\ +\ ULA.wasserstein2Real\ μ\ ν)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: meanFieldDrift\_lipschitz\_wasserstein2 : Corrected \(W_2\) version of Lemma C.1 for an actual gradient-Lipschitz joint potential and actual finite-second-moment latent probability laws. moreau\_meanFieldDrift\_lipschitz\_wasserstein2 : For split Moreau smoothing, the actual averaged drift has coefficient \(L_1+1/\eta\); the finite moments and all integral guards remain explicit.
 
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Drift\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2}: the intermediate facts include \texttt{h\ensuremath{\varphi}}, \texttt{hi}, \texttt{h\ensuremath{\theta}}, \texttt{hh}, \texttt{h\ensuremath{\nu}}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}sub}, \texttt{sub\_\allowbreak{}self}, \texttt{add\_\allowbreak{}zero}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{dist\_\allowbreak{}triangle}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+
+
+
+\texttt{moreau\_\allowbreak{}mean\allowbreak{}Field\allowbreak{}Drift\_\allowbreak{}lipschitz\_\allowbreak{}wasserstein2}: the intermediate facts include \texttt{he}, \texttt{hg}, \texttt{h\allowbreak{}Lipe}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}to\allowbreak{}NNReal\_\allowbreak{}inv}, \texttt{residual\_\allowbreak{}lipschitz}, \texttt{smoothing\allowbreak{}Lipschitz\_\allowbreak{}coe}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.11.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

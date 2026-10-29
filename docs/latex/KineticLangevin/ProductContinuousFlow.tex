@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,71 +39,428 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The initial position is independent of a common source carrying the initial velocity and continuous forcing. This construction makes the output law independent of any chosen coupling. We then couple two initial position laws, pull their kinetic solutions onto the same source, and apply the proved arbitrary-shift kinetic energy contraction. Taking the infimum over all initial couplings gives the Wasserstein estimate.
+This section proves the Wasserstein contraction of the continuous kinetic dynamics, Theorem 1 of the paper in the form (exp2), for an abstract forcing. Let \(H\) be a real Hilbert space with its Borel \(\sigma\)-algebra and a countable base of its topology, and let \((S,Q)\) be a probability space, called the source. The source carries a common initial velocity \(V\in L^2(Q;H)\) and a forcing path \(t\mapsto B_t\in L^2(Q;H)\) that is continuous with \(B_0=0\); for the kinetic diffusion \(B_t=\sqrt{2\gamma}\,W_t\). Given an \(M\)-Lipschitz vector field \(g\) (later \(g=\nabla f\)), friction \(\gamma\ge0\) and a horizon \(T\ge0\), the kinetic equation with inverse mass one is the integral equation
+
+
+\[V_t-V_0=-\int_0^t\bigl(\gamma V_s+g(L_s)\bigr)\,ds+B_t,\qquad L_t-L_0=\int_0^tV_s\,ds,\qquad0\le t\le T.\]
+
+
+For a position law \(\mu\) with finite second moment, the equation is solved on the product space \(H\times S\) with law \(\mu\otimes Q\), initial position the first coordinate and initial velocity \(V\) of the source coordinate, and \(P^\mu_T\) denotes the law of the position at time \(T\). Because the source is the same for every \(\mu\), \(P^\mu_T\) depends only on \(\mu\) and not on any coupling.
 
 
 
-The continuous output laws are fixed independently of initial couplings. Source pullback and common-input contraction bound every coupling cost, producing the full arbitrary-shift diffusion Wasserstein theorem.
+
+The main result: if \(f\) is differentiable and \(m\)-strongly convex, \(\nabla f\) is \(M\)-Lipschitz, \(m\le M\), and \(a\) is a real number with \(\gamma-2a>0\), then for all \(\mu,\nu\) with finite second moments
+
+
+\[W_2(P^\mu_T,P^\nu_T)\le\frac{\sqrt{2((\gamma-a)^2+a^2)}}{\gamma-2a}\exp\Bigl(\frac{\max\{a^2-m,\;M-(\gamma-a)^2\}}{\gamma-2a}\,T\Bigr)W_2(\mu,\nu).\]
+
+
+The proof places an arbitrary coupling of \(\mu\) and \(\nu\) on a common extension of the source, applies the synchronous \(L^2\) contraction of the kinetic flow there, and takes the infimum over couplings. The next section specializes the source to Brownian motion.
 
 
 
 Earlier results used here: \cite[Section~3.21]{LangevinLean2026ULASC}; \cite[Section~3.18]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The independent-source diffusion}{The independent-source diffusion}}
+\section{\texorpdfstring{The kinetic solution on an independent source and its position law}{The kinetic solution on an independent source and its position law}}
 
 
-The probability space is the product of the initial position law and the common source. The first \(L^{2}\) coordinate is the pulled-back velocity; the second is the original position coordinate. Pulling back the continuous additive forcing gives the kinetic input. The selected Picard solution is then pushed forward at the terminal time to define the position law. The solution specification proves continuity, the exact initial condition and both integral equations. Measurability makes the output a probability measure, and its \(L^{2}\) construction proves a finite second moment.
+\textbf{Construction.} Let \(\mu\) be a probability measure on \(H\) with finite second moment, \(\int\|x\|^2\mu(dx)<\infty\). Put \(\Omega_\mu=H\times S\) with the product probability \(\mathbb P_\mu=\mu\otimes Q\). On \(\Omega_\mu\) consider the square-integrable random vectors
+
+
+\[\bar V(x,s)=V(s),\qquad \bar L(x,s)=x,\qquad \bar B_t(x,s)=B_t(s).\]
+
+
+Here \(\bar L\in L^2(\mathbb P_\mu;H)\) because \(\mu\) has finite second moment, and \(\bar V,\bar B_t\) are the compositions of \(V,B_t\) with the projection \((x,s)\mapsto s\), which maps \(\mathbb P_\mu\) to \(Q\); composition with a measure-preserving map is a linear isometry of \(L^2\) spaces, so \(t\mapsto\bar B_t\) is again continuous with \(\bar B_0=0\). For \(g:H\to H\) that is \(M\)-Lipschitz, the map \(X\mapsto g\circ X\) sends \(L^2(\mathbb P_\mu;H)\) into itself and is \(M\)-Lipschitz there. Define the negative drift on \(L^2\times L^2\) by \(N(v,x)=(\gamma v+g\circ x,\;-v)\). The flow \(t\mapsto Y_t=(V_t,L_t)\in L^2(\mathbb P_\mu;H)^2\) is the continuous solution, constructed earlier by Picard iteration for Lipschitz integral equations with continuous additive input, of
+
+
+\[Y_t-Y_0=-\int_0^tN(Y_s)\,ds+(\bar B_t,0),\qquad Y_0=(\bar V,\bar L),\qquad t\in[0,T],\qquad(1)\]
+
+
+where the integral is the Bochner integral of a continuous \(L^2\)-valued function. The position law at time \(T\) is the image measure \(P^\mu_T=\mathbb P_\mu\circ L_T^{-1}\) of any representative of \(L_T\).
 
 
 
-The output law is defined separately for each initial distribution using one fixed independent velocity-and-forcing source. The endpoint is a measurable function of those inputs. This makes the subsequent coupling argument a comparison of already defined position output laws.
 
+\textbf{Claim.} Assume \(B\) is continuous with \(B_0=0\) and \(T\ge0\). Then \(t\mapsto Y_t\) is continuous, \(Y_0=(\bar V,\bar L)\), and (1) holds for every \(t\in[0,T]\). Moreover \(P^\mu_T\) is a probability measure with finite second moment.
+
+
+
+
+\textbf{Proof.} The first three properties are the defining properties of the Picard solution of an integral equation with Lipschitz drift and continuous input that vanishes at time \(0\), applied with input \(\bar B\); the hypothesis \(B_0=0\) gives \(\bar B_0=0\) because composition with the projection is linear. The random vector \(L_T\) is an element of \(L^2(\mathbb P_\mu;H)\); it is therefore almost everywhere measurable, so its image measure has total mass \(\mathbb P_\mu(\Omega_\mu)=1\). By the change-of-variables formula, \(\int\|x\|^2P^\mu_T(dx)=\mathbb E\|L_T\|^2<\infty\). \(\square\)
+
+
+
+
+The source \((S,Q)\), the velocity \(V\) and the forcing \(B\) are fixed once and for all. The law \(P^\mu_T\) is therefore a function of \(\mu\) alone, which is what allows two such laws to be compared through an arbitrary coupling of their initial positions.
+
+\begin{leanbox}{Lean: \texttt{probability}, \texttt{initial}, \texttt{input} and 5 more}
+\leansource{\texttt{probability} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 17–17}
+\begin{leancode}
+\leanline{0}{abbrev\ probability\ (μ\ :\ Measure\ H)\ :=\ μ.prod\ Q}
+\end{leancode}
+\leansource{\texttt{initial} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 20–23}
+\begin{leancode}
+\leanline{0}{def\ initial\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (V\ :\ Lp\ H\ 2\ Q)\ :}
+\leanline{4}{Lp\ H\ 2\ (probability\ Q\ μ)\ ×\ Lp\ H\ 2\ (probability\ Q\ μ)\ :=}
+\leanline{2}{(sourcePullback\ (Prod.snd\ :\ H×S\ →\ S)\ measurePreserving\_snd\ V,}
+\leanline{3}{(hμ.comp\_measurePreserving\ measurePreserving\_fst).toLp\ Prod.fst)}
+\end{leancode}
+\leansource{\texttt{input} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 26–27}
+\begin{leancode}
+\leanline{0}{def\ input\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (t\ :\ ℝ)\ :\ Lp\ H\ 2\ (probability\ Q\ μ)\ :=}
+\leanline{2}{sourcePullback\ (Prod.snd\ :\ H×S\ →\ S)\ measurePreserving\_snd\ (B\ t)}
+\end{leancode}
+\leansource{\texttt{flow} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 30–36}
+\begin{leancode}
+\leanline{0}{def\ flow\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(g\ :\ H\ →\ H)\ (M\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{ℝ\ →\ Lp\ H\ 2\ (probability\ Q\ μ)\ ×\ Lp\ H\ 2\ (probability\ Q\ μ)\ :=}
+\leanline{2}{kineticSegmentFlow\ (ULA.lpDrift\ (probability\ Q\ μ)\ g\ hg)\ M\ γ\ 1\ (ULA.lpDrift\_lipschitz\ \_\ \_\ hg)}
+\leanline{4}{T\ hT\ (initial\ Q\ μ\ hμ\ V)\ (input\ Q\ μ\ B)}
+\leanline{4}{((sourcePullback\ (Prod.snd\ :\ H×S\ →\ S)\ measurePreserving\_snd).continuous.comp\ hB)}
+\end{leancode}
+\leansource{\texttt{positionLaw} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 39–42}
+\begin{leancode}
+\leanline{0}{def\ positionLaw\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(g\ :\ H\ →\ H)\ (M\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :\ Measure\ H\ :=}
+\leanline{2}{(probability\ Q\ μ).map\ (flow\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT\ T).2}
+\end{leancode}
+\leansource{\texttt{flow\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 44–58}
+\begin{leancode}
+\leanline{0}{theorem\ flow\_spec\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0=0)}
+\leanline{4}{(g\ :\ H\ →\ H)\ (M\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{Continuous\ (flow\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT)\ ∧}
+\leanline{6}{flow\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT\ 0\ =\ initial\ Q\ μ\ hμ\ V\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,\ flow\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT\ t\ -\ flow\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT\ 0\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,kineticNegativeDrift\ (ULA.lpDrift\ (probability\ Q\ μ)\ g\ hg)\ γ\ 1}
+\leanline{10}{(flow\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT\ s))+(input\ Q\ μ\ B\ t,0)}
+\end{leancode}
+\leansource{\texttt{positionLaw\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 61–65}
+\begin{leancode}
+\leanline{0}{theorem\ positionLaw\_probability\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(g\ :\ H\ →\ H)\ (M\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{IsProbabilityMeasure\ (positionLaw\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT)}
+\end{leancode}
+\leansource{\texttt{positionLaw\_\allowbreak{}memLp} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 68–74}
+\begin{leancode}
+\leanline{0}{theorem\ positionLaw\_memLp\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(g\ :\ H\ →\ H)\ (M\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{MemLp\ (id\ :\ H\ →\ H)\ 2\ (positionLaw\ Q\ μ\ hμ\ V\ B\ hB\ g\ M\ γ\ hg\ T\ hT)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The section works in a namespace with variables \texttt{Q : Measure S} (a probability measure, \texttt{[Is\allowbreak{}Probability\allowbreak{}Measure Q]}) and a Hilbert space \texttt{H} (\texttt{[Inner\allowbreak{}Product\allowbreak{}Space \ensuremath{\mathbb R} H] [Complete\allowbreak{}Space H]}, Borel, second countable). \texttt{Lp H 2 Q} is the space \(L^2(Q;H)\) of almost-everywhere classes, and \texttt{Mem\allowbreak{}Lp (id : H \ensuremath{\to} H) 2 \ensuremath{\mu}} states that \(\mu\) has a finite second moment.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{probability Q \ensuremath{\mu}} is the abbreviation \texttt{\ensuremath{\mu}.\allowbreak{}prod Q} for \(\mathbb P_\mu\).
+
+\item \texttt{initial Q \ensuremath{\mu} h\ensuremath{\mu} V} is \((\bar V,\bar L)\): its velocity is \texttt{source\allowbreak{}Pullback (Prod.\allowbreak{}snd : H\ensuremath{\times}S \ensuremath{\to} S) measure\allowbreak{}Preserving\_\allowbreak{}snd V}, the isometric pullback of \(V\) along the measure-preserving projection, and its position is the class of \texttt{Prod.\allowbreak{}fst}, which lies in \(L^2\) by \texttt{h\ensuremath{\mu}.\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving measure\allowbreak{}Preserving\_\allowbreak{}fst}.
+
+\item \texttt{input Q \ensuremath{\mu} B t} is \(\bar B_t\), the pullback of \texttt{B t}.
+
+\item \texttt{flow} is \texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow (ULA.\allowbreak{}lp\allowbreak{}Drift (probability Q \ensuremath{\mu}) g hg) M \ensuremath{\gamma} 1 .\allowbreak{}.\allowbreak{}.\allowbreak{}}: the Picard solution of (1) for the \(L^2\) lift \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift} of the Lipschitz field \texttt{g} (\texttt{hg : Lipschitz\allowbreak{}With M g}), with inverse mass \texttt{1}; continuity of the pulled-back input is the composition of the continuous linear pullback with \texttt{h\allowbreak{}B : Continuous B}.
+
+\item \texttt{position\allowbreak{}Law} is \texttt{(probability Q \ensuremath{\mu}).\allowbreak{}map (flow .\allowbreak{}.\allowbreak{}.\allowbreak{} T).\allowbreak{}2}, the image measure of the time-\(T\) position.
+
+\item \texttt{flow\_\allowbreak{}spec} returns the conjunction of continuity, the initial value and the integral equation, written with \texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift (ULA.\allowbreak{}lp\allowbreak{}Drift .\allowbreak{}.\allowbreak{}.\allowbreak{}) \ensuremath{\gamma} 1}, the map \((v,x)\mapsto(\gamma v+g(x),-v)\), and the interval integral \texttt{\ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}t}. It applies \texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow\_\allowbreak{}spec}, whose hypothesis that the input vanishes at \(0\) is \texttt{hb0}, proved from \texttt{h\allowbreak{}B0 : B 0=0} and \texttt{map\_\allowbreak{}zero}.
+
+\item \texttt{position\allowbreak{}Law\_\allowbreak{}probability} uses \texttt{Measure.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}map\_\allowbreak{}iff} with the almost-everywhere measurability \texttt{Lp.\allowbreak{}aestrongly\allowbreak{}Measurable} of an \(L^2\) element; \texttt{position\allowbreak{}Law\_\allowbreak{}mem\allowbreak{}Lp} uses \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff} and \texttt{Lp.\allowbreak{}mem\allowbreak{}Lp}, the change of variables for the second moment.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Put any initial coupling on the same source}{Put any initial coupling on the same source}}
+\section{\texorpdfstring{Placing an initial coupling on a common source}{Placing an initial coupling on a common source}}
 
 
-Adjoin the same independent source to an arbitrary coupling of the two initial position distributions. The two projections recover the original independent-source spaces exactly, so they preserve measure. Composition of \(L^{2}\) pullbacks shows that both projected solutions receive exactly the same velocity and forcing. The representative formula identifies their initial positions with the two original coupling coordinates.
+Recall that a coupling of probability measures \(\mu\) and \(\nu\) on \(H\) is a probability measure \(\varrho\) on \(H\times H\) with marginals \(\mu\) and \(\nu\). A map \(\phi:(\Omega,\mathbb P)\to(\Omega',\mathbb P')\) is measure preserving if it is measurable and \(\mathbb P\circ\phi^{-1}=\mathbb P'\).
 
 
 
-The initial plan may correlate the two starting positions arbitrarily. Adding one common independent source preserves both position marginals and supplies equal initial velocities and equal forcings. Its two natural projections recover the separate input spaces exactly.
 
+\textbf{Setting.} Let \(\varrho\) be a coupling of \(\mu\) and \(\nu\). The extension is \(\Omega_\varrho=(H\times H)\times S\) with the probability \(\mathbb P_\varrho=\varrho\otimes Q\). Define \(\ell(x,y,s)=(x,s)\), \(r(x,y,s)=(y,s)\) and \(\sigma(x,y,s)=s\).
+
+
+
+
+\textbf{Claim.} (a) \(\varrho\) and \(\mathbb P_\varrho\) are probability measures. (b) \(\ell\) is measure preserving from \(\mathbb P_\varrho\) to \(\mu\otimes Q\), and \(r\) from \(\mathbb P_\varrho\) to \(\nu\otimes Q\). (c) For every \(Z\in L^2(Q;H)\), pulling \(Z\) back first to \(H\times S\) and then along \(\ell\), or first to \(H\times S\) and then along \(r\), gives in both cases the random vector \(Z\circ\sigma\) on \(\Omega_\varrho\). (d) The initial phase \((\bar V,\bar L)\) of the previous step equals \((x,s)\mapsto(V(s),x)\) almost everywhere.
+
+
+
+
+\textbf{Proof.} (a) A coupling has total mass one because its first marginal is the probability \(\mu\); a product of two probability measures is a probability measure.
+
+
+
+
+(b) \(\ell\) is the product of the measurable maps \((x,y,s)\mapsto x\) and \((x,y,s)\mapsto s\). On measurable rectangles,
+
+
+\[\mathbb P_\varrho\bigl(\ell^{-1}(A\times C)\bigr)=\varrho(A\times H)\,Q(C)=\mu(A)\,Q(C),\]
+
+
+since the first marginal of \(\varrho\) is \(\mu\). Two finite measures on \(H\times S\) that agree on the \(\pi\)-system of measurable rectangles generating the product \(\sigma\)-algebra are equal, so \(\mathbb P_\varrho\circ\ell^{-1}=\mu\otimes Q\). The same computation with the second marginal of \(\varrho\) gives the statement for \(r\).
+
+
+
+
+(c) Pullback along a measure-preserving map acts on representatives by composition, and composition is associative: \((Z\circ\mathrm{pr}_S)\circ\ell=Z\circ(\mathrm{pr}_S\circ\ell)=Z\circ\sigma\), where \(\mathrm{pr}_S(x,s)=s\); likewise \(\mathrm{pr}_S\circ r=\sigma\).
+
+
+
+
+(d) The velocity coordinate \(\bar V\) has representative \((x,s)\mapsto V(s)\) and the position coordinate \(\bar L\) has representative \((x,s)\mapsto x\), each almost everywhere; the intersection of two sets of full measure has full measure. \(\square\)
+
+
+
+
+The coupling \(\varrho\) may correlate the two initial positions arbitrarily. Adjoining one common independent source variable \(s\) leaves both position marginals unchanged and provides both solutions with the same initial velocity \(V(s)\) and the same forcing \(B(s)\).
+
+\begin{leanbox}{Lean: \texttt{coupling\_\allowbreak{}probability}, \texttt{extension\_\allowbreak{}probability}, \texttt{leftProjection} and 5 more}
+\leansource{\texttt{coupling\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 76–76}
+\begin{leancode}
+\leanline{0}{local\ instance\ coupling\_probability\ (c\ :\ ULA.Coupling\ μ\ ν)\ :\ IsProbabilityMeasure\ c.joint\ :=\ c.isProbabilityMeasure}
+\end{leancode}
+\leansource{\texttt{extension\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 77–78}
+\begin{leancode}
+\leanline{0}{local\ instance\ extension\_probability\ (c\ :\ ULA.Coupling\ μ\ ν)\ :\ IsProbabilityMeasure\ (ULA.initialExtension\ c\ Q)\ :=}
+\leanline{2}{ULA.initialExtension\_isProbabilityMeasure\ c\ Q}
+\end{leancode}
+\leansource{\texttt{leftProjection} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 80–80}
+\begin{leancode}
+\leanline{0}{def\ leftProjection\ (p\ :\ (H×H)×S)\ :\ H×S\ :=\ (p.1.1,p.2)}
+\end{leancode}
+\leansource{\texttt{rightProjection} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 81–81}
+\begin{leancode}
+\leanline{0}{def\ rightProjection\ (p\ :\ (H×H)×S)\ :\ H×S\ :=\ (p.1.2,p.2)}
+\end{leancode}
+\leansource{\texttt{leftProjection\_\allowbreak{}preserving} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 83–85}
+\begin{leancode}
+\leanline{0}{theorem\ leftProjection\_preserving\ (c\ :\ ULA.Coupling\ μ\ ν)\ :}
+\leanline{4}{MeasurePreserving\ (leftProjection\ (H\ :=\ H)\ (S\ :=\ S))\ (ULA.initialExtension\ c\ Q)\ (probability\ Q\ μ)}
+\end{leancode}
+\leansource{\texttt{rightProjection\_\allowbreak{}preserving} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 87–91}
+\begin{leancode}
+\leanline{0}{theorem\ rightProjection\_preserving\ (c\ :\ ULA.Coupling\ μ\ ν)\ :}
+\leanline{4}{MeasurePreserving\ (rightProjection\ (H\ :=\ H)\ (S\ :=\ S))\ (ULA.initialExtension\ c\ Q)\ (probability\ Q\ ν)}
+\end{leancode}
+\leansource{\texttt{common\_\allowbreak{}source\_\allowbreak{}pullback} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 94–101}
+\begin{leancode}
+\leanline{0}{theorem\ common\_source\_pullback\ (c\ :\ ULA.Coupling\ μ\ ν)\ (Z\ :\ Lp\ H\ 2\ Q)\ :}
+\leanline{4}{sourcePullback\ leftProjection\ (leftProjection\_preserving\ Q\ c)}
+\leanline{6}{(sourcePullback\ (Prod.snd\ :\ H×S\ →\ S)\ measurePreserving\_snd\ Z)\ =}
+\leanline{6}{sourcePullback\ (Prod.snd\ :\ (H×H)×S\ →\ S)\ measurePreserving\_snd\ Z\ ∧}
+\leanline{4}{sourcePullback\ rightProjection\ (rightProjection\_preserving\ Q\ c)}
+\leanline{6}{(sourcePullback\ (Prod.snd\ :\ H×S\ →\ S)\ measurePreserving\_snd\ Z)\ =}
+\leanline{6}{sourcePullback\ (Prod.snd\ :\ (H×H)×S\ →\ S)\ measurePreserving\_snd\ Z}
+\end{leancode}
+\leansource{\texttt{initial\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 104–109}
+\begin{leancode}
+\leanline{0}{theorem\ initial\_coe\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (V\ :\ Lp\ H\ 2\ Q)\ :}
+\leanline{4}{(fun\ p\ =>\ lpPhaseCoe\ (probability\ Q\ μ)\ (initial\ Q\ μ\ hμ\ V)\ p)\ =ᵐ[probability\ Q\ μ]\ fun\ p\ :\ H×S\ =>\ (V\ p.2,p.1)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Inside \texttt{section Coupling}, \texttt{ULA.\allowbreak{}Coupling \ensuremath{\mu} \ensuremath{\nu}} is the structure of couplings, with field \texttt{joint} (the measure \(\varrho\)) and proofs \texttt{fst}, \texttt{snd} of its two marginals. The two local instances are part (a): \texttt{coupling\_\allowbreak{}probability} is \texttt{c.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}, and \texttt{extension\_\allowbreak{}probability} is \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure} for \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension c Q}, which is defined as \texttt{c.\allowbreak{}joint.\allowbreak{}prod Q}, the measure \(\mathbb P_\varrho\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{left\allowbreak{}Projection} and \texttt{right\allowbreak{}Projection} are \(\ell\) and \(r\).
+
+\item \texttt{left\allowbreak{}Projection\_\allowbreak{}preserving} is part (b) for \(\ell\), stated with Mathlib's \texttt{Measure\allowbreak{}Preserving} (a measurability proof and an equality of image measures). The measurability is \texttt{measurable\_\allowbreak{}fst.\allowbreak{}fst.\allowbreak{}prod\allowbreak{}Mk measurable\_\allowbreak{}snd} and the image measure is \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}initial\_\allowbreak{}noise}. \texttt{right\allowbreak{}Projection\_\allowbreak{}preserving} computes the image directly: \texttt{Measure.\allowbreak{}map\_\allowbreak{}prod\_\allowbreak{}map} identifies the image of a product measure under a product map, and the marginal equation \texttt{c.\allowbreak{}snd} finishes.
+
+\item \texttt{common\_\allowbreak{}source\_\allowbreak{}pullback} is part (c), for both projections at once (\texttt{constructor}): \texttt{source\allowbreak{}Pullback\_\allowbreak{}comp} rewrites a composition of pullbacks as the pullback along the composite map, and the two composites are equal to \texttt{Prod.\allowbreak{}snd} by definition (\texttt{rfl}).
+
+\item \texttt{initial\_\allowbreak{}coe} is part (d). The notation \texttt{=ᵐ[probability Q \ensuremath{\mu}]} means equality almost everywhere; \texttt{lp\allowbreak{}Phase\allowbreak{}Coe} evaluates both \(L^2\) coordinates at a point. \texttt{filter\_\allowbreak{}upwards} intersects the two almost-everywhere statements \texttt{source\allowbreak{}Pullback\_\allowbreak{}coe} and \texttt{coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp}, and \texttt{Prod.\allowbreak{}ext} combines them.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.22.9]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The bound before taking an infimum}{The bound before taking an infimum}}
+\section{\texorpdfstring{The bound for one initial coupling}{The bound for one initial coupling}}
 
 
-The source-pullback theorem transforms each solution equation to the coupling extension. Their common velocity and noise cancel, so the arbitrary-shift \(L^{2}\) contraction theorem applies. The initial position \(L^{2}\) norm equals the root-mean-square transport cost of the supplied coupling: the independent extra source contributes a factor one. At the endpoint, measure-preserving projection recovers each independently defined output law. The \(L^{2}\) transport inequality therefore gives the stated bound for this particular initial coupling.
+Write \(C(a)=\sqrt{2((\gamma-a)^2+a^2)}/(\gamma-2a)\) and \(k(a)=\max\{a^2-m,\;M-(\gamma-a)^2\}/(\gamma-2a)\).
 
 
 
-Pullback of the solution equations puts both paths on the common extension. The pathwise contraction coefficient then bounds their second-mean endpoint difference. Product integration identifies their initial second-mean difference with the original transport-plan cost.
 
+\textbf{Claim.} Let \(f:H\to\mathbb R\) be differentiable and \(m\)-strongly convex, with \(\nabla f\) \(M\)-Lipschitz and \(m\le M\); let \(\gamma\ge0\) and \(a\in\mathbb R\) with \(\gamma-2a>0\); let \(T\ge0\), \(V\in L^2(Q;H)\), and \(B\) continuous with \(B_0=0\). Let \(\mu,\nu\) have finite second moments, let \(P^\mu_T,P^\nu_T\) be the position laws of the first step with \(g=\nabla f\), and let \(\varrho\) be a coupling of \(\mu\) and \(\nu\). Then
+
+
+\[W_2(P^\mu_T,P^\nu_T)\le C(a)\,e^{k(a)T}\Bigl(\int\|x-y\|^2\,\varrho(dx,dy)\Bigr)^{1/2}.\]
+
+
+The integral on the right is finite, since \(\|x-y\|^2\le2\|x\|^2+2\|y\|^2\) and both marginals have finite second moments.
+
+
+
+
+\textbf{Proof.} Let \(Y\) be the solution of the first step on \(\Omega_\mu\) and \(Z\) the solution on \(\Omega_\nu\). On the extension \(\Omega_\varrho\) of the previous step define \(A_t=Y_t\circ\ell\) and \(C_t=Z_t\circ r\), coordinatewise in velocity and position.
+
+
+
+
+\emph{Both are solutions on the same space with the same forcing.} Composition with a measure-preserving map is a continuous linear isometry of \(L^2\) spaces; it commutes with the Bochner integral and with the lift \(X\mapsto\nabla f\circ X\). Applying it to the integral equation (1) of the first step gives, for \(t\in[0,T]\),
+
+
+\[A_t-A_0=-\int_0^tN(A_s)\,ds+(B_t\circ\sigma,0),\qquad C_t-C_0=-\int_0^tN(C_s)\,ds+(B_t\circ\sigma,0),\]
+
+
+where the forcing terms coincide by part (c) of the previous step. Both paths are continuous.
+
+
+
+
+\emph{Equal initial velocities.} By part (c), the initial velocities are \(V\circ\sigma\) for both, so the velocity components of \(A_0\) and \(C_0\) are equal.
+
+
+
+
+\emph{Initial position difference.} By part (d) and part (b), the position components of \(A_0\) and \(C_0\) have representatives \((x,y,s)\mapsto x\) and \((x,y,s)\mapsto y\). Hence, since \(Q\) is a probability measure and the integrand does not depend on \(s\),
+
+
+\[\|A_0^{\mathrm{pos}}-C_0^{\mathrm{pos}}\|_{L^2}^2=\int\|x-y\|^2\,(\varrho\otimes Q)(dx,dy,ds)=\int\|x-y\|^2\,\varrho(dx,dy).\]
+
+
+\emph{Synchronous contraction.} The \(L^2\) form of the paper's Proposition 1 \cite[Section~3.16.2]{LangevinLean2026Kinetic} applies to two continuous solutions of the same kinetic integral equation with the same forcing and equal initial velocities, under exactly the present hypotheses on \(f\), \(m\), \(M\), \(\gamma\) and \(a\). It gives
+
+
+\[\|A_T^{\mathrm{pos}}-C_T^{\mathrm{pos}}\|_{L^2}\le C(a)\,e^{k(a)T}\Bigl(\int\|x-y\|^2\,d\varrho\Bigr)^{1/2}.\qquad(2)\]
+
+
+\emph{Laws.} Since \(\ell\) is measure preserving, the law of \(A_T^{\mathrm{pos}}=L^\mu_T\circ\ell\) under \(\mathbb P_\varrho\) equals the law of \(L^\mu_T\) under \(\mathbb P_\mu\), which is \(P^\mu_T\); likewise the law of \(C_T^{\mathrm{pos}}\) is \(P^\nu_T\). The joint law of two square-integrable random vectors on one probability space is a coupling of their laws, so \(W_2(P^\mu_T,P^\nu_T)\le\|A_T^{\mathrm{pos}}-C_T^{\mathrm{pos}}\|_{L^2}\). Combining with (2) proves the claim. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{positionLaw\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling}}
+\leansource{\texttt{positionLaw\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 112–180}
+\begin{leancode}
+\leanline{0}{theorem\ positionLaw\_bound\_of\_coupling\ (c\ :\ ULA.Coupling\ μ\ ν)}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (hν\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ ν)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0=0)}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ a\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hd\ :\ 0\ <\ (γ\ :\ ℝ)-2*a)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (positionLaw\ Q\ μ\ hμ\ V\ B\ hB\ (gradient\ f)\ M\ γ\ hLip\ T\ hT)}
+\leanline{6}{(positionLaw\ Q\ ν\ hν\ V\ B\ hB\ (gradient\ f)\ M\ γ\ hLip\ T\ hT)\ ≤}
+\leanline{6}{(Real.sqrt\ (2*(((γ\ :\ ℝ)-a)\textasciicircum{}2+a\textasciicircum{}2))/((γ\ :\ ℝ)-2*a)\ *}
+\leanline{8}{Real.exp\ (max\ (a\textasciicircum{}2-m)\ ((M\ :\ ℝ)-((γ\ :\ ℝ)-a)\textasciicircum{}2)/((γ\ :\ ℝ)-2*a)*T))\ *\ (ULA.couplingCost\ c.joint).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{position\allowbreak{}Law\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling} the coupling is \texttt{c : ULA.\allowbreak{}Coupling \ensuremath{\mu} \ensuremath{\nu}}, the strong convexity is \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On univ m f}, the gradient bound is \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With M (gradient f)} with \texttt{M \ensuremath{\gamma} : \ensuremath{\mathbb R}\ensuremath{\ge}0}, and \texttt{hd : 0 < (\ensuremath{\gamma} : \ensuremath{\mathbb R})-\allowbreak{}2*a} is the positivity of \(\gamma-2a\). The coupling cost appears as \texttt{(ULA.\allowbreak{}coupling\allowbreak{}Cost c.\allowbreak{}joint).\allowbreak{}to\allowbreak{}Real}, the real value of the \(L^2\) cost.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{P} is the extension \(\mathbb P_\varrho\); \texttt{Y}, \texttt{Z} are the two flows; \texttt{L}, \texttt{R} are the phase pullbacks \texttt{phase\allowbreak{}Pullback} along the two projections; \texttt{A}, \texttt{C} are the pulled-back paths and \texttt{W} the common forcing \((B_t\circ\sigma,0)\).
+
+\item \texttt{h\allowbreak{}Y}, \texttt{h\allowbreak{}Z} are \texttt{flow\_\allowbreak{}spec}; \texttt{h\allowbreak{}A}, \texttt{h\allowbreak{}C} are continuity of the pulled-back paths.
+
+\item \texttt{he\allowbreak{}A}, \texttt{he\allowbreak{}C} are the two pulled-back integral equations, from \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}source\allowbreak{}Pullback}; the forcing is rewritten into the common form by \texttt{common\_\allowbreak{}source\_\allowbreak{}pullback}.
+
+\item \texttt{hvelocity} is the equality of initial velocities: both sides are rewritten to the initial phase (\texttt{h\allowbreak{}Y.\allowbreak{}2.\allowbreak{}1}, \texttt{h\allowbreak{}Z.\allowbreak{}2.\allowbreak{}1}) and then to the same pullback of \texttt{V}.
+
+\item \texttt{hcost} is the identity for the initial position difference: \texttt{he} identifies the difference almost everywhere with \((x,y,s)\mapsto x-y\) (using \texttt{initial\_\allowbreak{}coe} transported along the projections with \texttt{ae\_\allowbreak{}eq\_\allowbreak{}comp}, and \texttt{phase\allowbreak{}Pullback\_\allowbreak{}coe}), and \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}cost} evaluates its \(L^2\) norm as the coupling cost.
+
+\item \texttt{hdec} is (2), from \texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}position\_\allowbreak{}decay\_\allowbreak{}general} at time \texttt{T}.
+
+\item \texttt{h\allowbreak{}ALaw}, \texttt{h\allowbreak{}CLaw} identify the laws by \texttt{source\allowbreak{}Pullback\_\allowbreak{}map}; \texttt{hw} is the coupling bound \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost\_\allowbreak{}real}, \(W_2(\mathrm{law}\,X,\mathrm{law}\,Y)\le\|X-Y\|_{L^2}\); the result is \texttt{hw.\allowbreak{}trans hdec}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.13]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.15]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Pass to the Wasserstein distance}{Pass to the Wasserstein distance}}
+\section{\texorpdfstring{Passing to the Wasserstein distance}{Passing to the Wasserstein distance}}
 
 
-Both initial laws and both output laws have finite second moments. The prefactor is nonnegative because the shifted damping denominator is positive. The proved affine bound over every finite-cost initial coupling therefore passes to the infimum defining Wasserstein distance. The result has the paper’s full arbitrary-shift exponential factor and holds for any common square-integrable velocity and any continuous common input, so Brownian forcing is a direct specialization.
+\textbf{Claim.} Under the hypotheses of the previous step (without a fixed coupling),
+
+
+\[W_2(P^\mu_T,P^\nu_T)\le\frac{\sqrt{2((\gamma-a)^2+a^2)}}{\gamma-2a}\exp\Bigl(\frac{\max\{a^2-m,\;M-(\gamma-a)^2\}}{\gamma-2a}\,T\Bigr)W_2(\mu,\nu),\]
+
+
+Here \(W_2\) is understood as a real number; the proof shows that both distances are finite.
 
 
 
-The affine all-couplings bound has a nonnegative coefficient. Taking its infimum yields the Wasserstein contraction, without an optimizer assumption. The argument accommodates every square-integrable common velocity law and continuous square-integrable forcing source satisfying the construction hypotheses.
 
+\textbf{Proof.} \emph{Finiteness.} If two probability measures \(\alpha,\beta\) have finite second moments, the product measure \(\alpha\otimes\beta\) is a coupling with cost \(\int\|x-y\|^2d(\alpha\otimes\beta)\le2\int\|x\|^2d\alpha+2\int\|y\|^2d\beta<\infty\), so \(W_2(\alpha,\beta)<\infty\). This applies to \(\mu,\nu\) by hypothesis and to \(P^\mu_T,P^\nu_T\) by the first step.
+
+
+
+
+\emph{Infimum.} Put \(q=C(a)e^{k(a)T}\), which is nonnegative because \(\gamma-2a>0\). By the previous step, \(W_2(P^\mu_T,P^\nu_T)\le q\,c(\varrho)\) for every coupling \(\varrho\), where \(c(\varrho)=(\int\|x-y\|^2d\varrho)^{1/2}\). Let \(\varepsilon>0\). Since \(W_2(\mu,\nu)\) is a finite infimum, there is a coupling \(\varrho_\varepsilon\) with \(c(\varrho_\varepsilon)\le W_2(\mu,\nu)+\varepsilon\). Then
+
+
+\[W_2(P^\mu_T,P^\nu_T)\le q\,c(\varrho_\varepsilon)\le q\,W_2(\mu,\nu)+q\,\varepsilon.\]
+
+
+Letting \(\varepsilon\to0\) proves the claim. \(\square\)
+
+
+
+
+No optimal coupling is used. The bound holds for every square-integrable common initial velocity \(V\) and every continuous square-integrable forcing \(B\) with \(B_0=0\); Brownian forcing is the special case treated in the next section. For \(a=0\) and \(\gamma^2\ge m+M\) the exponent is \(-m/\gamma\) and the prefactor is \(\sqrt2\), the corrected constant of the paper's (exp1).
+
+\begin{leanbox}{Lean: \texttt{positionLaw\_\allowbreak{}wasserstein2\_\allowbreak{}general}}
+\leansource{\texttt{positionLaw\_\allowbreak{}wasserstein2\_\allowbreak{}general} \quad KineticLangevin/\allowbreak{}ProductContinuousFlow.lean, lines 183–208}
+\begin{leancode}
+\leanline{0}{theorem\ positionLaw\_wasserstein2\_general}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (hν\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ ν)}
+\leanline{4}{(V\ :\ Lp\ H\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ Q)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0=0)}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ a\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hd\ :\ 0\ <\ (γ\ :\ ℝ)-2*a)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (positionLaw\ Q\ μ\ hμ\ V\ B\ hB\ (gradient\ f)\ M\ γ\ hLip\ T\ hT)}
+\leanline{6}{(positionLaw\ Q\ ν\ hν\ V\ B\ hB\ (gradient\ f)\ M\ γ\ hLip\ T\ hT)\ ≤}
+\leanline{6}{(Real.sqrt\ (2*(((γ\ :\ ℝ)-a)\textasciicircum{}2+a\textasciicircum{}2))/((γ\ :\ ℝ)-2*a)\ *}
+\leanline{8}{Real.exp\ (max\ (a\textasciicircum{}2-m)\ ((M\ :\ ℝ)-((γ\ :\ ℝ)-a)\textasciicircum{}2)/((γ\ :\ ℝ)-2*a)*T))\ *\ ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{position\allowbreak{}Law\_\allowbreak{}wasserstein2\_\allowbreak{}general} has the same hypotheses as the previous step, without the coupling, and the conclusion is stated with \texttt{ULA.\allowbreak{}wasserstein2\allowbreak{}Real \ensuremath{\mu} \ensuremath{\nu}}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{L\ensuremath{\mu}}, \texttt{L\ensuremath{\nu}} are the two position laws; the \texttt{have\allowbreak{}I} lines register that they are probability measures (\texttt{position\allowbreak{}Law\_\allowbreak{}probability}).
+
+\item \texttt{hfinite} and \texttt{houtfinite} are the two finiteness statements, from \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp} (the product-coupling argument) with \texttt{h\ensuremath{\mu}}, \texttt{h\ensuremath{\nu}} and \texttt{position\allowbreak{}Law\_\allowbreak{}mem\allowbreak{}Lp}.
+
+\item \texttt{q} is the prefactor as an element of \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0}, its nonnegativity proved by \texttt{positivity}; \texttt{hq} records its real value.
+
+\item \texttt{hb} applies \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}affine\_\allowbreak{}bound\_\allowbreak{}real\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} with constants \(q\) and \(0\): if \(W_2(\mu',\nu')\le q\,c(\varrho)+b\) for every coupling of \(\mu,\nu\) with finite cost, and both distances are finite, then \(W_2(\mu',\nu')\le q\,W_2(\mu,\nu)+b\). This is the \(\varepsilon\)-argument above. The family of bounds is supplied by \texttt{position\allowbreak{}Law\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling}, and \texttt{simpa} removes the zero additive constant.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\bibitem[Kinetic]{LangevinLean2026Kinetic}
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

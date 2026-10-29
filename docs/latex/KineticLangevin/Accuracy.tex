@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ Set \(\alpha=3mh/(4\gamma)\). The curvature, friction and step assumptions imply
 
 A positive contraction rate ensures the logarithmic threshold is meaningful. The upper bound on the rate ensures the geometric base is nonnegative. Both properties are consequences of the friction and step restrictions, and are needed before solving the error inequality for the iteration number.
 
+\begin{leanbox}{Lean: \texttt{klmc\_\allowbreak{}rate\_\allowbreak{}fraction\_\allowbreak{}le\_\allowbreak{}one}}
+\leansource{\texttt{klmc\_\allowbreak{}rate\_\allowbreak{}fraction\_\allowbreak{}le\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}Accuracy.lean, lines 10–20}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_rate\_fraction\_le\_one\ (m\ M\ γ\ h\ :\ ℝ)\ (hm\ :\ 0<m)\ (hmM\ :\ m≤M)}
+\leanline{4}{(hγ\ :\ 0<γ)\ (hfriction\ :\ m+M≤γ\textasciicircum{}2)\ (hh\ :\ 0≤h)\ (hstep\ :\ 4*γ*M*h≤m)\ :}
+\leanline{4}{3*m*h/(4*γ)≤1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\_\allowbreak{}rate\_\allowbreak{}fraction\_\allowbreak{}le\_\allowbreak{}one} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{he}, \texttt{h\allowbreak{}M}, \texttt{hp}, \texttt{hid} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply the scalar error allocation to the law}{Apply the scalar error allocation to the law}}
 
@@ -42,6 +75,24 @@ The KLMC theorem gives \(W_2(\nu_n,\pi)\le\sqrt2(1-\alpha)^nD+b\). The scalar er
 
 When the initial discrepancy is already below its transient allocation, the maximum-logarithm prescription selects zero iterations. Otherwise the exponential upper bound for the geometric factor is below the allocated error after the selected ceiling count. The bias allocation then completes the total-error bound.
 
+\begin{leanbox}{Lean: \texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}of\_\allowbreak{}error\_\allowbreak{}budgets}}
+\leansource{\texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}of\_\allowbreak{}error\_\allowbreak{}budgets} \quad KineticLangevin/\allowbreak{}Accuracy.lean, lines 23–38}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_accuracy\_of\_error\_budgets\ \{d\ :\ ℕ\}\ \{μ\ :\ Measure\ (CanonicalCoupling.H\ d)\}}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (f\ :\ CanonicalCoupling.H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hmM\ :\ m≤(M:ℝ))\ (hm\ :\ 0<m)\ (hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))\ (hstep\ :\ 4*(γ:ℝ)*(M:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (ε\ :\ ℝ)\ (hε\ :\ 0<ε)}
+\leanline{4}{(hbias\ :\ (M:ℝ)*(h:ℝ)*Real.sqrt\ (2*(d:ℝ))/m≤(47/50:ℝ)*ε)\ (n\ :\ ℕ)}
+\leanline{4}{(hn\ :\ ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)=0\ ∨}
+\leanline{6}{firstOrderIterationCount\ (3*m*(h:ℝ)/(4*(γ:ℝ)))}
+\leanline{8}{(ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f))\ ε≤n)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (CanonicalCoupling.klmcLaw\ f\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}of\_\allowbreak{}error\_\allowbreak{}budgets} gives the formal counterpart of this step. Named proof applications include \texttt{first\allowbreak{}Order\_\allowbreak{}accuracy\_\allowbreak{}budget}, \texttt{Canonical\allowbreak{}Coupling.\allowbreak{}klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -55,13 +106,52 @@ For positive dimension choose \(h=\min\{m/(4\gamma M),\,0.94\varepsilon m/(M\sqr
 
 The chosen step is the minimum of a stability limit and an accuracy limit. Taking that minimum guarantees both requirements simultaneously. Its reciprocal makes explicit the tradeoff between small requested error, dimension-dependent stationary velocity fluctuations, and the curvature-dependent contraction rate.
 
+\begin{leanbox}{Lean: \texttt{klmcAccuracyStep}, \texttt{klmcAccuracyStep\_\allowbreak{}spec}, \texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}explicit}}
+\leansource{\texttt{klmcAccuracyStep} \quad KineticLangevin/\allowbreak{}Accuracy.lean, lines 41–42}
+\begin{leancode}
+\leanline{0}{def\ klmcAccuracyStep\ (m\ M\ γ\ p\ ε\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{min\ (m/(4*γ*M))\ ((47/50:ℝ)*ε*m/(M*Real.sqrt\ (2*p)))}
+\end{leancode}
+\leansource{\texttt{klmcAccuracyStep\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}Accuracy.lean, lines 45–60}
+\begin{leancode}
+\leanline{0}{theorem\ klmcAccuracyStep\_spec\ (m\ M\ γ\ p\ ε\ :\ ℝ)\ (hm\ :\ 0<m)\ (hM\ :\ 0<M)}
+\leanline{4}{(hγ\ :\ 0<γ)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{0<klmcAccuracyStep\ m\ M\ γ\ p\ ε\ ∧}
+\leanline{4}{4*γ*M*klmcAccuracyStep\ m\ M\ γ\ p\ ε≤m\ ∧}
+\leanline{4}{M*klmcAccuracyStep\ m\ M\ γ\ p\ ε*Real.sqrt\ (2*p)/m≤(47/50:ℝ)*ε}
+\end{leancode}
+\leansource{\texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}explicit} \quad KineticLangevin/\allowbreak{}Accuracy.lean, lines 63–77}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_accuracy\_explicit\ \{d\ :\ ℕ\}\ (hd\ :\ 0<d)\ \{μ\ :\ Measure\ (CanonicalCoupling.H\ d)\}}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (f\ :\ CanonicalCoupling.H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hmM\ :\ m≤(M:ℝ))\ (hm\ :\ 0<m)\ (hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (ε\ :\ ℝ)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{let\ hs\ :=\ klmcAccuracyStep\_spec\ m\ M\ γ\ d\ ε\ hm\ (hm.trans\_le\ hmM)\ hγ\ (by\ exact\_mod\_cast\ hd)\ hε}
+\leanline{4}{let\ h\ :\ ℝ≥0\ :=\ ⟨klmcAccuracyStep\ m\ M\ γ\ d\ ε,hs.1.le⟩}
+\leanline{4}{let\ n\ :=\ firstOrderIterationCount\ (3*m*(h:ℝ)/(4*(γ:ℝ)))\ (ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f))\ ε}
+\leanline{4}{ULA.wasserstein2Real\ (CanonicalCoupling.klmcLaw\ f\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Accuracy\allowbreak{}Step} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{klmc\allowbreak{}Accuracy\allowbreak{}Step\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}explicit} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{h} in that order. Named proof applications include \texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}of\_\allowbreak{}error\_\allowbreak{}budgets}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

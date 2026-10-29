@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,6 +59,17 @@ Use the same segment and increment assumptions with Euclidean pointwise states.
 
 Specializing the ambient state to \(\mathbb R^d\) changes the pointwise norm to the Euclidean norm and leaves the \(L^2\) construction intact. The segment equation, endpoint joining, noise normalization, stationary law, and two moment bounds are all the same assumptions. The definition specifies these reference properties; it does not prove that such a reference exists.
 
+\begin{leanbox}{Lean: \texttt{L2Reference}}
+\leansource{\texttt{L2Reference} \quad UnadjustedLangevin/\allowbreak{}L2Convergence.lean, lines 29–32}
+\begin{leancode}
+\leanline{0}{abbrev\ L2Reference\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (noise\ :\ ℕ\ →\ Lp\ (E\ d)\ 2\ P)}
+\leanline{4}{(π\ :\ Measure\ (E\ d))\ :=}
+\leanline{2}{Hilbert.L2Reference\ P\ d\ U\ h\ L\ hLip\ noise\ π}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{L2\allowbreak{}Reference} is a definitional abbreviation with defining expression \texttt{Hilbert.\allowbreak{}L2\allowbreak{}Reference P d U h L h\allowbreak{}Lip noise \ensuremath{\pi}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Equality of the two recursions}{Equality of the two recursions}}
 
@@ -50,6 +84,17 @@ Induct on the index and unfold the matching recursive clauses.
 
 Both chains start from the same \(L^2\) class and apply the same gradient and innovation at the next index. Induction therefore identifies their states at every finite index. Equality as classes also identifies their pushforward laws and their errors against any common reference class, allowing the general theorem to be expressed in Euclidean notation.
 
+\begin{leanbox}{Lean: \texttt{hilbert\_\allowbreak{}lpChain\_\allowbreak{}eq\_\allowbreak{}lpUlaChain}}
+\leansource{\texttt{hilbert\_\allowbreak{}lpChain\_\allowbreak{}eq\_\allowbreak{}lpUlaChain} \quad UnadjustedLangevin/\allowbreak{}L2Convergence.lean, lines 35–41}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ hilbert\_lpChain\_eq\_lpUlaChain}
+\leanline{4}{(U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ (E\ d)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (E\ d)\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Hilbert.lpChain\ P\ U\ h\ hLip\ initial\ noise\ n\ =\ lpUlaChain\ P\ U\ h\ hLip\ initial\ noise\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hilbert\_\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Ula\allowbreak{}Chain}: the argument uses \texttt{induction n with}; the source steps apply or rewrite \texttt{Hilbert.\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}succ}, \texttt{lp\allowbreak{}Ula\allowbreak{}Chain\_\allowbreak{}succ}.
+\end{leanbox}
 
 \section{\texorpdfstring{Convergence from the integral reference in Euclidean space}{Convergence from the integral reference in Euclidean space}}
 
@@ -72,6 +117,24 @@ Apply the shared theorem, then rewrite the recursion to its Euclidean notation.
 
 The local defect and synchronous contraction estimates already hold in arbitrary Hilbert spaces of random vectors. Applying them with Euclidean pointwise states yields the same geometric initial-error term and additive bound. No additional dimension factor appears at this specialization: the dimension has already entered through the Gaussian noise and Gibbs score moments.
 
+\begin{leanbox}{Lean: \texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound}}
+\leansource{\texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}L2Convergence.lean, lines 45–58}
+\begin{leancode}
+\leanline{0}{theorem\ l2\_reference\_bound}
+\leanline{4}{(U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ (E\ d)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (E\ d)\ 2\ P)\ (π\ :\ Measure\ (E\ d))}
+\leanline{4}{(ref\ :\ L2Reference\ P\ U\ h\ L\ hLip\ noise\ π)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ ≤\ 2)\ (q\ :\ ℝ)\ (hq\ :\ 0\ ≤\ q)\ (hq1\ :\ q\ <\ 1)}
+\leanline{4}{(hcontract\ :\ ∀\ X\ Y\ :\ Lp\ (E\ d)\ 2\ P,}
+\leanline{6}{‖(X\ -\ h\ •\ lpDrift\ P\ (gradient\ U)\ hLip\ X)\ -}
+\leanline{8}{(Y\ -\ h\ •\ lpDrift\ P\ (gradient\ U)\ hLip\ Y)‖\ ≤\ q\ *\ ‖X\ -\ Y‖)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpUlaChain\ P\ U\ h\ hLip\ initial\ noise\ n))\ π\ ≤}
+\leanline{6}{q\ \textasciicircum{}\ n\ *\ ‖initial\ -\ ref.segment\ 0\ 0‖\ +}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ *\ Real.sqrt\ (h\ *\ d))\ /\ (1\ -\ q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound}: the proof is the application \texttt{simpa only [hilbert\_\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Ula\allowbreak{}Chain] using}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The small-step bound in Euclidean space}{The small-step bound in Euclidean space}}
 
@@ -90,6 +153,23 @@ Apply the shared theorem, then rewrite the recursion to its Euclidean notation.
 
 The coefficient \(1-mh\) is nonnegative because \(mh\le1\) in this regime. The local error is divided by its gap \(mh\), giving \((33/20)(L/m)\sqrt{hd}\). The finite initial cost is the Euclidean \(L^2\) separation of the supplied initial and reference vectors, exactly as in the general Hilbert result.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}}
+\leansource{\texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference} \quad UnadjustedLangevin/\allowbreak{}L2Convergence.lean, lines 62–74}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_small\_step\_of\_integral\_reference}
+\leanline{4}{(U\ :\ E\ d\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(initial\ :\ Lp\ (E\ d)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (E\ d)\ 2\ P)\ (π\ :\ Measure\ (E\ d))}
+\leanline{4}{(ref\ :\ L2Reference\ P\ U\ h\ L\ hLip\ noise\ π)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpUlaChain\ P\ U\ h\ hLip\ initial\ noise\ n))\ π\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ n\ *\ ‖initial\ -\ ref.segment\ 0\ 0‖\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *\ Real.sqrt\ (h\ *\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}: the proof is the application \texttt{simpa only [hilbert\_\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Ula\allowbreak{}Chain] using}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The large-step bound in Euclidean space}{The large-step bound in Euclidean space}}
 
@@ -108,5 +188,22 @@ Apply the shared theorem, then rewrite the recursion to its Euclidean notation.
 
 The Euclidean specialization retains the strict stability condition \(Lh<2\), ensuring a positive denominator. As in the Hilbert argument, the stationary reference remains an input at this stage. A later construction uniform over all finite-cost initial couplings replaces the chosen initial error by the initial Wasserstein distance.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}}
+\leansource{\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference} \quad UnadjustedLangevin/\allowbreak{}L2Convergence.lean, lines 77–89}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_large\_step\_of\_integral\_reference}
+\leanline{4}{(U\ :\ E\ d\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ (L\ :\ ℝ))\ ≤\ h)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ <\ 2)}
+\leanline{4}{(initial\ :\ Lp\ (E\ d)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (E\ d)\ 2\ P)\ (π\ :\ Measure\ (E\ d))}
+\leanline{4}{(ref\ :\ L2Reference\ P\ U\ h\ L\ hLip\ noise\ π)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpUlaChain\ P\ U\ h\ hLip\ initial\ noise\ n))\ π\ ≤}
+\leanline{6}{((L\ :\ ℝ)\ *\ h\ -\ 1)\ \textasciicircum{}\ n\ *\ ‖initial\ -\ ref.segment\ 0\ 0‖\ +}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ /\ (2\ -\ (L\ :\ ℝ)\ *\ h))\ *\ Real.sqrt\ (h\ *\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}: the proof is the application \texttt{simpa only [hilbert\_\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Ula\allowbreak{}Chain] using}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,78 +39,268 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The particle exponential step is the exponential update with the average-potential gradient. KIPLMC1 supplies the proved averaged particle force and the common scaled-coordinate thermal amplitude \(\sqrt{2\gamma/N}\). The coordinate identities recover the paper's Algorithm 1 directly, including its separate velocity and position innovations. Noise covariance and independent-Gaussian law conditions must still be established for any stochastic convergence theorem.
+KIPLMC1 is the exponential integrator of Dalalyan and Riou-Durand applied to the kinetic particle system. A phase state is a pair \((v,z)\in\mathcal Z_N\times\mathcal Z_N\), velocity first, where \(\mathcal Z_N=\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N\) is the scaled particle space of the previous section. With the response functions \(\psi_0(t)=e^{-\gamma t}\), \(\psi_{k+1}(t)=\int_0^t\psi_k(s)\,ds\), the force \(F_N\) and the amplitude \(a_N=\sqrt{2\gamma/N}\), one step of step size \(h\) with innovation \((\xi,\xi')\in\mathcal Z_N\times\mathcal Z_N\) is
 
 
+\[v^+=\psi_0(h)v-\psi_1(h)F_N(z)+a_N\xi,\qquad z^+=z+\psi_1(h)v-\psi_2(h)F_N(z)+a_N\xi'.\]
 
-The particle method uses the common exponential response with thermal covariance scaled by the inverse particle count. Exact coordinate identities recover the parameter and latent updates while preserving correlated position–velocity noise.
+
+This section defines this update and the sequence it generates from a given innovation sequence, and proves that in coordinates it is Algorithm 1 of the paper: the parameter coordinates contain the averaged parameter gradient with noise amplitude \(\sqrt{2\gamma/N}\), and after multiplication by \(\sqrt N\) the latent coordinates contain the single-particle gradient with noise amplitude \(\sqrt{2\gamma}\). The innovation is arbitrary here; its correlated Gaussian law is constructed in a later section, and the probability laws of the resulting chain are studied after that.
 
 
 
 Earlier results used here: \cite[Section~3.12]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{The exponential update at particle temperature}{The exponential update at particle temperature}}
+\section{\texorpdfstring{The response functions and the particle exponential update}{The response functions and the particle exponential update}}
 
 
-The kinetic noise amplitude is \(a_N=\sqrt{2\gamma/N}\). The KIPLMC1 update is the exponential map with force \(F\) and additive phase innovation \(a_N\,\text{noise}\). Consequently every block uses exactly the same friction response functions. In physical time and scaled coordinates this is an inverse temperature \(N\) kinetic system. The definition accepts arbitrary innovations; when used as the algorithm their velocity–position pair must have the common Gram covariance from the kinetic library.
+\textbf{Definition.} Fix \(\gamma\in\mathbb R\). The response functions are \(\psi_0(t)=e^{-\gamma t}\) and \(\psi_{k+1}(t)=\int_0^t\psi_k(s)\,ds\) for \(k\ge0\) and \(t\in\mathbb R\). For \(\gamma\ne0\),
 
 
-
-In scaled coordinates the equilibrium velocity covariance is \(I/N\). The fluctuation–dissipation amplitude \(\sqrt{2\gamma/N}\) corresponds to that temperature. The response covariance itself is the common exponential Gram matrix; the amplitude is applied afterward to the entire correlated pair.
-
+\[\psi_1(t)=\frac{1-e^{-\gamma t}}{\gamma},\qquad\psi_2(t)=\frac{t-\psi_1(t)}{\gamma},\]
 
 
-Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}.
-
-\section{\texorpdfstring{Recover both parameter updates}{Recover both parameter updates}}
+and for \(\gamma=0\) one has \(\psi_1(t)=t\), \(\psi_2(t)=t^2/2\). For a map \(G:\mathcal Z_N\to\mathcal Z_N\), a step size \(h\in\mathbb R\), a phase state \((v,z)\) and an innovation \((\xi,\xi')\), the exponential update is
 
 
-Parameter coordinates are unchanged by spatial rescaling. Substitute \(F_\theta=N^{-1}\sum_i\nabla_\theta U_i\) in the two shared expressions:
-
-\[V^{\theta+}=\psi_0V^\theta-\frac{\psi_1}N\sum_i\nabla_\theta U_i+a_N\xi_\theta,\quad
-\theta^+=\theta+\psi_1V^\theta-\frac{\psi_2}N\sum_i\nabla_\theta U_i+a_N\xi'_\theta.\]
-
-The proofs unfold the shared map, evaluate scalar multiplication in Euclidean coordinates, rewrite the proved force identity, and normalize division as multiplication by an inverse. The distinct projections of the innovation pair retain the correlated but generally unequal velocity and position increments.
+\[\Phi_{G,\gamma,h}\bigl((v,z),(\xi,\xi')\bigr)=\bigl(\psi_0(h)v-\psi_1(h)G(z)+\xi,\;z+\psi_1(h)v-\psi_2(h)G(z)+\xi'\bigr).\]
 
 
-
-The parameter position receives an integrated version of the same velocity noise. Thus the two displayed innovations are correlated even though they are written in different equations. Keeping their common block law is necessary for the algorithm’s correct transition measure.
-
+The kinetic amplitude is \(a_N=\sqrt{2\gamma/N}\), where \(\sqrt{\cdot}\) is the real square root, extended by \(\sqrt a=0\) for \(a<0\), and \(N^{-1}=0\) for \(N=0\). The KIPLMC1 update is
 
 
-Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.10.1]{LangevinLean2026Kinetic}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}.
-
-\section{\texorpdfstring{Undo the latent temperature and force scaling}{Undo the latent temperature and force scaling}}
+\[K\bigl((v,z),(\xi,\xi')\bigr)=\Phi_{F_N,\gamma,h}\bigl((v,z),(a_N\xi,a_N\xi')\bigr).\]
 
 
-For \(N>0\), \(\sqrt N\sqrt{2\gamma/N}=\sqrt{2\gamma}\). The proof combines square roots using nonnegativity of \(N\), then cancels the positive particle number inside the root. Multiply each latent coordinate of the shared step by \(\sqrt N\). The force identity gives \(\sqrt NF_i=\nabla_xU_i\); the amplitude identity restores \(\sqrt{2\gamma}\) noise. Thus the physical latent velocity and position updates have the unaveraged pair force and the paper's latent thermal scale. The two coordinate proofs distribute multiplication, rewrite these exact identities and finish scalar rearrangement with expansion of the scalar polynomials.
+\textbf{Derivation of the deterministic part.} The coefficients are those of the exact solution of the kinetic equation with the force frozen at its initial value. Let \(g\in\mathcal Z_N\) be fixed and put \(v(t)=\psi_0(t)v-\psi_1(t)g\), \(x(t)=z+\psi_1(t)v-\psi_2(t)g\). By the fundamental theorem of calculus \(\psi_{k+1}'=\psi_k\), and \(\psi_0'=-\gamma\psi_0\). Integrating the latter from \(0\) to \(t\) gives \(\gamma\psi_1(t)=1-\psi_0(t)\). Hence
+
+
+\[v'(t)=-\gamma\psi_0(t)v-\psi_0(t)g=-\gamma\bigl(\psi_0(t)v-\psi_1(t)g\bigr)-\bigl(\gamma\psi_1(t)+\psi_0(t)\bigr)g=-\gamma v(t)-g,\]
+
+
+and \(x'(t)=\psi_0(t)v-\psi_1(t)g=v(t)\), with \(v(0)=v\), \(x(0)=z\) because \(\psi_0(0)=1\) and \(\psi_1(0)=\psi_2(0)=0\) (\cite[Section~3.12.1]{LangevinLean2026Kinetic}, \cite[Section~3.12.1]{LangevinLean2026Kinetic}). Thus the deterministic part of \(\Phi_{G,\gamma,h}\) is the time-\(h\) solution of \(v'=-\gamma v-g\), \(x'=v\) with \(g=G(z)\). For the stochastic equation \(dv=(-\gamma v-g)\,dt+a_N\,dB\) the variation of constants formula adds the Wiener integrals \(a_N\int_0^h\psi_0(h-s)\,dB_s\) to the velocity and \(a_N\int_0^h\psi_1(h-s)\,dB_s\) to the position; these are the components \(a_N\xi\) and \(a_N\xi'\) of the innovation.
 
 
 
-The spatial factor \(\sqrt N\) simultaneously restores the unaveraged latent force and the unit-temperature latent noise. This explains why physical latent updates have familiar single-particle coefficients while the parameter noise remains reduced by particle averaging.
+
+The amplitude \(a_N\) corresponds to temperature \(1/N\) in the scaled coordinates: for \(\gamma>0\) the Ornstein–Uhlenbeck equation \(dv=-\gamma v\,dt+a_N\,dB\) for a single coordinate has stationary variance \(a_N^2/(2\gamma)=1/N\). The definition accepts an arbitrary innovation; for the algorithm, each coordinate pair \((\xi_a,\xi'_a)\) is a centered Gaussian vector with the covariance of the two Wiener integrals above, independently over coordinates and over steps.
+
+\begin{leanbox}{Lean: \texttt{kineticAmplitude}, \texttt{kiplmc1Step}}
+\leansource{\texttt{kineticAmplitude} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 16–16}
+\begin{leancode}
+\leanline{0}{def\ kineticAmplitude\ (N\ :\ ℕ)\ (γ\ :\ ℝ)\ :\ ℝ\ :=\ Real.sqrt\ (2\ *\ γ\ /\ N)}
+\end{leancode}
+\leansource{\texttt{kiplmc1Step} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 20–22}
+\begin{leancode}
+\leanline{0}{def\ kiplmc1Step\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ noise\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ :=}
+\leanline{2}{KineticLangevin.exponentialStep\ (force\ U)\ γ\ h\ z\ (kineticAmplitude\ N\ γ\ •\ noise)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Amplitude N \ensuremath{\gamma}} is \texttt{Real.\allowbreak{}sqrt (2 * \ensuremath{\gamma} /\allowbreak{} N)}. Mathlib's \texttt{Real.\allowbreak{}sqrt} returns \(0\) on negative numbers, and division by the cast \texttt{N = 0} returns \(0\), which are the conventions stated above.
 
 
 
-Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.10.1]{LangevinLean2026Kinetic}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{The numerical recursion from a supplied innovation stream}{The numerical recursion from a supplied innovation stream}}
-
-
-The KIPLMC1 sequence starts from the given phase and uses innovation number \(n\) in the successor update. Each step is the shared exponential map specialized to the particle force. Recursive construction proves there is an explicit sequence for every prescribed stream; it is not an assumed sequence satisfying a desired estimate. To obtain the paper's random chain, one must additionally equip this stream with independent centered Gaussian pairs of the right covariance and prove its independence from initialization, measurability and finite moments.
+\texttt{kiplmc1\allowbreak{}Step U \ensuremath{\gamma} h z noise} is \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}exponential\allowbreak{}Step (force U) \ensuremath{\gamma} h z (kinetic\allowbreak{}Amplitude N \ensuremath{\gamma} \ensuremath{\bullet} noise)}. Here \texttt{z} and \texttt{noise} are pairs in \texttt{State N d\ensuremath{\theta} dx \ensuremath{\times} State N d\ensuremath{\theta} dx}, with first component the velocity and second the position, as throughout the kinetic library; scalar multiplication \texttt{\ensuremath{\bullet}} on a pair multiplies both components, so the innovation is \((a_N\xi,a_N\xi')\). The shared map \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}exponential\allowbreak{}Step force \ensuremath{\gamma} h state noise} of the kinetic report is the pair
 
 
 
-Once an initial phase and the full innovation stream are supplied, the recursion determines every state. If that stream has the independent correlated-Gaussian block law and is independent of initialization, pushing the inputs through the recursion gives the Gaussian Markov sampler.
 
+\texttt{(psi \ensuremath{\gamma} 0 h \ensuremath{\bullet} state.\allowbreak{}1 -\allowbreak{} psi \ensuremath{\gamma} 1 h \ensuremath{\bullet} force state.\allowbreak{}2 + noise.\allowbreak{}1, state.\allowbreak{}2 + psi \ensuremath{\gamma} 1 h \ensuremath{\bullet} state.\allowbreak{}1 -\allowbreak{} psi \ensuremath{\gamma} 2 h \ensuremath{\bullet} force state.\allowbreak{}2 + noise.\allowbreak{}2)},
+
+
+
+
+which is \(\Phi_{G,\gamma,h}\), and \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}psi \ensuremath{\gamma} k t} is \(\psi_k(t)\), defined there by \texttt{psi \ensuremath{\gamma} 0 t = Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma} * t)} and an interval integral for \texttt{k + 1}. Thus KIPLMC1 is not a separate algorithm: it is the shared kinetic exponential integrator, instantiated with the particle force \texttt{force U} of the previous section and the amplitude \(a_N\). No covariance or independence property of the innovation is part of the definition.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}.
+
+\section{\texorpdfstring{The parameter coordinates of the update}{The parameter coordinates of the update}}
+
+
+\textbf{Claim.} Let \(U\) be differentiable, let \(\gamma,h\in\mathbb R\) and \(N\ge0\), let \((v,z)\) be a phase state with parameter block \(\theta\) of \(z\), let \((\xi,\xi')\) be an innovation, and let \((v^+,z^+)=K((v,z),(\xi,\xi'))\). Then for every parameter coordinate \(j\in\{1,\dots,d_\theta\}\),
+
+
+\[v^+_{\theta,j}=\psi_0(h)\,v_{\theta,j}-\frac{\psi_1(h)}N\sum_{i=1}^N\partial_{\theta_j}U(\theta,\sqrt Nz_i)+a_N\,\xi_{\theta,j},\]
+\[z^+_{\theta,j}=z_{\theta,j}+\psi_1(h)\,v_{\theta,j}-\frac{\psi_2(h)}N\sum_{i=1}^N\partial_{\theta_j}U(\theta,\sqrt Nz_i)+a_N\,\xi'_{\theta,j}.\]
+
+
+\textbf{Proof.} Coordinates of sums and scalar multiples in \(\mathcal Z_N\) are sums and scalar multiples of coordinates. Taking the coordinate \((\theta,j)\) of the two components of \(K((v,z),(\xi,\xi'))=\Phi_{F_N,\gamma,h}((v,z),(a_N\xi,a_N\xi'))\) gives
+
+
+\[v^+_{\theta,j}=\psi_0(h)v_{\theta,j}-\psi_1(h)F_N(z)_{\theta,j}+a_N\xi_{\theta,j},\qquad z^+_{\theta,j}=z_{\theta,j}+\psi_1(h)v_{\theta,j}-\psi_2(h)F_N(z)_{\theta,j}+a_N\xi'_{\theta,j}.\]
+
+
+By the formula for the parameter coordinates of the force proved in the previous section (\cite[Section~3.1.4]{LangevinLean2026KIPLMC}), \(F_N(z)_{\theta,j}=N^{-1}\sum_i\partial_{\theta_j}U(\theta,\sqrt Nz_i)\). Substituting and writing \(\psi_k(h)\cdot N^{-1}=\psi_k(h)/N\) for \(k=1,2\) gives the claim. \(\square\)
+
+
+
+
+The parameter coordinates are not rescaled, so with \(\theta_n=z_\theta\), \(V^\theta_n=v_\theta\), \(\varepsilon^0_n=\xi_\theta\), \(\varepsilon^{0\prime}_n=\xi'_\theta\) and \(X^i_n=\sqrt Nz_i\) these are the parameter lines of Algorithm 1: the force is the particle average \(F^\theta_n\), and both noises carry the amplitude \(\sqrt{2\gamma/N}\). The velocity and position innovations \(\xi_{\theta,j}\) and \(\xi'_{\theta,j}\) are different random variables; for the algorithm they are correlated, since both are integrals of the same Brownian increment.
+
+\begin{leanbox}{Lean: \texttt{kiplmc1Step\_\allowbreak{}parameter\_\allowbreak{}velocity}, \texttt{kiplmc1Step\_\allowbreak{}parameter\_\allowbreak{}position}}
+\leansource{\texttt{kiplmc1Step\_\allowbreak{}parameter\_\allowbreak{}velocity} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 25–34}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Step\_parameter\_velocity\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ noise\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{(kiplmc1Step\ U\ γ\ h\ z\ noise).1\ (Sum.inl\ j)\ =}
+\leanline{6}{KineticLangevin.psi\ γ\ 0\ h\ *\ z.1\ (Sum.inl\ j)\ -}
+\leanline{6}{(KineticLangevin.psi\ γ\ 1\ h\ /\ N)\ *}
+\leanline{8}{∑\ i\ :\ Fin\ N,\ gradient\ U\ (IPLA.joint\ i\ z.2)\ (Sum.inl\ j)\ +}
+\leanline{6}{kineticAmplitude\ N\ γ\ *\ noise.1\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{kiplmc1Step\_\allowbreak{}parameter\_\allowbreak{}position} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 38–47}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Step\_parameter\_position\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ noise\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{(kiplmc1Step\ U\ γ\ h\ z\ noise).2\ (Sum.inl\ j)\ =}
+\leanline{6}{z.2\ (Sum.inl\ j)\ +\ KineticLangevin.psi\ γ\ 1\ h\ *\ z.1\ (Sum.inl\ j)\ -}
+\leanline{6}{(KineticLangevin.psi\ γ\ 2\ h\ /\ N)\ *}
+\leanline{8}{∑\ i\ :\ Fin\ N,\ gradient\ U\ (IPLA.joint\ i\ z.2)\ (Sum.inl\ j)\ +}
+\leanline{6}{kineticAmplitude\ N\ γ\ *\ noise.2\ (Sum.inl\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Both theorems assume \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U} and hold for arbitrary real \texttt{\ensuremath{\gamma}}, \texttt{h} and arbitrary pairs \texttt{z noise}. The left-hand sides \texttt{(kiplmc1\allowbreak{}Step U \ensuremath{\gamma} h z noise).\allowbreak{}1 (Sum.\allowbreak{}inl j)} and \texttt{(kiplmc1\allowbreak{}Step U \ensuremath{\gamma} h z noise).\allowbreak{}2 (Sum.\allowbreak{}inl j)} are the parameter coordinate \texttt{j} of the new velocity and the new position; on the right, \texttt{z.\allowbreak{}1}, \texttt{z.\allowbreak{}2}, \texttt{noise.\allowbreak{}1}, \texttt{noise.\allowbreak{}2} are \(v,z,\xi,\xi'\), and the division \texttt{/\allowbreak{} N} is by the real cast of \(N\).
+
+
+
+
+Both proofs are a single call \texttt{simp [kiplmc1\allowbreak{}Step, Kinetic\allowbreak{}Langevin.\allowbreak{}exponential\allowbreak{}Step, force\_\allowbreak{}parameter hdiff, div\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}inv, mul\_\allowbreak{}assoc]}: it unfolds the particle step and the shared exponential map, evaluates coordinates of sums and scalar multiples, rewrites the parameter force coordinate with \texttt{force\_\allowbreak{}parameter} from the geometry section, and normalizes \(\psi_k(h)/N\) as \(\psi_k(h)\cdot N^{-1}\) and the products by associativity, so that both sides become the same expression.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.10.1]{LangevinLean2026Kinetic}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}.
+
+\section{\texorpdfstring{The latent coordinates after undoing the scaling}{The latent coordinates after undoing the scaling}}
+
+
+\textbf{Claim.} Let \(N>0\) and \(\gamma\in\mathbb R\). Then
+
+
+\[\sqrt N\,a_N=\sqrt N\sqrt{\frac{2\gamma}N}=\sqrt{2\gamma}.\qquad(1)\]
+
+
+If moreover \(U\) is differentiable, \(h\in\mathbb R\), and \((v^+,z^+)=K((v,z),(\xi,\xi'))\), then for every particle \(i\) and latent coordinate \(j\in\{1,\dots,d_x\}\),
+
+
+\[\sqrt N\,v^+_{(i,j)}=\psi_0(h)\bigl(\sqrt N\,v_{(i,j)}\bigr)-\psi_1(h)\,\partial_{x_j}U(\theta,\sqrt Nz_i)+\sqrt{2\gamma}\,\xi_{(i,j)},\qquad(2)\]
+\[\sqrt N\,z^+_{(i,j)}=\sqrt N\,z_{(i,j)}+\psi_1(h)\bigl(\sqrt N\,v_{(i,j)}\bigr)-\psi_2(h)\,\partial_{x_j}U(\theta,\sqrt Nz_i)+\sqrt{2\gamma}\,\xi'_{(i,j)}.\qquad(3)\]
+
+
+\textbf{Proof.} For (1): since \(N\ge0\), the product rule for square roots \(\sqrt a\sqrt b=\sqrt{ab}\), valid for \(a\ge0\) and every real \(b\) under the convention above, gives \(\sqrt N\sqrt{2\gamma/N}=\sqrt{N\cdot2\gamma/N}\), and \(N\cdot2\gamma/N=2\gamma\) because \(N\ne0\).
+
+
+
+
+For (2), take the coordinate \((i,j)\) of the velocity component of the update and multiply by \(\sqrt N\):
+
+
+\[\sqrt N\,v^+_{(i,j)}=\psi_0(h)\sqrt N\,v_{(i,j)}-\psi_1(h)\bigl(\sqrt N\,F_N(z)_{(i,j)}\bigr)+\bigl(\sqrt N\,a_N\bigr)\xi_{(i,j)},\]
+
+
+where the multiplication by \(\sqrt N\) was distributed over the three terms and moved past the scalars \(\psi_0(h)\), \(\psi_1(h)\). The latent formula for the force (\cite[Section~3.1.4]{LangevinLean2026KIPLMC}) gives \(\sqrt N\,F_N(z)_{(i,j)}=\partial_{x_j}U(\theta,\sqrt Nz_i)\), and (1) gives \(\sqrt N\,a_N=\sqrt{2\gamma}\); this is (2). The position coordinate is treated in the same way, with \(\psi_1(h)v\) and \(\psi_2(h)F_N(z)\) in place of \(\psi_0(h)v\) and \(\psi_1(h)F_N(z)\), which gives (3). \(\square\)
+
+
+
+
+With \(X^i=\sqrt Nz_i\), \(V^{x_i}=\sqrt Nv_i\) and \(\varepsilon^i=\xi_i\), \(\varepsilon^{i\prime}=\xi'_i\), identities (2) and (3) are the latent lines of Algorithm 1: the physical latent force is the single-particle gradient \(F^{x_i}=\nabla_xU(\theta,X^i)\), and the latent noise amplitude is \(\sqrt{2\gamma}\), the amplitude of unit temperature. The same factor \(\sqrt N\) removes the average from the latent force and the factor \(N^{-1/2}\) from the noise amplitude.
+
+\begin{leanbox}{Lean: \texttt{unscale\_\allowbreak{}kineticAmplitude}, \texttt{kiplmc1Step\_\allowbreak{}particle\_\allowbreak{}velocity}, \texttt{kiplmc1Step\_\allowbreak{}particle\_\allowbreak{}position}}
+\leansource{\texttt{unscale\_\allowbreak{}kineticAmplitude} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 49–53}
+\begin{leancode}
+\leanline{0}{theorem\ unscale\_kineticAmplitude\ \{N\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (γ\ :\ ℝ)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ kineticAmplitude\ N\ γ\ =\ Real.sqrt\ (2\ *\ γ)}
+\end{leancode}
+\leansource{\texttt{kiplmc1Step\_\allowbreak{}particle\_\allowbreak{}velocity} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 57–69}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Step\_particle\_velocity\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ noise\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ (kiplmc1Step\ U\ γ\ h\ z\ noise).1\ (Sum.inr\ (i,j))\ =}
+\leanline{6}{KineticLangevin.psi\ γ\ 0\ h\ *\ (Real.sqrt\ N\ *\ z.1\ (Sum.inr\ (i,j)))\ -}
+\leanline{6}{KineticLangevin.psi\ γ\ 1\ h\ *\ gradient\ U\ (IPLA.joint\ i\ z.2)\ (Sum.inr\ j)\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ γ)\ *\ noise.1\ (Sum.inr\ (i,j))}
+\end{leancode}
+\leansource{\texttt{kiplmc1Step\_\allowbreak{}particle\_\allowbreak{}position} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 72–85}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Step\_particle\_position\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ noise\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ (kiplmc1Step\ U\ γ\ h\ z\ noise).2\ (Sum.inr\ (i,j))\ =}
+\leanline{6}{Real.sqrt\ N\ *\ z.2\ (Sum.inr\ (i,j))\ +}
+\leanline{6}{KineticLangevin.psi\ γ\ 1\ h\ *\ (Real.sqrt\ N\ *\ z.1\ (Sum.inr\ (i,j)))\ -}
+\leanline{6}{KineticLangevin.psi\ γ\ 2\ h\ *\ gradient\ U\ (IPLA.joint\ i\ z.2)\ (Sum.inr\ j)\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ γ)\ *\ noise.2\ (Sum.inr\ (i,j))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{unscale\_\allowbreak{}kinetic\allowbreak{}Amplitude} assumes \texttt{h\allowbreak{}N : 0 < N} and proves \texttt{Real.\allowbreak{}sqrt N * kinetic\allowbreak{}Amplitude N \ensuremath{\gamma} = Real.\allowbreak{}sqrt (2 * \ensuremath{\gamma})}. The rewrite with \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}mul (Nat.\allowbreak{}cast\_\allowbreak{}nonneg N)}, used from right to left, merges the two roots into \(\sqrt{N\cdot(2\gamma/N)}\); the Mathlib lemma \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}mul} requires only nonnegativity of the first factor. \texttt{congr 1} reduces the goal to the equality of the radicands, which \texttt{field\_\allowbreak{}simp} proves by cancelling \(N\ne0\).
+
+
+
+
+\texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}particle\_\allowbreak{}velocity} and \texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}particle\_\allowbreak{}position} assume \texttt{h\allowbreak{}N} and \texttt{hdiff}; their statements are (2) and (3), with \texttt{gradient U (IPLA.\allowbreak{}joint i z.\allowbreak{}2) (Sum.\allowbreak{}inr j)} standing for \(\partial_{x_j}U(\theta,\sqrt Nz_i)\). The proofs follow the computation above.
+
+
+
+\begin{enumerate}
+
+
+\item The \texttt{simp only} line unfolds \texttt{kiplmc1\allowbreak{}Step} and \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}exponential\allowbreak{}Step}, evaluates coordinates of sums, differences and scalar multiples (\texttt{Pi\allowbreak{}Lp.\allowbreak{}add\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}smul\_\allowbreak{}apply}), takes the component of the scaled innovation pair (\texttt{Prod.\allowbreak{}smul\_\allowbreak{}fst} or \texttt{Prod.\allowbreak{}smul\_\allowbreak{}snd}), and distributes the factor \(\sqrt N\) (\texttt{mul\_\allowbreak{}add}, \texttt{mul\_\allowbreak{}sub}).
+
+\item \texttt{rw [mul\_\allowbreak{}left\_\allowbreak{}comm (Real.\allowbreak{}sqrt N) (Kinetic\allowbreak{}Langevin.\allowbreak{}psi \ensuremath{\gamma} 1 h), force\_\allowbreak{}particle h\allowbreak{}N hdiff]} (with \texttt{psi \ensuremath{\gamma} 2 h} for the position) moves \(\sqrt N\) next to the force coordinate and replaces \(\sqrt N\,F_N(z)_{(i,j)}\) by the pair gradient.
+
+\item \texttt{rw [← mul\_\allowbreak{}assoc (Real.\allowbreak{}sqrt N) (kinetic\allowbreak{}Amplitude N \ensuremath{\gamma}), unscale\_\allowbreak{}kinetic\allowbreak{}Amplitude h\allowbreak{}N]} regroups \(\sqrt N\,(a_N\xi)\) as \((\sqrt N\,a_N)\xi\) and applies (1); \texttt{ring} closes the remaining rearrangement.
+
+\end{enumerate}
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.10.1]{LangevinLean2026Kinetic}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}.
+
+\section{\texorpdfstring{The sequence generated by a given innovation sequence}{The sequence generated by a given innovation sequence}}
+
+
+\textbf{Definition.} Given an initial phase state \(Y_0\in\mathcal Z_N\times\mathcal Z_N\) and an innovation sequence \((\zeta_n)_{n\ge0}\) in \(\mathcal Z_N\times\mathcal Z_N\), the KIPLMC1 sequence is defined by recursion:
+
+
+\[Y_0\text{ given},\qquad Y_{n+1}=K(Y_n,\zeta_n)\qquad(n\ge0).\]
+
+
+By the recursion theorem for the natural numbers this defines \(Y_n\) uniquely for every \(n\), for every choice of \(Y_0\) and \((\zeta_n)\); the innovation \(\zeta_n\) is used to produce \(Y_{n+1}\). Writing \(Y_n=(v_n,z_n)\), the previous two steps express \((v_{n+1},z_{n+1})\) in the coordinates \(\theta_n\), \(X^i_n=\sqrt Nz_{n,i}\), \(V^\theta_n\), \(V^{x_i}_n=\sqrt Nv_{n,i}\) of Algorithm 1.
+
+
+
+
+No probabilistic assumption enters the definition: \(Y_n\) is a deterministic function of \(Y_0,\zeta_0,\dots,\zeta_{n-1}\). The algorithm is obtained by taking \(Y_0\) random and \((\zeta_n)\) independent of \(Y_0\), independent across \(n\), each with the correlated Gaussian law of the innovation; the law of \(Y_n\) is then determined in the section on chain laws, and its distance to the target is bounded in the section on the KIPLMC1 error bound.
+
+\begin{leanbox}{Lean: \texttt{kiplmc1Chain}}
+\leansource{\texttt{kiplmc1Chain} \quad KIPLMC/\allowbreak{}Exponential.lean, lines 88–92}
+\begin{leancode}
+\leanline{0}{def\ kiplmc1Chain\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(noise\ :\ ℕ\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ :\ ℕ\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx}
+\leanline{2}{|\ 0\ =>\ z}
+\leanline{2}{|\ n\ +\ 1\ =>\ kiplmc1Step\ U\ γ\ h\ (kiplmc1Chain\ U\ γ\ h\ z\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Chain U \ensuremath{\gamma} h z noise} is a function \texttt{\ensuremath{\mathbb N} \ensuremath{\to} State N d\ensuremath{\theta} dx \ensuremath{\times} State N d\ensuremath{\theta} dx} defined by structural recursion on the natural number: the case \texttt{0} returns the initial pair \texttt{z}, and the case \texttt{n + 1} returns \texttt{kiplmc1\allowbreak{}Step U \ensuremath{\gamma} h (kiplmc1\allowbreak{}Chain U \ensuremath{\gamma} h z noise n) (noise n)}. The argument \texttt{noise : \ensuremath{\mathbb N} \ensuremath{\to} State N d\ensuremath{\theta} dx \ensuremath{\times} State N d\ensuremath{\theta} dx} is the innovation sequence \((\zeta_n)\). The definition is accepted by Lean's termination checker because the recursive call is on \texttt{n}; no existence assumption is involved. The section on chain laws proves that it coincides with the generic noise-driven recursion of the unadjusted Langevin report, for which the probabilistic results are proved.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+\bibitem[KIPLMC]{LangevinLean2026KIPLMC}
+LangevinLean Project. \emph{Kinetic Interacting Particle Langevin Monte Carlo}. LL-07, 2026. Draft report, content revision 391be0a29054. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KIPLMC/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

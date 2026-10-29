@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -38,19 +61,52 @@ Matching-noise Euler convergence and uniform continuity of the two observations 
 
 Suppose every positive \(\varepsilon\) permits an eventual bound \(C[\varepsilon +K\sqrt{T/(n+1)}]\), with \(K\) allowed to depend on \(\varepsilon\). First fix \(\varepsilon\) small relative to the desired error; then refine the mesh so its square-root term is equally small. This proves that the actual scalar residual converges to zero.
 
+\begin{leanbox}{Lean: \texttt{weakEuler\_\allowbreak{}residual\_\allowbreak{}tendsto\_\allowbreak{}zero}}
+\leansource{\texttt{weakEuler\_\allowbreak{}residual\_\allowbreak{}tendsto\_\allowbreak{}zero} \quad AverageLMC/\allowbreak{}LaplacianDynkinLimit.lean, lines 24–46}
+\begin{leancode}
+\leanline{0}{theorem\ weakEuler\_residual\_tendsto\_zero}
+\leanline{4}{(r\ :\ ℕ\ →\ ℝ)\ (T\ C\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hres\ :\ ∀\ ε\ >\ 0,\ ∃\ K\ :\ ℝ,\ 0\ ≤\ K\ ∧\ ∃\ N\ :\ ℕ,\ ∀\ n\ ≥\ N,}
+\leanline{6}{|r\ n|\ ≤\ C\ *\ (ε\ +\ K\ *\ Real.sqrt\ (T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))))\ :}
+\leanline{4}{Tendsto\ r\ atTop\ ({\leanfallback 𝓝}\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{weak\allowbreak{}Euler\_\allowbreak{}residual\_\allowbreak{}tendsto\_\allowbreak{}zero} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\eta}}, \texttt{h\ensuremath{\eta}}, \texttt{hscale}, \texttt{hmesh}, \texttt{hroot}, \texttt{hbound} in that order. Named proof applications include \texttt{Metric.\allowbreak{}tendsto\_\allowbreak{}at\allowbreak{}Top.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Identify the unique limiting residual}{Identify the unique limiting residual}}
 
 
 Uniform continuity sends the terminal matching-noise Euler state to the terminal test observation. Uniform mesh convergence sends its generator sum to the time integral. Their difference therefore converges to the proposed Dynkin residual, while the summed weak remainder converges to zero. Uniqueness of real limits gives the exact identity.
 
+\begin{leanbox}{Lean: \texttt{weighted\_\allowbreak{}dynkin\_\allowbreak{}of\_\allowbreak{}weak\_\allowbreak{}euler\_\allowbreak{}consistency}}
+\leansource{\texttt{weighted\_\allowbreak{}dynkin\_\allowbreak{}of\_\allowbreak{}weak\_\allowbreak{}euler\_\allowbreak{}consistency} \quad AverageLMC/\allowbreak{}LaplacianDynkinLimit.lean, lines 53–80}
+\begin{leancode}
+\leanline{0}{theorem\ weighted\_dynkin\_of\_weak\_euler\_consistency}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ Y\ :\ ℝ\ →\ H)\ (hB0\ :\ B\ 0\ =\ 0)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(test\ generator\ :\ H\ →\ ℝ)\ (htest\ :\ UniformContinuous\ test)}
+\leanline{4}{(hgenerator\ :\ UniformContinuous\ generator)}
+\leanline{4}{(C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hres\ :\ ∀\ ε\ >\ 0,\ ∃\ K\ :\ ℝ,\ 0\ ≤\ K\ ∧\ ∃\ N\ :\ ℕ,\ ∀\ n\ ≥\ N,}
+\leanline{6}{|test\ (ULA.additiveEulerChain\ g\ (T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))\ x\ B\ (n\ +\ 1))\ -}
+\leanline{8}{test\ x\ -\ ∑\ k\ ∈\ Finset.range\ (n\ +\ 1),\ (T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))\ *}
+\leanline{10}{generator\ (ULA.additiveEulerChain\ g\ (T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))\ x\ B\ k)|\ ≤}
+\leanline{8}{C\ *\ (ε\ +\ K\ *\ Real.sqrt\ (T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))))\ :}
+\leanline{4}{test\ (Y\ T)\ -\ test\ x\ =\ ∫\ t\ in\ 0..T,\ generator\ (Y\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{weighted\_\allowbreak{}dynkin\_\allowbreak{}of\_\allowbreak{}weak\_\allowbreak{}euler\_\allowbreak{}consistency} gives the formal counterpart of this step. The main intermediate facts are \texttt{r}, \texttt{hzero}, \texttt{hendpoint}, \texttt{hsum}, \texttt{hlimit}, \texttt{he} in that order. Named proof applications include \texttt{sub\_\allowbreak{}eq\_\allowbreak{}zero.\allowbreak{}mp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.16.1]{LangevinLean2026ULASC}; \cite[Section~3.16.8]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

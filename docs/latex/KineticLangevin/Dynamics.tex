@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,52 +39,166 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-For the existence argument, equip the phase product with the maximum norm. This norm is equivalent to the Euclidean phase norm but is used here only to establish a global Lipschitz vector field. The input noise is any continuous additive velocity path starting at zero. The theorem therefore constructs paths for each prescribed input. A Brownian solution additionally requires a probability law for that input.
+Let \(\mathcal X\) be a real normed space, \(g:\mathcal X\to\mathcal X\) a Lipschitz map (in the application \(g=\nabla f\)), \(\gamma,u\ge0\) the friction and the inverse mass, and \(B:\mathbb R\to\mathcal X\) a continuous path with \(B(0)=0\). This section proves that the kinetic integral equation
+
+
+\[v_t=v_0-\int_0^t\bigl(\gamma v_s+u\,g(x_s)\bigr)\,ds+B_t,\qquad x_t=x_0+\int_0^tv_s\,ds,\qquad 0\le t\le T,\]
+
+
+has a continuous solution on every finite horizon \([0,T]\) when \(\mathcal X\) is complete. With \(B=\sqrt{2\gamma u}\,W\) for a Brownian path \(W\) this is the integral form of the kinetic Langevin equation (kinetic) of Dalalyan and Riou-Durand, \(dV_t=-(\gamma V_t+u\nabla f(L_t))\,dt+\sqrt{2\gamma u}\,dW_t\), \(dL_t=V_t\,dt\); the noise enters the velocity only. The statement is pathwise: \(B\) is an arbitrary continuous path, so it applies to every continuous Brownian trajectory, and also to continuous paths with values in a space of square-integrable random vectors.
 
 
 
-The construction is pathwise and works for arbitrary continuous additive forcing. This provides the deterministic solution map on which the later Brownian law and coupling constructions are built.
+
+The phase space \(\mathcal X\times\mathcal X\) is given here the maximum norm \(\|(v,x)\|_\infty=\max\{\|v\|,\|x\|\}\), which is equivalent to the Euclidean product norm and is used only for existence. The drift is shown to be Lipschitz for this norm, and existence follows from the Picard theorem for integral equations with Lipschitz drift and continuous additive forcing, proved for the overdamped Langevin equation. Uniqueness, probability laws and contraction estimates are not part of this section.
 
 
 
 Earlier results used here: \cite[Section~3.14]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The drift and its integral-equation sign convention}{The drift and its integral-equation sign convention}}
+\section{\texorpdfstring{The drift and the sign convention of the integral equation}{The drift and the sign convention of the integral equation}}
 
 
-The kinetic drift is \((-\gamma v-ug(x),v)\). Write the integral equation with a minus sign before the drift integral. Its integrand is therefore \((\gamma v+ug(x),-v)\). This sign choice ensures that \(Y_t-Y_0=-\int_0^tD(Y_s)ds+(B_t,0)\) has velocity acceleration \(-\gamma v-ug(x)\) and position derivative \(v\). The second noise coordinate is exactly zero.
+\textbf{Definition.} For \(g:\mathcal X\to\mathcal X\) and \(\gamma,u\in\mathbb R\), the negative kinetic drift is the map \(G:\mathcal X\times\mathcal X\to\mathcal X\times\mathcal X\),
+
+
+\[G(v,x)=\bigl(\gamma v+u\,g(x),\;-v\bigr).\]
+
+
+The kinetic integral equation with initial point \(y_0=(v_0,x_0)\) and forcing \(B\) is
+
+
+\[Y_t-y_0=-\int_0^tG(Y_s)\,ds+(B_t,0).\qquad(1)\]
+
+
+\textbf{Claim.} A continuous path \(Y_t=(v_t,x_t)\) satisfies (1) at time \(t\ge0\) if and only if
+
+
+\[v_t=v_0-\int_0^t\bigl(\gamma v_s+u\,g(x_s)\bigr)\,ds+B_t,\qquad x_t=x_0+\int_0^tv_s\,ds .\]
+
+
+\textbf{Proof.} The integral of a continuous path in \(\mathcal X\times\mathcal X\) is computed coordinatewise: the coordinate projections are continuous linear maps and therefore commute with the integral. The first coordinate of (1) is the velocity equation. The second coordinate is \(x_t-x_0=-\int_0^t(-v_s)\,ds+0=\int_0^tv_s\,ds\). \(\square\)
 
 
 
-Writing the equation componentwise removes any ambiguity: \(v_t=v_0-\int_0^t(\gamma v_s+ug(x_s))ds+B_t\) and \(x_t=x_0+\int_0^tv_sds\). In particular the position has an ordinary time derivative even when the forcing is only continuous.
+
+The drift is written with a minus sign so that (1) has the form \(Y_t-y_0=-\int_0^tG(Y_s)\,ds+\beta_t\) of the general existence theorem, in which \(G\) plays the role of a gradient. The forcing \((B_t,0)\) has zero position component: the position is the integral of a continuous velocity and is therefore continuously differentiable, \(x'_t=v_t\), even when \(B\) is only continuous.
+
+\begin{leanbox}{Lean: \texttt{kineticNegativeDrift}}
+\leansource{\texttt{kineticNegativeDrift} \quad KineticLangevin/\allowbreak{}Dynamics.lean, lines 21–22}
+\begin{leancode}
+\leanline{0}{def\ kineticNegativeDrift\ (g\ :\ E\ →\ E)\ (γ\ u\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{(γ\ •\ s.1\ +\ u\ •\ g\ s.2,\ -s.1)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The section works with a real normed space \texttt{E} (instances \texttt{[Normed\allowbreak{}Add\allowbreak{}Comm\allowbreak{}Group E] [Normed\allowbreak{}Space \ensuremath{\mathbb R} E]}); no inner product is used. \texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift g \ensuremath{\gamma} u s} is \texttt{(\ensuremath{\gamma} \ensuremath{\bullet} s.\allowbreak{}1 + u \ensuremath{\bullet} g s.\allowbreak{}2, -\allowbreak{}s.\allowbreak{}1)}, the map \(G\), with \texttt{s.\allowbreak{}1} the velocity and \texttt{s.\allowbreak{}2} the position. The integral equation (1) appears in the next declarations as \texttt{Y t -\allowbreak{} initial = -\allowbreak{}(\ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}t, kinetic\allowbreak{}Negative\allowbreak{}Drift g \ensuremath{\gamma} u (Y s)) + (B t, 0)}, where \texttt{\ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}t, F s} is the interval (Bochner) integral \(\int_0^tF(s)\,ds\).
+\end{leanbox}
+
+\section{\texorpdfstring{A Lipschitz bound for the phase drift in the maximum norm}{A Lipschitz bound for the phase drift in the maximum norm}}
 
 
-\section{\texorpdfstring{A Lipschitz bound on the phase drift}{A Lipschitz bound on the phase drift}}
-
-
-If \(g\) is \(L\)-Lipschitz and \(\gamma,u,L\ge0\), write \(R=\|(v,x)-(w,y)\|_{\max}\). Each coordinate difference is at most \(R\), and \(\|g(x)-g(y)\|\le LR\). The velocity component of the negative drift is bounded by \((\gamma+uL)R\) using the triangle inequality. The position component is bounded by \(R\). Hence the maximum is bounded by \((\gamma+uL+1)R\). The argument expands the product norm maximum, proves the two coordinate bounds, rewrites the drift difference into scalar multiples of differences with vector-space algebra, and combines the nonnegative coefficients. This Lipschitz constant suffices for existence. The contraction rate will instead follow from the curvature assumptions.
+A map \(F\) between normed spaces is \(K\)-Lipschitz, \(K\ge0\), if \(\|F(s)-F(t)\|\le K\|s-t\|\) for all \(s,t\).
 
 
 
-The maximum norm is useful because each coordinate projection has operator norm one. A sharper phase Lipschitz constant would also prove existence, but its value is immaterial for the later contraction rate: that rate is derived separately from curvature in the transformed Hilbert norm.
 
+\textbf{Claim.} Equip \(\mathcal X\times\mathcal X\) with the maximum norm \(\|(v,x)\|_\infty=\max\{\|v\|,\|x\|\}\). Let \(L,\gamma,u\ge0\) and let \(g\) be \(L\)-Lipschitz. Then \(G\) is \((\gamma+uL+1)\)-Lipschitz.
+
+
+
+
+\textbf{Proof.} Let \(s=(v,x)\), \(t=(w,y)\) and \(R=\|s-t\|_\infty\). By definition of the maximum norm, \(\|v-w\|\le R\) and \(\|x-y\|\le R\); hence \(\|g(x)-g(y)\|\le L\|x-y\|\le LR\), using \(L\ge0\). It suffices to bound both coordinates of \(G(s)-G(t)\) by \((\gamma+uL+1)R\).
+
+
+
+
+\emph{Velocity coordinate.} By linearity, \(\gamma v+ug(x)-(\gamma w+ug(y))=\gamma(v-w)+u(g(x)-g(y))\). By the triangle inequality and homogeneity, with \(|\gamma|=\gamma\) and \(|u|=u\) because both are nonnegative,
+
+
+\[\bigl\|\gamma(v-w)+u(g(x)-g(y))\bigr\|\le\gamma\|v-w\|+u\|g(x)-g(y)\|\le\gamma R+uLR\le(\gamma+uL+1)R .\]
+
+
+\emph{Position coordinate.} \(\|-v-(-w)\|=\|w-v\|=\|v-w\|\le R\le(\gamma+uL+1)R\), because \((\gamma+uL)R\ge0\).
+
+
+
+
+The maximum of the two coordinate norms is therefore at most \((\gamma+uL+1)R\). \(\square\)
+
+
+
+
+The constant is not optimal; its only role is to make the existence theorem applicable. The maximum norm is convenient because both coordinate projections have norm one. The contraction rates of the kinetic diffusion are derived separately from curvature bounds, in the transformed Euclidean norm.
+
+\begin{leanbox}{Lean: \texttt{kineticNegativeDrift\_\allowbreak{}lipschitz}}
+\leansource{\texttt{kineticNegativeDrift\_\allowbreak{}lipschitz} \quad KineticLangevin/\allowbreak{}Dynamics.lean, lines 26–53}
+\begin{leancode}
+\leanline{0}{theorem\ kineticNegativeDrift\_lipschitz\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)}
+\leanline{4}{(hg\ :\ LipschitzWith\ L\ g)\ :}
+\leanline{4}{LipschitzWith\ (γ\ +\ u\ *\ L\ +\ 1)\ (kineticNegativeDrift\ g\ γ\ u)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Here \texttt{L \ensuremath{\gamma} u : \ensuremath{\mathbb R}\ensuremath{\ge}0} are nonnegative reals (Mathlib's type \texttt{NNReal}), coerced to real numbers where needed, as in \texttt{(\ensuremath{\gamma} : \ensuremath{\mathbb R})}. \texttt{Lipschitz\allowbreak{}With K F} means \(\operatorname{dist}(F s,F t)\le K\operatorname{dist}(s,t)\) for all \(s,t\). On a product \texttt{E \ensuremath{\times} E} Mathlib's norm is the maximum of the coordinate norms, which is the norm of the claim.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul} reduces the goal to the distance inequality for given \texttt{s t}; \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm} and \texttt{change} display the left-hand side as the maximum of the two coordinate norms, and \texttt{max\_\allowbreak{}le\_\allowbreak{}iff} splits the goal into the two coordinate bounds.
+
+\item \texttt{hv} and \texttt{hx} are \(\|v-w\|\le R\) and \(\|x-y\|\le R\), from \texttt{norm\_\allowbreak{}fst\_\allowbreak{}le} and \texttt{norm\_\allowbreak{}snd\_\allowbreak{}le}. \texttt{hgrad} is \(\|g(x)-g(y)\|\le LR\), from \texttt{hg.\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} and multiplication by \texttt{L.\allowbreak{}coe\_\allowbreak{}nonneg}.
+
+\item Velocity coordinate: \texttt{he} rewrites the difference as \(\gamma(v-w)+u(g(x)-g(y))\) by \texttt{module}; \texttt{htriangle} is the triangle inequality, simplified with \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg} for \(\gamma,u\ge0\); \texttt{h\ensuremath{\gamma}v} and \texttt{hug} multiply the coordinate bounds by \(\gamma\) and \(u\); \texttt{nlinarith} combines them.
+
+\item Position coordinate: \texttt{neg\_\allowbreak{}sub\_\allowbreak{}neg} and \texttt{norm\_\allowbreak{}sub\_\allowbreak{}rev} rewrite \(\|-v-(-w)\|\) as \(\|v-w\|\); with \texttt{hnonneg}, the nonnegativity of \((\gamma+uL)R\) proved by \texttt{positivity}, \texttt{nlinarith} concludes.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Finite-horizon existence for continuous forcing}{Finite-horizon existence for continuous forcing}}
 
 
-Let the underlying normed space be complete, \(B\) continuous with \(B_0=0\), and \(T\ge0\). The continuous-input Picard existence theorem gives a continuous phase path \(Y\), with \(Y_0=\text{initial}\), satisfying the kinetic integral identity for every \(0\le t\le T\). Apply that theorem to the negative drift with the Lipschitz constant above and the forcing \((B_t,0)\), whose continuity follows from product continuity and whose value at zero follows from the zero initial forcing condition. This is finite-horizon pathwise existence; Gaussian stationarity, a Brownian input law, and convergence of the numerical chain are not conclusions of this theorem.
+\textbf{Claim.} Let \(\mathcal X\) be a real Banach space, let \(L,\gamma,u\ge0\), let \(g:\mathcal X\to\mathcal X\) be \(L\)-Lipschitz, let \(y_0\in\mathcal X\times\mathcal X\), let \(B:\mathbb R\to\mathcal X\) be continuous with \(B(0)=0\), and let \(T\ge0\). Then there is a continuous path \(Y:\mathbb R\to\mathcal X\times\mathcal X\) with \(Y(0)=y_0\) such that for every \(t\in[0,T]\)
+
+
+\[Y(t)-y_0=-\int_0^tG(Y(s))\,ds+(B(t),0).\]
+
+
+\textbf{Proof.} We use the Picard existence theorem proved for the overdamped Langevin equation \cite[Section~3.14.3]{LangevinLean2026ULASC}: if \(\mathcal Z\) is a real Banach space, \(F:\mathcal Z\to\mathcal Z\) is Lipschitz, \(z_0\in\mathcal Z\), \(\beta:\mathbb R\to\mathcal Z\) is continuous with \(\beta(0)=0\) and \(T\ge0\), then there is a continuous \(Z:\mathbb R\to\mathcal Z\) with \(Z(0)=z_0\) and \(Z(t)-z_0=-\int_0^tF(Z(s))\,ds+\beta(t)\) for \(t\in[0,T]\). (Its proof: on an interval of length \(\delta\) with \(K\delta\le1/2\), \(K\) the Lipschitz constant, the map \(Z\mapsto z_0-\int_0^{\cdot}F(Z(s))\,ds+\beta\) is a contraction with constant \(1/2\) on the complete space of continuous paths with the supremum norm, because \(\|\int(F(Z)-F(Z'))\|\le K\delta\sup\|Z-Z'\|\); Banach's fixed point theorem gives a solution there, and finitely many such pieces are joined to cover \([0,T]\).)
 
 
 
-Picard iteration solves the integral equation on a short interval by contraction of the integral map. Global Lipschitz continuity allows successive intervals to be joined without finite-time blowup. On a prescribed finite horizon the resulting path is unique and depends continuously on the initial phase and the forcing.
 
+Apply it with \(\mathcal Z=\mathcal X\times\mathcal X\) under the maximum norm, which is complete because \(\mathcal X\) is; with \(F=G\), which is \((\gamma+uL+1)\)-Lipschitz by the previous step; with \(z_0=y_0\); and with \(\beta(t)=(B(t),0)\). The path \(\beta\) is continuous because both coordinates are continuous, and \(\beta(0)=(B(0),0)=(0,0)\). The resulting \(Z\) is the required \(Y\). \(\square\)
+
+
+
+
+Completeness of \(\mathcal X\) is needed for the fixed point argument and for the integral; it holds for \(\mathbb R^p\) and for \(L^2\) spaces of random vectors. This theorem gives existence only, for a fixed continuous forcing path; uniqueness of the solution, its measurability in the Brownian input and the law of the solution are established in later sections.
+
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}kinetic\_\allowbreak{}integral}}
+\leansource{\texttt{exists\_\allowbreak{}kinetic\_\allowbreak{}integral} \quad KineticLangevin/\allowbreak{}Dynamics.lean, lines 58–68}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_kinetic\_integral\ [CompleteSpace\ E]}
+\leanline{4}{(g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(initial\ :\ E\ ×\ E)\ (B\ :\ ℝ\ →\ E)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ E\ ×\ E,\ Continuous\ Y\ ∧\ Y\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{8}{Y\ t\ -\ initial\ =\ -(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +}
+\leanline{10}{(B\ t,\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}kinetic\_\allowbreak{}integral} adds the instance \texttt{[Complete\allowbreak{}Space E]}, the Lipschitz hypothesis \texttt{hg : Lipschitz\allowbreak{}With L g}, the continuity \texttt{h\allowbreak{}B : Continuous B}, the normalization \texttt{h\allowbreak{}B0 : B 0 = 0} and \texttt{h\allowbreak{}T : 0 \ensuremath{\le} T}. The conclusion \texttt{\ensuremath{\exists} Y : \ensuremath{\mathbb R} \ensuremath{\to} E \ensuremath{\times} E, Continuous Y ∧ Y 0 = initial ∧ \ensuremath{\forall} t \ensuremath{\in} Icc 0 T, …} is the claim, with \texttt{Icc 0 T} the interval \([0,T]\). The proof is a single application of \texttt{ULA.\allowbreak{}exists\_\allowbreak{}langevin\_\allowbreak{}integral}, the Picard theorem of the overdamped development, with the drift \texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift g \ensuremath{\gamma} u}, the Lipschitz constant \texttt{\ensuremath{\gamma} + u * L + 1} justified by \texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift\_\allowbreak{}lipschitz g L \ensuremath{\gamma} u hg}, the forcing \texttt{fun t \ensuremath{\mapsto} (B t, 0)}, its continuity \texttt{h\allowbreak{}B.\allowbreak{}prod\allowbreak{}Mk continuous\_\allowbreak{}const} (a pair of continuous functions is continuous), and the value at zero, \texttt{by simp [h\allowbreak{}B0]}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.14.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

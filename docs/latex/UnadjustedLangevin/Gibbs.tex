@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,177 +39,609 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Let \(U\) be differentiable and \(m\)-strongly convex on a finite-dimensional real Hilbert space, with \(m>0\). Its quadratic lower bound at zero, followed by the scalar square inequality for the linear term, gives \(U(x)\ge U(0)-\|\nabla U(0)\|^2/m+(m/4)\|x\|^2\). Thus the Gibbs weight and its squared-norm multiple are dominated by integrable Gaussians.
+Throughout this section \(H\) is a real inner product space of finite dimension \(d\ge0\), with inner product \(\langle\cdot,\cdot\rangle\) and norm \(\|x\|=\langle x,x\rangle^{1/2}\), equipped with its Borel \(\sigma\)-algebra and with Lebesgue measure, written \(dx\) or \(\lambda\). Lebesgue measure on \(H\) is the translation-invariant measure that gives volume one to the cube spanned by an orthonormal basis; in the coordinates of an orthonormal basis it is Lebesgue measure on \(\mathbb R^d\), and for \(d=0\) (when \(H=\{0\}\)) it is the unit mass at \(0\). For a function \(U:H\to\mathbb R\), the potential, we define the Gibbs weight \(e^{-U}\), the partition function \(Z_U=\int_He^{-U(x)}\,dx\in[0,\infty]\) and the Gibbs measure
 
 
+\[\pi_U(dx)=Z_U^{-1}e^{-U(x)}\,dx.\]
 
-Consequently \(Z_U=\int e^{-U}dx\) is finite. Continuity and pointwise positivity of the weight make it strictly positive. Division by \(Z_U\) gives the probability \(\pi_U(dx)=Z_U^{-1}e^{-U(x)}dx\), with finite second moment. Translation by any fixed vector preserves square-integrability.
+
+The main results are that \(0<Z_U<\infty\), that \(\pi_U\) is a probability measure, and that \(\int_H\|x\|^2\,\pi_U(dx)<\infty\), under the sole assumptions that \(U\) is differentiable and \(m\)-strongly convex for some \(m>0\); no second derivative of \(U\) is used. The key estimate is the quadratic lower bound
+
+
+\[U(x)\ge U(0)-\frac{\|\nabla U(0)\|^2}{m}+\frac m4\|x\|^2\qquad(x\in H),\]
+
+
+which bounds \(e^{-U(x)}\) and \(\|x\|^2e^{-U(x)}\) by constant multiples of the integrable functions \(e^{-(m/4)\|x\|^2}\) and \(\|x\|^2e^{-(m/4)\|x\|^2}\). The measure \(\pi_U\) is the target distribution of the Langevin algorithms of this report. Normalization makes it a probability law, and the finite second moment makes the quadratic Wasserstein distance between \(\pi_U\) and any law with finite second moment finite.
 
 
 \section{\texorpdfstring{The unnormalized Gibbs weight}{The unnormalized Gibbs weight}}
 
 
-The unnormalized density is \(w_U(x)=e^{-U(x)}\), viewed as a nonnegative function whose integral may be infinite. The exponential is finite and positive pointwise.
+\textbf{Definition.} For a function \(U:H\to\mathbb R\), the unnormalized Gibbs weight is the function \(w_U:H\to[0,\infty]\) given by
 
 
+\[w_U(x)=e^{-U(x)}\qquad(x\in H).\]
 
-The exponential is strictly positive for every finite potential value. Thus this weight has no zero set, a fact used later both for positivity of the partition and for equivalence of Gibbs and Lebesgue null sets.
 
+The weight is regarded as a function with values in the extended half-line \([0,\infty]\), the range in which integrals of nonnegative functions are taken; this allows its integral to be formed before it is known to be finite. Because \(U(x)\) is a real number, \(0<e^{-U(x)}<\infty\) for every \(x\in H\): the weight is finite and strictly positive at every point. Positivity is used below to show that the integral of \(w_U\) is strictly positive. If \(U\) is continuous, then \(w_U\) is continuous as a composition of continuous maps, hence Borel measurable.
+
+\begin{leanbox}{Lean: \texttt{gibbsWeight}}
+\leansource{\texttt{gibbsWeight} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 27–28}
+\begin{leancode}
+\leanline{0}{def\ gibbsWeight\ (U\ :\ H\ →\ ℝ)\ (x\ :\ H)\ :\ ℝ≥0∞\ :=}
+\leanline{2}{ENNReal.ofReal\ (Real.exp\ (-U\ x))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Weight U x} is defined as \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp (-\allowbreak{}U x))}. The type \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} (Mathlib's \texttt{ENNReal}) is \([0,\infty]\); integrals of nonnegative functions take values in it. \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real r} is the element \(\max(r,0)\) of \([0,\infty]\). Since \texttt{Real.\allowbreak{}exp (-\allowbreak{}U x)} is positive, the truncation at \(0\) does nothing and the value is \(e^{-U(x)}\). The variable block of the file fixes the setting of the whole section: \texttt{[Normed\allowbreak{}Add\allowbreak{}Comm\allowbreak{}Group H] [Inner\allowbreak{}Product\allowbreak{}Space \ensuremath{\mathbb R} H] [Finite\allowbreak{}Dimensional \ensuremath{\mathbb R} H]} make \(H\) a finite-dimensional real inner product space, and \texttt{[Measurable\allowbreak{}Space H] [Borel\allowbreak{}Space H]} equip it with its Borel \(\sigma\)-algebra.
+\end{leanbox}
 
 \section{\texorpdfstring{The partition function}{The partition function}}
 
 
-The partition function is \(Z_U=\int e^{-U(x)}\,dx\), formed as a nonnegative extended integral. At this definition no finiteness assumption is made. Later normalization uses separate proofs of \(0<Z_U\) and \(Z_U<\infty\), which are needed to justify cancellation with its inverse.
+\textbf{Definition.} The partition function of \(U\) is
+
+
+\[Z_U=\int_Hw_U(x)\,dx=\int_He^{-U(x)}\,dx\in[0,\infty],\]
+
+
+the Lebesgue integral of the nonnegative function \(w_U\) with respect to Lebesgue measure on \(H\).
 
 
 
-The partition records the total unnormalized mass before division. Leaving finiteness open at this definition allows the later normalization theorem to state precisely which potential assumptions make a probability measure available.
 
+The integral of a function \(f:H\to[0,\infty]\) is the supremum of \(\int s\,dx\) over all nonnegative simple Borel functions \(s\le f\). It is defined for every such \(f\) and may equal \(+\infty\); for Borel \(f\) it is the usual Lebesgue integral. No assumption on \(U\) is made at this stage, and \(Z_U=\infty\) is possible: for \(U=0\) and \(d\ge1\), \(Z_U=\lambda(H)=\infty\). Strict positivity of \(Z_U\) (for differentiable \(U\)) and finiteness of \(Z_U\) (for strongly convex \(U\)) are proved below; both are needed to divide by \(Z_U\).
+
+\begin{leanbox}{Lean: \texttt{gibbsPartition}}
+\leansource{\texttt{gibbsPartition} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 31–31}
+\begin{leancode}
+\leanline{0}{def\ gibbsPartition\ (U\ :\ H\ →\ ℝ)\ :\ ℝ≥0∞\ :=\ ∫⁻\ x,\ gibbsWeight\ U\ x\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Partition U} is defined as \texttt{\ensuremath{\int}\ensuremath{{}^{-}} x, gibbs\allowbreak{}Weight U x \ensuremath{\partial}volume}. The notation \texttt{\ensuremath{\int}\ensuremath{{}^{-}} x, f x \ensuremath{\partial}\ensuremath{\mu}} is Mathlib's lower Lebesgue integral of a function with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} with respect to the measure \texttt{\ensuremath{\mu}}. It is defined for every such function, as the supremum over measurable simple functions below it, and takes values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, so a divergent integral has the value \texttt{\ensuremath{\top}} \(=\infty\). The measure \texttt{volume} is the canonical measure on \(H\): on a finite-dimensional inner product space Mathlib defines it as the additive Haar measure that gives measure one to the parallelepiped spanned by a fixed orthonormal basis, which is Lebesgue measure as described in the summary.
+\end{leanbox}
 
 \section{\texorpdfstring{The normalized Gibbs measure}{The normalized Gibbs measure}}
 
 
-When \(0<Z_U<\infty\), define \(\pi_U(dx)=Z_U^{-1}e^{-U(x)}dx\). The nonnegative density is measurable and integrates to \(Z_U^{-1}Z_U=1\), so it defines a probability. The following strong-convexity estimates establish the required partition bounds before normalization is used.
+\textbf{Definition.} Let \(\nu_U\) be the measure with density \(w_U\) with respect to Lebesgue measure, \(\nu_U(A)=\int_Aw_U(x)\,dx\) for Borel sets \(A\subseteq H\). The Gibbs measure of \(U\) is \(\pi_U=Z_U^{-1}\nu_U\), that is,
+
+
+\[\pi_U(A)=Z_U^{-1}\int_Ae^{-U(x)}\,dx\qquad(A\subseteq H\text{ Borel}),\]
+
+
+where \(Z_U^{-1}\in[0,\infty]\).
 
 
 
-For a measurable test \(f\), the normalized integral formula is \(\int f\,d\pi_U=Z^{-1}\int fe^{-U}dx\). This formula is used only after positivity and finiteness of \(Z\) have been established.
 
+The formula is evaluated with the conventions of measure theory, \(0^{-1}=\infty\), \(\infty^{-1}=0\) and \(0\cdot\infty=\infty\cdot0=0\), so \(\pi_U\) is a measure for every \(U\). Since \(\nu_U(H)=Z_U\), we have \(\pi_U(H)=Z_U^{-1}Z_U\), and \(\pi_U\) is a probability measure exactly when \(0<Z_U<\infty\). In the degenerate cases \(\pi_U\) is the zero measure: if \(Z_U=\infty\), then \(Z_U^{-1}=0\); if \(Z_U=0\), then \(\nu_U(A)\le\nu_U(H)=0\) for every \(A\), so \(\nu_U=0\) and \(\infty\cdot0=0\). When \(0<Z_U<\infty\) and \(f\ge0\) is Borel, \(\int f\,d\pi_U=Z_U^{-1}\int_Hf(x)e^{-U(x)}\,dx\). The following steps prove \(0<Z_U<\infty\) for differentiable strongly convex \(U\).
+
+\begin{leanbox}{Lean: \texttt{gibbsMeasure}}
+\leansource{\texttt{gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 34–35}
+\begin{leancode}
+\leanline{0}{def\ gibbsMeasure\ (U\ :\ H\ →\ ℝ)\ :\ Measure\ H\ :=}
+\leanline{2}{(gibbsPartition\ U)⁻¹\ •\ volume.withDensity\ (gibbsWeight\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Measure U} is \texttt{(gibbs\allowbreak{}Partition U)\ensuremath{{}^{-1}} \ensuremath{\bullet} volume.\allowbreak{}with\allowbreak{}Density (gibbs\allowbreak{}Weight U)}. For a measure \texttt{\ensuremath{\mu}} and \texttt{f : H \ensuremath{\to} \ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, \texttt{\ensuremath{\mu}.\allowbreak{}with\allowbreak{}Density f} is the measure \(A\mapsto\int_Af\,d\mu\) on measurable sets (Mathlib's \texttt{with\allowbreak{}Density\_\allowbreak{}apply}), so \texttt{volume.\allowbreak{}with\allowbreak{}Density (gibbs\allowbreak{}Weight U)} is \(\nu_U\). The operation \texttt{c \ensuremath{\bullet} \ensuremath{\mu}} multiplies a measure by a scalar \(c\in[0,\infty]\), and \texttt{\ensuremath{{}^{-1}}} is the inversion of \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, for which \(0^{-1}=\infty\) and \(\infty^{-1}=0\). The definition is therefore total, with exactly the conventions above; that it is a probability measure is the separate theorem \texttt{is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}gibbs\allowbreak{}Measure}.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of a radial Gaussian}{Integrability of a radial Gaussian}}
 
 
-For \(a>0\), \(e^{-a\|x\|^2}\) is Lebesgue integrable in finite dimension. The proof specializes the absolutely convergent Gaussian Fourier integral to real positive precision \(a\) and zero linear term, then takes the real part. The complex Gaussian integrand is the real embedding of the desired exponential, so the final simplification identifies the functions exactly. This also includes dimension zero.
+\textbf{Claim.} Let \(a>0\). Then the function \(x\mapsto e^{-a\|x\|^2}\) is Lebesgue integrable on \(H\): it is Borel measurable and \(\int_He^{-a\|x\|^2}\,dx<\infty\). This holds in every finite dimension \(d\), including \(d=0\).
 
 
 
-The one-dimensional Gaussian integral factors over an orthonormal coordinate system. Positive precision \(a\) makes each scalar integral finite, so the product integral is finite in every finite dimension.
 
+\textbf{Proof.} The function is continuous, hence Borel measurable, and it is positive, so integrability means finiteness of its integral. Choose an orthonormal basis \(e_1,\dots,e_d\) of \(H\) and let \(T:\mathbb R^d\to H\), \(T(t)=\sum_{i=1}^dt_ie_i\). The map \(T\) is a linear bijection, it satisfies \(\|T(t)\|^2=\sum_{i=1}^dt_i^2\) by orthonormality, and it carries Lebesgue measure on \(\mathbb R^d\) to Lebesgue measure on \(H\), since both are translation invariant and \(T\) maps the unit cube of \(\mathbb R^d\) onto the cube spanned by \(e_1,\dots,e_d\). By the change of variables \(x=T(t)\) and Tonelli's theorem for the nonnegative product function,
+
+
+\[\int_He^{-a\|x\|^2}\,dx=\int_{\mathbb R^d}e^{-a\sum_{i=1}^dt_i^2}\,dt=\int_{\mathbb R^d}\prod_{i=1}^de^{-at_i^2}\,dt=\prod_{i=1}^d\int_{\mathbb R}e^{-as^2}\,ds.\]
+
+
+Each one-dimensional factor is finite. Indeed \((|s|-1)^2\ge0\) gives \(s^2\ge2|s|-1\), hence \(e^{-as^2}\le e^{a}e^{-2a|s|}\) because \(a>0\), and
+
+
+\[\int_{\mathbb R}e^{-as^2}\,ds\le e^{a}\int_{\mathbb R}e^{-2a|s|}\,ds=2e^a\int_0^\infty e^{-2as}\,ds=\frac{e^a}{a}<\infty.\]
+
+
+(In fact the factor equals \(\sqrt{\pi/a}\), so the integral equals \((\pi/a)^{d/2}\).) A finite product of finite numbers is finite. For \(d=0\) the space is \(H=\{0\}\), Lebesgue measure is the unit mass at \(0\), the empty product equals \(1\), and the integral equals \(e^{0}=1\). The hypothesis \(a>0\) is necessary: for \(a\le0\) and \(d\ge1\) the integrand is at least \(1\) everywhere and the integral is infinite. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq}}
+\leansource{\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 38–43}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_exp\_neg\_mul\_norm\_sq\ (a\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ H\ ↦\ Real.exp\ (-a\ *\ ‖x‖\ \textasciicircum{}\ 2))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} takes \(a\) and \texttt{ha : 0 < a}. The statement \texttt{Integrable f volume} means that \(f\) is almost everywhere strongly measurable (for real functions: almost everywhere equal to a Borel function) and \(\int|f|\,dx<\infty\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hi} applies the Mathlib theorem \texttt{Gaussian\allowbreak{}Fourier.\allowbreak{}integrable\_\allowbreak{}cexp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}norm\_\allowbreak{}add}, which states that \(v\mapsto\exp(-b\|v\|^2+c\langle w,v\rangle)\) is integrable on a finite-dimensional inner product space for complex \(b\) with \(\operatorname{Re}b>0\). It is used with \(b=a\) (the hypothesis \(\operatorname{Re}b=a>0\) is discharged by \texttt{simpa} from \texttt{ha}), \(c=0\) and \(w=0\). Mathlib proves this theorem by transporting the integral to the coordinates of an orthonormal basis and reducing to a product of one-dimensional Gaussian integrals, which is the argument above. The suffix \texttt{.\allowbreak{}re} passes to the real part, which is integrable together with the complex function.
+
+\item The final \texttt{simpa} identifies the real part of \(\exp(-a\|x\|^2+0)\) with the real number \(e^{-a\|x\|^2}\): the coercion lemmas \texttt{Complex.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}pow}, \texttt{Complex.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}mul}, \texttt{Complex.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}neg} and \texttt{Complex.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}exp} rewrite the complex expression as the image of a real one, and \texttt{RCLike.\allowbreak{}re\_\allowbreak{}to\_\allowbreak{}complex} takes its real part.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{A quadratic lower bound on the potential}{A quadratic lower bound on the potential}}
 
 
-Apply the strong supporting-plane inequality at zero: \(U(x)\ge U(0)+\langle\nabla U(0),x\rangle+\frac m2\|x\|^2\). Cauchy–Schwarz and \(ab\le a^2/m+(m/4)b^2\), valid for \(m>0\), absorb the linear term. The result is \(U(x)\ge U(0)-\|\nabla U(0)\|^2/m+(m/4)\|x\|^2\). Completing the scalar square justifies the linear-term absorption.
+\textbf{Definitions.} Let \(m\in\mathbb R\). A function \(U:H\to\mathbb R\) is \(m\)-strongly convex if for all \(x,y\in H\) and all \(s,t\ge0\) with \(s+t=1\),
+
+
+\[U(sx+ty)\le sU(x)+tU(y)-st\,\frac m2\|x-y\|^2.\]
+
+
+If \(U\) is differentiable, its gradient \(\nabla U(x)\in H\) is the unique vector with \(\langle\nabla U(x),v\rangle=DU(x)v\) for all \(v\in H\), where \(DU(x)\) is the derivative of \(U\) at \(x\).
 
 
 
-Completing a scalar square bounds \(-\|\nabla U(0)\|\|x\|+(m/2)\|x\|^2\) below by \(-\|\nabla U(0)\|^2/m+(m/4)\|x\|^2\). The resulting quadratic coefficient remains positive.
 
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then for every \(x\in H\),
+
+
+\[U(0)-\frac{\|\nabla U(0)\|^2}{m}+\frac m4\|x\|^2\le U(x).\]
+
+
+\textbf{Proof.} A differentiable \(m\)-strongly convex function satisfies the strong first-order inequality \cite[Section~3.2.2]{LangevinLean2026ULASC}
+
+
+\[U(y)\ge U(z)+\langle\nabla U(z),y-z\rangle+\frac m2\|y-z\|^2\qquad(y,z\in H),\]
+
+
+which follows from the first-order inequality for the convex differentiable function \(U-\frac m2\|\cdot\|^2\). Taking \(z=0\) and \(y=x\) gives
+
+
+\[U(x)\ge U(0)+\langle\nabla U(0),x\rangle+\frac m2\|x\|^2.\qquad(1)\]
+
+
+Write \(g=\|\nabla U(0)\|\) and \(r=\|x\|\). By the Cauchy–Schwarz inequality \(|\langle\nabla U(0),x\rangle|\le gr\), hence
+
+
+\[\langle\nabla U(0),x\rangle\ge-gr.\qquad(2)\]
+
+
+Next, \(gr\le\frac m4r^2+\frac{g^2}m\). Since \(m>0\), this inequality is equivalent to the one obtained by multiplying both sides by \(m\), namely \(mgr\le\frac{m^2}4r^2+g^2\), and the latter holds because
+
+
+\[\frac{m^2}{4}r^2+g^2-mgr=\frac14\bigl(mr-2g\bigr)^2\ge0.\qquad(3)\]
+
+
+Combining (1), (2) and (3),
+
+
+\[U(x)\ge U(0)-gr+\frac m2r^2\ge U(0)-\frac m4r^2-\frac{g^2}m+\frac m2r^2=U(0)-\frac{g^2}m+\frac m4r^2,\]
+
+
+which is the claim. \(\square\)
+
+
+
+
+Half of the curvature \(m/2\) is used to absorb the linear term, and the remaining quadratic coefficient \(m/4\) is positive because \(m>0\). The origin plays no special role; it need not be a minimizer of \(U\).
+
+\begin{leanbox}{Lean: \texttt{strongConvex\_\allowbreak{}quadratic\_\allowbreak{}lower\_\allowbreak{}bound}}
+\leansource{\texttt{strongConvex\_\allowbreak{}quadratic\_\allowbreak{}lower\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 47–59}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvex\_quadratic\_lower\_bound}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (x\ :\ H)\ :}
+\leanline{4}{U\ 0\ -\ ‖gradient\ U\ 0‖\ \textasciicircum{}\ 2\ /\ m\ +\ m\ /\ 4\ *\ ‖x‖\ \textasciicircum{}\ 2\ ≤\ U\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{strong\allowbreak{}Convex\_\allowbreak{}quadratic\_\allowbreak{}lower\_\allowbreak{}bound} the hypotheses are \texttt{hm : 0 < m}, \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U} (\(U\) is differentiable at every point) and \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m U}. Mathlib's \texttt{Strong\allowbreak{}Convex\allowbreak{}On s m U} is the inequality of the definition above for points of the convex set \texttt{s}, here the whole space \texttt{Set.\allowbreak{}univ}. \texttt{gradient U 0} is \(\nabla U(0)\), the vector representing the derivative through the inner product. The prefix \texttt{omit [Measurable\allowbreak{}Space H] [Borel\allowbreak{}Space H] in} removes the measurability assumptions on \(H\), which this purely analytic statement does not need.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hs} is (1): the strong first-order inequality \texttt{strong\_\allowbreak{}first\_\allowbreak{}order hdiff hsc (0 : H) x}, proved in the strong-convexity module, at the base point \(0\); \texttt{simp only [sub\_\allowbreak{}zero]} replaces \(x-0\) by \(x\).
+
+\item \texttt{hip} is (2): \texttt{abs\_\allowbreak{}real\_\allowbreak{}inner\_\allowbreak{}le\_\allowbreak{}norm} is the Cauchy–Schwarz inequality \(|\langle u,v\rangle|\le\|u\|\|v\|\), and \texttt{neg\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}abs\_\allowbreak{}le} turns \(|a|\le b\) into \(-b\le a\).
+
+\item \texttt{hy} is the inequality \(gr\le\frac m4r^2+\frac{g^2}m\). \texttt{(mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}right\ensuremath{{}_{0}} hm).\allowbreak{}mp} reduces it to the same inequality multiplied on the left by \(m>0\). \texttt{hsq} is \((mr-2g)^2\ge0\), and \texttt{nlinarith} derives the multiplied inequality from \texttt{hsq} and the identity \((g^2/m)\,m=g^2\), which is \texttt{div\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}}} with \(m\ne0\). This is (3).
+
+\item The final \texttt{linarith} adds \texttt{hs}, \texttt{hip} and \texttt{hy}, as in the displayed chain.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of the Gibbs weight}{Integrability of the Gibbs weight}}
 
 
-Exponentiating the quadratic lower bound gives \(e^{-U(x)}\le e^{-U(0)+\|\nabla U(0)\|^2/m}e^{-(m/4)\|x\|^2}\). The right side is an integrable Gaussian multiple. Differentiability supplies continuity and measurability of the left side, so integrable domination transfers integrability from that explicit dominating function.
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then \(x\mapsto e^{-U(x)}\) is Lebesgue integrable on \(H\).
 
 
 
-The prefactor is independent of \(x\); all spatial decay lies in the Gaussian factor. Hence its integrability transfers directly to the Gibbs weight by domination, with no assumption that the origin minimizes the potential.
 
+\textbf{Proof.} Put \(C=\|\nabla U(0)\|^2/m-U(0)\), a real constant. Rearranging the quadratic lower bound of the previous step gives, for every \(x\in H\),
+
+
+\[-U(x)\le C-\frac m4\|x\|^2.\]
+
+
+The exponential function is increasing and \(e^{u+v}=e^ue^v\), so
+
+
+\[0<e^{-U(x)}\le e^{C-\frac m4\|x\|^2}=e^{C}\,e^{-\frac m4\|x\|^2}\qquad(x\in H).\qquad(1)\]
+
+
+By the radial Gaussian step with \(a=m/4>0\), the function \(x\mapsto e^{-(m/4)\|x\|^2}\) is integrable, and so is its product with the constant \(e^{C}\). A differentiable function is continuous, so \(x\mapsto e^{-U(x)}\) is continuous and therefore Borel measurable. Finally we use the domination principle: a measurable function \(f\) with \(|f|\le g\) pointwise, where \(g\) is integrable, is integrable, because \(\int|f|\,dx\le\int g\,dx<\infty\) by monotonicity of the integral. By (1) it applies to \(f=e^{-U}\) and \(g=e^Ce^{-(m/4)\|\cdot\|^2}\). \(\square\)
+
+
+
+
+The constant \(e^{C}\) does not depend on \(x\), and the origin need not minimize \(U\).
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strongConvex}}
+\leansource{\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strongConvex} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 62–76}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_exp\_neg\_of\_strongConvex}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ Real.exp\ (-U\ x))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex} has the hypotheses of the previous step and concludes \texttt{Integrable (fun x \ensuremath{\mapsto} Real.\allowbreak{}exp (-\allowbreak{}U x)) volume}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{let C := \ensuremath{\Vert}gradient U 0\ensuremath{\Vert} \textasciicircum{} 2 /\allowbreak{} m -\allowbreak{} U 0} is the constant \(C\).
+
+\item \texttt{hi} is the integrability of \(e^{C}e^{-(m/4)\|x\|^2}\): the radial Gaussian theorem \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} with \(a=m/4\) (positivity by \texttt{positivity}), multiplied by the constant \(e^C\) with \texttt{const\_\allowbreak{}mul}.
+
+\item \texttt{hi.\allowbreak{}mono'} is the domination principle: if \(g\) is integrable, \(f\) is almost everywhere strongly measurable and \(\|f\|\le g\) almost everywhere, then \(f\) is integrable. Measurability comes from continuity: \texttt{Real.\allowbreak{}continuous\_\allowbreak{}exp.\allowbreak{}comp hdiff.\allowbreak{}continuous.\allowbreak{}neg} is the continuity of \(x\mapsto e^{-U(x)}\), and \texttt{aestrongly\allowbreak{}Measurable} converts it.
+
+\item The pointwise bound (1) is proved for every \(x\) (\texttt{Filter.\allowbreak{}Eventually.\allowbreak{}of\_\allowbreak{}forall}). The rewriting removes the absolute value (\texttt{abs\_\allowbreak{}of\_\allowbreak{}pos} with \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos}) and merges \(e^Ce^{-(m/4)\|x\|^2}\) into one exponential (\texttt{Real.\allowbreak{}exp\_\allowbreak{}add}); \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp} reduces (1) to an inequality of exponents, which \texttt{linarith} derives from \texttt{hs}, the quadratic lower bound \texttt{strong\allowbreak{}Convex\_\allowbreak{}quadratic\_\allowbreak{}lower\_\allowbreak{}bound}.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The Gaussian weighted second moment}{The Gaussian weighted second moment}}
 
 
-For \(a>0\), split the Gaussian decay into two equal factors. The scalar function \(s\mapsto s e^{-(a/2)s}\) is bounded on \([0,\infty)\), so \(\|x\|^2e^{-a\|x\|^2}\le C_a e^{-(a/2)\|x\|^2}\). The remaining Gaussian is integrable; the proof checks measurability and nonnegativity before applying domination.
+\textbf{Claim.} Let \(a>0\). Then \(x\mapsto\|x\|^2e^{-a\|x\|^2}\) is Lebesgue integrable on \(H\).
 
 
 
-For \(s\ge0\), the maximum of \(s e^{-as/2}\) is finite. Taking \(s=\|x\|^2\) leaves an integrable factor \(e^{-a\|x\|^2/2}\), proving the polynomially weighted Gaussian tail claim.
 
+\textbf{Proof.} The function is continuous, hence measurable, and nonnegative. Fix \(x\in H\) and put \(s=\frac a2\|x\|^2\ge0\). The inequality \(1+u\le e^u\) for real \(u\) (the exponential lies above its tangent line at \(0\), by convexity) gives \(s\le s+1\le e^{s}\). Multiplying by \(e^{-a\|x\|^2}>0\),
+
+
+\[\frac a2\|x\|^2e^{-a\|x\|^2}\le e^{\frac a2\|x\|^2}e^{-a\|x\|^2}=e^{-\frac a2\|x\|^2}.\]
+
+
+Dividing by \(a/2>0\),
+
+
+\[0\le\|x\|^2e^{-a\|x\|^2}\le\frac2a\,e^{-\frac a2\|x\|^2}\qquad(x\in H).\qquad(1)\]
+
+
+The right-hand side of (1) is a constant multiple of the radial Gaussian with parameter \(a/2>0\), which is integrable by the radial Gaussian step. The domination principle (a measurable function bounded in absolute value by an integrable function is integrable) gives the claim. \(\square\)
+
+
+
+
+Half of the Gaussian decay absorbs the polynomial factor \(\|x\|^2\); the other half remains integrable.
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq}}
+\leansource{\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 79–97}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_norm\_sq\_mul\_exp\_neg\_mul\_norm\_sq\ (a\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ H\ ↦\ ‖x‖\ \textasciicircum{}\ 2\ *\ Real.exp\ (-a\ *\ ‖x‖\ \textasciicircum{}\ 2))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{hi} is the integrability of \((a/2)^{-1}e^{-(a/2)\|x\|^2}\), obtained from \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} with parameter \(a/2\) and the constant \((a/2)^{-1}=2/a\). \texttt{hi.\allowbreak{}mono'} applies domination; measurability is proved by \texttt{fun\_\allowbreak{}prop} (the integrand is built from continuous functions), and the pointwise bound is (1), proved for every \(x\).
+
+
+
+\begin{enumerate}
+
+
+\item After the absolute value is removed (\texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, the integrand being nonnegative), \texttt{(mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}left\ensuremath{{}_{0}} (show 0 < a /\allowbreak{} 2 by positivity)).\allowbreak{}mp} reduces (1) to the same inequality multiplied on the right by \(a/2>0\).
+
+\item The \texttt{calc} block proves the multiplied inequality. Its first line rearranges the product by \texttt{ring}. The second line is \(s\le e^s\) multiplied by \(e^{-a\|x\|^2}\ge0\) (\texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}), where \(s\le e^s\) follows by \texttt{linarith} from \texttt{Real.\allowbreak{}add\_\allowbreak{}one\_\allowbreak{}le\_\allowbreak{}exp}, the inequality \(u+1\le e^u\). The third line merges the exponentials (\texttt{Real.\allowbreak{}exp\_\allowbreak{}add}) and simplifies the exponent with \texttt{ring}. The last line writes \(e^{-(a/2)\|x\|^2}\) as \(\bigl((a/2)^{-1}e^{-(a/2)\|x\|^2}\bigr)\cdot(a/2)\), using \texttt{inv\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}}}.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The weighted Gibbs second moment}{The weighted Gibbs second moment}}
 
 
-Multiply the previous Gibbs Gaussian domination by \(\|x\|^2\). Its right side has the form \(C\|x\|^2e^{-(m/4)\|x\|^2}\), whose integrability was proved separately. The pointwise inequality uses \(\|x\|^2\ge0\), so multiplying it preserves order; this is the second-moment input for the normalized measure.
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then \(x\mapsto\|x\|^2e^{-U(x)}\) is Lebesgue integrable on \(H\).
 
 
 
-The squared norm is nonnegative, so multiplying the density domination preserves its direction. The resulting majorant is precisely the weighted Gaussian whose integrability has just been proved.
 
+\textbf{Proof.} With \(C=\|\nabla U(0)\|^2/m-U(0)\) as in the integrability step for the Gibbs weight, the quadratic lower bound gives \(-U(x)\le C-\frac m4\|x\|^2\), hence \(e^{-U(x)}\le e^{C-\frac m4\|x\|^2}\) because the exponential is increasing. Multiplying by \(\|x\|^2\ge0\) preserves this inequality, so for every \(x\in H\)
+
+
+\[0\le\|x\|^2e^{-U(x)}\le\|x\|^2e^{C-\frac m4\|x\|^2}=e^C\,\|x\|^2e^{-\frac m4\|x\|^2}.\]
+
+
+By the previous step with \(a=m/4>0\), the right-hand side is integrable. The left-hand side is continuous, as the product of the continuous functions \(x\mapsto\|x\|^2\) and \(x\mapsto e^{-U(x)}\) (\(U\) is continuous because it is differentiable), hence measurable. The domination principle gives the claim. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strongConvex}}
+\leansource{\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strongConvex} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 100–122}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_norm\_sq\_mul\_exp\_neg\_of\_strongConvex}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖x‖\ \textasciicircum{}\ 2\ *\ Real.exp\ (-U\ x))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex} repeats the pattern of \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex} with the same constant \texttt{C}. \texttt{hi} is the integrability of \(e^C\|x\|^2e^{-(m/4)\|x\|^2}\), namely \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} with \(a=m/4\) multiplied by \(e^C\). \texttt{hi.\allowbreak{}mono'} applies domination, with measurability given by the continuity of the product, \texttt{(continuous\_\allowbreak{}norm.\allowbreak{}pow 2).\allowbreak{}mul (Real.\allowbreak{}continuous\_\allowbreak{}exp.\allowbreak{}comp hdiff.\allowbreak{}continuous.\allowbreak{}neg)}. The \texttt{calc} block is the displayed chain: its first line multiplies the exponential bound by \(\|x\|^2\ge0\) (\texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left} with \texttt{sq\_\allowbreak{}nonneg}), the exponential bound itself coming from \texttt{strong\allowbreak{}Convex\_\allowbreak{}quadratic\_\allowbreak{}lower\_\allowbreak{}bound} through \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp} and \texttt{linarith}; the second line splits the exponential with \texttt{Real.\allowbreak{}exp\_\allowbreak{}add} and rearranges by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Strict positivity of the partition}{Strict positivity of the partition}}
 
 
-The continuous function \(e^{-U}\) is strictly positive everywhere. Its extended integral cannot vanish: a zero integral of a nonnegative measurable function would force it to vanish almost everywhere, contradicting positivity on a nonzero-volume open set. This proves \(0<Z_U\) without requiring an upper bound on \(Z_U\).
+\textbf{Claim.} Let \(U:H\to\mathbb R\) be differentiable. Then \(Z_U>0\). No convexity is assumed, and \(Z_U=\infty\) is allowed.
 
 
 
-Continuity and positivity at one point give a neighborhood on which the weight is bounded below by a positive constant. That neighborhood has positive Lebesgue volume, forcing the partition to be strictly positive.
 
+\textbf{Proof.} Since \(U\) is differentiable it is continuous, so \(w_U=e^{-U}\) is continuous and therefore Borel measurable. We use the following fact: for a Borel function \(f:H\to[0,\infty]\),
+
+
+\[\int_Hf\,dx>0\quad\Longleftrightarrow\quad\lambda(\{f\ne0\})>0.\]
+
+
+If \(\lambda(\{f\ne0\})=0\), then \(f=0\) almost everywhere and \(\int f\,dx=0\). Conversely, if \(\int f\,dx=0\), then for every \(n\ge1\) Markov's inequality gives \(\lambda(\{f>1/n\})\le n\int f\,dx=0\); since \(\{f\ne0\}=\bigcup_{n\ge1}\{f>1/n\}\), countable subadditivity gives \(\lambda(\{f\ne0\})=0\).
+
+
+
+
+For \(f=w_U\), every value \(e^{-U(x)}\) is strictly positive, so \(\{w_U\ne0\}=H\). Lebesgue measure on \(H\) is not the zero measure: it gives volume one to the cube spanned by an orthonormal basis (to \(H=\{0\}\) itself if \(d=0\)), so \(\lambda(H)\ge1>0\). By the fact above, \(Z_U=\int_Hw_U\,dx>0\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{gibbsPartition\_\allowbreak{}pos}}
+\leansource{\texttt{gibbsPartition\_\allowbreak{}pos} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 125–136}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsPartition\_pos\ (U\ :\ H\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ :}
+\leanline{4}{0\ <\ gibbsPartition\ U}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Partition\_\allowbreak{}pos} assumes only \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U}. After \texttt{unfold gibbs\allowbreak{}Partition gibbs\allowbreak{}Weight} the goal is the positivity of the lower integral of \(x\mapsto e^{-U(x)}\). The Mathlib lemma \texttt{lintegral\_\allowbreak{}pos\_\allowbreak{}iff\_\allowbreak{}support} states that for a measurable \(f\) with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, the integral \(\int f\,d\mu\) is positive if and only if \(\mu\) of \texttt{Function.\allowbreak{}support f} \(=\{f\ne0\}\) is positive; this is the fact proved above. Its measurability hypothesis is \texttt{(Real.\allowbreak{}continuous\_\allowbreak{}exp.\allowbreak{}comp hdiff.\allowbreak{}continuous.\allowbreak{}neg).\allowbreak{}measurable.\allowbreak{}ennreal\_\allowbreak{}of\allowbreak{}Real}: \(x\mapsto e^{-U(x)}\) is continuous, hence measurable, and remains measurable after \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}. \texttt{hs} proves that the support is \texttt{Set.\allowbreak{}univ}, using \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}pos} and \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos}. The final line, \texttt{Measure.\allowbreak{}measure\_\allowbreak{}univ\_\allowbreak{}pos.\allowbreak{}mpr (Ne\allowbreak{}Zero.\allowbreak{}ne \_\allowbreak{})}, proves \(\lambda(H)>0\) from the fact that \texttt{volume} is not the zero measure, which Mathlib provides as a \texttt{Ne\allowbreak{}Zero} instance for this Haar measure.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of the partition}{Finiteness of the partition}}
 
 
-Strong convexity with \(m>0\) has already given ordinary integrability of \(e^{-U}\). For a nonnegative integrable function its extended integral is finite. Unfolding the partition function identifies that integral exactly with \(Z_U\), proving the finiteness needed to divide by the partition.
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then \(Z_U<\infty\).
 
 
 
-For a nonnegative measurable function, ordinary integrability is equivalent to finiteness of its nonnegative extended integral. Applying this equivalence to the already dominated weight supplies the finite partition needed for normalization.
 
+\textbf{Proof.} By the integrability step for the Gibbs weight, \(e^{-U}\) is integrable, that is, \(\int_H|e^{-U(x)}|\,dx<\infty\). Since \(e^{-U(x)}\ge0\), we have \(|e^{-U(x)}|=e^{-U(x)}=w_U(x)\) for every \(x\), and therefore
+
+
+\[Z_U=\int_Hw_U(x)\,dx=\int_H\bigl|e^{-U(x)}\bigr|\,dx<\infty.\qquad\square\]\begin{leanbox}{Lean: \texttt{gibbsPartition\_\allowbreak{}ne\_\allowbreak{}top}}
+\leansource{\texttt{gibbsPartition\_\allowbreak{}ne\_\allowbreak{}top} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 139–145}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsPartition\_ne\_top}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{gibbsPartition\ U\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top} the conclusion \texttt{gibbs\allowbreak{}Partition U ≠ \ensuremath{\top}} says that \(Z_U\) is not the point \(\infty\) (written \texttt{\ensuremath{\top}}) of \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}. \texttt{hi} is the integrability of \(e^{-U}\) given by \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex}, and its component \texttt{hi.\allowbreak{}has\allowbreak{}Finite\allowbreak{}Integral} is the finiteness \(\int|e^{-U}|\,dx<\infty\). The Mathlib lemma \texttt{has\allowbreak{}Finite\allowbreak{}Integral\_\allowbreak{}iff\_\allowbreak{}of\allowbreak{}Real}, applied with the almost-everywhere nonnegativity \texttt{ae\_\allowbreak{}of\_\allowbreak{}all \_\allowbreak{} fun \_\allowbreak{} \ensuremath{\mapsto} Real.\allowbreak{}exp\_\allowbreak{}nonneg \_\allowbreak{}}, turns it into the finiteness of the lower integral of \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp (-\allowbreak{}U x))}, which is \(Z_U<\infty\); \texttt{ne\_\allowbreak{}of\_\allowbreak{}lt} gives \(Z_U\ne\infty\).
+\end{leanbox}
 
 \section{\texorpdfstring{The ordinary integral formula for the partition}{The ordinary integral formula for the partition}}
 
 
-Assume the Gibbs weight \(e^{-U}\) is measurable and integrable, as established from the preceding positive strong-convexity hypotheses. Since the weight is nonnegative, its nonnegative extended integral is finite and equals the ordinary Lebesgue integral. Thus the partition has the conventional formula
-
-\[Z_U=\int_H e^{-U(x)}dx<\infty.\]
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then the partition function equals the ordinary Lebesgue integral of the real-valued integrable function \(e^{-U}\),
 
 
-The equality is justified by the absolute integrability already proved, rather than by assigning a real value to a divergent integral. This same finite scalar can consequently be used in the normalized density and in ordinary weighted-integral formulas. Strict positivity, needed to divide by \(Z_U\), is supplied by the positive-weight argument.
+\[Z_U=\int_He^{-U(x)}\,dx,\]
 
+
+where the right-hand side is a nonnegative real number, regarded as an element of \([0,\infty)\).
+
+
+
+
+\textbf{Proof.} The integral of an integrable real function \(f\) is \(\int f^+\,dx-\int f^-\,dx\), with \(f^\pm=\max(\pm f,0)\), both terms being finite. By the integrability step for the Gibbs weight, \(f=e^{-U}\) is integrable, and \(f\ge0\) gives \(f^+=f\) and \(f^-=0\). Hence the real integral \(\int f\,dx\) equals the integral of the nonnegative function \(f\) taken in \([0,\infty]\), which is \(Z_U\). \(\square\)
+
+
+
+
+In particular the extended number \(Z_U\) is identified with a nonnegative real number, which gives a second proof of \(Z_U<\infty\).
+
+\begin{leanbox}{Lean: \texttt{gibbsPartition\_\allowbreak{}eq\_\allowbreak{}ofReal\_\allowbreak{}integral}}
+\leansource{\texttt{gibbsPartition\_\allowbreak{}eq\_\allowbreak{}ofReal\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 148–154}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsPartition\_eq\_ofReal\_integral}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{gibbsPartition\ U\ =\ ENNReal.ofReal\ (∫\ x,\ Real.exp\ (-U\ x)\ ∂volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Partition\_\allowbreak{}eq\_\allowbreak{}of\allowbreak{}Real\_\allowbreak{}integral} states \texttt{gibbs\allowbreak{}Partition U = ENNReal.\allowbreak{}of\allowbreak{}Real (\ensuremath{\int} x, Real.\allowbreak{}exp (-\allowbreak{}U x) \ensuremath{\partial}volume)}. Here \texttt{\ensuremath{\int} x, f x \ensuremath{\partial}volume} is Mathlib's (Bochner) integral of a real-valued function, which for integrable functions is the Lebesgue integral \(\int f^+-\int f^-\), and \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} embeds the nonnegative real result into \([0,\infty]\). The proof is the Mathlib lemma \texttt{of\allowbreak{}Real\_\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}of\allowbreak{}Real}: for an integrable, almost everywhere nonnegative real function \(f\), the real integral, embedded by \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}, equals the lower integral of \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (f x)}. Its two hypotheses are supplied by \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex} and by \texttt{ae\_\allowbreak{}of\_\allowbreak{}all \_\allowbreak{} fun \_\allowbreak{} \ensuremath{\mapsto} Real.\allowbreak{}exp\_\allowbreak{}nonneg \_\allowbreak{}}, and \texttt{.\allowbreak{}symm} reverses the equation.
+\end{leanbox}
 
 \section{\texorpdfstring{Positivity of the ordinary normalizer}{Positivity of the ordinary normalizer}}
 
 
-Suppose \(U\) is continuous and the preceding argument has established integrability of \(e^{-U}\). At any fixed point \(x_0\), the value \(e^{-U(x_0)}\) is strictly positive. Continuity therefore gives a neighborhood on which the weight is bounded below by a positive constant.
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then the real number \(\int_He^{-U(x)}\,dx\) is strictly positive.
 
 
 
-Such a neighborhood has positive Lebesgue volume, so its weighted integral is positive. Together with the finite partition formula this proves
 
-\[0<\int_H e^{-U(x)}dx=Z_U<\infty.\]
+\textbf{Proof.} The function \(f=e^{-U}\) is integrable, by the integrability step for the Gibbs weight, and nonnegative. For such \(f\), the real integral equals the integral of \(f\) as a nonnegative function (previous step), and the latter is strictly positive if and only if \(\lambda(\{f\ne0\})>0\) (the fact proved in the positivity step for \(Z_U\)). Every value of \(f\) is positive, so \(\{f\ne0\}=H\), and \(\lambda(H)>0\). Hence \(\int_He^{-U(x)}\,dx>0\). \(\square\)
 
 
-Both positivity and finiteness are now available before taking the reciprocal. Hence \(Z_U^{-1}e^{-U(x)}\) is an ordinary normalized probability density, and every later division by the normalizer is legitimate.
 
+
+Together with the two preceding steps this gives \(0<\int_He^{-U(x)}\,dx=Z_U<\infty\), so \(Z_U^{-1}e^{-U(x)}\) is a probability density with respect to Lebesgue measure.
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}pos}}
+\leansource{\texttt{integral\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}pos} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 157–161}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_exp\_neg\_pos}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{0\ <\ ∫\ x,\ Real.exp\ (-U\ x)\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}pos} is a direct application of the Mathlib lemma \texttt{integral\_\allowbreak{}exp\_\allowbreak{}pos}: for a measure \(\mu\) that is not zero (an instance of \texttt{Ne\allowbreak{}Zero}) and a real function \(f\) such that \(x\mapsto e^{f(x)}\) is \(\mu\)-integrable, the real integral \(\int e^{f}\,d\mu\) is positive. It is applied with \(f=-U\) and \(\mu\) equal to \texttt{volume}, and the integrability hypothesis is \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex}. Mathlib proves \texttt{integral\_\allowbreak{}exp\_\allowbreak{}pos} by the support argument above: the integral of an integrable nonnegative function is positive exactly when its support has positive measure, and the support of an exponential is the whole space.
+\end{leanbox}
 
 \section{\texorpdfstring{Normalization of the Gibbs probability}{Normalization of the Gibbs probability}}
 
 
-The mass of a density measure is its extended density integral. Pull the constant \(Z_U^{-1}\) out to get \(\pi_U(H)=Z_U^{-1}Z_U\). The proofs that \(Z_U\ne0\) and \(Z_U\ne\infty\) justify this product being one. This theorem constructs probability normalization rather than assuming normalization.
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then \(\pi_U\) is a probability measure: \(\pi_U(H)=1\).
 
 
 
-Evaluating the weighted measure on the whole space gives \(Z^{-1}Z\). Both factors are finite and \(Z>0\), so this product is one, proving normalization of the Gibbs measure defined by this density.
 
+\textbf{Proof.} By the definition of \(\pi_U\) and of the measure \(\nu_U\) with density \(w_U\), evaluated on the Borel set \(A=H\),
+
+
+\[\pi_U(H)=Z_U^{-1}\,\nu_U(H)=Z_U^{-1}\int_Hw_U(x)\,dx=Z_U^{-1}Z_U.\]
+
+
+In \([0,\infty]\) the identity \(c^{-1}c=1\) holds precisely for \(c\notin\{0,\infty\}\): for \(c=0\) the product is \(\infty\cdot0=0\), and for \(c=\infty\) it is \(0\cdot\infty=0\). By the positivity step \(Z_U\ne0\), and by the finiteness step \(Z_U\ne\infty\). Hence \(\pi_U(H)=1\). \(\square\)
+
+
+
+
+Positivity uses only the differentiability (through the continuity) of \(U\); finiteness is where strong convexity with \(m>0\) enters.
+
+\begin{leanbox}{Lean: \texttt{isProbabilityMeasure\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{isProbabilityMeasure\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 164–172}
+\begin{leancode}
+\leanline{0}{theorem\ isProbabilityMeasure\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{IsProbabilityMeasure\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}gibbs\allowbreak{}Measure} concludes \texttt{Is\allowbreak{}Probability\allowbreak{}Measure (gibbs\allowbreak{}Measure U)}, Mathlib's class of measures of total mass one; \texttt{constructor} reduces it to the equation \(\pi_U(H)=1\), where \texttt{Set.\allowbreak{}univ} is \(H\). The rewriting chain unfolds \texttt{gibbs\allowbreak{}Measure}, evaluates the scalar multiple (\texttt{Measure.\allowbreak{}smul\_\allowbreak{}apply}), evaluates the density measure on the measurable set \texttt{Set.\allowbreak{}univ} (\texttt{with\allowbreak{}Density\_\allowbreak{}apply \_\allowbreak{} Measurable\allowbreak{}Set.\allowbreak{}univ}), and replaces the integral over \texttt{Set.\allowbreak{}univ} by the integral over the space (\texttt{set\allowbreak{}LIntegral\_\allowbreak{}univ}); this is the displayed computation. \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel} proves \(c^{-1}c=1\) from \(c\ne0\) and \(c\ne\infty\); the first is \texttt{ne\_\allowbreak{}of\_\allowbreak{}gt (gibbs\allowbreak{}Partition\_\allowbreak{}pos U hdiff)}, the second \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top U m hm hdiff hsc}.
+\end{leanbox}
 
 \section{\texorpdfstring{The normalized Gibbs second moment}{The normalized Gibbs second moment}}
 
 
-Changing measure converts integrability under \(\pi_U\) to integrability of \(Z_U^{-1}e^{-U(x)}\|x\|^2\) under volume. The weighted second moment is already integrable, and the real normalizing factor is a finite scalar. The weighted-density theorem supplies the almost-everywhere measurability and finiteness hypotheses for this conversion.
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then the function \(x\mapsto\|x\|^2\) is integrable with respect to \(\pi_U\), that is, \(\int_H\|x\|^2\,\pi_U(dx)<\infty\).
 
 
 
-The weighted squared-norm integral is finite before dividing by the partition. Multiplication by the finite scalar \(Z^{-1}\) therefore gives a finite Gibbs second moment, establishing square-integrability of the state.
 
+\textbf{Proof.} First consider the measure \(\nu_U\) with density \(w_U\). For a Borel function \(\rho:H\to[0,\infty)\) and the measure \(\nu(A)=\int_A\rho\,dx\), every Borel \(\phi:H\to[0,\infty]\) satisfies
+
+
+\[\int\phi\,d\nu=\int\phi\,\rho\,dx:\]
+
+
+for indicator functions this is the definition of \(\nu\), for simple functions it follows by linearity, and for general \(\phi\) by monotone convergence along an increasing sequence of simple functions converging to \(\phi\). Consequently a measurable \(g\) is \(\nu\)-integrable if and only if \(\rho g\) is Lebesgue integrable, since \(\int|g|\,d\nu=\int\rho|g|\,dx\). We apply this with \(\rho=e^{-U}\), which is continuous (hence Borel) and finite everywhere, and \(g(x)=\|x\|^2\). The function \(\rho g=\|x\|^2e^{-U(x)}\) is Lebesgue integrable by the weighted Gibbs moment step, so \(\|x\|^2\) is \(\nu_U\)-integrable.
+
+
+
+
+Next, \(\pi_U=c\,\nu_U\) with \(c=Z_U^{-1}\). By the positivity step \(Z_U>0\), so \(c<\infty\). For every measurable \(g\), \(\int|g|\,d(c\nu_U)=c\int|g|\,d\nu_U\), which is finite when \(c<\infty\) and \(g\) is \(\nu_U\)-integrable. Therefore \(\|x\|^2\) is \(\pi_U\)-integrable, with
+
+
+\[\int_H\|x\|^2\,\pi_U(dx)=Z_U^{-1}\int_H\|x\|^2e^{-U(x)}\,dx.\qquad\square\]
+
+
+The second paragraph uses only the positivity of \(Z_U\); strong convexity enters through the integrability of \(\|x\|^2e^{-U(x)}\).
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 175–189}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_norm\_sq\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ H\ ↦\ ‖x‖\ \textasciicircum{}\ 2)\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gibbs\allowbreak{}Measure} concludes \texttt{Integrable (fun x : H \ensuremath{\mapsto} \ensuremath{\Vert}x\ensuremath{\Vert} \textasciicircum{} 2) (gibbs\allowbreak{}Measure U)}. The proof follows the two paragraphs.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hi} is the integrability with respect to \texttt{volume.\allowbreak{}with\allowbreak{}Density (gibbs\allowbreak{}Weight U)}, that is, \(\nu_U\). After \texttt{change} unfolds \texttt{gibbs\allowbreak{}Weight}, the Mathlib equivalence \texttt{integrable\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}smul'} is applied: for a measurable density \(f\) with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} that is finite almost everywhere, \(g\) is integrable with respect to \texttt{\ensuremath{\mu}.\allowbreak{}with\allowbreak{}Density f} if and only if \(x\mapsto f(x)g(x)\) is \(\mu\)-integrable, where \(f(x)\) is converted to a real number by \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real}. Its hypotheses are the measurability of \(x\mapsto e^{-U(x)}\) (from continuity) and the finiteness \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}lt\_\allowbreak{}top}. Then \texttt{simpa}, using \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real} with \(e^{-U}\ge0\) to recover the real number \(e^{-U(x)}\), closes the goal with \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex}.
+
+\item The last line multiplies the measure by \(Z_U^{-1}\): \texttt{hi.\allowbreak{}smul\_\allowbreak{}measure} preserves integrability under multiplication of the measure by a finite scalar, and \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}ne\_\allowbreak{}top.\allowbreak{}mpr} turns \(Z_U\ne0\), from \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}pos}, into \(Z_U^{-1}\ne\infty\).
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Square-integrability of the Gibbs state}{Square-integrability of the Gibbs state}}
 
 
-For the identity random variable, membership in \(L^2(\pi_U;H)\) is equivalent to integrability of \(\|x\|^2\). The identity is measurable, and the preceding weighted-moment theorem supplies the integral. The construction uses the \(p=2\) characterization of square-integrability, first applied to the measurable identity function.
+\textbf{Definition.} Let \(\mu\) be a measure on \(H\), \(E\) a finite-dimensional normed space and \(1\le p<\infty\). A function \(f:H\to E\) belongs to \(L^p(\mu;E)\) if it is \(\mu\)-almost everywhere equal to a Borel function and \(\int\|f\|^p\,d\mu<\infty\).
 
 
 
-Membership of the identity map in \(L^2(\pi_U)\) is exactly the finite second-moment statement. The identity is continuous and therefore measurable, supplying the other part of the membership criterion.
 
+\textbf{Claim.} Let \(m>0\) and let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. Then the identity map \(x\mapsto x\) of \(H\) belongs to \(L^2(\pi_U;H)\).
+
+
+
+
+\textbf{Proof.} The identity is continuous, hence Borel measurable. By the definition of \(L^2\) it remains to show that \(\int_H\|x\|^2\,\pi_U(dx)<\infty\), which is the previous step. \(\square\)
+
+
+
+
+In probabilistic language, a random vector with law \(\pi_U\) has a finite second moment.
+
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}id\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{memLp\_\allowbreak{}id\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 192–197}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_id\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{MemLp\ (fun\ x\ :\ H\ ↦\ x)\ 2\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Mem\allowbreak{}Lp f p \ensuremath{\mu}} is Mathlib's statement \(f\in L^p(\mu)\): \texttt{f} is almost everywhere strongly measurable and its \(L^p\) seminorm is finite. The proof applies \texttt{mem\allowbreak{}Lp\_\allowbreak{}two\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}sq\_\allowbreak{}norm}, which states that for an almost everywhere strongly measurable \(f\), \texttt{Mem\allowbreak{}Lp f 2 \ensuremath{\mu}} holds if and only if \(x\mapsto\|f(x)\|^2\) is \(\mu\)-integrable. Measurability of the identity is proved by \texttt{fun\_\allowbreak{}prop}, and the integrability is \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gibbs\allowbreak{}Measure}.
+\end{leanbox}
 
 \section{\texorpdfstring{Square-integrability after translation}{Square-integrability after translation}}
 
 
-Since \(\pi_U\) is a probability, the constant map \(x\mapsto z\) belongs to \(L^2\). Subtract it from the identity, already in \(L^2(\pi_U)\), to obtain \(x\mapsto x-z\in L^2(\pi_U)\). This is a moment assertion for every chosen center, without requiring that the center minimize the potential.
+\textbf{Claim.} Let \(m>0\), let \(U:H\to\mathbb R\) be differentiable and \(m\)-strongly convex, and let \(z\in H\). Then \(x\mapsto x-z\) belongs to \(L^2(\pi_U;H)\); equivalently \(\int_H\|x-z\|^2\,\pi_U(dx)<\infty\).
 
 
 
-Use \(\|x-a\|^2\le2\|x\|^2+2\|a\|^2\). The first term has finite Gibbs integral and the second is a constant integrated against a probability measure, so every fixed translation is square-integrable.
 
+\textbf{Proof.} By the normalization step, \(\pi_U\) is a probability measure, in particular a finite measure. The constant map \(x\mapsto z\) is measurable and \(\int\|z\|^2\,d\pi_U=\|z\|^2\pi_U(H)=\|z\|^2<\infty\), so it belongs to \(L^2(\pi_U;H)\). The identity belongs to \(L^2(\pi_U;H)\) by the previous step. The set \(L^2(\pi_U;H)\) is closed under subtraction: the difference of measurable maps is measurable, and by Minkowski's inequality \(\|f-g\|_{L^2}\le\|f\|_{L^2}+\|g\|_{L^2}<\infty\). Hence \(x\mapsto x-z\) belongs to \(L^2(\pi_U;H)\). \(\square\)
+
+
+
+
+The centre \(z\) is arbitrary, for example a minimizer of \(U\); no property of \(z\) is used.
+
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}sub\_\allowbreak{}const\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{memLp\_\allowbreak{}sub\_\allowbreak{}const\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Gibbs.lean, lines 200–205}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_sub\_const\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (z\ :\ H)\ :}
+\leanline{4}{MemLp\ (fun\ x\ :\ H\ ↦\ x\ -\ z)\ 2\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{mem\allowbreak{}Lp\_\allowbreak{}sub\_\allowbreak{}const\_\allowbreak{}gibbs\allowbreak{}Measure}, the line \texttt{have := is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}gibbs\allowbreak{}Measure U m hm hdiff hsc} makes the normalization available as an instance, which \texttt{mem\allowbreak{}Lp\_\allowbreak{}const z} needs: constants belong to \(L^p\) of a finite measure. The term \texttt{(mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure U m hm hdiff hsc).\allowbreak{}sub (mem\allowbreak{}Lp\_\allowbreak{}const z)} is the closure of \(L^2\) under subtraction (Mathlib's \texttt{Mem\allowbreak{}Lp.\allowbreak{}sub}, proved from the triangle inequality for the \(L^p\) seminorm) applied to the identity and the constant \(z\).
+\end{leanbox}
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
 
 \end{document}

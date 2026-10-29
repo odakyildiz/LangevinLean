@@ -2735,6 +2735,18 @@ def exact_header(path, name, sources, parsed, page):
     return shared + rendered
 
 
+def statement_code(path, name, sources, parsed, page, prefix):
+    """The exact statement of a declaration (definitions in full), with identifiers unique to ``prefix``."""
+    decl = parsed[path][name]
+    if decl['kind'] in ('structure', 'inductive', 'def', 'abbrev'):
+        rendered = code(path, decl['start'], decl['end'], sources, page, 'contract', name)
+    else:
+        rows = sources[path].splitlines()
+        rows[decl['marker'] - 1] = header_lines(sources[path], decl)[-1]
+        rendered = code(path, decl['start'], decl['marker'], {path: '\n'.join(rows)}, page, 'statement', name)
+    return re.sub(r'\bid="([^"]+)"', lambda match: f'id="{prefix}-{match[1]}"', rendered)
+
+
 def source_docstring(source, start):
     prefix = "\n".join(source.splitlines()[:start - 1])
     match = re.search(r"/--([\s\S]*?)-/\s*$", prefix)
@@ -3353,31 +3365,75 @@ def technical_document(sources, parsed, math):
     body += '<pre class="commands"><code>lake build PBGSO\nlake env lean PBGSO/Check.lean\npython3 -B docs/build_site.py\npython3 -B scripts/verify-pbgso.py\npython3 -B scripts/verify-pbgso.py --require-complete</code></pre>'
     body += '<p>Lean checks the formal proofs. The default PBGSO verifier checks source hashes, every displayed declaration, exact assumption inventory, source-result coverage, local links and regeneration. Its successful run certifies documentation fidelity, not completion of all paper theorems. The strict <code>--require-complete</code> command rejects any open source-result, actual method-bound or required bridge obligation. Its source correspondence uses the documented SDE meaning of A2 and ordinary finite signed-work convention for the constant-diffusion source2 branch; an extended-negative-work theorem is not claimed. The audit file exposes logical axioms separately from analytic theorem premises. This source-based development has no proof PDF export.</p></section>'
     from report_citations import citation_panel
-    body += citation_panel(None, None, None, page)
-    return shell(page, 'PBGSO proof details and complete catalog', render_prose_math(body, math), 'PBGSO')
+    from separate_reports import report_revision
+    body += citation_panel('PBGSO', 'Particle-based Generalised Stochastic Optimisation', report_revision('PBGSO'), page)
+    return shell(page, 'PBGSO proof details and complete catalog', render_prose_math(body, math))
 
 
-def module_document(path, sources, parsed, math):
+def load_notes(library):
+    """Authored mathematics for the roadmap modules of a separately generated development."""
+    path = ROOT / library / 'exposition/module_notes.json'
+    return json.loads(path.read_text()) if path.is_file() else {}
+
+
+def authored_steps(path, note, sources, parsed, page, math):
+    """Paired mathematics and Lean for the authored steps of one module."""
+    from build_site import lean_logic, proof_source_links
+    body = '<section class="section" id="proof"><h2>Statement and proof</h2>'
+    for i, step in enumerate(note['steps'], 1):
+        cards = ''.join(code(path, parsed[path][n]['start'], parsed[path][n]['end'], sources, page,
+                             name=n, identifier=anchor(n)) for n in step['declarations'])
+        body += (f'<article class="proof-step" id="step-{i}"><h3><span class="step-number">{i:02}</span>'
+                 f'{E(step["title"])} <a class="permalink" href="#step-{i}" aria-label="Link to proof step {i}">§</a></h3>'
+                 '<div class="pair"><div class="math-pane"><div class="pane-label">Mathematical statement and proof</div>'
+                 + math(proof_source_links(step['body'], path, step['declarations'], sources, parsed))
+                 + '</div><div class="lean-pane">' + lean_logic(step, path, page, sources, parsed, math)
+                 + '<div class="pane-label">Exact Lean · complete declarations</div>' + cards + '</div></div></article>')
+    return body + '</section>'
+
+
+def step_anchor(path, name, notes):
+    """The authored step explaining a declaration, or the declaration itself."""
+    for i, step in enumerate(notes.get(path, {}).get('steps', []), 1):
+        if name in step['declarations']:
+            return f'step-{i}'
+    return anchor(name)
+
+
+def module_document(path, sources, parsed, math, notes=None, revision=''):
     from math_notation import display_docstring
     page = proof_page(path)
     title, summary, scope = module_note(path)
+    note = (notes or {}).get(path)
+    explained = {name for step in (note or {}).get('steps', []) for name in step['declarations']}
     body = (f'<div class="breadcrumb"><a href="{relative(OVERVIEW,page)}">PBGSO overview</a> / {E(path)}</div>'
-            f'<header class="hero module-hero"><div class="eyebrow">Exact declarations · explicit assumptions</div><h1>{E(title)}</h1>'
-            f'<p>{E(summary)}</p><p class="correspondence-note"><strong>Assumptions and formal scope.</strong> {E(scope)}</p>'
+            f'<header class="hero module-hero"><div class="eyebrow">'
+            + ('Module proof · Mathematics alongside Lean' if note else 'Exact declarations · explicit assumptions')
+            + f'</div><h1>{E(note["title"] if note else title)}</h1>'
+            + (math(note['summary']) if note else f'<p>{E(summary)}</p>')
+            + f'<p class="correspondence-note"><strong>Assumptions and formal scope.</strong> {E(scope)}</p>'
             f'<p><a href="{relative(path,page)}">Lean source</a> · <a href="{relative("PBGSO/exposition/assumption_inventory.json",page)}">Exact assumption inventory</a></p></header>' + toolbar())
-    body += '<section class="section" id="declarations"><h2>Definitions and complete proofs</h2><p>Each box reproduces the complete current declaration. Shared typeclasses, variables and namespace context are in the complete module below. Analytic premises in these signatures are assumptions of that theorem.</p>'
-    for name, decl in parsed[path].items():
-        description = source_docstring(sources[path], decl['start'])
-        body += f'<article class="proof-step" id="{anchor(name)}"><h3>{E(name)}</h3><div class="pair"><div class="math-pane"><div class="pane-label">Mathematical role and assumptions</div>'
-        body += '<p>' + math(display_docstring(description or 'Supporting declaration. The exact signature and complete source specify its quantified inputs and conclusion.')) + '</p>'
-        body += '<p>Read this statement with the module assumption note above. The complete proof appears alongside it; the full source preserves every shared variable and typeclass.</p></div><div class="lean-pane">'
-        body += code(path, decl['start'], decl['end'], sources, page, 'declaration', name)
-        body += '</div></div></article>'
-    body += '</section><details class="source-section" id="complete-source"><summary>Complete Lean source, imports and shared assumptions</summary>'
+    if note:
+        body += authored_steps(path, note, sources, parsed, page, math)
+    remaining = [(name, decl) for name, decl in parsed[path].items() if name not in explained]
+    if remaining:
+        heading = 'Further declarations in this module' if note else 'Definitions and complete proofs'
+        body += (f'<section class="section" id="declarations"><h2>{heading}</h2><p>Each box reproduces the complete current declaration. '
+                 'Shared typeclasses, variables and namespace context are in the complete module below. '
+                 'Analytic premises in these signatures are assumptions of that theorem.</p>')
+        for name, decl in remaining:
+            description = source_docstring(sources[path], decl['start'])
+            body += f'<article class="proof-step" id="{anchor(name)}"><h3>{E(name)}</h3><div class="pair"><div class="math-pane"><div class="pane-label">Mathematical role and assumptions</div>'
+            body += '<p>' + math(display_docstring(description or 'Supporting declaration. The exact signature and complete source specify its quantified inputs and conclusion.')) + '</p>'
+            body += '<p>Read this statement with the module assumption note above. The complete proof appears alongside it; the full source preserves every shared variable and typeclass.</p></div><div class="lean-pane">'
+            body += code(path, decl['start'], decl['end'], sources, page, 'declaration', name)
+            body += '</div></div></article>'
+        body += '</section>'
+    body += '<details class="source-section" id="complete-source"><summary>Complete Lean source, imports and shared assumptions</summary>'
     body += code(path,1,len(sources[path].splitlines()),sources,page,'module') + '</details>'
     from report_citations import citation_panel
-    body += citation_panel(None, None, None, page)
-    return shell(page, title, render_prose_math(body, math), 'PBGSO')
+    body += citation_panel('PBGSO', 'Particle-based Generalised Stochastic Optimisation', revision, page)
+    return shell(page, note['title'] if note else title, render_prose_math(body, math))
 
 
 def outputs():
@@ -3388,14 +3444,16 @@ def outputs():
         math_inputs.append(text)
         return text
     # Collect the exact overview prose, including the inline theorem panels.
+    from separate_reports import report_revision
+    notes, revision = load_notes('PBGSO'), report_revision('PBGSO')
     overview_document(sources, parsed, collect_math)
     technical_document(sources, parsed, collect_math)
     for path in sources:
-        module_document(path, sources, parsed, collect_math)
+        module_document(path, sources, parsed, collect_math, notes, revision)
     math = HELPERS.render_mathematics(math_inputs)
     result = {OVERVIEW: overview_document(sources, parsed, math),
               CATALOG: technical_document(sources, parsed, math)}
-    result.update({proof_page(path): module_document(path, sources, parsed, math) for path in sources})
+    result.update({proof_page(path): module_document(path, sources, parsed, math, notes, revision) for path in sources})
     result['PBGSO/exposition/assumption_inventory.json'] = json.dumps(
         assumption_inventory(sources, parsed), indent=2, ensure_ascii=False) + '\n'
     return result
@@ -3407,7 +3465,8 @@ def authoring_inputs():
             'scripts/check-pbgso-standalone.py',
             'docs/test_pbgso_landing.py', 'docs/test_pbgso_headers.py',
             'scripts/verify-pbgso.py', 'PBGSO/README.md',
-            'PBGSO/exposition/source_audit.md', 'PBGSO/exposition/reference_audit.json'] + list(sources) + sorted(
+            'PBGSO/exposition/source_audit.md', 'PBGSO/exposition/reference_audit.json',
+            'PBGSO/exposition/module_notes.json', 'PBGSO/exposition/argument.json'] + list(sources) + sorted(
                 p.relative_to(ROOT).as_posix() for p in (ROOT/'standalone/PBGSO').glob('*.lean'))
 
 

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,19 @@ The actual constant-step Gaussian LMC marginals then satisfy, also for arbitrary
 
 For each positive \(\varepsilon\), the definition of Wasserstein distance supplies a finite initial coupling with cost at most \(W_{2}+\varepsilon\). Nonnegative quadratic and linear coefficients allow both powers of that cost to be replaced by \(W_{2}+\varepsilon\). The resulting polynomial upper bound is continuous as \(\varepsilon\) decreases to zero. Passing to this limit proves the exact quadratic-plus-linear estimate in the actual Wasserstein distance without assuming that any optimal coupling exists.
 
+\begin{leanbox}{Lean: \texttt{quadratic\_\allowbreak{}linear\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings}}
+\leansource{\texttt{quadratic\_\allowbreak{}linear\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} \quad AverageLMC/\allowbreak{}LaplacianTheorem.lean, lines 12–41}
+\begin{leancode}
+\leanline{0}{theorem\ quadratic\_linear\_bound\_of\_finite\_couplings\ \{E\ :\ Type*\}}
+\leanline{4}{[NormedAddCommGroup\ E]\ [MeasurableSpace\ E]\ (μ\ π\ :\ Measure\ E)\ (r\ a\ b\ c\ :\ ℝ)}
+\leanline{4}{(ha\ :\ 0\ ≤\ a)\ (hb\ :\ 0\ ≤\ b)\ (hfinite\ :\ wasserstein2\ μ\ π\ ≠\ ⊤)}
+\leanline{4}{(hfamily\ :\ ∀\ γ\ :\ Coupling\ μ\ π,\ couplingCost\ γ.joint\ ≠\ ⊤\ →}
+\leanline{6}{r\ ≤\ a\ *\ (couplingCost\ γ.joint).toReal\ \textasciicircum{}\ 2\ +\ b\ *\ (couplingCost\ γ.joint).toReal\ +\ c)\ :}
+\leanline{4}{r\ ≤\ a\ *\ wasserstein2Real\ μ\ π\ \textasciicircum{}\ 2\ +\ b\ *\ wasserstein2Real\ μ\ π\ +\ c}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{quadratic\_\allowbreak{}linear\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} first obtains \texttt{hw}, nonnegativity of the real transport distance. For each positive \texttt{\ensuremath{\varepsilon}}, \texttt{heps} selects a finite-cost plan whose cost lies below that distance plus \texttt{\ensuremath{\varepsilon}} and applies the assumed planwise polynomial inequality. Nonnegativity of the quadratic and linear coefficients permits this enlargement. \texttt{hlim} proves convergence of that polynomial as \texttt{\ensuremath{\varepsilon}} tends to zero from the right, and \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto} passes the bound to the limit.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -44,6 +80,22 @@ Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[S
 
 Finite initial transport propagates along the actual constant-step Gaussian LMC laws. At every step, use the canonical coupling estimate and the quadratic-plus-linear infimum theorem to obtain the scalar recurrence for their actual Wasserstein errors. Strong convexity and coordinate smoothness give \(m\le M_{\mathrm{av}}\le L\). Split \(\sqrt{M_{\mathrm{av}}p}\) into \(\sqrt{M_{\mathrm{av}}}\sqrt p\) and apply the proved recurrence with \(A=\sqrt{M_{\mathrm{av}}}\), \(\delta =M_\Delta\) and \(S=\sqrt p\). Its invariant floor is exactly \((2L\sqrt{M_{\mathrm{av}}}+M_\Delta )h\sqrt p/m\), while its transient is \((1-mh)^{k}\) times the true initial distance. The constant-schedule law identity converts the recursive marginals to iteration of the actual Gaussian transition.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}laplacian}}
+\leansource{\texttt{lmc\_\allowbreak{}laplacian} \quad AverageLMC/\allowbreak{}LaplacianTheorem.lean, lines 45–84}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_laplacian\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(hsmall\ :\ h\ *\ (L\ :\ ℝ)\ <\ 1)\ (Mdelta\ :\ ℝ)\ (hMdelta\ :\ 0\ ≤\ Mdelta)}
+\leanline{4}{(hδ\ :\ LaplacianSmooth\ f\ Mdelta)\ (μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ ((ulaLawStep\ f\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ f)\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ k\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ +}
+\leanline{6}{(2\ *\ (L\ :\ ℝ)\ *\ Real.sqrt\ (averageSmoothness\ f)\ +\ Mdelta)\ *\ h\ *\ Real.sqrt\ p\ /\ m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}stationary\_\allowbreak{}gradient\_\allowbreak{}pairing\_\allowbreak{}bound} bounds the cross term with the actual stationary diffusion and the stated gradient-of-Laplacian assumption. \texttt{lp\_\allowbreak{}laplacian\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}bound} combines that pairing with the local integral remainder and gradient-step contraction. \texttt{laplacian\_\allowbreak{}recurrence\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}global\_\allowbreak{}defect} iterates the resulting quadratic-plus-linear scalar estimate. The final theorem \texttt{lmc\_\allowbreak{}laplacian} obtains the required finite-distance recurrence for the actual Gaussian laws and simplifies its constant using the exact Gibbs score moment bound.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
@@ -53,15 +105,30 @@ Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[S
 
 The manuscript uses the strict step range \(hL<1\). Together with \(m\le L\) this makes \(1-mh\) strictly positive, so its \(k\)th power is positive for every \(k\). An infinite initial extended Wasserstein distance therefore gives an infinite right side, proving that case immediately. For finite initial distance, the actual-law theorem and derived finite output transport convert back to the extended nonnegative inequality. Thus the final statement imposes no independent initial second-moment assumption.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}laplacian\_\allowbreak{}extended}}
+\leansource{\texttt{lmc\_\allowbreak{}laplacian\_\allowbreak{}extended} \quad AverageLMC/\allowbreak{}LaplacianTheorem.lean, lines 88–111}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_laplacian\_extended\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(hsmall\ :\ h\ *\ (L\ :\ ℝ)\ <\ 1)\ (Mdelta\ :\ ℝ)\ (hMdelta\ :\ 0\ ≤\ Mdelta)}
+\leanline{4}{(hδ\ :\ LaplacianSmooth\ f\ Mdelta)\ (μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ ((ulaLawStep\ f\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ f)\ ≤}
+\leanline{6}{ENNReal.ofReal\ ((1\ -\ m\ *\ h)\ \textasciicircum{}\ k)\ *\ wasserstein2\ μ\ (gibbsMeasure\ f)\ +}
+\leanline{6}{ENNReal.ofReal\ ((2\ *\ (L\ :\ ℝ)\ *\ Real.sqrt\ (averageSmoothness\ f)\ +\ Mdelta)\ *\ h\ *\ Real.sqrt\ p\ /\ m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hq} proves strict positivity of the contraction base from \texttt{hsmall} and \(m\le L\). The proof splits \texttt{hi}, the infinite-initial-distance case. That branch simplifies because multiplication by the positive geometric factor preserves infinity. In the finite branch \texttt{ho} derives finite output distance, \texttt{hb} lifts \texttt{lmc\_\allowbreak{}laplacian} through \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}, and \texttt{hconst} and \texttt{hprod} justify splitting the nonnegative sum and product. The final rewrites recover both actual extended distances from their real values.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

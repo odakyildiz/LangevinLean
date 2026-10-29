@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,95 +39,316 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-An estimate for one coupling must eventually be optimized over all initial couplings. Its numerical output law must therefore be independent of that choice. This section proves that independence for the KLMC chain. For every coupling \(c\) of the initial position law \(\mu\) and reference law \(\pi\), the sample measure is explicitly \(c\otimes Q\), where \(Q\) supplies the common initial velocity and all phase innovations. The velocity and position components of each innovation stay together, so their correlation is preserved. No convergence or stationary-reference assumption enters these law identities.
+Let \(H\) be a separable real Hilbert space with its Borel \(\sigma\)-algebra, \(\mu\) a probability measure on \(H\) (the law of the initial position) and \(\pi\) a measure on \(H\) with \(\int\|y\|^2\,\pi(dy)<\infty\) (the reference law). A coupling of \(\mu\) and \(\pi\) is a measure \(c\) on \(H\times H\) whose image under \((x,y)\mapsto x\) is \(\mu\) and whose image under \((x,y)\mapsto y\) is \(\pi\); its cost is \(\bigl(\int\|x-y\|^2\,c(dx\,dy)\bigr)^{1/2}\in[0,\infty]\), and the Wasserstein distance \(W_2(\mu,\pi)\) is the infimum of these costs over all couplings. The randomness of the algorithm is carried by a probability space \((S,Q)\) (the source), on which are given an initial velocity \(V:S\to H\) and innovations \(W_k=(W_k^{(1)},W_k^{(2)}):S\to H\times H\), \(k\in\mathbb N\), with \(V,W_k^{(1)},W_k^{(2)}\) square integrable.
 
 
 
-The numerical law is fixed independently of an initial transport plan. Exact source projections and representative identities then show that every coupling construction used in analysis has that same output marginal.
+
+The KLMC step with force \(\nabla f\), friction \(\gamma\) and step \(h\) is
+
+
+\[\Psi\bigl((v,x),\xi\bigr)=\Bigl(\psi_0(h)v-\psi_1(h)\nabla f(x)+\sqrt{2\gamma}\,\xi_1,\ x+\psi_1(h)v-\psi_2(h)\nabla f(x)+\sqrt{2\gamma}\,\xi_2\Bigr),\]
+
+
+with \(\psi_0(t)=e^{-\gamma t}\), \(\psi_{k+1}(t)=\int_0^t\psi_k\). Let \(\Phi_n(x,s)\) be the position after \(n\) steps of the recursion \(z_{k+1}=\Psi(z_k,W_k(s))\) started at \(z_0=(V(s),x)\), and let \(\nu_n\) be the image of \(\mu\otimes Q\) under \(\Phi_n\): this is the law of the \(n\)-th KLMC position when the initial position is drawn from \(\mu\) independently of the source.
+
+
+
+
+The error analysis is carried out, for each coupling \(c\), on the extension \(P_c=c\otimes Q\) on \((H\times H)\times S\), with square-integrable random variables. The module proves that the position of the KLMC chain computed on this extension has law \(\nu_n\), whatever the coupling \(c\). This is what allows the transport estimate obtained for one coupling to be minimised over all couplings, which turns it into a bound on \(W_2(\nu_n,\pi)\). No Gaussian assumption on the innovations is needed for these identities.
 
 
 
 Earlier results used here: \cite[Section~3.23]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Build velocity and innovations on each product extension}{Build velocity and innovations on each product extension}}
+\section{\texorpdfstring{Velocity and innovations on each product extension}{Velocity and innovations on each product extension}}
 
 
-The initial coupling has a probability first marginal, hence its joint measure is a probability measure. Its product with the fixed probability source \(Q\) is therefore a probability measure; its total mass is the product of the two unit masses. Pull the source velocity \(V\) back through the second projection and take its constructed \(L^{2}\) class. Do the same separately for the two components of each supplied phase innovation \(W_n\). Both use the same source point. This gives the pair of \(L^{2}\) classes needed by the kinetic analysis without assuming that velocity and position noise are independent. The two innovation components retain their joint source distribution.
+\textbf{Claim.} Let \(c\) be a coupling of the probability measure \(\mu\) and of \(\pi\). Then \(P_c=c\otimes Q\) is a probability measure on \((H\times H)\times S\). Write its points as \(\omega=((x,y),s)\). The maps
 
 
-
-The initial position coupling and the specified Gaussian/\allowbreak{}Brownian source are independent product factors. Pulling source variables onto this extension preserves their moments and joint laws. Both numerical and reference paths can therefore use the same source while retaining their prescribed initial marginals.
-
+\[\omega\mapsto V(s),\qquad\omega\mapsto W_k^{(1)}(s),\qquad\omega\mapsto W_k^{(2)}(s)\]
 
 
-Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.23.4]{LangevinLean2026ULASC}.
-
-\section{\texorpdfstring{The chosen \(L^{2}\) representatives almost everywhere}{The chosen L² representatives almost everywhere}}
-
-
-The constructed \(L^p\) representative equals the original pulled-back random variable almost everywhere. For velocity this is the existing product-noise representative theorem. For a phase innovation, intersect the two full-measure sets for its components and combine the velocity and position equalities. Thus the \(L^{2}\) pair represents precisely \(W_n(s)\), including all its correlation. This is an almost-everywhere equality of random variables, not a comparison of moments or covariances.
+belong to \(L^2(P_c;H)\) for every \(k\), and so define elements of this Hilbert space: the extended initial velocity \(\bar V\) and the extended innovations \(\bar W_k=(\bar W_k^{(1)},\bar W_k^{(2)})\).
 
 
 
-A square-integrable equivalence class has many pointwise representatives, but any two agree outside a null set. The coordinate and innovation identities are therefore stated almost everywhere. Their finite intersections suffice at each fixed iteration to identify the random update.
+
+\textbf{Proof.} The image of \(c\) under the first projection is \(\mu\), so \(c(H\times H)=\mu(H)=1\). A product of two probability measures is a probability measure, since \((c\otimes Q)\bigl((H\times H)\times S\bigr)=c(H\times H)\,Q(S)=1\). The projection \(\omega\mapsto s\) maps \(P_c\) to \(Q\) (the first factor has mass one), so by the change-of-variables formula \(\int\|V(s)\|^2\,P_c(d\omega)=\int\|V\|^2\,dQ<\infty\); the composed map is measurable up to a null set because \(V\) is. The same argument applies to each component of each \(W_k\). \(\square\)
 
 
 
-Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.23.5]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Define one numerical output law from initialization and fixed source}{Define one numerical output law from initialization and fixed source}}
+The two components of \(\bar W_k\) are built from the same source point \(s\), so the joint law of \((W_k^{(1)},W_k^{(2)})\), in particular the correlation between velocity and position innovations prescribed by the KLMC covariance matrix, is preserved. The initial velocity is the same random variable for every coupling and is independent of the initial positions under \(P_c\).
+
+\begin{leanbox}{Lean: \texttt{extensionProbability}, \texttt{extensionVelocity}, \texttt{extensionInnovation}}
+\leansource{\texttt{extensionProbability} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 21–22}
+\begin{leancode}
+\leanline{0}{local\ instance\ extensionProbability\ (c\ :\ ULA.Coupling\ μ\ π)\ :}
+\leanline{4}{IsProbabilityMeasure\ (ULA.initialExtension\ c\ Q)\ :=\ ULA.initialExtension\_isProbabilityMeasure\ c\ Q}
+\end{leancode}
+\leansource{\texttt{extensionVelocity} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 25–27}
+\begin{leancode}
+\leanline{0}{def\ extensionVelocity\ (c\ :\ ULA.Coupling\ μ\ π)\ (V\ :\ S\ →\ H)\ (hV\ :\ MemLp\ V\ 2\ Q)\ :}
+\leanline{4}{Lp\ H\ 2\ (ULA.initialExtension\ c\ Q)\ :=}
+\leanline{2}{ULA.Hilbert.productNoise\ Q\ c\ (fun\ \_\ ↦\ V)\ (fun\ \_\ ↦\ hV)\ 0}
+\end{leancode}
+\leansource{\texttt{extensionInnovation} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 30–35}
+\begin{leancode}
+\leanline{0}{def\ extensionInnovation\ (c\ :\ ULA.Coupling\ μ\ π)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(hWv\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).1)\ 2\ Q)}
+\leanline{4}{(hWx\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).2)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ H\ 2\ (ULA.initialExtension\ c\ Q)\ ×\ Lp\ H\ 2\ (ULA.initialExtension\ c\ Q)\ :=}
+\leanline{2}{(ULA.Hilbert.productNoise\ Q\ c\ (fun\ k\ s\ ↦\ (W\ k\ s).1)\ hWv\ n,}
+\leanline{3}{ULA.Hilbert.productNoise\ Q\ c\ (fun\ k\ s\ ↦\ (W\ k\ s).2)\ hWx\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The coupling is a structure \texttt{ULA.\allowbreak{}Coupling \ensuremath{\mu} \ensuremath{\pi}} with a field \texttt{joint} (the measure \(c\)) and the two marginal identities; \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension c Q} is \texttt{c.\allowbreak{}joint.\allowbreak{}prod Q}, the measure \(P_c\). The local instance \texttt{extension\allowbreak{}Probability} records \texttt{Is\allowbreak{}Probability\allowbreak{}Measure (ULA.\allowbreak{}initial\allowbreak{}Extension c Q)}, proved by \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure}. The hypotheses \texttt{h\allowbreak{}V : Mem\allowbreak{}Lp V 2 Q}, \texttt{h\allowbreak{}Wv} and \texttt{h\allowbreak{}Wx} state square integrability (\texttt{Mem\allowbreak{}Lp g 2 Q} means: \(g\) is almost everywhere strongly measurable and \(\int\|g\|^2\,dQ<\infty\)). \texttt{extension\allowbreak{}Velocity Q c V h\allowbreak{}V} is \texttt{ULA.\allowbreak{}Hilbert.\allowbreak{}product\allowbreak{}Noise Q c (fun \_\allowbreak{} \ensuremath{\mapsto} V) (fun \_\allowbreak{} \ensuremath{\mapsto} h\allowbreak{}V) 0}: the element of \texttt{Lp H 2 (ULA.\allowbreak{}initial\allowbreak{}Extension c Q)} represented by \(\omega\mapsto V(s)\) (a constant sequence is used and its term \(0\) taken). \texttt{extension\allowbreak{}Innovation} pairs the two corresponding elements for the two components of \texttt{W n}.
+\end{leanbox}
 
 
-Given a position \(x\) and source point \(s\), start the original pointwise KLMC recursion at \((V(s),x)\), use its phase innovations \(W_n(s)\), and project the final phase state to position. This is the numerical endpoint map. Its law is the pushforward of \(\mu\otimes Q\), recorded by the numerical position law. The definition contains no reference coupling. In particular, it is the same candidate output law for every coupling used to estimate its transport error.
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.23.5]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The chosen square-integrable representatives}{The chosen square-integrable representatives}}
+
+
+\textbf{Claim.} In the setting of the previous step, \(\bar V(\omega)=V(s)\) and \(\bigl(\bar W_k^{(1)}(\omega),\bar W_k^{(2)}(\omega)\bigr)=W_k(s)\) for \(P_c\)-almost every \(\omega=((x,y),s)\), for every \(k\).
 
 
 
-Define the numerical endpoint first on the product of its own initial position distribution and the fixed independent source. This gives one output law without referring to a transport plan. Couplings are introduced afterward solely to estimate that law.
 
-
-\section{\texorpdfstring{The \(L^{2}\) numerical chain is exactly the pointwise chain}{The L² numerical chain is exactly the pointwise chain}}
-
-
-On \(c\otimes Q\), the \(L^{2}\) numerical start consists of the pulled-back common velocity and first initial-position coordinate. The reference position's finite second moment together with finite coupling cost supplies a square-integrable first coordinate. Apply the shared \(L^{2}\)-to-pointwise KLMC chain theorem. A countable intersection supplies agreement of every phase innovation on one full-measure set; intersect it with the initial velocity and position agreements. Equality of both phase coordinates identifies the initial state. Equality at every time index identifies the innovation sequence. Projecting the resulting phase-chain equality onto position gives the stated result. Equal initial velocities arise by using the same constructed \(L^{2}\) variable; no separate velocity coupling cost is inserted.
+\textbf{Proof.} An element of \(L^2(P_c;H)\) is an equivalence class of functions that agree almost everywhere; evaluating it at \(\omega\) means evaluating a fixed representative. The class of a square-integrable function \(g\) has a representative that agrees with \(g\) almost everywhere, which is the statement for \(\bar V\). For \(\bar W_k\), each component agrees with the corresponding component of \(W_k(s)\) outside a null set; outside the union of the two null sets, which is null, both components agree, and two pairs with equal components are equal. \(\square\)
 
 
 
-The initial phases agree almost everywhere with the pointwise construction. If the iterates agree at step \(n\), applying the same measurable update and the same innovation proves agreement at step \(n+1\). Induction identifies the entire analyzed recursion at every fixed time.
 
+This is an almost-everywhere identity of random variables, not merely an equality of moments or covariances.
+
+\begin{leanbox}{Lean: \texttt{extensionVelocity\_\allowbreak{}coe}, \texttt{extensionInnovation\_\allowbreak{}coe}}
+\leansource{\texttt{extensionVelocity\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 37–39}
+\begin{leancode}
+\leanline{0}{theorem\ extensionVelocity\_coe\ (c\ :\ ULA.Coupling\ μ\ π)\ (V\ :\ S\ →\ H)\ (hV\ :\ MemLp\ V\ 2\ Q)\ :}
+\leanline{4}{extensionVelocity\ Q\ c\ V\ hV\ =ᵐ[ULA.initialExtension\ c\ Q]\ fun\ p\ ↦\ V\ p.2}
+\end{leancode}
+\leansource{\texttt{extensionInnovation\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 41–48}
+\begin{leancode}
+\leanline{0}{theorem\ extensionInnovation\_coe\ (c\ :\ ULA.Coupling\ μ\ π)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(hWv\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).1)\ 2\ Q)}
+\leanline{4}{(hWx\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).2)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(fun\ p\ ↦\ lpPhaseCoe\ (ULA.initialExtension\ c\ Q)\ (extensionInnovation\ Q\ c\ W\ hWv\ hWx\ n)\ p)}
+\leanline{6}{=ᵐ[ULA.initialExtension\ c\ Q]\ fun\ p\ ↦\ W\ n\ p.2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{extension\allowbreak{}Velocity\_\allowbreak{}coe} is \texttt{ULA.\allowbreak{}Hilbert.\allowbreak{}product\allowbreak{}Noise\_\allowbreak{}coe}, i.e. the Mathlib fact \texttt{Mem\allowbreak{}Lp.\allowbreak{}coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp} that the class built from a function is almost everywhere equal to it; the notation \texttt{f =ᵐ[P] g} means \(f=g\) \(P\)-almost everywhere. In \texttt{extension\allowbreak{}Innovation\_\allowbreak{}coe} the pair of classes is read pointwise through \texttt{lp\allowbreak{}Phase\allowbreak{}Coe} (evaluation of both components at \(\omega\)); \texttt{filter\_\allowbreak{}upwards} intersects the two almost-everywhere statements and \texttt{Prod.\allowbreak{}ext hv hx} concludes equality of the pairs from equality of the components.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.23.6]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The numerical output law}{The numerical output law}}
+
+
+\textbf{Definition.} For \(n\in\mathbb N\), \(x\in H\) and \(s\in S\), let \(z_0=(V(s),x)\) and \(z_{k+1}=\Psi(z_k,W_k(s))\) for \(k<n\), and let \(\Phi_n(x,s)\in H\) be the position component of \(z_n\). For a measure \(\nu\) on \(H\), the output law is the image measure
+
+
+\[\nu\otimes Q\circ\Phi_n^{-1},\qquad\text{i.e.}\qquad A\mapsto(\nu\otimes Q)\bigl(\{(x,s):\Phi_n(x,s)\in A\}\bigr).\]
+
+
+With \(\nu=\mu\) this is \(\nu_n\), the law of the \(n\)-th KLMC position when the initial position has law \(\mu\) and is independent of the source. The definition involves neither the reference law \(\pi\) nor a coupling.
+
+\begin{leanbox}{Lean: \texttt{productKLMCMap}, \texttt{productKLMCLaw}}
+\leansource{\texttt{productKLMCMap} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 51–53}
+\begin{leancode}
+\leanline{0}{def\ productKLMCMap\ (f\ :\ H\ →\ ℝ)\ (γ\ h\ :\ ℝ)\ (V\ :\ S\ →\ H)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(n\ :\ ℕ)\ (p\ :\ H\ ×\ S)\ :\ H\ :=}
+\leanline{2}{(klmcChain\ (gradient\ f)\ γ\ h\ (V\ p.2,p.1)\ (fun\ k\ ↦\ W\ k\ p.2)\ n).2}
+\end{leancode}
+\leansource{\texttt{productKLMCLaw} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 56–58}
+\begin{leancode}
+\leanline{0}{def\ productKLMCLaw\ (f\ :\ H\ →\ ℝ)\ (γ\ h\ :\ ℝ)\ (ν\ :\ Measure\ H)}
+\leanline{4}{(V\ :\ S\ →\ H)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)\ (n\ :\ ℕ)\ :\ Measure\ H\ :=}
+\leanline{2}{(ν.prod\ Q).map\ (productKLMCMap\ f\ γ\ h\ V\ W\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}KLMCMap f \ensuremath{\gamma} h V W n p} takes \texttt{p : H \ensuremath{\times} S} (initial position first) and returns \texttt{(klmc\allowbreak{}Chain (gradient f) \ensuremath{\gamma} h (V p.\allowbreak{}2,p.\allowbreak{}1) (fun k \ensuremath{\mapsto} W k p.\allowbreak{}2) n).\allowbreak{}2}; here \texttt{klmc\allowbreak{}Chain} is the recursion \(z_{k+1}=\Psi(z_k,\xi_k)\) of the module on the integrator, with phase pairs written velocity first, and \texttt{.\allowbreak{}2} takes the position. \texttt{product\allowbreak{}KLMCLaw Q f \ensuremath{\gamma} h \ensuremath{\nu} V W n} is \texttt{(\ensuremath{\nu}.\allowbreak{}prod Q).\allowbreak{}map (product\allowbreak{}KLMCMap f \ensuremath{\gamma} h V W n)}, where \texttt{Measure.\allowbreak{}map} is the image measure.
+\end{leanbox}
+
+\section{\texorpdfstring{The square-integrable chain agrees with the pointwise chain}{The square-integrable chain agrees with the pointwise chain}}
+
+
+\textbf{Claim.} Let \(c\) be a coupling of \(\mu\) and \(\pi\) with finite cost, assume \(\int\|y\|^2\,\pi(dy)<\infty\), and let \(\nabla f\) be \(M\)-Lipschitz. On the extension \(P_c\) define the square-integrable KLMC chain by \(Z_0=(\bar V,X_0)\), where \(X_0(\omega)=x\) is the first coordinate, and \(Z_{k+1}=\Psi(Z_k,\bar W_k)\), the force being applied to square-integrable random variables. Then for every \(n\) the position component of \(Z_n\) satisfies
+
+
+\[Z_n^{(2)}(\omega)=\Phi_n(x,s)\qquad\text{for }P_c\text{-almost every }\omega=((x,y),s).\]
+
+
+\textbf{Proof.} \emph{Square integrability of \(X_0\).} By the triangle inequality \(\|x\|\le\|x-y\|+\|y\|\). The function \(\omega\mapsto x-y\) is square integrable because the cost of \(c\) is finite, and \(\omega\mapsto y\) is square integrable because its law under \(P_c\) is \(\pi\), which has a finite second moment. By Minkowski's inequality \(X_0\in L^2(P_c;H)\). Since \(\nabla f\) is Lipschitz, \(\|\nabla f(X)\|\le\|\nabla f(0)\|+M\|X\|\), so \(\nabla f(X)\in L^2(P_c;H)\) whenever \(X\) is; hence every \(Z_k\) is a pair of square-integrable random variables.
+
+
+
+
+\emph{Comparison.} By the result of the module on square-integrable dynamics, proved by induction on \(n\), the representative of \(Z_n\) agrees almost everywhere with the pointwise chain applied to the representatives of the initial state and of the innovations:
+
+
+\[Z_n(\omega)=z_n\bigl(Z_0(\omega),(\bar W_k(\omega))_{k}\bigr)\quad P_c\text{-a.e.},\]
+
+
+where \(z_n(z,(\xi_k)_k)\) denotes the \(n\)-th point of the recursion started at \(z\) with innovations \(\xi_k\). By the previous steps, \(Z_0(\omega)=(V(s),x)\) almost everywhere, and \(\bar W_k(\omega)=W_k(s)\) almost everywhere for each \(k\). A countable union of null sets is null, so there is a single null set outside of which all these identities hold simultaneously for every \(k\). For \(\omega\) outside this set the two recursions have the same initial state and the same innovations, hence \(Z_n(\omega)=z_n((V(s),x),(W_k(s))_k)\), whose position component is \(\Phi_n(x,s)\). \(\square\)
+
+
+
+
+Both chains are started from the same velocity variable, so no separate cost for the initial velocities appears.
+
+\begin{leanbox}{Lean: \texttt{product\_\allowbreak{}klmcChain\_\allowbreak{}coe}}
+\leansource{\texttt{product\_\allowbreak{}klmcChain\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 62–85}
+\begin{leancode}
+\leanline{0}{theorem\ product\_klmcChain\_coe\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (fun\ x\ :\ H\ ↦\ x)\ 2\ π)\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(V\ :\ S\ →\ H)\ (hV\ :\ MemLp\ V\ 2\ Q)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(hWv\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).1)\ 2\ Q)}
+\leanline{4}{(hWx\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).2)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(klmcChain\ (ULA.lpDrift\ (ULA.initialExtension\ c\ Q)\ (gradient\ f)\ hLip)\ γ\ h}
+\leanline{6}{(extensionVelocity\ Q\ c\ V\ hV,ULA.initialExtension\_lpInitial\ c\ Q\ hc\ hπ)}
+\leanline{6}{(extensionInnovation\ Q\ c\ W\ hWv\ hWx)\ n).2}
+\leanline{8}{=ᵐ[ULA.initialExtension\ c\ Q]\ fun\ p\ ↦\ productKLMCMap\ f\ γ\ h\ V\ W\ n\ (p.1.1,p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{product\_\allowbreak{}klmc\allowbreak{}Chain\_\allowbreak{}coe} the hypotheses \texttt{hc : ULA.\allowbreak{}coupling\allowbreak{}Cost c.\allowbreak{}joint ≠ \ensuremath{\top}} (finite cost) and \texttt{h\ensuremath{\pi} : Mem\allowbreak{}Lp (fun x : H \ensuremath{\mapsto} x) 2 \ensuremath{\pi}} (finite second moment of \(\pi\)) provide \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}lp\allowbreak{}Initial c Q hc h\ensuremath{\pi}}, the class of \(X_0\). The square-integrable force is \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift (ULA.\allowbreak{}initial\allowbreak{}Extension c Q) (gradient f) h\allowbreak{}Lip}, the map \(X\mapsto\nabla f\circ X\) on \texttt{Lp H 2 \_\allowbreak{}}, well defined because of \texttt{h\allowbreak{}Lip}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hchain} is \texttt{lp\_\allowbreak{}klmc\allowbreak{}Chain\_\allowbreak{}coe}, the almost-everywhere identity between the square-integrable chain and the pointwise chain applied to representatives.
+
+\item \texttt{hnoise := ae\_\allowbreak{}all\_\allowbreak{}iff.\allowbreak{}mpr (extension\allowbreak{}Innovation\_\allowbreak{}coe …)} turns the almost-everywhere identities for each \(k\) into one almost-everywhere statement for all \(k\); \texttt{ae\_\allowbreak{}all\_\allowbreak{}iff} is the fact that a countable intersection of full-measure sets has full measure.
+
+\item \texttt{filter\_\allowbreak{}upwards} intersects these with the representative identities for the velocity (\texttt{extension\allowbreak{}Velocity\_\allowbreak{}coe}) and the position (\texttt{coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp}). Then \texttt{hini} identifies the initial state, \texttt{hn} the innovation sequence (by \texttt{funext}), and \texttt{congr\allowbreak{}Arg Prod.\allowbreak{}snd hchain} rewritten with them gives the position identity.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.22.18]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Derive law independence with almost-everywhere measurable data}{Derive law independence with almost-everywhere measurable data}}
+\section{\texorpdfstring{Independence of the output law from the coupling}{Independence of the output law from the coupling}}
 
 
-The projection \(((x,y),s)\mapsto(x,s)\) sends \(c\otimes Q\) exactly to \(\mu\otimes Q\). Consequently every almost-everywhere measurable function of \((x,s)\) has the same law on both spaces. One proves this using the projection marginal and the almost-everywhere version of the composition rule for pushforwards. This avoids an unnecessary assumption that arbitrarily selected \(L^p\) representatives are everywhere measurable.
-
-
-
-The output map is indeed almost-everywhere measurable: the source \(L^{2}\) assumptions give that property for velocity and both innovation components. The force is continuous by Lipschitz regularity, so the KLMC update is measurable. Induction propagates measurability through every phase iterate, and projection gives the position output. The final output-law theorem rewrites the \(L^{2}\) chain with its proved representative equality, then applies the projection-law identity. Both its initial marginal and its numerical law are derived rather than assumed as extra identities.
+Recall that a map \(F\) is measurable \(P\)-almost everywhere if it agrees \(P\)-almost everywhere with a measurable map; image measures under such maps are defined through that measurable version.
 
 
 
-Projecting an extended coupling onto its first position coordinate and source gives the original numerical input law. Composing with the pointwise endpoint map proves that its output marginal is unchanged. This is the precise reason the output does not depend on which transport coupling was selected.
 
+\textbf{Claim.} Let \(c\) be a coupling of the probability measure \(\mu\) and of \(\pi\).
+
+
+
+\begin{enumerate}
+
+
+\item If \(F:H\times S\to H\) is measurable \((\mu\otimes Q)\)-almost everywhere, then the image of \(P_c\) under \(((x,y),s)\mapsto F(x,s)\) equals the image of \(\mu\otimes Q\) under \(F\).
+
+\item If \(\nabla f\) is \(M\)-Lipschitz and \(V,W_k^{(1)},W_k^{(2)}\) are square integrable, then \(\Phi_n\) is measurable \((\mu\otimes Q)\)-almost everywhere.
+
+\item Under the hypotheses of the previous step, the law of \(Z_n^{(2)}\) under \(P_c\) is \(\nu_n\).
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (1) Let \(\rho((x,y),s)=(x,s)\). The image of a product measure under a product of measurable maps is the product of the images; since \(c\) has first marginal \(\mu\), \(\rho\) maps \(P_c=c\otimes Q\) to \(\mu\otimes Q\). For measurable \(\rho\) and \(F\) measurable almost everywhere with respect to the image measure, the image of \(P_c\) under \(F\circ\rho\) is the image of \(\rho\)'s image under \(F\) (substitute the measurable version of \(F\); the exceptional set has \(P_c\)-null preimage). Hence \(P_c\circ(F\circ\rho)^{-1}=(\mu\otimes Q)\circ F^{-1}\).
+
+
+
+
+(2) The map \((z,\xi)\mapsto\Psi(z,\xi)\) is continuous, being built from addition, multiplication by the constants \(\psi_j(h)\) and \(\sqrt{2\gamma}\), and the continuous (Lipschitz) map \(\nabla f\); hence it is measurable. The projection \((x,s)\mapsto s\) maps \(\mu\otimes Q\) to \(Q\) because \(\mu(H)=1\), so the maps \((x,s)\mapsto V(s)\) and \((x,s)\mapsto W_k(s)\) are measurable almost everywhere. We prove by induction on \(k\) that \(g_k(x,s)=z_k\) is measurable almost everywhere. For \(k=0\), \(g_0(x,s)=(V(s),x)\) is a pair of almost everywhere measurable maps. If \(g_k\) is, then \(g_{k+1}=\Psi\circ(g_k,W_k)\) is a measurable map applied to an almost everywhere measurable pair. Finally \(\Phi_n\) is the position component of \(g_n\).
+
+
+
+
+(3) Image measures of almost everywhere equal maps coincide. By the previous step, \(Z_n^{(2)}=\Phi_n\circ\rho\) \(P_c\)-almost everywhere, so the law of \(Z_n^{(2)}\) is the image of \(P_c\) under \(\Phi_n\circ\rho\), which by (1) and (2) is \((\mu\otimes Q)\circ\Phi_n^{-1}=\nu_n\). \(\square\)
+
+
+
+
+The coupling \(c\) influences the joint law of the algorithm and the reference, and hence the transport cost, but not the marginal law \(\nu_n\) of the algorithm.
+
+\begin{leanbox}{Lean: \texttt{initialExtension\_\allowbreak{}map\_\allowbreak{}ae}, \texttt{productKLMCMap\_\allowbreak{}aemeasurable}, \texttt{product\_\allowbreak{}klmcChain\_\allowbreak{}outputLaw}}
+\leansource{\texttt{initialExtension\_\allowbreak{}map\_\allowbreak{}ae} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 89–97}
+\begin{leancode}
+\leanline{0}{theorem\ initialExtension\_map\_ae\ (c\ :\ ULA.Coupling\ μ\ π)}
+\leanline{4}{(F\ :\ H\ ×\ S\ →\ H)\ (hF\ :\ AEMeasurable\ F\ (μ.prod\ Q))\ :}
+\leanline{4}{(ULA.initialExtension\ c\ Q).map\ (fun\ p\ ↦\ F\ (p.1.1,p.2))\ =\ (μ.prod\ Q).map\ F}
+\end{leancode}
+\leansource{\texttt{productKLMCMap\_\allowbreak{}aemeasurable} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 101–124}
+\begin{leancode}
+\leanline{0}{theorem\ productKLMCMap\_aemeasurable\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(V\ :\ S\ →\ H)\ (hV\ :\ MemLp\ V\ 2\ Q)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(hWv\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).1)\ 2\ Q)}
+\leanline{4}{(hWx\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).2)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{AEMeasurable\ (productKLMCMap\ f\ γ\ h\ V\ W\ n)\ (μ.prod\ Q)}
+\end{leancode}
+\leansource{\texttt{product\_\allowbreak{}klmcChain\_\allowbreak{}outputLaw} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 128–139}
+\begin{leancode}
+\leanline{0}{theorem\ product\_klmcChain\_outputLaw\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (fun\ x\ :\ H\ ↦\ x)\ 2\ π)\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(V\ :\ S\ →\ H)\ (hV\ :\ MemLp\ V\ 2\ Q)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(hWv\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).1)\ 2\ Q)}
+\leanline{4}{(hWx\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).2)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(ULA.initialExtension\ c\ Q).map}
+\leanline{6}{(klmcChain\ (ULA.lpDrift\ (ULA.initialExtension\ c\ Q)\ (gradient\ f)\ hLip)\ γ\ h}
+\leanline{8}{(extensionVelocity\ Q\ c\ V\ hV,ULA.initialExtension\_lpInitial\ c\ Q\ hc\ hπ)}
+\leanline{8}{(extensionInnovation\ Q\ c\ W\ hWv\ hWx)\ n).2\ =\ productKLMCLaw\ Q\ f\ γ\ h\ μ\ V\ W\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{initial\allowbreak{}Extension\_\allowbreak{}map\_\allowbreak{}ae}: \texttt{hproj} is \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}initial\_\allowbreak{}noise}, the identity \(\rho\)'s image of \(P_c\) \(=\mu\otimes Q\); the composition rule for image measures with an almost everywhere measurable outer map is \texttt{AEMeasurable.\allowbreak{}map\_\allowbreak{}map\_\allowbreak{}of\_\allowbreak{}aemeasurable}, applied after rewriting the measurability hypothesis \texttt{h\allowbreak{}F} with \texttt{hproj}.
+
+\item \texttt{product\allowbreak{}KLMCMap\_\allowbreak{}aemeasurable}: \texttt{h\allowbreak{}V'} and \texttt{h\allowbreak{}W'} are the almost everywhere measurability of \(V(s)\) and \(W_k(s)\) as functions of \((x,s)\), from \texttt{Mem\allowbreak{}Lp.\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving} with \texttt{measure\allowbreak{}Preserving\_\allowbreak{}snd}; \texttt{hstep} is the measurability of the step map, from \texttt{Continuous.\allowbreak{}measurable} after unfolding \texttt{klmc\allowbreak{}Step} and \texttt{exponential\allowbreak{}Step} (continuity by \texttt{fun\_\allowbreak{}prop}, with \texttt{hg} the continuity of the gradient). \texttt{hall} is the induction on \(k\) (cases \texttt{zero} and \texttt{succ}), and \texttt{.\allowbreak{}snd} takes the position.
+
+\item \texttt{product\_\allowbreak{}klmc\allowbreak{}Chain\_\allowbreak{}output\allowbreak{}Law} rewrites the image measure with \texttt{Measure.\allowbreak{}map\_\allowbreak{}congr} and the almost-everywhere identity \texttt{product\_\allowbreak{}klmc\allowbreak{}Chain\_\allowbreak{}coe}, then applies \texttt{initial\allowbreak{}Extension\_\allowbreak{}map\_\allowbreak{}ae} with the measurability just proved. The right-hand side \texttt{product\allowbreak{}KLMCLaw Q f \ensuremath{\gamma} h \ensuremath{\mu} V W n} is \(\nu_n\).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.9]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The common output law has total mass one}{The common output law has total mass one}}
+\section{\texorpdfstring{The output law is a probability measure}{The output law is a probability measure}}
 
 
-The independent product of the initial probability law and source law is a probability measure. The preceding almost-everywhere measurability theorem ensures its pushforward remains a probability measure. The argument applies the probability property of a measurable pushforward. This establishes a numerical output law before any Wasserstein estimate is attached to it. A specified Gaussian source and a stationary continuous reference are additional hypotheses needed for the final unconditional sampler theorem.
+\textbf{Claim.} If \(\nabla f\) is Lipschitz and \(V,W_k^{(1)},W_k^{(2)}\) are square integrable, then \(\nu_n\) is a probability measure for every \(n\).
 
 
 
-The input product is a probability measure, and the endpoint map is almost everywhere measurable. Its pushforward therefore has total mass one. This probability verification is needed before transport comparisons are made with the target law.
 
+\textbf{Proof.} \(\mu\otimes Q\) is a probability measure, and by part 2 of the previous step \(\Phi_n\) is measurable almost everywhere. The image of a probability measure under an almost everywhere measurable map has total mass \((\mu\otimes Q)(\Phi_n^{-1}(H))=(\mu\otimes Q)(H\times S)=1\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{productKLMCLaw\_\allowbreak{}probability}}
+\leansource{\texttt{productKLMCLaw\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}ProductLaw.lean, lines 142–149}
+\begin{leancode}
+\leanline{0}{theorem\ productKLMCLaw\_probability\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(V\ :\ S\ →\ H)\ (hV\ :\ MemLp\ V\ 2\ Q)\ (W\ :\ ℕ\ →\ S\ →\ H\ ×\ H)}
+\leanline{4}{(hWv\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).1)\ 2\ Q)}
+\leanline{4}{(hWx\ :\ ∀\ n,\ MemLp\ (fun\ s\ ↦\ (W\ n\ s).2)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (productKLMCLaw\ Q\ f\ γ\ h\ μ\ V\ W\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}KLMCLaw\_\allowbreak{}probability} applies \texttt{Measure.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}map\_\allowbreak{}iff} (the image measure under an almost everywhere measurable map is a probability measure if and only if the original one is) with \texttt{product\allowbreak{}KLMCMap\_\allowbreak{}aemeasurable}, and obtains the probability property of \texttt{\ensuremath{\mu}.\allowbreak{}prod Q} by instance search (\texttt{infer\allowbreak{}Instance}).
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

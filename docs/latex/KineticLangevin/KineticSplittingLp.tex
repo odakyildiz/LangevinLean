@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,28 @@ The innovation chain starts at its supplied phase state and recursively applies 
 
 The numerical splitting is first written as a deterministic recursion with explicit filtered inputs. This makes the step index and the additive noise visible. Later identification with a pointwise chain can then be proved directly by induction.
 
+\begin{leanbox}{Lean: \texttt{kineticSplitNoiseChain}, \texttt{kineticSplitChain\_\allowbreak{}eq\_\allowbreak{}noiseChain}}
+\leansource{\texttt{kineticSplitNoiseChain} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 14–16}
+\begin{leancode}
+\leanline{0}{def\ kineticSplitNoiseChain\ (g\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)\ (initial\ :\ E×E)\ (N\ :\ ℕ\ →\ E)\ :\ ℕ\ →\ E×E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ k+1\ =>\ kineticSplitStep\ g\ γ\ h\ (kineticSplitNoiseChain\ g\ γ\ h\ initial\ N\ k)\ (N\ k)}
+\end{leancode}
+\leansource{\texttt{kineticSplitChain\_\allowbreak{}eq\_\allowbreak{}noiseChain} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 19–25}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitChain\_eq\_noiseChain\ [CompleteSpace\ E]\ (g\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ E×E)\ (B\ :\ ℝ\ →\ E)\ (n\ :\ ℕ)\ :}
+\leanline{4}{kineticSplitChain\ g\ γ\ h\ initial\ B\ n\ =\ kineticSplitNoiseChain\ g\ γ\ h\ initial}
+\leanline{6}{(fun\ k\ ↦\ ouInputIncrement\ γ\ B\ ((k\ :\ ℝ)*h)\ h)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Noise\allowbreak{}Chain} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Chain} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Force kicks on \(L^{2}\) representatives}{Force kicks on L² representatives}}
 
@@ -42,6 +87,17 @@ The lifted force \(G\) is constructed from the Lipschitz force \(g\), and the sh
 
 The lifted force is evaluated by applying the original gradient to each representative position. A half kick subtracts the prescribed scalar multiple of that force. The representative identity verifies that the lifted kick is exactly the physical kick almost everywhere.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}kickStep\_\allowbreak{}coe}}
+\leansource{\texttt{lp\_\allowbreak{}kickStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 33–45}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_kickStep\_coe\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (kickStep\ (ULA.lpDrift\ P\ g\ hg)\ h\ S)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ kickStep\ g\ h\ (lpPhaseCoe\ P\ S\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}kick\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -55,6 +111,26 @@ The representative of \(X+hV\) is \(X(\omega)+hV(\omega)\), proving the free dri
 
 Transport adds the current velocity times the step to position, while thermostat damps velocity and adds its filtered innovation. All these affine operations commute with representatives. Their almost-everywhere identities therefore preserve both phase components.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}driftStep\_\allowbreak{}coe}, \texttt{lp\_\allowbreak{}ornsteinStep\_\allowbreak{}coe}}
+\leansource{\texttt{lp\_\allowbreak{}driftStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 48–55}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_driftStep\_coe\ (h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (driftStep\ h\ S)\ =ᵐ[P]\ fun\ ω\ ↦\ driftStep\ h\ (lpPhaseCoe\ P\ S\ ω)}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}ornsteinStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 58–67}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_ornsteinStep\_coe\ (δ\ σ\ :\ ℝ)\ (Ξ\ :\ Lp\ E\ 2\ P)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (ornsteinStep\ δ\ σ\ Ξ\ S)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ ornsteinStep\ δ\ σ\ (Ξ\ ω)\ (lpPhaseCoe\ P\ S\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}drift\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\_\allowbreak{}ornstein\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Compose the stages into the Verlet–OU map}{Compose the stages into the Verlet–OU map}}
 
@@ -65,6 +141,29 @@ The Verlet step is the kick–drift–kick composition. Apply the representative
 
 Intersect the finitely many full-measure sets on which the stage identities hold. On that intersection their composition is exactly the original vector splitting step. This verifies the complete map rather than only its separate projected distributions.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}verletStep\_\allowbreak{}coe}, \texttt{lp\_\allowbreak{}kineticSplitStep\_\allowbreak{}coe}}
+\leansource{\texttt{lp\_\allowbreak{}verletStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 70–81}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_verletStep\_coe\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (verletStep\ (ULA.lpDrift\ P\ g\ hg)\ h\ S)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ verletStep\ g\ h\ (lpPhaseCoe\ P\ S\ ω)}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}kineticSplitStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 84–94}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_kineticSplitStep\_coe\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (N\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (kineticSplitStep\ (ULA.lpDrift\ P\ g\ hg)\ γ\ h\ S\ N)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ kineticSplitStep\ g\ γ\ h\ (lpPhaseCoe\ P\ S\ ω)\ (N\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}verlet\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. The main intermediate facts are \texttt{G} in that order.
+
+
+
+
+\texttt{lp\_\allowbreak{}kinetic\allowbreak{}Split\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
@@ -78,13 +177,24 @@ The initial phase representatives agree by definition. Assuming agreement at ste
 
 Initialization and innovation representatives agree with the pointwise construction. Successive application of the verified step identity proves agreement at every fixed iteration. Consequently distributional conclusions for the pointwise sampler apply to the sequence analyzed in the Hilbert space.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}kineticSplitNoiseChain\_\allowbreak{}coe}}
+\leansource{\texttt{lp\_\allowbreak{}kineticSplitNoiseChain\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}KineticSplittingLp.lean, lines 98–107}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_kineticSplitNoiseChain\_coe\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (initial\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (N\ :\ ℕ\ →\ Lp\ E\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (kineticSplitNoiseChain\ (ULA.lpDrift\ P\ g\ hg)\ γ\ h\ initial\ N\ n)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ kineticSplitNoiseChain\ g\ γ\ h\ (lpPhaseCoe\ P\ initial\ ω)\ (fun\ k\ ↦\ N\ k\ ω)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}kinetic\allowbreak{}Split\allowbreak{}Noise\allowbreak{}Chain\_\allowbreak{}coe} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Named proof applications include \texttt{hs}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

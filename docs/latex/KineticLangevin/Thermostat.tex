@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,6 +59,16 @@ Independence is represented by the product of two standard Gaussian measures. Th
 
 For independent centered Gaussian vectors \(V\) and \(G\), the characteristic function of \(aV+bG\) factors into the product of the two Gaussian characteristic functions. Its covariance is \((a^2+b^2)I\). Independence is essential: an unspecified cross covariance would contribute an additional term.
 
+\begin{leanbox}{Lean: \texttt{stdGaussian\_\allowbreak{}linear\_\allowbreak{}combination}}
+\leansource{\texttt{stdGaussian\_\allowbreak{}linear\_\allowbreak{}combination} \quad KineticLangevin/\allowbreak{}Thermostat.lean, lines 20–42}
+\begin{leancode}
+\leanline{0}{theorem\ stdGaussian\_linear\_combination\ (a\ b\ :\ ℝ)\ (hab\ :\ a\ \textasciicircum{}\ 2\ +\ b\ \textasciicircum{}\ 2\ =\ 1)\ :}
+\leanline{4}{((stdGaussian\ E).prod\ (stdGaussian\ E)).map\ (fun\ z\ ↦\ a\ •\ z.1\ +\ b\ •\ z.2)\ =}
+\leanline{6}{stdGaussian\ E}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{std\allowbreak{}Gaussian\_\allowbreak{}linear\_\allowbreak{}combination} gives the formal counterpart of this step. The main intermediate facts are \texttt{A}, \texttt{hleft}, \texttt{hright}, \texttt{heq} in that order. Named proof applications include \texttt{Measure.\allowbreak{}ext\_\allowbreak{}of\_\allowbreak{}char\allowbreak{}Fun\allowbreak{}Dual}, \texttt{heq}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply the fluctuation-dissipation balance}{Apply the fluctuation-dissipation balance}}
 
@@ -46,5 +79,17 @@ For nonnegative friction and time step, put \(\delta=e^{-\gamma h/2}\) and \(s=\
 
 Take \(a=e^{-\gamma t}\) and \(b=\sqrt{1-e^{-2\gamma t}}\). Their squared sum is one, so a standard Gaussian velocity remains standard Gaussian after thermostat. Position is unchanged, hence the full Gaussian-times-position target is preserved whenever the refresh noise is independent.
 
+\begin{leanbox}{Lean: \texttt{obabo\_\allowbreak{}thermostat\_\allowbreak{}preserves\_\allowbreak{}standardGaussian}}
+\leansource{\texttt{obabo\_\allowbreak{}thermostat\_\allowbreak{}preserves\_\allowbreak{}standardGaussian} \quad KineticLangevin/\allowbreak{}Thermostat.lean, lines 46–54}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_thermostat\_preserves\_standardGaussian\ \{γ\ h\ :\ ℝ\}}
+\leanline{4}{(hγ\ :\ 0\ ≤\ γ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{((stdGaussian\ E).prod\ (stdGaussian\ E)).map}
+\leanline{6}{(fun\ z\ ↦\ obaboDamping\ γ\ h\ •\ z.1\ +\ Real.sqrt\ (obaboVariance\ γ\ h)\ •\ z.2)\ =}
+\leanline{6}{stdGaussian\ E}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{obabo\_\allowbreak{}thermostat\_\allowbreak{}preserves\_\allowbreak{}standard\allowbreak{}Gaussian} gives the formal counterpart of this step. Named proof applications include \texttt{std\allowbreak{}Gaussian\_\allowbreak{}linear\_\allowbreak{}combination}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

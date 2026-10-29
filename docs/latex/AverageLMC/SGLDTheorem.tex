@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,55 +32,357 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{SGLD convergence for the actual control-variate chain}{SGLD convergence for the actual control-variate chain}}
+\title{\texorpdfstring{Convergence of control-variate SGLD}{Convergence of control-variate SGLD}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The stochastic inputs are the component potentials and the independent Gaussian/\allowbreak{}index transition, with the anchor equal to the true minimizer. No transport recurrence or invariant law is supplied as a premise.
-
-\[0\le h\le\frac{\bar m}{3nM_{\rm rms}^2}\quad\Longrightarrow\quad W_2^2(\nu_k,\pi)\le(1+n\bar m h)^{-k}W_2^2(\nu_0,\pi)+\left(M_{\rm av}(f/n)+2\bar m+\frac{2M_{\rm rms}^2}{\bar m}\right)\frac{hp}{\bar m}.\]
-\section{\texorpdfstring{Derive the unrestricted one-step claim}{Derive the unrestricted one-step claim}}
+This section proves the convergence of control-variate SGLD, Theorem 3 of the paper, together with the intermediate claims of Proposition 3. The potential is \(f=\sum_{i=1}^nf_i\) on \(\mathbb R^p\), each \(f_i\) differentiable with Lipschitz gradient, \(f\) is \(m\)-strongly convex with \(m>0\), \(\pi\) is the Gibbs measure of \(f\), \(\theta_*\) is a global minimizer of \(f\), and \(R=nM_{\rm rms}\), where \(M_{\rm rms}^2=\frac1n\sum_i\|\nabla f_i\|_{\rm Lip}^2\). With the notation of the SGLD transition section, the chain of laws is \(\nu_0=\nu\), \(\nu_{k+1}=(\nu_k)^+\).
 
 
-Combine the actual average-smoothness LMC inequality with variance addition. The exact variance identity subtracts one full-gradient energy from estimator energy. The leftover coefficient is at most \(h^2(hM-2)/(1+mh)\), because the discarded term is nonpositive. This gives Proposition 3's first estimate for every nonnegative step, with its actual estimator-energy term.
 
+
+The steps are: the one-step bound (first claim of Proposition 3), obtained by adding the variance decomposition of SGLD to the one-step bound of Theorem 1; the bound \(\mathbb E\|g_I(\vartheta)\|^2\le R^2\,\mathbb E\|\vartheta-\theta_*\|^2\) and the moment bound \(\mathbb E\|\vartheta-\theta_*\|^2\le2\mathsf W_2^2(\nu,\pi)+2p/m\), which give the recurrence of the second claim; and the iteration of this recurrence under the step condition \(3R^2h\le m\). In the paper's units \(m=n\bar m\) and \(\bar M_{\rm av}=M_{\rm av}(f/n)\), the result is
+
+
+\[\mathsf W_2^2(\nu_k,\pi)\le(1+n\bar mh)^{-k}\,\mathsf W_2^2(\nu_0,\pi)+\Bigl(\bar M_{\rm av}+2\bar m+\frac{2M_{\rm rms}^2}{\bar m}\Bigr)\frac{hp}{\bar m}\qquad\Bigl(0\le h\le\frac{\bar m}{3nM_{\rm rms}^2}\Bigr),\]
+
+
+valid for every initial probability measure, in \([0,\infty]\).
+
+
+\section{\texorpdfstring{The one-step bound with the estimator energy}{The one-step bound with the estimator energy}}
+
+
+\textbf{Claim.} Let \(p,n\ge1\), let each \(f_i\) be differentiable with Lipschitz gradient, let \(f=\sum_if_i\) be \(m\)-strongly convex with \(m>0\) and have an \(M\)-Lipschitz gradient (\(M\ge0\)), let \(h\ge0\), and let \(\theta_*\) satisfy \(\nabla f(\theta_*)=0\). Let \(\pi\) be the Gibbs measure of \(f\) and \(\nu\) a probability measure with \(\mathsf W_2(\nu,\pi)<\infty\). Then, with \(G=\int\|\nabla f\|^2d\nu\) and \(M_{\rm av}\) the average coordinate smoothness of \(f\),
+
+
+\[\mathsf W_2^2(\nu^+,\pi)\le\frac{1-mh}{1+mh}\,\mathsf W_2^2(\nu,\pi)+\frac{(M_{\rm av}+m)h^2p}{1+mh}+\frac{h^2(hM-2)}{1+mh}\,G+h^2\int\|g_i(x)\|^2\,(\nu\otimes U_n)(dx,di).\]
+
+
+\textbf{Proof.} \emph{Preliminaries.} \(f\) is differentiable as a finite sum of differentiable functions. The Gibbs measure of a differentiable strongly convex potential is a probability measure with finite second moment. Because \(\mathsf W_2(\nu,\pi)<\infty\), there is a coupling \(\gamma\) of \(\nu\) and \(\pi\) with \(\int\|x-y\|^2d\gamma<\infty\); from \(\|x\|^2\le2\|x-y\|^2+2\|y\|^2\) it follows that \(\nu\) has a finite second moment.
+
+
+
+
+\emph{Two inequalities.} The variance decomposition of SGLD (inequalities (2) and (3) of its section) gives
+
+
+\[\mathsf W_2^2(\nu^+,\pi)\le\mathsf W_2^2(\nu^+_{\rm LMC},\pi)+h^2\int\|g_i\|^2\,d(\nu\otimes U_n)-h^2G.\qquad(1)\]
+
+
+The one-step bound of Theorem 1 for the full-gradient step gives
+
+
+\[\mathsf W_2^2(\nu^+_{\rm LMC},\pi)\le\frac{1-mh}{1+mh}\,\mathsf W_2^2(\nu,\pi)+\frac{(M_{\rm av}+m)h^2p}{1+mh}+\frac{h^2(hM-1)}{1+mh}\,G.\qquad(2)\]
+
+
+\emph{The coefficient of \(G\).} Inserting (2) into (1), \(G\) appears with the coefficient \(\frac{h^2(hM-1)}{1+mh}-h^2\). Multiplying by \(1+mh>0\),
+
+
+\[h^2(hM-1)-h^2(1+mh)=h^2(hM-2)-mh^3\le h^2(hM-2),\]
+
+
+because \(mh^3\ge0\). Hence \(\frac{h^2(hM-1)}{1+mh}-h^2\le\frac{h^2(hM-2)}{1+mh}\), and multiplying by \(G\ge0\) and combining (1) and (2) gives the claim. \(\square\)
+
+
+
+
+The last term is \(nh^2\sum_i\|\nabla f_i(\vartheta)-\nabla f_i(\theta_*)\|_{L_2}^2\) by the estimator identity of the SGLD transition section, so this is the first claim of Proposition 3. No bound on the estimator variance is used yet.
+
+\begin{leanbox}{Lean: \texttt{sgld\_\allowbreak{}one\_\allowbreak{}step}}
+\leansource{\texttt{sgld\_\allowbreak{}one\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 19–53}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_one\_step\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(m\ h\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ (componentPotential\ f))}
+\leanline{4}{(hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ anchor\ =\ 0)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ ≠\ ⊤)\ :}
+\leanline{4}{wasserstein2Real\ (sgldLawStep\ f\ anchor\ h\ μ)\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ /\ (1\ +\ m\ *\ h)\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ +}
+\leanline{6}{(averageSmoothness\ (componentPotential\ f)\ +\ m)\ *\ h\ \textasciicircum{}\ 2\ *\ p\ /\ (1\ +\ m\ *\ h)\ +}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ (h\ *\ (M\ :\ ℝ)\ -\ 2)\ /\ (1\ +\ m\ *\ h)\ *}
+\leanline{8}{(∫\ x,\ ‖gradient\ (componentPotential\ f)\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ ∫\ q\ :\ State\ p\ ×\ Fin\ n,\ ‖controlVariateEstimator\ f\ anchor\ q.1\ q.2‖\ \textasciicircum{}\ 2}
+\leanline{8}{∂μ.prod\ (uniformIndexLaw\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The Gibbs measure is \texttt{gibbs\allowbreak{}Measure (component\allowbreak{}Potential f)}, defined in the unadjusted Langevin library as the normalized measure with density \(e^{-f}\) with respect to Lebesgue measure \texttt{volume}. In \texttt{sgld\_\allowbreak{}one\_\allowbreak{}step}, \texttt{hdiff} is the differentiability of the sum (\texttt{Differentiable.\allowbreak{}fun\_\allowbreak{}sum}); \texttt{is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}gibbs\allowbreak{}Measure} and \texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure} give that \(\pi\) is a probability measure with finite second moment, and \texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}of\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} transfers the finite second moment to \(\mu=\nu\) through the finite distance. \texttt{hvar} is \texttt{sgld\_\allowbreak{}variance\_\allowbreak{}addition}, rewritten by \texttt{sgld\_\allowbreak{}error\_\allowbreak{}variance\_\allowbreak{}identity}, which is (1); \texttt{hlmc} is \texttt{lmc\_\allowbreak{}one\_\allowbreak{}step}, which is (2). \texttt{h\allowbreak{}G} is \(G\ge0\) (\texttt{integral\_\allowbreak{}nonneg}), \texttt{hc} is the coefficient inequality (cleared of the denominator by \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}} hd} and \texttt{field\_\allowbreak{}simp}, then \texttt{nlinarith}), \texttt{hg} multiplies it by \(G\), and the final \texttt{nlinarith} adds everything.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.1]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Obtain the RMS recurrence and propagate finite transport}{Obtain the RMS recurrence and propagate finite transport}}
+\section{\texorpdfstring{The recurrence in terms of the root-mean-square constant; finiteness along the chain}{The recurrence in terms of the root-mean-square constant; finiteness along the chain}}
 
 
-When \(hM\le2\), drop the nonpositive score term. The exact component RMS bounds estimator energy by \(R^2\) times the initial squared radius about the minimizer. The radius estimate is twice the squared transport error plus \(2p/m\), yielding exactly the second claim's coefficients. Actual proposals preserve \(L^{2}\) and probability, so finite quadratic transport propagates along every iteration.
+\textbf{Claim.} (1) In addition to the hypotheses of Step 1, assume \(hM\le2\) and that \(\theta_*\) is a global minimizer of \(f\), \(f(\theta_*)\le f(x)\) for all \(x\). Then, with \(R=nM_{\rm rms}\),
 
+
+\[\mathsf W_2^2(\nu^+,\pi)\le\Bigl(\frac{1-mh}{1+mh}+2R^2h^2\Bigr)\mathsf W_2^2(\nu,\pi)+\Bigl(\frac{M_{\rm av}+m}{1+mh}+\frac{2R^2}m\Bigr)h^2p.\]
+
+
+(2) Let \(n\ge1\), let each \(f_i\) be differentiable with Lipschitz gradient, let \(f\) be \(m\)-strongly convex (\(m>0\)) with Lipschitz gradient, and let \(\theta_*\in\mathbb R^p\) and \(h\in\mathbb R\) be arbitrary. If \(\nu\) is a probability measure with \(\mathsf W_2(\nu,\pi)<\infty\), then \(\mathsf W_2(\nu_k,\pi)<\infty\) for every \(k\).
+
+
+
+
+\textbf{Proof.} (1) \emph{The gradient term is dropped.} Since \(hM\le2\), the factor \(h^2(hM-2)\) is \(\le0\); divided by \(1+mh>0\) and multiplied by \(G\ge0\), the third term of Step 1 is \(\le0\).
+
+
+
+
+\emph{The estimator moment.} For each \(x\), by the definition of the gradient seminorm, \(\|\nabla f_i(x)-\nabla f_i(\theta_*)\|\le M_\infty(f_i)\|x-\theta_*\|\), so
+
+
+\[\int\|g_i(x)\|^2U_n(di)=n\sum_{i=1}^n\|\nabla f_i(x)-\nabla f_i(\theta_*)\|^2\le n\sum_{i=1}^nM_\infty(f_i)^2\,\|x-\theta_*\|^2=R^2\|x-\theta_*\|^2,\]
+
+
+since \(\sum_iM_\infty(f_i)^2=nM_{\rm rms}^2\). (This pointwise bound is proved in the estimator section.) Integrating over \(\nu\) with Fubini's theorem (the integrands are integrable because \(\nu\) has a finite second moment),
+
+
+\[\int\|g_i(x)\|^2\,d(\nu\otimes U_n)\le R^2\int\|x-\theta_*\|^2\,\nu(dx).\]
+
+
+\emph{The moment around the minimizer.} For a global minimizer \(\theta_*\) of the strongly convex \(f\), the section on the initial moment proves \(\int\|x-\theta_*\|^2\nu(dx)\le2\mathsf W_2^2(\nu,\pi)+2p/m\). Hence
+
+
+\[h^2\int\|g_i\|^2\,d(\nu\otimes U_n)\le h^2R^2\Bigl(2\mathsf W_2^2(\nu,\pi)+\frac{2p}m\Bigr)=2R^2h^2\,\mathsf W_2^2(\nu,\pi)+\frac{2R^2}m\,h^2p.\]
+
+
+Adding this to the remaining terms of Step 1 and grouping \(\frac{(M_{\rm av}+m)h^2p}{1+mh}+\frac{2R^2}mh^2p\) gives the claim.
+
+
+
+
+(2) Induction on \(k\). For \(k=0\) this is the hypothesis. If \(\mathsf W_2(\nu_k,\pi)<\infty\), then \(\nu_k\) has a finite second moment (as in Step 1, using the finite second moment of \(\pi\)); by the moment propagation of the SGLD transition section, \(\nu_{k+1}\) has a finite second moment; and two probability measures with finite second moments are at finite distance, since the product coupling has finite cost. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{sgld\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}rms}, \texttt{sgldLaws\_\allowbreak{}finite}}
+\leansource{\texttt{sgld\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}rms} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 56–103}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_one\_step\_rms\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(m\ h\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ (componentPotential\ f))}
+\leanline{4}{(hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(hstep\ :\ h\ *\ (M\ :\ ℝ)\ ≤\ 2)}
+\leanline{4}{(anchor\ :\ State\ p)\ (hanchor\ :\ ∀\ x,\ componentPotential\ f\ anchor\ ≤\ componentPotential\ f\ x)}
+\leanline{4}{(hstar\ :\ gradient\ (componentPotential\ f)\ anchor\ =\ 0)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ ≠\ ⊤)\ :}
+\leanline{4}{let\ R\ :=\ (n\ :\ ℝ)\ *\ rmsComponentSmoothness\ f}
+\leanline{4}{wasserstein2Real\ (sgldLawStep\ f\ anchor\ h\ μ)\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{((1\ -\ m\ *\ h)\ /\ (1\ +\ m\ *\ h)\ +\ 2\ *\ R\ \textasciicircum{}\ 2\ *\ h\ \textasciicircum{}\ 2)\ *}
+\leanline{8}{wasserstein2Real\ μ\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ +}
+\leanline{6}{((averageSmoothness\ (componentPotential\ f)\ +\ m)\ /\ (1\ +\ m\ *\ h)\ +\ 2\ *\ R\ \textasciicircum{}\ 2\ /\ m)\ *}
+\leanline{8}{h\ \textasciicircum{}\ 2\ *\ p}
+\end{leancode}
+\leansource{\texttt{sgldLaws\_\allowbreak{}finite} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 106–125}
+\begin{leancode}
+\leanline{0}{theorem\ sgldLaws\_finite\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(m\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ (componentPotential\ f))}
+\leanline{4}{(hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ (sgldLaws\ f\ anchor\ h\ μ\ k)\ (gibbsMeasure\ (componentPotential\ f))\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{sgld\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}rms} adds \texttt{hstep : h * (M : \ensuremath{\mathbb R}) \ensuremath{\le} 2} and \texttt{hanchor : \ensuremath{\forall} x, component\allowbreak{}Potential f anchor \ensuremath{\le} component\allowbreak{}Potential f x}; its conclusion begins with \texttt{let R := (n : \ensuremath{\mathbb R}) * rms\allowbreak{}Component\allowbreak{}Smoothness f}, a local abbreviation for \(R\). \texttt{hs} is Step 1 and \texttt{hneg} shows that its gradient term is \(\le0\) (\texttt{mul\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{div\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{integral\_\allowbreak{}nonneg}). \texttt{hmoment} is the integrated estimator bound: Fubini's theorem \texttt{integral\_\allowbreak{}prod}, the pointwise bound \texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} and \texttt{integral\_\allowbreak{}mono}. \texttt{hradius} is \texttt{initial\_\allowbreak{}radius\_\allowbreak{}le}, and \texttt{hmoment'}, \texttt{hscaled} chain the two bounds and multiply by \(h^2\). After \texttt{dsimp only} unfolds \texttt{R} and divisions are written as multiplications by inverses, \texttt{nlinarith} combines the inequalities.
+
+\item \texttt{sgld\allowbreak{}Laws\_\allowbreak{}finite} is the induction \texttt{induction k with}; the step uses \texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}of\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{sgld\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp} and \texttt{wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp} in that order. The line \texttt{have : Ne\allowbreak{}Zero n := \ensuremath{\langle}hn.\allowbreak{}ne'\ensuremath{\rangle}} provides the typeclass form of \(n\ne0\) used by the probability instances of the SGLD laws.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.1]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Prove the constant-step main theorem}{Prove the constant-step main theorem}}
+\section{\texorpdfstring{The constant-step bound}{The constant-step bound}}
 
 
-The full gradient has Lipschitz constant at most the exact \(R=n\) \(M_{\rm rms}\), and strong convexity gives \(m\) at most \(R\). The paper's step restriction therefore ensures the local stability condition. Apply the proved scalar recurrence to the actual SGLD marginal laws. The result has the reciprocal contraction and the precise persistent error \(A+2m+2R^2/m\). Substituting \(m=n\bar m\) and dividing the full average by \(n\) produces the printed theorem in average-potential units.
+\textbf{Claim.} (1) Let \(p,n\ge1\), let each \(f_i\) be differentiable with Lipschitz gradient, let \(m>0\), \(h\ge0\), let \(f\) be \(m\)-strongly convex, let \(R=nM_{\rm rms}\) satisfy \(3R^2h\le m\), let \(\theta_*\) be a global minimizer of \(f\), and let \(\nu\) be a probability measure with \(\mathsf W_2(\nu,\pi)<\infty\). Then for every \(k\in\mathbb N\),
 
+
+\[\mathsf W_2^2(\nu_k,\pi)\le(1+mh)^{-k}\,\mathsf W_2^2(\nu,\pi)+\Bigl(M_{\rm av}+2m+\frac{2R^2}m\Bigr)\frac{hp}m.\]
+
+
+(2) Let \(\bar m>0\), let \(f\) be \(n\bar m\)-strongly convex and let \(0\le h\le\bar m/(3nM_{\rm rms}^2)\); keep the other hypotheses of (1). Then for every \(k\),
+
+
+\[\mathsf W_2^2(\nu_k,\pi)\le(1+n\bar mh)^{-k}\,\mathsf W_2^2(\nu,\pi)+\Bigl(\frac{M_{\rm av}}n+2\bar m+\frac{2M_{\rm rms}^2}{\bar m}\Bigr)\frac{hp}{\bar m}.\]
+
+
+\textbf{Proof.} (1) We collect the facts needed for Step 2 and for the scalar SGLD recurrence.
+
+
+
+\begin{itemize}
+
+
+\item \(\nabla f\) is \(R\)-Lipschitz: \(\|\nabla f(x)-\nabla f(y)\|\le\sum_iM_\infty(f_i)\|x-y\|\le\sqrt{n\sum_iM_\infty(f_i)^2}\,\|x-y\|=R\|x-y\|\), by the triangle inequality and the Cauchy–Schwarz inequality in \(\mathbb R^n\) (proved in the estimator section).
+
+\item \(m\le R\) (also proved there, from \(m\le M_\infty(f)\le R\)); hence \(R>0\) and \(m^2\le R^2\).
+
+\item \(hR\le\frac13\): indeed \(R(3Rh-1)=3R^2h-R\le m-R\le0\), and \(R>0\) forces \(3Rh\le1\). In particular the step condition \(hR\le2\) of Step 2 holds with \(M=R\).
+
+\item \(\nabla f(\theta_*)=0\): a global minimizer is a local minimizer, and the derivative of a differentiable function vanishes at a local minimizer.
+
+\item \(M_{\rm av}\ge m>0\), by the comparison of constants in the first section.
+
+\end{itemize}
+
+
+
+Let \(r_j=\mathsf W_2^2(\nu_j,\pi)\), finite by Step 2 (2). Applying Step 2 (1) to \(\nu_j\) (with \(M=R\)) gives, for every \(j\),
+
+
+\[r_{j+1}\le\Bigl(\frac{1-mh}{1+mh}+2R^2h^2\Bigr)r_j+\Bigl(\frac{M_{\rm av}+m}{1+mh}+\frac{2R^2}m\Bigr)h^2p.\]
+
+
+The \(r_j\) are nonnegative, \(A=M_{\rm av}\ge0\), \(p\ge0\), \(m^2\le R^2\) and \(3R^2h\le m\), so the iteration of the scalar SGLD recurrence applies and gives the claim.
+
+
+
+
+(2) Put \(m=n\bar m>0\). Since \(n\bar m\le nM_{\rm rms}\) by (1), \(M_{\rm rms}\ge\bar m>0\), so \(3nM_{\rm rms}^2>0\) and the step condition is equivalent to \(3nM_{\rm rms}^2h\le\bar m\); multiplying by \(n\) gives \(3R^2h\le m\). Part (1) applies, and
+
+
+\[\Bigl(M_{\rm av}+2n\bar m+\frac{2n^2M_{\rm rms}^2}{n\bar m}\Bigr)\frac{hp}{n\bar m}=\Bigl(\frac{M_{\rm av}}n+2\bar m+\frac{2M_{\rm rms}^2}{\bar m}\Bigr)\frac{hp}{\bar m}.\qquad\square\]\begin{leanbox}{Lean: \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step}, \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}average}}
+\leansource{\texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 130–171}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_constant\_step\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(m\ h\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ (componentPotential\ f))}
+\leanline{4}{(hstep\ :\ 3\ *\ ((n\ :\ ℝ)\ *\ rmsComponentSmoothness\ f)\ \textasciicircum{}\ 2\ *\ h\ ≤\ m)}
+\leanline{4}{(anchor\ :\ State\ p)\ (hanchor\ :\ ∀\ x,\ componentPotential\ f\ anchor\ ≤\ componentPotential\ f\ x)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{let\ R\ :=\ (n\ :\ ℝ)\ *\ rmsComponentSmoothness\ f}
+\leanline{4}{wasserstein2Real\ (sgldLaws\ f\ anchor\ h\ μ\ k)\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ +\ m\ *\ h)⁻¹\ \textasciicircum{}\ k\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ +}
+\leanline{6}{(averageSmoothness\ (componentPotential\ f)\ +\ 2\ *\ m\ +\ 2\ *\ R\ \textasciicircum{}\ 2\ /\ m)\ *\ h\ *\ p\ /\ m}
+\end{leancode}
+\leansource{\texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}average} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 175–201}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_constant\_step\_average\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(mbar\ h\ :\ ℝ)\ (hmbar\ :\ 0\ <\ mbar)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ ((n\ :\ ℝ)\ *\ mbar)\ (componentPotential\ f))}
+\leanline{4}{(hstep\ :\ h\ ≤\ mbar\ /\ (3\ *\ n\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2))}
+\leanline{4}{(anchor\ :\ State\ p)\ (hanchor\ :\ ∀\ x,\ componentPotential\ f\ anchor\ ≤\ componentPotential\ f\ x)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (sgldLaws\ f\ anchor\ h\ μ\ k)\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ +\ (n\ :\ ℝ)\ *\ mbar\ *\ h)⁻¹\ \textasciicircum{}\ k\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ +}
+\leanline{6}{(averageSmoothness\ (componentPotential\ f)\ /\ n\ +\ 2\ *\ mbar\ +}
+\leanline{8}{2\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ /\ mbar)\ *\ h\ *\ p\ /\ mbar}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item In \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step}, \texttt{M} is \(R\) packaged as a nonnegative real, and \texttt{hfull} is its Lipschitz property \texttt{component\allowbreak{}Potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz\_\allowbreak{}rms}. \texttt{hm\allowbreak{}R} is \texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms}, \texttt{h\allowbreak{}R} squares it with \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}}, and \texttt{h\allowbreak{}Rh} is \(hR\le\frac13\), proved by contradiction from \texttt{hmul}. \texttt{hstar} is \(\nabla f(\theta_*)=0\): \texttt{hlocal} turns the global minimum into \texttt{Is\allowbreak{}Local\allowbreak{}Min}, and \texttt{Is\allowbreak{}Local\allowbreak{}Min.\allowbreak{}fderiv\_\allowbreak{}eq\_\allowbreak{}zero} (used as \texttt{hlocal.\allowbreak{}fderiv\_\allowbreak{}eq\_\allowbreak{}zero}) is Fermat's theorem. \texttt{h\allowbreak{}A} is \(M_{\rm av}\ge0\) from \texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness}. \texttt{hrec j} is \texttt{sgld\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}rms} applied to the law at step \texttt{j}, with finiteness from \texttt{sgld\allowbreak{}Laws\_\allowbreak{}finite}, and the final line is \texttt{sgld\_\allowbreak{}recurrence\_\allowbreak{}bound}.
+
+\item \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}average} has \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On univ ((n : \ensuremath{\mathbb R}) * mbar) (component\allowbreak{}Potential f)} and \texttt{hstep : h \ensuremath{\le} mbar /\allowbreak{} (3 * n * rms\allowbreak{}Component\allowbreak{}Smoothness f \textasciicircum{} 2)}. \texttt{h\allowbreak{}R} is \(M_{\rm rms}>0\), \texttt{hsmall} clears the denominator (\texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}} hd}), \texttt{hnorm} is \(3R^2h\le n\bar m\), \texttt{hb} is part (1), and \texttt{convert hb using 1} followed by \texttt{field\_\allowbreak{}simp} identifies the constants.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Remove a finite-moment hypothesis from the main statement}{Remove a finite-moment hypothesis from the main statement}}
+\section{\texorpdfstring{Arbitrary initial distributions and the paper's constant}{Arbitrary initial distributions and the paper's constant}}
 
 
-The extended endpoint applies the positive-affine transport extension. It has the same contraction, step restriction and average-potential constants for every probability initialization. For infinite initial distance its right side is infinite; otherwise all moments used by the real proof are derived from finite transport to the Gibbs target. The source-facing paper endpoint uses the literal coordinate average of the divided potential \(f/n\). Gradient linearity rescales every coordinate Taylor quotient, and the proved homogeneity of their exact suprema identifies this constant with the full average divided by \(n\), without a chosen replacement bound.
+\textbf{Claim.} Under the hypotheses of Step 3 (2), but for an arbitrary initial probability measure \(\nu\) (no finiteness of \(\mathsf W_2(\nu,\pi)\) assumed), the inequality
 
+
+\[\mathsf W_2^2(\nu_k,\pi)\le(1+n\bar mh)^{-k}\,\mathsf W_2^2(\nu,\pi)+\Bigl(\bar M_{\rm av}+2\bar m+\frac{2M_{\rm rms}^2}{\bar m}\Bigr)\frac{hp}{\bar m}\]
+
+
+holds in \([0,\infty]\) for every \(k\), first with \(\bar M_{\rm av}\) replaced by \(M_{\rm av}(f)/n\), and then with \(\bar M_{\rm av}=M_{\rm av}(f/n)\), the average coordinate smoothness of the average potential \(f/n\). This is Theorem 3 of the paper.
+
+
+
+
+\textbf{Proof.} Put \(a=(1+n\bar mh)^{-k}\) and \(b=(M_{\rm av}(f)/n+2\bar m+2M_{\rm rms}^2/\bar m)hp/\bar m\). Then \(a>0\), and \(b\ge0\) because \(M_{\rm av}(f)\ge n\bar m>0\) (comparison of constants for the \(n\bar m\)-strongly convex \(f\), whose gradient is Lipschitz by Step 3), \(\bar m>0\), \(h\ge0\) and \(p\ge0\). The extension result for affine transport bounds applies with these \(a,b\): if \(\mathsf W_2(\nu,\pi)<\infty\), then \(\mathsf W_2(\nu_k,\pi)<\infty\) by Step 2 (2), and the real inequality is Step 3 (2). This proves the first form.
+
+
+
+
+For the second form, the coordinate constants scale linearly: for \(c>0\), the Taylor quotients of \(cf\) are \(c\) times those of \(f\), so \(M_j(cf)=cM_j(f)\) and \(M_{\rm av}(cf)=cM_{\rm av}(f)\) (proved in the section on smoothness scaling, which needs \(f\) differentiable with Lipschitz gradient). With \(c=1/n\), \(M_{\rm av}(f/n)=M_{\rm av}(f)/n\), and the first form becomes the second. \(\square\)
+
+
+
+
+The statement holds for every initial probability measure: if \(\mathsf W_2(\nu,\pi)=\infty\), the right-hand side is \(\infty\).
+
+\begin{leanbox}{Lean: \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended}, \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}paper}}
+\leansource{\texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 206–235}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_constant\_step\_extended\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(mbar\ h\ :\ ℝ)\ (hmbar\ :\ 0\ <\ mbar)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ ((n\ :\ ℝ)\ *\ mbar)\ (componentPotential\ f))}
+\leanline{4}{(hstep\ :\ h\ ≤\ mbar\ /\ (3\ *\ n\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2))}
+\leanline{4}{(anchor\ :\ State\ p)\ (hanchor\ :\ ∀\ x,\ componentPotential\ f\ anchor\ ≤\ componentPotential\ f\ x)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ (sgldLaws\ f\ anchor\ h\ μ\ k)\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{ENNReal.ofReal\ ((1\ +\ (n\ :\ ℝ)\ *\ mbar\ *\ h)⁻¹\ \textasciicircum{}\ k)\ *}
+\leanline{8}{wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ +}
+\leanline{6}{ENNReal.ofReal\ ((averageSmoothness\ (componentPotential\ f)\ /\ n\ +\ 2\ *\ mbar\ +}
+\leanline{8}{2\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ /\ mbar)\ *\ h\ *\ p\ /\ mbar)}
+\end{leancode}
+\leansource{\texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}paper} \quad AverageLMC/\allowbreak{}SGLDTheorem.lean, lines 239–256}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_constant\_step\_paper\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(mbar\ h\ :\ ℝ)\ (hmbar\ :\ 0\ <\ mbar)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ ((n\ :\ ℝ)\ *\ mbar)\ (componentPotential\ f))}
+\leanline{4}{(hstep\ :\ h\ ≤\ mbar\ /\ (3\ *\ n\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2))}
+\leanline{4}{(anchor\ :\ State\ p)\ (hanchor\ :\ ∀\ x,\ componentPotential\ f\ anchor\ ≤\ componentPotential\ f\ x)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ (sgldLaws\ f\ anchor\ h\ μ\ k)\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{ENNReal.ofReal\ ((1\ +\ (n\ :\ ℝ)\ *\ mbar\ *\ h)⁻¹\ \textasciicircum{}\ k)\ *}
+\leanline{8}{wasserstein2\ μ\ (gibbsMeasure\ (componentPotential\ f))\ \textasciicircum{}\ 2\ +}
+\leanline{6}{ENNReal.ofReal\ ((averageSmoothness\ (fun\ x\ ↦\ componentPotential\ f\ x\ /\ n)\ +}
+\leanline{8}{2\ *\ mbar\ +\ 2\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ /\ mbar)\ *\ h\ *\ p\ /\ mbar)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended} states the conclusion in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, with the real coefficients embedded by \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}. After establishing \texttt{h\allowbreak{}A}, it applies \texttt{squared\_\allowbreak{}transport\_\allowbreak{}extended} with \(a=(1+n\bar mh)^{-k}\); the two sign conditions are discharged by \texttt{positivity} (which uses \texttt{h\allowbreak{}A} for \(b\ge0\)), and the two remaining goals are \texttt{sgld\allowbreak{}Laws\_\allowbreak{}finite} and \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}average}.
+
+\item \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}paper} writes the constant as \texttt{average\allowbreak{}Smoothness (fun x \ensuremath{\mapsto} component\allowbreak{}Potential f x /\allowbreak{} n)}, the literal \(\bar M_{\rm av}\) of the average potential. It rewrites this constant with \texttt{average\allowbreak{}Smoothness\_\allowbreak{}div\_\allowbreak{}nat} (using the Lipschitz constant \(\sum_iL_i\) of \(\nabla f\) from \texttt{component\allowbreak{}Potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}) and concludes with \texttt{sgld\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

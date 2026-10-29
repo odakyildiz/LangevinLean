@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,35 @@ Define \(D_\gamma F(t)=\int_0^te^{-\gamma(t-s)}F(s)\,ds\). It is continuous for 
 
 The damped integrals are defined as Bochner integrals of continuous Hilbert-valued paths. Their continuity and differentiation identities follow from the fundamental theorem and the exponential kernel. These properties ensure the subsequent defect equations concern functions.
 
+\begin{leanbox}{Lean: \texttt{dampedIntegral}, \texttt{continuous\_\allowbreak{}time\_\allowbreak{}primitive}, \texttt{continuous\_\allowbreak{}dampedIntegral}}
+\leansource{\texttt{dampedIntegral} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 12–13}
+\begin{leancode}
+\leanline{0}{def\ dampedIntegral\ (γ\ :\ ℝ)\ (F\ :\ ℝ\ →\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{∫\ s\ in\ 0..t,\ Real.exp\ (-γ*(t-s))\ •\ F\ s}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}time\_\allowbreak{}primitive} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 15–17}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_time\_primitive\ (F\ :\ ℝ\ →\ E)\ (hF\ :\ Continuous\ F)\ :}
+\leanline{4}{Continuous\ (fun\ t\ :\ ℝ\ ↦\ ∫\ s\ in\ 0..t,F\ s)}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}dampedIntegral} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 19–33}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_dampedIntegral\ (γ\ :\ ℝ)\ (F\ :\ ℝ\ →\ E)\ (hF\ :\ Continuous\ F)\ :}
+\leanline{4}{Continuous\ (dampedIntegral\ γ\ F)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{damped\allowbreak{}Integral} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{continuous\_\allowbreak{}time\_\allowbreak{}primitive} gives the formal counterpart of this step. Named proof applications include \texttt{continuous\_\allowbreak{}iff\_\allowbreak{}continuous\allowbreak{}At.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{continuous\_\allowbreak{}damped\allowbreak{}Integral} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hc} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The corrected approximation and its two defects}{The corrected approximation and its two defects}}
 
@@ -42,6 +94,35 @@ The corrected velocity is \(U(t)-\psi_1(t)G(0)-H_0\int_0^t e^{-\gamma(t-s)}\int_
 
 The corrected approximation includes the frozen force, its frozen Hessian response, and all corresponding stochastic terms. Subtracting it from the exact path defines velocity and position defects with zero initial values. Those initial values are important for their higher-order time bounds.
 
+\begin{leanbox}{Lean: \texttt{correctedVelocity}, \texttt{secondOrderTaylorDefect}, \texttt{secondOrderMemoryDefect}}
+\leansource{\texttt{correctedVelocity} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 36–37}
+\begin{leancode}
+\leanline{0}{def\ correctedVelocity\ (γ\ :\ ℝ)\ (U\ :\ ℝ\ →\ E)\ (F0\ :\ E)\ (H0\ :\ E\ →L[ℝ]\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{U\ t\ -\ psi\ γ\ 1\ t\ •\ F0\ -\ H0\ (dampedIntegral\ γ\ (fun\ s\ ↦\ ∫\ r\ in\ 0..s,U\ r)\ t)}
+\end{leancode}
+\leansource{\texttt{secondOrderTaylorDefect} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 40–41}
+\begin{leancode}
+\leanline{0}{def\ secondOrderTaylorDefect\ (γ\ :\ ℝ)\ (G\ X\ :\ ℝ\ →\ E)\ (H0\ :\ E\ →L[ℝ]\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{dampedIntegral\ γ\ (fun\ s\ ↦\ G\ s-G\ 0-H0\ (X\ s-X\ 0))\ t}
+\end{leancode}
+\leansource{\texttt{secondOrderMemoryDefect} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 43–44}
+\begin{leancode}
+\leanline{0}{def\ secondOrderMemoryDefect\ (γ\ :\ ℝ)\ (G\ :\ ℝ\ →\ E)\ (H0\ :\ E\ →L[ℝ]\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{H0\ (dampedIntegral\ γ\ (fun\ s\ ↦\ ∫\ r\ in\ 0..s,dampedIntegral\ γ\ G\ r)\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Velocity} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Taylor\allowbreak{}Defect} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Memory\allowbreak{}Defect} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+\end{leanbox}
 
 \section{\texorpdfstring{The local-error identity from the exact equations}{The local-error identity from the exact equations}}
 
@@ -52,6 +133,20 @@ From \(V=U-K_\gamma G\) and \(X(s)-X(0)=\int_0^sV(r)\,dr\), obtain \(\int_0^s U(
 
 Insert the mild and kinematic equations and cancel the shared responses. The remaining integrand separates the quadratic Taylor remainder from the deviation controlled by the frozen linear dynamics. This identity separates the two terms to be estimated.
 
+\begin{leanbox}{Lean: \texttt{correctedVelocity\_\allowbreak{}error\_\allowbreak{}identity}}
+\leansource{\texttt{correctedVelocity\_\allowbreak{}error\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 47–108}
+\begin{leancode}
+\leanline{0}{theorem\ correctedVelocity\_error\_identity\ (γ\ T\ :\ ℝ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(V\ X\ U\ G\ :\ ℝ\ →\ E)\ (hV\ :\ Continuous\ V)\ (hX\ :\ Continuous\ X)}
+\leanline{4}{(hU\ :\ Continuous\ U)\ (hG\ :\ Continuous\ G)\ (H0\ :\ E\ →L[ℝ]\ E)}
+\leanline{4}{(hmild\ :\ ∀\ t\ ∈\ Icc\ 0\ T,V\ t=U\ t-dampedIntegral\ γ\ G\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)\ :}
+\leanline{4}{correctedVelocity\ γ\ U\ (G\ 0)\ H0\ T-V\ T=}
+\leanline{6}{secondOrderTaylorDefect\ γ\ G\ X\ H0\ T-secondOrderMemoryDefect\ γ\ G\ H0\ T}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Velocity\_\allowbreak{}error\_\allowbreak{}identity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc\allowbreak{}D}, \texttt{hc\allowbreak{}I}, \texttt{hc\allowbreak{}U}, \texttt{hc\allowbreak{}DI}, \texttt{h\allowbreak{}UX}, \texttt{hsum} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Integration of the polynomial bounds with exact constants}{Integration of the polynomial bounds with exact constants}}
 
@@ -62,6 +157,39 @@ For forward time and \(\gamma \ge 0\), the damping kernel lies in (0,1]. If \(\|
 
 Integrate the polynomial upper bounds exactly rather than replacing every time by the endpoint. Integrals such as \(\int_0^h s^2ds\) and their additional primitives produce the cubic and quartic denominators. These constants feed the final transformed local-error bound.
 
+\begin{leanbox}{Lean: \texttt{dampedIntegral\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow}, \texttt{primitive\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow}, \texttt{secondOrderMemoryDefect\_\allowbreak{}bound}}
+\leansource{\texttt{dampedIntegral\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 111–123}
+\begin{leancode}
+\leanline{0}{theorem\ dampedIntegral\_norm\_le\_pow\ (γ\ t\ C\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (ht\ :\ 0≤t)}
+\leanline{4}{(F\ :\ ℝ\ →\ E)\ (n\ :\ ℕ)\ (hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ t,‖F\ s‖≤C*s\textasciicircum{}n)\ :}
+\leanline{4}{‖dampedIntegral\ γ\ F\ t‖≤C*t\textasciicircum{}(n+1)/(n+1)}
+\end{leancode}
+\leansource{\texttt{primitive\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 126–130}
+\begin{leancode}
+\leanline{0}{theorem\ primitive\_norm\_le\_pow\ (t\ C\ :\ ℝ)\ (ht\ :\ 0≤t)\ (F\ :\ ℝ\ →\ E)\ (n\ :\ ℕ)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ t,‖F\ s‖≤C*s\textasciicircum{}n)\ :}
+\leanline{4}{‖∫\ s\ in\ 0..t,F\ s‖≤C*t\textasciicircum{}(n+1)/(n+1)}
+\end{leancode}
+\leansource{\texttt{secondOrderMemoryDefect\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 133–150}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderMemoryDefect\_bound\ (γ\ T\ G0\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (G\ :\ ℝ\ →\ E)}
+\leanline{4}{(H0\ :\ E\ →L[ℝ]\ E)\ (hG\ :\ ∀\ s∈Icc\ 0\ T,‖G\ s‖≤G0)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t∈Icc\ 0\ T)\ :}
+\leanline{4}{‖secondOrderMemoryDefect\ γ\ G\ H0\ t‖≤‖H0‖*G0*t\textasciicircum{}3/6}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{damped\allowbreak{}Integral\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{primitive\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Memory\allowbreak{}Defect\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}I}, \texttt{hb} in that order. Named proof applications include \texttt{damped\allowbreak{}Integral\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}pow}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Obtain cubic velocity and quartic position errors}{Obtain cubic velocity and quartic position errors}}
 
@@ -72,6 +200,57 @@ A Taylor forcing bound \(Rs^{2}\) integrates to \(Rt^{3}/3\). Adding the memory 
 
 A quadratic force remainder contributes a cubic velocity error after one integration. Position is an additional integral and hence has a quartic error. The bounds also account for the linear feedback generated by the frozen Hessian.
 
+\begin{leanbox}{Lean: \texttt{correctedVelocity\_\allowbreak{}error\_\allowbreak{}bound}, \texttt{correctedPosition}, \texttt{continuous\_\allowbreak{}correctedVelocity} and 1 more}
+\leansource{\texttt{correctedVelocity\_\allowbreak{}error\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 153–166}
+\begin{leancode}
+\leanline{0}{theorem\ correctedVelocity\_error\_bound\ (γ\ T\ R\ G0\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(V\ X\ U\ G\ :\ ℝ\ →\ E)\ (hV\ :\ Continuous\ V)\ (hX\ :\ Continuous\ X)}
+\leanline{4}{(hU\ :\ Continuous\ U)\ (hG\ :\ Continuous\ G)\ (H0\ :\ E\ →L[ℝ]\ E)}
+\leanline{4}{(hmild\ :\ ∀\ t∈Icc\ 0\ T,V\ t=U\ t-dampedIntegral\ γ\ G\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t∈Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)}
+\leanline{4}{(hTaylor\ :\ ∀\ t∈Icc\ 0\ T,‖G\ t-G\ 0-H0\ (X\ t-X\ 0)‖≤R*t\textasciicircum{}2)}
+\leanline{4}{(hscore\ :\ ∀\ t∈Icc\ 0\ T,‖G\ t‖≤G0)\ :}
+\leanline{4}{‖correctedVelocity\ γ\ U\ (G\ 0)\ H0\ T-V\ T‖≤(2*R+‖H0‖*G0)*T\textasciicircum{}3/6}
+\end{leancode}
+\leansource{\texttt{correctedPosition} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 169–170}
+\begin{leancode}
+\leanline{0}{def\ correctedPosition\ (γ\ :\ ℝ)\ (U\ :\ ℝ\ →\ E)\ (x0\ F0\ :\ E)\ (H0\ :\ E\ →L[ℝ]\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{x0+∫\ s\ in\ 0..t,correctedVelocity\ γ\ U\ F0\ H0\ s}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}correctedVelocity} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 172–176}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_correctedVelocity\ (γ\ :\ ℝ)\ (U\ :\ ℝ\ →\ E)\ (hU\ :\ Continuous\ U)}
+\leanline{4}{(F0\ :\ E)\ (H0\ :\ E\ →L[ℝ]\ E)\ :\ Continuous\ (correctedVelocity\ γ\ U\ F0\ H0)}
+\end{leancode}
+\leansource{\texttt{correctedPosition\_\allowbreak{}error\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 179–205}
+\begin{leancode}
+\leanline{0}{theorem\ correctedPosition\_error\_bound\ (γ\ T\ R\ G0\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(V\ X\ U\ G\ :\ ℝ\ →\ E)\ (hV\ :\ Continuous\ V)\ (hX\ :\ Continuous\ X)}
+\leanline{4}{(hU\ :\ Continuous\ U)\ (hG\ :\ Continuous\ G)\ (H0\ :\ E\ →L[ℝ]\ E)}
+\leanline{4}{(hmild\ :\ ∀\ t∈Icc\ 0\ T,V\ t=U\ t-dampedIntegral\ γ\ G\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t∈Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)}
+\leanline{4}{(hTaylor\ :\ ∀\ t∈Icc\ 0\ T,‖G\ t-G\ 0-H0\ (X\ t-X\ 0)‖≤R*t\textasciicircum{}2)}
+\leanline{4}{(hscore\ :\ ∀\ t∈Icc\ 0\ T,‖G\ t‖≤G0)\ :}
+\leanline{4}{‖correctedPosition\ γ\ U\ (X\ 0)\ (G\ 0)\ H0\ T-X\ T‖≤(2*R+‖H0‖*G0)*T\textasciicircum{}4/24}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Velocity\_\allowbreak{}error\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}A}, \texttt{h\allowbreak{}B} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{corrected\allowbreak{}Position} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{continuous\_\allowbreak{}corrected\allowbreak{}Velocity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hd} in that order.
+
+
+
+
+\texttt{corrected\allowbreak{}Position\_\allowbreak{}error\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hb} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The paper’s quarter-constant in transformed coordinates}{The paper’s quarter-constant in transformed coordinates}}
 
@@ -82,5 +261,36 @@ Write \(B=Ct^{3}\). The component estimates give \(\|v\|\le B/6\) and \(\|x\|\le
 
 The transformed norm weights velocity and position differently. The step restriction lets the higher-order position contribution fit within the prescribed cubic bound. This is the local second-order estimate that will become a quadratic global bias after geometric accumulation.
 
+\begin{leanbox}{Lean: \texttt{secondOrder\_\allowbreak{}component\_\allowbreak{}transform\_\allowbreak{}bound}, \texttt{correctedPhase\_\allowbreak{}error\_\allowbreak{}bound}}
+\leansource{\texttt{secondOrder\_\allowbreak{}component\_\allowbreak{}transform\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 208–229}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrder\_component\_transform\_bound}
+\leanline{4}{\{F\ :\ Type*\}\ [NormedAddCommGroup\ F]\ [InnerProductSpace\ ℝ\ F]}
+\leanline{4}{(γ\ T\ C\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hT\ :\ 0≤T)\ (hC\ :\ 0≤C)\ (hsmall\ :\ γ*T≤1/5)}
+\leanline{4}{(v\ x\ :\ F)\ (hv\ :\ ‖v‖≤C*T\textasciicircum{}3/6)\ (hx\ :\ ‖x‖≤C*T\textasciicircum{}4/24)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (v,x)≤C*T\textasciicircum{}3/4}
+\end{leancode}
+\leansource{\texttt{correctedPhase\_\allowbreak{}error\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLocal.lean, lines 232–245}
+\begin{leancode}
+\leanline{0}{theorem\ correctedPhase\_error\_bound}
+\leanline{4}{\{F\ :\ Type*\}\ [NormedAddCommGroup\ F]\ [InnerProductSpace\ ℝ\ F]\ [CompleteSpace\ F]}
+\leanline{4}{(γ\ T\ R\ G0\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hT\ :\ 0≤T)\ (hR\ :\ 0≤R)\ (hG0\ :\ 0≤G0)}
+\leanline{4}{(hsmall\ :\ γ*T≤1/5)\ (V\ X\ U\ G\ :\ ℝ\ →\ F)\ (hV\ :\ Continuous\ V)\ (hX\ :\ Continuous\ X)}
+\leanline{4}{(hU\ :\ Continuous\ U)\ (hG\ :\ Continuous\ G)\ (H0\ :\ F\ →L[ℝ]\ F)}
+\leanline{4}{(hmild\ :\ ∀\ t∈Icc\ 0\ T,V\ t=U\ t-dampedIntegral\ γ\ G\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t∈Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)}
+\leanline{4}{(hTaylor\ :\ ∀\ t∈Icc\ 0\ T,‖G\ t-G\ 0-H0\ (X\ t-X\ 0)‖≤R*t\textasciicircum{}2)}
+\leanline{4}{(hscore\ :\ ∀\ t∈Icc\ 0\ T,‖G\ t‖≤G0)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (correctedVelocity\ γ\ U\ (G\ 0)\ H0\ T-V\ T,}
+\leanline{6}{correctedPosition\ γ\ U\ (X\ 0)\ (G\ 0)\ H0\ T-X\ T)≤(2*R+‖H0‖*G0)*T\textasciicircum{}3/4}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\_\allowbreak{}component\_\allowbreak{}transform\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{B}, \texttt{h\allowbreak{}B}, \texttt{hsum}, \texttt{hs}, \texttt{hv2} in that order. Named proof applications include \texttt{transform\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{corrected\allowbreak{}Phase\_\allowbreak{}error\_\allowbreak{}bound} gives the formal counterpart of this step.
+\end{leanbox}
 
 \end{document}

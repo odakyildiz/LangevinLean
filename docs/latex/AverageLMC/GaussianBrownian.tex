@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -30,6 +53,31 @@ For the scaled noise \(B_t=\sqrt2W_t\), genuine independence and the constructed
 
 The Langevin additive noise is \(\sqrt 2\) times a Brownian increment. Its expectation vanishes at every time, so the expectation of a future difference also vanishes. Algebraically, the difference between the noises at \(h\) and \(t\) is the additive noise over the segment starting at \(t\) with length \(h-t\). The existing exact Brownian \(L^{2}\) norm formula therefore gives its squared norm as \(2(h-t)d\). This uses the true elapsed-time Gaussian variance and covers the endpoint \(t=h\).
 
+\begin{leanbox}{Lean: \texttt{brownian\_\allowbreak{}future\_\allowbreak{}mean\_\allowbreak{}zero}, \texttt{brownian\_\allowbreak{}future\_\allowbreak{}norm\_\allowbreak{}sq}}
+\leansource{\texttt{brownian\_\allowbreak{}future\_\allowbreak{}mean\_\allowbreak{}zero} \quad AverageLMC/\allowbreak{}GaussianBrownian.lean, lines 15–25}
+\begin{leancode}
+\leanline{0}{theorem\ brownian\_future\_mean\_zero}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)\ (t\ h\ :\ ℝ)\ :}
+\leanline{4}{(∫\ ω,\ (ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ h\ -}
+\leanline{6}{ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ t\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ ω\ ∂P)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{brownian\_\allowbreak{}future\_\allowbreak{}norm\_\allowbreak{}sq} \quad AverageLMC/\allowbreak{}GaussianBrownian.lean, lines 28–43}
+\begin{leancode}
+\leanline{0}{theorem\ brownian\_future\_norm\_sq}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)}
+\leanline{4}{(t\ h\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (hth\ :\ t\ ≤\ h)\ :}
+\leanline{4}{‖ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ h\ -}
+\leanline{6}{ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ t‖\ \textasciicircum{}\ 2\ =}
+\leanline{6}{2\ *\ (h\ -\ t)\ *\ (Fintype.card\ ι\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\_\allowbreak{}future\_\allowbreak{}mean\_\allowbreak{}zero} gives the formal counterpart of this step.
+
+
+
+
+\texttt{brownian\_\allowbreak{}future\_\allowbreak{}norm\_\allowbreak{}sq} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.4]{LangevinLean2026ULASC}; \cite[Section~3.11.1]{LangevinLean2026IPLA}; \cite[Section~3.18.4]{LangevinLean2026Proximal}.
@@ -39,17 +87,41 @@ Earlier results used here: \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[S
 
 The complete initial state and stopped Brownian past are independent of the future Brownian increment. Projection onto the initial-state and current-noise coordinates gives zero \(L^{2}\) inner product with each of them because the future increment is centered. For \(Y(t)\), the natural-past measurability of the actual integral solution has already been proved by the invariant-subspace construction; applying it to the identity vector field gives the same zero inner product. Subtract and add the three identities to prove that \(X+B(t)-Y(t)\) is orthogonal to \(B(h)-B(t)\). No stochastic-error orthogonality condition is assumed in the final LMC theorem.
 
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}error\_\allowbreak{}future\_\allowbreak{}inner\_\allowbreak{}zero}}
+\leansource{\texttt{gaussian\_\allowbreak{}error\_\allowbreak{}future\_\allowbreak{}inner\_\allowbreak{}zero} \quad AverageLMC/\allowbreak{}GaussianBrownian.lean, lines 47–82}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_error\_future\_inner\_zero}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(X\ Z\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)}
+\leanline{4}{(hmeas\ :\ ∀\ i\ s,\ Measurable\ (B\ i\ s))}
+\leanline{4}{(hpaths\ :\ iIndepFun\ (fun\ i\ ω\ s\ ↦\ B\ i\ s\ ω)\ P)}
+\leanline{4}{(hX\ :\ IndepFun\ X\ (fun\ ω\ (i\ :\ ι)\ (s\ :\ ℝ≥0)\ ↦\ B\ i\ s\ ω)\ P)}
+\leanline{4}{(hZ\ :\ IndepFun\ Z\ (fun\ ω\ (i\ :\ ι)\ (s\ :\ ℝ≥0)\ ↦\ B\ i\ s\ ω)\ P)}
+\leanline{4}{(Y\ :\ ℝ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(t\ h\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (hth\ :\ t\ ≤\ h)}
+\leanline{4}{(hYe\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ Y\ s\ -\ Z\ =}
+\leanline{6}{-(∫\ r\ in\ 0..s,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ r))\ +}
+\leanline{8}{ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ s)\ :}
+\leanline{4}{{\leanfallback ⟪}X\ +\ ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ t\ -\ Y\ t,}
+\leanline{6}{ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ h\ -}
+\leanline{8}{ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ t{\leanfallback ⟫}\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}error\_\allowbreak{}future\_\allowbreak{}inner\_\allowbreak{}zero} gives the formal counterpart of this step. The main intermediate facts are \texttt{N}, \texttt{hind}, \texttt{h\allowbreak{}IX}, \texttt{h\allowbreak{}IB}, \texttt{hmean}, \texttt{hx} in that order. Named proof applications include \texttt{hind.\allowbreak{}comp}, \texttt{Lp.\allowbreak{}ext}, \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift\_\allowbreak{}coe}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.18.3]{LangevinLean2026Proximal}; \cite[Section~3.18.4]{LangevinLean2026Proximal}; \cite[Section~3.18.5]{LangevinLean2026Proximal}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Proximal]{LangevinLean2026Proximal}
-LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision 314590ce9586. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

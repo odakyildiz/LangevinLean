@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,18 @@ For a deterministic proposal \(J\), the old/\allowbreak{}new graph is \(G(z)=(z,
 
 The proposal graph records both the old and proposed states. Its accepted mass has symmetric first and second marginals, while the rejected part remains at the old state after the prescribed reversal. Computing both marginals explicitly proves invariance without omitting rejected probability mass.
 
+\begin{leanbox}{Lean: \texttt{metropolisOutput\_\allowbreak{}graph}}
+\leansource{\texttt{metropolisOutput\_\allowbreak{}graph} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 21–33}
+\begin{leancode}
+\leanline{0}{theorem\ metropolisOutput\_graph\ (π\ :\ Measure\ H)\ (J\ :\ H\ →\ H)\ (hJ\ :\ Measurable\ J)}
+\leanline{4}{(a\ :\ H×H\ →\ ℝ)\ (ha\ :\ Measurable\ a)\ :}
+\leanline{4}{ULA.metropolisOutput\ (π.map\ (proposalGraph\ J))\ a\ =}
+\leanline{6}{(π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (a\ (z,J\ z)))).map\ J\ +}
+\leanline{6}{π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (1-a\ (z,J\ z)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\allowbreak{}Output\_\allowbreak{}graph} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}G}, \texttt{hm}, \texttt{hn} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.35.1]{LangevinLean2026ULASC}; \cite[Section~3.35.2]{LangevinLean2026ULASC}; \cite[Section~3.35.3]{LangevinLean2026ULASC}; \cite[Section~3.35.7]{LangevinLean2026ULASC}.
@@ -45,6 +80,25 @@ The measure is \(e^{-H(v,x)}(\mu\otimes\mu)(d(v,x))\), where \(\mu\) is a transl
 
 The Hamiltonian density factors into a velocity Gaussian weight and a position Gibbs weight. Reversing velocity leaves that density and volume unchanged. This symmetry permits the rejection flip to be included without changing the target measure.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianGibbs}, \texttt{hamiltonianGibbs\_\allowbreak{}reverseVelocity}}
+\leansource{\texttt{hamiltonianGibbs} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 43–44}
+\begin{leancode}
+\leanline{0}{def\ hamiltonianGibbs\ (f\ :\ E\ →\ ℝ)\ :\ Measure\ (E×E)\ :=}
+\leanline{2}{(μ.prod\ μ).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (Real.exp\ (-hamiltonianEnergy\ f\ z)))}
+\end{leancode}
+\leansource{\texttt{hamiltonianGibbs\_\allowbreak{}reverseVelocity} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 47–55}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianGibbs\_reverseVelocity\ (f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)\ :}
+\leanline{4}{(hamiltonianGibbs\ μ\ f).map\ reverseVelocity\ =\ hamiltonianGibbs\ μ\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Gibbs} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{hamiltonian\allowbreak{}Gibbs\_\allowbreak{}reverse\allowbreak{}Velocity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hw}, \texttt{hm} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.35.7]{LangevinLean2026ULASC}.
@@ -58,6 +112,46 @@ The acceptance probability is \(a_h(z)=\min\{1,\exp[-(H(V_hz)-H(z))]\}\). Its me
 
 The acceptance ratio must use the difference of the true Hamiltonian evaluated at the proposed and current states. Replacing it by a truncated local approximation would define a different transition. The exact algebraic defect from the Verlet map therefore enters the formula unchanged.
 
+\begin{leanbox}{Lean: \texttt{verletAcceptance}, \texttt{verletAcceptance\_\allowbreak{}measurable}, \texttt{verletAcceptance\_\allowbreak{}nonneg} and 1 more}
+\leansource{\texttt{verletAcceptance} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 58–60}
+\begin{leancode}
+\leanline{0}{def\ verletAcceptance\ (f\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (z\ :\ E×E)\ :\ ℝ\ :=}
+\leanline{2}{min\ 1\ (Real.exp\ (-(hamiltonianEnergy\ f\ (verletStep\ (gradient\ f)\ h\ z)-}
+\leanline{4}{hamiltonianEnergy\ f\ z)))}
+\end{leancode}
+\leansource{\texttt{verletAcceptance\_\allowbreak{}measurable} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 62–65}
+\begin{leancode}
+\leanline{0}{theorem\ verletAcceptance\_measurable\ (f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)}
+\leanline{4}{(hg\ :\ Measurable\ (gradient\ f))\ (h\ :\ ℝ)\ :\ Measurable\ (verletAcceptance\ f\ h)}
+\end{leancode}
+\leansource{\texttt{verletAcceptance\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 67–68}
+\begin{leancode}
+\leanline{0}{theorem\ verletAcceptance\_nonneg\ (f\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (z\ :\ E×E)\ :}
+\leanline{4}{0\ ≤\ verletAcceptance\ f\ h\ z}
+\end{leancode}
+\leansource{\texttt{verletAcceptance\_\allowbreak{}le\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 70–71}
+\begin{leancode}
+\leanline{0}{theorem\ verletAcceptance\_le\_one\ (f\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (z\ :\ E×E)\ :}
+\leanline{4}{verletAcceptance\ f\ h\ z\ ≤\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{verlet\allowbreak{}Acceptance} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{verlet\allowbreak{}Acceptance\_\allowbreak{}measurable} gives the formal counterpart of this step.
+
+
+
+
+\texttt{verlet\allowbreak{}Acceptance\_\allowbreak{}nonneg} gives the formal counterpart of this step.
+
+
+
+
+\texttt{verlet\allowbreak{}Acceptance\_\allowbreak{}le\_\allowbreak{}one} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Derive exact corrected Verlet invariance}{Derive exact corrected Verlet invariance}}
 
@@ -68,13 +162,26 @@ The proved Metropolis result uses the involution \(J_h=R\circ V_h\). Since \(H\c
 
 Integrating any bounded measurable test against the corrected transition gives its original target integral. This is an equality of probability measures after normalization. It will be used as a comparator when bounding weak error of the uncorrected Hamiltonian step.
 
+\begin{leanbox}{Lean: \texttt{correctedVerlet\_\allowbreak{}preserves\_\allowbreak{}gibbs}}
+\leansource{\texttt{correctedVerlet\_\allowbreak{}preserves\_\allowbreak{}gibbs} \quad KineticLangevin/\allowbreak{}HamiltonianWeak.lean, lines 76–103}
+\begin{leancode}
+\leanline{0}{theorem\ correctedVerlet\_preserves\_gibbs\ (f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)}
+\leanline{4}{(hg\ :\ Measurable\ (gradient\ f))\ (h\ :\ ℝ)\ :}
+\leanline{4}{((hamiltonianGibbs\ μ\ f).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (verletAcceptance\ f\ h\ z))).map}
+\leanline{8}{(verletStep\ (gradient\ f)\ h)\ +}
+\leanline{6}{((hamiltonianGibbs\ μ\ f).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (1-verletAcceptance\ f\ h\ z))).map}
+\leanline{8}{reverseVelocity\ =\ hamiltonianGibbs\ μ\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Verlet\_\allowbreak{}preserves\_\allowbreak{}gibbs} gives the formal counterpart of this step. The main intermediate facts are \texttt{a}, \texttt{ha}, \texttt{h\allowbreak{}J}, \texttt{hm}, \texttt{he}, \texttt{hh} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.35.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

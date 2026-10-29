@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,35 @@ For a measurable step map \(S(x,\xi)\) and noise probability \(Q\), define \(PF(
 
 Conditioning on the present state, integrate a test of the next updated state against the independent fresh-noise law. The resulting function is the transition operator applied to that test. Its uniform bound is no larger than the original test bound.
 
+\begin{leanbox}{Lean: \texttt{markovTest}, \texttt{markovTest\_\allowbreak{}measurable}, \texttt{markovTest\_\allowbreak{}norm\_\allowbreak{}le}}
+\leansource{\texttt{markovTest} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 17–18}
+\begin{leancode}
+\leanline{0}{def\ markovTest\ (step\ :\ H\ →\ S\ →\ H)\ (Q\ :\ Measure\ S)\ (F\ :\ H\ →\ ℂ)\ (x\ :\ H)\ :\ ℂ\ :=}
+\leanline{2}{∫\ s,\ F\ (step\ x\ s)\ ∂Q}
+\end{leancode}
+\leansource{\texttt{markovTest\_\allowbreak{}measurable} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 26–28}
+\begin{leancode}
+\leanline{0}{theorem\ markovTest\_measurable\ (F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ :}
+\leanline{4}{Measurable\ (markovTest\ step\ Q\ F)}
+\end{leancode}
+\leansource{\texttt{markovTest\_\allowbreak{}norm\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 32–35}
+\begin{leancode}
+\leanline{0}{theorem\ markovTest\_norm\_le\ (F\ :\ H\ →\ ℂ)\ (C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ x,\ ‖F\ x‖\ ≤\ C)\ (x\ :\ H)\ :\ ‖markovTest\ step\ Q\ F\ x‖\ ≤\ C}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Test} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{markov\allowbreak{}Test\_\allowbreak{}measurable} gives the formal counterpart of this step.
+
+
+
+
+\texttt{markov\allowbreak{}Test\_\allowbreak{}norm\_\allowbreak{}le} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The duality identity for the defined recursion}{The duality identity for the defined recursion}}
 
@@ -45,6 +97,39 @@ The law update is the pushforward of \(\mu\otimes Q\) by \(S\). The pushforward 
 
 Independence of the next innovation from the previous history gives the one-step conditional expectation identity. Iterating it identifies expectations of the explicit recursion with iterated transition operators. This is the dual relation between the pathwise chain and its Markov laws.
 
+\begin{leanbox}{Lean: \texttt{markovStep\_\allowbreak{}integral\_\allowbreak{}test}, \texttt{markovTest\_\allowbreak{}iterate\_\allowbreak{}properties}, \texttt{markovLaws\_\allowbreak{}integral\_\allowbreak{}test}}
+\leansource{\texttt{markovStep\_\allowbreak{}integral\_\allowbreak{}test} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 39–49}
+\begin{leancode}
+\leanline{0}{theorem\ markovStep\_integral\_test\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (C\ :\ ℝ)\ (hbound\ :\ ∀\ x,\ ‖F\ x‖\ ≤\ C)\ :}
+\leanline{4}{(∫\ x,\ F\ x\ ∂ULA.markovStep\ step\ Q\ μ)\ =\ ∫\ x,\ markovTest\ step\ Q\ F\ x\ ∂μ}
+\end{leancode}
+\leansource{\texttt{markovTest\_\allowbreak{}iterate\_\allowbreak{}properties} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 53–61}
+\begin{leancode}
+\leanline{0}{theorem\ markovTest\_iterate\_properties\ (F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)}
+\leanline{4}{(C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)\ (hbound\ :\ ∀\ x,\ ‖F\ x‖\ ≤\ C)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Measurable\ ((markovTest\ step\ Q)\textasciicircum{}[n]\ F)\ ∧\ ∀\ x,\ ‖((markovTest\ step\ Q)\textasciicircum{}[n]\ F)\ x‖\ ≤\ C}
+\end{leancode}
+\leansource{\texttt{markovLaws\_\allowbreak{}integral\_\allowbreak{}test} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 65–76}
+\begin{leancode}
+\leanline{0}{theorem\ markovLaws\_integral\_test\ (μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ x,\ ‖F\ x‖\ ≤\ C)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(∫\ x,\ F\ x\ ∂ULA.markovLaws\ step\ Q\ μ\ n)\ =\ ∫\ x,\ ((markovTest\ step\ Q)\textasciicircum{}[n]\ F)\ x\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Step\_\allowbreak{}integral\_\allowbreak{}test} gives the formal counterpart of this step. The main intermediate facts are \texttt{hfun}, \texttt{hi} in that order.
+
+
+
+
+\texttt{markov\allowbreak{}Test\_\allowbreak{}iterate\_\allowbreak{}properties} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Named proof applications include \texttt{\ensuremath{\langle}markov\allowbreak{}Test\_\allowbreak{}measurable}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{markov\allowbreak{}Laws\_\allowbreak{}integral\_\allowbreak{}test} proceeds by \texttt{induction n generalizing F with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
@@ -58,13 +143,26 @@ Suppose every measurable test bounded by \(C\) has one-step defect at \(\pi\) at
 
 Telescope the difference between numerical and reference test expectations over the number of steps. Each propagated test retains its uniform bound because transition operators average probability measures. Consequently a uniform one-step weak error accumulates at most linearly in the step count.
 
+\begin{leanbox}{Lean: \texttt{markovLaws\_\allowbreak{}weak\_\allowbreak{}error}}
+\leansource{\texttt{markovLaws\_\allowbreak{}weak\_\allowbreak{}error} \quad KineticLangevin/\allowbreak{}MarkovTests.lean, lines 80–100}
+\begin{leancode}
+\leanline{0}{theorem\ markovLaws\_weak\_error\ (π\ :\ Measure\ H)\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(C\ δ\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)\ (hδ\ :\ 0\ ≤\ δ)}
+\leanline{4}{(hdefect\ :\ ∀\ F\ :\ H\ →\ ℂ,\ Measurable\ F\ →\ (∀\ x,\ ‖F\ x‖\ ≤\ C)\ →}
+\leanline{6}{‖(∫\ x,\ F\ x\ ∂ULA.markovStep\ step\ Q\ π)-(∫\ x,\ F\ x\ ∂π)‖\ ≤\ δ)}
+\leanline{4}{(F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (hbound\ :\ ∀\ x,\ ‖F\ x‖\ ≤\ C)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖(∫\ x,\ F\ x\ ∂ULA.markovLaws\ step\ Q\ π\ n)-(∫\ x,\ F\ x\ ∂π)‖\ ≤\ (n\ :\ ℝ)*δ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Laws\_\allowbreak{}weak\_\allowbreak{}error} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

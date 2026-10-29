@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -28,6 +51,20 @@ Apply the integrated strong supporting-plane inequality to \(Y\) and \(X\). Reve
 
 The norms are genuine \(L^{2}\) norms and every expectation is finite.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}gradient\_\allowbreak{}step}}
+\leansource{\texttt{lp\_\allowbreak{}gradient\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}ExpectedGradientStep.lean, lines 15–33}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_gradient\_step\ (f\ :\ E\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hh\ :\ 0\ ≤\ h)\ (X\ Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖X\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X\ -\ Y‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ *\ ‖X\ -\ Y‖\ \textasciicircum{}\ 2\ +}
+\leanline{6}{2\ *\ h\ *\ ((∫\ ω,\ f\ (Y\ ω)\ ∂P)\ -\ ∫\ ω,\ f\ (X\ ω)\ ∂P)\ +}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ ‖ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}gradient\_\allowbreak{}step} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hn}, \texttt{hi}, \texttt{hscaled} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
@@ -37,17 +74,30 @@ Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
 
 The pointwise deterministic descent theorem holds outside a null set where the lifted state arithmetic and lifted gradient agree with their ordinary representatives. Both potential terms are integrable by smooth quadratic growth, and the squared score is integrable by the Lipschitz drift construction. Integrate the pointwise estimate, use linearity, and identify the integral of the squared lifted gradient with its squared \(L^{2}\) norm. The result is
 
-\[2(\mathbb Ef(X-h\nabla f(X))-\mathbb Ef(X))\le-h(2-hM)\|\nabla f(X)\|_{L^2}^2.\]
+\[2(\mathbb Ef(X-h\nabla f(X))-\mathbb Ef(X))\le-h(2-hM)\|\nabla f(X)\|_{L^2}^2.\]\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}gradient\_\allowbreak{}descent}}
+\leansource{\texttt{lp\_\allowbreak{}gradient\_\allowbreak{}descent} \quad AverageLMC/\allowbreak{}ExpectedGradientStep.lean, lines 37–63}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_gradient\_descent\ (f\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (X\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{2\ *\ ((∫\ ω,\ f\ ((X\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X)\ ω)\ ∂P)\ -}
+\leanline{6}{∫\ ω,\ f\ (X\ ω)\ ∂P)\ ≤}
+\leanline{6}{-h\ *\ (2\ -\ h\ *\ (L\ :\ ℝ))\ *\ ‖ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}gradient\_\allowbreak{}descent} gives the formal counterpart of this step. The main intermediate facts are \texttt{G}, \texttt{hi\allowbreak{}X}, \texttt{hi\allowbreak{}Y}, \texttt{hi\allowbreak{}G}, \texttt{hpoint}, \texttt{hb} in that order. Named proof applications include \texttt{gradient\_\allowbreak{}descent}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.11.1]{LangevinLean2026IPLA}; \cite[Section~3.15.2]{LangevinLean2026Proximal}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Proximal]{LangevinLean2026Proximal}
-LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision 314590ce9586. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

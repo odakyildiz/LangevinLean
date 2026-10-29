@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,79 @@ Set \(c=\sqrt N\). The specified probability source contains a standard Gaussian
 
 The source combines the prescribed position initialization, independent thermal Gaussian velocity, and specified Brownian process. The selected physical-time solution is a measurable function of these inputs. Projecting its endpoint defines the continuous particle position law.
 
+\begin{leanbox}{Lean: \texttt{kipldClockFriction}, \texttt{kipldBrownianSource}, \texttt{kipldBrownianFlow} and 2 more}
+\leansource{\texttt{kipldClockFriction} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 14–14}
+\begin{leancode}
+\leanline{0}{def\ kipldClockFriction\ (N\ :\ ℕ)\ (γ\ :\ ℝ≥0)\ :\ ℝ≥0\ :=\ ⟨Real.sqrt\ N\ *\ γ,\ by\ positivity⟩}
+\end{leancode}
+\leansource{\texttt{kipldBrownianSource} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 17–18}
+\begin{leancode}
+\leanline{0}{abbrev\ kipldBrownianSource\ (N\ dθ\ dx\ :\ ℕ)\ :=}
+\leanline{2}{CanonicalContinuous.probability\ (Coordinate\ N\ dθ\ dx)\ (stdGaussian\ (State\ N\ dθ\ dx))}
+\end{leancode}
+\leansource{\texttt{kipldBrownianFlow} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 21–33}
+\begin{leancode}
+\leanline{0}{def\ kipldBrownianFlow\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0≤T)\ (t\ :\ ℝ)\ :=}
+\leanline{2}{rescaleVelocity\ (Real.sqrt\ N)⁻¹}
+\leanline{4}{(ProductContinuous.flow\ (kipldBrownianSource\ N\ dθ\ dx)\ ν\ hν}
+\leanline{6}{(CanonicalContinuous.velocity\ (Coordinate\ N\ dθ\ dx)\ (stdGaussian\ (State\ N\ dθ\ dx))\ IsGaussian.memLp\_two\_id)}
+\leanline{6}{(CanonicalContinuous.input\ (Coordinate\ N\ dθ\ dx)\ (stdGaussian\ (State\ N\ dθ\ dx))\ (kipldClockFriction\ N\ γ))}
+\leanline{6}{(CanonicalContinuous.continuous\_input\ \_\ \_\ \_)\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))}
+\leanline{6}{((N:ℝ≥0)*L)\ (kipldClockFriction\ N\ γ)\ (IPLA.potential\_gradient\_lipschitz\ hdiff\ hLip)}
+\leanline{6}{(T/Real.sqrt\ N)\ (div\_nonneg\ hT\ (Real.sqrt\_nonneg\ \_))\ (t/Real.sqrt\ N))}
+\end{leancode}
+\leansource{\texttt{kipldBrownianPositionLaw} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 36–42}
+\begin{leancode}
+\leanline{0}{def\ kipldBrownianPositionLaw\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :\ Measure\ (State\ N\ dθ\ dx)\ :=}
+\leanline{2}{(ν.prod\ (kipldBrownianSource\ N\ dθ\ dx)).map\ (kipldBrownianFlow\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT\ T).2}
+\end{leancode}
+\leansource{\texttt{kipldBrownianPositionLaw\_\allowbreak{}eq\_\allowbreak{}canonical} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 45–55}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianPositionLaw\_eq\_canonical\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT\ =}
+\leanline{6}{CanonicalContinuous.positionLaw\ (Coordinate\ N\ dθ\ dx)\ (stdGaussian\ (State\ N\ dθ\ dx))}
+\leanline{8}{IsGaussian.memLp\_two\_id\ ν\ hν\ (@IPLA.potential\ N\ dθ\ dx\ U)\ ((N:ℝ≥0)*L)}
+\leanline{8}{(kipldClockFriction\ N\ γ)\ (IPLA.potential\_gradient\_lipschitz\ hdiff\ hLip)}
+\leanline{8}{(T/Real.sqrt\ N)\ (div\_nonneg\ hT\ (Real.sqrt\_nonneg\ \_))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kipld\allowbreak{}Clock\allowbreak{}Friction} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Source} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Flow} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Position\allowbreak{}Law} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Position\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}canonical} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.19.1]{LangevinLean2026Kinetic}; \cite[Section~3.33.1]{LangevinLean2026Kinetic}; \cite[Section~3.33.2]{LangevinLean2026Kinetic}.
@@ -48,6 +144,21 @@ The complete source law theorem supplies the initial phase law \(\mathcal N(0,I)
 
 The thermal initialization is the explicit inverse-square-root-particle Gaussian pushforward. Its independence from position and the entire Brownian source is proved by the product construction. This is precisely the phase/\allowbreak{}source law needed to transfer stationarity.
 
+\begin{leanbox}{Lean: \texttt{kipldBrownianFlow\_\allowbreak{}initial\_\allowbreak{}hasLaw}}
+\leansource{\texttt{kipldBrownianFlow\_\allowbreak{}initial\_\allowbreak{}hasLaw} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 58–95}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianFlow\_initial\_hasLaw\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{HasLaw\ (lpPhaseCoe\ (ν.prod\ (kipldBrownianSource\ N\ dθ\ dx))}
+\leanline{6}{(kipldBrownianFlow\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT\ 0))}
+\leanline{6}{((velocityTarget\ N\ dθ\ dx).prod\ ν)\ (ν.prod\ (kipldBrownianSource\ N\ dθ\ dx))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Flow\_\allowbreak{}initial\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{Q}, \texttt{V}, \texttt{Z}, \texttt{hj}, \texttt{hi}, \texttt{hm} in that order. Named proof applications include \texttt{hp.\allowbreak{}symm}, \texttt{he.\allowbreak{}congr}, \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.17.1]{LangevinLean2026Kinetic}; \cite[Section~3.19.1]{LangevinLean2026Kinetic}; \cite[Section~3.33.1]{LangevinLean2026Kinetic}; \cite[Section~3.53.1]{LangevinLean2026Kinetic}; \cite[Section~3.58.2]{LangevinLean2026Kinetic}.
@@ -61,6 +172,78 @@ The lifted potential has curvature \(Nm\) and smoothness \(NL\). Multiplication 
 
 The clock transform turns the process into the shared unit-temperature diffusion for the sum potential. Curvature and friction scaling cancel in the physical-time mixing exponent. Since the target position is unchanged, the resulting convergence bound is directly a particle position estimate.
 
+\begin{leanbox}{Lean: \texttt{kipld\_\allowbreak{}scaled\_\allowbreak{}exponent}, \texttt{kipldBrownianPositionLaw\_\allowbreak{}wasserstein\_\allowbreak{}bound}, \texttt{kipldBrownianPositionLaw\_\allowbreak{}memLp} and 2 more}
+\leansource{\texttt{kipld\_\allowbreak{}scaled\_\allowbreak{}exponent} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 98–105}
+\begin{leancode}
+\leanline{0}{theorem\ kipld\_scaled\_exponent\ (N\ :\ ℕ)\ (hN\ :\ 0<N)\ (m\ γ\ T\ :\ ℝ)\ :}
+\leanline{4}{(-((N:ℝ)*m)/(Real.sqrt\ N*γ))*(T/Real.sqrt\ N)=(-m/γ)*T}
+\end{leancode}
+\leansource{\texttt{kipldBrownianPositionLaw\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 108–132}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianPositionLaw\_wasserstein\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT)}
+\leanline{6}{(IPLA.gibbsTarget\ U)\ ≤\ Real.sqrt\ 2*Real.exp\ ((-m/(γ:ℝ))*T)*}
+\leanline{8}{ULA.wasserstein2Real\ ν\ (IPLA.gibbsTarget\ U)}
+\end{leancode}
+\leansource{\texttt{kipldBrownianPositionLaw\_\allowbreak{}memLp} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 135–142}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianPositionLaw\_memLp\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2}
+\leanline{6}{(kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT)}
+\end{leancode}
+\leansource{\texttt{kipldBrownianPositionLaw\_\allowbreak{}probability} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 145–151}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianPositionLaw\_probability\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{IsProbabilityMeasure\ (kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT)}
+\end{leancode}
+\leansource{\texttt{kipldBrownianPositionLaw\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 154–168}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianPositionLaw\_wasserstein2\_ne\_top\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0<m)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{ULA.wasserstein2\ (kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT)}
+\leanline{6}{(IPLA.gibbsTarget\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kipld\_\allowbreak{}scaled\_\allowbreak{}exponent} separates the cases \texttt{hg : \ensuremath{\gamma}=0} and its negation before combining them. The main intermediate facts are \texttt{hc} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Position\allowbreak{}Law\_\allowbreak{}wasserstein\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hn}, \texttt{hc}, \texttt{hfr}, \texttt{hb} in that order. Named proof applications include \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Position\allowbreak{}Law\_\allowbreak{}mem\allowbreak{}Lp} gives the formal counterpart of this step. Named proof applications include \texttt{Product\allowbreak{}Continuous.\allowbreak{}position\allowbreak{}Law\_\allowbreak{}mem\allowbreak{}Lp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Position\allowbreak{}Law\_\allowbreak{}probability} gives the formal counterpart of this step. Named proof applications include \texttt{Product\allowbreak{}Continuous.\allowbreak{}position\allowbreak{}Law\_\allowbreak{}probability}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Position\allowbreak{}Law\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} gives the formal counterpart of this step. Named proof applications include \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.19.1]{LangevinLean2026Kinetic}; \cite[Section~3.58.4]{LangevinLean2026Kinetic}.
@@ -74,6 +257,39 @@ The drift lifted to \(L^{2}\) represents pointwise application of the true sum g
 
 The average-potential gradient identity rewrites the transformed drift as the parameter-average and latent-pair force. Consequently the constructed physical path solves the intended KIPLD equation. This identification links the law-level mixing theorem to the stated particle dynamics.
 
+\begin{leanbox}{Lean: \texttt{kipld\_\allowbreak{}lpForce\_\allowbreak{}clock}, \texttt{kipldBrownianFlow\_\allowbreak{}integral}}
+\leansource{\texttt{kipld\_\allowbreak{}lpForce\_\allowbreak{}clock} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 171–185}
+\begin{leancode}
+\leanline{0}{theorem\ kipld\_lpForce\_clock\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsFiniteMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{(fun\ X\ =>\ ((Real.sqrt\ N)\textasciicircum{}2)⁻¹\ •\ ULA.lpDrift\ P\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))}
+\leanline{6}{(IPLA.potential\_gradient\_lipschitz\ hdiff\ hLip)\ X)\ =}
+\leanline{6}{ULA.lpDrift\ P\ (force\ U)\ (force\_lipschitz\ hN\ hdiff\ hLip)}
+\end{leancode}
+\leansource{\texttt{kipldBrownianFlow\_\allowbreak{}integral} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 188–219}
+\begin{leancode}
+\leanline{0}{theorem\ kipldBrownianFlow\_integral\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{let\ P\ :=\ ν.prod\ (kipldBrownianSource\ N\ dθ\ dx)}
+\leanline{4}{let\ S\ :=\ kipldBrownianFlow\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT}
+\leanline{4}{let\ B\ :=\ ProductContinuous.input\ (kipldBrownianSource\ N\ dθ\ dx)\ ν}
+\leanline{6}{(CanonicalContinuous.input\ (Coordinate\ N\ dθ\ dx)\ (stdGaussian\ (State\ N\ dθ\ dx))\ (kipldClockFriction\ N\ γ))}
+\leanline{4}{Continuous\ S\ ∧\ ∀\ t\ ∈\ Icc\ 0\ T,\ S\ t-S\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,kineticNegativeDrift\ (ULA.lpDrift\ P\ (force\ U)\ (force\_lipschitz\ hN\ hdiff\ hLip))\ γ\ 1\ (S\ s))+}
+\leanline{6}{((Real.sqrt\ N)⁻¹\ •\ B\ (t/Real.sqrt\ N),0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kipld\_\allowbreak{}lp\allowbreak{}Force\_\allowbreak{}clock} gives the formal counterpart of this step. Named proof applications include \texttt{Lp.\allowbreak{}ext\_\allowbreak{}iff.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kipld\allowbreak{}Brownian\allowbreak{}Flow\_\allowbreak{}integral} gives the formal counterpart of this step. The main intermediate facts are \texttt{Q}, \texttt{V}, \texttt{B}, \texttt{g}, \texttt{Y}, \texttt{hspec} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.1.1]{LangevinLean2026Kinetic}; \cite[Section~3.19.1]{LangevinLean2026Kinetic}; \cite[Section~3.33.1]{LangevinLean2026Kinetic}.
@@ -87,17 +303,55 @@ The parameter projection has operator norm at most one, so pushing any coupling 
 
 Nonexpansive parameter projection transfers the sampling transport error. The powered Gibbs marginal contributes the sharp statistical radius around the likelihood maximizer. Their sum yields a continuous-time parameter RMS bound with separate dynamical and finite-particle contributions.
 
+\begin{leanbox}{Lean: \texttt{kipld\_\allowbreak{}parameter\_\allowbreak{}sampling\_\allowbreak{}bound}, \texttt{kipld\_\allowbreak{}parameter\_\allowbreak{}RMS\_\allowbreak{}bound}}
+\leansource{\texttt{kipld\_\allowbreak{}parameter\_\allowbreak{}sampling\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 222–245}
+\begin{leancode}
+\leanline{0}{theorem\ kipld\_parameter\_sampling\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ :}
+\leanline{4}{ULA.wasserstein2Real}
+\leanline{6}{((kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT).map\ IPLA.parameterCLM)}
+\leanline{6}{(IPLA.marginalTarget\ N\ U)\ ≤\ Real.sqrt\ 2*Real.exp\ ((-m/(γ:ℝ))*T)*}
+\leanline{8}{Real.sqrt\ (∫\ p\ :\ State\ N\ dθ\ dx×State\ N\ dθ\ dx,\ ‖p.1-p.2‖\textasciicircum{}2\ ∂ν.prod\ (IPLA.gibbsTarget\ U))}
+\end{leancode}
+\leansource{\texttt{kipld\_\allowbreak{}parameter\_\allowbreak{}RMS\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}Continuous.lean, lines 248–269}
+\begin{leancode}
+\leanline{0}{theorem\ kipld\_parameter\_RMS\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ U\ θStar)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z-θStar‖\textasciicircum{}2}
+\leanline{6}{∂kipldBrownianPositionLaw\ hN\ U\ L\ γ\ hdiff\ hLip\ ν\ hν\ T\ hT)\ ≤}
+\leanline{6}{Real.sqrt\ 2*Real.exp\ ((-m/(γ:ℝ))*T)*ULA.wasserstein2Real\ ν\ (IPLA.gibbsTarget\ U)+}
+\leanline{6}{Real.sqrt\ ((dθ:ℝ)/((N:ℝ)*m))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kipld\_\allowbreak{}parameter\_\allowbreak{}sampling\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hf}, \texttt{hp}, \texttt{hb}, \texttt{h\ensuremath{\pi}} in that order. Named proof applications include \texttt{hp.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kipld\_\allowbreak{}parameter\_\allowbreak{}RMS\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hf}, \texttt{hc}, \texttt{hp}, \texttt{hfin} in that order. Named proof applications include \texttt{hp.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.9.9]{LangevinLean2026IPLA}; \cite[Section~3.115.1]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

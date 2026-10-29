@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -37,11 +60,39 @@ The integral norm bound and passage to the limit yield, also after removing boun
 
 Suppose the pairing of a fixed vector \(\Psi\) with the difference of two endpoint approximations equals the time integral of its pairing with a generator approximation. If every generator norm on [0,\(T\)] is at most \(R+\operatorname{err}(n)\), Cauchy-Schwarz bounds the integrand by \(\|\Psi\|\) times that constant. The interval-integral norm bound then gives an endpoint pairing at most \(T\) \(\|\Psi\|\)\((R+err(n))\). Continuity of the inner product passes the convergent endpoint sequences to their limits. Since \(\operatorname{err}(n)\) tends to zero, closedness of the real order gives the exact bound \(T\) \(\|\Psi\|\) \(R\). This requires no continuity of the eventual unbounded generator path.
 
+\begin{leanbox}{Lean: \texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}compact\_\allowbreak{}dynkin\_\allowbreak{}approximations}}
+\leansource{\texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}compact\_\allowbreak{}dynkin\_\allowbreak{}approximations} \quad AverageLMC/\allowbreak{}LaplacianPairingLimit.lean, lines 27–54}
+\begin{leancode}
+\leanline{0}{theorem\ pairing\_bound\_of\_compact\_dynkin\_approximations}
+\leanline{4}{(Ψ\ X\ Y\ :\ H)\ (Xn\ Yn\ :\ ℕ\ →\ H)\ (Gn\ :\ ℕ\ →\ ℝ\ →\ H)}
+\leanline{4}{(T\ R\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (hR\ :\ 0\ ≤\ R)\ (err\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(herr\ :\ ∀\ n,\ 0\ ≤\ err\ n)\ (herrlim\ :\ Tendsto\ err\ atTop\ ({\leanfallback 𝓝}\ 0))}
+\leanline{4}{(hX\ :\ Tendsto\ Xn\ atTop\ ({\leanfallback 𝓝}\ X))\ (hY\ :\ Tendsto\ Yn\ atTop\ ({\leanfallback 𝓝}\ Y))}
+\leanline{4}{(hgen\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ T\ →\ ‖Gn\ n\ t‖\ ≤\ R\ +\ err\ n)}
+\leanline{4}{(hidentity\ :\ ∀\ n,\ inner\ ℝ\ Ψ\ (Xn\ n\ -\ Yn\ n)\ =}
+\leanline{6}{∫\ t\ in\ 0..T,\ inner\ ℝ\ Ψ\ (Gn\ n\ t))\ :}
+\leanline{4}{inner\ ℝ\ Ψ\ (X\ -\ Y)\ ≤\ T\ *\ ‖Ψ‖\ *\ R}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}compact\_\allowbreak{}dynkin\_\allowbreak{}approximations} gives the formal counterpart of this step. The main intermediate facts are \texttt{hbound}, \texttt{hleft}, \texttt{hright} in that order. Named proof applications include \texttt{le\_\allowbreak{}abs\_\allowbreak{}self}, \texttt{hab.\allowbreak{}trans}, \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Remove the bounded-weight restriction without increasing the norm}{Remove the bounded-weight restriction without increasing the norm}}
 
 
 Apply the assumed inequality to every radial clipping of the \(L^{2}\) vector \(\Psi\). Each clipped norm is at most \(\|\Psi\|\), so every right-hand side is bounded by the same \(T\) \(\|\Psi\|\) \(R\). The prior clipping theorem makes the left-hand pairings converge to the pairing of \(\Psi\) itself with the fixed \(L^{2}\) increment. Passing the real inequality to the limit gives the desired estimate for arbitrary square-integrable initial vectors, with no coordinate or dimension factor.
 
+\begin{leanbox}{Lean: \texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}clipped\_\allowbreak{}weights}}
+\leansource{\texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}clipped\_\allowbreak{}weights} \quad AverageLMC/\allowbreak{}LaplacianPairingLimit.lean, lines 68–76}
+\begin{leancode}
+\leanline{0}{theorem\ pairing\_bound\_of\_clipped\_weights}
+\leanline{4}{(Ψ\ D\ :\ Lp\ H\ 2\ P)\ (T\ R\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (hR\ :\ 0\ ≤\ R)}
+\leanline{4}{(hclip\ :\ ∀\ n,\ inner\ ℝ\ (lpClippedWeight\ P\ Ψ\ n)\ D\ ≤}
+\leanline{6}{T\ *\ ‖lpClippedWeight\ P\ Ψ\ n‖\ *\ R)\ :}
+\leanline{4}{inner\ ℝ\ Ψ\ D\ ≤\ T\ *\ ‖Ψ‖\ *\ R}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}clipped\_\allowbreak{}weights} gives the formal counterpart of this step. Named proof applications include \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto}, \texttt{Eventually.\allowbreak{}of\_\allowbreak{}forall}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

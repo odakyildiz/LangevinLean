@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -24,17 +47,89 @@ Stationarity is an equality of actual marginal laws. This module transfers genui
 
 Rewrite the observation's Gibbs moment with the actual marginal map and pull it back to the original probability space. The resulting square-integrability estimate defines a genuine observation in the space of square-integrable random vectors modulo almost-everywhere equality. Its almost-everywhere representative is exactly the original vector function evaluated at the actual process state.
 
+\begin{leanbox}{Lean: \texttt{stationary\_\allowbreak{}observation\_\allowbreak{}memLp}, \texttt{stationaryObservation}, \texttt{stationaryObservation\_\allowbreak{}coe}}
+\leansource{\texttt{stationary\_\allowbreak{}observation\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}LaplacianStationaryTest.lean, lines 22–26}
+\begin{leancode}
+\leanline{0}{theorem\ stationary\_observation\_memLp}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (π\ :\ Measure\ H)\ (F\ :\ H\ →\ E)\ (hF\ :\ MemLp\ F\ 2\ π)}
+\leanline{4}{(Y\ :\ Lp\ H\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)\ :\ MemLp\ (fun\ a\ ↦\ F\ (Y\ a))\ 2\ P}
+\end{leancode}
+\leansource{\texttt{stationaryObservation} \quad AverageLMC/\allowbreak{}LaplacianStationaryTest.lean, lines 29–32}
+\begin{leancode}
+\leanline{0}{def\ stationaryObservation}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (π\ :\ Measure\ H)\ (F\ :\ H\ →\ E)\ (hF\ :\ MemLp\ F\ 2\ π)}
+\leanline{4}{(Y\ :\ Lp\ H\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)\ :\ Lp\ E\ 2\ P\ :=}
+\leanline{2}{(stationary\_observation\_memLp\ P\ π\ F\ hF\ Y\ hlaw).toLp\ (fun\ a\ ↦\ F\ (Y\ a))}
+\end{leancode}
+\leansource{\texttt{stationaryObservation\_\allowbreak{}coe} \quad AverageLMC/\allowbreak{}LaplacianStationaryTest.lean, lines 36–40}
+\begin{leancode}
+\leanline{0}{theorem\ stationaryObservation\_coe}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (π\ :\ Measure\ H)\ (F\ :\ H\ →\ E)\ (hF\ :\ MemLp\ F\ 2\ π)}
+\leanline{4}{(Y\ :\ Lp\ H\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)\ :}
+\leanline{4}{stationaryObservation\ P\ π\ F\ hF\ Y\ hlaw\ =ᵐ[P]\ fun\ a\ ↦\ F\ (Y\ a)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{stationary\_\allowbreak{}observation\_\allowbreak{}mem\allowbreak{}Lp} gives the formal counterpart of this step. Named proof applications include \texttt{h\allowbreak{}F.\allowbreak{}comp\_\allowbreak{}of\_\allowbreak{}map}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{stationary\allowbreak{}Observation} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{stationary\allowbreak{}Observation\_\allowbreak{}coe} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Preserve the exact squared approximation error}{Preserve the exact squared approximation error}}
 
 
 The \(L^{2}\) inner-product formula identifies the squared norm with the integral of the squared representative norm. The proved representative identity and the stationary law map turn this into the actual Gibbs moment. Applying the same argument to differences preserves the complete squared approximation error, with no change of constants or dependence on time.
 
+\begin{leanbox}{Lean: \texttt{stationaryObservation\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{stationaryObservation\_\allowbreak{}sub\_\allowbreak{}norm\_\allowbreak{}sq}}
+\leansource{\texttt{stationaryObservation\_\allowbreak{}norm\_\allowbreak{}sq} \quad AverageLMC/\allowbreak{}LaplacianStationaryTest.lean, lines 45–58}
+\begin{leancode}
+\leanline{0}{theorem\ stationaryObservation\_norm\_sq}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (π\ :\ Measure\ H)\ (F\ :\ H\ →\ E)\ (hFc\ :\ Continuous\ F)\ (hF\ :\ MemLp\ F\ 2\ π)}
+\leanline{4}{(Y\ :\ Lp\ H\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)\ :}
+\leanline{4}{‖stationaryObservation\ P\ π\ F\ hF\ Y\ hlaw‖\ \textasciicircum{}\ 2\ =\ ∫\ x,\ ‖F\ x‖\ \textasciicircum{}\ 2\ ∂π}
+\end{leancode}
+\leansource{\texttt{stationaryObservation\_\allowbreak{}sub\_\allowbreak{}norm\_\allowbreak{}sq} \quad AverageLMC/\allowbreak{}LaplacianStationaryTest.lean, lines 64–85}
+\begin{leancode}
+\leanline{0}{theorem\ stationaryObservation\_sub\_norm\_sq}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (π\ :\ Measure\ H)\ (F\ G\ :\ H\ →\ E)}
+\leanline{4}{(hFc\ :\ Continuous\ F)\ (hGc\ :\ Continuous\ G)\ (hF\ :\ MemLp\ F\ 2\ π)\ (hG\ :\ MemLp\ G\ 2\ π)}
+\leanline{4}{(Y\ :\ Lp\ H\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)\ :}
+\leanline{4}{‖stationaryObservation\ P\ π\ F\ hF\ Y\ hlaw\ -\ stationaryObservation\ P\ π\ G\ hG\ Y\ hlaw‖\ \textasciicircum{}\ 2\ =}
+\leanline{6}{∫\ x,\ ‖F\ x\ -\ G\ x‖\ \textasciicircum{}\ 2\ ∂π}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{stationary\allowbreak{}Observation\_\allowbreak{}norm\_\allowbreak{}sq} gives the formal counterpart of this step. Named proof applications include \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{stationary\allowbreak{}Observation\_\allowbreak{}sub\_\allowbreak{}norm\_\allowbreak{}sq} gives the formal counterpart of this step. Named proof applications include \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Sum scalar weighted identities into vector duality}{Sum scalar weighted identities into vector duality}}
 
 
 Each coordinate product is integrable by domination with the product of the two vector norms and the \(L^{2}\) Cauchy inequality. Expand the Euclidean inner product as the finite coordinate sum, then interchange this finite sum and the genuine integral. The result is exactly the sum of scalar weighted expectations used by the compact-test Dynkin theorem; no separate coordinatewise bound introduces a dimension factor.
 
+\begin{leanbox}{Lean: \texttt{stationaryObservation\_\allowbreak{}inner\_\allowbreak{}eq\_\allowbreak{}sum}}
+\leansource{\texttt{stationaryObservation\_\allowbreak{}inner\_\allowbreak{}eq\_\allowbreak{}sum} \quad AverageLMC/\allowbreak{}LaplacianStationaryTest.lean, lines 92–120}
+\begin{leancode}
+\leanline{0}{theorem\ stationaryObservation\_inner\_eq\_sum}
+\leanline{4}{(π\ :\ Measure\ (State\ p))\ (F\ :\ State\ p\ →\ State\ p)\ (hFc\ :\ Continuous\ F)}
+\leanline{4}{(hF\ :\ MemLp\ F\ 2\ π)\ (Y\ :\ Lp\ (State\ p)\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)}
+\leanline{4}{(Ψ\ :\ Lp\ (State\ p)\ 2\ P)\ :}
+\leanline{4}{inner\ ℝ\ Ψ\ (stationaryObservation\ P\ π\ F\ hF\ Y\ hlaw)\ =}
+\leanline{6}{∑\ j\ :\ Fin\ p,\ lpWeightedTest\ P\ (fun\ a\ ↦\ Ψ\ a\ j)\ (fun\ x\ ↦\ F\ x\ j)\ Y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{stationary\allowbreak{}Observation\_\allowbreak{}inner\_\allowbreak{}eq\_\allowbreak{}sum} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}Obs}, \texttt{hdom}, \texttt{hi} in that order. Named proof applications include \texttt{hdom.\allowbreak{}mono'}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

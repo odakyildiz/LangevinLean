@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -41,12 +64,46 @@ Earlier results used here: \cite[Section~3.9]{LangevinLean2026ULASC}; \cite[Sect
 
 Compact support bounds the second derivative everywhere. The derivative norm bound gives a Lipschitz derivative, and the Riesz isometry transfers this constant to the gradient.
 
+\begin{leanbox}{Lean: \texttt{compactSmooth\_\allowbreak{}gradient\_\allowbreak{}lipschitz}}
+\leansource{\texttt{compactSmooth\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad AverageLMC/\allowbreak{}LaplacianWeakStep.lean, lines 28–42}
+\begin{leancode}
+\leanline{0}{theorem\ compactSmooth\_gradient\_lipschitz}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ ∞\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{∃\ L\ :\ ℝ≥0,\ LipschitzWith\ L\ (gradient\ φ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}Smooth\_\allowbreak{}gradient\_\allowbreak{}lipschitz} gives the formal counterpart of this step. The main intermediate facts are \texttt{L}, \texttt{h\allowbreak{}Ddiff}, \texttt{h\allowbreak{}Dlip} in that order. Named proof applications include \texttt{lipschitz\allowbreak{}With\_\allowbreak{}of\_\allowbreak{}nnnorm\_\allowbreak{}fderiv\_\allowbreak{}le}, \texttt{hb}, \texttt{h\allowbreak{}Dlip.\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Control a deterministic drift increment}{Control a deterministic drift increment}}
 
 
 Apply the smooth upper bound to \(\varphi\) and \(-\varphi\) to obtain an absolute first-order remainder bounded by \(L\|d\|^{2}/2\). Apply it at \(x+w\) and compare the two derivatives by gradient Lipschitz continuity, obtaining the additional \(L\|w\|\|d\|\) term. This separates a potentially large random drift from the small Gaussian increment.
 
+\begin{leanbox}{Lean: \texttt{firstOrder\_\allowbreak{}remainder\_\allowbreak{}abs\_\allowbreak{}le}, \texttt{shifted\_\allowbreak{}firstOrder\_\allowbreak{}remainder\_\allowbreak{}abs\_\allowbreak{}le}}
+\leansource{\texttt{firstOrder\_\allowbreak{}remainder\_\allowbreak{}abs\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}LaplacianWeakStep.lean, lines 46–61}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrder\_remainder\_abs\_le}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ φ)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ φ))\ (x\ d\ :\ H)\ :}
+\leanline{4}{|φ\ (x\ +\ d)\ -\ φ\ x\ -\ fderiv\ ℝ\ φ\ x\ d|\ ≤\ (L\ :\ ℝ)\ /\ 2\ *\ ‖d‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{shifted\_\allowbreak{}firstOrder\_\allowbreak{}remainder\_\allowbreak{}abs\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}LaplacianWeakStep.lean, lines 65–81}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_firstOrder\_remainder\_abs\_le}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ φ)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ φ))\ (x\ w\ d\ :\ H)\ :}
+\leanline{4}{|φ\ (x\ +\ w\ +\ d)\ -\ φ\ (x\ +\ w)\ -\ fderiv\ ℝ\ φ\ x\ d|\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ /\ 2\ *\ ‖d‖\ \textasciicircum{}\ 2\ +\ (L\ :\ ℝ)\ *\ ‖w‖\ *\ ‖d‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}remainder\_\allowbreak{}abs\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hneg}, \texttt{h\allowbreak{}Lip\allowbreak{}Neg}, \texttt{hu}, \texttt{hl} in that order. Named proof applications include \texttt{h\allowbreak{}Lip.\allowbreak{}neg}, \texttt{abs\_\allowbreak{}le.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{shifted\_\allowbreak{}first\allowbreak{}Order\_\allowbreak{}remainder\_\allowbreak{}abs\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hr}, \texttt{h\allowbreak{}D}, \texttt{heq} in that order. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, \texttt{h\allowbreak{}Lip.\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.9.1]{LangevinLean2026ULASC}.
@@ -56,6 +113,19 @@ Earlier results used here: \cite[Section~3.9.1]{LangevinLean2026ULASC}.
 
 Use the compact smooth Taylor remainder for the noise alone and the shifted first-order estimate for the drift. Gaussian first and third moments are finite. For \(0\le h\le 1\), absorb the deterministic \(h^{2}\) term into \(h\sqrt h\) and obtain one uniform constant \(K\) times \(h\sqrt h(1+\|v\|^{2})\), for arbitrary starting point and drift.
 
+\begin{leanbox}{Lean: \texttt{compactSmooth\_\allowbreak{}gaussian\_\allowbreak{}weak\_\allowbreak{}step}}
+\leansource{\texttt{compactSmooth\_\allowbreak{}gaussian\_\allowbreak{}weak\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}LaplacianWeakStep.lean, lines 87–217}
+\begin{leancode}
+\leanline{0}{theorem\ compactSmooth\_gaussian\_weak\_step}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ ∞\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{∃\ K\ :\ ℝ,\ 0\ ≤\ K\ ∧\ ∀\ (x\ v\ :\ H)\ (h\ :\ ℝ),\ 0\ ≤\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{|(∫\ z\ :\ H,\ φ\ (x\ +\ h\ •\ v\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)\ ∂stdGaussian\ H)\ -}
+\leanline{8}{φ\ x\ -\ h\ *\ (fderiv\ ℝ\ φ\ x\ v\ +\ Laplacian.laplacian\ φ\ x)|\ ≤}
+\leanline{10}{K\ *\ h\ *\ Real.sqrt\ h\ *\ (1\ +\ ‖v‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}Smooth\_\allowbreak{}gaussian\_\allowbreak{}weak\_\allowbreak{}step} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\ensuremath{\varphi}bound}, \texttt{hz1}, \texttt{hz3}, \texttt{G\ensuremath{{}_{1}}}, \texttt{G\ensuremath{{}_{3}}}, \texttt{K} in that order. Named proof applications include \texttt{hnoise.\allowbreak{}sub}, \texttt{abs\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}abs.\allowbreak{}trans}, \texttt{htotal.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}; \cite[Section~3.55.3]{LangevinLean2026ULASC}.
@@ -65,16 +135,44 @@ Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}; \cite[S
 
 Express the actual Laplacian as a finite sum of second derivative evaluations on an orthonormal basis. Continuity of the second derivative proves continuity of this sum.
 
+\begin{leanbox}{Lean: \texttt{compactSmooth\_\allowbreak{}continuous\_\allowbreak{}laplacian}}
+\leansource{\texttt{compactSmooth\_\allowbreak{}continuous\_\allowbreak{}laplacian} \quad AverageLMC/\allowbreak{}LaplacianWeakStep.lean, lines 221–234}
+\begin{leancode}
+\leanline{0}{theorem\ compactSmooth\_continuous\_laplacian}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ ∞\ φ)\ :\ Continuous\ (Laplacian.laplacian\ φ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}Smooth\_\allowbreak{}continuous\_\allowbreak{}laplacian} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}DD}, \texttt{he} in that order. Named proof applications include \texttt{continuous\_\allowbreak{}finset\_\allowbreak{}sum}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Insert an actual bounded past weight}{Insert an actual bounded past weight}}
 
 
 Integrate the pointwise Gaussian weak residual against a measurable weight of absolute value at most \(A\). The drift needs only its true second moment, producing \(A\) \(K\) \(h\sqrt h(1+E\|v\|^{2})\). Product measurability and this integrable bound justify the averaging. The corresponding \(C^{2}\) estimate refines this bound to the regularity needed by the gradient cutoffs.
 
+\begin{leanbox}{Lean: \texttt{compactSmooth\_\allowbreak{}gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step}}
+\leansource{\texttt{compactSmooth\_\allowbreak{}gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}LaplacianWeakStep.lean, lines 240–295}
+\begin{leancode}
+\leanline{0}{theorem\ compactSmooth\_gaussian\_weighted\_weak\_step}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ ∞\ φ)\ (hc\ :\ HasCompactSupport\ φ)}
+\leanline{4}{(x\ v\ :\ Ω\ →\ H)\ (w\ :\ Ω\ →\ ℝ)\ (A\ :\ ℝ)}
+\leanline{4}{(hx\ :\ Measurable\ x)\ (hv\ :\ Measurable\ v)\ (hw\ :\ Measurable\ w)}
+\leanline{4}{(hv₂\ :\ MemLp\ v\ 2\ P)\ (hA\ :\ 0\ ≤\ A)\ (hwA\ :\ ∀\ a,\ |w\ a|\ ≤\ A)\ :}
+\leanline{4}{∃\ K\ :\ ℝ,\ 0\ ≤\ K\ ∧\ ∀\ h\ :\ ℝ,\ 0\ ≤\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{|∫\ a,\ w\ a\ *\ ((∫\ z\ :\ H,}
+\leanline{8}{φ\ (x\ a\ +\ h\ •\ v\ a\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)\ ∂stdGaussian\ H)\ -}
+\leanline{10}{φ\ (x\ a)\ -\ h\ *\ (fderiv\ ℝ\ φ\ (x\ a)\ (v\ a)\ +}
+\leanline{12}{Laplacian.laplacian\ φ\ (x\ a)))\ ∂P|\ ≤}
+\leanline{8}{A\ *\ K\ *\ h\ *\ Real.sqrt\ h\ *\ (1\ +\ ∫\ a,\ ‖v\ a‖\ \textasciicircum{}\ 2\ ∂P)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}Smooth\_\allowbreak{}gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step} gives the formal counterpart of this step. The main intermediate facts are \texttt{r}, \texttt{h\ensuremath{\varphi}m}, \texttt{hjoint}, \texttt{hint}, \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}Lap} in that order. Named proof applications include \texttt{Measurable.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{abs\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}abs.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

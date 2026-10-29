@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,32 @@ The sampler begins on \(\nu\otimes(\kappa\otimes Q)\): the first coordinate is i
 
 The independent standard Gaussian velocity and initial position law form the initial phase product. The constructed innovation stream is independent of this whole phase. Reassociating the product factors proves the joint input law needed for the explicit Markov recursion.
 
+\begin{leanbox}{Lean: \texttt{independentInitialPhase\_\allowbreak{}source\_\allowbreak{}jointLaw}, \texttt{independentInitialPhase\_\allowbreak{}noise\_\allowbreak{}jointLaw}}
+\leansource{\texttt{independentInitialPhase\_\allowbreak{}source\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}ProductMarkovLaw.lean, lines 15–24}
+\begin{leancode}
+\leanline{0}{theorem\ independentInitialPhase\_source\_jointLaw}
+\leanline{4}{(ν\ κ\ :\ Measure\ H)\ (Q\ :\ Measure\ S)\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{[IsProbabilityMeasure\ κ]\ [IsProbabilityMeasure\ Q]\ :}
+\leanline{4}{HasLaw\ (fun\ p\ :\ H×(H×S)\ ↦\ ((p.2.1,p.1),p.2.2))\ ((κ.prod\ ν).prod\ Q)\ (ν.prod\ (κ.prod\ Q))}
+\end{leancode}
+\leansource{\texttt{independentInitialPhase\_\allowbreak{}noise\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}ProductMarkovLaw.lean, lines 27–35}
+\begin{leancode}
+\leanline{0}{theorem\ independentInitialPhase\_noise\_jointLaw}
+\leanline{4}{(ν\ κ\ :\ Measure\ H)\ (Q\ :\ Measure\ S)\ (η\ :\ Measure\ Z)\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{[IsProbabilityMeasure\ κ]\ [IsProbabilityMeasure\ Q]\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(W\ :\ S→ℕ→Z)\ (hW\ :\ Measurable\ W)}
+\leanline{4}{(hlaw\ :\ HasLaw\ W\ (Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ η))\ Q)\ :}
+\leanline{4}{HasLaw\ (fun\ p\ :\ H×(H×S)\ ↦\ ((p.2.1,p.1),W\ p.2.2))}
+\leanline{6}{((κ.prod\ ν).prod\ (Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ η)))\ (ν.prod\ (κ.prod\ Q))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{independent\allowbreak{}Initial\allowbreak{}Phase\_\allowbreak{}source\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{ha}, \texttt{hs} in that order. Named proof applications include \texttt{hs.\allowbreak{}comp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{independent\allowbreak{}Initial\allowbreak{}Phase\_\allowbreak{}noise\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{The recursion without changing its innovations}{The recursion without changing its innovations}}
 
@@ -42,6 +91,15 @@ The shared KLMC recursion is exactly the ordinary recursion \(z_{k+1}=\mathcal K
 
 The original pointwise KLMC update is applied with the same constructed innovation at each index. Its endpoint agrees with the fixed-source numerical map by induction. Consequently the output-law identification does not rely on replacing the source by a different but similar noise sequence.
 
+\begin{leanbox}{Lean: \texttt{klmcChain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain}}
+\leansource{\texttt{klmcChain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain} \quad KineticLangevin/\allowbreak{}ProductMarkovLaw.lean, lines 42–46}
+\begin{leancode}
+\leanline{0}{theorem\ klmcChain\_eq\_noiseDrivenChain\ (g\ :\ E→E)\ (γ\ h\ :\ ℝ)\ (z\ :\ E×E)\ (W\ :\ ℕ→E×E)\ (n\ :\ ℕ)\ :}
+\leanline{4}{klmcChain\ g\ γ\ h\ z\ W\ n=ULA.noiseDrivenChain\ (klmcStep\ g\ γ\ h)\ z\ W\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}.
@@ -55,13 +113,29 @@ The pointwise sampler uses \((V_0,X_0)=(v,x)\) and innovations \(W(\omega)_k\) o
 
 Push the verified joint input law through the measurable recursion and then project position. This gives equality with the iterated independent-Gaussian KLMC transition law. The coupling-independent output appearing in the analytic theorem is therefore the Markov sampler output.
 
+\begin{leanbox}{Lean: \texttt{productKLMCLaw\_\allowbreak{}eq\_\allowbreak{}markovLaws}}
+\leansource{\texttt{productKLMCLaw\_\allowbreak{}eq\_\allowbreak{}markovLaws} \quad KineticLangevin/\allowbreak{}ProductMarkovLaw.lean, lines 49–76}
+\begin{leancode}
+\leanline{0}{theorem\ productKLMCLaw\_eq\_markovLaws}
+\leanline{4}{(Q\ :\ Measure\ S)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(κ\ ν\ :\ Measure\ E)\ [IsProbabilityMeasure\ κ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(f\ :\ E→ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(η\ :\ Measure\ (E×E))\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(W\ :\ S→ℕ→E×E)\ (hW\ :\ Measurable\ W)}
+\leanline{4}{(hlaw\ :\ HasLaw\ W\ (Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ η))\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{productKLMCLaw\ (κ.prod\ Q)\ f\ γ\ h\ ν\ Prod.fst\ (fun\ k\ p\ ↦\ W\ p.2\ k)\ n\ =}
+\leanline{6}{(ULA.markovLaws\ (klmcStep\ (gradient\ f)\ γ\ h)\ η\ (κ.prod\ ν)\ n).map\ Prod.snd}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}KLMCLaw\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg}, \texttt{hstep}, \texttt{hl}, \texttt{hmeas}, \texttt{hp}, \texttt{hr} in that order. Named proof applications include \texttt{Continuous.\allowbreak{}measurable}, \texttt{hr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.4]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

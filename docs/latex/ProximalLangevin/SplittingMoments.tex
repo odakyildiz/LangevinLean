@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,20 @@ Let \(p=P_\lambda(y)\). At input \(x\) use competitor \(p+x-y\); its quadratic p
 
 Explicitly the minimizer \(p=P_\lambda(y)\) supplies a competitor at \(x\) given by \(p+(x-y)\). Identity \(p+(x-y)-x=p-y\) makes the penalties equal, and the function increment is at most \(K\|x-y\|\). This gives \(f^\lambda(x)\le f^\lambda(y)+K\|x-y\|\). The inherited value Lipschitz constant is independent of \(\lambda\), unlike the gradient Lipschitz constant \(1/\lambda\). The next moment argument uses gradient magnitude rather than gradient variation.
 
+\begin{leanbox}{Lean: \texttt{moreau\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}lipschitz}}
+\leansource{\texttt{moreau\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 24–45}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_lipschitz\_of\_lipschitz\ \{f\ :\ E\ →\ ℝ\}\ (hf\ :\ ConvexOn\ ℝ\ univ\ f)}
+\leanline{4}{(hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ f\ z)\ \{lam\ :\ ℝ\}\ (hlam\ :\ 0\ <\ lam)}
+\leanline{4}{\{K\ :\ ℝ≥0\}\ (hK\ :\ LipschitzWith\ K\ f)\ :\ LipschitzWith\ K\ (moreau\ f\ lam)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: moreau\_lipschitz\_of\_lipschitz : A Lipschitz potential has a Moreau envelope with the same Lipschitz constant.
 
+
+
+\texttt{moreau\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}lipschitz}: the intermediate facts include \texttt{p}, \texttt{hmin}, \texttt{hdist0}, \texttt{hnorm}, \texttt{hdist}, in source order; the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}add\_\allowbreak{}mul}, \texttt{Real.\allowbreak{}dist\_\allowbreak{}eq}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The total-potential minimizer and its smooth gradient}{The total-potential minimizer and its smooth gradient}}
 
@@ -42,8 +78,44 @@ Positive strong convexity gives a coercive quadratic lower bound for \(F\). The 
 
 The vanishing total gradient is \(\nabla(f+e)=0\). The smooth gradient is therefore the negative perturbation gradient at this minimizing point, which gives \(\|\nabla f(z)\|\le K\). Lipschitz growth of the smooth gradient can now be measured from this point and integrated using concentration of the total Gibbs law.
 
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}at\_\allowbreak{}minimum}, \texttt{exists\_\allowbreak{}strongConvex\_\allowbreak{}minimum}, \texttt{gradient\_\allowbreak{}smoothPart\_\allowbreak{}at\_\allowbreak{}minimum}}
+\leansource{\texttt{gradient\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}at\_\allowbreak{}minimum} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 48–52}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_eq\_zero\_at\_minimum\ \{f\ :\ E\ →\ ℝ\}\ \{z\ :\ E\}}
+\leanline{4}{(hz\ :\ ∀\ x,\ f\ z\ ≤\ f\ x)\ :\ gradient\ f\ z\ =\ 0}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}strongConvex\_\allowbreak{}minimum} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 55–79}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_strongConvex\_minimum\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{∃\ z,\ ∀\ x,\ f\ z\ ≤\ f\ x}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}smoothPart\_\allowbreak{}at\_\allowbreak{}minimum} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 82–90}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_smoothPart\_at\_minimum\ \{f\ e\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{\{K\ :\ ℝ≥0\}\ (hb\ :\ ∀\ x,\ ‖gradient\ e\ x‖\ ≤\ (K\ :\ ℝ))\ \{z\ :\ E\}}
+\leanline{4}{(hz\ :\ ∀\ x,\ f\ z\ +\ e\ z\ ≤\ f\ x\ +\ e\ x)\ :\ ‖gradient\ f\ z‖\ ≤\ (K\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The strong-convexity lower bound forces the total potential above its value at zero outside a finite ball. A minimizer on the compact ball is therefore global; this is the radius construction in \texttt{exists\_\allowbreak{}strong\allowbreak{}Convex\_\allowbreak{}minimum}. At a global minimizer of \(F=f+e\), the derivative vanishes, giving \(\nabla f(z)=-\nabla e(z)\). Thus a pointwise bound \(\|\nabla e\|\le K\) yields \(\|\nabla f(z)\|\le K\). This is the only value of the smooth score at a specific point needed in the moment estimate.
 
 
+
+Formal correspondence: gradient\_eq\_zero\_at\_minimum : A differentiable function has zero gradient at an actual global minimizer. exists\_strongConvex\_minimum : A smooth strongly convex real-valued function attains its minimum. gradient\_smoothPart\_at\_minimum : At a minimum of the sum, a bounded second gradient bounds the first gradient.
+
+
+
+\texttt{gradient\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}at\_\allowbreak{}minimum}: the intermediate facts include \texttt{hmin}, \texttt{hlocal}, in source order; the source steps apply or rewrite \texttt{hlocal.\allowbreak{}fderiv\_\allowbreak{}eq\_\allowbreak{}zero}, \texttt{map\_\allowbreak{}zero}.
+
+
+
+\texttt{exists\_\allowbreak{}strong\allowbreak{}Convex\_\allowbreak{}minimum}: the cases are separated by \texttt{by\_\allowbreak{}cases hx : x \ensuremath{\in} closed\allowbreak{}Ball (0 : E) R}; the intermediate facts include \texttt{R}, \texttt{h\allowbreak{}R}, \texttt{hz0}, \texttt{hdiv}, \texttt{hnonneg}, in source order; the source steps apply or rewrite \texttt{hz0.\allowbreak{}trans}, \texttt{mem\_\allowbreak{}closed\allowbreak{}Ball}, \texttt{not\_\allowbreak{}le}, \texttt{mul\_\allowbreak{}nonneg\_\allowbreak{}iff\_\allowbreak{}of\_\allowbreak{}pos\_\allowbreak{}right}. The remaining scalar rearrangements are checked by \texttt{linarith}, \texttt{nlinarith}.
+
+
+
+\texttt{gradient\_\allowbreak{}smooth\allowbreak{}Part\_\allowbreak{}at\_\allowbreak{}minimum}: the intermediate facts include \texttt{hg}, \texttt{hneg}, in source order; the source steps apply or rewrite \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}, \texttt{norm\_\allowbreak{}neg}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.5]{LangevinLean2026ULASC}.
@@ -57,8 +129,33 @@ The derivative of a differentiable \(K\)-Lipschitz scalar function has operator 
 
 Indeed for value Lipschitz constant \(K\), every unit-direction difference quotient has absolute value at most \(K\). Taking derivatives and then the supremum over unit directions bounds the gradient. Integration gives \(\mathbb E\|b(Y)\|^2\le K^2\). Neither dimension nor an inverse smoothing scale occurs in this estimate.
 
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lipschitz}, \texttt{lpDrift\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}bounded}}
+\leansource{\texttt{gradient\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 93–98}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_norm\_le\_of\_lipschitz\ \{f\ :\ E\ →\ ℝ\}\ \{K\ :\ ℝ≥0\}}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ f)\ (x\ :\ E)\ :\ ‖gradient\ f\ x‖\ ≤\ (K\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{lpDrift\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}bounded} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 103–111}
+\begin{leancode}
+\leanline{0}{theorem\ lpDrift\_norm\_le\_of\_bounded\ \{b\ :\ E\ →\ E\}\ \{L\ K\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ b)\ (hb\ :\ ∀\ x,\ ‖b\ x‖\ ≤\ (K\ :\ ℝ))\ (Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖ULA.lpDrift\ P\ b\ hLip\ Y‖\ ≤\ (K\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The derivative of a globally \(K\)-Lipschitz scalar function has operator norm at most \(K\), and the Riesz identification preserves this norm, giving \(\|\nabla f(x)\|\le K\). Separately, if \(\|b(x)\|\le K\) for every input, then the representative equality for \texttt{lp\allowbreak{}Drift} gives \(\|b(Y(\omega))\|\le K\) almost everywhere. Since \(P\) has mass one, its \(L^2\) norm is at most \(K\). This explains why a state-space uniform bound transfers without a dimension or measure-mass factor.
 
 
+
+Formal correspondence: gradient\_norm\_le\_of\_lipschitz : Global Lipschitzness bounds the actual gradient norm. lpDrift\_norm\_le\_of\_bounded : A pointwise bounded Lipschitz drift is bounded by the same constant in \(L^2\).
+
+
+
+\texttt{gradient\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lipschitz}: the proof is the application \texttt{simpa only [gradient, Linear\allowbreak{}Isometry\allowbreak{}Equiv.\allowbreak{}norm\_\allowbreak{}map] using}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{lp\allowbreak{}Drift\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}bounded}: the intermediate fact is \texttt{hpoint}, in source order.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -72,16 +169,56 @@ The Lipschitz gradient estimate relative to the minimizing point gives \(\|\nabl
 
 For a random vector \(Y\) with Gibbs law \(\pi\), the pushforward integral formula and nonnegative square root give \(\|\nabla f(Y)\|_2\le\sqrt{2L^2d/m+2K^2}\). The minimizing point is for the total potential, so the estimate \(\|\nabla f(x)\|\le L\|x-z\|+K\) contains the bounded perturbation gradient there. Squaring with \((a+b)^2\le2a^2+2b^2\) gives the integrable majorant whose expectation is bounded by \(2L^2d/m+2K^2\). The constants are uniform for all smoothing parameters satisfying the same gradient-magnitude bound.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}sq\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}le}, \texttt{lpDrift\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}norm\_\allowbreak{}le}}
+\leansource{\texttt{integral\_\allowbreak{}sq\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 120–160}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_sq\_smooth\_gradient\_le\ \{f\ e\ :\ E\ →\ ℝ\}\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ (fun\ x\ =>\ f\ x\ +\ e\ x))}
+\leanline{4}{\{L\ K\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(hb\ :\ ∀\ x,\ ‖gradient\ e\ x‖\ ≤\ (K\ :\ ℝ))\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ (fun\ x\ =>\ f\ x\ +\ e\ x))\ ≤}
+\leanline{6}{2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ ((Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ m)\ +\ 2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{lpDrift\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}norm\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingMoments.lean, lines 164–180}
+\begin{leancode}
+\leanline{0}{theorem\ lpDrift\_smooth\_gradient\_norm\_le\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{f\ e\ :\ E\ →\ ℝ\}\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ (fun\ x\ =>\ f\ x\ +\ e\ x))}
+\leanline{4}{\{L\ K\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(hb\ :\ ∀\ x,\ ‖gradient\ e\ x‖\ ≤\ (K\ :\ ℝ))}
+\leanline{4}{(Y\ :\ Lp\ E\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ ULA.gibbsMeasure\ (fun\ x\ =>\ f\ x\ +\ e\ x))\ :}
+\leanline{4}{‖ULA.lpDrift\ P\ (gradient\ f)\ hLip\ Y‖\ ≤}
+\leanline{6}{Real.sqrt\ (2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ ((Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ m)\ +\ 2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Let \(z\) minimize \(F=f+e\), with \(F\) \(m\)-strongly convex. From the previous stage, \(\|\nabla f(z)\|\le K\), and score Lipschitzness gives \(\|\nabla f(x)\|\le L\|x-z\|+K\). Consequently \[\|\nabla f(x)\|^2\le2L^2\|x-z\|^2+2K^2.\] The Gibbs second moment is integrable by strong convexity; the right side therefore supplies an integrable majorant for the score square. The facts \texttt{hbound} and \texttt{hgrad} discharge that prerequisite before \texttt{integral\_\allowbreak{}mono} is applied.
 
 
 
+Sharp concentration yields \(\mathbb E_\pi\|X-z\|^2\le d/m\), so \(\mathbb E_\pi\|\nabla f(X)\|^2\le2L^2d/m+2K^2\). The next declaration transfers this actual Gibbs-law integral to any random variable with that law and takes its square root, obtaining the \(L^2\) drift bound used in the splitting reference.
+
+
+
+Formal correspondence: integral\_sq\_smooth\_gradient\_le : A smoothing-uniform second moment for the smooth part of a Gibbs drift. Only the smooth part's own Lipschitz constant enters the bound. lpDrift\_smooth\_gradient\_norm\_le : The corresponding actual \(L^2\) smooth-drift bound for a random variable with the proved reference Gibbs law.
+
+
+
+\texttt{integral\_\allowbreak{}sq\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}le}: the intermediate facts include \texttt{F}, \texttt{\ensuremath{\mu}}, \texttt{h\allowbreak{}F}, \texttt{hi}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{hbound.\allowbreak{}mono'}, \texttt{hi.\allowbreak{}trans}, \texttt{add\_\allowbreak{}le\_\allowbreak{}add}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{lp\allowbreak{}Drift\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}norm\_\allowbreak{}le}: the intermediate fact is \texttt{heq}, in source order; the source steps apply or rewrite \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}sqrt}, \texttt{Pi.\allowbreak{}pow\_\allowbreak{}apply}, \texttt{integral\_\allowbreak{}sq\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}le}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.10]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.49.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

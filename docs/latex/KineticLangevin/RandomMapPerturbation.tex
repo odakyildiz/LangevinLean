@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,6 +62,20 @@ Minkowski and the pathwise contraction bound the first term by \(q\) times the o
 
 Take any coupling of the two input measures and adjoin one independent innovation. Updating both coupled states produces the desired output marginals. Minkowski’s inequality separates the contractive shared-map discrepancy from the local discrepancy between the two maps.
 
+\begin{leanbox}{Lean: \texttt{randomMapLaw\_\allowbreak{}affine\_\allowbreak{}wasserstein2}}
+\leansource{\texttt{randomMapLaw\_\allowbreak{}affine\_\allowbreak{}wasserstein2} \quad KineticLangevin/\allowbreak{}RandomMapPerturbation.lean, lines 13–57}
+\begin{leancode}
+\leanline{0}{theorem\ randomMapLaw\_affine\_wasserstein2\ (F\ G\ :\ H\ ×\ S\ →\ H)\ (hF\ :\ Measurable\ F)\ (hG\ :\ Measurable\ G)}
+\leanline{4}{(q\ b\ :\ ℝ≥0)\ (hcontract\ :\ ∀\ x\ y\ s,\ ‖F\ (x,s)\ -\ F\ (y,s)‖\ ≤\ (q\ :\ ℝ)\ *\ ‖x-y‖)}
+\leanline{4}{(μ\ ν\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(Q\ :\ Measure\ S)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(hlocal\ :\ eLpNorm\ (fun\ p\ ↦\ G\ p\ -\ F\ p)\ 2\ (ν.prod\ Q)\ ≤\ (b\ :\ ℝ≥0∞))\ :}
+\leanline{4}{ULA.wasserstein2\ (randomMapLaw\ F\ μ\ Q)\ (randomMapLaw\ G\ ν\ Q)\ ≤}
+\leanline{6}{(q\ :\ ℝ≥0∞)\ *\ ULA.wasserstein2\ μ\ ν\ +\ (b\ :\ ℝ≥0∞)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{random\allowbreak{}Map\allowbreak{}Law\_\allowbreak{}affine\_\allowbreak{}wasserstein2} gives the formal counterpart of this step. The main intermediate facts are \texttt{hfamily} in that order. Named proof applications include \texttt{he}, \texttt{hw.\allowbreak{}trans}, \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}affine\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}all\_\allowbreak{}couplings}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.16]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.18.1]{LangevinLean2026ULASC}; \cite[Section~3.22.10]{LangevinLean2026ULASC}; \cite[Section~3.22.15]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}.
@@ -56,6 +93,23 @@ This general lemma keeps the invariance and integrated local-error hypotheses ex
 
 If the comparator transition preserves the target, each step compares the numerical law directly with the same target. Iterating the one-step affine Wasserstein inequality yields a geometric transient and a sum of local errors. This is the corresponding measure estimate of the pathwise recurrence.
 
+\begin{leanbox}{Lean: \texttt{markovLaws\_\allowbreak{}bias\_\allowbreak{}of\_\allowbreak{}invariant\_\allowbreak{}comparator}}
+\leansource{\texttt{markovLaws\_\allowbreak{}bias\_\allowbreak{}of\_\allowbreak{}invariant\_\allowbreak{}comparator} \quad KineticLangevin/\allowbreak{}RandomMapPerturbation.lean, lines 59–95}
+\begin{leancode}
+\leanline{0}{theorem\ markovLaws\_bias\_of\_invariant\_comparator\ (F\ G\ :\ H\ ×\ S\ →\ H)\ (hF\ :\ Measurable\ F)\ (hG\ :\ Measurable\ G)}
+\leanline{4}{(q\ b\ :\ ℝ≥0)\ (hq\ :\ (q\ :\ ℝ)\ <\ 1)}
+\leanline{4}{(hcontract\ :\ ∀\ x\ y\ s,\ ‖F\ (x,s)\ -\ F\ (y,s)‖\ ≤\ (q\ :\ ℝ)\ *\ ‖x-y‖)}
+\leanline{4}{(μ\ π\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(Q\ :\ Measure\ S)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(hinvariant\ :\ randomMapLaw\ G\ π\ Q\ =\ π)}
+\leanline{4}{(hlocal\ :\ eLpNorm\ (fun\ p\ ↦\ G\ p\ -\ F\ p)\ 2\ (π.prod\ Q)\ ≤\ (b\ :\ ℝ≥0∞))}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (ULA.markovLaws\ (fun\ x\ s\ ↦\ F\ (x,s))\ Q\ μ\ n)\ π\ ≤}
+\leanline{6}{(q\ :\ ℝ)\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ μ\ π\ +\ (b\ :\ ℝ)\ /\ (1\ -\ (q\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Laws\_\allowbreak{}bias\_\allowbreak{}of\_\allowbreak{}invariant\_\allowbreak{}comparator} proceeds by \texttt{induction k with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. The main intermediate facts are \texttt{K}, \texttt{h\allowbreak{}K}, \texttt{hstep}, \texttt{hf}, \texttt{e}, \texttt{hrec} in that order. Named proof applications include \texttt{hb}, \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{ULA.\allowbreak{}affine\_\allowbreak{}recurrence\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.15.3]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
@@ -69,13 +123,27 @@ The extended affine one-step bound also proves finite output distance at every M
 
 A finite-cost coupling and a finite local root-mean-square defect give a finite output cost. Establishing this before converting the extended transport value to a real number makes the affine recurrence legitimate. The final infimum is taken over couplings.
 
+\begin{leanbox}{Lean: \texttt{markovLaws\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}invariant\_\allowbreak{}comparator}}
+\leansource{\texttt{markovLaws\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}invariant\_\allowbreak{}comparator} \quad KineticLangevin/\allowbreak{}RandomMapPerturbation.lean, lines 97–114}
+\begin{leancode}
+\leanline{0}{theorem\ markovLaws\_ne\_top\_of\_invariant\_comparator\ (F\ G\ :\ H\ ×\ S\ →\ H)\ (hF\ :\ Measurable\ F)\ (hG\ :\ Measurable\ G)}
+\leanline{4}{(q\ b\ :\ ℝ≥0)\ (hcontract\ :\ ∀\ x\ y\ s,\ ‖F\ (x,s)\ -\ F\ (y,s)‖\ ≤\ (q\ :\ ℝ)\ *\ ‖x-y‖)}
+\leanline{4}{(μ\ π\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(Q\ :\ Measure\ S)\ [IsProbabilityMeasure\ Q]\ (hinvariant\ :\ randomMapLaw\ G\ π\ Q\ =\ π)}
+\leanline{4}{(hlocal\ :\ eLpNorm\ (fun\ p\ ↦\ G\ p\ -\ F\ p)\ 2\ (π.prod\ Q)\ ≤\ (b\ :\ ℝ≥0∞))}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ (ULA.markovLaws\ (fun\ x\ s\ ↦\ F\ (x,s))\ Q\ μ\ n)\ π\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Laws\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}invariant\_\allowbreak{}comparator} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. The main intermediate facts are \texttt{K}, \texttt{h\allowbreak{}K} in that order. Named proof applications include \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

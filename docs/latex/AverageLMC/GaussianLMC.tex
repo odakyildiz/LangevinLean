@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -29,6 +52,15 @@ For the actual independent Gaussian step, \(M_{\rm av}\) is the paper's average 
 
 At \(h=0\), the deterministic displacement and Gaussian coefficient both vanish. The transition is the projection onto the first coordinate of \(\mu\) times the standard Gaussian probability law; its pushforward is \(\mu\). This proves the zero-step case without a limiting argument.
 
+\begin{leanbox}{Lean: \texttt{ulaLawStep\_\allowbreak{}zero}}
+\leansource{\texttt{ulaLawStep\_\allowbreak{}zero} \quad AverageLMC/\allowbreak{}GaussianLMC.lean, lines 12–14}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ ulaLawStep\_zero\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (μ\ :\ Measure\ (State\ p))\ :}
+\leanline{4}{ulaLawStep\ f\ 0\ μ\ =\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}zero} simplifies \texttt{ula\allowbreak{}Law\allowbreak{}Step} and \texttt{mala\allowbreak{}Proposal} at zero. \texttt{Measure.\allowbreak{}map\_\allowbreak{}fst\_\allowbreak{}prod} identifies the first-coordinate pushforward of the input-times-Gaussian product with the input measure.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
@@ -40,11 +72,38 @@ Instantiate the canonical coupling theorem with the proved standard-Gaussian coo
 
 
 
+
+\textbf{Hypotheses and algebra.} Here \(p\ge1\), \(m>0\), \(h\ge0\), \(f\) is differentiable and \(m\)-strongly convex, its gradient is \(L\)-Lipschitz with \(L\ge0\), and \(\mu\) is a probability law at finite quadratic transport from Gibbs. No upper bound on \(h\) is used. For a coupled initial pair \((X,Y)\), put \(A=X-h\nabla f(X)\) and \(G=\mathbb E\|\nabla f(X)\|^2\). The energy estimate and deterministic gradient-step estimates give
+
+\[\begin{aligned}(1+mh)W_2^2(\nu^+,\pi)&\le\mathbb E\|X-Y\|^2-2h\mathbb E\langle\nabla f(X),X-Y\rangle+h^2G\\&\quad+2h\mathbb E[f(A)-f(Y)]+(M_{\rm av}+m)h^2p\\&\le(1-mh)\mathbb E\|X-Y\|^2+2h\mathbb E[f(A)-f(X)]+h^2G+(M_{\rm av}+m)h^2p\\&\le(1-mh)\mathbb E\|X-Y\|^2+h^2(hL-1)G+(M_{\rm av}+m)h^2p.\end{aligned}\]
+
+The second line uses strong convexity at \(X\); the last uses the Lipschitz-gradient descent bound \(f(A)-f(X)\le-h(1-hL/2)\|\nabla f(X)\|^2\). The output law and \(G\) depend only on \(\mu\). Letting finite initial costs tend to their infimum proves the same polynomial inequality in the exact initial transport cost by continuity; this limit argument does not require \(1-mh\ge0\). Division by \(1+mh>0\) proves the claim. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}one\_\allowbreak{}step}}
+\leansource{\texttt{lmc\_\allowbreak{}one\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}GaussianLMC.lean, lines 19–50}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_one\_step\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ :}
+\leanline{4}{wasserstein2Real\ (ulaLawStep\ f\ h\ μ)\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ /\ (1\ +\ m\ *\ h)\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ +}
+\leanline{6}{((averageSmoothness\ f\ +\ m)\ *\ h\ \textasciicircum{}\ 2\ *\ p)\ /\ (1\ +\ m\ *\ h)\ +}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ (h\ *\ (L\ :\ ℝ)\ -\ 1)\ /\ (1\ +\ m\ *\ h)\ *}
+\leanline{8}{(∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}gradient\_\allowbreak{}step} and \texttt{lp\_\allowbreak{}gradient\_\allowbreak{}descent} are the two expected deterministic inequalities whose potential terms cancel. \texttt{lmc\_\allowbreak{}one\_\allowbreak{}step} first separates the zero step. In the positive branch, \texttt{hsm} is the exact coordinate smoothing estimate, \texttt{houtput} proves the output transport finite, and \texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} passes the common bound to the infimum even when its input-cost coefficient has either sign. The final field normalization divides by the strictly positive denominator.
+\end{leanbox}
+
+
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

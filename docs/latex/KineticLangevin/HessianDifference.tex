@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,17 @@ For an \(m\)-strongly convex potential with \(M\)-Lipschitz gradient, the strong
 
 Centering at \((m+M)/2\) treats the curvature endpoints symmetrically. The residual Lipschitz radius is half their width. This is sharper than using the full smoothness constant and is especially informative when the potential is nearly quadratic with constant curvature.
 
+\begin{leanbox}{Lean: \texttt{centered\_\allowbreak{}gradient\_\allowbreak{}lipschitz}}
+\leansource{\texttt{centered\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad KineticLangevin/\allowbreak{}HessianDifference.lean, lines 13–25}
+\begin{leancode}
+\leanline{0}{theorem\ centered\_gradient\_lipschitz\ (f\ :\ E→ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m≤(M:ℝ))\ :}
+\leanline{4}{LipschitzWith\ ⟨((M:ℝ)-m)/2,by\ linarith⟩\ (fun\ x\ ↦\ gradient\ f\ x-((m+(M:ℝ))/2)\ •\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{centered\_\allowbreak{}gradient\_\allowbreak{}lipschitz} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{he} in that order. Named proof applications include \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.10.2]{LangevinLean2026ULASC}; \cite[Section~3.10.3]{LangevinLean2026ULASC}.
@@ -48,6 +82,32 @@ If \(H_x=D\nabla f(x)\), the derivative of the centered gradient is \(H_x-\frac{
 
 The derivative of a globally Lipschitz map has operator norm bounded by the same constant wherever it exists. Applying this to the centered gradient bounds each centered Hessian. The triangle inequality between two centered Hessians gives the full interval width \(M-m\).
 
+\begin{leanbox}{Lean: \texttt{hessian\_\allowbreak{}centered\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{hessian\_\allowbreak{}difference\_\allowbreak{}norm\_\allowbreak{}le}}
+\leansource{\texttt{hessian\_\allowbreak{}centered\_\allowbreak{}norm\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}HessianDifference.lean, lines 28–36}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_centered\_norm\_le\ (f\ :\ E→ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m≤(M:ℝ))}
+\leanline{4}{(x\ :\ E)\ (H\ :\ E→L[ℝ]\ E)\ (hH\ :\ HasFDerivAt\ (gradient\ f)\ H\ x)\ :}
+\leanline{4}{‖H-((m+(M:ℝ))/2)\ •\ ContinuousLinearMap.id\ ℝ\ E‖≤((M:ℝ)-m)/2}
+\end{leancode}
+\leansource{\texttt{hessian\_\allowbreak{}difference\_\allowbreak{}norm\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}HessianDifference.lean, lines 39–50}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_difference\_norm\_le\ (f\ :\ E→ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m≤(M:ℝ))}
+\leanline{4}{(x\ y\ :\ E)\ (Hx\ Hy\ :\ E→L[ℝ]\ E)}
+\leanline{4}{(hHx\ :\ HasFDerivAt\ (gradient\ f)\ Hx\ x)\ (hHy\ :\ HasFDerivAt\ (gradient\ f)\ Hy\ y)\ :}
+\leanline{4}{‖Hx-Hy‖≤(M:ℝ)-m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hessian\_\allowbreak{}centered\_\allowbreak{}norm\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hd} in that order. Named proof applications include \texttt{hd.\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lipschitz}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{hessian\_\allowbreak{}difference\_\allowbreak{}norm\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hx}, \texttt{hy}, \texttt{he} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Identify and bound the random Hessian difference on \(L^{2}\)}{Identify and bound the random Hessian difference on L²}}
 
@@ -58,6 +118,31 @@ The existing random-Hessian construction is a continuous linear map on \(L^{2}\)
 
 The pointwise difference representation ensures that the operator bound concerns the Hessians frozen at the two random positions. Squaring and integrating the uniform bound transfers it to second mean without any independence assumption between positions and the vector.
 
+\begin{leanbox}{Lean: \texttt{lpHessian\_\allowbreak{}difference\_\allowbreak{}coe}, \texttt{lpHessian\_\allowbreak{}difference\_\allowbreak{}norm\_\allowbreak{}le}}
+\leansource{\texttt{lpHessian\_\allowbreak{}difference\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}HessianDifference.lean, lines 55–63}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_difference\_coe\ (g\ :\ E→E)\ (H\ :\ E→E→L[ℝ]\ E)\ (M\ M₂\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M₂\ H)}
+\leanline{4}{(hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)\ (X\ Y\ Z\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{(lpHessian\ P\ g\ H\ M\ M₂\ hG\ hH\ hg\ X-lpHessian\ P\ g\ H\ M\ M₂\ hG\ hH\ hg\ Y)\ Z\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ (H\ (X\ ω)-H\ (Y\ ω))\ (Z\ ω)}
+\end{leancode}
+\leansource{\texttt{lpHessian\_\allowbreak{}difference\_\allowbreak{}norm\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}HessianDifference.lean, lines 66–77}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_difference\_norm\_le\ (f\ :\ E→ℝ)\ (H\ :\ E→E→L[ℝ]\ E)\ (m\ :\ ℝ)\ (M\ M₂\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m≤(M:ℝ))}
+\leanline{4}{(hH\ :\ LipschitzWith\ M₂\ H)\ (hg\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)\ (X\ Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖lpHessian\ P\ (gradient\ f)\ H\ M\ M₂\ hG\ hH\ hg\ X-lpHessian\ P\ (gradient\ f)\ H\ M\ M₂\ hG\ hH\ hg\ Y‖≤(M:ℝ)-m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}difference\_\allowbreak{}coe} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}difference\_\allowbreak{}norm\_\allowbreak{}le} gives the formal counterpart of this step. Named proof applications include \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}op\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}bound}, \texttt{Lp.\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The exact Hessian-difference Gaussian truncation term}{The exact Hessian-difference Gaussian truncation term}}
 
@@ -68,10 +153,29 @@ The original Hessian Lipschitz assumption also gives \(\|H(X)-H(Y)\|\le M_2\|X-Y
 
 The global width bound controls the large-velocity region, while Hessian Lipschitzness controls the moderate region through position discrepancy. The Gaussian positive-part tail bounds the excess. Choosing the cutoff later balances absorption of the displacement term against exponential decay of the tail.
 
+\begin{leanbox}{Lean: \texttt{lpHessian\_\allowbreak{}difference\_\allowbreak{}gaussian\_\allowbreak{}truncation}}
+\leansource{\texttt{lpHessian\_\allowbreak{}difference\_\allowbreak{}gaussian\_\allowbreak{}truncation} \quad KineticLangevin/\allowbreak{}HessianDifference.lean, lines 82–104}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_difference\_gaussian\_truncation\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι→ℝ)}
+\leanline{4}{(H\ :\ EuclideanSpace\ ℝ\ ι→EuclideanSpace\ ℝ\ ι→L[ℝ]\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(m\ :\ ℝ)\ (M\ M₂\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m≤(M:ℝ))}
+\leanline{4}{(hH\ :\ LipschitzWith\ M₂\ H)\ (hg\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(X\ Y\ V\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hV\ :\ HasLaw\ V\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤α)\ :}
+\leanline{4}{‖(lpHessian\ P\ (gradient\ f)\ H\ M\ M₂\ hG\ hH\ hg\ X-lpHessian\ P\ (gradient\ f)\ H\ M\ M₂\ hG\ hH\ hg\ Y)\ V‖≤}
+\leanline{6}{(M₂:ℝ)*Real.sqrt\ α*‖X-Y‖+2*((M:ℝ)-m)*Real.exp\ (-(α-(Fintype.card\ ι\ :\ ℝ))/8)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}difference\_\allowbreak{}gaussian\_\allowbreak{}truncation} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}B}, \texttt{h\allowbreak{}L}, \texttt{he} in that order. Named proof applications include \texttt{gaussian\_\allowbreak{}truncation\_\allowbreak{}Lp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

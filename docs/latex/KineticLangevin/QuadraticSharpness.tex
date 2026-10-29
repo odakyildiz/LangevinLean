@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,56 @@ Let \(0\le a<b\), set friction \(\gamma=a+b\), and curvature \(m=ab\). The deter
 
 For a quadratic potential the synchronous difference equation has constant coefficients. Its characteristic polynomial is \(r^2-\gamma r+m\) when decay is written as \(e^{-rt}\). The two roots give explicit exponential solutions, making the candidate slow rate directly testable.
 
+\begin{leanbox}{Lean: \texttt{quadraticPositionResponse}, \texttt{quadraticVelocityResponse}, \texttt{quadraticPositionResponse\_\allowbreak{}zero} and 2 more}
+\leansource{\texttt{quadraticPositionResponse} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 7–8}
+\begin{leancode}
+\leanline{0}{def\ quadraticPositionResponse\ (a\ b\ t\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(b*Real.exp\ (-a*t)-a*Real.exp\ (-b*t))/(b-a)}
+\end{leancode}
+\leansource{\texttt{quadraticVelocityResponse} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 10–11}
+\begin{leancode}
+\leanline{0}{def\ quadraticVelocityResponse\ (a\ b\ t\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{a*b*(Real.exp\ (-b*t)-Real.exp\ (-a*t))/(b-a)}
+\end{leancode}
+\leansource{\texttt{quadraticPositionResponse\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 13–16}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ quadraticPositionResponse\_zero\ (a\ b\ :\ ℝ)\ (hab\ :\ a≠b)\ :}
+\leanline{4}{quadraticPositionResponse\ a\ b\ 0=1}
+\end{leancode}
+\leansource{\texttt{quadraticVelocityResponse\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 18–19}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ quadraticVelocityResponse\_zero\ (a\ b\ :\ ℝ)\ :\ quadraticVelocityResponse\ a\ b\ 0=0}
+\end{leancode}
+\leansource{\texttt{quadraticResponse\_\allowbreak{}derivatives} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 22–38}
+\begin{leancode}
+\leanline{0}{theorem\ quadraticResponse\_derivatives\ (a\ b\ t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (quadraticPositionResponse\ a\ b)\ (quadraticVelocityResponse\ a\ b\ t)\ t\ ∧}
+\leanline{4}{HasDerivAt\ (quadraticVelocityResponse\ a\ b)}
+\leanline{6}{(-(a+b)*quadraticVelocityResponse\ a\ b\ t-(a*b)*quadraticPositionResponse\ a\ b\ t)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{quadratic\allowbreak{}Position\allowbreak{}Response} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{quadratic\allowbreak{}Velocity\allowbreak{}Response} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{quadratic\allowbreak{}Position\allowbreak{}Response\_\allowbreak{}zero} gives the formal counterpart of this step. Named proof applications include \texttt{div\_\allowbreak{}self}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{quadratic\allowbreak{}Velocity\allowbreak{}Response\_\allowbreak{}zero} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{quadratic\allowbreak{}Response\_\allowbreak{}derivatives} gives the formal counterpart of this step. The main intermediate facts are \texttt{ha}, \texttt{hb} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{No faster exponential rate is possible}{No faster exponential rate is possible}}
 
@@ -42,6 +115,25 @@ The position response satisfies \(x(t)\ge e^{-at}\) for all \(t\ge0\), since \(x
 
 Choose an initial condition with a nonzero component in the slow eigendirection. Multiplying its trajectory by any faster exponential yields an unbounded factor. Hence no finite uniform prefactor can make that faster exponential a valid bound for all later times.
 
+\begin{leanbox}{Lean: \texttt{quadraticPositionResponse\_\allowbreak{}slow\_\allowbreak{}lower}, \texttt{quadraticPositionResponse\_\allowbreak{}no\_\allowbreak{}faster\_\allowbreak{}rate}}
+\leansource{\texttt{quadraticPositionResponse\_\allowbreak{}slow\_\allowbreak{}lower} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 41–46}
+\begin{leancode}
+\leanline{0}{theorem\ quadraticPositionResponse\_slow\_lower\ (a\ b\ t\ :\ ℝ)\ (ha\ :\ 0≤a)\ (hab\ :\ a<b)\ (ht\ :\ 0≤t)\ :}
+\leanline{4}{Real.exp\ (-a*t)≤quadraticPositionResponse\ a\ b\ t}
+\end{leancode}
+\leansource{\texttt{quadraticPositionResponse\_\allowbreak{}no\_\allowbreak{}faster\_\allowbreak{}rate} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 49–62}
+\begin{leancode}
+\leanline{0}{theorem\ quadraticPositionResponse\_no\_faster\_rate\ (a\ b\ β\ C\ :\ ℝ)\ (ha\ :\ 0≤a)\ (hab\ :\ a<b)\ (hβ\ :\ a<β)\ :}
+\leanline{4}{∃\ t\ :\ ℝ,0≤t\ ∧\ C*Real.exp\ (-β*t)<quadraticPositionResponse\ a\ b\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{quadratic\allowbreak{}Position\allowbreak{}Response\_\allowbreak{}slow\_\allowbreak{}lower} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hm} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{quadratic\allowbreak{}Position\allowbreak{}Response\_\allowbreak{}no\_\allowbreak{}faster\_\allowbreak{}rate} gives the formal counterpart of this step. The main intermediate facts are \texttt{t}, \texttt{ht}, \texttt{he}, \texttt{hex} in that order. Named proof applications include \texttt{mul\_\allowbreak{}lt\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}pos\_\allowbreak{}right}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The repeated-root solution and its unavoidable prefactor}{The repeated-root solution and its unavoidable prefactor}}
 
@@ -52,6 +144,45 @@ At critical damping, \(\gamma=2a\) and \(m=a^2\), the exact equal-initial-veloci
 
 At a repeated characteristic root, the independent solutions include a polynomial time factor multiplying the exponential. That factor cannot be bounded by a fixed constant at the same exponent. The singular prefactor at the critical boundary therefore reflects real dynamics.
 
+\begin{leanbox}{Lean: \texttt{criticalQuadraticPosition}, \texttt{criticalQuadraticVelocity}, \texttt{criticalQuadratic\_\allowbreak{}derivatives} and 1 more}
+\leansource{\texttt{criticalQuadraticPosition} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 65–65}
+\begin{leancode}
+\leanline{0}{def\ criticalQuadraticPosition\ (a\ t\ :\ ℝ)\ :\ ℝ\ :=\ (1+a*t)*Real.exp\ (-a*t)}
+\end{leancode}
+\leansource{\texttt{criticalQuadraticVelocity} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 67–67}
+\begin{leancode}
+\leanline{0}{def\ criticalQuadraticVelocity\ (a\ t\ :\ ℝ)\ :\ ℝ\ :=\ -(a\textasciicircum{}2)*t*Real.exp\ (-a*t)}
+\end{leancode}
+\leansource{\texttt{criticalQuadratic\_\allowbreak{}derivatives} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 70–85}
+\begin{leancode}
+\leanline{0}{theorem\ criticalQuadratic\_derivatives\ (a\ t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (criticalQuadraticPosition\ a)\ (criticalQuadraticVelocity\ a\ t)\ t\ ∧}
+\leanline{4}{HasDerivAt\ (criticalQuadraticVelocity\ a)}
+\leanline{6}{(-(2*a)*criticalQuadraticVelocity\ a\ t-a\textasciicircum{}2*criticalQuadraticPosition\ a\ t)\ t}
+\end{leancode}
+\leansource{\texttt{criticalQuadratic\_\allowbreak{}prefactor\_\allowbreak{}obstruction} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 88–96}
+\begin{leancode}
+\leanline{0}{theorem\ criticalQuadratic\_prefactor\_obstruction\ (a\ C\ :\ ℝ)\ (ha\ :\ 0<a)\ :}
+\leanline{4}{∃\ t\ :\ ℝ,0≤t\ ∧\ C*Real.exp\ (-a*t)<criticalQuadraticPosition\ a\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{critical\allowbreak{}Quadratic\allowbreak{}Position} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{critical\allowbreak{}Quadratic\allowbreak{}Velocity} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{critical\allowbreak{}Quadratic\_\allowbreak{}derivatives} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{critical\allowbreak{}Quadratic\_\allowbreak{}prefactor\_\allowbreak{}obstruction} gives the formal counterpart of this step. The main intermediate facts are \texttt{t}, \texttt{ht}, \texttt{he} in that order. Named proof applications include \texttt{mul\_\allowbreak{}lt\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}pos\_\allowbreak{}right}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The source overdamped rate with the quadratic roots}{The source overdamped rate with the quadratic roots}}
 
@@ -62,5 +193,16 @@ For \(m>0\), \(\gamma>0\), and \(\gamma^2>4m\), put \(a=(\gamma-\sqrt{\gamma^2-4
 
 The optimized large-friction exponent equals the smaller positive root of the quadratic equation. This identifies the general bound with the exact slow decay of this quadratic potential. It establishes rate sharpness for that deterministic comparison, with the repeated-root qualification retained.
 
+\begin{leanbox}{Lean: \texttt{quadratic\_\allowbreak{}slow\_\allowbreak{}fast\_\allowbreak{}roots}}
+\leansource{\texttt{quadratic\_\allowbreak{}slow\_\allowbreak{}fast\_\allowbreak{}roots} \quad KineticLangevin/\allowbreak{}QuadraticSharpness.lean, lines 99–107}
+\begin{leancode}
+\leanline{0}{theorem\ quadratic\_slow\_fast\_roots\ (γ\ m\ :\ ℝ)\ (hγ\ :\ 0<γ)\ (hm\ :\ 0<m)\ (hdisc\ :\ 4*m<γ\textasciicircum{}2)\ :}
+\leanline{4}{let\ a\ :=\ (γ-Real.sqrt\ (γ\textasciicircum{}2-4*m))/2}
+\leanline{4}{let\ b\ :=\ (γ+Real.sqrt\ (γ\textasciicircum{}2-4*m))/2}
+\leanline{4}{0<a\ ∧\ a<b\ ∧\ a+b=γ\ ∧\ a*b=m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{quadratic\_\allowbreak{}slow\_\allowbreak{}fast\_\allowbreak{}roots} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hsq} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \end{document}

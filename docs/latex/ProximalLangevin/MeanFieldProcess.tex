@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,57 @@ Under a probability measure, \(\|X\|_{L^1}\le\|X\|_{L^2}\). The norm-of-integral
 
 Continuity makes expectation commute with continuous time integrals. This fact will identify the deterministic parameter equation after projecting the joint Hilbert-space solution.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}lp\_\allowbreak{}expectation\_\allowbreak{}le}, \texttt{lpExpectationCLM}, \texttt{lpExpectationCLM\_\allowbreak{}apply} and 1 more}
+\leansource{\texttt{norm\_\allowbreak{}lp\_\allowbreak{}expectation\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 27–34}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_lp\_expectation\_le\ (X\ :\ Lp\ E\ 2\ Q)\ :\ ‖∫\ ω,\ X\ ω\ ∂Q‖\ ≤\ ‖X‖}
+\end{leancode}
+\leansource{\texttt{lpExpectationCLM} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 37–51}
+\begin{leancode}
+\leanline{0}{def\ lpExpectationCLM\ :\ Lp\ E\ 2\ Q\ →L[ℝ]\ E\ :=}
+\leanline{2}{LinearMap.mkContinuous}
+\leanline{4}{\{\ toFun\ :=\ fun\ X\ =>\ ∫\ ω,\ X\ ω\ ∂Q}
+\leanline{6}{map\_add'\ :=\ by}
+\leanline{8}{intro\ X\ Y}
+\leanline{8}{rw\ [integral\_congr\_ae\ (Lp.coeFn\_add\ X\ Y)]}
+\leanline{8}{exact\ integral\_add\ ((Lp.memLp\ X).integrable\ (by\ norm\_num))}
+\leanline{10}{((Lp.memLp\ Y).integrable\ (by\ norm\_num))}
+\leanline{6}{map\_smul'\ :=\ by}
+\leanline{8}{intro\ a\ X}
+\leanline{8}{rw\ [integral\_congr\_ae\ (Lp.coeFn\_smul\ a\ X)]}
+\leanline{8}{exact\ integral\_smul\ a\ X\ \}}
+\leanline{4}{1\ (fun\ X\ =>\ by}
+\leanline{6}{change\ ‖∫\ ω,\ X\ ω\ ∂Q‖\ ≤\ 1\ *\ ‖X‖}
+\leanline{6}{simpa\ only\ [one\_mul]\ using\ norm\_lp\_expectation\_le\ Q\ X)}
+\end{leancode}
+\leansource{\texttt{lpExpectationCLM\_\allowbreak{}apply} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 53–54}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ lpExpectationCLM\_apply\ (X\ :\ Lp\ E\ 2\ Q)\ :}
+\leanline{4}{lpExpectationCLM\ Q\ X\ =\ ∫\ ω,\ X\ ω\ ∂Q}
+\end{leancode}
+\leansource{\texttt{lpExpectationCLM\_\allowbreak{}norm\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 56–57}
+\begin{leancode}
+\leanline{0}{theorem\ lpExpectationCLM\_norm\_le\ (X\ :\ Lp\ E\ 2\ Q)\ :\ ‖lpExpectationCLM\ Q\ X‖\ ≤\ ‖X‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: norm\_lp\_expectation\_le : On a probability space, the actual expectation is bounded by the \(L^2\) norm. lpExpectationCLM : Actual Bochner expectation as a bounded linear map out of \(L^2\).
 
+
+
+\texttt{norm\_\allowbreak{}lp\_\allowbreak{}expectation\_\allowbreak{}le}: the intermediate facts include \texttt{h\ensuremath{{}_{1}}}, \texttt{h}, \texttt{hr}, in source order; the source steps apply or rewrite \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}one\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}enorm}, \texttt{Lp.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{enorm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}lintegral\_\allowbreak{}enorm}, \texttt{to\allowbreak{}Real\_\allowbreak{}enorm}, \texttt{Lp.\allowbreak{}norm\_\allowbreak{}def}.
+
+
+
+\texttt{lp\allowbreak{}Expectation\allowbreak{}CLM} is a definition with defining expression \texttt{intro X Y}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{lp\allowbreak{}Expectation\allowbreak{}CLM\_\allowbreak{}apply} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{lp\allowbreak{}Expectation\allowbreak{}CLM\_\allowbreak{}norm\_\allowbreak{}le}: the proof is the application \texttt{norm\_\allowbreak{}lp\_\allowbreak{}expectation\_\allowbreak{}le Q X}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026IPLA}.
@@ -45,7 +118,75 @@ Define latent projection \(P_x(\theta,x)=x\) and parameter inclusion \(I_\theta(
 
 Both maps are bounded and linear, and their pointwise actions preserve these properties on square-integrable random vectors. They consequently commute with the Bochner time integrals in the projected equations.
 
+\begin{leanbox}{Lean: \texttt{jointLatentCLM}, \texttt{jointLatentCLM\_\allowbreak{}apply}, \texttt{jointParameterInclusionCLM} and 3 more}
+\leansource{\texttt{jointLatentCLM} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 62–67}
+\begin{leancode}
+\leanline{0}{def\ jointLatentCLM\ \{dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{IPLA.Joint\ dθ\ dx\ →L[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ dx)\ :=}
+\leanline{2}{LinearMap.toContinuousLinearMap}
+\leanline{4}{\{\ toFun\ :=\ fun\ z\ =>\ WithLp.toLp\ 2\ (fun\ j\ =>\ z\ (Sum.inr\ j))}
+\leanline{6}{map\_add'\ :=\ by\ intro\ x\ y;\ ext\ j;\ rfl}
+\leanline{6}{map\_smul'\ :=\ by\ intro\ a\ x;\ ext\ j;\ rfl\ \}}
+\end{leancode}
+\leansource{\texttt{jointLatentCLM\_\allowbreak{}apply} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 69–70}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointLatentCLM\_apply\ \{dθ\ dx\ :\ ℕ\}\ (z\ :\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(j\ :\ Fin\ dx)\ :\ jointLatentCLM\ z\ j\ =\ z\ (Sum.inr\ j)}
+\end{leancode}
+\leansource{\texttt{jointParameterInclusionCLM} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 73–78}
+\begin{leancode}
+\leanline{0}{def\ jointParameterInclusionCLM\ \{dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{EuclideanSpace\ ℝ\ (Fin\ dθ)\ →L[ℝ]\ IPLA.Joint\ dθ\ dx\ :=}
+\leanline{2}{LinearMap.toContinuousLinearMap}
+\leanline{4}{\{\ toFun\ :=\ fun\ θ\ =>\ IPLA.pair\ θ\ 0}
+\leanline{6}{map\_add'\ :=\ by\ intro\ x\ y;\ ext\ j;\ cases\ j\ <;>\ simp\ [IPLA.pair]}
+\leanline{6}{map\_smul'\ :=\ by\ intro\ a\ x;\ ext\ j;\ cases\ j\ <;>\ simp\ [IPLA.pair]\ \}}
+\end{leancode}
+\leansource{\texttt{jointParameterInclusionCLM\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 80–82}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointParameterInclusionCLM\_parameter\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{(jointParameterInclusionCLM\ θ\ :\ IPLA.Joint\ dθ\ dx)\ (Sum.inl\ j)\ =\ θ\ j}
+\end{leancode}
+\leansource{\texttt{jointParameterInclusionCLM\_\allowbreak{}latent} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 84–86}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointParameterInclusionCLM\_latent\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{(jointParameterInclusionCLM\ θ\ :\ IPLA.Joint\ dθ\ dx)\ (Sum.inr\ j)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{jointParameterInclusionCLM\_\allowbreak{}norm} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 100–106}
+\begin{leancode}
+\leanline{0}{theorem\ jointParameterInclusionCLM\_norm\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{‖(jointParameterInclusionCLM\ θ\ :\ IPLA.Joint\ dθ\ dx)‖\ =\ ‖θ‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: jointLatentCLM : The latent component of one parameter/\allowbreak{}latent joint vector. jointParameterInclusionCLM : Embed only a parameter block into the joint space.
 
+
+
+\texttt{joint\allowbreak{}Latent\allowbreak{}CLM} is a definition with defining expression \texttt{intro x y; ext j; rfl}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{joint\allowbreak{}Latent\allowbreak{}CLM\_\allowbreak{}apply} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{joint\allowbreak{}Parameter\allowbreak{}Inclusion\allowbreak{}CLM} is a definition with defining expression \texttt{intro x y; ext j; cases j <;> simp [IPLA.\allowbreak{}pair]}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{joint\allowbreak{}Parameter\allowbreak{}Inclusion\allowbreak{}CLM\_\allowbreak{}parameter} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{joint\allowbreak{}Parameter\allowbreak{}Inclusion\allowbreak{}CLM\_\allowbreak{}latent} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{joint\allowbreak{}Parameter\allowbreak{}Inclusion\allowbreak{}CLM\_\allowbreak{}norm}: the intermediate fact is \texttt{h}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}zero}, \texttt{zero\_\allowbreak{}pow}, \texttt{add\_\allowbreak{}zero}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.9.1]{LangevinLean2026IPLA}.
@@ -59,7 +200,46 @@ Set \(M_x=I-I_\theta P_\theta\). The parameter block of this map is zero, while 
 
 In particular \(M_x\) preserves square integrability and continuity of an \(L^2\)-valued input. Applied to the Brownian input it removes every parameter coordinate at all times.
 
+\begin{leanbox}{Lean: \texttt{jointLatentMaskCLM}, \texttt{jointLatentMaskCLM\_\allowbreak{}parameter}, \texttt{jointLatentMaskCLM\_\allowbreak{}latent} and 1 more}
+\leansource{\texttt{jointLatentMaskCLM} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 89–90}
+\begin{leancode}
+\leanline{0}{def\ jointLatentMaskCLM\ \{dθ\ dx\ :\ ℕ\}\ :\ IPLA.Joint\ dθ\ dx\ →L[ℝ]\ IPLA.Joint\ dθ\ dx\ :=}
+\leanline{2}{ContinuousLinearMap.id\ ℝ\ \_\ -\ jointParameterInclusionCLM.comp\ jointParameterCLM}
+\end{leancode}
+\leansource{\texttt{jointLatentMaskCLM\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 92–94}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointLatentMaskCLM\_parameter\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(z\ :\ IPLA.Joint\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :\ jointLatentMaskCLM\ z\ (Sum.inl\ j)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{jointLatentMaskCLM\_\allowbreak{}latent} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 96–98}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointLatentMaskCLM\_latent\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(z\ :\ IPLA.Joint\ dθ\ dx)\ (j\ :\ Fin\ dx)\ :\ jointLatentMaskCLM\ z\ (Sum.inr\ j)\ =\ z\ (Sum.inr\ j)}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}jointLatentMaskCLM\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 108–117}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_jointLatentMaskCLM\_le\ \{dθ\ dx\ :\ ℕ\}\ (z\ :\ IPLA.Joint\ dθ\ dx)\ :}
+\leanline{4}{‖jointLatentMaskCLM\ z‖\ ≤\ ‖z‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: jointLatentMaskCLM : The actual latent-coordinate projection on the joint space.
 
+
+
+\texttt{joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM} is a definition with defining expression \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}id \ensuremath{\mathbb R} \_\allowbreak{} -\allowbreak{} joint\allowbreak{}Parameter\allowbreak{}Inclusion\allowbreak{}CLM.\allowbreak{}comp joint\allowbreak{}Parameter\allowbreak{}CLM}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM\_\allowbreak{}parameter}: the concluding step is \texttt{simp [joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM]}.
+
+
+
+\texttt{joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM\_\allowbreak{}latent}: the concluding step is \texttt{simp [joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM]}.
+
+
+
+\texttt{norm\_\allowbreak{}joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM\_\allowbreak{}le}: the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq}, \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type}, \texttt{le\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}nonneg}, \texttt{sq\_\allowbreak{}nonneg}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -77,7 +257,39 @@ The norm of each summand is at most \(\|X\|_2\), so \(\|\mathcal M X\|_2\le2\|X\
 
 The operator sends a joint state \((\Theta,X)\) to \((\mathbb E\Theta,X)\), where the first component is represented as a constant random vector. Only the parameter component is averaged. The latent force remains a random function of its current latent state, as required for the mean-field system.
 
+\begin{leanbox}{Lean: \texttt{meanFieldAverageCLM}, \texttt{meanFieldAverageCLM\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{meanFieldAverageCLM\_\allowbreak{}lipschitz}}
+\leansource{\texttt{meanFieldAverageCLM} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 123–126}
+\begin{leancode}
+\leanline{0}{def\ meanFieldAverageCLM\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q\ →L[ℝ]\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q\ :=}
+\leanline{2}{(Lp.constL\ 2\ Q\ ℝ).comp}
+\leanline{4}{(jointParameterInclusionCLM.comp\ (jointParameterCLM.comp\ (lpExpectationCLM\ Q)))\ +}
+\leanline{4}{jointLatentMaskCLM.compLpL\ 2\ Q}
+\end{leancode}
+\leansource{\texttt{meanFieldAverageCLM\_\allowbreak{}norm\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 128–147}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldAverageCLM\_norm\_le\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{‖meanFieldAverageCLM\ Q\ X‖\ ≤\ 2\ *\ ‖X‖}
+\end{leancode}
+\leansource{\texttt{meanFieldAverageCLM\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 149–154}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldAverageCLM\_lipschitz\ :\ LipschitzWith\ 2}
+\leanline{4}{(meanFieldAverageCLM\ Q\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: meanFieldAverageCLM : Average the parameter coordinates and retain the latent coordinates as actual random variables. This is a bounded linear map, not an assumed drift.
 
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM} is a definition with defining expression \texttt{(Lp.\allowbreak{}const\allowbreak{}L 2 Q \ensuremath{\mathbb R}).\allowbreak{}comp}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}norm\_\allowbreak{}le}: the intermediate facts include \texttt{hc}, \texttt{hl}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{IPLA.\allowbreak{}Joint}, \texttt{Lp.\allowbreak{}norm\_\allowbreak{}const\_\allowbreak{}le}, \texttt{one\_\allowbreak{}mul}, \texttt{norm\_\allowbreak{}joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM\_\allowbreak{}le}, \texttt{norm\_\allowbreak{}add\_\allowbreak{}le}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{linarith}.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}lipschitz}: the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{map\_\allowbreak{}sub}, \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}of\allowbreak{}Nat}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -91,7 +303,46 @@ Set \(\mathcal A_V(X)=\mathcal M(\nabla V(X))\). Composition with the Lipschitz 
 
 The complete space is \(H\). Writing \(E=\mathbb R^{d_\theta+d_x}\), expectation is a bounded linear map \(L^2(Q;E)\to E\). Constant inclusion maps \(E\) back into \(H=L^2(Q;E)\). Composing these maps with the parameter projection averages the parameter component; the latent component is left unchanged. The coordinate maps are bounded. Linear growth makes gradient composition everywhere defined on \(L^2\), so the averaged drift has constant at most \(2L\). Subtracting the continuous additive input reduces the equation to a nonautonomous globally Lipschitz integral equation. This proves finite-horizon existence and the displayed identity from the stated input and potential assumptions.
 
+\begin{leanbox}{Lean: \texttt{lpMeanFieldDrift}, \texttt{lpMeanFieldDrift\_\allowbreak{}lipschitz}, \texttt{exists\_\allowbreak{}lp\_\allowbreak{}meanField\_\allowbreak{}integral}}
+\leansource{\texttt{lpMeanFieldDrift} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 157–160}
+\begin{leancode}
+\leanline{0}{def\ lpMeanFieldDrift\ (V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q\ :=}
+\leanline{2}{meanFieldAverageCLM\ Q\ (ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ X)}
+\end{leancode}
+\leansource{\texttt{lpMeanFieldDrift\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 163–166}
+\begin{leancode}
+\leanline{0}{theorem\ lpMeanFieldDrift\_lipschitz\ (V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{LipschitzWith\ (2\ *\ L)\ (lpMeanFieldDrift\ Q\ V\ hLip)}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}lp\_\allowbreak{}meanField\_\allowbreak{}integral} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 170–179}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_lp\_meanField\_integral}
+\leanline{4}{(V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q,\ Continuous\ Y\ ∧\ Y\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ V\ hLip\ (Y\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: lpMeanFieldDrift : The actual mean-field drift: expected parameter force and pointwise latent force. lpMeanFieldDrift\_lipschitz : A conservative global Lipschitz constant for the constructed drift. exists\_lp\_meanField\_integral : Picard constructs the continuous mean-field \(L^2\) integral solution from its actual gradient and a continuous \(L^2\) additive input on every finite horizon.
 
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Drift} is a definition with defining expression \texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM Q (ULA.\allowbreak{}lp\allowbreak{}Drift Q (gradient V) h\allowbreak{}Lip X)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Drift\_\allowbreak{}lipschitz}: the proof is the application \texttt{(mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}lipschitz Q).\allowbreak{}comp (ULA.\allowbreak{}lp\allowbreak{}Drift\_\allowbreak{}lipschitz Q (gradient V) h\allowbreak{}Lip)}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{exists\_\allowbreak{}lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}integral}: the proof is the application \texttt{ULA.\allowbreak{}exists\_\allowbreak{}langevin\_\allowbreak{}integral (lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Drift Q V h\allowbreak{}Lip) (2 * L)}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.14.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -105,7 +356,39 @@ On representatives the averaging operator has formula
 
 Its parameter projection is \(\operatorname{const}(P_\theta\mathbb E_QX)\), and its latent projection is \(P_xX\). The constant inclusion contributes only the first block and the latent mask only the second. These almost-sure identities give equalities in \(L^2\). Hence the averaging operator gives exactly the expected parameter component and leaves latent randomness unchanged.
 
+\begin{leanbox}{Lean: \texttt{meanFieldAverageCLM\_\allowbreak{}coe}, \texttt{meanFieldAverageCLM\_\allowbreak{}parameter}, \texttt{meanFieldAverageCLM\_\allowbreak{}latent}}
+\leansource{\texttt{meanFieldAverageCLM\_\allowbreak{}coe} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 183–194}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldAverageCLM\_coe\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{meanFieldAverageCLM\ Q\ X\ =ᵐ[Q]\ fun\ ω\ =>}
+\leanline{6}{IPLA.pair\ (jointParameterCLM\ (lpExpectationCLM\ Q\ X))\ (jointLatentCLM\ (X\ ω))}
+\end{leancode}
+\leansource{\texttt{meanFieldAverageCLM\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 197–206}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldAverageCLM\_parameter\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{jointParameterCLM.compLp\ (meanFieldAverageCLM\ Q\ X)\ =}
+\leanline{6}{Lp.const\ 2\ Q\ (jointParameterCLM\ (lpExpectationCLM\ Q\ X))}
+\end{leancode}
+\leansource{\texttt{meanFieldAverageCLM\_\allowbreak{}latent} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 209–215}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldAverageCLM\_latent\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{jointLatentCLM.compLp\ (meanFieldAverageCLM\ Q\ X)\ =\ jointLatentCLM.compLp\ X}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: meanFieldAverageCLM\_coe : The averaging map has exactly its intended pointwise block action. meanFieldAverageCLM\_parameter : Averaging makes the parameter block a constant random variable. meanFieldAverageCLM\_latent : Averaging leaves the actual latent random variable unchanged.
 
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}coe}: the intermediate fact is \texttt{c}, in source order; the source steps apply or rewrite \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{IPLA.\allowbreak{}pair}.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}parameter}: the source steps apply or rewrite \texttt{Lp.\allowbreak{}ext}.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}latent}: the source steps apply or rewrite \texttt{Lp.\allowbreak{}ext}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}.
@@ -119,7 +402,65 @@ Define the continuous map \(a_V(X)=P_\theta\mathbb E_Q\nabla V(X)\) on \(H\). Th
 
 Indeed a deterministic parameter block identifies the state as \((\theta,P_xX)\). Evaluating and projecting the joint gradient then gives the marginal integral defining \(b_V\). The latent law is the pushforward of the constructed state, rather than an independently specified measure curve.
 
+\begin{leanbox}{Lean: \texttt{lpMeanFieldParameterForce}, \texttt{lpMeanFieldParameterForce\_\allowbreak{}continuous}, \texttt{lpMeanFieldDrift\_\allowbreak{}parameter} and 2 more}
+\leansource{\texttt{lpMeanFieldParameterForce} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 218–221}
+\begin{leancode}
+\leanline{0}{def\ lpMeanFieldParameterForce\ (V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{EuclideanSpace\ ℝ\ (Fin\ dθ)\ :=}
+\leanline{2}{jointParameterCLM\ (lpExpectationCLM\ Q\ (ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ X))}
+\end{leancode}
+\leansource{\texttt{lpMeanFieldParameterForce\_\allowbreak{}continuous} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 223–226}
+\begin{leancode}
+\leanline{0}{theorem\ lpMeanFieldParameterForce\_continuous\ (V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :\ Continuous\ (lpMeanFieldParameterForce\ Q\ V\ hLip)}
+\end{leancode}
+\leansource{\texttt{lpMeanFieldDrift\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 229–233}
+\begin{leancode}
+\leanline{0}{theorem\ lpMeanFieldDrift\_parameter\ (V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{jointParameterCLM.compLp\ (lpMeanFieldDrift\ Q\ V\ hLip\ X)\ =}
+\leanline{6}{Lp.const\ 2\ Q\ (lpMeanFieldParameterForce\ Q\ V\ hLip\ X)}
+\end{leancode}
+\leansource{\texttt{lpMeanFieldDrift\_\allowbreak{}latent} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 236–240}
+\begin{leancode}
+\leanline{0}{theorem\ lpMeanFieldDrift\_latent\ (V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{jointLatentCLM.compLp\ (lpMeanFieldDrift\ Q\ V\ hLip\ X)\ =}
+\leanline{6}{jointLatentCLM.compLp\ (ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ X)}
+\end{leancode}
+\leansource{\texttt{lpMeanFieldParameterForce\_\allowbreak{}eq\_\allowbreak{}meanFieldDrift} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 244–274}
+\begin{leancode}
+\leanline{0}{theorem\ lpMeanFieldParameterForce\_eq\_meanFieldDrift}
+\leanline{4}{(V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(X\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hθ\ :\ jointParameterCLM.compLp\ X\ =\ Lp.const\ 2\ Q\ θ)\ :}
+\leanline{4}{lpMeanFieldParameterForce\ Q\ V\ hLip\ X\ =}
+\leanline{6}{meanFieldDrift\ V\ θ\ (Q.map\ (jointLatentCLM.compLp\ X))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: lpMeanFieldParameterForce : The actual expected parameter force of a square-integrable joint vector. lpMeanFieldDrift\_parameter : The parameter projection of the actual drift is its expected force. lpMeanFieldDrift\_latent : The latent projection of the actual drift is pointwise latent gradient. lpMeanFieldParameterForce\_eq\_meanFieldDrift : The expected force equals the actual mean-field drift integral whenever the input parameter is deterministic. The latent marginal is its actual law.
 
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Parameter\allowbreak{}Force} is a definition with defining expression \texttt{joint\allowbreak{}Parameter\allowbreak{}CLM (lp\allowbreak{}Expectation\allowbreak{}CLM Q (ULA.\allowbreak{}lp\allowbreak{}Drift Q (gradient V) h\allowbreak{}Lip X))}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Parameter\allowbreak{}Force\_\allowbreak{}continuous}: the proof is the application \texttt{joint\allowbreak{}Parameter\allowbreak{}CLM.\allowbreak{}continuous.\allowbreak{}comp ((lp\allowbreak{}Expectation\allowbreak{}CLM Q).\allowbreak{}continuous.\allowbreak{}comp}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Drift\_\allowbreak{}parameter}: the proof is the application \texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}parameter Q \_\allowbreak{}}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Drift\_\allowbreak{}latent}: the proof is the application \texttt{mean\allowbreak{}Field\allowbreak{}Average\allowbreak{}CLM\_\allowbreak{}latent Q \_\allowbreak{}}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Parameter\allowbreak{}Force\_\allowbreak{}eq\_\allowbreak{}mean\allowbreak{}Field\allowbreak{}Drift}: the intermediate facts include \texttt{hp}, \texttt{hh}, \texttt{hgrad}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{hh.\allowbreak{}symm.\allowbreak{}trans}, \texttt{lp\allowbreak{}Expectation\allowbreak{}CLM\_\allowbreak{}apply}, \texttt{joint\allowbreak{}Parameter\allowbreak{}CLM.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}comm}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.13.4]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.11.1]{LangevinLean2026IPLA}.
@@ -137,7 +478,56 @@ The latent equality is in \(L^2\). The parameter input is zero and the parameter
 
 Latent projection gives the drift-plus-noise equation in the display. Both equations use the same constructed process and its latent distribution.
 
-
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}meanField\_\allowbreak{}parameter\_\allowbreak{}equation}, \texttt{lp\_\allowbreak{}meanField\_\allowbreak{}latent\_\allowbreak{}equation}, \texttt{exists\_\allowbreak{}lp\_\allowbreak{}meanField\_\allowbreak{}equations}}
+\leansource{\texttt{lp\_\allowbreak{}meanField\_\allowbreak{}parameter\_\allowbreak{}equation} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 278–313}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_meanField\_parameter\_equation}
+\leanline{4}{(V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (θ₀\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hinitial\ :\ jointParameterCLM.compLp\ initial\ =\ Lp.const\ 2\ Q\ θ₀)}
+\leanline{4}{(B\ Y\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(hBθ\ :\ ∀\ t,\ jointParameterCLM.compLp\ (B\ t)\ =\ 0)}
+\leanline{4}{(T\ :\ ℝ)\ (heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ V\ hLip\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{jointParameterCLM.compLp\ (Y\ t)\ =\ Lp.const\ 2\ Q}
+\leanline{6}{(θ₀\ -\ ∫\ s\ in\ 0..t,\ lpMeanFieldParameterForce\ Q\ V\ hLip\ (Y\ s))}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}meanField\_\allowbreak{}latent\_\allowbreak{}equation} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 316–334}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_meanField\_latent\_equation}
+\leanline{4}{(V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(B\ Y\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ :\ ℝ)\ (heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ V\ hLip\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{jointLatentCLM.compLp\ (Y\ t)\ -\ jointLatentCLM.compLp\ initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ jointLatentCLM.compLp\ (ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ (Y\ s)))\ +}
+\leanline{8}{jointLatentCLM.compLp\ (B\ t)}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}lp\_\allowbreak{}meanField\_\allowbreak{}equations} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 340–379}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_lp\_meanField\_equations}
+\leanline{4}{(V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (θ₀\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hinitial\ :\ jointParameterCLM.compLp\ initial\ =\ Lp.const\ 2\ Q\ θ₀)}
+\leanline{4}{(B\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)}
+\leanline{4}{(hBθ\ :\ ∀\ t,\ jointParameterCLM.compLp\ (B\ t)\ =\ 0)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{∃\ (Y\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (θ\ :\ ℝ\ →\ EuclideanSpace\ ℝ\ (Fin\ dθ)),}
+\leanline{6}{Continuous\ Y\ ∧\ Continuous\ θ\ ∧\ Y\ 0\ =\ initial\ ∧\ θ\ 0\ =\ θ₀\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ V\ hLip\ (Y\ s))\ +\ B\ t)\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ jointParameterCLM.compLp\ (Y\ t)\ =\ Lp.const\ 2\ Q\ (θ\ t))\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ θ\ t\ -\ θ₀\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ meanFieldDrift\ V\ (θ\ s)\ (Q.map\ (jointLatentCLM.compLp\ (Y\ s)))))\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ jointLatentCLM.compLp\ (Y\ t)\ -\ jointLatentCLM.compLp\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ jointLatentCLM.compLp\ (ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ (Y\ s)))\ +}
+\leanline{10}{jointLatentCLM.compLp\ (B\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}parameter\_\allowbreak{}equation} projects the integral solution through the parameter map; the assumed zero parameter component of the forcing makes that coordinate deterministic. \texttt{lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}latent\_\allowbreak{}equation} projects the same equation onto the latent coordinate. \texttt{exists\_\allowbreak{}lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}equations} first obtains \texttt{Y} from \texttt{exists\_\allowbreak{}lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}integral}, then defines \texttt{\ensuremath{\theta}} as its integrated expected parameter force. Continuity follows from \texttt{lp\allowbreak{}Mean\allowbreak{}Field\allowbreak{}Parameter\allowbreak{}Force\_\allowbreak{}continuous} and continuity of an integral primitive. \texttt{hp} identifies the parameter random vector with the constant vector at this curve. The integral identity \texttt{hid} replaces the expected force by \texttt{mean\allowbreak{}Field\allowbreak{}Drift} at its current latent law, yielding the claimed deterministic parameter equation.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -151,7 +541,55 @@ Apply the latent mask to the coordinate Brownian \(L^2\) input. Gaussian second 
 
 Indeed the \(L^2\) norm of a Brownian increment is proportional to the square root of its time length, proving \(L^2\) continuity. A bounded linear mask preserves continuity and the zero initial value. These facts establish the continuous additive-input hypotheses of the integral equation by construction.
 
+\begin{leanbox}{Lean: \texttt{meanFieldBrownianNoise}, \texttt{meanFieldBrownianNoise\_\allowbreak{}continuous}, \texttt{meanFieldBrownianNoise\_\allowbreak{}zero} and 1 more}
+\leansource{\texttt{meanFieldBrownianNoise} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 384–388}
+\begin{leancode}
+\leanline{0}{def\ meanFieldBrownianNoise}
+\leanline{4}{(W\ :\ (Fin\ dθ\ ⊕\ Fin\ dx)\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ ProbabilityTheory.IsPreBrownianReal\ (W\ i)\ Q)\ (a\ t\ :\ ℝ)\ :}
+\leanline{4}{Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q\ :=}
+\leanline{2}{jointLatentMaskCLM.compLp\ (ULA.brownianLangevinNoise\ Q\ W\ hW\ a\ t)}
+\end{leancode}
+\leansource{\texttt{meanFieldBrownianNoise\_\allowbreak{}continuous} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 391–396}
+\begin{leancode}
+\leanline{0}{theorem\ meanFieldBrownianNoise\_continuous}
+\leanline{4}{(W\ :\ (Fin\ dθ\ ⊕\ Fin\ dx)\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ ProbabilityTheory.IsPreBrownianReal\ (W\ i)\ Q)\ (a\ :\ ℝ)\ :}
+\leanline{4}{Continuous\ (meanFieldBrownianNoise\ Q\ W\ hW\ a)}
+\end{leancode}
+\leansource{\texttt{meanFieldBrownianNoise\_\allowbreak{}zero} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 399–404}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ meanFieldBrownianNoise\_zero}
+\leanline{4}{(W\ :\ (Fin\ dθ\ ⊕\ Fin\ dx)\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ ProbabilityTheory.IsPreBrownianReal\ (W\ i)\ Q)\ (a\ :\ ℝ)\ :}
+\leanline{4}{meanFieldBrownianNoise\ Q\ W\ hW\ a\ 0\ =\ 0}
+\end{leancode}
+\leansource{\texttt{meanFieldBrownianNoise\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 407–420}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ meanFieldBrownianNoise\_parameter}
+\leanline{4}{(W\ :\ (Fin\ dθ\ ⊕\ Fin\ dx)\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ ProbabilityTheory.IsPreBrownianReal\ (W\ i)\ Q)\ (a\ t\ :\ ℝ)\ :}
+\leanline{4}{jointParameterCLM.compLp\ (meanFieldBrownianNoise\ Q\ W\ hW\ a\ t)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: meanFieldBrownianNoise : Actual Brownian-coordinate inputs, with only their latent coordinates retained, give a concrete continuous \(L^2\) input. Noise continuity and its zero initial value are conclusions of the Brownian laws.
 
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Brownian\allowbreak{}Noise} is a definition with defining expression \texttt{joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM.\allowbreak{}comp\allowbreak{}Lp (ULA.\allowbreak{}brownian\allowbreak{}Langevin\allowbreak{}Noise Q W h\allowbreak{}W a t)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Brownian\allowbreak{}Noise\_\allowbreak{}continuous}: the proof is the application \texttt{((@joint\allowbreak{}Latent\allowbreak{}Mask\allowbreak{}CLM d\ensuremath{\theta} dx).\allowbreak{}comp\allowbreak{}Lp\allowbreak{}L 2 Q).\allowbreak{}continuous.\allowbreak{}comp}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Brownian\allowbreak{}Noise\_\allowbreak{}zero}: the source steps apply or rewrite \texttt{ULA.\allowbreak{}brownian\allowbreak{}Langevin\allowbreak{}Noise\_\allowbreak{}zero}, \texttt{map\_\allowbreak{}zero}.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Brownian\allowbreak{}Noise\_\allowbreak{}parameter}: the source steps apply or rewrite \texttt{Lp.\allowbreak{}ext}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.2]{LangevinLean2026ULASC}; \cite[Section~3.25.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -165,16 +603,46 @@ The latent Brownian input satisfies the preceding input conditions, so the finit
 
 Specifically the potential \(g_1+g_2^\eta\) has constant \(L_1+1/\eta\), and substitution yields an \(L^2\)-valued continuous solution. These statements concern mean-square integral equations. They do not assert a pathwise strong stochastic differential equation or a Fokker–Planck theorem, which require further arguments.
 
-
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}lp\_\allowbreak{}meanField\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}brownian}, \texttt{exists\_\allowbreak{}lp\_\allowbreak{}moreau\_\allowbreak{}meanField\_\allowbreak{}integral}}
+\leansource{\texttt{exists\_\allowbreak{}lp\_\allowbreak{}meanField\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}brownian} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 425–436}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_lp\_meanField\_integral\_of\_brownian}
+\leanline{4}{(V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(W\ :\ (Fin\ dθ\ ⊕\ Fin\ dx)\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hW\ :\ ∀\ i,\ ProbabilityTheory.IsPreBrownianReal\ (W\ i)\ Q)}
+\leanline{4}{(a\ T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q,\ Continuous\ Y\ ∧\ Y\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ V\ hLip\ (Y\ s))\ +}
+\leanline{10}{meanFieldBrownianNoise\ Q\ W\ hW\ a\ t}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}lp\_\allowbreak{}moreau\_\allowbreak{}meanField\_\allowbreak{}integral} \quad ProximalLangevin/\allowbreak{}MeanFieldProcess.lean, lines 440–457}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_lp\_moreau\_meanField\_integral}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L₁\ :\ ℝ≥0\}\ \{eta\ :\ ℝ\}}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ g₂\ z)\ (heta\ :\ 0\ <\ eta)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (B\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{∃\ hLip\ :\ LipschitzWith\ (smoothingLipschitz\ L₁\ eta)}
+\leanline{8}{(gradient\ (smoothedPotential\ g₁\ g₂\ eta)),}
+\leanline{6}{∃\ Y\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q,\ Continuous\ Y\ ∧\ Y\ 0\ =\ initial\ ∧}
+\leanline{8}{∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{10}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ (smoothedPotential\ g₁\ g₂\ eta)\ hLip\ (Y\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}brownian} inserts the proved continuous latent-only Brownian forcing into the finite-horizon integral existence theorem. \texttt{exists\_\allowbreak{}lp\_\allowbreak{}moreau\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}integral} obtains envelope differentiability \texttt{he}, the residual-gradient identity \texttt{hg} and its Lipschitz bound \texttt{h\allowbreak{}Lipe} from the proximal results. \texttt{smoothed\_\allowbreak{}gradient\_\allowbreak{}lipschitz} gives \texttt{h\allowbreak{}Lip} for the full smoothed potential. The final call to \texttt{exists\_\allowbreak{}lp\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}integral} then constructs its solution. The existence statement is finite-horizon and does not assert a stationary law or a parameter convergence rate.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

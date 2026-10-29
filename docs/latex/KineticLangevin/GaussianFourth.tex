@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,15 @@ A centered Gaussian of variance \(v\) has moment-generating function \(e^{vt^2/2
 
 For a scalar standard Gaussian, the moment-generating function is \(e^{t^2/2}\). Differentiating four times at zero gives fourth moment three. Gaussian exponential integrability justifies relating those derivatives to moments, ensuring the calculation uses finite integrals.
 
+\begin{leanbox}{Lean: \texttt{centeredGaussian\_\allowbreak{}fourth\_\allowbreak{}moment}}
+\leansource{\texttt{centeredGaussian\_\allowbreak{}fourth\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}GaussianFourth.lean, lines 15–49}
+\begin{leancode}
+\leanline{0}{theorem\ centeredGaussian\_fourth\_moment\ (v\ :\ ℝ≥0)\ :}
+\leanline{4}{(∫\ x\ :\ ℝ,\ x\textasciicircum{}4\ ∂gaussianReal\ 0\ v)\ =\ 3*(v\ :\ ℝ)\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{centered\allowbreak{}Gaussian\_\allowbreak{}fourth\_\allowbreak{}moment} gives the formal counterpart of this step. The main intermediate facts are \texttt{d0}, \texttt{d1}, \texttt{d2}, \texttt{d3}, \texttt{h1}, \texttt{h2} in that order. Named proof applications include \texttt{d3.\allowbreak{}deriv}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Separate diagonal fourth moments from independent cross moments}{Separate diagonal fourth moments from independent cross moments}}
 
@@ -45,6 +77,16 @@ For \(G=(G_1,\ldots,G_p)\), expand \(\lVert G\rVert^4=\sum_{i,j}G_i^2G_j^2\). A 
 
 Expand \(\|G\|^4=(\sum_iG_i^2)^2\). The diagonal terms contribute \(3p\), and the \(p(p-1)\) off-diagonal terms each contribute one by independence. Thus \(\mathbb E\|G\|^4=p^2+2p\), retaining the exact finite-dimensional coefficient.
 
+\begin{leanbox}{Lean: \texttt{stdGaussian\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}moment}}
+\leansource{\texttt{stdGaussian\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}GaussianFourth.lean, lines 53–106}
+\begin{leancode}
+\leanline{0}{theorem\ stdGaussian\_norm\_fourth\_moment\ (ι\ :\ Type*)\ [Fintype\ ι]\ :}
+\leanline{4}{(∫\ z\ :\ EuclideanSpace\ ℝ\ ι,\ ‖z‖\textasciicircum{}4\ ∂stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ =}
+\leanline{6}{(Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{std\allowbreak{}Gaussian\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}moment} separates the cases \texttt{hij : i=j} and its negation before combining them. The main intermediate facts are \texttt{\ensuremath{\mu}}, \texttt{hlaw}, \texttt{hmem4}, \texttt{hi4}, \texttt{hi}, \texttt{hsecond} in that order. Named proof applications include \texttt{he.\allowbreak{}trans}, \texttt{hfourth}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.4.1]{LangevinLean2026ULASC}.
@@ -58,10 +100,21 @@ If a random vector has the standard Gaussian law, the pushforward integration id
 
 The stationary reference velocity has the same standard Gaussian marginal. Pushforward integration therefore transfers the fourth-moment identity directly, regardless of its dependence on the reference position. This supplies the precise fourth-root radius used by the Hessian Taylor remainder.
 
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}vector\_\allowbreak{}fourth\_\allowbreak{}moment}}
+\leansource{\texttt{gaussian\_\allowbreak{}vector\_\allowbreak{}fourth\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}GaussianFourth.lean, lines 110–116}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_vector\_fourth\_moment\ \{Ω\ ι\ :\ Type*\}\ [MeasurableSpace\ Ω]\ [Fintype\ ι]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (X\ :\ Ω\ →\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(hX\ :\ HasLaw\ X\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)\ :}
+\leanline{4}{(∫\ ω,\ ‖X\ ω‖\textasciicircum{}4\ ∂P)=(Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}vector\_\allowbreak{}fourth\_\allowbreak{}moment} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Named proof applications include \texttt{he.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

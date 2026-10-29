@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -38,23 +61,129 @@ Clipping never increases the actual \(L^2\) norm and converges against every squ
 
 Clip a vector \(x\) by multiplying it by \(\min(1,(n+1)/\|x\|)\). The coefficient lies between zero and one, so the clipped norm is at most \(\|x\|\). It is also at most \(n+1\): at a nonzero vector cancel the positive norm against the radial quotient, and handle the zero vector directly. These two bounds serve different purposes: the radius makes every coordinate a bounded test weight, while domination by the original vector supplies the integrable majorant and preserves the sharp final \(L^{2}\) norm.
 
+\begin{leanbox}{Lean: \texttt{clipWeight}, \texttt{norm\_\allowbreak{}clipWeight\_\allowbreak{}le}, \texttt{norm\_\allowbreak{}clipWeight\_\allowbreak{}le\_\allowbreak{}radius}}
+\leansource{\texttt{clipWeight} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ clipWeight\ (n\ :\ ℕ)\ (x\ :\ H)\ :\ H\ :=}
+\leanline{2}{min\ 1\ (((n\ :\ ℝ)\ +\ 1)\ /\ ‖x‖)\ •\ x}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}clipWeight\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 31–35}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_clipWeight\_le\ (n\ :\ ℕ)\ (x\ :\ H)\ :\ ‖clipWeight\ n\ x‖\ ≤\ ‖x‖}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}clipWeight\_\allowbreak{}le\_\allowbreak{}radius} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 37–47}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_clipWeight\_le\_radius\ (n\ :\ ℕ)\ (x\ :\ H)\ :\ ‖clipWeight\ n\ x‖\ ≤\ (n\ :\ ℝ)\ +\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{clip\allowbreak{}Weight} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{norm\_\allowbreak{}clip\allowbreak{}Weight\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc} in that order. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{norm\_\allowbreak{}clip\allowbreak{}Weight\_\allowbreak{}le\_\allowbreak{}radius} separates the cases \texttt{hx : x = 0} and its negation before combining them. The main intermediate facts are \texttt{hn}, \texttt{hc} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Obtain eventual equality and measurability}{Obtain eventual equality and measurability}}
 
 
 If \(\|x\|\) is at most \(n+1\), the minimum coefficient is one and clipping fixes \(x\). For a fixed vector choose a natural number above its norm. Every larger index then fixes that vector exactly, giving eventual pointwise equality with no approximation-rate premise. Norm, real division, minimum and scalar multiplication are measurable, so the clipping map is measurable even with the real quotient convention at zero.
 
+\begin{leanbox}{Lean: \texttt{clipWeight\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{clipWeight\_\allowbreak{}eventually\_\allowbreak{}eq}, \texttt{measurable\_\allowbreak{}clipWeight}}
+\leansource{\texttt{clipWeight\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 49–55}
+\begin{leancode}
+\leanline{0}{theorem\ clipWeight\_eq\_of\_norm\_le\ (n\ :\ ℕ)\ (x\ :\ H)\ (hx\ :\ ‖x‖\ ≤\ (n\ :\ ℝ)\ +\ 1)\ :}
+\leanline{4}{clipWeight\ n\ x\ =\ x}
+\end{leancode}
+\leansource{\texttt{clipWeight\_\allowbreak{}eventually\_\allowbreak{}eq} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 57–62}
+\begin{leancode}
+\leanline{0}{theorem\ clipWeight\_eventually\_eq\ (x\ :\ H)\ :\ ∀ᶠ\ n\ :\ ℕ\ in\ atTop,\ clipWeight\ n\ x\ =\ x}
+\end{leancode}
+\leansource{\texttt{measurable\_\allowbreak{}clipWeight} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 64–67}
+\begin{leancode}
+\leanline{0}{theorem\ measurable\_clipWeight\ [MeasurableSpace\ H]\ [BorelSpace\ H]\ (n\ :\ ℕ)\ :}
+\leanline{4}{Measurable\ (@clipWeight\ H\ \_\ \_\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{clip\allowbreak{}Weight\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le} separates the cases \texttt{hx0 : x = 0} and its negation before combining them. The main intermediate facts are \texttt{hn}, \texttt{hc} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{clip\allowbreak{}Weight\_\allowbreak{}eventually\_\allowbreak{}eq} gives the formal counterpart of this step. The main intermediate facts are \texttt{hcast} in that order. Named proof applications include \texttt{clip\allowbreak{}Weight\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{measurable\_\allowbreak{}clip\allowbreak{}Weight} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Lift the clippings into the genuine \(L^{2}\) space}{Lift the clippings into the genuine L² space}}
 
 
 Compose the measurable clipping with a square-integrable representative. The pointwise norm domination by the original representative proves square integrability. The resulting clipped weight has an almost-everywhere representative equal to this composition. Monotonicity of the square-integrable norm under the same pointwise domination gives a clipped norm at most the original norm, uniformly over the clipping threshold.
 
+\begin{leanbox}{Lean: \texttt{clippedWeight\_\allowbreak{}memLp}, \texttt{lpClippedWeight}, \texttt{lpClippedWeight\_\allowbreak{}coe} and 1 more}
+\leansource{\texttt{clippedWeight\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 78–82}
+\begin{leancode}
+\leanline{0}{theorem\ clippedWeight\_memLp\ (X\ :\ Lp\ H\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{MemLp\ (fun\ a\ ↦\ clipWeight\ n\ (X\ a))\ 2\ P}
+\end{leancode}
+\leansource{\texttt{lpClippedWeight} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 84–85}
+\begin{leancode}
+\leanline{0}{def\ lpClippedWeight\ (X\ :\ Lp\ H\ 2\ P)\ (n\ :\ ℕ)\ :\ Lp\ H\ 2\ P\ :=}
+\leanline{2}{(clippedWeight\_memLp\ P\ X\ n).toLp\ (fun\ a\ ↦\ clipWeight\ n\ (X\ a))}
+\end{leancode}
+\leansource{\texttt{lpClippedWeight\_\allowbreak{}coe} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 87–89}
+\begin{leancode}
+\leanline{0}{theorem\ lpClippedWeight\_coe\ (X\ :\ Lp\ H\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{lpClippedWeight\ P\ X\ n\ =ᵐ[P]\ fun\ a\ ↦\ clipWeight\ n\ (X\ a)}
+\end{leancode}
+\leansource{\texttt{lpClippedWeight\_\allowbreak{}norm\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 91–97}
+\begin{leancode}
+\leanline{0}{theorem\ lpClippedWeight\_norm\_le\ (X\ :\ Lp\ H\ 2\ P)\ (n\ :\ ℕ)\ :\ ‖lpClippedWeight\ P\ X\ n‖\ ≤\ ‖X‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\textbf{Formal correspondence.} The \texttt{Mem\allowbreak{}Lp} proof at exponent two defines \texttt{lp\allowbreak{}Clipped\allowbreak{}Weight} through \texttt{to\allowbreak{}Lp}, with its representative identity proved explicitly.
+
+
+
+\texttt{clipped\allowbreak{}Weight\_\allowbreak{}mem\allowbreak{}Lp} gives the formal counterpart of this step.
+
+
+
+
+\texttt{lp\allowbreak{}Clipped\allowbreak{}Weight} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lp\allowbreak{}Clipped\allowbreak{}Weight\_\allowbreak{}coe} gives the formal counterpart of this step.
+
+
+
+
+\texttt{lp\allowbreak{}Clipped\allowbreak{}Weight\_\allowbreak{}norm\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hbound} in that order. Named proof applications include \texttt{Lp.\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{norm\_\allowbreak{}clip\allowbreak{}Weight\_\allowbreak{}le}, \texttt{hbound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Pass every fixed \(L^{2}\) pairing through the clipping limit}{Pass every fixed L² pairing through the clipping limit}}
 
 
 For \(X\) and \(D\) in \(L^{2}\), Holder gives integrability of \(\|X\|\) times \(\|D\|\). Cauchy-Schwarz bounds the absolute pointwise inner product of the clipping of \(X\) with \(D\) by this common majorant. Eventual pointwise equality gives pointwise convergence of the integrands, and dominated convergence gives convergence of their actual integrals. Rewriting the Hilbert-space \(L^{2}\) inner product as that integral and using the almost-everywhere clipping representative proves convergence of the exact \(L^{2}\) pairings.
 
+\begin{leanbox}{Lean: \texttt{lpClippedWeight\_\allowbreak{}inner\_\allowbreak{}tendsto}}
+\leansource{\texttt{lpClippedWeight\_\allowbreak{}inner\_\allowbreak{}tendsto} \quad AverageLMC/\allowbreak{}LaplacianWeightClipping.lean, lines 101–129}
+\begin{leancode}
+\leanline{0}{theorem\ lpClippedWeight\_inner\_tendsto\ (X\ D\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{Tendsto\ (fun\ n\ ↦\ inner\ ℝ\ (lpClippedWeight\ P\ X\ n)\ D)\ atTop\ ({\leanfallback 𝓝}\ (inner\ ℝ\ X\ D))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Clipped\allowbreak{}Weight\_\allowbreak{}inner\_\allowbreak{}tendsto} gives the formal counterpart of this step. The main intermediate facts are \texttt{hbound}, \texttt{hmeas}, \texttt{hdom}, \texttt{hpoint}, \texttt{hd}, \texttt{hi} in that order. Named proof applications include \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{hd}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

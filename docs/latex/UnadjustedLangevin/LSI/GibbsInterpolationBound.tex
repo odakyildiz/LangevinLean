@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,6 +62,17 @@ The proof obtains the individual integrals from the finite-dimensional Gaussian 
 
 The normalizer scales as \(t^{-d/2}\), so replacing \(t\) by \(s=t/\delta\) contributes \((s/t)^{d/2}=\delta^{-d/2}\) when the reversed Gaussian is integrated. The direction of this ratio matters for the entropy correction's sign.
 
+\begin{leanbox}{Lean: \texttt{gaussianProposalNormalizer\_\allowbreak{}ratio}}
+\leansource{\texttt{gaussianProposalNormalizer\_\allowbreak{}ratio} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GibbsInterpolationBound.lean, lines 26–35}
+\begin{leancode}
+\leanline{0}{theorem\ gaussianProposalNormalizer\_ratio\ (t\ s\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (hs\ :\ 0\ <\ s)\ :}
+\leanline{4}{ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ /}
+\leanline{6}{ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ s\ =}
+\leanline{8}{(s\ /\ t)\ \textasciicircum{}\ ((Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}ratio}: the source steps apply or rewrite \texttt{Gaussian\allowbreak{}Fourier.\allowbreak{}integral\_\allowbreak{}rexp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}norm}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.1]{LangevinLean2026ULASC}; \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.2]{LangevinLean2026ULASC}.
@@ -56,6 +90,33 @@ The relation between \(s\) and \(t\) absorbs the Lipschitz error in the negative
 
 Only the first-order smooth upper model and Lipschitz gradient comparison are used. Their quadratic terms are collected into the reversed Gaussian square, leaving the explicit positive correction in the observation-gradient norm.
 
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le}, \texttt{gibbs\_\allowbreak{}weighted\_\allowbreak{}proposal\_\allowbreak{}le}}
+\leansource{\texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GibbsInterpolationBound.lean, lines 41–78}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_frozen\_exponent\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ s\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (hs\ :\ 0\ <\ s)}
+\leanline{4}{(hscale\ :\ s\ *\ (1\ -\ 4\ *\ t\ *\ (L\ :\ ℝ))\ =\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{U\ y\ -\ U\ x\ -\ ‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t)\ ≤}
+\leanline{6}{-‖x\ -\ (y\ -\ s\ •\ gradient\ U\ y)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ s)\ +\ s\ *\ ‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ /\ 4}
+\end{leancode}
+\leansource{\texttt{gibbs\_\allowbreak{}weighted\_\allowbreak{}proposal\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GibbsInterpolationBound.lean, lines 83–110}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_weighted\_proposal\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ s\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (hs\ :\ 0\ <\ s)}
+\leanline{4}{(hscale\ :\ s\ *\ (1\ -\ 4\ *\ t\ *\ (L\ :\ ℝ))\ =\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{Real.exp\ (U\ y)\ *\ Real.exp\ (-U\ x)\ *}
+\leanline{8}{(ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ *}
+\leanline{10}{Real.exp\ (-‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t)))\ ≤}
+\leanline{6}{(ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ /}
+\leanline{8}{ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ s\ *\ Real.exp\ (s\ *\ ‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ /\ 4))\ *}
+\leanline{10}{(ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ s\ *}
+\leanline{12}{Real.exp\ (-‖x\ -\ (y\ -\ s\ •\ gradient\ U\ y)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ s)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le} starts with \texttt{hmodel}, the smooth upper model, and \texttt{hdiff}, the gradient-difference bound. \texttt{hinner} controls the resulting mixed product. After \texttt{hx} and \texttt{hy} rewrite both squares in a common displacement, the positive factor involving the two times clears denominators and \texttt{hscale'} cancels the remaining quadratic coefficient. \texttt{interpolation\allowbreak{}Law\_\allowbreak{}entropy\_\allowbreak{}eventually\_\allowbreak{}le\_\allowbreak{}majorant} restricts to \texttt{hsmall}, sufficiently small positive times, and obtains \texttt{h\ensuremath{\delta}} before applying the finite majorant theorem. \texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}local\_\allowbreak{}ae\_\allowbreak{}deriv\_\allowbreak{}le} compares on a positive starting interval and defines \texttt{F} with the continuous majorant in place of the initial entropy value. Its \texttt{hlim} and \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto} pass that comparison to the zero-time limit.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}; \cite[Section~3.9.1]{LangevinLean2026ULASC}.
@@ -77,13 +138,29 @@ Normalization of the original Gibbs probability cancels its partition function. 
 
 After pointwise comparison, integrate the reversed Gaussian in the starting variable. Its total mass is one after its own normalizer is inserted, yielding the density-ratio upper bound needed at the initial entropy endpoint.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeDensity\_\allowbreak{}gibbs\_\allowbreak{}le}}
+\leansource{\texttt{interpolationRelativeDensity\_\allowbreak{}gibbs\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GibbsInterpolationBound.lean, lines 114–179}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeDensity\_gibbs\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(t\ s\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (hs\ :\ 0\ <\ s)}
+\leanline{4}{(hscale\ :\ s\ *\ (1\ -\ 4\ *\ t\ *\ (L\ :\ ℝ))\ =\ t)\ (y\ :\ E)\ :}
+\leanline{4}{interpolationRelativeDensity\ U\ (ULA.gibbsMeasure\ U)\ t\ y\ ≤}
+\leanline{6}{(s\ /\ t)\ \textasciicircum{}\ ((Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ 2)\ *}
+\leanline{8}{Real.exp\ (s\ *\ ‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ /\ 4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}gibbs\_\allowbreak{}le}: the intermediate facts include \texttt{C}, \texttt{g}, \texttt{hg}, \texttt{h\allowbreak{}Z}, \texttt{hformula}, in source order; the source steps apply or rewrite \texttt{ULA.\allowbreak{}integrable\_\allowbreak{}radial\allowbreak{}Gaussian\allowbreak{}Density\_\allowbreak{}real}, \texttt{ULA.\allowbreak{}integral\_\allowbreak{}radial\allowbreak{}Gaussian\allowbreak{}Density\_\allowbreak{}real}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{mul\_\allowbreak{}one}, \texttt{gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}ratio}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}; \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}; \cite[Section~3.37.6]{LangevinLean2026ULASC}; \cite[Section~3.37.7]{LangevinLean2026ULASC}; \cite[Section~3.46.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

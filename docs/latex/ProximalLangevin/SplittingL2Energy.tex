@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,8 +55,42 @@ If \(0<t\le1\) and \(\|v\|\le(1-t)\|e\|\), the inequality \((1+t)(1-t)^2\le1-t\)
 
 Choosing the Young parameter as \(mh\) gives \((1+mh)(1-mh)^2\le1-mh\) under \(mh\le1\), while multiplying the squared local defect by \(1+(mh)^{-1}\). Keeping the integrated perturbation force in its inner product permits its convex-energy contribution to combine with the proximal energy difference, rather than estimating each term by an unrelated norm bound.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}weighted}, \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}contraction}, \texttt{norm\_\allowbreak{}sum\_\allowbreak{}rearranged}}
+\leansource{\texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}weighted} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 23–31}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_add\_sq\_le\_weighted\ (v\ r\ :\ H)\ \{t\ :\ ℝ\}\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{‖v\ +\ r‖\ \textasciicircum{}\ 2\ ≤\ (1\ +\ t)\ *\ ‖v‖\ \textasciicircum{}\ 2\ +\ (1\ +\ t⁻¹)\ *\ ‖r‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}contraction} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 34–44}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_add\_sq\_le\_of\_contraction\ (e\ v\ r\ :\ H)\ \{t\ :\ ℝ\}}
+\leanline{4}{(ht\ :\ 0\ <\ t)\ (ht1\ :\ t\ ≤\ 1)\ (hv\ :\ ‖v‖\ ≤\ (1\ -\ t)\ *\ ‖e‖)\ :}
+\leanline{4}{‖v\ +\ r‖\ \textasciicircum{}\ 2\ ≤\ (1\ -\ t)\ *\ ‖e‖\ \textasciicircum{}\ 2\ +\ (1\ +\ t⁻¹)\ *\ ‖r‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}sum\_\allowbreak{}rearranged} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 48–51}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_sum\_rearranged\ (v\ r\ b\ :\ H)\ :}
+\leanline{4}{‖v\ +\ r\ +\ b‖\ \textasciicircum{}\ 2\ =\ ‖v\ +\ r‖\ \textasciicircum{}\ 2\ +\ 2\ *\ {\leanfallback ⟪}v\ +\ r\ +\ b,\ b{\leanfallback ⟫}\ -\ ‖b‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Expanding \(\|v+r\|^2\) and using \(2\langle v,r\rangle\le t\|v\|^2+t^{-1}\|r\|^2\) gives the weighted inequality. If \(\|v\|\le(1-t)\|e\|\), \(0<t\le1\), then \((1+t)(1-t)^2\le1-t\). This is the scalar inequality proved in \texttt{hf}; it keeps a linear contraction in the squared error instead of doubling the leading term. The final identity rearranges \(\|v+r+b\|^2\) with its cross term paired against the final error, the form needed for convex-energy cancellation.
 
 
+
+Formal correspondence: norm\_add\_sq\_le\_weighted : A weighted quadratic triangle bound with an explicit positive weight. norm\_add\_sq\_le\_of\_contraction : The weighted estimate retains a linear contraction in the squared error. norm\_sum\_rearranged : Moving an integrated nonsmooth drift into a cross term avoids a Lipschitz constant for that drift in the consistency estimate.
+
+
+
+\texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}weighted}: the intermediate facts include \texttt{hc}, \texttt{hy}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}of\_\allowbreak{}pos\_\allowbreak{}right}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{nlinarith}.
+
+
+
+\texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}contraction}: the intermediate facts include \texttt{hbase}, \texttt{hv2}, \texttt{hw}, \texttt{hf}, \texttt{hfactor}, in source order. The remaining scalar rearrangements are checked by \texttt{linarith}, \texttt{nlinarith}.
+
+
+
+\texttt{norm\_\allowbreak{}sum\_\allowbreak{}rearranged}: the source steps apply or rewrite \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, \texttt{inner\_\allowbreak{}add\_\allowbreak{}left}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of potential and quadratic terms}{Integrability of potential and quadratic terms}}
 
@@ -44,7 +101,28 @@ For globally \(K\)-Lipschitz scalar function \(f\), subtract \(f(0)\). The cente
 
 For observable \(f\), the direct bound is \(|f(X)|\le K\|X\|+|f(0)|\). Thus an \(L^2\) state gives \(f(X)\in L^2\subset L^1\). Centering \(f\) justifies the composition estimate. The \(L^2\) inner product and identity \(\langle X,X\rangle=\|X\|^2\) give \(\|X\|_{L^2}^2=\int\|X(\omega)\|^2dP\). More generally, bound \(|f(x)|\le|f(0)|+K\|x\|\) makes composition with an \(L^2\) state an \(L^2\) function. Squared differences of \(L^2\) states are also integrable. Hence the potential and quadratic expectations below are finite, and linearity may be applied without subtraction of infinite quantities.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}lipschitz\_\allowbreak{}compLp}, \texttt{lp\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral}}
+\leansource{\texttt{integrable\_\allowbreak{}lipschitz\_\allowbreak{}compLp} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 62–75}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_lipschitz\_compLp\ \{f\ :\ E\ →\ ℝ\}\ \{K\ :\ ℝ≥0\}}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ f)\ (X\ :\ Lp\ E\ 2\ P)\ :\ Integrable\ (fun\ ω\ =>\ f\ (X\ ω))\ P}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 79–83}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_norm\_sq\_eq\_integral\ (X\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖X‖\ \textasciicircum{}\ 2\ =\ ∫\ ω,\ ‖X\ ω‖\ \textasciicircum{}\ 2\ ∂P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: integrable\_lipschitz\_compLp : Every globally Lipschitz scalar observable of an \(L^2\) random variable is integrable. lp\_norm\_sq\_eq\_integral : Exact second-moment identity for actual \(L^2\) random variables.
 
+
+
+\texttt{integrable\_\allowbreak{}lipschitz\_\allowbreak{}comp\allowbreak{}Lp}: the intermediate facts include \texttt{hcenter}, \texttt{hc}, \texttt{hf}, in source order; the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{Real.\allowbreak{}dist\_\allowbreak{}eq}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{sub\_\allowbreak{}add\_\allowbreak{}cancel}, \texttt{hf.\allowbreak{}integrable}.
+
+
+
+\texttt{lp\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral}: the source steps apply or rewrite \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{L2.\allowbreak{}inner\_\allowbreak{}def}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}.
+\end{leanbox}
 
 \section{\texorpdfstring{The integrated proximal energy inequality}{The integrated proximal energy inequality}}
 
@@ -55,8 +133,27 @@ Assume \(\|T(x)-y\|^2\le\|x-y\|^2-2h(f(x)-f(y))+C\) and Lipschitz maps \(T,f\). 
 
 This is the same energy inequality in \(L^2\). The additive constant is unchanged because the source has mass one. The statement concerns the random output of the actual composed map, as identified by its almost-sure representative.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}energy\_\allowbreak{}of\_\allowbreak{}pointwise}}
+\leansource{\texttt{lp\_\allowbreak{}energy\_\allowbreak{}of\_\allowbreak{}pointwise} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 89–115}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_energy\_of\_pointwise\ \{T\ :\ E\ →\ E\}\ \{LT\ :\ ℝ≥0\}\ (hT\ :\ LipschitzWith\ LT\ T)}
+\leanline{4}{\{f\ :\ E\ →\ ℝ\}\ \{K\ :\ ℝ≥0\}\ (hf\ :\ LipschitzWith\ K\ f)\ (h\ C\ :\ ℝ)}
+\leanline{4}{(hpoint\ :\ ∀\ x\ y,\ ‖T\ x\ -\ y‖\ \textasciicircum{}\ 2\ ≤\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ -\ 2\ *\ h\ *\ (f\ x\ -\ f\ y)\ +\ C)}
+\leanline{4}{(S\ Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖ULA.lpDrift\ P\ T\ hT\ S\ -\ Y‖\ \textasciicircum{}\ 2\ ≤\ ‖S\ -\ Y‖\ \textasciicircum{}\ 2\ -}
+\leanline{6}{2\ *\ h\ *\ ((∫\ ω,\ f\ (S\ ω)\ ∂P)\ -\ ∫\ ω,\ f\ (Y\ ω)\ ∂P)\ +\ C}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Apply the deterministic premise at \((S(\omega),Y(\omega))\). The representative facts for \texttt{lp\allowbreak{}Drift} and subtraction identify its left side almost everywhere with \(\|T(S)-Y\|^2\). The local facts \texttt{hn}, \texttt{hf\allowbreak{}S}, \texttt{hf\allowbreak{}Y} prove integrability of both quadratic norms and both potential values. Only then does \texttt{integral\_\allowbreak{}mono\_\allowbreak{}ae} integrate the inequality and distribute its finite terms: \[\|T(S)-Y\|_2^2\le\|S-Y\|_2^2-2h(\mathbb Ef(S)-\mathbb Ef(Y))+C.\] The constant remains \(C\) because \(P\) has mass one.
 
 
+
+Formal correspondence: lp\_energy\_of\_pointwise : Lift a proved deterministic energy inequality to actual \(L^2\) random variables. This is an integration lemma; the particle instantiation below proves its pointwise premise from the genuine proximal minimization problem.
+
+
+
+\texttt{lp\_\allowbreak{}energy\_\allowbreak{}of\_\allowbreak{}pointwise}: the intermediate facts include \texttt{hn}, \texttt{hf\allowbreak{}S}, \texttt{hf\allowbreak{}Y}, \texttt{hright}, \texttt{hi}, in source order; the source steps apply or rewrite \texttt{Pi.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{integral\_\allowbreak{}add}, \texttt{lp\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.11.1]{LangevinLean2026IPLA}.
@@ -70,17 +167,50 @@ The support inequality for a differentiable convex perturbation gives \(\langle 
 
 Explicitly, for convex differentiable \(e\) the inequality is \(\langle S-Y,\nabla e(Y)\rangle\le e(S)-e(Y)\). The gradient composition and state difference belong to \(L^2\) under the stated bounds, so Cauchy–Schwarz makes their pairing integrable. Integration consequently replaces the reference-force pairing by an expected potential difference, while retaining the endpoint-difference pairing whose future-noise part is shown to vanish separately.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}support}, \texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}cross}}
+\leansource{\texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}support} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 119–135}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_convex\_gradient\_support\ \{e\ :\ E\ →\ ℝ\}}
+\leanline{4}{(he\ :\ Differentiable\ ℝ\ e)\ (hconv\ :\ ConvexOn\ ℝ\ univ\ e)}
+\leanline{4}{\{L\ K\ :\ ℝ≥0\}\ (hgrad\ :\ LipschitzWith\ L\ (gradient\ e))\ (hLip\ :\ LipschitzWith\ K\ e)}
+\leanline{4}{(S\ Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{{\leanfallback ⟪}S\ -\ Y,\ ULA.lpDrift\ P\ (gradient\ e)\ hgrad\ Y{\leanfallback ⟫}\ ≤}
+\leanline{6}{(∫\ ω,\ e\ (S\ ω)\ ∂P)\ -\ ∫\ ω,\ e\ (Y\ ω)\ ∂P}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}cross} \quad ProximalLangevin/\allowbreak{}SplittingL2Energy.lean, lines 139–148}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_convex\_gradient\_cross\ \{e\ :\ E\ →\ ℝ\}}
+\leanline{4}{(he\ :\ Differentiable\ ℝ\ e)\ (hconv\ :\ ConvexOn\ ℝ\ univ\ e)}
+\leanline{4}{\{L\ K\ :\ ℝ≥0\}\ (hgrad\ :\ LipschitzWith\ L\ (gradient\ e))\ (hLip\ :\ LipschitzWith\ K\ e)}
+\leanline{4}{(S\ Y\ Z\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{{\leanfallback ⟪}S\ -\ Z,\ ULA.lpDrift\ P\ (gradient\ e)\ hgrad\ Y{\leanfallback ⟫}\ ≤}
+\leanline{6}{(∫\ ω,\ e\ (S\ ω)\ ∂P)\ -\ (∫\ ω,\ e\ (Y\ ω)\ ∂P)\ +}
+\leanline{6}{{\leanfallback ⟪}Y\ -\ Z,\ ULA.lpDrift\ P\ (gradient\ e)\ hgrad\ Y{\leanfallback ⟫}}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The pointwise supporting-plane inequality is \(e(S)-e(Y)\ge\langle\nabla e(Y),S-Y\rangle\). Potential integrability follows from value Lipschitzness; inner-product integrability follows from both vectors belonging to \(L^2\), with score Lipschitzness ensuring \(\nabla e(Y)\in L^2\). Integration gives the first declaration. For an endpoint \(Z\), write \(S-Z=(S-Y)+(Y-Z)\) and use linearity of the inner product. This produces the energy difference plus the reference-increment cross term, precisely the two contributions used in \texttt{splitting\_\allowbreak{}cross\_\allowbreak{}energy\_\allowbreak{}le}.
 
 
+
+Formal correspondence: lp\_convex\_gradient\_support : The actual convex gradient supports every square-integrable comparison variable after integrating the pointwise supporting-plane inequality. lp\_convex\_gradient\_cross : Endpoint comparison split into the convex energy difference and a reference-increment cross term, all in the genuine \(L^2\) inner product.
+
+
+
+\texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}support}: the intermediate fact is \texttt{h}, in source order; the source steps apply or rewrite \texttt{L2.\allowbreak{}inner\_\allowbreak{}def}, \texttt{integral\_\allowbreak{}sub}, \texttt{Pi.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}left}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+
+
+
+\texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}cross}: the intermediate fact is \texttt{heq}, in source order; the source steps apply or rewrite \texttt{inner\_\allowbreak{}add\_\allowbreak{}left}, \texttt{add\_\allowbreak{}le\_\allowbreak{}add}, \texttt{lp\_\allowbreak{}convex\_\allowbreak{}gradient\_\allowbreak{}support}, \texttt{le\_\allowbreak{}rfl}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.2.1]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

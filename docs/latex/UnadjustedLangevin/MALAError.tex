@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Define \(T_h(x,\xi)=x-h\nabla U(x)+\sqrt{2h}\xi\). This is the same Euler propos
 
 Conditioned on the current state, the proposal has mean \(x-h\nabla U(x)\) and covariance \(2hI_d\). Thus its density is the same Gaussian kernel used by ULA. Only the subsequent decision to accept or remain at \(x\) distinguishes the two algorithms.
 
+\begin{leanbox}{Lean: \texttt{malaProposal}}
+\leansource{\texttt{malaProposal} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 25–26}
+\begin{leancode}
+\leanline{0}{def\ malaProposal\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ ξ\ :\ H)\ :\ H\ :=}
+\leanline{2}{x\ -\ h\ •\ gradient\ U\ x\ +\ Real.sqrt\ (2\ *\ h)\ •\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal} is a definition with defining expression \texttt{x -\allowbreak{} h \ensuremath{\bullet} gradient U x + Real.\allowbreak{}sqrt (2 * h) \ensuremath{\bullet} \ensuremath{\xi}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The logarithmic Metropolis ratio}{The logarithmic Metropolis ratio}}
 
@@ -42,6 +74,16 @@ The log acceptance ratio is \(R_h(x,y)=U(x)-U(y)+(\|y-x+h\nabla U(x)\|^2-\|x-y+h
 
 The ratio is \(\pi(y)q_h(y,x)/(\pi(x)q_h(x,y))\). Taking its logarithm cancels the target partition function as well as the two Gaussian normalizers, leaving the displayed expression. Positive \(h\) gives nondegenerate proposal densities in both directions.
 
+\begin{leanbox}{Lean: \texttt{malaLogRatio}}
+\leansource{\texttt{malaLogRatio} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 30–32}
+\begin{leancode}
+\leanline{0}{def\ malaLogRatio\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ y\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{U\ x\ -\ U\ y\ -}
+\leanline{4}{(‖x\ -\ y\ +\ h\ •\ gradient\ U\ y‖\ \textasciicircum{}\ 2\ -\ ‖y\ -\ x\ +\ h\ •\ gradient\ U\ x‖\ \textasciicircum{}\ 2)\ /\ (4\ *\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Log\allowbreak{}Ratio} is a definition with defining expression \texttt{U x -\allowbreak{} U y -\allowbreak{}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Expansion of the proposal ratio}{Expansion of the proposal ratio}}
 
@@ -52,6 +94,17 @@ Expand both squared norms using the real inner-product norm identity. The \(\|y-
 
 Writing \(d=y-x\), expand \(\|d+hg_x\|^2\) and \(\|-d+hg_y\|^2\) before subtracting. Their common \(\|d\|^2\) term disappears, and the surviving linear terms add to \(2h\langle g_x+g_y,d\rangle\). The remaining difference of squared gradients has coefficient \(-h/4\).
 
+\begin{leanbox}{Lean: \texttt{malaLogRatio\_\allowbreak{}expansion}}
+\leansource{\texttt{malaLogRatio\_\allowbreak{}expansion} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 35–45}
+\begin{leancode}
+\leanline{0}{theorem\ malaLogRatio\_expansion\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (hh\ :\ h\ ≠\ 0)\ (x\ y\ :\ H)\ :}
+\leanline{4}{malaLogRatio\ U\ h\ x\ y\ =\ U\ x\ -\ U\ y\ +}
+\leanline{6}{(1\ /\ 2\ :\ ℝ)\ *\ inner\ ℝ\ (gradient\ U\ x\ +\ gradient\ U\ y)\ (y\ -\ x)\ -}
+\leanline{8}{h\ /\ 4\ *\ (‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ -\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Log\allowbreak{}Ratio\_\allowbreak{}expansion}: the intermediate fact is \texttt{hsub}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, \texttt{norm\_\allowbreak{}neg}, \texttt{norm\_\allowbreak{}smul}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Bounding the difference of squared gradients}{Bounding the difference of squared gradients}}
 
@@ -62,6 +115,17 @@ Factor \(|\|g_y\|^2-\|g_x\|^2|=|\|g_y\|-\|g_x\||(\|g_y\|+\|g_x\|)\). The reverse
 
 The estimate does not bound \(\|g_x\|\) or \(\|g_y\|\) uniformly over space. Instead it isolates their growth in one factor and uses \(L\|y-x\|\) for their difference. The resulting expression is compatible with polynomial moment bounds under Gibbs.
 
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}difference\_\allowbreak{}bound}}
+\leansource{\texttt{gradient\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}difference\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 49–58}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_norm\_sq\_difference\_bound\ (U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ y\ :\ H)\ :}
+\leanline{4}{|‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ -\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2|\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ ‖y\ -\ x‖\ *\ (‖gradient\ U\ x‖\ +\ ‖gradient\ U\ y‖)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}difference\_\allowbreak{}bound}: the intermediate fact is \texttt{hn}, in source order; the source steps apply or rewrite \texttt{abs\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{h\allowbreak{}Lip.\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{A trapezoid bound for the potential increment}{A trapezoid bound for the potential increment}}
 
@@ -72,6 +136,17 @@ Use the smooth upper and lower first-order models for the potential increment at
 
 Restrict \(U\) to the segment \(x+td\). Its derivative is \(\langle\nabla U(x+td),d\rangle\), whose variation is at most \(L|t-s|\|d\|^2\). Integrating this variation bounds the difference between the true increment and the endpoint trapezoid, using only a Lipschitz first derivative.
 
+\begin{leanbox}{Lean: \texttt{potential\_\allowbreak{}trapezoid\_\allowbreak{}bound}}
+\leansource{\texttt{potential\_\allowbreak{}trapezoid\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 62–77}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_trapezoid\_bound\ (U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ y\ :\ H)\ :}
+\leanline{4}{|U\ x\ -\ U\ y\ +\ (1\ /\ 2\ :\ ℝ)\ *\ inner\ ℝ\ (gradient\ U\ x\ +\ gradient\ U\ y)\ (y\ -\ x)|\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ ‖y\ -\ x‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{potential\_\allowbreak{}trapezoid\_\allowbreak{}bound}: the intermediate facts include \texttt{hxy}, \texttt{hyx}, \texttt{hsub}, \texttt{hgrad}, \texttt{hl}, in source order; the source steps apply or rewrite \texttt{inner\_\allowbreak{}neg\_\allowbreak{}right}, \texttt{norm\_\allowbreak{}neg}, \texttt{inner\_\allowbreak{}sub\_\allowbreak{}left}, \texttt{abs\_\allowbreak{}le}, \texttt{inner\_\allowbreak{}add\_\allowbreak{}left}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{An absolute log-ratio bound}{An absolute log-ratio bound}}
 
@@ -82,6 +157,18 @@ Insert the exact log-ratio expansion and use the triangle inequality. Bound its 
 
 The potential term is quadratic in displacement, whereas the second term contains \(h\) times displacement and gradient size. When the Gaussian proposal displacement is of order \(\sqrt h\), both are small enough that multiplication by the rejection displacement produces an integrable error of order \(h^{3/2}\).
 
+\begin{leanbox}{Lean: \texttt{malaLogRatio\_\allowbreak{}abs\_\allowbreak{}bound}}
+\leansource{\texttt{malaLogRatio\_\allowbreak{}abs\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 81–94}
+\begin{leancode}
+\leanline{0}{theorem\ malaLogRatio\_abs\_bound\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ y\ :\ H)\ :}
+\leanline{4}{|malaLogRatio\ U\ h\ x\ y|\ ≤\ (L\ :\ ℝ)\ *\ ‖y\ -\ x‖\ \textasciicircum{}\ 2\ +}
+\leanline{6}{h\ *\ (L\ :\ ℝ)\ /\ 4\ *\ ‖y\ -\ x‖\ *\ (‖gradient\ U\ x‖\ +\ ‖gradient\ U\ y‖)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Log\allowbreak{}Ratio\_\allowbreak{}abs\_\allowbreak{}bound}: the intermediate facts include \texttt{ht}, \texttt{hg}, \texttt{hb}, in source order; the source steps apply or rewrite \texttt{mala\allowbreak{}Log\allowbreak{}Ratio\_\allowbreak{}expansion}, \texttt{hh.\allowbreak{}ne'}, \texttt{abs\_\allowbreak{}mul}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Rejection probability bounded by the log ratio}{Rejection probability bounded by the log ratio}}
 
@@ -92,6 +179,15 @@ If \(r\ge0\), \(e^r\ge1\), so rejection is zero. If \(r<0\), \(1-e^r\le-r=|r|\) 
 
 The exponential tangent inequality \(e^r\ge1+r\) is valid for every real \(r\). On the negative branch it turns a nonlinear rejection probability into a linear bound by \(-r\); on the nonnegative branch rejection is exactly zero. This avoids a Taylor remainder for acceptance.
 
+\begin{leanbox}{Lean: \texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs}}
+\leansource{\texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 97–101}
+\begin{leancode}
+\leanline{0}{theorem\ metropolis\_rejection\_le\_abs\ (r\ :\ ℝ)\ :}
+\leanline{4}{0\ ≤\ 1\ -\ min\ 1\ (Real.exp\ r)\ ∧\ 1\ -\ min\ 1\ (Real.exp\ r)\ ≤\ |r|}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs}: the intermediate fact is \texttt{hlo}, in source order; the source steps apply or rewrite \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr}, \texttt{min\_\allowbreak{}le\_\allowbreak{}left}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The rejection-weighted displacement}{The rejection-weighted displacement}}
 
@@ -102,6 +198,15 @@ Multiply \(1-\min(1,e^r)\le|r|\) by the nonnegative displacement norm \(\|y-x\|\
 
 The displacement factor must remain outside the acceptance comparison because the later coupling cost measures distance, rather than rejection probability alone. Integrating this product will control how much rejecting a proposal separates MALA from the common-noise ULA chain.
 
+\begin{leanbox}{Lean: \texttt{rejected\_\allowbreak{}displacement\_\allowbreak{}le}}
+\leansource{\texttt{rejected\_\allowbreak{}displacement\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 106–108}
+\begin{leancode}
+\leanline{0}{theorem\ rejected\_displacement\_le\ (r\ :\ ℝ)\ (x\ y\ :\ H)\ :}
+\leanline{4}{‖y\ -\ x‖\ *\ (1\ -\ min\ 1\ (Real.exp\ r))\ ≤\ ‖y\ -\ x‖\ *\ |r|}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{rejected\_\allowbreak{}displacement\_\allowbreak{}le}: the proof is the application \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left (metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs r).\allowbreak{}2 (norm\_\allowbreak{}nonneg \_\allowbreak{})}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{A step-independent bound on proposal size}{A step-independent bound on proposal size}}
 
@@ -112,6 +217,15 @@ Use the step-independent amplitude \(A(x,\xi)=\|\nabla U(x)\|+\sqrt2\|\xi\|\). F
 
 The amplitude contains the score at the initial point and the size of the independent innovation. Its law is fixed when \(h\) varies. Its cubic integrability therefore gives one majorant and one constant independent of the mesh.
 
+\begin{leanbox}{Lean: \texttt{malaAmplitude}}
+\leansource{\texttt{malaAmplitude} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 111–112}
+\begin{leancode}
+\leanline{0}{def\ malaAmplitude\ (U\ :\ H\ →\ ℝ)\ (x\ ξ\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{‖gradient\ U\ x‖\ +\ Real.sqrt\ 2\ *\ ‖ξ‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Amplitude} is a definition with defining expression \texttt{\ensuremath{\Vert}gradient U x\ensuremath{\Vert} + Real.\allowbreak{}sqrt 2 * \ensuremath{\Vert}\ensuremath{\xi}\ensuremath{\Vert}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The rejected-displacement correction}{The rejected-displacement correction}}
 
@@ -122,6 +236,16 @@ Define \(D_h(x,\xi)=\|T_h(x,\xi)-x\|(1-\min(1,e^{R_h(x,T_h(x,\xi))}))\). This is
 
 For a fixed state and innovation, integrating over an independent uniform accept/\allowbreak{}reject variable would give exactly this expected separation between the proposal and accepted state. The weighted pair measure gives this same expectation after the accept-reject variable has been integrated out.
 
+\begin{leanbox}{Lean: \texttt{malaRejectionDisplacement}}
+\leansource{\texttt{malaRejectionDisplacement} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 115–117}
+\begin{leancode}
+\leanline{0}{def\ malaRejectionDisplacement\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ ξ\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{let\ y\ :=\ malaProposal\ U\ h\ x\ ξ}
+\leanline{2}{‖y\ -\ x‖\ *\ (1\ -\ min\ 1\ (Real.exp\ (malaLogRatio\ U\ h\ x\ y)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement} is a definition with defining expression \texttt{mala\allowbreak{}Proposal U h x \ensuremath{\xi}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Nonnegativity of the proposal-size bound}{Nonnegativity of the proposal-size bound}}
 
@@ -132,6 +256,14 @@ Both score and noise norms are nonnegative, and \(\sqrt2\ge0\). Their sum defini
 
 When both score and innovation vanish, the amplitude is zero and so is the proposal displacement. Otherwise its nonnegative powers can be used as majorants without introducing an additional absolute value, in the cubic-moment calculation.
 
+\begin{leanbox}{Lean: \texttt{malaAmplitude\_\allowbreak{}nonneg}}
+\leansource{\texttt{malaAmplitude\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 119–121}
+\begin{leancode}
+\leanline{0}{theorem\ malaAmplitude\_nonneg\ (U\ :\ H\ →\ ℝ)\ (x\ ξ\ :\ H)\ :\ 0\ ≤\ malaAmplitude\ U\ x\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Amplitude\_\allowbreak{}nonneg}: the proof is the application \texttt{unfold mala\allowbreak{}Amplitude}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Nonnegativity of the correction}{Nonnegativity of the correction}}
 
@@ -142,6 +274,15 @@ The proposal displacement norm is nonnegative and the rejection factor is nonneg
 
 This nonnegativity means the expected rejection displacement can be handled first as a nonnegative integral. Once an integrable cubic upper bound is available, that same quantity is a finite ordinary expectation and can enter the characteristic-function comparison.
 
+\begin{leanbox}{Lean: \texttt{malaRejectionDisplacement\_\allowbreak{}nonneg}}
+\leansource{\texttt{malaRejectionDisplacement\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 123–125}
+\begin{leancode}
+\leanline{0}{theorem\ malaRejectionDisplacement\_nonneg\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ ξ\ :\ H)\ :}
+\leanline{4}{0\ ≤\ malaRejectionDisplacement\ U\ h\ x\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}nonneg}: the proof is the application \texttt{mul\_\allowbreak{}nonneg (norm\_\allowbreak{}nonneg \_\allowbreak{}) (metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs \_\allowbreak{}).\allowbreak{}1}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{A bound on proposal displacement}{A bound on proposal displacement}}
 
@@ -152,6 +293,16 @@ The triangle inequality gives \(\|T_h-x\|\le h\|g_x\|+\sqrt{2h}\|\xi\|\). For \(
 
 For \(0\le h\le1\), the elementary inequality \(h^2\le h\) gives \(h\le\sqrt h\). Thus even the deterministic drift displacement can be placed on the same \(\sqrt h\) scale as the Gaussian displacement, with the drift magnitude retained inside the amplitude.
 
+\begin{leanbox}{Lean: \texttt{malaProposal\_\allowbreak{}displacement\_\allowbreak{}le}}
+\leansource{\texttt{malaProposal\_\allowbreak{}displacement\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 129–148}
+\begin{leancode}
+\leanline{0}{theorem\ malaProposal\_displacement\_le\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(x\ ξ\ :\ H)\ :}
+\leanline{4}{‖malaProposal\ U\ h\ x\ ξ\ -\ x‖\ ≤\ Real.sqrt\ h\ *\ malaAmplitude\ U\ x\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\_\allowbreak{}displacement\_\allowbreak{}le}: the intermediate facts include \texttt{hsq}, \texttt{hs1}, \texttt{hhs}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}neg}, \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{A pointwise bound on rejected displacement}{A pointwise bound on rejected displacement}}
 
@@ -162,6 +313,18 @@ Use rejection \(\le|R_h|\), the log-ratio estimate, and \(\|g_{T_h}\|\le\|g_x\|+
 
 The estimate has a constant independent of \(h\): all score and innovation dependence is in \(A^3\). In particular, averaging under Gibbs and Gaussian noise gives an \(O(h^{3/2})\) defect, whose accumulation over \(T/h\) steps is \(O(T\sqrt h)\).
 
+\begin{leanbox}{Lean: \texttt{malaRejectionDisplacement\_\allowbreak{}pointwise}}
+\leansource{\texttt{malaRejectionDisplacement\_\allowbreak{}pointwise} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 152–208}
+\begin{leancode}
+\leanline{0}{theorem\ malaRejectionDisplacement\_pointwise\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ ξ\ :\ H)\ :}
+\leanline{4}{malaRejectionDisplacement\ U\ h\ x\ ξ\ ≤\ h\ *\ Real.sqrt\ h\ *}
+\leanline{6}{((L\ :\ ℝ)\ *\ (2\ +\ (L\ :\ ℝ))\ *\ malaAmplitude\ U\ x\ ξ\ \textasciicircum{}\ 3)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}pointwise}: the intermediate facts include \texttt{y}, \texttt{r}, \texttt{a}, \texttt{hcoef}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{le\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{hh.\allowbreak{}le}, \texttt{mul\_\allowbreak{}pow}, \texttt{pow\_\allowbreak{}succ}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{A Gaussian fourth-moment integrability bound}{A Gaussian fourth-moment integrability bound}}
 
@@ -172,6 +335,15 @@ A polynomial of degree four can be absorbed by part of Gaussian decay: \(\|x\|^4
 
 The scalar function \(r\mapsto r^4e^{-ar^2/2}\) is bounded on \([0,\infty)\). Multiplying that bound by \(e^{-ar^2/2}\) provides an integrable Gaussian majorant. For the fourth moment used here, the remaining Gaussian factor is integrable.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq}}
+\leansource{\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 214–241}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_norm\_fourth\_mul\_exp\_neg\_mul\_norm\_sq\ (a\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ H\ ↦\ ‖x‖\ \textasciicircum{}\ 4\ *\ Real.exp\ (-a\ *\ ‖x‖\ \textasciicircum{}\ 2))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq}: the intermediate facts include \texttt{b}, \texttt{hb}, \texttt{hi}, \texttt{hp}, \texttt{he}, in source order; the source steps apply or rewrite \texttt{hi.\allowbreak{}mono'}, \texttt{fun\_\allowbreak{}prop}, \texttt{mul\_\allowbreak{}assoc}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}right\ensuremath{{}_{0}}}, \texttt{sq\_\allowbreak{}pos\_\allowbreak{}of\_\allowbreak{}pos}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{The weighted Gibbs fourth moment}{The weighted Gibbs fourth moment}}
 
@@ -182,6 +354,17 @@ The quadratic strong-convexity lower bound gives \(e^{-U(x)}\le C e^{-(m/4)\|x\|
 
 A linear term in the strong-convexity lower model is absorbed by completing a square, leaving a positive quadratic coefficient and a finite multiplicative constant. Multiplication by \(\|x\|^4\) then falls under the Gaussian domination just established, with no stationarity assumption needed.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strongConvex}}
+\leansource{\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strongConvex} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 244–266}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_norm\_fourth\_mul\_exp\_neg\_of\_strongConvex}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ H\ ↦\ ‖x‖\ \textasciicircum{}\ 4\ *\ Real.exp\ (-U\ x))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex}: the intermediate facts include \texttt{C}, \texttt{hi}, \texttt{hs}, in source order; the source steps apply or rewrite \texttt{hi.\allowbreak{}mono'}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp.\allowbreak{}mpr}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The normalized Gibbs fourth moment}{The normalized Gibbs fourth moment}}
 
@@ -192,6 +375,17 @@ Change measure to the normalized Gibbs density. Integrability of \(\|x\|^4\) und
 
 Division by the strictly positive finite partition function preserves finiteness of the fourth moment. The result applies to the normalized target measure, so subsequent product-space estimates can use an ordinary Gibbs expectation rather than an unnormalized weighted integral.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 269–283}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_norm\_fourth\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ H\ ↦\ ‖x‖\ \textasciicircum{}\ 4)\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}gibbs\allowbreak{}Measure}: the intermediate fact is \texttt{hi}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}smul'}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}, \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}ne\_\allowbreak{}top.\allowbreak{}mpr}, \texttt{ne\_\allowbreak{}of\_\allowbreak{}gt}, \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}pos}.
+\end{leanbox}
 
 \section{\texorpdfstring{A finite cubic state moment}{A finite cubic state moment}}
 
@@ -202,6 +396,17 @@ The fourth-moment theorem gives the identity variable in \(L^4(\pi_U)\). On a pr
 
 On a probability space, Hölder gives \(\mathbb E\|X\|^3\le(\mathbb E\|X\|^4)^{3/4}\). The mass-one assumption is what removes any additional measure factor. The cubic moment is sufficient even though the Gaussian-tail argument conveniently supplied the stronger fourth moment.
 
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}three\_\allowbreak{}id\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{memLp\_\allowbreak{}three\_\allowbreak{}id\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 287–295}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_three\_id\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{MemLp\ (fun\ x\ :\ H\ ↦\ x)\ 3\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}three\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure}: the intermediate fact is \texttt{h3}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}norm\_\allowbreak{}rpow\_\allowbreak{}iff}, \texttt{fun\_\allowbreak{}prop}.
+\end{leanbox}
 
 \section{\texorpdfstring{The Gibbs-Gaussian pair measure}{The Gibbs-Gaussian pair measure}}
 
@@ -212,6 +417,15 @@ Take \(\pi_U\otimes\mathcal N(0,I)\), representing a Gibbs state and an independ
 
 For a product test \(f(x)g(\xi)\), expectation factors into the Gibbs expectation of \(f\) and Gaussian expectation of \(g\), whenever integrable. This encodes fresh-noise independence explicitly and permits the separate score and Gaussian moment estimates to be combined.
 
+\begin{leanbox}{Lean: \texttt{malaPairMeasure}}
+\leansource{\texttt{malaPairMeasure} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 299–300}
+\begin{leancode}
+\leanline{0}{def\ malaPairMeasure\ (U\ :\ H\ →\ ℝ)\ :\ Measure\ (H\ ×\ H)\ :=}
+\leanline{2}{(gibbsMeasure\ U).prod\ (stdGaussian\ H)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Pair\allowbreak{}Measure} is a definition with defining expression \texttt{(gibbs\allowbreak{}Measure U).\allowbreak{}prod (std\allowbreak{}Gaussian H)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The cubic moment of proposal amplitude}{The cubic moment of proposal amplitude}}
 
@@ -222,6 +436,17 @@ The Gibbs state is in \(L^3\); Lipschitz growth \(\|\nabla U(x)\|\le\|\nabla U(0
 
 The gradient-growth estimate follows from \(\|\nabla U(x)-\nabla U(0)\|\le L\|x\|\). Minkowski in \(L^3\) then bounds the sum of the two amplitude components. No pointwise boundedness of the score is required; its polynomial growth is enough under the Gibbs moments.
 
+\begin{leanbox}{Lean: \texttt{malaAmplitude\_\allowbreak{}memLp\_\allowbreak{}three}}
+\leansource{\texttt{malaAmplitude\_\allowbreak{}memLp\_\allowbreak{}three} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 304–321}
+\begin{leancode}
+\leanline{0}{theorem\ malaAmplitude\_memLp\_three\ (U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{MemLp\ (fun\ p\ :\ H\ ×\ H\ ↦\ malaAmplitude\ U\ p.1\ p.2)\ 3\ (malaPairMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Amplitude\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}three}: the intermediate facts include \texttt{hx}, \texttt{hcenter}, \texttt{hg}, \texttt{hz}, in source order; the source steps apply or rewrite \texttt{centered\_\allowbreak{}lipschitz}, \texttt{comp\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{hg'.\allowbreak{}norm.\allowbreak{}add}, \texttt{hz'.\allowbreak{}norm.\allowbreak{}const\_\allowbreak{}mul}, \texttt{Real.\allowbreak{}sqrt}.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of the amplitude cube}{Integrability of the amplitude cube}}
 
@@ -232,6 +457,17 @@ For nonnegative \(A\), its third power is \(\|A\|^3\). The \(L^3\) characterizat
 
 Since \(A\ge0\), \(|A|^3=A^3\). Thus the cubic moment defining the rejection constant is exactly the integral furnished by \(L^3\) membership, rather than a new moment condition. Product independence ensures both amplitude components have the required moments on the same space.
 
+\begin{leanbox}{Lean: \texttt{malaAmplitude\_\allowbreak{}cube\_\allowbreak{}integrable}}
+\leansource{\texttt{malaAmplitude\_\allowbreak{}cube\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 324–330}
+\begin{leancode}
+\leanline{0}{theorem\ malaAmplitude\_cube\_integrable\ (U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ H\ ×\ H\ ↦\ malaAmplitude\ U\ p.1\ p.2\ \textasciicircum{}\ 3)\ (malaPairMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Amplitude\_\allowbreak{}cube\_\allowbreak{}integrable}: the intermediate fact is \texttt{hi}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{mala\allowbreak{}Amplitude\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 \section{\texorpdfstring{The rejection-error constant}{The rejection-error constant}}
 
@@ -242,6 +478,16 @@ Set \(C_{U,L}=L(2+L)\int A(x,\xi)^3d(\pi_U\otimes\gamma)\). The preceding lemma 
 
 The constant depends on the potential and dimension through the score and Gaussian moments, but not on the mesh. It is used to prove stationarity in a limiting argument, which uses only the finiteness and step independence of this constant.
 
+\begin{leanbox}{Lean: \texttt{malaRejectionConstant}}
+\leansource{\texttt{malaRejectionConstant} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 334–336}
+\begin{leancode}
+\leanline{0}{def\ malaRejectionConstant\ (U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ :\ ℝ\ :=}
+\leanline{2}{(L\ :\ ℝ)\ *\ (2\ +\ (L\ :\ ℝ))\ *}
+\leanline{4}{∫\ p\ :\ H\ ×\ H,\ malaAmplitude\ U\ p.1\ p.2\ \textasciicircum{}\ 3\ ∂malaPairMeasure\ U}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Constant} is a definition with defining expression \texttt{(L : \ensuremath{\mathbb R}) * (2 + (L : \ensuremath{\mathbb R})) *}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Nonnegativity of that constant}{Nonnegativity of that constant}}
 
@@ -252,6 +498,15 @@ The cubic amplitude integrand is nonnegative and its integral is nonnegative. Si
 
 If \(L=0\), the prefactor and the resulting rejection-error constant vanish. For positive \(L\), its sign is still determined only by nonnegative factors. This permits accumulation bounds to multiply the constant by a nonnegative step count without changing inequality direction.
 
+\begin{leanbox}{Lean: \texttt{malaRejectionConstant\_\allowbreak{}nonneg}}
+\leansource{\texttt{malaRejectionConstant\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 338–342}
+\begin{leancode}
+\leanline{0}{theorem\ malaRejectionConstant\_nonneg\ (U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ :}
+\leanline{4}{0\ ≤\ malaRejectionConstant\ U\ L}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Constant\_\allowbreak{}nonneg}: the source steps apply or rewrite \texttt{mul\_\allowbreak{}nonneg}, \texttt{integral\_\allowbreak{}nonneg}, \texttt{pow\_\allowbreak{}nonneg}, \texttt{mala\allowbreak{}Amplitude\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of rejected displacement}{Integrability of rejected displacement}}
 
@@ -262,6 +517,19 @@ Continuity of the potential and gradient makes the rejection-displacement functi
 
 The dominating function is finite in integral because \(A\in L^3\). Therefore measurable rejection costs have finite first moments even though their pointwise acceptance ratios may be unbounded. This is the precise integrability needed for an expected-distance coupling bound.
 
+\begin{leanbox}{Lean: \texttt{malaRejectionDisplacement\_\allowbreak{}integrable}}
+\leansource{\texttt{malaRejectionDisplacement\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 346–361}
+\begin{leancode}
+\leanline{0}{theorem\ malaRejectionDisplacement\_integrable\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ H\ ×\ H\ ↦\ malaRejectionDisplacement\ U\ h\ p.1\ p.2)}
+\leanline{6}{(malaPairMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}integrable}: the intermediate facts include \texttt{henv}, \texttt{h\allowbreak{}U}, \texttt{hg}, \texttt{hmeas}, in source order; the source steps apply or rewrite \texttt{henv.\allowbreak{}mono'}, \texttt{hmeas.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}nonneg}, \texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}pointwise}.
+\end{leanbox}
 
 \section{\texorpdfstring{The expected rejection-displacement bound}{The expected rejection-displacement bound}}
 
@@ -272,6 +540,19 @@ Integrate the pointwise rejection bound using the established integrability of b
 
 For a mesh \(h=T/n\), the cumulative bound \(n C_{U,L}h^{3/2}=C_{U,L}T\sqrt h\) tends to zero. Thus the local exponent \(3/2\), rather than merely \(1\), gives a vanishing fixed-horizon comparison with the invariant adjusted chain.
 
+\begin{leanbox}{Lean: \texttt{malaRejectionDisplacement\_\allowbreak{}integral\_\allowbreak{}bound}}
+\leansource{\texttt{malaRejectionDisplacement\_\allowbreak{}integral\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 366–379}
+\begin{leancode}
+\leanline{0}{theorem\ malaRejectionDisplacement\_integral\_bound\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{(∫\ p\ :\ H\ ×\ H,\ malaRejectionDisplacement\ U\ h\ p.1\ p.2\ ∂malaPairMeasure\ U)\ ≤}
+\leanline{6}{malaRejectionConstant\ U\ L\ *\ h\ *\ Real.sqrt\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Rejection\allowbreak{}Displacement\_\allowbreak{}integral\_\allowbreak{}bound}: the intermediate facts include \texttt{henv}, \texttt{hb}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Existence of a finite rejection constant}{Existence of a finite rejection constant}}
 
@@ -282,5 +563,18 @@ Choose the defined finite rejection constant \(C\). Its nonnegativity and the in
 
 One finite constant works simultaneously for every sufficiently small positive step. The explicit cubic upper bound establishes this uniformity and provides the uniform bound used in the stationary-limit argument.
 
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}malaRejectionConstant}}
+\leansource{\texttt{exists\_\allowbreak{}malaRejectionConstant} \quad UnadjustedLangevin/\allowbreak{}MALAError.lean, lines 384–391}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_malaRejectionConstant\ (U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{∃\ C\ :\ ℝ,\ 0\ ≤\ C\ ∧\ ∀\ h\ :\ ℝ,\ 0\ <\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{(∫\ p\ :\ H\ ×\ H,\ malaRejectionDisplacement\ U\ h\ p.1\ p.2\ ∂malaPairMeasure\ U)\ ≤}
+\leanline{8}{C\ *\ h\ *\ Real.sqrt\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}mala\allowbreak{}Rejection\allowbreak{}Constant}: the proof is the application \texttt{\ensuremath{\langle}mala\allowbreak{}Rejection\allowbreak{}Constant U L, mala\allowbreak{}Rejection\allowbreak{}Constant\_\allowbreak{}nonneg U L,}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \end{document}

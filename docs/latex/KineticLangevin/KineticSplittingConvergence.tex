@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,63 +39,238 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-This section proves convergence of the numerical splitting directly in a Banach space, including the intended space of square-integrable random variables. The scheme uses explicit Verlet stages, exact exponential damping, and the filtered increments of the same continuous additive input as the kinetic equation. Compact continuity supplies every local modulus used in the proof. No stationary solution, assumed local-error bound, or numerical-convergence hypothesis is assumed.
+Let \(\mathcal X\) be a real Banach space, \(\mathcal X\times\mathcal X\) with the maximum norm, \(g:\mathcal X\to\mathcal X\) an \(M\)-Lipschitz map, \(\gamma\ge0\), and \(d(v,x)=(\gamma v+g(x),-v)\) the kinetic drift with unit inverse mass. For a forcing path \(B:\mathbb R\to\mathcal X\) with \(B(0)=0\), a solution of the kinetic integral equation on \([0,T]\) is a continuous \(Y:\mathbb R\to\mathcal X\times\mathcal X\) with
+
+
+\[Y_t-z_0=-\int_0^td(Y_s)\,ds+(B_t,0)\qquad(0\le t\le T).\]
+
+
+The splitting chain with step \(h\) is \(X_0=z_0\), \(X_{k+1}=S_h(X_k,N_{kh,h})\), where \(S_h\) is the Verlet–Ornstein–Uhlenbeck step and \(N_{a,h}\) the filtered increment of \(B\) on \([a,a+h]\) (module on the kinetic splitting). This module proves an explicit finite-horizon error bound for \(\|X_n-Y_T\|\) when \(nh=T\), in terms of oscillation moduli of \(t\mapsto d(Y_t)\) and of \(B\), and deduces that \(X_{n+1}\) computed with step \(T/(n+1)\) converges to \(Y_T\) as \(n\to\infty\) whenever \(B\) is continuous.
 
 
 
-The filtered-input splitting converges to the selected kinetic integral solution as the mesh is refined. Uniform continuity controls forcing variation, while stability prevents local errors from accumulating without a uniform bound.
+
+The argument is pathwise and applies in particular to \(\mathcal X=L^2\) of random vectors with \(B\) the vector Brownian path, where the filtered increments are the Ornstein–Uhlenbeck innovations. It identifies the kinetic diffusion as the limit of a scheme whose steps can be analysed separately (a Verlet step and an exact Ornstein–Uhlenbeck step), which is how the Gibbs invariance of the diffusion is obtained later.
 
 
-\section{\texorpdfstring{The splitting on the grid input}{The splitting on the grid input}}
+\section{\texorpdfstring{The splitting chain driven by one forcing path}{The splitting chain driven by one forcing path}}
 
 
-Starting from \(X_0=z_0\), the next state is \(X_{k+1}=S_h(X_k,N_{kh,h})\), where \(S_h\) is the explicit Verlet–OU step and \(N_{a,h}\) is the filtered increment of the supplied continuous input \(B\). The proof defines this recursion directly. Each stage uses the correct grid time \(kh\); the forcing is not replaced by an unrelated Gaussian with the same marginal variance.
+\textbf{Definition.} For \(z_0\in\mathcal X\times\mathcal X\), a path \(B\), a step \(h\) and \(k\in\mathbb N\),
+
+
+\[\begin{aligned}
+X_0&=z_0,\qquad X_{k+1}=S_h\bigl(X_k,N_{kh,h}\bigr),\\
+N_{kh,h}&=B(kh+h)-B(kh)\\
+&\quad-\gamma\int_0^he^{-\gamma(h-s)}\bigl(B(kh+s)-B(kh)\bigr)\,ds.
+\end{aligned}\]
+
+
+The \(k\)-th step uses the filtered increment of the same path \(B\) on the grid interval \([kh,(k+1)h]\), so the chain and the continuous solution are driven by the same input.
+
+\begin{leanbox}{Lean: \texttt{kineticSplitChain}}
+\leansource{\texttt{kineticSplitChain} \quad KineticLangevin/\allowbreak{}KineticSplittingConvergence.lean, lines 12–15}
+\begin{leancode}
+\leanline{0}{def\ kineticSplitChain\ (g\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)\ (initial\ :\ E×E)\ (B\ :\ ℝ\ →\ E)\ :\ ℕ\ →\ E×E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ k+1\ =>\ kineticSplitStep\ g\ γ\ h\ (kineticSplitChain\ g\ γ\ h\ initial\ B\ k)}
+\leanline{6}{(ouInputIncrement\ γ\ B\ ((k\ :\ ℝ)*h)\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Chain g \ensuremath{\gamma} h initial B} is defined by recursion on \texttt{\ensuremath{\mathbb N}}: the value at \texttt{0} is \texttt{initial}, and the value at \texttt{k+1} is \texttt{kinetic\allowbreak{}Split\allowbreak{}Step g \ensuremath{\gamma} h (kinetic\allowbreak{}Split\allowbreak{}Chain g \ensuremath{\gamma} h initial B k) (ou\allowbreak{}Input\allowbreak{}Increment \ensuremath{\gamma} B ((k : \ensuremath{\mathbb R})*h) h)}.
+\end{leanbox}
+
+\section{\texorpdfstring{A finite-horizon error bound in terms of oscillation moduli}{A finite-horizon error bound in terms of oscillation moduli}}
+
+
+\textbf{Claim.} Let \(g\) be \(M\)-Lipschitz, \(\gamma\ge0\), \(B(0)=0\), and let \(Y\) be continuous and solve the kinetic integral equation on \([0,T]\). Let \(T\ge0\), \(0\le h\le1\), \(\eta\ge0\), \(R\ge0\) and \(n\in\mathbb N\) with \(nh=T\). Assume \(\|Y_t\|\le R\) for \(t\in[0,T]\) and, for all \(s,t\in[0,T]\) with \(|s-t|\le h\),
+
+
+\[\|d(Y_s)-d(Y_t)\|\le\eta,\qquad\|B(s)-B(t)\|\le\eta .\]
+
+
+Then, with \(C=(M+1)(M+2)+\frac{\gamma^2}2+\gamma(M+1)\),
+
+
+\[\|X_n-Y_T\|\le T\Bigl(hC\bigl(R+\|g(0)\|\bigr)+(1+\gamma)\eta\Bigr)e^{(M+1)^2T}.\]
+
+
+\textbf{Proof.} Put \(e_k=\|X_k-Y_{kh}\|\), \(q=1+(M+1)^2h\) and \(\varepsilon=hC(R+\|g(0)\|)+(1+\gamma)\eta\ge0\).
 
 
 
-The recursion uses increments of the same continuous path on a uniform time grid. Its initialization is fixed independently of the mesh. Thus refinement changes only the discretization, making convergence to one candidate continuous solution a meaningful statement.
 
-
-\section{\texorpdfstring{Compare one numerical increment with the exact kinetic path}{Compare one numerical increment with the exact kinetic path}}
-
-
-Let the path satisfy \(Y_t-z_0=-\int_0^t d(Y_s)\,ds+(B_t,0)\), where \(d(v,x)=(\gamma v+g(x),-v)\). Subtract its equations at \(a\) and \(a+h\). Freezing its drift gives an exact Euler identity with remainder \(D_{a,h}=\int_0^h[d(Y_{a+s})-d(Y_a)]\,ds\). A drift oscillation bound \(\eta\) gives \(\|D_{a,h}\|\le h\eta\). The matching OU input differs from \(B_{a+h}-B_a\) by at most \(\gamma h\eta\) when the input oscillation is also at most \(\eta\). Finally, the proved explicit splitting defect contributes at most \(h^2C(R+\|g(0)\|)\), where \(\|Y_t\|\le R\) and \(C=(M+1)(M+2)+\gamma^2/2+\gamma(M+1)\). The argument constructs the grid and interval-membership facts, derives the exact increment equation through adjacent-interval integration, proves the local-defect identity, and bounds each of these three terms.
+\emph{Initial error.} At \(t=0\) the integral equation gives \(Y_0-z_0=(B(0),0)=0\), so \(e_0=\|z_0-Y_0\|=0\).
 
 
 
-For \(e_k=\|X_k-Y_{kh}\|\), synchronous numerical stability then gives \[e_{k+1}\le[1+(M+1)^2h]e_k+h\{hC(R+\|g(0)\|)+(1+\gamma)\eta\}.\] The initial equation and \(B_0=0\) prove \(e_0=0\). The finite recurrence estimate and \((1+ah)^n\le e^{aT}\), with \(nh=T\), yield the displayed finite-horizon bound. Every modulus premise belongs to this intermediate estimate and is derived from continuity in the next theorem.
+
+\emph{One step.} Fix \(k<n\) and put \(a=kh\). Then \(a\) and \(a+h=(k+1)h\) lie in \([0,T]\) because \((k+1)h\le nh=T\), and so does \(a+s\) for \(s\in[0,h]\). Let \(N=N_{a,h}\).
 
 
 
-Subtract the exact integral equation over one grid interval from the numerical increment. Separate the local deterministic consistency defect from the variation of the exact drift within that interval. Continuity of the exact path controls the latter by a modulus tending to zero.
+\begin{enumerate}
 
+
+\item \emph{Exact increment.} Subtracting the integral equations at \(a\) and \(a+h\), and using additivity of the integral over adjacent intervals (the integrand \(s\mapsto d(Y_s)\) is continuous because \(d\) is Lipschitz and \(Y\) is continuous), then the substitution \(s\mapsto a+s\),
+\[Y_{a+h}-Y_a=-\int_0^hd(Y_{a+s})\,ds+\bigl(B(a+h)-B(a),0\bigr).\]
+With the local defect \(D=\int_0^h\bigl(d(Y_{a+s})-d(Y_a)\bigr)\,ds\) this is the Euler identity \(Y_{a+h}=Y_a-hd(Y_a)+(B(a+h)-B(a),0)-D\).
+
+\item \emph{Local defect.} For \(s\in(0,h]\), \(|a+s-a|=s\le h\), so the integrand of \(D\) has norm at most \(\eta\) and \(\|D\|\le h\eta\).
+
+\item \emph{Filtered increment.} For \(s\in[0,h]\), \(\|B(a+s)-B(a)\|\le\eta\); by the last step of the module on the kinetic splitting, \(\|N-(B(a+h)-B(a))\|\le\gamma h\eta\).
+
+\item \emph{Consistency.} By item 1, \(Y_a-hd(Y_a)+(N,0)-Y_{a+h}=\bigl(N-(B(a+h)-B(a)),0\bigr)+D\), whose norm is at most \(\gamma h\eta+h\eta\) by items 2 and 3 (in the maximum norm \(\|(u,0)\|=\|u\|\)). The local defect estimate of the splitting step, with \(\|Y_a\|\le R\), gives \(\|S_h(Y_a,N)-(Y_a-hd(Y_a)+(N,0))\|\le h^2C(R+\|g(0)\|)\). By the triangle inequality,
+\[\|S_h(Y_a,N)-Y_{a+h}\|\le h^2C(R+\|g(0)\|)+(1+\gamma)h\eta=h\varepsilon .\]
+
+\item \emph{Stability.} By the stability of the splitting step, \(\|S_h(X_k,N)-S_h(Y_a,N)\|\le q\,\|X_k-Y_a\|=q\,e_k\).
+
+\end{enumerate}
+
+
+
+Since \(X_{k+1}=S_h(X_k,N)\), the triangle inequality and items 4 and 5 give
+
+
+\[e_{k+1}\le q\,e_k+h\varepsilon\qquad(0\le k<n).\qquad(1)\]
+
+
+\emph{Summation.} If \(e_0=0\), \(q\ge1\), \(b\ge0\) and \(e_{k+1}\le qe_k+b\) for \(k<n\), then \(e_n\le nbq^n\): by induction, \(e_{k+1}\le q\cdot kbq^k+b\le(k+1)bq^{k+1}\) because \(q^{k+1}\ge1\). Applied to (1), \(e_n\le n\,h\varepsilon\,q^n\). By \(1+u\le e^u\), \(q^n\le\bigl(e^{(M+1)^2h}\bigr)^n=e^{(M+1)^2nh}=e^{(M+1)^2T}\). Since \(nh=T\) and \(Y_{nh}=Y_T\),
+
+
+\[\|X_n-Y_T\|=e_n\le T\varepsilon\,e^{(M+1)^2T},\]
+
+
+which is the claim. \(\square\)
+
+
+
+
+The bound separates the deterministic consistency of the scheme (the term \(hC(R+\|g(0)\|)\)) from the regularity of the exact solution and of the forcing (the term \((1+\gamma)\eta\)); the hypothesis \(h\le1\) is needed for the stability and consistency estimates of the Verlet step.
+
+\begin{leanbox}{Lean: \texttt{kineticSplitChain\_\allowbreak{}error\_\allowbreak{}of\_\allowbreak{}modulus}}
+\leansource{\texttt{kineticSplitChain\_\allowbreak{}error\_\allowbreak{}of\_\allowbreak{}modulus} \quad KineticLangevin/\allowbreak{}KineticSplittingConvergence.lean, lines 19–128}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitChain\_error\_of\_modulus\ (g\ :\ E\ →\ E)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hg\ :\ LipschitzWith\ M\ g)\ (initial\ :\ E×E)\ (B\ :\ ℝ\ →\ E)\ (Y\ :\ ℝ\ →\ E×E)}
+\leanline{4}{(hB0\ :\ B\ 0=0)\ (hY\ :\ Continuous\ Y)\ (T\ h\ η\ R\ :\ ℝ)}
+\leanline{4}{(hT\ :\ 0≤T)\ (hh\ :\ 0≤h)\ (hh1\ :\ h≤1)\ (hη\ :\ 0≤η)\ (hR\ :\ 0≤R)}
+\leanline{4}{(n\ :\ ℕ)\ (hpartition\ :\ (n\ :\ ℝ)*h=T)}
+\leanline{4}{(heY\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t-initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ 1\ (Y\ s))+(B\ t,0))}
+\leanline{4}{(hbound\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ ‖Y\ t‖≤R)}
+\leanline{4}{(hmodD\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ∀\ t\ ∈\ Icc\ 0\ T,\ dist\ s\ t≤h\ →}
+\leanline{6}{‖kineticNegativeDrift\ g\ γ\ 1\ (Y\ s)-kineticNegativeDrift\ g\ γ\ 1\ (Y\ t)‖≤η)}
+\leanline{4}{(hmodB\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ∀\ t\ ∈\ Icc\ 0\ T,\ dist\ s\ t≤h\ →\ ‖B\ s-B\ t‖≤η)\ :}
+\leanline{4}{‖kineticSplitChain\ g\ γ\ h\ initial\ B\ n-Y\ T‖\ ≤}
+\leanline{6}{T*(h*(((M\ :\ ℝ)+1)*((M\ :\ ℝ)+2)+(γ\ :\ ℝ)\textasciicircum{}2/2+(γ\ :\ ℝ)*((M\ :\ ℝ)+1))*}
+\leanline{8}{(R+‖g\ 0‖)+(1+(γ\ :\ ℝ))*η)*Real.exp\ (((M\ :\ ℝ)+1)\textasciicircum{}2*T)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{kinetic\allowbreak{}Split\allowbreak{}Chain\_\allowbreak{}error\_\allowbreak{}of\_\allowbreak{}modulus} the friction \texttt{\ensuremath{\gamma}} and constant \texttt{M} are nonnegative reals (\texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0}), \texttt{hpartition : (n : \ensuremath{\mathbb R})*h=T} is \(nh=T\), \texttt{he\allowbreak{}Y} is the integral equation, \texttt{hbound} the bound by \(R\), and \texttt{hmod\allowbreak{}D}, \texttt{hmod\allowbreak{}B} the two oscillation hypotheses (with \texttt{dist s t \ensuremath{\le} h}).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{d}, \texttt{C}, \texttt{\ensuremath{\varepsilon}}, \texttt{X} and \texttt{e} are introduced with \texttt{let}; \texttt{hd} is the Lipschitz property of the drift (\texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift\_\allowbreak{}lipschitz}); \texttt{h\allowbreak{}Y0} and \texttt{he0} prove \(Y_0=z_0\) and \(e_0=0\); \texttt{hgrid} shows that grid times lie in \([0,T]\).
+
+\item \texttt{hstep} is (1). Inside it, \texttt{D} is \texttt{ULA.\allowbreak{}local\allowbreak{}Defect d (fun s \ensuremath{\mapsto} Y (a+s)) h}, the local defect; \texttt{h\allowbreak{}D} is item 2, from \texttt{interval\allowbreak{}Integral.\allowbreak{}norm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}const}; \texttt{h\allowbreak{}N} is item 3 (\texttt{ou\allowbreak{}Input\allowbreak{}Increment\_\allowbreak{}defect}); \texttt{hinc} is \texttt{ULA.\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}increment} (difference of the integral equation at two times), and \texttt{hinc'} its shifted form via \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}add\_\allowbreak{}left}; \texttt{hid} is the Euler identity \texttt{ULA.\allowbreak{}local\allowbreak{}Defect\_\allowbreak{}euler\_\allowbreak{}identity}; \texttt{heuler} is the identity of item 4, checked componentwise by \texttt{module}; \texttt{h\allowbreak{}S} is the consistency bound, combining \texttt{kinetic\allowbreak{}Split\allowbreak{}Step\_\allowbreak{}euler\_\allowbreak{}defect} with the triangle inequality in a \texttt{calc} block; \texttt{hstab} is item 5 (\texttt{kinetic\allowbreak{}Split\allowbreak{}Step\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}).
+
+\item \texttt{he} is the summation lemma \texttt{ULA.\allowbreak{}finite\_\allowbreak{}euler\_\allowbreak{}recurrence\_\allowbreak{}bound}; \texttt{hpow} bounds \(q^n\) by \texttt{pow\_\allowbreak{}le\_\allowbreak{}pow\_\allowbreak{}left\ensuremath{{}_{0}}}, \texttt{Real.\allowbreak{}add\_\allowbreak{}one\_\allowbreak{}le\_\allowbreak{}exp} and \texttt{Real.\allowbreak{}exp\_\allowbreak{}nat\_\allowbreak{}mul}; the final \texttt{calc} substitutes \texttt{hpartition}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026ULASC}; \cite[Section~3.11.3]{LangevinLean2026ULASC}; \cite[Section~3.16.4]{LangevinLean2026ULASC}; \cite[Section~3.16.5]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Derive all moduli and prove convergence}{Derive all moduli and prove convergence}}
+\section{\texorpdfstring{Convergence for a continuous forcing path}{Convergence for a continuous forcing path}}
 
 
-The continuous exact path is bounded on \([0,T]\). Its drift path is continuous by global Lipschitz continuity of \(g\), and the additive input \(B\) is continuous. Compactness makes both uniformly continuous. Given any target error \(\varepsilon>0\), choose a common oscillation tolerance \(\eta=\varepsilon/(D+1)\), where the explicit finite horizon constant \(D\) contains the state bound, the splitting defect coefficient, friction, and the stability exponential. Since \(h_n=T/(n+1)\to0\), the mesh is eventually at most one, at most \(\eta\), and below both continuity radii. The finite error estimate is then at most \(\eta D<\varepsilon\). The argument obtains the two compact uniform-continuity radii, combines the four eventual mesh bounds, instantiates the finite estimate, and checks this final scalar comparison. Thus the splitting approximation converges to every continuous kinetic integral solution driven by the same input.
+\textbf{Claim.} Let \(g\) be \(M\)-Lipschitz, \(\gamma\ge0\), \(B\) continuous with \(B(0)=0\), \(T\ge0\), and let \(Y\) be continuous and solve the kinetic integral equation on \([0,T]\). Then, with \(h_n=T/(n+1)\),
 
 
-
-Uniform continuity on a compact horizon gives moduli for both the input and the exact solution. Stability propagates local defects without uncontrolled amplification. A discrete Grönwall estimate then shows that the maximum grid-point error tends to zero as the mesh is refined.
-
-
-\section{\texorpdfstring{The limit with the constructed kinetic flow}{The limit with the constructed kinetic flow}}
+\[\lim_{n\to\infty}X^{(h_n)}_{n+1}=Y_T,\]
 
 
-The earlier Picard construction supplies a continuous solution for every initial state and every compact continuous forcing path, with its kinetic integral identity already proved. Its normalized forcing is globally continuous and vanishes at zero. Substituting these facts into the generic Banach convergence theorem proves that the splitting limit is exactly the kinetic solution map at the requested horizon. This ties the approximation to the existing jointly continuous solution map, not to an unspecified solution chosen by an additional hypothesis.
+where \(X^{(h)}\) denotes the splitting chain with step \(h\).
 
 
 
-The limit satisfies the same integral equation and starting condition as the selected kinetic flow. Uniqueness identifies the two. This conclusion is pathwise for the prescribed input and can subsequently be applied to the specified Brownian construction in second mean.
 
+\textbf{Proof.} The continuous function \(t\mapsto\|Y_t\|\) is bounded on the compact interval \([0,T]\), say by \(R\ge0\). Put \(C\) as in the previous step and \(D=T\bigl(C(R+\|g(0)\|)+1+\gamma\bigr)e^{(M+1)^2T}\ge0\). Let \(\varepsilon>0\) and \(\eta=\varepsilon/(D+1)>0\); then \(\eta D<\eta(D+1)=\varepsilon\).
+
+
+
+
+The maps \(t\mapsto d(Y_t)\) (continuous, because \(d\) is Lipschitz) and \(B\) are continuous on the compact interval \([0,T]\), hence uniformly continuous there (Heine–Cantor theorem): there are \(\delta_D,\delta_B>0\) such that \(\|d(Y_s)-d(Y_t)\|\le\eta\) whenever \(s,t\in[0,T]\), \(|s-t|\le\delta_D\), and \(\|B(s)-B(t)\|\le\eta\) whenever \(|s-t|\le\delta_B\). Since \(h_n\to0\), there is \(n_0\) such that for \(n\ge n_0\)
+
+
+\[h_n\le1,\qquad h_n\le\eta,\qquad h_n\le\delta_D,\qquad h_n\le\delta_B .\]
+
+
+Fix \(n\ge n_0\). The oscillation hypotheses of the previous step hold with step \(h_n\) and tolerance \(\eta\), and \((n+1)h_n=T\). The previous step gives
+
+
+\[\begin{aligned}
+&\|X^{(h_n)}_{n+1}-Y_T\|\\
+&\quad\le T\bigl(h_nC(R+\|g(0)\|)+(1+\gamma)\eta\bigr)e^{(M+1)^2T}\\
+&\quad\le T\,\eta\bigl(C(R+\|g(0)\|)+1+\gamma\bigr)e^{(M+1)^2T}\\
+&\quad=\eta D<\varepsilon.
+\end{aligned}\]
+
+
+using \(h_n\le\eta\) and \(C(R+\|g(0)\|)\ge0\). As \(\varepsilon>0\) was arbitrary, the sequence converges to \(Y_T\). \(\square\)
+
+
+
+
+The theorem does not assume uniqueness of \(Y\): every continuous solution is the limit of the same splitting chain, so it is in particular unique.
+
+\begin{leanbox}{Lean: \texttt{kineticSplitChain\_\allowbreak{}tendsto}}
+\leansource{\texttt{kineticSplitChain\_\allowbreak{}tendsto} \quad KineticLangevin/\allowbreak{}KineticSplittingConvergence.lean, lines 132–189}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitChain\_tendsto\ (g\ :\ E\ →\ E)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hg\ :\ LipschitzWith\ M\ g)\ (initial\ :\ E×E)\ (B\ :\ ℝ\ →\ E)\ (Y\ :\ ℝ\ →\ E×E)}
+\leanline{4}{(hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0=0)\ (hY\ :\ Continuous\ Y)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(heY\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t-initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ 1\ (Y\ s))+(B\ t,0))\ :}
+\leanline{4}{Tendsto\ (fun\ n\ :\ ℕ\ ↦\ kineticSplitChain\ g\ γ\ (T/((n+1\ :\ ℕ)\ :\ ℝ))\ initial\ B\ (n+1))}
+\leanline{6}{atTop\ ({\leanfallback 𝓝}\ (Y\ T))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Chain\_\allowbreak{}tendsto} states \texttt{Tendsto (fun n : \ensuremath{\mathbb N} \ensuremath{\mapsto} kinetic\allowbreak{}Split\allowbreak{}Chain g \ensuremath{\gamma} (T/\allowbreak{}((n+1 : \ensuremath{\mathbb N}) : \ensuremath{\mathbb R})) initial B (n+1)) at\allowbreak{}Top ({\leanfallback 𝓝} (Y T))}. \texttt{R} comes from \texttt{is\allowbreak{}Compact\_\allowbreak{}Icc.\allowbreak{}exists\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}continuous\allowbreak{}On}; \texttt{C} and \texttt{D} are the constants; \texttt{hmesh} is \(h_n\to0\). After \texttt{Metric.\allowbreak{}tendsto\_\allowbreak{}at\allowbreak{}Top.\allowbreak{}mpr} (the \(\varepsilon\)–\(N\) form of convergence) the tolerance \texttt{\ensuremath{\eta}} is chosen and \texttt{hscale}, \texttt{hsmall} give \(\eta D<\varepsilon\). \texttt{huc\allowbreak{}D}, \texttt{huc\allowbreak{}B} are uniform continuity on \texttt{Icc 0 T} (\texttt{Is\allowbreak{}Compact.\allowbreak{}uniform\allowbreak{}Continuous\allowbreak{}On\_\allowbreak{}of\_\allowbreak{}continuous}), and \texttt{Metric.\allowbreak{}uniform\allowbreak{}Continuous\allowbreak{}On\_\allowbreak{}iff\_\allowbreak{}le} extracts the radii \texttt{\ensuremath{\delta}\allowbreak{}D}, \texttt{\ensuremath{\delta}\allowbreak{}B}. \texttt{hnear} combines four eventual bounds on the mesh, each from \texttt{hmesh.\allowbreak{}eventually (eventually\_\allowbreak{}lt\_\allowbreak{}nhds …)}, and \texttt{eventually\_\allowbreak{}at\allowbreak{}Top} turns them into an index \texttt{N}. Then \texttt{he} instantiates the previous theorem with \(n+1\) steps (the partition identity being proved by \texttt{field\_\allowbreak{}simp}), and \texttt{hb}, \texttt{hbound'} carry out the final comparison.
+\end{leanbox}
+
+\section{\texorpdfstring{The limit is the constructed kinetic flow}{The limit is the constructed kinetic flow}}
+
+
+\textbf{Claim.} Let \(g\) be \(M\)-Lipschitz, \(\gamma\ge0\), \(T\ge0\), \(z_0\in\mathcal X\times\mathcal X\), and let \(B\) be a continuous path on \([0,T]\). Let \(\tilde B(t)=B(\min(\max(t,0),T))-B(0)\) be its extension to \(\mathbb R\), constant outside \([0,T]\) and normalised to vanish at \(0\), and let \(Y\) be the solution of the kinetic integral equation with forcing \(\tilde B\) and initial state \(z_0\) given by the Picard construction. Then the splitting chain driven by \(\tilde B\), with step \(T/(n+1)\) and \(n+1\) steps, converges to \(Y_T\).
+
+
+
+
+\textbf{Proof.} \(\tilde B\) is continuous (a composition of continuous maps) and \(\tilde B(0)=0\). The Picard construction provides a continuous \(Y\) with \(Y_0=z_0\) satisfying the integral equation on \([0,T]\) with forcing \(\tilde B\). The previous step applies. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{kineticSplitChain\_\allowbreak{}tendsto\_\allowbreak{}kineticFlow}}
+\leansource{\texttt{kineticSplitChain\_\allowbreak{}tendsto\_\allowbreak{}kineticFlow} \quad KineticLangevin/\allowbreak{}KineticSplittingConvergence.lean, lines 193–201}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitChain\_tendsto\_kineticFlow\ (g\ :\ E\ →\ E)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hg\ :\ LipschitzWith\ M\ g)\ (T\ :\ ℝ)\ (hT\ :\ 0≤T)\ (initial\ :\ E×E)}
+\leanline{4}{(B\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ :}
+\leanline{4}{Tendsto\ (fun\ n\ :\ ℕ\ ↦\ kineticSplitChain\ g\ γ\ (T/((n+1\ :\ ℕ)\ :\ ℝ))\ initial}
+\leanline{6}{(normalizedForcing\ T\ hT\ B)\ (n+1))\ atTop}
+\leanline{6}{({\leanfallback 𝓝}\ (kineticFlow\ g\ M\ γ\ 1\ hg\ T\ hT\ initial\ B\ T))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Chain\_\allowbreak{}tendsto\_\allowbreak{}kinetic\allowbreak{}Flow} takes the forcing \texttt{B : Velocity\allowbreak{}Forcing T} (continuous maps from \([0,T]\) to \texttt{E}), extends it by \texttt{normalized\allowbreak{}Forcing T h\allowbreak{}T B} (the extension \(\tilde B\), using \texttt{proj\allowbreak{}Icc}), and identifies the limit as \texttt{kinetic\allowbreak{}Flow g M \ensuremath{\gamma} 1 hg T h\allowbreak{}T initial B T}. The proof takes the three properties of the flow from \texttt{kinetic\allowbreak{}Flow\_\allowbreak{}spec} and the continuity and normalisation of the forcing from \texttt{continuous\_\allowbreak{}normalized\allowbreak{}Forcing} and \texttt{normalized\allowbreak{}Forcing\_\allowbreak{}zero}, and applies \texttt{kinetic\allowbreak{}Split\allowbreak{}Chain\_\allowbreak{}tendsto}.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

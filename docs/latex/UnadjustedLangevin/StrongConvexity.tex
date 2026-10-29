@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,113 +39,235 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Let \(H\) be a real inner-product space. We use the convention that \(f:H\to\mathbb R\) is \(m\)-strongly convex when \(v\mapsto f(v)-m\|v\|^2/2\) is convex. For a differentiable convex function, restriction to a line segment gives the supporting-plane inequality. Applying it to the quadratic-subtracted function gives the quadratic lower bound. Applying the lower bound to \((x,y)\) and \((y,x)\), and adding, gives strong monotonicity of the gradient.
+Throughout this section \(H\) is a real inner-product space with inner product \(\langle\cdot,\cdot\rangle\) and norm \(\|v\|=\langle v,v\rangle^{1/2}\); from the second step on, \(H\) is in addition complete, that is, a real Hilbert space. A function \(f:H\to\mathbb R\) is \emph{convex} if \(f(au+bv)\le af(u)+bf(v)\) for all \(u,v\in H\) and all \(a,b\ge0\) with \(a+b=1\). For a real number \(m\) (of any sign), \(f\) is \emph{\(m\)-strongly convex} if
+
+
+\[f(au+bv)\le af(u)+bf(v)-\frac m2\,ab\,\|u-v\|^2\qquad\text{for all }u,v\in H\text{ and }a,b\ge0\text{ with }a+b=1.\]
+
+
+The function \(f\) is \emph{differentiable} at \(x\) if there is a continuous linear functional \(Df(x):H\to\mathbb R\), the derivative, with \(f(x+u)=f(x)+Df(x)[u]+o(\|u\|)\) as \(u\to0\). When \(H\) is a Hilbert space, the Riesz representation theorem provides a unique vector \(\nabla f(x)\in H\), the \emph{gradient}, such that \(Df(x)[u]=\langle\nabla f(x),u\rangle\) for every \(u\in H\).
 
 
 
-The derivative \(Df(x)\) is a continuous linear functional. In a Hilbert space it is represented by \(\nabla f(x)\), so \(Df(x)[v]=\langle\nabla f(x),v\rangle\). These arguments require no second derivative or minimizer.
+
+For a function \(f\) that is differentiable at every point we prove three first-order inequalities: the supporting-plane inequality \(f(x)+Df(x)[y-x]\le f(y)\) when \(f\) is convex; the quadratic lower bound \(f(x)+\langle\nabla f(x),y-x\rangle+\frac m2\|y-x\|^2\le f(y)\) when \(f\) is \(m\)-strongly convex; and the strong monotonicity of the gradient, \(m\|x-y\|^2\le\langle\nabla f(x)-\nabla f(y),x-y\rangle\), under the same hypothesis. Only first derivatives occur. The quadratic lower bound is used in the sharp contraction estimate for the gradient step and in the tail bounds for the Gibbs measure; strong monotonicity is used in the first one-step estimate for the unadjusted Langevin algorithm.
 
 
 \section{\texorpdfstring{The supporting-plane inequality}{The supporting-plane inequality}}
 
 
-Let \(H\) be a real inner-product space and let \(f:H\to\mathbb R\) be differentiable and convex on all of \(H\). For any \(x,y\in H\),
+\textbf{Claim.} Let \(H\) be a real inner-product space and let \(f:H\to\mathbb R\) be convex on \(H\) and differentiable at every point of \(H\). Then for all \(x,y\in H\),
+
 
 \[f(x)+Df(x)[y-x]\le f(y).\]
 
-Restrict \(f\) to the affine line \(\ell(t)=x+t(y-x)\). Since affine composition preserves convexity, \(\varphi=f\circ\ell\) is convex on \(\mathbb R\), with \(\varphi(0)=f(x)\) and \(\varphi(1)=f(y)\).
+
+\textbf{Proof.} Fix \(x,y\in H\). Define the affine map \(\ell:\mathbb R\to H\), \(\ell(t)=x+t(y-x)\), and the real function \(\varphi=f\circ\ell\), so that \(\varphi(0)=f(x)\) and \(\varphi(1)=f(y)\).
 
 
 
-The derivative of the line is its constant direction:
 
-\[\ell'(0)=y-x.\]
+\emph{(a) \(\varphi\) is convex.} Let \(s,t\in\mathbb R\) and \(a,b\ge0\) with \(a+b=1\). Because \(\ell\) is affine and \(a+b=1\), \(\ell(as+bt)=x+(as+bt)(y-x)=a\,\ell(s)+b\,\ell(t)\). Convexity of \(f\) gives
 
-By the chain rule, the derivative of the restricted function is
 
-\[\varphi'(0)=Df(x)[y-x].\]
+\[\varphi(as+bt)=f\bigl(a\,\ell(s)+b\,\ell(t)\bigr)\le af(\ell(s))+bf(\ell(t))=a\varphi(s)+b\varphi(t).\]
 
-For a differentiable convex function, the derivative at the left endpoint is bounded by the secant slope to a later point. Applying this at \(0<1\) gives
 
-\[Df(x)[y-x]\le\frac{\varphi(1)-\varphi(0)}{1-0}.\]
+\emph{(b) \(\varphi\) is differentiable at \(0\) with \(\varphi'(0)=Df(x)[y-x]\).} For \(s\ne0\) the difference quotient of \(\ell\) is \((\ell(t+s)-\ell(t))/s=y-x\), so \(\ell\) is differentiable with \(\ell'(t)=y-x\) for every \(t\); moreover \(\ell(0)=x\). By the chain rule for the composition of the differentiable curve \(\ell\) with the function \(f\), which is differentiable at \(\ell(0)=x\),
 
-Evaluate the two endpoints and rearrange:
 
-\[Df(x)[y-x]\le f(y)-f(x),\qquad f(x)+Df(x)[y-x]\le f(y).\]
+\[\varphi'(0)=Df(x)[\ell'(0)]=Df(x)[y-x].\]
 
-The line argument uses only values on the segment joining the two points. For \(0<t\le1\), convexity gives \((\varphi(t)-\varphi(0))/t\le\varphi(1)-\varphi(0)\). Sending \(t\downarrow0\) identifies the left side with the directional derivative. The limit is the derivative at the segment parameter zero, and hence the derivative at the base point.
 
+\emph{(c) The derivative at \(0\) is at most the slope of the secant over \([0,1]\).} Let \(0<t\le1\). Writing \(t=(1-t)\cdot0+t\cdot1\) and applying (a) with \(a=1-t\), \(b=t\),
+
+
+\[\varphi(t)\le(1-t)\varphi(0)+t\varphi(1).\]
+
+
+Subtracting \(\varphi(0)\) and dividing by \(t>0\) gives
+
+
+\[\frac{\varphi(t)-\varphi(0)}{t}\le\varphi(1)-\varphi(0)\qquad(0<t\le1).\qquad(1)\]
+
+
+As \(t\downarrow0\), the left-hand side of (1) converges to \(\varphi'(0)\) by (b), while the right-hand side does not depend on \(t\). Passing to the limit in (1) yields \(\varphi'(0)\le\varphi(1)-\varphi(0)\).
+
+
+
+
+\emph{(d) Conclusion.} Substituting \(\varphi'(0)=Df(x)[y-x]\), \(\varphi(0)=f(x)\) and \(\varphi(1)=f(y)\) gives \(Df(x)[y-x]\le f(y)-f(x)\), which is the claim after adding \(f(x)\) to both sides. \(\square\)
+
+
+
+
+Only the differentiability of \(f\) at the base point \(x\) and the values of \(f\) on the segment from \(x\) to \(y\) were used. Completeness of \(H\) is not needed, since no gradient appears.
+
+\begin{leanbox}{Lean: \texttt{convex\_\allowbreak{}first\_\allowbreak{}order}}
+\leansource{\texttt{convex\_\allowbreak{}first\_\allowbreak{}order} \quad UnadjustedLangevin/\allowbreak{}StrongConvexity.lean, lines 17–33}
+\begin{leancode}
+\leanline{0}{lemma\ convex\_first\_order\ \{f\ :\ H\ →\ ℝ\}\ (hf\ :\ ConvexOn\ ℝ\ Set.univ\ f)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (x\ y\ :\ H)\ :}
+\leanline{4}{f\ x\ +\ fderiv\ ℝ\ f\ x\ (y\ -\ x)\ ≤\ f\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{convex\_\allowbreak{}first\_\allowbreak{}order}, the hypothesis \texttt{hf : Convex\allowbreak{}On \ensuremath{\mathbb R} Set.\allowbreak{}univ f} is convexity of \(f\) on the whole space and \texttt{hdiff : Differentiable \ensuremath{\mathbb R} f} is differentiability at every point. The expression \texttt{fderiv \ensuremath{\mathbb R} f x} is the derivative \(Df(x)\), a continuous linear map \(H\to\mathbb R\), so the conclusion \texttt{f x + fderiv \ensuremath{\mathbb R} f x (y -\allowbreak{} x) \ensuremath{\le} f y} is the claim. The variable declaration provides only \texttt{[Normed\allowbreak{}Add\allowbreak{}Comm\allowbreak{}Group H] [Inner\allowbreak{}Product\allowbreak{}Space \ensuremath{\mathbb R} H]}; completeness is not assumed. The proof follows steps (a)–(d).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{line : \ensuremath{\mathbb R} \ensuremath{\to}ᵃ[\ensuremath{\mathbb R}] H := Affine\allowbreak{}Map.\allowbreak{}line\allowbreak{}Map x y} is the affine map \(\ell\) (the notation \texttt{\ensuremath{\to}ᵃ[\ensuremath{\mathbb R}]} denotes real affine maps). \texttt{hc} is step (a); it is obtained from \texttt{hf.\allowbreak{}comp\_\allowbreak{}affine\allowbreak{}Map line}, an instance of the Mathlib lemma \texttt{Convex\allowbreak{}On.\allowbreak{}comp\_\allowbreak{}affine\allowbreak{}Map} (a convex function composed with an affine map is convex).
+
+\item \texttt{hl : Has\allowbreak{}Deriv\allowbreak{}At line (y -\allowbreak{} x) 0} states \(\ell'(0)=y-x\); after \texttt{change} rewrites \(\ell\) as \(t\mapsto t(y-x)+x\), it follows from the derivative of the identity (\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}id}), multiplied by the constant vector \(y-x\) (\texttt{smul\_\allowbreak{}const}) and shifted by \(x\) (\texttt{add\_\allowbreak{}const}).
+
+\item \texttt{hd} is step (b): the chain rule \texttt{Has\allowbreak{}FDeriv\allowbreak{}At.\allowbreak{}comp\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}of\_\allowbreak{}eq} composes the derivative of \(f\) at \(x\) (\texttt{(hdiff x).\allowbreak{}has\allowbreak{}FDeriv\allowbreak{}At}) with \texttt{hl}; its side condition \(\ell(0)=x\) is checked by \texttt{simp [line]}.
+
+\item \texttt{hs} is steps (c) and the limit passage: \texttt{hc.\allowbreak{}le\_\allowbreak{}slope\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}, applied to the points \(0<1\) (both in \texttt{Set.\allowbreak{}univ}), is the Mathlib lemma \texttt{Convex\allowbreak{}On.\allowbreak{}le\_\allowbreak{}slope\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}, which states that the derivative of a convex function of one real variable at a point is at most the slope \texttt{slope (f \ensuremath{\circ} line) 0 1} of the secant to a point on its right.
+
+\item The \texttt{simp only} call evaluates the slope as \((\varphi(1)-\varphi(0))/(1-0)\) (\texttt{slope\_\allowbreak{}def\_\allowbreak{}field}) and the endpoints \(\ell(1)=y\), \(\ell(0)=x\) (\texttt{Affine\allowbreak{}Map.\allowbreak{}line\allowbreak{}Map\_\allowbreak{}apply\_\allowbreak{}one}, \texttt{Affine\allowbreak{}Map.\allowbreak{}line\allowbreak{}Map\_\allowbreak{}apply\_\allowbreak{}zero}); \texttt{linarith} then performs the rearrangement (d).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The quadratic lower bound}{The quadratic lower bound}}
+
+
+\textbf{Claim.} Let \(H\) be a real Hilbert space, let \(m\in\mathbb R\), and let \(f:H\to\mathbb R\) be differentiable at every point and \(m\)-strongly convex on \(H\). Then for all \(x,y\in H\),
+
+
+\[f(x)+\langle\nabla f(x),y-x\rangle+\frac m2\|y-x\|^2\le f(y).\]
+
+
+\textbf{Proof.} Define the shifted function \(g(v)=f(v)-\frac m2\|v\|^2\) on \(H\).
+
+
+
+
+\emph{(a) \(g\) is convex.} We first verify the identity
+
+
+\[a\|u\|^2+b\|v\|^2-\|au+bv\|^2=ab\|u-v\|^2\qquad(u,v\in H,\ a+b=1).\qquad(1)\]
+
+
+Indeed, \(\|au+bv\|^2=a^2\|u\|^2+2ab\langle u,v\rangle+b^2\|v\|^2\), and \(a-a^2=a(1-a)=ab\), \(b-b^2=b(1-b)=ab\); hence the left-hand side of (1) equals \(ab(\|u\|^2-2\langle u,v\rangle+\|v\|^2)=ab\|u-v\|^2\). Now let \(a,b\ge0\) with \(a+b=1\). By strong convexity and then by (1),
+
+
+\[\begin{aligned}g(au+bv)&=f(au+bv)-\tfrac m2\|au+bv\|^2\\&\le af(u)+bf(v)-\tfrac m2\bigl(ab\|u-v\|^2+\|au+bv\|^2\bigr)\\&=af(u)+bf(v)-\tfrac m2\bigl(a\|u\|^2+b\|v\|^2\bigr)=ag(u)+bg(v).\end{aligned}\]
+
+
+(Read backwards, the same computation shows that convexity of \(g\) is equivalent to \(m\)-strong convexity of \(f\).)
+
+
+
+
+\emph{(b) \(g\) is differentiable, with \(Dg(v)[u]=\langle\nabla f(v),u\rangle-m\langle v,u\rangle\).} Expanding the square, \(\|v+u\|^2=\|v\|^2+2\langle v,u\rangle+\|u\|^2\), and \(\|u\|^2=o(\|u\|)\) as \(u\to0\). Hence \(v\mapsto\|v\|^2\) is differentiable at every \(v\) with derivative \(u\mapsto2\langle v,u\rangle\). Differentiability is preserved by scalar multiples and differences, so \(g\) is differentiable and \(Dg(v)[u]=Df(v)[u]-\frac m2\cdot2\langle v,u\rangle\). The definition of the gradient gives \(Df(v)[u]=\langle\nabla f(v),u\rangle\).
+
+
+
+
+\emph{(c) The supporting plane of \(g\).} By (a), (b) and the supporting-plane inequality of the previous step, applied to \(g\) at the points \(x,y\),
+
+
+\[f(x)-\frac m2\|x\|^2+\langle\nabla f(x),y-x\rangle-m\langle x,y-x\rangle\le f(y)-\frac m2\|y\|^2.\qquad(2)\]
+
+
+\emph{(d) Rearrangement.} Expanding \(\langle x,y-x\rangle=\langle x,y\rangle-\|x\|^2\),
+
+
+\[\|y\|^2-\|x\|^2-2\langle x,y-x\rangle=\|y\|^2-2\langle x,y\rangle+\|x\|^2=\|y-x\|^2.\qquad(3)\]
+
+
+Adding \(\frac m2\|y\|^2\) to both sides of (2) and using (3) gives \(f(x)+\langle\nabla f(x),y-x\rangle+\frac m2\|y-x\|^2\le f(y)\). \(\square\)
+
+
+
+
+No sign condition on \(m\) is needed. Completeness of \(H\) is used only to define the gradient through the Riesz representation theorem. If \(\nabla f(x)=0\), the claim reads \(f(y)\ge f(x)+\frac m2\|y-x\|^2\): a minimiser of an \(m\)-strongly convex function with \(m>0\) is surpassed quadratically by every other value.
+
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}first\_\allowbreak{}order}}
+\leansource{\texttt{strong\_\allowbreak{}first\_\allowbreak{}order} \quad UnadjustedLangevin/\allowbreak{}StrongConvexity.lean, lines 60–77}
+\begin{leancode}
+\leanline{0}{lemma\ strong\_first\_order\ [CompleteSpace\ H]\ \{f\ :\ H\ →\ ℝ\}\ \{m\ :\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)\ (x\ y\ :\ H)\ :}
+\leanline{4}{f\ x\ +\ inner\ ℝ\ (gradient\ f\ x)\ (y\ -\ x)\ +\ m\ /\ 2\ *\ ‖y\ -\ x‖\ \textasciicircum{}\ 2\ ≤\ f\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{strong\_\allowbreak{}first\_\allowbreak{}order} the instance \texttt{[Complete\allowbreak{}Space H]} makes \(H\) a Hilbert space; it is required because \texttt{gradient f x} is defined in Mathlib as the Riesz representative of \texttt{fderiv \ensuremath{\mathbb R} f x}, i.e. the vector \(\nabla f(x)\) with \(\langle\nabla f(x),u\rangle=Df(x)[u]\). The hypothesis \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m f} is Mathlib's strong convexity on the whole space, which is literally the defining inequality of the summary. The term \texttt{inner \ensuremath{\mathbb R} u v} is \(\langle u,v\rangle\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{g} is the shifted function, and \texttt{hc} is step (a); it is the forward direction of the Mathlib equivalence \texttt{strong\allowbreak{}Convex\allowbreak{}On\_\allowbreak{}iff\_\allowbreak{}convex}, whose proof is the identity (1).
+
+\item \texttt{hg} is step (b): \texttt{has\allowbreak{}Strict\allowbreak{}FDeriv\allowbreak{}At\_\allowbreak{}norm\_\allowbreak{}sq v} gives the derivative \texttt{2 \ensuremath{\bullet} inner\allowbreak{}SL \ensuremath{\mathbb R} v} of \(\|\cdot\|^2\) at \(v\), that is, the functional \(u\mapsto2\langle v,u\rangle\); it is multiplied by \(m/2\) (\texttt{const\_\allowbreak{}mul}) and subtracted from the derivative of \(f\) (\texttt{sub}). \texttt{hgd} records that \(g\) is differentiable everywhere.
+
+\item \texttt{hxy := convex\_\allowbreak{}first\_\allowbreak{}order hc hgd x y} is the supporting-plane inequality for \(g\); \texttt{rw [(hg x).\allowbreak{}fderiv] at hxy} replaces the abstract derivative of \(g\) at \(x\) by the formula of (b).
+
+\item The \texttt{simp only} call evaluates the linear maps (\texttt{inner\allowbreak{}SL\_\allowbreak{}apply\_\allowbreak{}apply} turns \texttt{inner\allowbreak{}SL \ensuremath{\mathbb R} x u} into \(\langle x,u\rangle\)) and, through \texttt{← inner\_\allowbreak{}gradient\_\allowbreak{}left}, writes \(Df(x)[u]\) as \(\langle\nabla f(x),u\rangle\); the result is (2). Then \texttt{rw [norm\_\allowbreak{}sub\_\allowbreak{}sq\_\allowbreak{}real]} expands \(\|y-x\|^2=\|y\|^2-2\langle y,x\rangle+\|x\|^2\) in the goal, the inner products are expanded and symmetrised (\texttt{inner\_\allowbreak{}sub\_\allowbreak{}right}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}), and \texttt{nlinarith} closes the goal; the required combination is the rearrangement (d).
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Strong monotonicity of the gradient}{Strong monotonicity of the gradient}}
 
 
-Let \(H\) be a real Hilbert space. If \(f:H\to\mathbb R\) is differentiable and \(m\)-strongly convex, where \(m\in\mathbb R\), then for every \(x,y\in H\),
+\textbf{Claim.} Let \(H\) be a real Hilbert space, \(m\in\mathbb R\), and let \(f:H\to\mathbb R\) be differentiable at every point and \(m\)-strongly convex on \(H\). Then for all \(x,y\in H\),
+
 
 \[m\|x-y\|^2\le\langle\nabla f(x)-\nabla f(y),x-y\rangle.\]
 
-Set
 
-\[g(v)=f(v)-\frac m2\|v\|^2.\]
-
-The definition of strong convexity says precisely that \(g\) is convex.
+\textbf{Proof.} Let \(g(v)=f(v)-\frac m2\|v\|^2\). By parts (a) and (b) of the previous proof, \(g\) is convex and differentiable with \(Dg(v)[u]=\langle\nabla f(v),u\rangle-m\langle v,u\rangle\). Apply the supporting-plane inequality of the first step to \(g\) twice, at the pair \((x,y)\) and at the pair \((y,x)\):
 
 
+\[\begin{aligned}g(x)+\langle\nabla f(x),y-x\rangle-m\langle x,y-x\rangle&\le g(y),\\ g(y)+\langle\nabla f(y),x-y\rangle-m\langle y,x-y\rangle&\le g(x).\end{aligned}\]
 
-The squared norm has derivative \(D\|v\|^2[u]=2\langle v,u\rangle\). Consequently \(g\) is differentiable and
 
-\[Dg(v)[u]=Df(v)[u]-m\langle v,u\rangle.\]
+Adding the two inequalities, the values \(g(x)+g(y)\) cancel and
 
-Apply the supporting-plane inequality in both directions, and substitute the derivative just computed:
 
-\[g(x)+Dg(x)[y-x]\le g(y),\qquad g(y)+Dg(y)[x-y]\le g(x).\]
+\[\langle\nabla f(x),y-x\rangle+\langle\nabla f(y),x-y\rangle-m\bigl(\langle x,y-x\rangle+\langle y,x-y\rangle\bigr)\le0.\qquad(1)\]
 
-Express the derivative of \(f\) using its gradient. The two inequalities become
 
-\[\begin{aligned}f(x)-\tfrac m2\|x\|^2+\langle\nabla f(x),y-x\rangle-m\langle x,y-x\rangle&\le f(y)-\tfrac m2\|y\|^2,\\ f(y)-\tfrac m2\|y\|^2+\langle\nabla f(y),x-y\rangle-m\langle y,x-y\rangle&\le f(x)-\tfrac m2\|x\|^2.\end{aligned}\]
+Since \(y-x=-(x-y)\), linearity of the inner product gives
 
-Add these inequalities. The function values and quadratic values cancel. Using \(\langle x-y,x-y\rangle=\|x-y\|^2\), what remains is
 
-\[0\le\langle\nabla f(x)-\nabla f(y),x-y\rangle-m\|x-y\|^2.\]
+\[\begin{aligned}\langle\nabla f(x),y-x\rangle+\langle\nabla f(y),x-y\rangle&=-\langle\nabla f(x)-\nabla f(y),x-y\rangle,\\\langle x,y-x\rangle+\langle y,x-y\rangle&=-\langle x-y,x-y\rangle\\&=-\|x-y\|^2.\end{aligned}\]
 
-This is the required monotonicity inequality.
+
+Substituting both identities into (1) gives \(-\langle\nabla f(x)-\nabla f(y),x-y\rangle+m\|x-y\|^2\le0\), which is the claim. \(\square\)
 
 
 
-Reversing the pair changes \(y-x\) into \(-(x-y)\). Therefore adding the two supporting inequalities makes the function values cancel and leaves a gradient difference paired with a displacement of the same orientation. The resulting nonnegative pairing gives monotonicity of \(\nabla f\), rather than the opposite inequality. No Hessian is introduced.
 
+Equivalently, the claim is the sum of the quadratic lower bounds of the previous step at \((x,y)\) and at \((y,x)\). For \(m=0\) it is the monotonicity \(\langle\nabla f(x)-\nabla f(y),x-y\rangle\ge0\) of the gradient of a differentiable convex function.
 
-\section{\texorpdfstring{The quadratic lower model}{The quadratic lower model}}
-
-
-Let \(H\) be a real Hilbert space, \(f:H\to\mathbb R\) differentiable, and \(m\in\mathbb R\). If \(f\) is \(m\)-strongly convex on all of \(H\), then for every \(x,y\in H\),
-
-\[f(x)+\langle\nabla f(x),y-x\rangle+\frac m2\|y-x\|^2\le f(y).\]
-
-Set \(g(v)=f(v)-\frac m2\|v\|^2\). Strong convexity makes \(g\) convex.
-
-
-
-Differentiate this shifted potential:
-
-\[Dg(v)[u]=Df(v)[u]-m\langle v,u\rangle.\]
-
-In particular, \(g\) is differentiable on \(H\).
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}gradient\_\allowbreak{}monotone}}
+\leansource{\texttt{strong\_\allowbreak{}gradient\_\allowbreak{}monotone} \quad UnadjustedLangevin/\allowbreak{}StrongConvexity.lean, lines 36–56}
+\begin{leancode}
+\leanline{0}{lemma\ strong\_gradient\_monotone\ [CompleteSpace\ H]\ \{f\ :\ H\ →\ ℝ\}\ \{m\ :\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)\ (x\ y\ :\ H)\ :}
+\leanline{4}{m\ *\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ (gradient\ f\ x\ -\ gradient\ f\ y)\ (x\ -\ y)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\_\allowbreak{}gradient\_\allowbreak{}monotone} has the same hypotheses as the previous step (\texttt{[Complete\allowbreak{}Space H]}, \texttt{hdiff}, \texttt{hsc}) and the conclusion \texttt{m * \ensuremath{\Vert}x -\allowbreak{} y\ensuremath{\Vert} \textasciicircum{} 2 \ensuremath{\le} inner \ensuremath{\mathbb R} (gradient f x -\allowbreak{} gradient f y) (x -\allowbreak{} y)}. Its proof does not call \texttt{strong\_\allowbreak{}first\_\allowbreak{}order}; it repeats the construction of \(g\) and argues as above.
 
 
 
-Its supporting-plane inequality at \(x\), together with \(Df(x)[u]=\langle\nabla f(x),u\rangle\), yields
-
-\[f(x)-\frac m2\|x\|^2+\langle\nabla f(x),y-x\rangle-m\langle x,y-x\rangle\le f(y)-\frac m2\|y\|^2.\]
-
-Collect the quadratic correction by the identity
-
-\[\|y\|^2-\|x\|^2-2\langle x,y-x\rangle=\|y-x\|^2.\]
-
-Moving terms gives the desired lower model.
+\begin{enumerate}
 
 
+\item \texttt{g}, \texttt{hc}, \texttt{hg} and \texttt{hgd} are the shifted function, its convexity (from \texttt{strong\allowbreak{}Convex\allowbreak{}On\_\allowbreak{}iff\_\allowbreak{}convex}), its derivative formula and its differentiability, exactly as in the previous step.
 
-The correction is the squared displacement, not the difference of the two squared norms. The cross term from differentiating the subtracted quadratic is exactly what converts that difference into \(\|y-x\|^2\). When \(\nabla f(x)=0\), this inequality specializes to \(f(y)-f(x)\ge m\|y-x\|^2/2\), which gives a Gaussian upper bound on the density proportional to the exponential of the negative potential.
+\item \texttt{hxy := convex\_\allowbreak{}first\_\allowbreak{}order hc hgd x y} and \texttt{hyx := convex\_\allowbreak{}first\_\allowbreak{}order hc hgd y x} are the two supporting-plane inequalities. The rewrites with \texttt{(hg x).\allowbreak{}fderiv} and \texttt{(hg y).\allowbreak{}fderiv} insert the derivative formula, and the \texttt{simp only} call with \texttt{← inner\_\allowbreak{}gradient\_\allowbreak{}left} expresses all derivatives through gradients.
 
+\item \texttt{rw [inner\_\allowbreak{}sub\_\allowbreak{}left, inner\_\allowbreak{}sub\_\allowbreak{}right, inner\_\allowbreak{}sub\_\allowbreak{}right]} expands the inner product in the goal, \texttt{norm\_\allowbreak{}sub\_\allowbreak{}sq\_\allowbreak{}real} expands \(\|x-y\|^2\), and the second \texttt{simp only} normalises all inner products (\texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}). \texttt{nlinarith} then adds \texttt{hxy} and \texttt{hyx}; this is inequality (1) followed by the two identities.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

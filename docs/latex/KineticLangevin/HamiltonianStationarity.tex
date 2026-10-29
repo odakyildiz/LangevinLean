@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,41 +39,249 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Hamiltonian stationarity follows by taking a limit of the corrected Verlet approximations. Explicit corrected Verlet proposals preserve the Gibbs measure exactly. Their rejection probability is quadratically small, while the uncorrected Verlet iterates converge to the selected Hamiltonian integral solution. Bounded tests transfer invariance through this limit. The finite-dimensional strong-convexity theorem derives every required tail premise, so its statement assumes no invariant flow, numerical convergence, or error bound.
+Let \(E\) be a separable real Hilbert space with its Borel \(\sigma\)-algebra, let \(f:E\to\mathbb R\) be differentiable with an \(M\)-Lipschitz gradient, and write phase points velocity first, \(z=(v,x)\in E\times E\). The Hamiltonian is \(H(v,x)=f(x)+\tfrac12\|v\|^2\). For a reference measure \(\mu\) on \(E\) that is s-finite and invariant under all translations \(x\mapsto a+x\) and under \(x\mapsto-x\), the (unnormalised) Gibbs measure is the measure \(\pi\) on \(E\times E\) with density \(e^{-H}\) relative to the product measure \(\mu\otimes\mu\):
+
+
+\[\pi(A)=\int_A e^{-f(x)-\|v\|^2/2}\,(\mu\otimes\mu)(dv\,dx)\qquad\text{for Borel }A\subseteq E\times E.\]
+
+
+The Hamiltonian flow \(\Phi_T\) maps an initial state \(z=(v,x)\) to the value at time \(T\) of the continuous solution of the integral equations \(V_t=v-\int_0^t\nabla f(X_s)\,ds\), \(X_t=x+\int_0^tV_s\,ds\), \(0\le t\le T\); this is the kinetic integral equation with zero friction, unit inverse mass and zero forcing, whose solution exists by the Picard argument and is unique by the Gronwall stability estimate. The module proves that \(\Phi_T\) is continuous and that it preserves the Gibbs measure, \(\pi\circ\Phi_T^{-1}=\pi\).
 
 
 
-Exact corrected invariance, a vanishing rejection discrepancy, and Verlet convergence are combined in one limit. This proves invariance for the constructed Hamiltonian solution rather than assuming a stationary comparator.
+
+The invariance is not obtained by differentiating the density. Instead \(\Phi_T\) is approximated by \(N\) velocity Verlet steps of size \(T/N\). A Verlet step followed by a Metropolis accept/\allowbreak{}reject decision with velocity reversal preserves \(\pi\) exactly; the rejection probability is of order \(h^2\); hence the law of \(N\) uncorrected Verlet steps differs from \(\pi\), on bounded test functions, by at most a multiple of \(T^2/N\), and this error vanishes in the limit \(N\to\infty\), in which the Verlet iterates converge to \(\Phi_T\). In finite dimension with Lebesgue reference measure, strong convexity of \(f\) supplies the finiteness of \(\pi\) and the moment needed for the rejection bound. The invariance is used for the normalised Gibbs target and in the analysis of the exact OBABO scheme and its phase laws.
 
 
-\section{\texorpdfstring{Measurability of the final state as a function of its initial state}{Measurability of the final state as a function of its initial state}}
+\section{\texorpdfstring{Continuity of the time-\(T\) Hamiltonian map}{Continuity of the time-T Hamiltonian map}}
 
 
-The constructed kinetic endpoint is jointly continuous in initialization and continuous forcing. Fix zero forcing, friction zero, inverse mass one, and endpoint time \(T\). Composing this joint map with \(z\mapsto(z,0)\) proves continuity of the selected Hamiltonian endpoint. The argument supplies the compact forcing-space zero explicitly and simplifies the composed definition. The endpoint pushforward is therefore a well-defined measurable pushforward.
-
-
-
-Continuous dependence on the initial phase makes the terminal Hamiltonian map measurable. Its pushforward under the normalized Gibbs phase law is therefore well defined. The selected solution’s uniqueness ensures this map does not depend on a choice in the existence construction.
-
-
-\section{\texorpdfstring{Pass exact corrected invariance to the integral solution}{Pass exact corrected invariance to the integral solution}}
-
-
-Let \(\pi\) be the Hamiltonian weighted measure, \(B=\int(\|v\|^2+\|\nabla f(x)\|^2)\,d\pi\), and \(K=M(2M+11)/8\). Use \(N=n+1\) Verlet steps of size \(h=T/N\). Exact corrected invariance and the iterated bounded-test estimate imply, for \(\|F\|\le1\), \[\left\|\int F(V_h^Nz)\,d\pi-\int F\,d\pi\right\|\le 2N\int(1-a_h)\,d\pi\le\frac{2T^2KB}{N}.\] The mesh is eventually at most one, so the proved quadratic rejection estimate applies; the displayed bound tends to zero. The independently proved numerical theorem gives \(V_{T/N}^Nz\to\Phi_Tz\), where \(\Phi\) is the Picard integral solution. The bounded-test limit theorem identifies \((\Phi_T)_\#\pi=\pi\). The proof assembles these results, proves the mesh limit, checks nonnegative multipliers, and simplifies the exact scalar bound. It assumes only the finite measure and precisely displayed quadratic moment required by this intermediate general theorem.
+\textbf{Claim.} Let \(E\) be a real Hilbert space, let \(f:E\to\mathbb R\) have a gradient \(\nabla f\) that is \(M\)-Lipschitz for some \(M\ge0\), and let \(T\ge0\). Then the map \(z\mapsto\Phi_T(z)\) from \(E\times E\) to \(E\times E\) is continuous. In particular it is Borel measurable.
 
 
 
-Corrected Verlet preserves the target exactly, while its difference from uncorrected Verlet is bounded by integrated rejection. Over a fixed horizon the total rejection error tends to zero as the mesh is refined. Convergence to the flow then transfers invariance to that flow.
+
+\textbf{Proof.} Recall the general kinetic integral equation with Lipschitz force \(g\), friction \(\gamma\ge0\), inverse mass \(u\ge0\) and continuous velocity forcing \(B\) on \([0,T]\) with \(B(0)=0\):
 
 
-\section{\texorpdfstring{Verify all tail hypotheses from the potential assumptions}{Verify all tail hypotheses from the potential assumptions}}
+\[Y_t-z=-\int_0^t\bigl(\gamma V_s+u\,g(X_s),\,-V_s\bigr)\,ds+\bigl(B(t),0\bigr),\qquad Y_t=(V_t,X_t),\quad 0\le t\le T.\]
 
 
-In finite dimensions, positive strong convexity and differentiability make the Hamiltonian Gibbs measure finite by the factorization and Gaussian domination proved in the moments module. The globally Lipschitz gradient supplies the finite force second moment, and thermal velocity factor supplies the velocity second moment. Substituting these results into the preceding limit theorem gives exact Hamiltonian Gibbs invariance from the original first-order potential assumptions. The theorem applies to every nonnegative finite horizon. It proves the Hamiltonian subflow; the full friction-and-noise kinetic diffusion additionally needs its thermostat splitting limit.
+It was shown earlier that the endpoint \(Y_t\) of its solution depends Lipschitz continuously on the pair \((z,B)\), where \(z\) ranges over \(E\times E\) with the norm \(\|(v,x)\|=\max(\|v\|,\|x\|)\) and \(B\) over the space of continuous paths \([0,T]\to E\) with the supremum norm: if \(L\) is the Lipschitz constant of \(g\) and \(t\in[0,T]\), then
+
+
+\[\|Y_t(z,B)-Y_t(z',B')\|\le3e^{(\gamma+uL+1)t+t}\,\max\bigl(\|z-z'\|,\ \sup_{s\le T}\|B(s)-B'(s)\|\bigr).\]
+
+
+Take \(g=\nabla f\), \(L=M\), \(\gamma=0\), \(u=1\) and \(t=T\). The map \(\iota:z\mapsto(z,0)\), which pairs an initial state with the zero path, is continuous (each component is continuous), and by definition \(\Phi_T(z)=Y_T(z,0)=Y_T\circ\iota(z)\). A composition of continuous maps is continuous, so \(\Phi_T\) is continuous; explicitly, \(\|\Phi_T(z)-\Phi_T(z')\|\le3e^{(M+2)T}\|z-z'\|\). A continuous map between topological spaces equipped with their Borel \(\sigma\)-algebras is measurable, because preimages of open sets are open. \(\square\)
 
 
 
-The necessary integrable upper bound follows from strong convexity and smoothness through the phase moment estimates. These hypotheses also supply finite normalization. Consequently the stationarity theorem has its tail and moment requirements verified rather than leaving an assumed invariant reference measure.
 
+Measurability of \(\Phi_T\) is what makes the image measure \(\pi\circ\Phi_T^{-1}\) in the next step meaningful.
+
+\begin{leanbox}{Lean: \texttt{hamiltonianFlow\_\allowbreak{}endpoint\_\allowbreak{}continuous}}
+\leansource{\texttt{hamiltonianFlow\_\allowbreak{}endpoint\_\allowbreak{}continuous} \quad KineticLangevin/\allowbreak{}HamiltonianStationarity.lean, lines 21–27}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianFlow\_endpoint\_continuous\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{Continuous\ (fun\ z\ :\ E×E\ ↦\ hamiltonianFlow\ f\ M\ hLip\ T\ hT\ z\ T)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Flow\_\allowbreak{}endpoint\_\allowbreak{}continuous} states \texttt{Continuous (fun z : E\ensuremath{\times}E \ensuremath{\mapsto} hamiltonian\allowbreak{}Flow f M h\allowbreak{}Lip T h\allowbreak{}T z T)}. Here \texttt{hamiltonian\allowbreak{}Flow f M h\allowbreak{}Lip T h\allowbreak{}T z} is defined as \texttt{kinetic\allowbreak{}Flow (gradient f) M 0 1 h\allowbreak{}Lip T h\allowbreak{}T z 0}: the solution path of the kinetic integral equation with force \texttt{gradient f}, Lipschitz constant \texttt{M} (a nonnegative real, type \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0}), friction \texttt{0}, inverse mass \texttt{1} and zero forcing path. The hypothesis \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With M (gradient f)} is the Lipschitz condition on \(\nabla f\), and \texttt{h\allowbreak{}T : 0 \ensuremath{\le} T} is \(T\ge0\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{kinetic\allowbreak{}Flow\_\allowbreak{}endpoint\_\allowbreak{}continuous (gradient f) M 0 1 h\allowbreak{}Lip T h\allowbreak{}T T \ensuremath{\langle}h\allowbreak{}T,le\_\allowbreak{}rfl\ensuremath{\rangle}} is the joint continuity of \((z,B)\mapsto Y_T(z,B)\) at the time \(t=T\); the anonymous pair \texttt{\ensuremath{\langle}h\allowbreak{}T,le\_\allowbreak{}rfl\ensuremath{\rangle}} proves \(T\in[0,T]\). (In the earlier module this continuity is deduced from the Lipschitz bound displayed above.)
+
+\item \texttt{continuous\_\allowbreak{}id.\allowbreak{}prod\allowbreak{}Mk continuous\_\allowbreak{}const} is the continuity of \(\iota(z)=(z,0)\), with the zero element of the forcing space \texttt{Velocity\allowbreak{}Forcing T} (continuous maps from \([0,T]\) to \(E\)) written explicitly; \texttt{.\allowbreak{}comp} composes the two maps.
+
+\item \texttt{simpa only [hamiltonian\allowbreak{}Flow,Function.\allowbreak{}comp\_\allowbreak{}def,id\_\allowbreak{}eq] using hc} unfolds the definition of the Hamiltonian flow, so that the composed map is literally the map in the statement.
+
+\end{enumerate}
+
+
+
+Measurability is not part of the statement; later proofs obtain it as \texttt{(hamiltonian\allowbreak{}Flow\_\allowbreak{}endpoint\_\allowbreak{}continuous …).\allowbreak{}measurable}, which is the fact that continuous maps between Borel spaces are measurable.
+\end{leanbox}
+
+\section{\texorpdfstring{Invariance of the Gibbs measure under a finite second moment}{Invariance of the Gibbs measure under a finite second moment}}
+
+
+\textbf{Claim.} Let \(E\) be a separable real Hilbert space with its Borel \(\sigma\)-algebra and let \(\mu\) be an s-finite measure on \(E\) that is invariant under every translation \(x\mapsto a+x\) and under the reflection \(x\mapsto-x\). Let \(f:E\to\mathbb R\) be differentiable with \(M\)-Lipschitz gradient (\(M\ge0\)), let \(T\ge0\), and let \(\pi\) be the Gibbs measure with density \(e^{-H}\) relative to \(\mu\otimes\mu\). Assume that \(\pi\) is a finite measure and that
+
+
+\[\int_{E\times E}\bigl(\|v\|^2+\|\nabla f(x)\|^2\bigr)\,\pi(dv\,dx)<\infty .\]
+
+
+Then the image of \(\pi\) under the time-\(T\) Hamiltonian map is \(\pi\): \(\pi\bigl(\Phi_T^{-1}(A)\bigr)=\pi(A)\) for every Borel set \(A\subseteq E\times E\).
+
+
+
+
+\textbf{Proof.} We use four results proved earlier. For a step \(h\in\mathbb R\) write \(K_s(v,x)=(v-s\nabla f(x),x)\) (kick), \(D_h(v,x)=(v,x+hv)\) (drift), \(V_h=K_{h/2}\circ D_h\circ K_{h/2}\) (velocity Verlet step), \(R(v,x)=(-v,x)\) (velocity reversal), and
+
+
+\[a_h(z)=\min\Bigl\{1,\ \exp\bigl(-(H(V_hz)-H(z))\bigr)\Bigr\}\in[0,1]\]
+
+
+(the Metropolis acceptance probability of the Verlet proposal).
+
+
+
+\begin{enumerate}
+
+
+\item \emph{Exact invariance of corrected Verlet.} For every \(h\), with \(a=a_h\),
+\[(a\,\pi)\circ V_h^{-1}+\bigl((1-a)\,\pi\bigr)\circ R^{-1}=\pi,\]
+where \(a\,\pi\) denotes the measure with density \(a\) relative to \(\pi\). This uses that \(K_s\), \(D_h\) and \(R\) preserve \(\mu\otimes\mu\) (by the translation and reflection invariance of \(\mu\) and Tonelli's theorem), that \(H\circ R=H\), and that \(f\) and \(\nabla f\) are measurable.
+
+\item \emph{Weak error of \(N\) uncorrected steps.} If \(\pi\) is finite and the identity of item 1 holds, then for every measurable \(F:E\times E\to\mathbb C\) with \(|F|\le C\) and every \(N\in\mathbb N\),
+\[\Bigl|\int F(V_h^Nz)\,\pi(dz)-\int F\,d\pi\Bigr|\le N\cdot2C\int(1-a_h)\,d\pi .\]
+(One step changes \(\int G\,d\pi\) by at most \(2C\int(1-a_h)\,d\pi\) for every \(|G|\le C\), because item 1 rewrites \(\int G\,d\pi\) as \(\int(a_hG\circ V_h+(1-a_h)G\circ R)\,d\pi\); applying this to \(G=F\circ V_h^{n}\) and telescoping over \(n=0,\dots,N-1\) with the triangle inequality gives the bound.)
+
+\item \emph{Rejection estimate.} For \(0\le h\le1\), with \(\kappa=M(2M+11)/8\),
+\[\int(1-a_h)\,d\pi\le h^2\kappa\int\bigl(\|v\|^2+\|\nabla f(x)\|^2\bigr)\,\pi(dv\,dx).\]
+This is the integrated form of the pointwise bound \(1-a_h(z)\le h^2\kappa(\|v\|^2+\|\nabla f(x)\|^2)\); it requires the integrability assumed in the claim.
+
+\item \emph{Convergence of Verlet.} For every \(z\), \(V_{T/(n+1)}^{\,n+1}(z)\to\Phi_T(z)\) as \(n\to\infty\).
+
+\item \emph{Limit principle.} Let \(\pi\) be a finite measure on a separable Banach space \(\mathcal H\), let \(Y\) and \(Y_n\) (\(n\in\mathbb N\)) be measurable maps of \(\mathcal H\) with \(Y_n(z)\to Y(z)\) for every \(z\), and let \(\delta_n\to0\). Suppose that for every measurable \(F:\mathcal H\to\mathbb C\) with \(|F|\le1\) there is \(n_0\) such that \(|\int F\circ Y_n\,d\pi-\int F\,d\pi|\le\delta_n\) for \(n\ge n_0\). Then \(\pi\circ Y^{-1}=\pi\). (For \(F(z)=e^{i\ell(z)}\) with \(\ell\) a continuous linear functional, dominated convergence with the constant dominating function \(1\), integrable because \(\pi\) is finite, gives \(\int F\circ Y_n\,d\pi\to\int F\circ Y\,d\pi\); the hypothesis gives \(\int F\circ Y_n\,d\pi\to\int F\,d\pi\); hence \(\pi\circ Y^{-1}\) and \(\pi\) have the same characteristic functional and are equal.)
+
+\end{enumerate}
+
+
+
+Put \(\kappa=M(2M+11)/8\), \(B=\int(\|v\|^2+\|\nabla f(x)\|^2)\,d\pi\), which is finite by assumption, and for \(n\in\mathbb N\)
+
+
+\[h_n=\frac{T}{n+1},\qquad \delta_n=\frac{2T^2\kappa B}{n+1}.\]
+
+
+Both sequences have the form \(c/(n+1)\) with a constant \(c\), so \(h_n\to0\) and \(\delta_n\to0\). We apply the limit principle with \(\mathcal H=E\times E\) (a separable Banach space), \(Y=\Phi_T\), which is measurable by the previous step, and \(Y_n=V_{h_n}^{\,n+1}\). Each \(V_h\) is measurable, being a composition of maps built from addition, scalar multiplication and the continuous map \(\nabla f\); hence so is each iterate. The pointwise convergence \(Y_n(z)\to\Phi_T(z)\) is item 4.
+
+
+
+
+It remains to verify the weak-error hypothesis. Fix a measurable \(F\) with \(|F|\le1\). Since \(h_n\to0\), there is \(n_0\) with \(h_n<1\) for all \(n\ge n_0\). Fix \(n\ge n_0\), put \(h=h_n\) and \(N=n+1\). Then \(0\le h\le1\), because \(T\ge0\). By item 1 the hypothesis of item 2 holds, and item 2 with \(C=1\) gives
+
+
+\[\Bigl|\int F(V_h^Nz)\,\pi(dz)-\int F\,d\pi\Bigr|\le 2N\int(1-a_h)\,d\pi .\qquad(1)\]
+
+
+Item 3 applies because \(0\le h\le1\), and multiplying it by \(2N\ge0\) gives \(2N\int(1-a_h)\,d\pi\le2Nh^2\kappa B\). Finally
+
+
+\[2Nh^2\kappa B=2N\frac{T^2}{N^2}\kappa B=\frac{2T^2\kappa B}{N}=\delta_n .\qquad(2)\]
+
+
+Combining (1) and (2), \(|\int F\circ Y_n\,d\pi-\int F\,d\pi|\le\delta_n\) for all \(n\ge n_0\). The limit principle yields \(\pi\circ\Phi_T^{-1}=\pi\). \(\square\)
+
+
+
+
+The hypotheses enter as follows. Finiteness of \(\pi\) is needed in items 2 and 5 (bounded functions must be integrable and dominated convergence must apply). The second moment makes \(B\) finite, so that \(\delta_n\to0\). Differentiability of \(f\) makes \(f\) continuous, hence measurable, which is needed for the density \(e^{-H}\) and the acceptance probability \(a_h\). The Lipschitz constant \(M\) enters the rejection constant \(\kappa\) and the convergence of the Verlet scheme. The invariance properties of \(\mu\) are used only in item 1.
+
+\begin{leanbox}{Lean: \texttt{hamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}moment}}
+\leansource{\texttt{hamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}HamiltonianStationarity.lean, lines 31–70}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianFlow\_preserves\_gibbs\_of\_moment}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{[IsFiniteMeasure\ (hamiltonianGibbs\ μ\ f)]}
+\leanline{4}{(henv\ :\ Integrable\ (fun\ z\ :\ E×E\ ↦\ ‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2)}
+\leanline{6}{(hamiltonianGibbs\ μ\ f))\ :}
+\leanline{4}{(hamiltonianGibbs\ μ\ f).map\ (fun\ z\ ↦\ hamiltonianFlow\ f\ M\ hLip\ T\ hT\ z\ T)\ =}
+\leanline{6}{hamiltonianGibbs\ μ\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The theorem \texttt{hamiltonian\allowbreak{}Flow\_\allowbreak{}preserves\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}moment} works in a complete real inner product space \texttt{E} (\texttt{Inner\allowbreak{}Product\allowbreak{}Space \ensuremath{\mathbb R} E}, \texttt{Complete\allowbreak{}Space E}) with the Borel \ensuremath{\sigma}-algebra (\texttt{Borel\allowbreak{}Space E}) and a countable base (\texttt{Second\allowbreak{}Countable\allowbreak{}Topology E}). The reference measure \texttt{\ensuremath{\mu}} carries the instances \texttt{SFinite \ensuremath{\mu}}, \texttt{Measure.\allowbreak{}Is\allowbreak{}Add\allowbreak{}Left\allowbreak{}Invariant \ensuremath{\mu}} and \texttt{Measure.\allowbreak{}Is\allowbreak{}Neg\allowbreak{}Invariant \ensuremath{\mu}}, i.e. s-finiteness, translation invariance and reflection invariance. The Gibbs measure is \texttt{hamiltonian\allowbreak{}Gibbs \ensuremath{\mu} f}, defined as \texttt{(\ensuremath{\mu}.\allowbreak{}prod \ensuremath{\mu}).\allowbreak{}with\allowbreak{}Density (fun z \ensuremath{\mapsto} ENNReal.\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp (-\allowbreak{}hamiltonian\allowbreak{}Energy f z)))}, where \texttt{hamiltonian\allowbreak{}Energy f z = f z.\allowbreak{}2 + \ensuremath{\Vert}z.\allowbreak{}1\ensuremath{\Vert}\textasciicircum{}2 /\allowbreak{} 2} (so \texttt{z.\allowbreak{}1} is the velocity and \texttt{z.\allowbreak{}2} the position) and \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} converts the real density into an extended nonnegative real. The hypotheses \texttt{[Is\allowbreak{}Finite\allowbreak{}Measure (hamiltonian\allowbreak{}Gibbs \ensuremath{\mu} f)]} and \texttt{henv : Integrable (fun z : E\ensuremath{\times}E \ensuremath{\mapsto} \ensuremath{\Vert}z.\allowbreak{}1\ensuremath{\Vert}\textasciicircum{}2+\ensuremath{\Vert}gradient f z.\allowbreak{}2\ensuremath{\Vert}\textasciicircum{}2) (hamiltonian\allowbreak{}Gibbs \ensuremath{\mu} f)} are the two assumptions of the claim, and \texttt{hf : Differentiable \ensuremath{\mathbb R} f} is differentiability. The conclusion uses the image measure \texttt{Measure.\allowbreak{}map}: \texttt{(hamiltonian\allowbreak{}Gibbs \ensuremath{\mu} f).\allowbreak{}map (fun z \ensuremath{\mapsto} hamiltonian\allowbreak{}Flow f M h\allowbreak{}Lip T h\allowbreak{}T z T) = hamiltonian\allowbreak{}Gibbs \ensuremath{\mu} f}.
+
+
+
+\begin{enumerate}
+
+
+\item The \texttt{let} definitions introduce \texttt{\ensuremath{\pi}}, \texttt{K} (the constant \(\kappa\)), \texttt{B} and \texttt{\ensuremath{\delta}}. The limits \texttt{h\ensuremath{\delta}} and \texttt{hmesh} (\(\delta_n\to0\), \(h_n\to0\)) come from \texttt{tendsto\_\allowbreak{}const\_\allowbreak{}div\_\allowbreak{}at\allowbreak{}Top\_\allowbreak{}nhds\_\allowbreak{}zero\_\allowbreak{}nat} (\(c/n\to0\)) and the index shift \texttt{tendsto\_\allowbreak{}add\_\allowbreak{}at\allowbreak{}Top\_\allowbreak{}iff\_\allowbreak{}nat 1}, which replaces \(n\) by \(n+1\). The notation \texttt{Tendsto u at\allowbreak{}Top ({\leanfallback 𝓝} a)} means \(u_n\to a\).
+
+\item \texttt{apply measure\_\allowbreak{}map\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}bounded\_\allowbreak{}test\_\allowbreak{}error\_\allowbreak{}tendsto \ensuremath{\pi} \_\allowbreak{} …} invokes the limit principle (item 5). The limit map \(Y\) is the Hamiltonian endpoint, measurable by \texttt{(hamiltonian\allowbreak{}Flow\_\allowbreak{}endpoint\_\allowbreak{}continuous f M h\allowbreak{}Lip T h\allowbreak{}T).\allowbreak{}measurable}; the approximating maps are \texttt{fun n \ensuremath{\mapsto} (verlet\allowbreak{}Step (gradient f) (T/\allowbreak{}((n+1 : \ensuremath{\mathbb N}) : \ensuremath{\mathbb R})))\textasciicircum{}[n+1]}, where \texttt{\textasciicircum{}[n+1]} denotes the \((n+1)\)-fold iterate, measurable through \texttt{verlet\allowbreak{}Step\_\allowbreak{}measure\allowbreak{}Preserving} and \texttt{.\allowbreak{}iterate}, and with pointwise convergence \texttt{verlet\_\allowbreak{}iterate\_\allowbreak{}tendsto\_\allowbreak{}hamiltonian\allowbreak{}Flow} (item 4).
+
+\item The remaining goal is the weak-error hypothesis. After \texttt{intro F h\allowbreak{}F h\allowbreak{}Fb}, the line \texttt{filter\_\allowbreak{}upwards [hmesh.\allowbreak{}eventually (eventually\_\allowbreak{}lt\_\allowbreak{}nhds …)] with n hn} restricts to those \(n\) with \(h_n<1\); \texttt{eventually\_\allowbreak{}lt\_\allowbreak{}nhds} states that points close to \(0\) are smaller than \(1\). The conclusion form \texttt{\ensuremath{\forall}ᶠ n in at\allowbreak{}Top, …} means “for all sufficiently large \(n\)”. Then \texttt{hh : 0 \ensuremath{\le} h} and \texttt{hh1 : h \ensuremath{\le} 1} record \(0\le h\le1\).
+
+\item \texttt{hs} is inequality (1): it applies \texttt{corrected\allowbreak{}Measure\_\allowbreak{}iterate\_\allowbreak{}weak\_\allowbreak{}error} (item 2) with \texttt{V = verlet\allowbreak{}Step (gradient f) h}, \texttt{R = reverse\allowbreak{}Velocity}, \texttt{a = verlet\allowbreak{}Acceptance f h} (with its measurability and the bounds \texttt{verlet\allowbreak{}Acceptance\_\allowbreak{}nonneg}, \texttt{verlet\allowbreak{}Acceptance\_\allowbreak{}le\_\allowbreak{}one}), the exact corrected invariance \texttt{corrected\allowbreak{}Verlet\_\allowbreak{}preserves\_\allowbreak{}gibbs} (item 1), \(C=1\) and \(N=n+1\).
+
+\item \texttt{hr} is item 3, \texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}integral\_\allowbreak{}le \ensuremath{\pi} f M hf h\allowbreak{}Lip henv h hh hh1}; this is where \texttt{henv} is used. \texttt{hs'} chains \texttt{hs} with \(2N\) times \texttt{hr} via \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, the nonnegativity of \(2N\) being proved by \texttt{positivity}.
+
+\item \texttt{convert hs' using 1} leaves the equality \(\delta_n=N\cdot2\cdot h^2\kappa B\), which is identity (2); \texttt{dsimp} unfolds the abbreviations and \texttt{field\_\allowbreak{}simp} clears the denominators \(n+1\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Invariance under strong convexity in finite dimension}{Invariance under strong convexity in finite dimension}}
+
+
+\textbf{Claim.} Let \(E\) be a finite-dimensional real inner product space with its Lebesgue measure \(\lambda\) (the Haar measure giving volume one to the cube spanned by an orthonormal basis). Let \(f:E\to\mathbb R\) be differentiable and \(m\)-strongly convex for some \(m>0\), that is,
+
+
+\[f(ax+by)\le af(x)+bf(y)-ab\,\frac m2\,\|x-y\|^2\qquad\text{for all }x,y\in E,\ a,b\ge0,\ a+b=1,\]
+
+
+and let \(\nabla f\) be \(M\)-Lipschitz. Then for every \(T\ge0\) the Gibbs measure \(\pi\) with density \(e^{-f(x)-\|v\|^2/2}\) relative to \(\lambda\otimes\lambda\) satisfies \(\pi\circ\Phi_T^{-1}=\pi\).
+
+
+
+
+\textbf{Proof.} Lebesgue measure on \(E\) is \(\sigma\)-finite (hence s-finite), invariant under translations and invariant under \(x\mapsto-x\), and \(E\), being finite-dimensional, is complete and separable. It therefore suffices to check the two additional assumptions of the previous step.
+
+
+
+
+\emph{Finiteness of \(\pi\).} The density factorises, \(e^{-H(v,x)}=e^{-\|v\|^2/2}e^{-f(x)}\), so by Tonelli's theorem \(\pi\) is the product of the measures \(e^{-\|v\|^2/2}\lambda(dv)\) and \(e^{-f(x)}\lambda(dx)\). The first is finite (a Gaussian integral). For the second, strong convexity and differentiability give the quadratic lower bound \(f(x)\ge f(x_0)+\langle\nabla f(x_0),x-x_0\rangle+\frac m2\|x-x_0\|^2\), so \(e^{-f}\) is dominated by a constant multiple of a Gaussian density and is integrable. Both factors being finite, \(\pi\) is finite. These facts were proved in the module on Hamiltonian moments.
+
+
+
+
+\emph{Second moment.} In the same module it is shown that \(\int\|v\|^2e^{-\|v\|^2/2}\lambda(dv)<\infty\) (a Gaussian second moment) and that \(\int\|\nabla f(x)\|^2e^{-f(x)}\lambda(dx)<\infty\). For the latter, the Lipschitz bound and the triangle inequality give \(\|\nabla f(x)\|\le M\|x\|+\|\nabla f(0)\|\), hence, by \((a+b)^2\le2a^2+2b^2\),
+\[\|\nabla f(x)\|^2\le2M^2\|x\|^2+2\|\nabla f(0)\|^2 ;\]
+the right-hand side is integrable against \(e^{-f(x)}\lambda(dx)\) because this measure is finite and has a finite second moment \(\int\|x\|^2e^{-f(x)}\lambda(dx)\), again by the Gaussian domination of \(e^{-f}\). Since each of the two summands \(\|v\|^2\) and \(\|\nabla f(x)\|^2\) depends on one coordinate only and the other factor of the product measure is finite, both summands are \(\pi\)-integrable, and so is their sum.
+
+
+
+
+The previous step now gives \(\pi\circ\Phi_T^{-1}=\pi\). \(\square\)
+
+
+
+
+The hypotheses of this claim concern the potential \(f\) only; finiteness of \(\pi\) and the second moment are derived, not assumed.
+
+\begin{leanbox}{Lean: \texttt{hamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}gibbs}}
+\leansource{\texttt{hamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}gibbs} \quad KineticLangevin/\allowbreak{}HamiltonianStationarity.lean, lines 74–83}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianFlow\_preserves\_gibbs\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{(hamiltonianGibbs\ (volume\ :\ Measure\ E)\ f).map}
+\leanline{6}{(fun\ z\ ↦\ hamiltonianFlow\ f\ M\ hLip\ T\ hT\ z\ T)\ =}
+\leanline{8}{hamiltonianGibbs\ (volume\ :\ Measure\ E)\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Flow\_\allowbreak{}preserves\_\allowbreak{}gibbs} adds the instance \texttt{[Finite\allowbreak{}Dimensional \ensuremath{\mathbb R} E]} and replaces \texttt{\ensuremath{\mu}} by \texttt{volume}, the Lebesgue measure that Mathlib attaches to a finite-dimensional inner product space. Strong convexity is \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On univ m f}, Mathlib's predicate meaning exactly the displayed inequality on the whole space \texttt{univ}, with \texttt{hm : 0<m}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{have\allowbreak{}I := hamiltonian\allowbreak{}Gibbs\_\allowbreak{}finite f m hm hf hsc} registers the finiteness of \texttt{hamiltonian\allowbreak{}Gibbs volume f} as an instance, so that the instance argument \texttt{[Is\allowbreak{}Finite\allowbreak{}Measure …]} of the previous theorem is found automatically.
+
+\item \texttt{hamiltonian\allowbreak{}Gibbs\_\allowbreak{}phase\_\allowbreak{}moment f m hm M hf hsc h\allowbreak{}Lip} is the integrability of \(\|v\|^2+\|\nabla f(x)\|^2\), the hypothesis \texttt{henv} of \texttt{hamiltonian\allowbreak{}Flow\_\allowbreak{}preserves\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}moment}, which is then applied with \texttt{volume}; the translation, reflection and s-finiteness instances of \texttt{volume} are found by instance search.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

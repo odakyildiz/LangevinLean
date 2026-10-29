@@ -9,9 +9,12 @@ from math_notation import render_prose_math
 E = html.escape
 
 
-def overview_document(sources, parsed, math):
-    from build_site import anchor, relative, shell, code, commands
-    from build_pbgso import OVERVIEW, CATALOG, proof_page, exact_header, context_text
+def overview_document(sources, parsed, math, record=None):
+    """The PBGSO landing page; ``record`` collects each statement for the PDF report."""
+    from build_site import anchor, relative, shell, code, commands, proof_diagram, lean_logic
+    from build_pbgso import OVERVIEW, CATALOG, proof_page, exact_header, context_text, load_notes, step_anchor, statement_code
+    from references import reference_notice
+    from separate_reports import argument
 
     page = OVERVIEW
 
@@ -67,6 +70,10 @@ def overview_document(sources, parsed, math):
         return '<aside class="statement-lean" aria-label="Lean formalization"><div class="pane-label">Lean formalization</div>' + ''.join(chunks) + '</aside>'
 
     def row(identifier, title, content, refs, *, source=None, new=None, assumption=None, added=False, interpretation=False):
+        if record is not None:
+            record.append(dict(id=identifier, title=title, content=content,
+                               refs=[(ref[0], ref[1]) for ref in refs],
+                               kind='assumption' if assumption else 'theorem' if (source or new) else 'setting'))
         attrs = (f' data-source-result="{source}"' if source else '')
         attrs += (f' data-new-theory="{new}"' if new else '')
         attrs += (f' data-assumption-id="{assumption}"' if assumption else '')
@@ -93,11 +100,14 @@ def overview_document(sources, parsed, math):
             '<h1>Particle-based Generalised Stochastic Optimisation</h1>'
             '<p class="subtitle">The paper’s notation and assumptions, four main proved theorems, '
             'and two new time-uniform discretisation bounds, each beside its Lean formalization.</p>'
-            '<p class="reference-notice"><strong>Source:</strong> Jiechen Jackie Zhang and O. Deniz Akyildiz, '
-            '<em>Particle-based Generalised Stochastic Optimisation</em>, local manuscript.</p></header>'
+            + reference_notice('PBGSO') + '</header>'
+            '<p class="proof-download"><a href="' + relative('docs/pdf/PBGSO/FullProof.pdf', page) + '" download>Download full proof (PDF)</a> · '
+            '<a href="' + relative('docs/latex/PBGSO/FullProof.tex', page) + '" download>Download full proof (LaTeX)</a></p>'
             '<nav class="jump-nav" aria-label="PBGSO contents"><a href="#assumptions">Assumptions</a>'
-            '<a href="#paper-theorems">Paper theorems</a><a href="#new-theory">Numerics</a>'
-            '<a href="#standalone-verification">Standalone statements</a><a href="#proof-roadmap">Proof roadmap</a></nav>'
+            '<a href="#paper-theorems">Paper theorems</a><a href="#new-theory">New bounds</a>'
+            '<a href="#verification">Check the proofs</a><a href="#proof-roadmap">Proof roadmap</a>'
+            + ('<a href="#mathematical-proof">Mathematical argument</a>' if argument('PBGSO')['parts'] else '')
+            + '<a href="#modules">Supporting proofs</a></nav>'
             '<section class="section" id="assumptions"><h2>Framework and explicit assumptions</h2>'
             '<div class="assumption-legend"><span class="source-assumption-key">Paper assumption</span>'
             '<span class="added-assumption" data-assumption-kind="added">Added assumption</span>'
@@ -280,98 +290,170 @@ def overview_document(sources, parsed, math):
          ('PBGSO/FullyUniformHigherOrder.lean','explicit_discretization_bound','Explicit full-state discretisation bound')], new='B')
     body += '</section>'
     # Verification commands are authored separately so each file can be checked directly.
-    body += ('<section class="section" id="standalone-verification"><h2>Run the standalone verification</h2>'
+    body += ('<section class="section" id="verification"><h2>Check the proofs</h2>'
              '<p>Use the repository’s pinned Lean and Mathlib versions. From the repository root, '
-             'compile the development, then run each verification entry file:</p>'
-             '<pre class="commands"><code>lake build PBGSO\n'
+             'fetch the Mathlib cache, compile the development and print the axioms of every main theorem:</p>'
+             '<pre class="commands"><code>lake exe cache get\n'
+             'lake build PBGSO\n'
+             'lake env lean PBGSO/Check.lean</code></pre>'
+             '<p><code>lake build PBGSO</code> checks every proof; the printed axioms should contain only '
+             '<code>propext</code>, <code>Classical.choice</code> and <code>Quot.sound</code>. '
+             'Readable entry files state each main result with its complete assumptions and conclusion, '
+             'and their short checked proofs apply the library theorems:</p>'
+             '<div id="standalone-verification"><pre class="commands"><code>'
              'lake env lean standalone/PBGSO/PaperTheorems.lean\n'
              'lake env lean standalone/PBGSO/NewA.lean\n'
              'lake env lean standalone/PBGSO/NewB.lean</code></pre>'
-             '<p>These entry files identify the exact formal endpoints and print their logical axioms. '
-             'Their short proofs apply the checked library theorems, and their axiom audits verify the dependencies. You can inspect the assumptions and conclusions without opening those proofs. For a single-file proof that imports '
-             'only Mathlib, generate the transitive local proof closure:</p>'
+             '<p>For a single-file proof that imports only Mathlib, generate the transitive local proof closure:</p>'
              '<pre class="commands"><code>python3 scripts/check-pbgso-standalone.py --output /tmp/pbgso-standalone --check\n'
              'lake env lean /tmp/pbgso-standalone/NewA.lean\n'
              'lake env lean /tmp/pbgso-standalone/NewB.lean</code></pre>'
              '<p>Choose a new or empty output directory. The <code>--check</code> run compiles '
              'the exported files in isolation with this project’s compiled proof modules '
-             'removed from the search path. The last two commands let you rerun an individual file.</p>'
-             '<p>The exported files contain the original proofs and assumptions, rather than an assumed '
-             'error estimate. Compilation checks the proofs; the printed axioms should contain only '
-             '<code>propext</code>, <code>Classical.choice</code> and <code>Quot.sound</code>. '
+             'removed from the search path. The exported files contain the original proofs and assumptions, '
+             'rather than an assumed error estimate. '
              '<a href="../../standalone/PBGSO/PaperTheorems.lean">Paper theorem entry file</a> · '
              '<a href="../../standalone/PBGSO/NewA.lean">New A entry file</a> · '
-             '<a href="../../standalone/PBGSO/NewB.lean">New B entry file</a>.</p>'
-             '<p>Check the complete axiom audit and the statement-to-source correspondence with:</p>'
-             '<pre class="commands"><code>lake env lean PBGSO/Check.lean\n'
-             'python3 -B scripts/verify-pbgso.py --require-complete</code></pre></section>')
+             '<a href="../../standalone/PBGSO/NewB.lean">New B entry file</a>.</p></div>'
+             '<p>Check the statement-to-source correspondence with '
+             '<code>python3 -B scripts/verify-pbgso.py --require-complete</code>.</p></section>')
+    notes = load_notes('PBGSO')
 
-    from report_citations import citation_panel
-    body += citation_panel(None, None, None, page)
-    body += '<section class="section proof-roadmap" id="proof-roadmap"><h2>Proof roadmap</h2>'
-    body += ('<p>Follow the links from the primitive model through the stochastic constructions to the final theorems. '
-             'Every node opens the corresponding complete Lean proof. '
-             f'The <a href="{relative(CATALOG,page)}#modules">full module catalog</a> and '
-             f'<a href="{relative(CATALOG,page)}#source-inventory">eight-result source ledger</a> '
-             'retain the intermediate statements and all four appendix results.</p>')
-    lanes = [
-        ('01', 'Framework and assumptions', [
-            ('PBGSO/Framework.lean','Model','Independent optimiser, observation and sampler maps'),
-            ('PBGSO/PaperTheorems.lean','TwistedJointMonotonicity','Joint metric and source A3'),
-            ('PBGSO/SmallGainSpectrum.lean','separated_source_criterion','Appendix: separate monotonicity criterion'),
-            ('PBGSO/CanonicalProjectedCriterion.lean','canonical_projected_source_criterion','Appendix: projected criterion and its integrability domain'),
-            ('PBGSO/HypocoerciveCriterion.lean','heavyBall_source_criterion','Appendix: heavy-ball hypocoercivity'),
-        ]),
-        ('02', 'Continuous-time paper theorems', [
-            ('PBGSO/RawLocalIntegral.lean','RawLocalDiffusion','Actual local Brownian integral'),
-            ('PBGSO/RawPathSolutionTransfer.lean','stationary_product_law_of_weak_frozen','Weak frozen invariance → Theorem 1'),
-            ('PBGSO/RawSamplerGrowthArbitraryLaw.lean','law_distance_decay','Linear growth → Theorem 2'),
-            ('PBGSO/NaturalFiniteWorkArbitraryLaw.lean','law_distance_decay','Constant diffusion and finite work → Theorem 2'),
-            ('PBGSO/RawConstructedParticleBounds.lean','original_finite_particle_interaction_bound','Independent references and localisation → Theorem 3'),
-            ('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_constant','Stationary comparison and interaction → Theorem 4'),
-        ]),
-        ('03', 'M-MFPO → Theorem New A', [
-            ('PBGSO/ParticleMethodLp.lean','meanForce_lipschitz','Empirical mean force: global Lipschitz bound from N1'),
-            ('PBGSO/ImplementationMetric.lean','momentum_metric','Source A3 → actual contracting particle metric'),
-            ('PBGSO/UniformIntegralMoments.lean','uniform_moment','Derived moments uniform over all time'),
-            ('PBGSO/MomentumUniformDefect.lean','obabo_affine_local_defect','Actual Gaussian OBABO local error'),
-            ('PBGSO/UniformDiscrete.lean','one_step_same_initial_uniform_norm','Small-step absorption of accumulated errors'),
-            ('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Time-uniform numerical parameter bound with explicit constants'),
-        ]),
-        ('04', 'HOL-MYPGD → Theorem New B', [
-            ('PBGSO/HigherOrderRates.lean','holCoefficient_bounds','Actual printed coefficients and remainders'),
-            ('PBGSO/ImplementationMetric.lean','higherOrder_metric','Source A3 → actual contracting particle metric'),
-            ('PBGSO/HOLRestart.lean','higherOrderRestart_contracts','Constructed exact restarts and their contraction'),
-            ('PBGSO/HOLRestartLocal.lean','higherOrderRestart_local_error','Printed Gaussian scheme: derived local error'),
-            ('PBGSO/HOLUniform.lean','higherOrder_time_uniform_of_integral','All-iteration strong discretisation bound'),
-            ('PBGSO/FullyUniformHigherOrder.lean','explicit_parameter_bound','Time-uniform numerical parameter bound with explicit constants'),
-        ]),
-    ]
-    body += '<div class="roadmap-grid">'
-    for number, title, nodes in lanes:
-        body += f'<div class="roadmap-lane"><div class="roadmap-lane-number">{number}</div><h3>{E(title)}</h3><ol>'
+    def placed(nodes):
+        result = []
         for node in nodes:
-            body += '<li>' + proof(*node) + '</li>'
-        body += '</ol></div>'
-    body += '</div><div class="roadmap-notes">'
-    body += '<h3>Appendix and scope checks</h3><ul>'
-    for node in [
-        ('PBGSO/ContinuousFlowMeasure.lean','phase_flow_measurePreserving_source','Volume lemma: continuous frictionless flow preserves measure'),
-        ('PBGSO/FlowSourceRegularity.lean','phase_flow_fderiv_det_one_source','Volume lemma: source \\(C^1\\) force and global ODE imply determinant one'),
-        ('PBGSO/Volume.lean','interwovenBAB_preserves','Volume lemma: discrete frictionless splitting preserves measure'),
-        ('PBGSO/DiscreteVolume.lean','interwovenBAB_fderiv_det_one','Volume lemma: discrete splitting has determinant one'),
-        ('PBGSO/ProjectedFiniteWork.lean','canonical_projected_source_criterion_finite','Projected criterion: finite sampler-work domain is explicit'),
-        ('PBGSO/HOLCoefficientAudit.lean','hol_linear_coefficient_not_exact','HOL scope check: printed coefficients are not the full exact linear flow'),
-        ('PBGSO/FiniteWorkScopeAudit.lean','exists_p2_nonintegrable_work','A3 scope check: a \\(\\mathcal P_2\\) law need not have finite signed work'),
-    ]:
-        body += '<li>' + proof(*node) + '</li>'
-    body += ('</ul><p>Application-specific smoothing bias and the full-space TV prior assumptions are recorded in the '
-             f'<a href="{relative(CATALOG,page)}#limitations">model and target audit</a>. '
-             'They are separate from the two numerical bounds stated here.</p></div></section></div>')
-    document = shell(page, 'PBGSO paper theorems and new discretisation bounds', render_prose_math(body, math), 'PBGSO')
+            node = dict(node)
+            node['href'] = proof_page(node['file']) + '#' + step_anchor(node['file'], node['declaration'], notes)
+            result.append(node)
+        return result
+
+    body += ('<section class="section proof-roadmap" id="proof-roadmap"><h2>Proof roadmap</h2>'
+             '<p class="section-intro">The roadmap reads from the primitive model at the top to the four paper theorems '
+             'and the two new discretisation bounds at the bottom. The left columns follow the continuous-time argument: '
+             'the joint metric of assumption A3 and the local Brownian integral give the stationary product law '
+             '(Theorem 1), its exponential contraction (Theorem 2), the particle interaction bound (Theorem 3) and the '
+             'parameter bound (Theorem 4). The right columns follow the numerical argument: the Lipschitz empirical force, '
+             'the contracting particle metrics built from A3, moments uniform in time and the local errors of the '
+             'two Gaussian schemes combine into the time-uniform bounds New A and New B. Each box opens the '
+             'mathematical statement and proof of that step beside its complete Lean code.</p>'
+             + proof_diagram(placed(ROADMAP), page, math, 'PBGSO proof roadmap')
+             + '<h3 class="roadmap-appendix">Appendix criteria, volume lemmas and scope checks</h3>'
+             '<p class="section-intro">The appendix results give sufficient conditions for assumption A3 and the '
+             'volume preservation used by the frictionless splittings; the two scope checks show that the finite '
+             'signed-work convention and the corrected HOL coefficients are needed.</p>'
+             + proof_diagram(placed(APPENDIX_ROADMAP), page, math, 'PBGSO appendix roadmap')
+             + f'<p class="small">The <a href="{relative(CATALOG,page)}#modules">full module catalog</a> and '
+             f'<a href="{relative(CATALOG,page)}#source-inventory">eight-result source ledger</a> retain every '
+             'intermediate statement. Application-specific smoothing bias and the full-space TV prior assumptions are '
+             f'recorded in the <a href="{relative(CATALOG,page)}#limitations">model and target audit</a>.</p></section>')
+    parts = argument('PBGSO')['parts']
+    if parts:
+        body += ('<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2>'
+                 '<p class="section-intro">The argument below proves the theorems in order. The adjacent panels give the '
+                 'exact Lean statements it rests on and explain how the formal proof assembles them.</p>')
+        for i, part in enumerate(parts, 1):
+            body += (f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>'
+                     f'{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair">'
+                     '<div class="math-pane">' + math(part['body']) + '</div><div class="lean-pane">')
+            if part.get('lean'):
+                body += ('<div class="lean-logic"><div class="pane-label">How the Lean proof follows this argument</div>'
+                         + math(part['lean']) + '</div>')
+            for j, reference in enumerate(part.get('references', []), 1):
+                path, name = reference['file'], reference['name']
+                body += statement_code(path, name, sources, parsed, page, f'argument-{i}-{j}')
+                body += (f'<p class="small"><a href="{relative(proof_page(path), page)}#{step_anchor(path, name, notes)}">'
+                         f'Detailed proof in {E(Path(path).name)} →</a></p>')
+            body += '</div></div></article>'
+        body += '</section>'
+    body += ('<section class="section" id="modules"><h2>Supporting proofs</h2>'
+             '<p class="section-intro">Each roadmap module has a page pairing its mathematical statements and proofs with '
+             'the complete Lean declarations. The technical catalog lists every module of the development.</p>'
+             '<div class="dependencies">'
+             + ''.join(f'<a href="{relative(proof_page(path), page)}">{E(notes[path]["title"])}</a>'
+                       for path in dict.fromkeys(node['file'] for node in ROADMAP + APPENDIX_ROADMAP) if path in notes)
+             + f'<a href="{relative(CATALOG,page)}#modules">Complete module catalog</a>'
+             f'<a href="{relative("PBGSO/exposition/source_audit.md",page)}">Source audit and formal scope</a></div></section>')
+    from report_citations import citation_panel
+    from separate_reports import report_revision
+    body += citation_panel('PBGSO', 'Particle-based Generalised Stochastic Optimisation', report_revision('PBGSO'), page)
+    body += '</div>'
+    document = shell(page, 'PBGSO paper theorems and new discretisation bounds', render_prose_math(body, math))
     document = document.replace('<body data-theme-family="modern">', '<body data-theme-family="modern" class="pbgso-page">')
     return document.replace('</head>', '<link rel="stylesheet" href="' +
                             relative('docs/assets/pbgso.css', page) + '"></head>')
+
+
+def node(identifier, row, col, file, declaration, title, detail, parents=(), final=False):
+    return dict(id=identifier, row=row, col=col, file='PBGSO/' + file + '.lean', declaration=declaration,
+                title=title, detail=detail, parents=parents, final=final)
+
+
+# Edges follow the imports between the modules; every box opens its proof page.
+ROADMAP = [
+    node('model', 0, 0, 'Framework', 'Model', 'Optimiser, observation and sampler maps',
+         r'Independent \(F,\Psi,b,\sigma\) and the mean gradient \(G_\nu\)'),
+    node('metric', 0, 1, 'PaperTheorems', 'TwistedJointMonotonicity', 'Joint metric and assumption A3',
+         'Twisted joint strong monotonicity', ('model',)),
+    node('hol-coefficients', 0, 2, 'HigherOrderRates', 'holCoefficient_bounds', 'Coefficients of the higher-order scheme',
+         'Printed coefficients and their remainders'),
+    node('integral', 1, 0, 'RawLocalIntegral', 'RawLocalDiffusion', 'The local Brownian integral',
+         'Stochastic integral of the sampler diffusion', ('metric',)),
+    node('heavy-ball', 1, 1, 'HypocoerciveCriterion', 'heavyBall_source_criterion', 'Heavy-ball hypocoercivity',
+         'A sufficient condition for A3 with momentum', ('metric',)),
+    node('force', 1, 2, 'ParticleMethodLp', 'meanForce_lipschitz', 'Lipschitz empirical mean force',
+         'Global Lipschitz bound from N1', ('hol-coefficients',)),
+    node('theorem-1', 2, 0, 'RawPathSolutionTransfer', 'stationary_product_law_of_weak_frozen',
+         'Theorem 1: stationary product law', 'Weak frozen invariance of the sampler', ('integral',)),
+    node('absorption', 2, 1, 'UniformDiscrete', 'one_step_same_initial_uniform_norm', 'Absorption of accumulated errors',
+         r'Contraction beats local error for \(h\le h_\star\)', ('metric',)),
+    node('moments', 2, 2, 'UniformIntegralMoments', 'uniform_moment', 'Moments uniform in time',
+         'Derived from the contraction, not assumed', ('force',)),
+    node('theorem-2-growth', 3, 0, 'RawSamplerGrowthArbitraryLaw', 'law_distance_decay', 'Theorem 2 under linear growth',
+         'Exponential decay of the law distance', ('theorem-1',)),
+    node('theorem-2-work', 3, 1, 'NaturalFiniteWorkArbitraryLaw', 'law_distance_decay', 'Theorem 2 for constant diffusion',
+         'Exponential decay with finite signed work', ('theorem-1',)),
+    node('theorem-3', 3, 2, 'RawConstructedParticleBounds', 'original_finite_particle_interaction_bound',
+         'Theorem 3: particle interaction bound', 'Independent reference clouds and localisation', ('integral', 'force')),
+    node('theorem-4', 4, 0, 'RawConstructedParticleParameter', 'original_parameter_bound_constant',
+         'Theorem 4: parameter bound', 'Stationary comparison plus particle interaction', ('theorem-2-growth', 'theorem-3'), True),
+    node('metric-m', 4, 1, 'ImplementationMetric', 'momentum_metric', 'Contracting metric for M-MFPO',
+         'Built from assumption A3', ('heavy-ball', 'force', 'integral')),
+    node('metric-h', 4, 2, 'ImplementationMetric', 'higherOrder_metric', 'Contracting metric for HOL-MYPGD',
+         'Built from assumption A3', ('heavy-ball', 'force')),
+    node('obabo', 5, 0, 'MomentumUniformDefect', 'obabo_affine_local_defect', 'Local error of the OBABO scheme',
+         'Gaussian splitting with explicit coefficients', ('moments',)),
+    node('restart', 5, 2, 'HOLRestart', 'higherOrderRestart_contracts', 'Exact restarts and their contraction',
+         'Restarted flows of the higher-order dynamics', ('force',)),
+    node('new-a', 6, 0, 'FullyUniformMomentum', 'explicit_parameter_bound', 'Theorem New A',
+         r'M-MFPO error \(D\sqrt h\) at every iteration', ('metric-m', 'obabo', 'absorption'), True),
+    node('hol-local', 6, 2, 'HOLRestartLocal', 'higherOrderRestart_local_error', 'Local error of the higher-order scheme',
+         'Gaussian scheme against the exact restart', ('restart', 'moments')),
+    node('hol-uniform', 7, 1, 'HOLUniform', 'higherOrder_time_uniform_of_integral', 'Error bound for all iterations',
+         'Strong discretisation error of the higher-order scheme', ('hol-local', 'absorption')),
+    node('new-b', 8, 1, 'FullyUniformHigherOrder', 'explicit_parameter_bound', 'Theorem New B',
+         r'HOL-MYPGD error \(D\sqrt h\) at every iteration', ('hol-uniform', 'metric-h'), True),
+]
+
+APPENDIX_ROADMAP = [
+    node('separated', 0, 0, 'SmallGainSpectrum', 'separated_source_criterion', 'Separate monotonicity criterion',
+         'Small-gain condition implying A3'),
+    node('projected', 0, 1, 'CanonicalProjectedCriterion', 'canonical_projected_source_criterion', 'Projected criterion',
+         'A3 for projected samplers'),
+    node('volume', 0, 2, 'Volume', 'interwovenBAB_preserves', 'Discrete splitting preserves volume',
+         'Frictionless splitting step'),
+    node('finite-domain', 1, 0, 'ProjectedFiniteWork', 'canonical_projected_source_criterion_finite',
+         'Finite sampler work', 'The integrability domain of the projected criterion', ('projected',)),
+    node('flow-determinant', 1, 1, 'FlowSourceRegularity', 'phase_flow_fderiv_det_one_source', 'Jacobian determinant one',
+         r'\(C^1\) force and global solutions', ('volume',)),
+    node('discrete-determinant', 1, 2, 'DiscreteVolume', 'interwovenBAB_fderiv_det_one', 'Determinant of the splitting step',
+         'Each substep has determinant one', ('volume',)),
+    node('flow-volume', 2, 0, 'ContinuousFlowMeasure', 'phase_flow_measurePreserving_source',
+         'Continuous flow preserves volume', 'Change of variables with determinant one', ('flow-determinant',)),
+    node('work-scope', 2, 1, 'FiniteWorkScopeAudit', 'exists_p2_nonintegrable_work', 'Signed work can be infinite',
+         r'A law in \(\mathcal P_2\) with non-integrable work'),
+    node('hol-scope', 2, 2, 'HOLCoefficientAudit', 'hol_linear_coefficient_not_exact', 'Printed coefficients are not exact',
+         'The linear flow differs from the printed scheme'),
+]
 
 
 def numerical_constants(row, eq, declarations):

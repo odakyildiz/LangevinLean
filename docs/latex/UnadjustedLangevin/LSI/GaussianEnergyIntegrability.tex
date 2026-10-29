@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,15 @@ The triangle inequality gives \(\|x+y\|\le\|x\|+\|y\|\). Square both nonnegative
 
 Expand \(\|a+b\|^2\), bound the mixed term by \(2\|a\|\|b\|\), and use \(2uv\le u^2+v^2\). This gives the factor two without requiring any relation between the vectors.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}two}}
+\leansource{\texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}two} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 28–32}
+\begin{leancode}
+\leanline{0}{private\ theorem\ norm\_add\_sq\_le\_two\ (x\ y\ :\ E)\ :}
+\leanline{4}{‖x\ +\ y‖\ \textasciicircum{}\ 2\ ≤\ 2\ *\ ‖x‖\ \textasciicircum{}\ 2\ +\ 2\ *\ ‖y‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}two}: the intermediate facts include \texttt{h}, \texttt{hs}, in source order. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Splitting the relative-score energy}{Splitting the relative-score energy}}
 
@@ -49,6 +81,23 @@ Apply the squared sum bound pointwise and integrate: \(I_t\le2G_t+2\mathbb E_{\r
 
 Split the relative score into the Lebesgue score and potential gradient. The preceding square inequality bounds its energy by twice each component energy, which are estimated by Gaussian smoothing and propagated score moments.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeScoreField\_\allowbreak{}energy\_\allowbreak{}le}}
+\leansource{\texttt{interpolationRelativeScoreField\_\allowbreak{}energy\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 36–68}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeScoreField\_energy\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ y\ ↦\ ‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2)}
+\leanline{6}{(interpolationLaw\ U\ μ\ t)\ ∧}
+\leanline{6}{(∫\ y,\ ‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t)\ ≤}
+\leanline{8}{2\ *\ (∫\ y,\ ‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t)\ +}
+\leanline{10}{(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Score\allowbreak{}Field\_\allowbreak{}energy\_\allowbreak{}le}: the intermediate facts include \texttt{hgrad}, \texttt{hs}, \texttt{heq}, \texttt{hb}, \texttt{hdiv}, in source order; the source steps apply or rewrite \texttt{gradient\_\allowbreak{}log\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density}, \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}two}, \texttt{integral\_\allowbreak{}add}, \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{hb.\allowbreak{}trans}. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -62,6 +111,22 @@ The interpolation gradient-moment estimate is \(G_t\le2(1+L^2t^2)G_0+4tdL^2\). S
 
 Insert the Gaussian Fisher bound \(d/(2t)\) and the propagated gradient estimate. The result is finite at each positive time and uniformly integrable on intervals bounded away from zero.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeScoreField\_\allowbreak{}energy\_\allowbreak{}bound}}
+\leansource{\texttt{interpolationRelativeScoreField\_\allowbreak{}energy\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 72–83}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeScoreField\_energy\_bound}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{(∫\ y,\ ‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t)\ ≤}
+\leanline{6}{4\ *\ (1\ +\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ t\ \textasciicircum{}\ 2)\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{8}{8\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ +}
+\leanline{8}{(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Score\allowbreak{}Field\_\allowbreak{}energy\_\allowbreak{}bound}: the intermediate fact is \texttt{h}, in source order. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -75,6 +140,23 @@ The explicitly constructed relative density satisfies \(r_t\nu=\rho_t\). The wei
 
 Changing from the proposed law to its density multiplies the score square by \(p_t\), or by \(r_t\) under Gibbs. These are equivalent representations of the same finite energy.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeScoreField\_\allowbreak{}weighted\_\allowbreak{}energy}}
+\leansource{\texttt{interpolationRelativeScoreField\_\allowbreak{}weighted\_\allowbreak{}energy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 87–108}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeScoreField\_weighted\_energy}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ y\ ↦\ interpolationRelativeDensity\ U\ μ\ t\ y\ *}
+\leanline{6}{‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2)\ (ULA.gibbsMeasure\ U)\ ∧}
+\leanline{6}{(∫\ y,\ interpolationRelativeDensity\ U\ μ\ t\ y\ *}
+\leanline{8}{‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ U)\ =}
+\leanline{8}{∫\ y,\ ‖interpolationRelativeScoreField\ U\ μ\ t\ y‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Score\allowbreak{}Field\_\allowbreak{}weighted\_\allowbreak{}energy}: the intermediate facts include \texttt{hrm}, \texttt{hr}, \texttt{hi}, \texttt{hh}, in source order; the source steps apply or rewrite \texttt{tilted\allowbreak{}Measure\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -92,6 +174,21 @@ Since \(0<a\le t\le b\), the quantitative estimate is bounded uniformly by \(4(1
 
 The explicit time bound is a sum of powers of time and \(1/t\). On a positive compact interval each is integrable, proving spacetime square integrability of the measurable relative-score field.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}interpolationRelativeScoreField\_\allowbreak{}energy\_\allowbreak{}spacetime}}
+\leansource{\texttt{integrable\_\allowbreak{}interpolationRelativeScoreField\_\allowbreak{}energy\_\allowbreak{}spacetime} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 112–149}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_interpolationRelativeScoreField\_energy\_spacetime}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (a\ b\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ ℝ\ ×\ E\ ↦\ interpolationRelativeDensity\ U\ μ\ p.1\ p.2\ *}
+\leanline{6}{‖interpolationRelativeScoreField\ U\ μ\ p.1\ p.2‖\ \textasciicircum{}\ 2)}
+\leanline{6}{((volume.restrict\ (Icc\ a\ b)).prod\ (ULA.gibbsMeasure\ U))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Score\allowbreak{}Field\_\allowbreak{}energy\_\allowbreak{}spacetime}: the intermediate facts include \texttt{G}, \texttt{C}, \texttt{h\allowbreak{}G0}, \texttt{hbpos}, \texttt{henergy}, in source order; the source steps apply or rewrite \texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}joint\_\allowbreak{}measurable}, \texttt{strongly\allowbreak{}Measurable.\allowbreak{}mul}, \texttt{henergy.\allowbreak{}trans}, \texttt{ht.\allowbreak{}1}, \texttt{ht.\allowbreak{}2}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -105,6 +202,15 @@ For the fixed independent pair \((X,Z)\sim\mu\otimes\mathcal N(0,I)\), define \(
 
 The discrepancy is evaluated at the independent-noise proposal and its initial state. Its measurability follows from the continuous gradient and update map, fixing one field for subsequent pair integrals.
 
+\begin{leanbox}{Lean: \texttt{frozenGradientErrorField}}
+\leansource{\texttt{frozenGradientErrorField} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 152–153}
+\begin{leancode}
+\leanline{0}{def\ frozenGradientErrorField\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (p\ :\ E\ ×\ E)\ :\ E\ :=}
+\leanline{2}{gradient\ U\ (ULA.malaProposal\ U\ t\ p.1\ p.2)\ -\ gradient\ U\ p.1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gradient\allowbreak{}Error\allowbreak{}Field} is a definition with defining expression \texttt{gradient U (ULA.\allowbreak{}mala\allowbreak{}Proposal U t p.\allowbreak{}1 p.\allowbreak{}2) -\allowbreak{} gradient U p.\allowbreak{}1}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}.
@@ -118,6 +224,19 @@ The proposal and Lipschitz gradient make \((t,X,Z)\mapsto\|e_t(X,Z)\|^2\) jointl
 
 The pointwise gradient Lipschitz estimate bounds its square by \(L^2\) times displacement square. The exact displacement formula is polynomial in time with finite coefficients, giving an integrable spacetime energy.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}frozenGradientErrorField\_\allowbreak{}energy\_\allowbreak{}spacetime}}
+\leansource{\texttt{integrable\_\allowbreak{}frozenGradientErrorField\_\allowbreak{}energy\_\allowbreak{}spacetime} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 157–192}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_frozenGradientErrorField\_energy\_spacetime}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (a\ b\ :\ ℝ)\ (ha\ :\ 0\ ≤\ a)\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ ℝ\ ×\ (E\ ×\ E)\ ↦\ ‖frozenGradientErrorField\ U\ p.1\ p.2‖\ \textasciicircum{}\ 2)}
+\leanline{6}{((volume.restrict\ (Icc\ a\ b)).prod\ (μ.prod\ (stdGaussian\ E)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gradient\allowbreak{}Error\allowbreak{}Field\_\allowbreak{}energy\_\allowbreak{}spacetime}: the intermediate facts include \texttt{C}, \texttt{hg}, \texttt{hm}, \texttt{ht0}, \texttt{h\allowbreak{}G0}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}prod\_\allowbreak{}iff}, \texttt{hm.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{integral\_\allowbreak{}nonneg}, \texttt{h.\allowbreak{}trans}, \texttt{ht.\allowbreak{}2}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}.
@@ -131,6 +250,23 @@ Map the independent initial/\allowbreak{}noise pair by \(T_t(x,z)=(x,x-t\nabla U
 
 The pair-law change of variables transports the discrepancy energy from independent noise to the Gaussian starting-observation pair. Because the integrand is nonnegative, the identity can be established before signed Fubini is needed.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianPair\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy}}
+\leansource{\texttt{frozenGaussianPair\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 197–217}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianPair\_gradient\_error\_energy}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{let\ P\ :=\ (μ.prod\ (stdGaussian\ E)).map}
+\leanline{6}{(fun\ z\ :\ E\ ×\ E\ ↦\ (z.1,\ ULA.malaProposal\ U\ t\ z.1\ z.2))}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ ‖gradient\ U\ z.2\ -\ gradient\ U\ z.1‖\ \textasciicircum{}\ 2)\ P\ ∧}
+\leanline{6}{(∫\ z\ :\ E\ ×\ E,\ ‖gradient\ U\ z.2\ -\ gradient\ U\ z.1‖\ \textasciicircum{}\ 2\ ∂P)\ ≤}
+\leanline{8}{(L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ (t\ \textasciicircum{}\ 2\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{10}{2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Pair\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy}: the intermediate facts include \texttt{h\allowbreak{}Y}, \texttt{h\allowbreak{}T}, \texttt{hg}, \texttt{h\allowbreak{}F}, \texttt{herror}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}map\_\allowbreak{}measure}, \texttt{h\allowbreak{}F.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{herror.\allowbreak{}1}, \texttt{integral\_\allowbreak{}map\_\allowbreak{}of\_\allowbreak{}strongly\allowbreak{}Measurable}, \texttt{herror.\allowbreak{}2}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}.
@@ -148,13 +284,32 @@ Rewrite the pair-law energy theorem using this exact density identity. The weigh
 
 Rewriting the pair measure using its conditional Gaussian density gives the kernel-weighted energy. Thus the same sharp bound is available in the weak PDE's Lebesgue integral representation.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianKernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy}}
+\leansource{\texttt{frozenGaussianKernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 222–263}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianKernel\_gradient\_error\_energy}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ realGaussianKernel\ (1\ /\ (4\ *\ t))}
+\leanline{6}{(z.1\ -\ t\ •\ gradient\ U\ z.1)\ z.2\ *\ ‖gradient\ U\ z.2\ -\ gradient\ U\ z.1‖\ \textasciicircum{}\ 2)}
+\leanline{6}{(μ.prod\ volume)\ ∧}
+\leanline{6}{(∫\ z\ :\ E\ ×\ E,\ realGaussianKernel\ (1\ /\ (4\ *\ t))}
+\leanline{8}{(z.1\ -\ t\ •\ gradient\ U\ z.1)\ z.2\ *\ ‖gradient\ U\ z.2\ -\ gradient\ U\ z.1‖\ \textasciicircum{}\ 2}
+\leanline{10}{∂μ.prod\ volume)\ ≤}
+\leanline{8}{(L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ (t\ \textasciicircum{}\ 2\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{10}{2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\_\allowbreak{}displacement\_\allowbreak{}second\_\allowbreak{}moment} expands the squared displacement of the product-space Gaussian update. The mixed expectation vanishes using independence and centering; the standard Gaussian second moment supplies the dimensional term. \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy} transports that calculation to the kernel input-output measure, then applies the Lipschitz gradient bound to the squared gradient difference. The relevant integrability lemmas precede the signed integral expansion. The formulas retain the initial gradient moment and do not introduce a position moment.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.13]{LangevinLean2026ULASC}; \cite[Section~3.37.4]{LangevinLean2026ULASC}; \cite[Section~3.38.1]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

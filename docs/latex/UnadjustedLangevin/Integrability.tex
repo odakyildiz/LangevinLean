@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -40,6 +63,19 @@ The difference \(A-V\) belongs to \(L^p\). Almost everywhere equality then trans
 
 The comparison of norms supplies finite \(p\)-moment size, while almost-everywhere strong measurability supplies the measurability part of membership. Combining both is necessary: a numerical upper bound alone would not define a valid Bochner-integrable random variable. The equality \(E=A-V\) then transfers membership through the algebra of \(L^p\).
 
+\begin{leanbox}{Lean: \texttt{synchronous\_\allowbreak{}memLp}}
+\leansource{\texttt{synchronous\_\allowbreak{}memLp} \quad UnadjustedLangevin/\allowbreak{}Integrability.lean, lines 25–32}
+\begin{leancode}
+\leanline{0}{theorem\ synchronous\_memLp\ (P\ :\ Measure\ Ω)\ (D\ A\ V\ E\ :\ Ω\ →\ H)}
+\leanline{4}{(p\ :\ ℝ≥0∞)\ (q\ :\ ℝ)}
+\leanline{4}{(hA\ :\ AEStronglyMeasurable\ A\ P)}
+\leanline{4}{(hidentity\ :\ E\ =ᵐ[P]\ (fun\ ω\ ↦\ A\ ω\ -\ V\ ω))}
+\leanline{4}{(hcontract\ :\ ∀ᵐ\ ω\ ∂P,\ ‖A\ ω‖\ ≤\ q\ *\ ‖D\ ω‖)}
+\leanline{4}{(hD\ :\ MemLp\ D\ p\ P)\ (hV\ :\ MemLp\ V\ p\ P)\ :\ MemLp\ E\ p\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{synchronous\_\allowbreak{}mem\allowbreak{}Lp}: the intermediate fact is \texttt{h\allowbreak{}Amem}, in source order; the source steps apply or rewrite \texttt{Mem\allowbreak{}Lp.\allowbreak{}ae\_\allowbreak{}eq}, \texttt{hidentity.\allowbreak{}symm}, \texttt{h\allowbreak{}Amem.\allowbreak{}sub}.
+\end{leanbox}
 
 \section{\texorpdfstring{All coupling errors have finite second moment}{All coupling errors have finite second moment}}
 
@@ -82,5 +118,27 @@ Apply the finite-moment lemma to the induction hypothesis and \(V_n\in L^2\), pr
 
 At step \(n\), the shared-noise update difference is dominated by \(q\|X_n-Y_n\|\). The assumed defect has a finite second moment, so their difference does as well. Induction repeats this argument for every finite index. The proof establishes moments even in regimes with \(q\ge1\); the strict upper bound on \(q\) is used only later for decay.
 
+\begin{leanbox}{Lean: \texttt{ulaChain\_\allowbreak{}error\_\allowbreak{}memLp}}
+\leansource{\texttt{ulaChain\_\allowbreak{}error\_\allowbreak{}memLp} \quad UnadjustedLangevin/\allowbreak{}Integrability.lean, lines 37–77}
+\begin{leancode}
+\leanline{0}{theorem\ ulaChain\_error\_memLp}
+\leanline{4}{\{d\ :\ ℕ\}\ (P\ :\ Measure\ Ω)\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ q\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Ω\ →\ E\ d)\ (noise\ :\ ℕ\ →\ Ω\ →\ E\ d)}
+\leanline{4}{(Y\ V\ :\ ℕ\ →\ Ω\ →\ E\ d)}
+\leanline{4}{(hinitial\ :\ Measurable\ initial)\ (hnoise\ :\ ∀\ n,\ Measurable\ (noise\ n))}
+\leanline{4}{(hY\ :\ ∀\ n,\ Measurable\ (Y\ n))}
+\leanline{4}{(hreference\ :\ ∀\ n,\ ∀ᵐ\ ω\ ∂P,}
+\leanline{6}{Y\ (n\ +\ 1)\ ω\ =\ ulaUpdate\ U\ h\ (Y\ n\ ω)\ (noise\ n\ ω)\ +\ V\ n\ ω)}
+\leanline{4}{(hcontract\ :\ ∀\ x\ y\ z,}
+\leanline{6}{‖ulaUpdate\ U\ h\ x\ z\ -\ ulaUpdate\ U\ h\ y\ z‖\ ≤\ (q\ :\ ℝ)\ *\ ‖x\ -\ y‖)}
+\leanline{4}{(hfinite0\ :\ MemLp\ (fun\ ω\ ↦\ initial\ ω\ -\ Y\ 0\ ω)\ 2\ P)}
+\leanline{4}{(hVfinite\ :\ ∀\ n,\ MemLp\ (V\ n)\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{MemLp}
+\leanline{6}{(fun\ ω\ ↦\ ulaChain\ U\ h\ (initial\ ω)\ (fun\ k\ ↦\ noise\ k\ ω)\ n\ -\ Y\ n\ ω)\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Chain\_\allowbreak{}error\_\allowbreak{}mem\allowbreak{}Lp}: the argument uses \texttt{induction n with}; the intermediate facts include \texttt{X}, \texttt{h\allowbreak{}X}, \texttt{A}, \texttt{hi}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{hm.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{synchronous\_\allowbreak{}mem\allowbreak{}Lp}.
+\end{leanbox}
 
 \end{document}

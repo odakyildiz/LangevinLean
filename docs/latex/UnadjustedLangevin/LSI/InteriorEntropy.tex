@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,19 @@ The mean-value theorem implies that \(F\) is nonincreasing on the closed interva
 
 The cancellation \(a(b/a)=b\) uses \(a\ne0\). No derivative is required at zero or at \(T\).
 
+\begin{leanbox}{Lean: \texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}deriv\_\allowbreak{}le\_\allowbreak{}interior}}
+\leansource{\texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}deriv\_\allowbreak{}le\_\allowbreak{}interior} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InteriorEntropy.lean, lines 23–65}
+\begin{leancode}
+\leanline{0}{theorem\ affine\_decay\_of\_deriv\_le\_interior\ (H\ H'\ :\ ℝ\ →\ ℝ)\ (a\ b\ T\ :\ ℝ)}
+\leanline{4}{(ha\ :\ 0\ <\ a)\ (hcont\ :\ ContinuousOn\ H\ (Icc\ 0\ T))}
+\leanline{4}{(hderiv\ :\ ∀\ t\ ∈\ Ioo\ 0\ T,\ HasDerivAt\ H\ (H'\ t)\ t)}
+\leanline{4}{(hbound\ :\ ∀\ t\ ∈\ Ioo\ 0\ T,\ H'\ t\ ≤\ -a\ *\ H\ t\ +\ b)\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{6}{H\ t\ ≤\ Real.exp\ (-a\ *\ t)\ *\ H\ 0\ +\ b\ /\ a\ *\ (1\ -\ Real.exp\ (-a\ *\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}deriv\_\allowbreak{}le\_\allowbreak{}interior}: the intermediate facts include \texttt{F}, \texttt{h\allowbreak{}Fcont}, \texttt{h\allowbreak{}Fderiv}, \texttt{hexp}, \texttt{hm}, in source order; the source steps apply or rewrite \texttt{he.\allowbreak{}mul}, \texttt{sub\_\allowbreak{}const}, \texttt{mul\_\allowbreak{}zero}, \texttt{one\_\allowbreak{}mul}, \texttt{mul\_\allowbreak{}assoc}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The entropy derivative at an interior time}{The entropy derivative at an interior time}}
 
@@ -42,5 +78,21 @@ Fix \(0<t<T\). Suppose the relative densities are positive, \(C^1\), normalized 
 
 The assumptions concern interior times only. Continuity or a one-sided bound at zero must still be proved before applying an estimate that involves the initial entropy.
 
+\begin{leanbox}{Lean: \texttt{densityEntropy\_\allowbreak{}hasDerivAt\_\allowbreak{}of\_\allowbreak{}regular\_\allowbreak{}interior}}
+\leansource{\texttt{densityEntropy\_\allowbreak{}hasDerivAt\_\allowbreak{}of\_\allowbreak{}regular\_\allowbreak{}interior} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InteriorEntropy.lean, lines 74–88}
+\begin{leancode}
+\leanline{0}{theorem\ densityEntropy\_hasDerivAt\_of\_regular\_interior}
+\leanline{4}{(ν\ :\ Measure\ E)\ [IsProbabilityMeasure\ ν]\ (r\ rdot\ :\ ℝ\ →\ E\ →\ ℝ)\ (T\ t\ :\ ℝ)}
+\leanline{4}{(ht\ :\ t\ ∈\ Ioo\ 0\ T)}
+\leanline{4}{(data\ :\ ∀\ u\ ∈\ Ioo\ 0\ T,\ LocalEntropyRegularity\ ν\ r\ rdot\ u)}
+\leanline{4}{(hpos\ :\ ∀\ u\ ∈\ Ioo\ 0\ T,\ ∀\ x,\ 0\ <\ r\ u\ x)}
+\leanline{4}{(hsmooth\ :\ ∀\ u\ ∈\ Ioo\ 0\ T,\ ContDiff\ ℝ\ 1\ (r\ u))}
+\leanline{4}{(hprob\ :\ ∀\ u\ ∈\ Ioo\ 0\ T,\ IsProbabilityMeasure\ (tiltedMeasure\ ν\ (r\ u)))\ :}
+\leanline{4}{HasDerivAt\ (fun\ u\ ↦\ densityEntropy\ ν\ (r\ u))}
+\leanline{6}{(∫\ x,\ rdot\ t\ x\ *\ (Real.log\ (r\ t\ x)\ +\ 1)\ ∂ν)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{density\allowbreak{}Entropy\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}of\_\allowbreak{}regular\_\allowbreak{}interior}: the intermediate fact is \texttt{hnear}, in source order; the source steps apply or rewrite \texttt{density\allowbreak{}Entropy\_\allowbreak{}eq\_\allowbreak{}integral}, \texttt{continuous.\allowbreak{}measurable}, \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}entropy.\allowbreak{}2.\allowbreak{}congr\_\allowbreak{}of\_\allowbreak{}eventually\allowbreak{}Eq}.
+\end{leanbox}
 
 \end{document}

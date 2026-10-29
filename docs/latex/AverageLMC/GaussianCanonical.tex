@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -30,13 +53,32 @@ Let \(\gamma\) be any finite-cost coupling of \(\nu\) and \(\pi\), with \(C_\gam
 
 Extend the initial coupling by the explicit canonical product Brownian probability space. Its initial algorithm state \(X\) has law \(\mu\) and its reference state \(Z\) has the true Gibbs law. The Lipschitz drift constructs a continuous \(L^{2}\) Langevin integral solution; stationarity follows from the already proved Gibbs-stationarity theorem. Independent scalar Brownian paths provide independent standard Gaussian innovations at every positive time. The algorithm center \(A=X-h\nabla f(X)\) is a measurable function of the initial state, so it remains independent of those innovations. The endpoint \(A+B(h)\) has exactly the ordinary Gaussian LMC transition law. Local coordinate smoothing at \(A\) gives the affine potential bound needed by the Gaussian energy theorem. Integrated strong convexity controls \(\|A-Z\|^{2}\), and integrated deterministic descent controls \(\mathbb E f(A)-\mathbb E f(X)\). These potential terms cancel. Identifying the lifted gradient norm with the score moment under \(\mu\) leaves precisely \((1-mh)\) times the initial coupling cost squared, \((M_{\mathrm{av}}+m)h^{2}d\), and \(h^2(hL-1)\) times the score second moment. Output transport finiteness follows from the constructed \(L^{2}\) coupling before any real-valued distance is used.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}coupling\_\allowbreak{}step}}
+\leansource{\texttt{lmc\_\allowbreak{}coupling\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}GaussianCanonical.lean, lines 19–195}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_coupling\_step\ (f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ Mav\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(hsm\ :\ ∀\ x\ s,\ 0\ ≤\ s\ →\ (∫\ z,\ f\ (x\ +\ Real.sqrt\ (2\ *\ s)\ •\ z)\ -\ f\ x}
+\leanline{6}{∂stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ ≤\ Mav\ *\ (Fintype.card\ ι\ :\ ℝ)\ *\ s)}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(c\ :\ Coupling\ μ\ (gibbsMeasure\ f))\ (hc\ :\ couplingCost\ c.joint\ ≠\ ⊤)\ :}
+\leanline{4}{wasserstein2\ (ulaLawStep\ f\ h\ μ)\ (gibbsMeasure\ f)\ ≠\ ⊤\ ∧}
+\leanline{4}{(1\ +\ m\ *\ h)\ *\ wasserstein2Real\ (ulaLawStep\ f\ h\ μ)\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ *\ (couplingCost\ c.joint).toReal\ \textasciicircum{}\ 2\ +}
+\leanline{6}{(Mav\ +\ m)\ *\ h\ \textasciicircum{}\ 2\ *\ (Fintype.card\ ι\ :\ ℝ)\ +}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ (h\ *\ (L\ :\ ℝ)\ -\ 1)\ *\ (∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lmc\_\allowbreak{}coupling\_\allowbreak{}step} gives the formal counterpart of this step. The main intermediate facts are \texttt{Q}, \texttt{P}, \texttt{h\ensuremath{\pi}}, \texttt{X}, \texttt{Z}, \texttt{W} in that order. Named proof applications include \texttt{lp\allowbreak{}Ula\allowbreak{}Update\_\allowbreak{}coe}, \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{h\allowbreak{}Ye}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
-Earlier results used here: \cite[Section~3.13.12]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.13.9]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.17]{LangevinLean2026ULASC}; \cite[Section~3.22.18]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.20]{LangevinLean2026ULASC}; \cite[Section~3.22.21]{LangevinLean2026ULASC}; \cite[Section~3.22.22]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.22.7]{LangevinLean2026ULASC}; \cite[Section~3.22.8]{LangevinLean2026ULASC}; \cite[Section~3.23.1]{LangevinLean2026ULASC}; \cite[Section~3.23.2]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.2]{LangevinLean2026ULASC}; \cite[Section~3.25.6]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.29.8]{LangevinLean2026ULASC}; \cite[Section~3.32.12]{LangevinLean2026ULASC}; \cite[Section~3.32.13]{LangevinLean2026ULASC}; \cite[Section~3.32.15]{LangevinLean2026ULASC}; \cite[Section~3.32.16]{LangevinLean2026ULASC}; \cite[Section~3.32.17]{LangevinLean2026ULASC}; \cite[Section~3.32.19]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.42.6]{LangevinLean2026ULASC}; \cite[Section~3.42.7]{LangevinLean2026ULASC}; \cite[Section~3.8.11]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.18]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.8.21]{LangevinLean2026ULASC}.
+Earlier results used here: \cite[Section~3.13.12]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.13.9]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.17]{LangevinLean2026ULASC}; \cite[Section~3.22.18]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.20]{LangevinLean2026ULASC}; \cite[Section~3.22.21]{LangevinLean2026ULASC}; \cite[Section~3.22.22]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.22.7]{LangevinLean2026ULASC}; \cite[Section~3.22.8]{LangevinLean2026ULASC}; \cite[Section~3.23.1]{LangevinLean2026ULASC}; \cite[Section~3.23.2]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.2]{LangevinLean2026ULASC}; \cite[Section~3.25.6]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.29.8]{LangevinLean2026ULASC}; \cite[Section~3.32.12]{LangevinLean2026ULASC}; \cite[Section~3.32.13]{LangevinLean2026ULASC}; \cite[Section~3.32.15]{LangevinLean2026ULASC}; \cite[Section~3.32.16]{LangevinLean2026ULASC}; \cite[Section~3.32.17]{LangevinLean2026ULASC}; \cite[Section~3.32.19]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.42.6]{LangevinLean2026ULASC}; \cite[Section~3.42.7]{LangevinLean2026ULASC}; \cite[Section~3.8.11]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.8.21]{LangevinLean2026ULASC}; \cite[Section~3.8.22]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

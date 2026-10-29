@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,26 @@ The continuous linear map \(D_a(v,x)=(av,x)\) changes velocity alone. Expanding 
 
 Write the inverse mass as \(c^2\) with \(c>0\). Velocity is divided by \(c\) and the time argument by \(c\), while position is unchanged. The two factors cancel the original force coefficient and normalize the position derivative to the new velocity.
 
+\begin{leanbox}{Lean: \texttt{massPhaseMap}, \texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}drift\_\allowbreak{}identity}}
+\leansource{\texttt{massPhaseMap} \quad KineticLangevin/\allowbreak{}MassScaling.lean, lines 11–12}
+\begin{leancode}
+\leanline{0}{def\ massPhaseMap\ (c\ :\ ℝ)\ :\ (E×E)\ →L[ℝ]\ (E×E)\ :=}
+\leanline{2}{(c\ •\ ContinuousLinearMap.fst\ ℝ\ E\ E).prod\ (ContinuousLinearMap.snd\ ℝ\ E\ E)}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}drift\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}MassScaling.lean, lines 15–25}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_mass\_drift\_identity\ (g\ :\ E→E)\ (c\ γ\ :\ ℝ)\ (hc\ :\ c≠0)\ (z\ :\ E×E)\ :}
+\leanline{4}{c⁻¹\ •\ massPhaseMap\ c⁻¹\ (kineticNegativeDrift\ g\ γ\ (c\textasciicircum{}2)\ z)\ =}
+\leanline{6}{kineticNegativeDrift\ g\ (γ/c)\ 1\ (massPhaseMap\ c⁻¹\ z)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mass\allowbreak{}Phase\allowbreak{}Map} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}drift\_\allowbreak{}identity} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{h\ensuremath{\gamma}} in that order. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Transform the integral and its Brownian amplitude}{Transform the integral and its Brownian amplitude}}
 
@@ -42,5 +85,30 @@ Apply the bounded linear map to the solution identity at \(t/c\), pass it throug
 
 The Brownian amplitude must be changed along with the deterministic drift. Brownian scaling supplies a factor \(\sqrt c\) for the new clock, and the velocity normalization supplies \(1/c\). Their product gives exactly the normalized friction’s fluctuation–dissipation coefficient.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}integral}, \texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}noise\_\allowbreak{}amplitude}}
+\leansource{\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}integral} \quad KineticLangevin/\allowbreak{}MassScaling.lean, lines 28–54}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_mass\_integral\ (g\ :\ E→E)\ (hg\ :\ Continuous\ g)\ (c\ γ\ T\ :\ ℝ)\ (hc\ :\ 0<c)}
+\leanline{4}{(initial\ :\ E×E)\ (B\ :\ ℝ→E)\ (Y\ :\ ℝ→E×E)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(heY\ :\ ∀\ s\ ∈\ Icc\ 0\ (T/c),Y\ s-initial\ =}
+\leanline{6}{-(∫\ r\ in\ 0..s,kineticNegativeDrift\ g\ γ\ (c\textasciicircum{}2)\ (Y\ r))+(B\ s,0))\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{6}{massPhaseMap\ c⁻¹\ (Y\ (t/c))-massPhaseMap\ c⁻¹\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,kineticNegativeDrift\ g\ (γ/c)\ 1\ (massPhaseMap\ c⁻¹\ (Y\ (s/c))))+}
+\leanline{10}{(c⁻¹\ •\ B\ (t/c),0)}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}noise\_\allowbreak{}amplitude} \quad KineticLangevin/\allowbreak{}MassScaling.lean, lines 57–62}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_mass\_noise\_amplitude\ (c\ γ\ :\ ℝ)\ (hc\ :\ 0<c)\ (hγ\ :\ 0≤γ)\ :}
+\leanline{4}{c⁻¹*Real.sqrt\ (2*γ*c\textasciicircum{}2)=Real.sqrt\ (2*(γ/c))*Real.sqrt\ c}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}integral} gives the formal counterpart of this step. The main intermediate facts are \texttt{D}, \texttt{F}, \texttt{h\allowbreak{}F}, \texttt{h\allowbreak{}Int}, \texttt{he} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}, \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}noise\_\allowbreak{}amplitude} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,56 @@ In coordinates \(\mathrm{Coordinates}(n)=\mathbb R^n\), assume continuity, stric
 
 The coefficient \(a>0\) gives integrable Gaussian decay on \(\mathbb R^n\). Since the dominated function is positive, the bound also proves absolute integrability. These conclusions include the one-point space in dimension zero and permit the positive scalar factors introduced by convexity inequalities.
 
+\begin{leanbox}{Lean: \texttt{Coordinates}, \texttt{GaussianWeight}, \texttt{integrable} and 2 more}
+\leansource{\texttt{Coordinates} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 21–21}
+\begin{leancode}
+\leanline{0}{abbrev\ Coordinates\ (n\ :\ ℕ)\ :=\ Fin\ n\ →\ ℝ}
+\end{leancode}
+\leansource{\texttt{GaussianWeight} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 24–30}
+\begin{leancode}
+\leanline{0}{structure\ GaussianWeight\ (n\ :\ ℕ)\ (f\ :\ Coordinates\ n\ →\ ℝ)\ :\ Prop\ where}
+\leanline{2}{continuous\ :\ Continuous\ f}
+\leanline{2}{positive\ :\ ∀\ x,\ 0\ <\ f\ x}
+\leanline{2}{gaussian\_bound\ :\ ∃\ C\ a\ :\ ℝ,\ 0\ <\ C\ ∧\ 0\ <\ a\ ∧}
+\leanline{4}{∀\ x,\ f\ x\ ≤\ C\ *\ Real.exp\ (-a\ *\ ∑\ i,\ (x\ i)\ \textasciicircum{}\ 2)}
+\leanline{0}{\strut}
+\leanline{0}{namespace\ GaussianWeight}
+\end{leancode}
+\leansource{\texttt{integrable} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 34–43}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\ :\ Integrable\ f\ volume}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}pos} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 45–46}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_pos\ :\ 0\ <\ ∫\ x,\ f\ x\ ∂volume}
+\end{leancode}
+\leansource{\texttt{const\_\allowbreak{}mul} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 48–53}
+\begin{leancode}
+\leanline{0}{theorem\ const\_mul\ (c\ :\ ℝ)\ (hc\ :\ 0\ <\ c)\ :\ GaussianWeight\ n\ (fun\ x\ ↦\ c\ *\ f\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: GaussianWeight : The class of positive continuous weights with a Gaussian upper bound.
 
+
+
+\texttt{Coordinates} is a definitional abbreviation with defining expression \texttt{Fin n \ensuremath{\to} \ensuremath{\mathbb R}}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{Gaussian\allowbreak{}Weight} packages the objects and hypotheses in the displayed statement. Its named fields are \texttt{continuous}, \texttt{positive}, \texttt{gaussian\_\allowbreak{}bound}. Supplying this structure means supplying each field, with the types shown in the exact statement.
+
+
+
+\texttt{integrable}: the intermediate facts include \texttt{hi}, \texttt{hig}, in source order; the source steps apply or rewrite \texttt{Function.\allowbreak{}comp\_\allowbreak{}apply}, \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}pos}, \texttt{hf.\allowbreak{}positive}.
+
+
+
+\texttt{integral\_\allowbreak{}pos}: the proof is the application \texttt{integral\_\allowbreak{}positive hf.\allowbreak{}positive hf.\allowbreak{}integrable}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{const\_\allowbreak{}mul}: the source steps apply or rewrite \texttt{continuous\_\allowbreak{}const.\allowbreak{}mul}, \texttt{hf.\allowbreak{}continuous}, \texttt{mul\_\allowbreak{}assoc}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{hc.\allowbreak{}le}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.4]{LangevinLean2026ULASC}.
@@ -49,9 +121,55 @@ In \(\mathbb R^{n+1}\), write the inserted point as \(\operatorname{cons}(z,x)\)
 
 The same majorant applies to every value of the remaining coordinates. Each positive slice has positive finite integral. Thus the marginal is positive, finite, and continuous, as required for the lower-dimensional argument.
 
+\begin{leanbox}{Lean: \texttt{continuous\_\allowbreak{}cons}, \texttt{firstMarginal}, \texttt{slice\_\allowbreak{}integrable} and 1 more}
+\leansource{\texttt{continuous\_\allowbreak{}cons} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 58–65}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_cons\ \{n\ :\ ℕ\}\ :}
+\leanline{4}{Continuous\ (fun\ p\ :\ ℝ\ ×\ Coordinates\ n\ ↦\ (Fin.cons\ p.1\ p.2\ :\ Coordinates\ (n\ +\ 1)))}
+\end{leancode}
+\leansource{\texttt{firstMarginal} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 68–71}
+\begin{leancode}
+\leanline{0}{def\ firstMarginal\ \{n\ :\ ℕ\}\ (f\ :\ Coordinates\ (n\ +\ 1)\ →\ ℝ)\ (x\ :\ Coordinates\ n)\ :\ ℝ\ :=}
+\leanline{2}{∫\ z\ :\ ℝ,\ f\ (Fin.cons\ z\ x)\ ∂volume}
+\leanline{0}{\strut}
+\leanline{0}{namespace\ GaussianWeight}
+\end{leancode}
+\leansource{\texttt{slice\_\allowbreak{}integrable} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 75–93}
+\begin{leancode}
+\leanline{0}{theorem\ slice\_integrable\ (x\ :\ Coordinates\ n)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ ℝ\ ↦\ f\ (Fin.cons\ z\ x))\ volume}
+\end{leancode}
+\leansource{\texttt{firstMarginal\_\allowbreak{}continuous} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 95–114}
+\begin{leancode}
+\leanline{0}{theorem\ firstMarginal\_continuous\ :\ Continuous\ (firstMarginal\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The last inequality drops a nonnegative sum of squares, so the majorant is independent of \(x\). It is integrable in \(z\) by the one-dimensional Gaussian integral theorem. The declaration \texttt{slice\_\allowbreak{}integrable} uses positivity to identify the absolute value of the slice with the slice itself, continuity to obtain measurability, and this majorant to prove integrability.
 
 
 
+Now let \(x_m\to x\). For every fixed \(z\), continuity of \(f\) and of coordinate insertion gives \(f(\operatorname{cons}(z,x_m))\to f(\operatorname{cons}(z,x))\). The same Gaussian majorant controls every term and the limit. Dominated convergence therefore gives convergence of their real integrals, proving continuity of the first marginal. In the Lean invocation of \texttt{continuous\_\allowbreak{}of\_\allowbreak{}dominated}, the four obligations are slice measurability, the uniform almost-everywhere bound, integrability of that bound, and pointwise continuity in the remaining coordinates. Those are all established before the induction later treats the marginal as another Gaussian weight.
+
+
+
+Formal correspondence: continuous\_cons : Continuity of inserting the first real coordinate. firstMarginal : Integrate out the first coordinate of a weight.
+
+
+
+\texttt{continuous\_\allowbreak{}cons}: the source steps apply or rewrite \texttt{continuous\_\allowbreak{}pi}, \texttt{Fin.\allowbreak{}cases}, \texttt{continuous\_\allowbreak{}fst}, \texttt{Prod.\allowbreak{}fst}.
+
+
+
+\texttt{first\allowbreak{}Marginal} is a definition with defining expression \texttt{\ensuremath{\int} z : \ensuremath{\mathbb R}, f (Fin.\allowbreak{}cons z x) \ensuremath{\partial}volume}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{slice\_\allowbreak{}integrable}: the intermediate facts include \texttt{hi}, \texttt{hbz}, \texttt{hs}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{sq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{h\allowbreak{}C.\allowbreak{}le}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp.\allowbreak{}mpr}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{first\allowbreak{}Marginal\_\allowbreak{}continuous}: the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{continuous\_\allowbreak{}of\_\allowbreak{}dominated}, \texttt{Real.\allowbreak{}exp}, \texttt{Fin.\allowbreak{}cons\_\allowbreak{}succ}, \texttt{sq\_\allowbreak{}abs}, \texttt{hf.\allowbreak{}continuous.\allowbreak{}comp}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.4]{LangevinLean2026ULASC}.
@@ -69,6 +187,22 @@ The Gaussian integral in the coefficient is finite and positive. Positivity of e
 
 The new upper-bound constant is the original constant multiplied by \(\int e^{-as^2}ds\), while the decay coefficient \(a\) is unchanged. Hence the argument can be repeated one coordinate at a time without adding analytic assumptions.
 
+\begin{leanbox}{Lean: \texttt{firstMarginal\_\allowbreak{}gaussian}, \texttt{integral\_\allowbreak{}firstMarginal}}
+\leansource{\texttt{firstMarginal\_\allowbreak{}gaussian} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 116–139}
+\begin{leancode}
+\leanline{0}{theorem\ firstMarginal\_gaussian\ :\ GaussianWeight\ n\ (firstMarginal\ f)}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}firstMarginal} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 141–163}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_firstMarginal\ :\ ∫\ x,\ firstMarginal\ f\ x\ ∂volume\ =\ ∫\ x,\ f\ x\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Marginal\_\allowbreak{}gaussian}: the intermediate facts include \texttt{hi}, \texttt{hb}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{sq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}assoc}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}, \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}. The remaining scalar rearrangements are checked by \texttt{ring}.
+
+
+
+\texttt{integral\_\allowbreak{}first\allowbreak{}Marginal}: the intermediate facts include \texttt{e}, \texttt{hp}, \texttt{he}, \texttt{h}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{Measurable\allowbreak{}Equiv.\allowbreak{}pi\allowbreak{}Fin\allowbreak{}Succ\allowbreak{}Above\_\allowbreak{}symm\_\allowbreak{}apply}, \texttt{Fin.\allowbreak{}insert\allowbreak{}Nth\allowbreak{}Equiv}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{integral\_\allowbreak{}prod}, \texttt{integral\_\allowbreak{}integral\_\allowbreak{}swap}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.4]{LangevinLean2026ULASC}.
@@ -82,11 +216,27 @@ When \(n=0\), the space has one point and volume one, so the desired integral in
 
 Positive powers may be written using exponentials and logarithms; this also includes \(t=0\) and \(t=1\). In the equivalent notation that splits \(\mathbb R^{d+1}\) into one coordinate and \(d\) others, the first application integrates the distinguished coordinate and leaves the interpolation inequality in \(d\) dimensions. Fubini identifies each resulting iterated integral with the original total integral. This proves the induction step and therefore the finite-dimensional theorem.
 
+\begin{leanbox}{Lean: \texttt{prekopa\_\allowbreak{}leindler}}
+\leansource{\texttt{prekopa\_\allowbreak{}leindler} \quad IPLA/\allowbreak{}PrekopaTensorization.lean, lines 169–212}
+\begin{leancode}
+\leanline{0}{theorem\ prekopa\_leindler\ \{n\ :\ ℕ\}\ \{f\ g\ h\ :\ Coordinates\ n\ →\ ℝ\}}
+\leanline{4}{(hf\ :\ GaussianWeight\ n\ f)\ (hg\ :\ GaussianWeight\ n\ g)\ (hh\ :\ GaussianWeight\ n\ h)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (ht1\ :\ t\ ≤\ 1)}
+\leanline{4}{(hpoint\ :\ ∀\ x\ y,\ Real.exp\ ((1\ -\ t)\ *\ Real.log\ (f\ x)\ +\ t\ *\ Real.log\ (g\ y))\ ≤}
+\leanline{6}{h\ (fun\ i\ ↦\ (1\ -\ t)\ *\ x\ i\ +\ t\ *\ y\ i))\ :}
+\leanline{4}{Real.exp\ ((1\ -\ t)\ *\ Real.log\ (∫\ x,\ f\ x)\ +\ t\ *\ Real.log\ (∫\ x,\ g\ x))\ ≤\ ∫\ x,\ h\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: prekopa\_leindler : The finite-dimensional Prékopa--Leindler inequality. The induction uses the proved real-line transport theorem and integrates one coordinate at a time.
 
+
+
+\texttt{prekopa\_\allowbreak{}leindler}: the argument uses \texttt{induction n with}; the intermediate facts include \texttt{z}, \texttt{hi}, \texttt{he}, \texttt{hm}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{Fin.\allowbreak{}elim0}, \texttt{integral\_\allowbreak{}const}, \texttt{prekopa\_\allowbreak{}leindler\_\allowbreak{}real}, \texttt{Fin.\allowbreak{}cons}, \texttt{Fin.\allowbreak{}cases}.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

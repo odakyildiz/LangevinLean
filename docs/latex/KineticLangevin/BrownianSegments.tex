@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -40,6 +63,49 @@ The argument constructs the isometry by translating time and using translation i
 
 Translation of a deterministic time kernel preserves its square integral. The same response covariance is therefore obtained on every interval of the same length. This identifies numerical time steps with translated pieces of one underlying Brownian source.
 
+\begin{leanbox}{Lean: \texttt{timeShift}, \texttt{segmentKernelLp}, \texttt{segmentKernelLp\_\allowbreak{}coe} and 1 more}
+\leansource{\texttt{timeShift} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 20–21}
+\begin{leancode}
+\leanline{0}{def\ timeShift\ (a\ :\ ℝ)\ :\ TimeHilbert\ →ₗᵢ[ℝ]\ TimeHilbert\ :=}
+\leanline{2}{Lp.compMeasurePreservingₗᵢ\ ℝ\ (fun\ r\ :\ ℝ\ =>\ r\ -\ a)\ (measurePreserving\_sub\_right\ volume\ a)}
+\end{leancode}
+\leansource{\texttt{segmentKernelLp} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{def\ segmentKernelLp\ (k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (a\ t\ :\ ℝ≥0)\ :\ TimeHilbert\ :=}
+\leanline{2}{timeShift\ a\ (timeKernelLp\ k\ hk\ t)}
+\end{leancode}
+\leansource{\texttt{segmentKernelLp\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 27–46}
+\begin{leancode}
+\leanline{0}{theorem\ segmentKernelLp\_coe\ (k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentKernelLp\ k\ hk\ a\ t\ =ᵐ[volume]}
+\leanline{6}{(Ioc\ (a\ :\ ℝ)\ ((a\ :\ ℝ)\ +\ (t\ :\ ℝ))).indicator}
+\leanline{8}{(fun\ r\ =>\ k\ ((a\ :\ ℝ)\ +\ (t\ :\ ℝ)\ -\ r))}
+\end{leancode}
+\leansource{\texttt{segmentKernelLp\_\allowbreak{}inner} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 49–54}
+\begin{leancode}
+\leanline{0}{theorem\ segmentKernelLp\_inner\ (k\ l\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (hl\ :\ Continuous\ l)}
+\leanline{4}{(a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{inner\ ℝ\ (segmentKernelLp\ k\ hk\ a\ t)\ (segmentKernelLp\ l\ hl\ a\ t)\ =}
+\leanline{6}{∫\ s\ in\ 0..(t\ :\ ℝ),\ k\ s\ *\ l\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{time\allowbreak{}Shift} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{segment\allowbreak{}Kernel\allowbreak{}Lp} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{segment\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}coe} separates the cases \texttt{hmem : r \ensuremath{\in} Ioc (a : \ensuremath{\mathbb R}) ((a : \ensuremath{\mathbb R}) + (t : \ensuremath{\mathbb R}))} and its negation before combining them. The main intermediate facts are \texttt{hf}, \texttt{hcoe}, \texttt{hp} in that order. Named proof applications include \texttt{hmem}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{segment\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}inner} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Disjoint time segments are orthogonal}{Disjoint time segments are orthogonal}}
 
@@ -54,6 +120,16 @@ The proof unfolds the \(L^{2}\) inner product as an integral, substitutes the ex
 
 Kernels supported on disjoint time intervals have zero product almost everywhere. Their Hilbert-space inner product vanishes, including when intervals meet at a single endpoint. That endpoint has zero time measure and contributes no covariance.
 
+\begin{leanbox}{Lean: \texttt{segmentKernelLp\_\allowbreak{}inner\_\allowbreak{}zero}}
+\leansource{\texttt{segmentKernelLp\_\allowbreak{}inner\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 57–70}
+\begin{leancode}
+\leanline{0}{theorem\ segmentKernelLp\_inner\_zero\ (k\ l\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (hl\ :\ Continuous\ l)}
+\leanline{4}{(a\ t\ b\ u\ :\ ℝ≥0)\ (hab\ :\ a\ +\ t\ ≤\ b)\ :}
+\leanline{4}{inner\ ℝ\ (segmentKernelLp\ k\ hk\ a\ t)\ (segmentKernelLp\ l\ hl\ b\ u)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{segment\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}inner\_\allowbreak{}zero} separates the cases \texttt{hmem : r \ensuremath{\in} Ioc (a : \ensuremath{\mathbb R}) ((a : \ensuremath{\mathbb R}) + (t : \ensuremath{\mathbb R}))} and its negation before combining them. Named proof applications include \texttt{integral\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}of\_\allowbreak{}ae}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply the same isonormal map to every time segment}{Apply the same isonormal map to every time segment}}
 
@@ -68,6 +144,60 @@ One proves these assertions by composing the translation's linear map with the e
 
 All translated kernels are fed into the same isonormal map. This makes them jointly Gaussian, not merely separately Gaussian. Orthogonality of the time kernels can therefore be converted into independence of the response blocks.
 
+\begin{leanbox}{Lean: \texttt{segmentConvolutionLp}, \texttt{segmentConvolutionLp\_\allowbreak{}mean}, \texttt{segmentConvolutionLp\_\allowbreak{}jointlyGaussian} and 2 more}
+\leansource{\texttt{segmentConvolutionLp} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 73–75}
+\begin{leancode}
+\leanline{0}{def\ segmentConvolutionLp\ (k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{Lp\ ℝ\ 2\ probability\ :=}
+\leanline{2}{ULA.GaussianHilbert.isonormal\ ULA.CanonicalBrownian.basis\ (segmentKernelLp\ k\ hk\ a\ t)}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}mean} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 77–79}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_mean\ (k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{(∫\ ω,\ segmentConvolutionLp\ k\ hk\ a\ t\ ω\ ∂probability)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}jointlyGaussian} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 81–88}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_jointlyGaussian\ \{ι\ :\ Type*\}\ [Fintype\ ι]}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{HasGaussianLaw\ (fun\ ω\ i\ =>\ segmentConvolutionLp\ (kernels\ i)\ (hc\ i)\ a\ t\ ω)\ probability}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}covariance} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 90–95}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_covariance\ (k\ l\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)}
+\leanline{4}{(hl\ :\ Continuous\ l)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{cov[segmentConvolutionLp\ k\ hk\ a\ t,\ segmentConvolutionLp\ l\ hl\ a\ t;\ probability]\ =}
+\leanline{6}{∫\ s\ in\ 0..(t\ :\ ℝ),\ k\ s\ *\ l\ s}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}covariance\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 97–101}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_covariance\_zero\ (k\ l\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)}
+\leanline{4}{(hl\ :\ Continuous\ l)\ (a\ t\ b\ u\ :\ ℝ≥0)\ (hab\ :\ a\ +\ t\ ≤\ b)\ :}
+\leanline{4}{cov[segmentConvolutionLp\ k\ hk\ a\ t,\ segmentConvolutionLp\ l\ hl\ b\ u;\ probability]\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{segment\allowbreak{}Convolution\allowbreak{}Lp} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}mean} gives the formal counterpart of this step.
+
+
+
+
+\texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}jointly\allowbreak{}Gaussian} gives the formal counterpart of this step.
+
+
+
+
+\texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}covariance} gives the formal counterpart of this step.
+
+
+
+
+\texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}covariance\_\allowbreak{}zero} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.6.17]{LangevinLean2026ULASC}; \cite[Section~3.6.25]{LangevinLean2026ULASC}; \cite[Section~3.6.26]{LangevinLean2026ULASC}; \cite[Section~3.7.1]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}.
@@ -85,6 +215,17 @@ The proof assembles the \(L^{2}\) representatives into a Euclidean random vector
 
 Within one interval, kernel inner products reproduce the full correlated response Gram matrix. Across spatial coordinates the construction uses independent Brownian coordinates. The resulting vector block has precisely the noise law specified by the exponential integrator.
 
+\begin{leanbox}{Lean: \texttt{segmentConvolutionLp\_\allowbreak{}jointLaw}}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 103–143}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_jointLaw\ \{ι\ :\ Type*\}\ [Fintype\ ι]\ [DecidableEq\ ι]}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (fun\ ω\ =>\ WithLp.toLp\ 2\ (fun\ i\ =>\ segmentConvolutionLp\ (kernels\ i)\ (hc\ i)\ a\ t\ ω))}
+\leanline{6}{(kernelGaussian\ kernels\ t)\ probability}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{h\allowbreak{}Fmem}, \texttt{hg} in that order. Named proof applications include \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}mean}, \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}ext}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Derive independence of all successive Brownian innovation blocks}{Derive independence of all successive Brownian innovation blocks}}
 
@@ -103,13 +244,71 @@ The argument constructs the jointly Gaussian process with Gaussianity of linear 
 
 For any finite collection of disjoint intervals, the jointly Gaussian covariance matrix is block diagonal. Its characteristic function factors, proving independence of those blocks. Consistency over finite collections gives the independent innovation stream needed for the numerical recursion.
 
+\begin{leanbox}{Lean: \texttt{gridConvolutionLp}, \texttt{gridConvolutionLp\_\allowbreak{}isGaussianProcess}, \texttt{gridConvolutionLp\_\allowbreak{}independent} and 2 more}
+\leansource{\texttt{gridConvolutionLp} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 147–150}
+\begin{leancode}
+\leanline{0}{def\ gridConvolutionLp\ \{ι\ :\ Type*\}\ (kernels\ :\ ι\ →\ ℝ\ →\ ℝ)}
+\leanline{4}{(hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ (i\ :\ ι)\ :}
+\leanline{4}{Lp\ ℝ\ 2\ probability\ :=}
+\leanline{2}{segmentConvolutionLp\ (kernels\ i)\ (hc\ i)\ ((n\ :\ ℝ≥0)\ *\ h)\ h}
+\end{leancode}
+\leansource{\texttt{gridConvolutionLp\_\allowbreak{}isGaussianProcess} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 155–163}
+\begin{leancode}
+\leanline{0}{theorem\ gridConvolutionLp\_isGaussianProcess\ \{ι\ :\ Type*\}}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{IsGaussianProcess\ (fun\ p\ :\ (n\ :\ ℕ)\ ×\ ι\ =>\ fun\ ω\ =>\ gridConvolutionLp\ kernels\ hc\ h\ p.1\ p.2\ ω)}
+\leanline{6}{probability}
+\end{leancode}
+\leansource{\texttt{gridConvolutionLp\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 167–188}
+\begin{leancode}
+\leanline{0}{theorem\ gridConvolutionLp\_independent\ \{ι\ :\ Type*\}}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{iIndepFun\ (fun\ n\ ω\ i\ =>\ gridConvolutionLp\ kernels\ hc\ h\ n\ i\ ω)\ probability}
+\end{leancode}
+\leansource{\texttt{gridConvolutionLp\_\allowbreak{}euclidean\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 191–196}
+\begin{leancode}
+\leanline{0}{theorem\ gridConvolutionLp\_euclidean\_independent\ \{ι\ :\ Type*\}\ [Fintype\ ι]}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{iIndepFun\ (fun\ n\ ω\ =>\ WithLp.toLp\ 2\ (fun\ i\ =>\ gridConvolutionLp\ kernels\ hc\ h\ n\ i\ ω))}
+\leanline{6}{probability}
+\end{leancode}
+\leansource{\texttt{gridConvolutionLp\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}BrownianSegments.lean, lines 199–203}
+\begin{leancode}
+\leanline{0}{theorem\ gridConvolutionLp\_jointLaw\ \{ι\ :\ Type*\}\ [Fintype\ ι]\ [DecidableEq\ ι]}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{HasLaw\ (fun\ ω\ =>\ WithLp.toLp\ 2\ (fun\ i\ =>\ gridConvolutionLp\ kernels\ hc\ h\ n\ i\ ω))}
+\leanline{6}{(kernelGaussian\ kernels\ h)\ probability}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{grid\allowbreak{}Convolution\allowbreak{}Lp} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{grid\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}is\allowbreak{}Gaussian\allowbreak{}Process} gives the formal counterpart of this step.
+
+
+
+
+\texttt{grid\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}independent} gives the formal counterpart of this step. Named proof applications include \texttt{Is\allowbreak{}Gaussian\allowbreak{}Process.\allowbreak{}i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}of\_\allowbreak{}covariance\_\allowbreak{}eq\_\allowbreak{}zero}, \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}covariance\_\allowbreak{}zero}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{grid\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}euclidean\_\allowbreak{}independent} gives the formal counterpart of this step.
+
+
+
+
+\texttt{grid\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.6.25]{LangevinLean2026ULASC}; \cite[Section~3.7.2]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

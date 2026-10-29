@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ The constructed innovation is the Brownian source lift of each of the four deter
 
 The four-response input has the packed correlated Gaussian law and the correct source representatives. Substitution in the numerical update identifies the recurrence’s innovation variables with those of the constructed sampler, including the Hessian-multiplied responses.
 
+\begin{leanbox}{Lean: \texttt{extensionInnovation\_\allowbreak{}eq\_\allowbreak{}lifted}}
+\leansource{\texttt{extensionInnovation\_\allowbreak{}eq\_\allowbreak{}lifted} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Recurrence.lean, lines 14–18}
+\begin{leancode}
+\leanline{0}{theorem\ extensionInnovation\_eq\_lifted\ (c\ :\ ULA.Coupling\ μ\ π)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{extensionInnovation\ c\ γ\ h\ n\ =}
+\leanline{6}{liftedKLMC2Noise\ (GenericCanonicalCoupling.probability\ c)\ (brownianLift\ c)\ γ\ ((n\ :\ ℝ≥0)*h)\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{extension\allowbreak{}Innovation\_\allowbreak{}eq\_\allowbreak{}lifted} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}.
@@ -45,13 +78,38 @@ The reference segment is continuous, starts at the current reference state and e
 
 The constructed reference and auxiliary paths supply continuity, exact integral equations, stationarity, and past/\allowbreak{}future independence. The repaired one-step theorem therefore applies at every iteration. Its conclusion is the constructed error recurrence, rather than an abstract conditional recurrence.
 
+\begin{leanbox}{Lean: \texttt{numericalChain\_\allowbreak{}error\_\allowbreak{}recurrence}}
+\leansource{\texttt{numericalChain\_\allowbreak{}error\_\allowbreak{}recurrence} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Recurrence.lean, lines 21–73}
+\begin{leancode}
+\leanline{0}{theorem\ numericalChain\_error\_recurrence}
+\leanline{4}{(f\ :\ H\ ι\ →\ ℝ)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M\ :\ ℝ))\ (hγ\ :\ 0<(γ\ :\ ℝ))\ (hfriction\ :\ m+(M\ :\ ℝ)≤(γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0<(h\ :\ ℝ))\ (hstep\ :\ 5*(γ\ :\ ℝ)*(M\ :\ ℝ)*(h\ :\ ℝ)≤m)}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤α)}
+\leanline{4}{(c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ f))\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ (ULA.gibbsMeasure\ f))\ (n\ :\ ℕ)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (numericalChain\ c\ hc\ hπ\ (gradient\ f)\ Hess\ M\ M2\ hLip\ hHLip\ hderiv\ γ\ h\ (n+1)-}
+\leanline{6}{referenceChain\ c\ hπ\ f\ M\ γ\ hLip\ h\ (n+1))\ ≤}
+\leanline{6}{(1-m*(h\ :\ ℝ)/(2*(γ\ :\ ℝ))+(M2\ :\ ℝ)*Real.sqrt\ α*(h\ :\ ℝ)\textasciicircum{}2/(γ\ :\ ℝ))*}
+\leanline{8}{transformNorm\ γ\ 0\ (numericalChain\ c\ hc\ hπ\ (gradient\ f)\ Hess\ M\ M2\ hLip\ hHLip\ hderiv\ γ\ h\ n-}
+\leanline{10}{referenceChain\ c\ hπ\ f\ M\ γ\ hLip\ h\ n)+}
+\leanline{6}{Real.sqrt\ 2*(h\ :\ ℝ)\textasciicircum{}2*((M\ :\ ℝ)-m)*Real.exp\ (-(α-(Fintype.card\ ι\ :\ ℝ))/8)+}
+\leanline{6}{(h\ :\ ℝ)\textasciicircum{}3/4*((M2\ :\ ℝ)*Real.sqrt\ ((Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ))+}
+\leanline{8}{(M\ :\ ℝ)*Real.sqrt\ ((M\ :\ ℝ)*(Fintype.card\ ι\ :\ ℝ)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{numerical\allowbreak{}Chain\_\allowbreak{}error\_\allowbreak{}recurrence} gives the formal counterpart of this step. The main intermediate facts are \texttt{P}, \texttt{R}, \texttt{V}, \texttt{X}, \texttt{w}, \texttt{hs} in that order. Named proof applications include \texttt{reference\allowbreak{}Chain\_\allowbreak{}free\allowbreak{}OUResponse\_\allowbreak{}has\allowbreak{}Law}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

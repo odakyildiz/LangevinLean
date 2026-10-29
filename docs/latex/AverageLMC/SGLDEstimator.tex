@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -24,18 +47,180 @@ This module constructs the finite-sum potential, the actual uniform component-in
 
 The total potential is the finite sum of the component functions. Differentiation commutes with this finite sum, and the gradient identification follows by the inner-product duality map. The uniform index law is counting measure multiplied by 1/\allowbreak{}\(n\). For \(n\) positive its mass is one. It is a finite measure even at \(n=0\), where the index space is empty. Its Bochner integral is exactly the finite vector sum divided by \(n\); this formula is used for all following index moments.
 
+\begin{leanbox}{Lean: \texttt{componentPotential}, \texttt{uniformIndexLaw}, \texttt{uniformIndexLaw\_\allowbreak{}probability} and 3 more}
+\leansource{\texttt{componentPotential} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 15–16}
+\begin{leancode}
+\leanline{0}{def\ componentPotential\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (x\ :\ State\ p)\ :\ ℝ\ :=}
+\leanline{2}{∑\ i,\ f\ i\ x}
+\end{leancode}
+\leansource{\texttt{uniformIndexLaw} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 19–20}
+\begin{leancode}
+\leanline{0}{def\ uniformIndexLaw\ (n\ :\ ℕ)\ :\ Measure\ (Fin\ n)\ :=}
+\leanline{2}{(n\ :\ ℝ≥0∞)⁻¹\ •\ Measure.count}
+\end{leancode}
+\leansource{\texttt{uniformIndexLaw\_\allowbreak{}probability} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 22–25}
+\begin{leancode}
+\leanline{0}{theorem\ uniformIndexLaw\_probability\ (n\ :\ ℕ)\ (hn\ :\ 0\ <\ n)\ :}
+\leanline{4}{IsProbabilityMeasure\ (uniformIndexLaw\ n)}
+\end{leancode}
+\leansource{\texttt{uniformIndexLaw\_\allowbreak{}isFiniteMeasure} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 27–34}
+\begin{leancode}
+\leanline{0}{instance\ uniformIndexLaw\_isFiniteMeasure\ (n\ :\ ℕ)\ :\ IsFiniteMeasure\ (uniformIndexLaw\ n)\ :=\ by}
+\leanline{2}{by\_cases\ hn\ :\ 0\ <\ n}
+\leanline{2}{·\ have\ :=\ uniformIndexLaw\_probability\ n\ hn}
+\leanline{4}{infer\_instance}
+\leanline{2}{·\ have\ hn0\ :\ n\ =\ 0\ :=\ Nat.eq\_zero\_of\_not\_pos\ hn}
+\leanline{4}{subst\ n}
+\leanline{4}{constructor}
+\leanline{4}{simp\ [uniformIndexLaw]}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}uniformIndexLaw} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 36–40}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_uniformIndexLaw\ \{E\ :\ Type*\}\ [NormedAddCommGroup\ E]\ [NormedSpace\ ℝ\ E]}
+\leanline{4}{[CompleteSpace\ E]}
+\leanline{4}{(n\ :\ ℕ)\ (g\ :\ Fin\ n\ →\ E)\ :}
+\leanline{4}{(∫\ i,\ g\ i\ ∂uniformIndexLaw\ n)\ =\ (n\ :\ ℝ)⁻¹\ •\ ∑\ i,\ g\ i}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}componentPotential} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 42–47}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_componentPotential\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))\ (x\ :\ State\ p)\ :}
+\leanline{4}{gradient\ (componentPotential\ f)\ x\ =\ ∑\ i,\ gradient\ (f\ i)\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{component\allowbreak{}Potential} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{uniform\allowbreak{}Index\allowbreak{}Law} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{uniform\allowbreak{}Index\allowbreak{}Law\_\allowbreak{}probability} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{uniform\allowbreak{}Index\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Finite\allowbreak{}Measure} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{integral\_\allowbreak{}uniform\allowbreak{}Index\allowbreak{}Law} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{gradient\_\allowbreak{}component\allowbreak{}Potential} gives the formal counterpart of this step. Named proof applications include \texttt{fderiv\_\allowbreak{}fun\_\allowbreak{}sum}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Use the actual fixed-point estimator and prove unbiasedness}{Use the actual fixed-point estimator and prove unbiasedness}}
 
 
 For an anchor \(x_\star\), define the estimator \(n(\nabla f_i(x)-\nabla f_i(x_\star))\). It vanishes at the anchor for every index. Averaging over the uniform index cancels \(n\) and sums the component gradients. If the true total gradient at the anchor is zero, this average is exactly \(\nabla f(x)\). Thus the paper estimator is unbiased for the gradient of the same potential defining its Gibbs target.
 
+\begin{leanbox}{Lean: \texttt{controlVariateEstimator}, \texttt{controlVariateEstimator\_\allowbreak{}at\_\allowbreak{}anchor}, \texttt{controlVariateEstimator\_\allowbreak{}unbiased}}
+\leansource{\texttt{controlVariateEstimator} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 50–52}
+\begin{leancode}
+\leanline{0}{def\ controlVariateEstimator\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(xstar\ x\ :\ State\ p)\ (i\ :\ Fin\ n)\ :\ State\ p\ :=}
+\leanline{2}{(n\ :\ ℝ)\ •\ (gradient\ (f\ i)\ x\ -\ gradient\ (f\ i)\ xstar)}
+\end{leancode}
+\leansource{\texttt{controlVariateEstimator\_\allowbreak{}at\_\allowbreak{}anchor} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 54–56}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateEstimator\_at\_anchor\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(xstar\ :\ State\ p)\ (i\ :\ Fin\ n)\ :\ controlVariateEstimator\ f\ xstar\ xstar\ i\ =\ 0}
+\end{leancode}
+\leansource{\texttt{controlVariateEstimator\_\allowbreak{}unbiased} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 58–68}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateEstimator\_unbiased\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(xstar\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ xstar\ =\ 0)}
+\leanline{4}{(x\ :\ State\ p)\ :}
+\leanline{4}{(∫\ i,\ controlVariateEstimator\ f\ xstar\ x\ i\ ∂uniformIndexLaw\ n)\ =}
+\leanline{6}{gradient\ (componentPotential\ f)\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{control\allowbreak{}Variate\allowbreak{}Estimator} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}at\_\allowbreak{}anchor} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}unbiased} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Control the full gradient by the total component smoothness}{Control the full gradient by the total component smoothness}}
 
 
 Squaring the defining square root gives \(M_{\rm rms}\) squared equal to the average squared exact component-gradient seminorms. The triangle inequality bounds the gradient Lipschitz constant of the sum by the sum of component constants. Finite Cauchy-Schwarz bounds the sum of exact nonnegative seminorms by \(n\) \(M_{\rm rms}\). Replacing each supplied component bound by its proved exact seminorm gives a Lipschitz gradient bound for the full potential with exactly \(n\) \(M_{\rm rms}\). Comparing a strong-convexity lower model with the coordinate upper model then proves \(m\) at most \(n\) \(M_{\rm rms}\). These comparisons justify the dimensionless step-size conditions in the SGLD theorem.
 
+\begin{leanbox}{Lean: \texttt{rmsComponentSmoothness\_\allowbreak{}sq}, \texttt{componentPotential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}, \texttt{sum\_\allowbreak{}globalSmoothness\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms} and 2 more}
+\leansource{\texttt{rmsComponentSmoothness\_\allowbreak{}sq} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 71–74}
+\begin{leancode}
+\leanline{0}{theorem\ rmsComponentSmoothness\_sq\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ :}
+\leanline{4}{rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ =\ (∑\ i,\ globalSmoothness\ (f\ i)\ \textasciicircum{}\ 2)\ /\ (n\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{componentPotential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 76–87}
+\begin{leancode}
+\leanline{0}{theorem\ componentPotential\_gradient\_lipschitz\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))\ (L\ :\ Fin\ n\ →\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))\ :}
+\leanline{4}{LipschitzWith\ (∑\ i,\ L\ i)\ (gradient\ (componentPotential\ f))}
+\end{leancode}
+\leansource{\texttt{sum\_\allowbreak{}globalSmoothness\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 89–105}
+\begin{leancode}
+\leanline{0}{theorem\ sum\_globalSmoothness\_le\_n\_mul\_rms\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (L\ :\ Fin\ n\ →\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))\ :}
+\leanline{4}{(∑\ i,\ globalSmoothness\ (f\ i))\ ≤\ (n\ :\ ℝ)\ *\ rmsComponentSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{componentPotential\_\allowbreak{}gradient\_\allowbreak{}lipschitz\_\allowbreak{}rms} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 108–122}
+\begin{leancode}
+\leanline{0}{theorem\ componentPotential\_gradient\_lipschitz\_rms\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))\ :}
+\leanline{4}{LipschitzWith\ ⟨(n\ :\ ℝ)\ *\ rmsComponentSmoothness\ f,}
+\leanline{6}{mul\_nonneg\ (Nat.cast\_nonneg\ \_)\ (Real.sqrt\_nonneg\ \_)⟩}
+\leanline{6}{(gradient\ (componentPotential\ f))}
+\end{leancode}
+\leansource{\texttt{strongConvex\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 124–136}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvex\_le\_n\_mul\_rms\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(m\ :\ ℝ)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ (componentPotential\ f))\ :}
+\leanline{4}{m\ ≤\ (n\ :\ ℝ)\ *\ rmsComponentSmoothness\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{rms\allowbreak{}Component\allowbreak{}Smoothness\_\allowbreak{}sq} gives the formal counterpart of this step. Named proof applications include \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt}, \texttt{div\_\allowbreak{}nonneg}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{component\allowbreak{}Potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} gives the formal counterpart of this step. Named proof applications include \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{sum\_\allowbreak{}global\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{heq} in that order. Named proof applications include \texttt{hc}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{component\allowbreak{}Potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz\_\allowbreak{}rms} gives the formal counterpart of this step. The main intermediate facts are \texttt{C}, \texttt{hc} in that order. Named proof applications include \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}le\_\allowbreak{}coe.\allowbreak{}mp}, \texttt{sum\_\allowbreak{}global\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}n\_\allowbreak{}mul\_\allowbreak{}rms} gives the formal counterpart of this step. The main intermediate facts are \texttt{hd}, \texttt{C}, \texttt{hc} in that order.
+\end{leanbox}
 
 \section{\texorpdfstring{Compute and bound the estimator second moment}{Compute and bound the estimator second moment}}
 
@@ -46,6 +231,30 @@ The uniform average of the squared estimator norm equals \(n\) times the sum of 
 
 The integral is finite because the index space and measure are finite.
 
+\begin{leanbox}{Lean: \texttt{controlVariateEstimator\_\allowbreak{}second\_\allowbreak{}moment}, \texttt{controlVariateEstimator\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le}}
+\leansource{\texttt{controlVariateEstimator\_\allowbreak{}second\_\allowbreak{}moment} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 139–148}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateEstimator\_second\_moment\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (xstar\ x\ :\ State\ p)\ :}
+\leanline{4}{(∫\ i,\ ‖controlVariateEstimator\ f\ xstar\ x\ i‖\ \textasciicircum{}\ 2\ ∂uniformIndexLaw\ n)\ =}
+\leanline{6}{(n\ :\ ℝ)\ *\ ∑\ i,\ ‖gradient\ (f\ i)\ x\ -\ gradient\ (f\ i)\ xstar‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{controlVariateEstimator\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 152–167}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateEstimator\_second\_moment\_le\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (L\ :\ Fin\ n\ →\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))\ (xstar\ x\ :\ State\ p)\ :}
+\leanline{4}{(∫\ i,\ ‖controlVariateEstimator\ f\ xstar\ x\ i‖\ \textasciicircum{}\ 2\ ∂uniformIndexLaw\ n)\ ≤}
+\leanline{6}{(n\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ *\ ‖x\ -\ xstar‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}second\_\allowbreak{}moment} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{hs} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Center the error and retain the negative gradient energy}{Center the error and retain the negative gradient energy}}
 
@@ -56,6 +265,58 @@ Define the estimator error as \(G_i(x)-\nabla f(x)\). Unbiasedness proves that i
 
 Dropping the nonnegative final score energy gives the same \(n^2\) RMS distance bound for the centered error. Keeping it is essential for the larger-step one-step SGLD estimates.
 
+\begin{leanbox}{Lean: \texttt{controlVariateError}, \texttt{controlVariateError\_\allowbreak{}centered}, \texttt{controlVariateError\_\allowbreak{}second\_\allowbreak{}moment} and 1 more}
+\leansource{\texttt{controlVariateError} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 170–172}
+\begin{leancode}
+\leanline{0}{def\ controlVariateError\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(xstar\ x\ :\ State\ p)\ (i\ :\ Fin\ n)\ :\ State\ p\ :=}
+\leanline{2}{controlVariateEstimator\ f\ xstar\ x\ i\ -\ gradient\ (componentPotential\ f)\ x}
+\end{leancode}
+\leansource{\texttt{controlVariateError\_\allowbreak{}centered} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 174–183}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateError\_centered\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(xstar\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ xstar\ =\ 0)}
+\leanline{4}{(x\ :\ State\ p)\ :\ (∫\ i,\ controlVariateError\ f\ xstar\ x\ i\ ∂uniformIndexLaw\ n)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{controlVariateError\_\allowbreak{}second\_\allowbreak{}moment} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 187–211}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateError\_second\_moment\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(xstar\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ xstar\ =\ 0)}
+\leanline{4}{(x\ :\ State\ p)\ :}
+\leanline{4}{(∫\ i,\ ‖controlVariateError\ f\ xstar\ x\ i‖\ \textasciicircum{}\ 2\ ∂uniformIndexLaw\ n)\ =}
+\leanline{6}{(∫\ i,\ ‖controlVariateEstimator\ f\ xstar\ x\ i‖\ \textasciicircum{}\ 2\ ∂uniformIndexLaw\ n)\ -}
+\leanline{8}{‖gradient\ (componentPotential\ f)\ x‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{controlVariateError\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 213–243}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateError\_second\_moment\_le\ \{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(xstar\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ xstar\ =\ 0)}
+\leanline{4}{(x\ :\ State\ p)\ :}
+\leanline{4}{(∫\ i,\ ‖controlVariateError\ f\ xstar\ x\ i‖\ \textasciicircum{}\ 2\ ∂uniformIndexLaw\ n)\ ≤}
+\leanline{6}{(n\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ *\ ‖x\ -\ xstar‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{control\allowbreak{}Variate\allowbreak{}Error} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}centered} gives the formal counterpart of this step.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}second\_\allowbreak{}moment} gives the formal counterpart of this step. The main intermediate facts are \texttt{hmean}, \texttt{hcross} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hmean}, \texttt{hcross}, \texttt{hvar} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Supply the measurable product-space error with derived \(L^{2}\) moments}{Supply the measurable product-space error with derived L² moments}}
 
@@ -66,6 +327,78 @@ For a random state \(X\) with finite second moment, each component gradient eval
 
 These results supply the genuine random perturbation used by the transport comparison; no error variance is assumed.
 
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}finite\_\allowbreak{}index\_\allowbreak{}selector}, \texttt{controlVariateEstimator\_\allowbreak{}product\_\allowbreak{}memLp}, \texttt{controlVariateError\_\allowbreak{}product\_\allowbreak{}memLp} and 2 more}
+\leansource{\texttt{memLp\_\allowbreak{}finite\_\allowbreak{}index\_\allowbreak{}selector} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 246–257}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_finite\_index\_selector\ \{Ω\ E\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{[NormedAddCommGroup\ E]\ (P\ :\ Measure\ Ω)\ (n\ :\ ℕ)}
+\leanline{4}{(g\ :\ Fin\ n\ →\ Ω\ →\ E)\ (hg\ :\ ∀\ i,\ MemLp\ (g\ i)\ 2\ P)\ :}
+\leanline{4}{MemLp\ (fun\ q\ :\ Ω\ ×\ Fin\ n\ ↦\ g\ q.2\ q.1)\ 2\ (P.prod\ (uniformIndexLaw\ n))}
+\end{leancode}
+\leansource{\texttt{controlVariateEstimator\_\allowbreak{}product\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 259–274}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateEstimator\_product\_memLp\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{\{p\ n\ :\ ℕ\}\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (L\ :\ Fin\ n\ →\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(xstar\ :\ State\ p)\ (X\ :\ Ω\ →\ State\ p)\ (hX\ :\ MemLp\ X\ 2\ P)\ :}
+\leanline{4}{MemLp\ (fun\ q\ :\ Ω\ ×\ Fin\ n\ ↦\ controlVariateEstimator\ f\ xstar\ (X\ q.1)\ q.2)}
+\leanline{6}{2\ (P.prod\ (uniformIndexLaw\ n))}
+\end{leancode}
+\leansource{\texttt{controlVariateError\_\allowbreak{}product\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 276–292}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateError\_product\_memLp\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{\{p\ n\ :\ ℕ\}\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(xstar\ :\ State\ p)\ (X\ :\ Ω\ →\ State\ p)\ (hX\ :\ MemLp\ X\ 2\ P)\ :}
+\leanline{4}{MemLp\ (fun\ q\ :\ Ω\ ×\ Fin\ n\ ↦\ controlVariateError\ f\ xstar\ (X\ q.1)\ q.2)}
+\leanline{6}{2\ (P.prod\ (uniformIndexLaw\ n))}
+\end{leancode}
+\leansource{\texttt{controlVariateError\_\allowbreak{}product\_\allowbreak{}measurable} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 294–303}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateError\_product\_measurable\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{\{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(xstar\ :\ State\ p)\ (X\ :\ Ω\ →\ State\ p)\ (hX\ :\ Measurable\ X)\ :}
+\leanline{4}{Measurable\ (fun\ q\ :\ Ω\ ×\ Fin\ n\ ↦\ controlVariateError\ f\ xstar\ (X\ q.1)\ q.2)}
+\end{leancode}
+\leansource{\texttt{controlVariateError\_\allowbreak{}product\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 305–325}
+\begin{leancode}
+\leanline{0}{theorem\ controlVariateError\_product\_second\_moment\_le\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{\{p\ n\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (hn\ :\ 0\ <\ n)\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(xstar\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ xstar\ =\ 0)}
+\leanline{4}{(X\ :\ Ω\ →\ State\ p)\ (hX\ :\ MemLp\ X\ 2\ P)\ :}
+\leanline{4}{(∫\ q\ :\ Ω\ ×\ Fin\ n,\ ‖controlVariateError\ f\ xstar\ (X\ q.1)\ q.2‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂P.prod\ (uniformIndexLaw\ n))\ ≤}
+\leanline{6}{(n\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ rmsComponentSmoothness\ f\ \textasciicircum{}\ 2\ *}
+\leanline{8}{∫\ ω,\ ‖X\ ω\ -\ xstar‖\ \textasciicircum{}\ 2\ ∂P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}finite\_\allowbreak{}index\_\allowbreak{}selector} gives the formal counterpart of this step. The main intermediate facts are \texttt{hset}, \texttt{hsum} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}product\_\allowbreak{}mem\allowbreak{}Lp} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg} in that order. Named proof applications include \texttt{mem\allowbreak{}Lp\_\allowbreak{}finite\_\allowbreak{}index\_\allowbreak{}selector}, \texttt{hg.\allowbreak{}ae\_\allowbreak{}eq}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}product\_\allowbreak{}mem\allowbreak{}Lp} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg}, \texttt{hsum} in that order. Named proof applications include \texttt{h.\allowbreak{}ae\_\allowbreak{}eq}, \texttt{mem\allowbreak{}Lp\_\allowbreak{}finset\allowbreak{}Sum}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}product\_\allowbreak{}measurable} gives the formal counterpart of this step. Named proof applications include \texttt{measurable\_\allowbreak{}from\_\allowbreak{}prod\_\allowbreak{}countable\_\allowbreak{}left}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}product\_\allowbreak{}second\_\allowbreak{}moment\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{hdist} in that order.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.4]{LangevinLean2026ULASC}.
@@ -75,13 +408,23 @@ Earlier results used here: \cite[Section~3.13.4]{LangevinLean2026ULASC}.
 
 Positive strong convexity gives a quadratic lower bound, so the sublevel set \(f(x)\) at most \(f(0)\) is bounded. Continuity and the extreme-value theorem yield a global minimizer. Fermat theorem makes its actual Frechet derivative and gradient zero. If two points had zero gradients, strong gradient monotonicity would force \(m\) times their squared distance to be at most zero. Since \(m\) is positive, the points coincide. The resulting unique minimizer provides the anchor required by the finite-sum algorithm.
 
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}unique\_\allowbreak{}minimizer}}
+\leansource{\texttt{exists\_\allowbreak{}unique\_\allowbreak{}minimizer} \quad AverageLMC/\allowbreak{}SGLDEstimator.lean, lines 329–355}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_unique\_minimizer\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)\ :}
+\leanline{4}{∃!\ xstar,\ (∀\ x,\ f\ xstar\ ≤\ f\ x)\ ∧\ gradient\ f\ xstar\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}unique\_\allowbreak{}minimizer} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hz}, \texttt{hmono}, \texttt{hsq} in that order. Named proof applications include \texttt{is\allowbreak{}Bounded\_\allowbreak{}iff\_\allowbreak{}forall\_\allowbreak{}norm\_\allowbreak{}le.\allowbreak{}mpr}, \texttt{sub\_\allowbreak{}eq\_\allowbreak{}zero.\allowbreak{}mp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
-Earlier results used here: \cite[Section~3.2.2]{LangevinLean2026ULASC}; \cite[Section~3.26.5]{LangevinLean2026ULASC}.
+Earlier results used here: \cite[Section~3.2.3]{LangevinLean2026ULASC}; \cite[Section~3.26.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

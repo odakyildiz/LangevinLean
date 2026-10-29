@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,61 +39,262 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The Hessian comparison needs a Gaussian tail estimate even when the Gaussian velocity and position discrepancy are dependent. The relevant bound is \(\mathbb E(\lVert G\rVert^2-a)_+\le4e^{-(a-p)/4}\) for \(a\ge5p\). The proof below derives its exponential moment and the tail estimate from Gaussian measures.
+Let \(G\) be a standard Gaussian vector in \(\mathbb R^p\), that is, a random vector whose \(p\) coordinates are independent with the standard normal law \(\mathcal N(0,1)\) of density \(\phi(x)=(2\pi)^{-1/2}e^{-x^2/2}\). Write \(u_+=\max(u,0)\) for the positive part. This section proves the tail estimate
+
+
+\[\mathbb E\bigl(\|G\|^2-a\bigr)_+\le4\,e^{-(a-p)/4}\qquad\text{for every }a\ge5p,\]
+
+
+which is the \(\chi^2\) bound used in the paper's comparison of two second-order updates. The proof is a Chernoff-type argument: the exponential moment \(\mathbb E\,e^{\|G\|^2/3}=(\sqrt3)^p\) is computed exactly from the Gaussian density, the positive part is dominated pointwise by an exponential, and the threshold \(a\ge5p\) absorbs the dimension factor.
 
 
 
-The excess of a Gaussian squared norm above a cutoff is controlled through an explicit exponential moment. This is the precise tail quantity needed when a bounded random Hessian difference multiplies a Gaussian velocity.
+
+The bound concerns the expected excess of \(\|G\|^2\) above the level \(a\), not merely the probability of exceeding \(a\). In the final step it is transferred to any random vector whose law is \(\mathcal N(0,I_p)\), on any probability space. No independence between this vector and other random variables is required, which is what the comparison of two coupled second-order chains needs: there the Gaussian velocity and the position discrepancy are built from the same past noise.
 
 
-\section{\texorpdfstring{Compute the scalar exponential square moment with its integrability}{Compute the scalar exponential square moment with its integrability}}
+\section{\texorpdfstring{The scalar exponential square moment}{The scalar exponential square moment}}
 
 
-Multiply the standard Gaussian density by \(e^{x^2/3}\). Its exponent becomes \(-x^2/2+x^2/3=-x^2/6\). The real Gaussian integral therefore gives \(\mathbb Ee^{G^2/3}=\sqrt3\). The proof establishes integrability of this weighted density before computing its integral, so the Bochner integral cannot conceal divergence. The argument uses the Gaussian density, the with-density integrability equivalence, the real Gaussian integral and exact square-root algebra.
+\textbf{Claim.} Let \(g\sim\mathcal N(0,1)\). The function \(x\mapsto e^{x^2/3}\) is integrable with respect to \(\mathcal N(0,1)\), and
 
 
-
-The exponential tilt changes the scalar Gaussian precision from one to one third. Its normalization ratio is therefore \(\sqrt3\). Establishing integrability before evaluation is essential because the later cutoff argument needs a finite majorant.
-
-
-\section{\texorpdfstring{Multiply the independent coordinate moments}{Multiply the independent coordinate moments}}
+\[\mathbb E\,e^{g^2/3}=\int_{\mathbb R}e^{x^2/3}\,\phi(x)\,dx=\sqrt3.\]
 
 
-Since \(e^{\lVert G\rVert^2/3}=\prod_i e^{G_i^2/3}\), product integrability and finite-product Fubini give \(\mathbb Ee^{\lVert G\rVert^2/3}=(\sqrt3)^p\). The proof works on the constructed product of scalar Gaussian measures and uses its established Euclidean standard-Gaussian pushforward. This handles dimension zero as well.
+\textbf{Proof.} For every real \(x\),
 
 
-
-The product identity uses independence of the Gaussian coordinates. Each factor has the same finite exponential moment, so Fubini multiplies them. Dimension enters through the number of factors, which is why the later exponent contains a term proportional to \(p\).
-
-
-\section{\texorpdfstring{Choose an elementary Chernoff tilt}{Choose an elementary Chernoff tilt}}
+\[\phi(x)\,e^{x^2/3}=(2\pi)^{-1/2}\exp\Bigl(-\frac{x^2}{2}+\frac{x^2}{3}\Bigr)=(2\pi)^{-1/2}e^{-x^2/6}.\qquad(1)\]
 
 
-The elementary bound \(e^u\ge1+u\) at \(u=1/3\), raised to the fourth power, proves \(\sqrt3\le e^{2/3}\). Also \((y-a)_+\le3e^{(y-a)/3}\), since its positive branch is bounded using the same exponential inequality and its zero branch is nonnegative. These two inequalities give a convenient exponential moment estimate by direct use of the Gaussian density.
+The function \(e^{-bx^2}\) is Lebesgue integrable on \(\mathbb R\) for every \(b>0\), with \(\int_{\mathbb R}e^{-bx^2}dx=\sqrt{\pi/b}\) (the Gaussian integral). Taking \(b=1/6\), the right-hand side of (1) is Lebesgue integrable. Since \(\mathcal N(0,1)\) has density \(\phi\) with respect to Lebesgue measure, a function \(u\) is \(\mathcal N(0,1)\)-integrable exactly when \(\phi u\) is Lebesgue integrable, and then \(\int u\,d\mathcal N(0,1)=\int\phi u\,dx\). This proves integrability, and
 
 
-
-For \(y>a\), the inequality \((y-a)\le3e^{(y-a)/3}\) follows by scaling the elementary exponential bound. For \(y\le a\), the positive part vanishes. This provides one pointwise estimate valid on both sides of the cutoff.
-
-
-\section{\texorpdfstring{Integrate the positive-part bound and use the threshold}{Integrate the positive-part bound and use the threshold}}
+\[\int_{\mathbb R}e^{x^2/3}\phi(x)\,dx=(2\pi)^{-1/2}\sqrt{\frac{\pi}{1/6}}=\sqrt{\frac{6\pi}{2\pi}}=\sqrt3.\]
 
 
-Applying the pointwise bound to \(y=\lVert G\rVert^2\) gives \(\mathbb E(y-a)_+\le3e^{-a/3}(\sqrt3)^p\le3e^{-a/3+2p/3}\). If \(a\ge5p\), the exponent is at most \(-(a-p)/4\). Replacing the factor three by four yields exactly the source bound. First, the argument derives integrability of the positive part from its integrable exponential majorant, then applies integral monotonicity, the exact moment and scalar exponent comparison.
+Equivalently, both sides are nonnegative and their squares are \(6\pi/(2\pi)=3\). \(\square\)
 
 
 
-The threshold \(a\ge5p\) absorbs the exponential-moment dimension factor into a decaying tail. The resulting bound controls the excess above the cutoff, rather than merely the probability of exceeding it. That stronger quantity is what appears after squaring the truncated operator estimate.
+
+Integrability is established before the integral is evaluated. This matters below, where \(e^{\|G\|^2/3}\) serves as an integrable majorant.
+
+\begin{leanbox}{Lean: \texttt{scalarGaussian\_\allowbreak{}exp\_\allowbreak{}square\_\allowbreak{}third}}
+\leansource{\texttt{scalarGaussian\_\allowbreak{}exp\_\allowbreak{}square\_\allowbreak{}third} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 12–38}
+\begin{leancode}
+\leanline{0}{theorem\ scalarGaussian\_exp\_square\_third\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ ℝ\ ↦\ Real.exp\ (x\textasciicircum{}2/3))\ (gaussianReal\ 0\ 1)\ ∧}
+\leanline{6}{(∫\ x\ :\ ℝ,Real.exp\ (x\textasciicircum{}2/3)\ ∂gaussianReal\ 0\ 1)=Real.sqrt\ 3}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{scalar\allowbreak{}Gaussian\_\allowbreak{}exp\_\allowbreak{}square\_\allowbreak{}third} is a conjunction: \texttt{Integrable (fun x : \ensuremath{\mathbb R} \ensuremath{\mapsto} Real.\allowbreak{}exp (x\textasciicircum{}2/\allowbreak{}3)) (gaussian\allowbreak{}Real 0 1)} and the value of the integral. Here \texttt{gaussian\allowbreak{}Real 0 1} is Mathlib's real Gaussian measure with mean \(0\) and variance \(1\), and \texttt{\ensuremath{\int} x, u x \ensuremath{\partial}\ensuremath{\nu}} is the integral with respect to the measure \(\nu\).
 
 
-\section{\texorpdfstring{Use the bound on the original coupled probability space}{Use the bound on the original coupled probability space}}
+
+\begin{enumerate}
 
 
-The pushforward integration identity transfers the estimate to any standard-Gaussian velocity. Its joint distribution with a numerical position discrepancy is unrestricted. This is essential for a synchronous sampling proof, where past noise generally makes those two variables dependent.
+\item \texttt{hmul} is identity (1): after unfolding \texttt{gaussian\allowbreak{}PDFReal}, the two exponentials are combined by \texttt{Real.\allowbreak{}exp\_\allowbreak{}add} and the exponent is simplified by \texttt{ring}.
+
+\item \texttt{hi} is the Lebesgue integrability of \(\phi(x)e^{x^2/3}\), from \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}sq} with \(b=1/6\), multiplied by a constant.
+
+\item For integrability with respect to the Gaussian measure, \texttt{gaussian\allowbreak{}Real\_\allowbreak{}of\_\allowbreak{}var\_\allowbreak{}ne\_\allowbreak{}zero} writes \texttt{gaussian\allowbreak{}Real 0 1} as Lebesgue measure with density \texttt{gaussian\allowbreak{}PDF 0 1}, and \texttt{integrable\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}smul'} reduces the statement to \texttt{hi}.
+
+\item For the value, \texttt{integral\_\allowbreak{}gaussian\allowbreak{}Real\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}smul} converts the Gaussian integral into \(\int\phi u\,dx\), \texttt{hmul} rewrites the integrand, and \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul} with \texttt{integral\_\allowbreak{}gaussian} (\(\int e^{-bx^2}dx=\sqrt{\pi/b}\)) evaluates it. The resulting identity of square roots is checked on squares: \texttt{sq\_\allowbreak{}eq\_\allowbreak{}sq\ensuremath{{}_{0}}} reduces it to equality of squares of nonnegative numbers, \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt} evaluates the squares, and \texttt{field\_\allowbreak{}simp} and \texttt{ring} verify \(\frac{1}{2\pi}\cdot\frac{\pi}{1/6}=3\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The exponential moment of the squared Gaussian norm}{The exponential moment of the squared Gaussian norm}}
+
+
+\textbf{Claim.} Let \(G\sim\mathcal N(0,I_p)\) on \(\mathbb R^p\), \(p\ge0\). The function \(z\mapsto e^{\|z\|^2/3}\) is \(\mathcal N(0,I_p)\)-integrable and
+
+
+\[\mathbb E\,e^{\|G\|^2/3}=(\sqrt3)^p.\]
+
+
+\textbf{Proof.} The law \(\mathcal N(0,I_p)\) is the image of the product measure \(\mathcal N(0,1)^{\otimes p}\) on \(\mathbb R^p\) under the identification of coordinate vectors with Euclidean vectors. Hence it suffices to integrate \(w\mapsto e^{\|w\|^2/3}\) against the product measure. For \(w=(w_1,\dots,w_p)\), \(\|w\|^2=\sum_iw_i^2\), so
+
+
+\[e^{\|w\|^2/3}=\exp\Bigl(\sum_{i=1}^p\frac{w_i^2}{3}\Bigr)=\prod_{i=1}^pe^{w_i^2/3}.\qquad(1)\]
+
+
+Each factor is integrable with respect to its coordinate measure \(\mathcal N(0,1)\) by the previous step. A product \(\prod_iu_i(w_i)\) of functions each integrable in its own variable is integrable with respect to the product measure, and by Fubini's theorem its integral is the product of the integrals. Therefore the function (1) is integrable and
+
+
+\[\int e^{\|w\|^2/3}\,\mathcal N(0,1)^{\otimes p}(dw)=\prod_{i=1}^p\int_{\mathbb R}e^{x^2/3}\,\mathcal N(0,1)(dx)=(\sqrt3)^p.\]
+
+
+Integrability and the value of the integral transfer to the image measure \(\mathcal N(0,I_p)\) by the change-of-variables formula for image measures. For \(p=0\) the space is a single point, the integrand is \(e^0=1\) and both sides equal \(1\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{stdGaussian\_\allowbreak{}exp\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}third}}
+\leansource{\texttt{stdGaussian\_\allowbreak{}exp\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}third} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 42–59}
+\begin{leancode}
+\leanline{0}{theorem\ stdGaussian\_exp\_norm\_square\_third\ (ι\ :\ Type*)\ [Fintype\ ι]\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ EuclideanSpace\ ℝ\ ι\ ↦\ Real.exp\ (‖z‖\textasciicircum{}2/3))\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ ∧}
+\leanline{6}{(∫\ z\ :\ EuclideanSpace\ ℝ\ ι,Real.exp\ (‖z‖\textasciicircum{}2/3)\ ∂stdGaussian\ (EuclideanSpace\ ℝ\ ι))=}
+\leanline{8}{(Real.sqrt\ 3)\textasciicircum{}(Fintype.card\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{std\allowbreak{}Gaussian\_\allowbreak{}exp\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}third}, \texttt{std\allowbreak{}Gaussian (Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota})} is Mathlib's standard Gaussian measure on \(\mathbb R^p\), \(p\) being \texttt{Fintype.\allowbreak{}card \ensuremath{\iota}}. The proof works with \texttt{\ensuremath{\mu} := Measure.\allowbreak{}pi (fun \_\allowbreak{} : \ensuremath{\iota} \ensuremath{\mapsto} gaussian\allowbreak{}Real 0 1)}, the product of \(p\) scalar Gaussians on the function space \texttt{\ensuremath{\iota} \ensuremath{\to} \ensuremath{\mathbb R}}.
 
 
 
-Only the velocity marginal is used in the tail integral. The displacement and velocity may remain dependent on the common coupling space. This is necessary when the displacement was created by earlier steps of the same numerical process.
+\begin{enumerate}
 
+
+\item \texttt{he} is identity (1), stated for \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 w}, the Euclidean vector with coordinates \texttt{w}: \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq} writes the squared norm as a sum, then \texttt{Finset.\allowbreak{}sum\_\allowbreak{}div} and \texttt{Real.\allowbreak{}exp\_\allowbreak{}sum} turn the exponential of a sum into a product.
+
+\item \texttt{hi} is integrability under the product measure, by \texttt{Integrable.\allowbreak{}fintype\_\allowbreak{}prod} applied to the scalar integrability from \texttt{scalar\allowbreak{}Gaussian\_\allowbreak{}exp\_\allowbreak{}square\_\allowbreak{}third}.
+
+\item \texttt{rw [← map\_\allowbreak{}pi\_\allowbreak{}eq\_\allowbreak{}std\allowbreak{}Gaussian]} replaces the standard Gaussian by the image of the product measure under \texttt{to\allowbreak{}Lp 2}. Integrability transfers by \texttt{integrable\_\allowbreak{}map\_\allowbreak{}measure}; for the value, \texttt{integral\_\allowbreak{}map} moves the integral to the product space and \texttt{integral\_\allowbreak{}fintype\_\allowbreak{}prod\_\allowbreak{}eq\_\allowbreak{}prod} (Fubini for finite products) factorizes it. The final \texttt{simp only} inserts the scalar value \(\sqrt3\) and evaluates the constant product as \((\sqrt3)^p\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Two elementary exponential inequalities}{Two elementary exponential inequalities}}
+
+
+\textbf{Claim.} (a) \(\sqrt3\le e^{2/3}\). (b) For all real \(y\) and \(a\), \((y-a)_+\le3\,e^{(y-a)/3}\).
+
+
+
+
+\textbf{Proof.} Both parts use the inequality \(e^u\ge1+u\), valid for every real \(u\) (the exponential is convex and \(1+u\) is its tangent line at \(0\)).
+
+
+
+
+(a) With \(u=1/3\), \(e^{1/3}\ge4/3\). Since both sides are nonnegative, raising to the fourth power preserves the inequality:
+
+
+\[\bigl(e^{2/3}\bigr)^2=e^{4/3}=\bigl(e^{1/3}\bigr)^4\ge\Bigl(\frac43\Bigr)^4=\frac{256}{81}\ge3=\bigl(\sqrt3\bigr)^2.\]
+
+
+Since \(e^{2/3}>0\) and \(\sqrt3\ge0\), the inequality between squares gives \(\sqrt3\le e^{2/3}\).
+
+
+
+
+(b) The positive part is the larger of \(y-a\) and \(0\), so it suffices to bound both. With \(u=(y-a)/3\), \(3e^u\ge3+3u\ge3u=y-a\). Also \(3e^u>0\). \(\square\)
+
+
+
+
+Part (b) holds for every \(y\), on both sides of the cutoff \(a\); it is the pointwise Chernoff bound with parameter \(1/3\). Part (a) converts the factor \((\sqrt3)^p\) into the exponential \(e^{2p/3}\).
+
+\begin{leanbox}{Lean: \texttt{sqrt\_\allowbreak{}three\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}two\_\allowbreak{}thirds}, \texttt{positivePart\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}third}}
+\leansource{\texttt{sqrt\_\allowbreak{}three\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}two\_\allowbreak{}thirds} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 63–75}
+\begin{leancode}
+\leanline{0}{theorem\ sqrt\_three\_le\_exp\_two\_thirds\ :\ Real.sqrt\ 3\ ≤\ Real.exp\ (2/3\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{positivePart\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}third} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 78–82}
+\begin{leancode}
+\leanline{0}{theorem\ positivePart\_le\_exp\_third\ (y\ a\ :\ ℝ)\ :}
+\leanline{4}{max\ (y-a)\ 0\ ≤\ 3*Real.exp\ ((y-a)/3)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{sqrt\_\allowbreak{}three\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}two\_\allowbreak{}thirds}: \texttt{he} is \(4/3\le e^{1/3}\) from \texttt{Real.\allowbreak{}add\_\allowbreak{}one\_\allowbreak{}le\_\allowbreak{}exp}; \texttt{hp} raises it to the fourth power with \texttt{pow\_\allowbreak{}le\_\allowbreak{}pow\_\allowbreak{}left\ensuremath{{}_{0}}}; \texttt{hid} is the identity \((e^{2/3})^2=(e^{1/3})^4\), obtained by splitting exponents with \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}; \texttt{hs} is \((\sqrt3)^2=3\). After \texttt{norm\_\allowbreak{}num} evaluates \((4/3)^4\), \texttt{nlinarith} concludes from the nonnegativity of \(\sqrt3\) and the positivity of \(e^{2/3}\).
+
+
+
+
+\texttt{positive\allowbreak{}Part\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}third} writes the positive part as \texttt{max (y-\allowbreak{}a) 0}. \texttt{max\_\allowbreak{}le} splits the goal into the two branches: the first is \texttt{linarith} from \texttt{Real.\allowbreak{}add\_\allowbreak{}one\_\allowbreak{}le\_\allowbreak{}exp ((y-\allowbreak{}a)/\allowbreak{}3)}, and the second, \(0\le3e^{(y-a)/3}\), is \texttt{positivity}.
+\end{leanbox}
+
+\section{\texorpdfstring{The tail bound for the standard Gaussian law}{The tail bound for the standard Gaussian law}}
+
+
+\textbf{Claim.} Let \(p\ge0\) and \(a\in\mathbb R\) with \(a\ge5p\). Then the function \(z\mapsto(\|z\|^2-a)_+\) is \(\mathcal N(0,I_p)\)-integrable and
+
+
+\[\int_{\mathbb R^p}\bigl(\|z\|^2-a\bigr)_+\,\mathcal N(0,I_p)(dz)\le4\,e^{-(a-p)/4}.\]
+
+
+\textbf{Proof.} By the previous step (b) with \(y=\|z\|^2\), and \(e^{(y-a)/3}=e^{-a/3}e^{y/3}\),
+
+
+\[\bigl(\|z\|^2-a\bigr)_+\le3e^{-a/3}\,e^{\|z\|^2/3}\qquad\text{for every }z\in\mathbb R^p.\qquad(1)\]
+
+
+The right-hand side of (1) is integrable by the second step. The left-hand side is continuous, hence measurable, and nonnegative, so (1) dominates its absolute value; therefore it is integrable. Integrating (1) (monotonicity of the integral) and using the second step,
+
+
+\[\int\bigl(\|z\|^2-a\bigr)_+\,d\mathcal N(0,I_p)\le3e^{-a/3}(\sqrt3)^p.\]
+
+
+By part (a) of the previous step and monotonicity of \(t\mapsto t^p\) on \([0,\infty)\), \((\sqrt3)^p\le(e^{2/3})^p=e^{2p/3}\). Hence the integral is at most \(3\exp(-a/3+2p/3)\). The exponent satisfies
+
+
+\[-\frac a3+\frac{2p}{3}\le-\frac{a-p}{4}\iff-4a+8p\le-3a+3p\iff5p\le a,\]
+
+
+which is the hypothesis. Since the exponential is increasing, the integral is at most \(3e^{-(a-p)/4}\le4e^{-(a-p)/4}\). \(\square\)
+
+
+
+
+The hypothesis \(a\ge5p\) is used only in the comparison of exponents; it absorbs the dimension factor \(e^{2p/3}\) of the exponential moment. The constant \(4\) is the one of the paper; the proof gives \(3\).
+
+\begin{leanbox}{Lean: \texttt{stdGaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positivePart\_\allowbreak{}le}}
+\leansource{\texttt{stdGaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positivePart\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 86–120}
+\begin{leancode}
+\leanline{0}{theorem\ stdGaussian\_norm\_square\_positivePart\_le\ (ι\ :\ Type*)\ [Fintype\ ι]}
+\leanline{4}{(a\ :\ ℝ)\ (ha\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤a)\ :}
+\leanline{4}{(∫\ z\ :\ EuclideanSpace\ ℝ\ ι,max\ (‖z‖\textasciicircum{}2-a)\ 0\ ∂stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ ≤}
+\leanline{6}{4*Real.exp\ (-(a-(Fintype.card\ ι\ :\ ℝ))/4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{std\allowbreak{}Gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positive\allowbreak{}Part\_\allowbreak{}le} takes the threshold hypothesis \texttt{ha : 5*(Fintype.\allowbreak{}card \ensuremath{\iota} : \ensuremath{\mathbb R})\ensuremath{\le}a}, with the dimension coerced to a real number.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hm} is the previous exponential moment result; \texttt{hpoint} is inequality (1), derived from \texttt{positive\allowbreak{}Part\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}third} after splitting the exponent with \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}.
+
+\item \texttt{hi} is integrability of the majorant (a constant multiple of \texttt{hm.\allowbreak{}1}), and \texttt{htail} is integrability of the positive part by \texttt{hi.\allowbreak{}mono'}: a measurable function whose norm is bounded by an integrable function is integrable. The bound on the norm uses \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, since the positive part is nonnegative.
+
+\item \texttt{hb} is the integrated inequality from \texttt{integral\_\allowbreak{}mono}, with \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul} and \texttt{hm.\allowbreak{}2} inserting the value \((\sqrt3)^p\).
+
+\item \texttt{hp} is \((\sqrt3)^p\le e^{2p/3}\), from \texttt{pow\_\allowbreak{}le\_\allowbreak{}pow\_\allowbreak{}left\ensuremath{{}_{0}}} and \texttt{sqrt\_\allowbreak{}three\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}two\_\allowbreak{}thirds}, with \texttt{Real.\allowbreak{}exp\_\allowbreak{}nat\_\allowbreak{}mul} rewriting \((e^{2/3})^p\).
+
+\item The final \texttt{calc} follows the displayed chain: the exponent comparison is \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp} with \texttt{linarith} using \texttt{ha}, and the last line replaces \(3\) by \(4\) using positivity of the exponential.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Transfer to any standard Gaussian random vector}{Transfer to any standard Gaussian random vector}}
+
+
+\textbf{Claim.} Let \((\Omega,\mathcal F,\mathbb P)\) be a measure space and \(V:\Omega\to\mathbb R^p\) an almost everywhere measurable map whose law (image measure) \(\mathbb P\circ V^{-1}\) is \(\mathcal N(0,I_p)\). Then for every \(a\ge5p\),
+
+
+\[\mathbb E\bigl(\|V\|^2-a\bigr)_+=\int_\Omega\bigl(\|V(\omega)\|^2-a\bigr)_+\,\mathbb P(d\omega)\le4\,e^{-(a-p)/4}.\]
+
+
+\textbf{Proof.} The function \(u(x)=(\|x\|^2-a)_+\) is continuous on \(\mathbb R^p\). By the change-of-variables formula for image measures, \(\int_\Omega u(V)\,d\mathbb P=\int_{\mathbb R^p}u\,d(\mathbb P\circ V^{-1})=\int u\,d\mathcal N(0,I_p)\). The previous step bounds the last integral by \(4e^{-(a-p)/4}\). \(\square\)
+
+
+
+
+Only the law of \(V\) enters. The probability space may carry other random variables, such as a position discrepancy produced by the same noise, with an arbitrary joint law with \(V\).
+
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positivePart\_\allowbreak{}le}}
+\leansource{\texttt{gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positivePart\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 124–131}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_norm\_square\_positivePart\_le\ \{Ω\ ι\ :\ Type*\}\ [MeasurableSpace\ Ω]\ [Fintype\ ι]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (V\ :\ Ω\ →\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(hV\ :\ HasLaw\ V\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)}
+\leanline{4}{(a\ :\ ℝ)\ (ha\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤a)\ :}
+\leanline{4}{(∫\ ω,max\ (‖V\ ω‖\textasciicircum{}2-a)\ 0\ ∂P)≤4*Real.exp\ (-(a-(Fintype.card\ ι\ :\ ℝ))/4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positive\allowbreak{}Part\_\allowbreak{}le} takes a measure \texttt{P} on a type \texttt{\ensuremath{\Omega}}, a map \texttt{V : \ensuremath{\Omega} \ensuremath{\to} Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota}} and \texttt{h\allowbreak{}V : Has\allowbreak{}Law V (std\allowbreak{}Gaussian (Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota})) P}. The Mathlib structure \texttt{Has\allowbreak{}Law} consists of almost-everywhere measurability of \texttt{V} and the equation \texttt{P.\allowbreak{}map V = std\allowbreak{}Gaussian \_\allowbreak{}}. The proof is two lines: \texttt{he} is the change of variables \texttt{h\allowbreak{}V.\allowbreak{}integral\_\allowbreak{}comp} for the continuous function \(u\) (its measurability is supplied by \texttt{fun\_\allowbreak{}prop}), and \texttt{he.\allowbreak{}trans\_\allowbreak{}le} composes this equality with \texttt{std\allowbreak{}Gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positive\allowbreak{}Part\_\allowbreak{}le}.
+\end{leanbox}
 
 \end{document}

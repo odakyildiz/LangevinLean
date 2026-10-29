@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,295 +32,478 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Couplings and quadratic transport}{Couplings and quadratic transport}}
+\title{\texorpdfstring{Couplings and the quadratic transport distance}{Couplings and the quadratic transport distance}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Let \(H\) be a second-countable normed space with its Borel sigma-algebra. A coupling of \(\mu,\nu\) is a measure \(\gamma\) on \(H\times H\) with those marginals. Set \(c(\gamma)=(\int\|x-y\|^2d\gamma)^{1/2}\) and \(W_2(\mu,\nu)=\inf_{\gamma\in\Gamma(\mu,\nu)}c(\gamma)\), with extended nonnegative values allowed. A coupling with finite cost proves that this transport infimum is finite.
+Let \(H\) be a normed additive group (for instance a normed space) whose topology is second countable, equipped with its Borel \(\sigma\)-algebra; then the Borel \(\sigma\)-algebra of \(H\times H\) is the product \(\sigma\)-algebra and \((x,y)\mapsto x-y\) is measurable. For a measure \(\mu\) and a measurable map \(f\), the image measure is \(f_\#\mu(A)=\mu(f^{-1}(A))\). A \emph{coupling} of two measures \(\mu,\nu\) on \(H\) is a measure \(\gamma\) on \(H\times H\) whose marginals \((\mathrm{pr}_1)_\#\gamma\) and \((\mathrm{pr}_2)_\#\gamma\) are \(\mu\) and \(\nu\); the set of couplings is \(\Gamma(\mu,\nu)\).
 
 
 
-For measurable random vectors on the same probability space, the joint law is a coupling of their marginal laws, and its cost equals \(\|X-Y\|_2\). Consequently an estimate of the mean-square difference bounds the transport distance. The same statements hold for almost-everywhere measurable representatives. Pointwise domination, Minkowski, and finite second moments give the one-step error estimates below; independence of the compared variables is not required.
 
-
-\section{\texorpdfstring{Definition of a coupling}{Definition of a coupling}}
-
-
-A coupling of measures \(\mu,\nu\) on \(H\) is a joint measure \(\gamma\) on \(H\times H\) with those two marginals. Denote the family by \(\Gamma(\mu,\nu)\).
+For a measure \(P\) on \(\Omega\) and a function \(f:\Omega\to H\) we use the extended \(L^2\)-norm \(\|f\|_{2,P}=(\int\|f\|^2\,dP)^{1/2}\in[0,\infty]\) when \(f\) is \(P\)-almost everywhere strongly measurable (equal almost everywhere to a pointwise limit of measurable functions with finitely many values), and \(\|f\|_{2,P}=\infty\) otherwise. With this convention, Minkowski's inequality \(\|f-g\|_{2,P}\le\|f\|_{2,P}+\|g\|_{2,P}\) holds for all \(f,g\), and \(\|f\|_{2,P}\) does not change if \(f\) is modified on a null set. In \([0,\infty]\) we use \(a+\infty=\infty\), \(a\cdot\infty=\infty\) for \(a>0\) and \(0\cdot\infty=0\).
 
 
 
-Choose the joint measure \(\gamma\) on pairs \((x,y)\).
+
+The quadratic cost of \(\gamma\) is \(c(\gamma)=\|(x,y)\mapsto x-y\|_{2,\gamma}=(\int\|x-y\|^2\,\gamma(dx,dy))^{1/2}\), and the quadratic Wasserstein distance is
+
+
+\[W_2(\mu,\nu)=\inf_{\gamma\in\Gamma(\mu,\nu)}c(\gamma)\in[0,\infty],\]
+
+
+with \(\inf\varnothing=\infty\). We also use the real number \(W_2^{\mathbb R}(\mu,\nu)\), equal to \(W_2(\mu,\nu)\) if this is finite and to \(0\) otherwise; every bound below on \(W_2^{\mathbb R}\) is accompanied by a proof or a hypothesis of finiteness. No optimal coupling and no metric property of \(W_2\) is used.
 
 
 
-Require \((\operatorname{pr}_1)_\#\gamma=\mu\) and \((\operatorname{pr}_2)_\#\gamma=\nu\).
+
+The main facts are: every coupling bounds \(W_2\) from above; the joint law \((X,Y)_\#P\) of two random vectors is a coupling of their laws, with cost \(\|X-Y\|_{2,P}\), so \(W_2(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}\); and if \(X'-Y'=A-V\) with \(\|A\|\le q\|X-Y\|\) pointwise, then Minkowski's inequality gives \(\|X'-Y'\|_{2,P}\le q\|X-Y\|_{2,P}+\|V\|_{2,P}\). Combined, these turn a pointwise contraction plus a defect into a bound on the transport distance between the laws of the next pair. No independence between the compared random vectors is required.
+
+
+\section{\texorpdfstring{Couplings}{Couplings}}
+
+
+\textbf{Definition.} Let \(\mu,\nu\) be measures on \(H\). A coupling of \(\mu\) and \(\nu\) is a measure \(\gamma\) on \(H\times H\) such that
+
+
+\[(\mathrm{pr}_1)_\#\gamma=\mu\quad\text{and}\quad(\mathrm{pr}_2)_\#\gamma=\nu,\qquad\text{i.e.}\quad\gamma(A\times H)=\mu(A),\ \gamma(H\times B)=\nu(B)\]
+
+
+for all Borel sets \(A,B\subseteq H\).
 
 
 
-The two marginal conditions say that integrating a test depending only on the first coordinate reproduces its integral under \(\mu\), and likewise for the second coordinate and \(\nu\). Dependence between the two coordinates is unrestricted. In particular, the variables may be defined using common innovations when constructing an upper bound on their distance.
+
+The dependence between the two coordinates is arbitrary. For probability measures the product \(\mu\otimes\nu\) is a coupling, so \(\Gamma(\mu,\nu)\) is nonempty.
+
+\begin{leanbox}{Lean: \texttt{Coupling}}
+\leansource{\texttt{Coupling} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 31–34}
+\begin{leancode}
+\leanline{0}{structure\ Coupling\ (μ\ ν\ :\ Measure\ H)\ where}
+\leanline{2}{joint\ :\ Measure\ (H\ ×\ H)}
+\leanline{2}{fst\ :\ joint.map\ Prod.fst\ =\ μ}
+\leanline{2}{snd\ :\ joint.map\ Prod.snd\ =\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{structure Coupling (\ensuremath{\mu} \ensuremath{\nu} : Measure H)} has three fields: \texttt{joint : Measure (H \ensuremath{\times} H)} is \(\gamma\); \texttt{fst : joint.\allowbreak{}map Prod.\allowbreak{}fst = \ensuremath{\mu}} and \texttt{snd : joint.\allowbreak{}map Prod.\allowbreak{}snd = \ensuremath{\nu}} are the two marginal conditions, where \texttt{\ensuremath{\gamma}.\allowbreak{}map f} is the image measure \(f_\#\gamma\) and \texttt{Prod.\allowbreak{}fst}, \texttt{Prod.\allowbreak{}snd} are the projections. An element of the structure is a coupling together with the proofs of its marginal conditions.
+\end{leanbox}
+
+\section{\texorpdfstring{The quadratic cost of a coupling}{The quadratic cost of a coupling}}
 
 
-\section{\texorpdfstring{Definition of quadratic coupling cost}{Definition of quadratic coupling cost}}
+\textbf{Definition.} For a measure \(\gamma\) on \(H\times H\),
 
 
-For a joint measure \(\gamma\), define
-
-\[c(\gamma)=\left(\int\|x-y\|^2\,d\gamma(x,y)\right)^{1/2}\in[0,+\infty].\]
-
-Take the extended \(L^2(\gamma)\) norm of the displacement map \((x,y)\mapsto x-y\).
+\[c(\gamma)=\|(x,y)\mapsto x-y\|_{2,\gamma}=\Bigl(\int_{H\times H}\|x-y\|^2\,\gamma(dx,dy)\Bigr)^{1/2}\in[0,\infty].\]
 
 
+The displacement \((x,y)\mapsto x-y\) is continuous, hence measurable, so the integral formula applies. The value \(\infty\) is allowed; it occurs exactly when the second moment of the displacement is infinite.
 
-The square root is taken after the squared separation has been integrated. This is a root mean square cost and differs from the mean distance. The extended value allows couplings with infinite second displacement moment; later finite-moment lemmas identify when this cost is an ordinary real number.
+\begin{leanbox}{Lean: \texttt{couplingCost}}
+\leansource{\texttt{couplingCost} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 37–38}
+\begin{leancode}
+\leanline{0}{def\ couplingCost\ (γ\ :\ Measure\ (H\ ×\ H))\ :\ ℝ≥0∞\ :=}
+\leanline{2}{eLpNorm\ (fun\ p\ :\ H\ ×\ H\ ↦\ p.1\ -\ p.2)\ 2\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coupling\allowbreak{}Cost \ensuremath{\gamma}} is \texttt{e\allowbreak{}Lp\allowbreak{}Norm (fun p : H \ensuremath{\times} H \ensuremath{\mapsto} p.\allowbreak{}1 -\allowbreak{} p.\allowbreak{}2) 2 \ensuremath{\gamma}}. Mathlib's \texttt{e\allowbreak{}Lp\allowbreak{}Norm f p \ensuremath{\mu}} is the extended \(L^p\)-seminorm with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, the extended nonnegative reals \([0,\infty]\): for \(p=2\) and an almost everywhere strongly measurable \(f\) it equals \((\int\|f\|^2\,d\mu)^{1/2}\), and it is \(\infty\) for other functions. Keeping the value in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} prevents an infinite cost from being silently replaced by a real number.
+\end{leanbox}
 
-
-\section{\texorpdfstring{Definition of the transport infimum}{Definition of the transport infimum}}
-
-
-Define the extended quadratic transport distance by
-
-\[W_2(\mu,\nu)=\inf_{\gamma\in\Gamma(\mu,\nu)}c(\gamma).\]
-
-Take the infimum over all couplings without selecting a minimizer.
-
-
-
-The infimum optimizes over dependence while fixing both marginal laws. Every admissible coupling gives an upper bound, and nearly optimal couplings suffice for passing affine estimates to the infimum. The definition therefore does not require choosing an optimizer or proving that an optimal transport plan exists.
+\section{\texorpdfstring{The quadratic Wasserstein distance}{The quadratic Wasserstein distance}}
 
 
-\section{\texorpdfstring{Finiteness of the transport distance}{Finiteness of the transport distance}}
+\textbf{Definition.} For measures \(\mu,\nu\) on \(H\),
 
 
-The transport cost is initially allowed to lie in \([0,\infty]\). Whenever \(W_2(\mu,\nu)<\infty\), we use the same notation for its ordinary nonnegative real value. Every finite transport estimate below first proves this finiteness, usually by exhibiting a coupling whose displacement belongs to \(L^2\).
+\[W_2(\mu,\nu)=\inf_{\gamma\in\Gamma(\mu,\nu)}c(\gamma)\in[0,\infty],\]
 
 
+the infimum being taken in \([0,\infty]\), so that \(W_2(\mu,\nu)=\infty\) if \(\Gamma(\mu,\nu)=\varnothing\) or every coupling has infinite cost.
 
-Indeed, if \(\gamma\in\Gamma(\mu,\nu)\) has finite cost \(c(\gamma)\), then \(0\le W_2(\mu,\nu)\le c(\gamma)<\infty\). All subsequent real inequalities involving this distance are consequently inequalities between finite numbers. Without the finite-cost hypothesis, the extended distance remains available, but it cannot be used in ordinary subtraction or division.
+\begin{leanbox}{Lean: \texttt{wasserstein2}}
+\leansource{\texttt{wasserstein2} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 41–42}
+\begin{leancode}
+\leanline{0}{def\ wasserstein2\ (μ\ ν\ :\ Measure\ H)\ :\ ℝ≥0∞\ :=}
+\leanline{2}{{\leanfallback ⨅}\ c\ :\ Coupling\ μ\ ν,\ couplingCost\ c.joint}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2 \ensuremath{\mu} \ensuremath{\nu}} is \texttt{{\leanfallback ⨅} c : Coupling \ensuremath{\mu} \ensuremath{\nu}, coupling\allowbreak{}Cost c.\allowbreak{}joint}, an indexed infimum in the complete lattice \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}; the infimum over an empty index type is the top element \(\infty\).
+\end{leanbox}
+
+\section{\texorpdfstring{The real-valued distance}{The real-valued distance}}
 
 
-\section{\texorpdfstring{Every coupling supplies an upper bound}{Every coupling supplies an upper bound}}
-
-
-For every \(\gamma\in\Gamma(\mu,\nu)\), \(W_2(\mu,\nu)\le c(\gamma)\).
-
-
-
-An infimum is at most each member of the family. Apply this to the chosen coupling.
+\textbf{Definition.} For measures \(\mu,\nu\) on \(H\), let \(W_2^{\mathbb R}(\mu,\nu)=W_2(\mu,\nu)\) if \(W_2(\mu,\nu)<\infty\), and \(W_2^{\mathbb R}(\mu,\nu)=0\) if \(W_2(\mu,\nu)=\infty\).
 
 
 
-The comparison follows directly from the defining lower-bound property of an infimum. The selected coupling need not minimize the cost. In particular, the joint law generated by running two algorithms on the same noise can be inserted immediately once its marginals are identified.
 
+This real number coincides with the transport distance whenever the latter is finite. The theorems below that bound \(W_2^{\mathbb R}\) either assume finiteness or prove it from a coupling of finite cost, so the value \(0\) assigned to an infinite distance never enters a conclusion.
+
+\begin{leanbox}{Lean: \texttt{wasserstein2Real}}
+\leansource{\texttt{wasserstein2Real} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 46–46}
+\begin{leancode}
+\leanline{0}{def\ wasserstein2Real\ (μ\ ν\ :\ Measure\ H)\ :\ ℝ\ :=\ (wasserstein2\ μ\ ν).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\allowbreak{}Real \ensuremath{\mu} \ensuremath{\nu}} is \texttt{(wasserstein2 \ensuremath{\mu} \ensuremath{\nu}).\allowbreak{}to\allowbreak{}Real}. The conversion \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real : \ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty} \ensuremath{\to} \ensuremath{\mathbb R}} is the identity on finite values and maps \(\infty\) to \(0\), which is the convention of the definition.
+\end{leanbox}
+
+\section{\texorpdfstring{Every coupling gives an upper bound}{Every coupling gives an upper bound}}
+
+
+\textbf{Claim.} For measures \(\mu,\nu\) on \(H\) and every \(\gamma\in\Gamma(\mu,\nu)\), \(W_2(\mu,\nu)\le c(\gamma)\).
+
+
+
+
+\textbf{Proof.} An infimum is a lower bound of the family over which it is taken. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}couplingCost}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}couplingCost} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 50–52}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_couplingCost\ \{μ\ ν\ :\ Measure\ H\}\ (c\ :\ Coupling\ μ\ ν)\ :}
+\leanline{4}{wasserstein2\ μ\ ν\ ≤\ couplingCost\ c.joint}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}coupling\allowbreak{}Cost} is \texttt{i\allowbreak{}Inf\_\allowbreak{}le \_\allowbreak{} c}. The line \texttt{omit [Borel\allowbreak{}Space H] [Second\allowbreak{}Countable\allowbreak{}Topology H] in} records that these two assumptions are not needed.
+\end{leanbox}
 
 \section{\texorpdfstring{The joint law of two random vectors}{The joint law of two random vectors}}
 
 
-If \(X,Y:\Omega\to H\) are measurable, then \((X,Y)_\#P\) is a coupling of \(X_\#P\) and \(Y_\#P\).
+\textbf{Claim.} Let \(P\) be a measure on \(\Omega\) and \(X,Y:\Omega\to H\) measurable. Then the joint law \(\gamma=(X,Y)_\#P\), the image of \(P\) under \(\omega\mapsto(X(\omega),Y(\omega))\), is a coupling of \(X_\#P\) and \(Y_\#P\).
 
 
 
-Set \(\gamma=(\omega\mapsto(X(\omega),Y(\omega)))_\#P\).
 
+\textbf{Proof.} The map \((X,Y):\Omega\to H\times H\) is measurable for the product \(\sigma\)-algebra because both coordinates are measurable, and the projections are measurable. For measurable maps the image of an image measure is the image under the composition: \((\mathrm{pr}_1)_\#(X,Y)_\#P=(\mathrm{pr}_1\circ(X,Y))_\#P=X_\#P\), since \(\mathrm{pr}_1\circ(X,Y)=X\). Likewise \((\mathrm{pr}_2)_\#\gamma=Y_\#P\). \(\square\)
 
 
-Compose the pushforward with the first projection. Since \(\operatorname{pr}_1(X(\omega),Y(\omega))=X(\omega)\), the first marginal is \(X_\#P\).
 
 
+No relation between \(X\) and \(Y\) (such as independence) is required.
 
-The same calculation with the second projection gives the second marginal \(Y_\#P\).
+\begin{leanbox}{Lean: \texttt{randomVariableCoupling}}
+\leansource{\texttt{randomVariableCoupling} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 57–65}
+\begin{leancode}
+\leanline{0}{def\ randomVariableCoupling\ (X\ Y\ :\ Ω\ →\ H)\ (hX\ :\ Measurable\ X)\ (hY\ :\ Measurable\ Y)\ :}
+\leanline{4}{Coupling\ (P.map\ X)\ (P.map\ Y)\ where}
+\leanline{2}{joint\ :=\ P.map\ (fun\ ω\ ↦\ (X\ ω,\ Y\ ω))}
+\leanline{2}{fst\ :=\ by}
+\leanline{4}{rw\ [Measure.map\_map\ measurable\_fst\ (hX.prodMk\ hY)]}
+\leanline{4}{rfl}
+\leanline{2}{snd\ :=\ by}
+\leanline{4}{rw\ [Measure.map\_map\ measurable\_snd\ (hX.prodMk\ hY)]}
+\leanline{4}{rfl}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{random\allowbreak{}Variable\allowbreak{}Coupling P X Y h\allowbreak{}X h\allowbreak{}Y} constructs the coupling: \texttt{joint := P.\allowbreak{}map (fun \ensuremath{\omega} \ensuremath{\mapsto} (X \ensuremath{\omega}, Y \ensuremath{\omega}))}, and each marginal condition is proved by \texttt{rw [Measure.\allowbreak{}map\_\allowbreak{}map measurable\_\allowbreak{}fst (h\allowbreak{}X.\allowbreak{}prod\allowbreak{}Mk h\allowbreak{}Y)]} (Mathlib's composition rule for image measures, with measurability of the pair from \texttt{Measurable.\allowbreak{}prod\allowbreak{}Mk}) followed by \texttt{rfl}.
+\end{leanbox}
 
+\section{\texorpdfstring{Joint laws of almost everywhere measurable vectors}{Joint laws of almost everywhere measurable vectors}}
 
 
-For a measurable test \(f\), \(\int f(x)d\gamma(x,y)=\mathbb Ef(X)\), while the corresponding second-coordinate identity is \(\int f(y)d\gamma=\mathbb Ef(Y)\). These are the two marginal statements in integral form. No independence between \(X\) and \(Y\) is imposed or needed.
+\textbf{Claim.} Let \(P\) be a measure on \(\Omega\) and \(X,Y:\Omega\to H\) be \(P\)-almost everywhere measurable. Then \((X,Y)_\#P\) is a coupling of \(X_\#P\) and \(Y_\#P\).
 
 
-\section{\texorpdfstring{Joint laws from almost everywhere measurable vectors}{Joint laws from almost everywhere measurable vectors}}
 
 
-If \(X,Y\) are measurable almost everywhere with respect to \(P\), their joint law is still a coupling of their two laws.
+\textbf{Proof.} For an almost everywhere measurable map, the image measure is computed with any measurable map equal to it almost everywhere, and does not depend on that choice. The pair \((X,Y)\) is almost everywhere measurable, the projections are measurable, and the composition rule \((\mathrm{pr}_i)_\#(X,Y)_\#P=(\mathrm{pr}_i\circ(X,Y))_\#P\) holds in this setting; the proof is then that of the previous step. \(\square\)
 
 
 
-Again define \(\gamma=(X,Y)_\#P\).
 
+This form applies to representatives of classes in \(L^2\), which are in general only almost everywhere measurable.
 
+\begin{leanbox}{Lean: \texttt{aeRandomVariableCoupling}}
+\leansource{\texttt{aeRandomVariableCoupling} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 68–77}
+\begin{leancode}
+\leanline{0}{def\ aeRandomVariableCoupling\ (X\ Y\ :\ Ω\ →\ H)}
+\leanline{4}{(hX\ :\ AEMeasurable\ X\ P)\ (hY\ :\ AEMeasurable\ Y\ P)\ :}
+\leanline{4}{Coupling\ (P.map\ X)\ (P.map\ Y)\ where}
+\leanline{2}{joint\ :=\ P.map\ (fun\ ω\ ↦\ (X\ ω,\ Y\ ω))}
+\leanline{2}{fst\ :=\ by}
+\leanline{4}{rw\ [AEMeasurable.map\_map\_of\_aemeasurable\ measurable\_fst.aemeasurable\ (hX.prodMk\ hY)]}
+\leanline{4}{rfl}
+\leanline{2}{snd\ :=\ by}
+\leanline{4}{rw\ [AEMeasurable.map\_map\_of\_aemeasurable\ measurable\_snd.aemeasurable\ (hX.prodMk\ hY)]}
+\leanline{4}{rfl}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ae\allowbreak{}Random\allowbreak{}Variable\allowbreak{}Coupling} has the same \texttt{joint}; the marginal conditions use \texttt{AEMeasurable.\allowbreak{}map\_\allowbreak{}map\_\allowbreak{}of\_\allowbreak{}aemeasurable}, the composition rule for image measures under almost everywhere measurable maps, with \texttt{h\allowbreak{}X.\allowbreak{}prod\allowbreak{}Mk h\allowbreak{}Y} for the pair.
+\end{leanbox}
 
-Apply pushforward composition for almost everywhere measurable maps to identify the first marginal with \(X_\#P\).
+\section{\texorpdfstring{The cost of a joint law}{The cost of a joint law}}
 
 
+\textbf{Claim.} For measurable \(X,Y:\Omega\to H\),
 
-Apply its second-projection version to identify the second marginal with \(Y_\#P\).
 
+\[c\bigl((X,Y)_\#P\bigr)=\|X-Y\|_{2,P}.\]
 
 
-Replace each almost-everywhere measurable variable by a measurable version on a full-measure set. Their joint pushforward is unchanged by this replacement, as are both marginals. This extends the coupling construction to representatives of \(L^2\) classes, whose natural pointwise descriptions need only hold almost everywhere.
+\textbf{Proof.} Let \(\varphi(x,y)=x-y\), a continuous map on \(H\times H\). By the change-of-variables formula for image measures, \(\int\|\varphi\|^2\,d\bigl((X,Y)_\#P\bigr)=\int\|\varphi\circ(X,Y)\|^2\,dP\), and \(\varphi\circ(X,Y)=X-Y\). Taking square roots gives the claim; both sides are infinite simultaneously. \(\square\)
 
+\begin{leanbox}{Lean: \texttt{randomVariableCoupling\_\allowbreak{}cost}}
+\leansource{\texttt{randomVariableCoupling\_\allowbreak{}cost} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 80–86}
+\begin{leancode}
+\leanline{0}{theorem\ randomVariableCoupling\_cost\ (X\ Y\ :\ Ω\ →\ H)}
+\leanline{4}{(hX\ :\ Measurable\ X)\ (hY\ :\ Measurable\ Y)\ :}
+\leanline{4}{couplingCost\ (randomVariableCoupling\ P\ X\ Y\ hX\ hY).joint\ =}
+\leanline{6}{eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{random\allowbreak{}Variable\allowbreak{}Coupling\_\allowbreak{}cost} unfolds the two definitions and applies Mathlib's \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}map\_\allowbreak{}measure}, \(\|g\|_{p,f_\#\mu}=\|g\circ f\|_{p,\mu}\), whose hypotheses (strong measurability of the displacement, proved by \texttt{fun\_\allowbreak{}prop}, and almost everywhere measurability of the pair) are supplied.
+\end{leanbox}
 
-\section{\texorpdfstring{Cost of the joint-law coupling}{Cost of the joint-law coupling}}
+\section{\texorpdfstring{A coupled pair bounds the transport distance}{A coupled pair bounds the transport distance}}
 
 
-For measurable \(X,Y:\Omega\to H\),
+\textbf{Claim.} For measurable \(X,Y:\Omega\to H\),
 
-\[c((X,Y)_\#P)=\|X-Y\|_{2,P}.\]
-
-Expand the two definitions. The cost is the \(L^2\) norm of \((x,y)\mapsto x-y\) under the joint law.
-
-
-
-Change variables through the pushforward. The displacement composed with the paired random vector is \(\omega\mapsto X(\omega)-Y(\omega)\), giving the identity.
-
-
-
-The integrand under the joint law is the squared norm of coordinate subtraction. Composing that subtraction with \(\omega\mapsto(X(\omega),Y(\omega))\) produces exactly \(X-Y\). Taking the nonnegative square root after the pushforward integral gives equality of costs, rather than only a bound.
-
-
-\section{\texorpdfstring{A coupled pair bounds transport}{A coupled pair bounds transport}}
-
-
-For measurable \(X,Y\),
-
-\[W_2(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}.\]
-
-Use the joint law as an admissible coupling, then replace its cost by the \(L^2\) distance just computed.
-
-
-
-First establish that the joint law is admissible, then evaluate its cost, and only then compare with the infimum. This three-step argument isolates the distributional information in the marginals from the analytic information in \(\mathbb E\|X-Y\|^2\). It proves that a common-noise mean-square error bound also bounds Wasserstein distance.
-
-
-\section{\texorpdfstring{The almost everywhere measurable transport bound}{The almost everywhere measurable transport bound}}
-
-
-The same transport comparison holds for almost everywhere measurable \(X,Y\):
-
-\[W_2(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}.\]
-
-The almost everywhere measurable joint-law construction supplies an admissible coupling, whose cost bounds the infimum.
-
-
-
-The pushforward change of variables identifies that cost with \(\|X-Y\|_{2,P}\).
-
-
-
-The coupling and cost are independent of changes on null sets, so the measurable-version argument carries the preceding proof over unchanged. This formulation is needed when the compared states are naturally constructed in a Hilbert space of random-variable classes rather than as globally specified measurable representatives.
-
-
-\section{\texorpdfstring{Finite coupled cost gives a real bound}{Finite coupled cost gives a real bound}}
-
-
-Let \(X,Y:\Omega\to H\) be measurable and assume \(X-Y\in L^2(P;H)\). Their joint law is a coupling of their marginal laws, with finite quadratic cost
-
-\[\left(\int\|x-y\|^2d(X,Y)_\#P(x,y)\right)^{1/2}
-=\left(\int\|X-Y\|^2dP\right)^{1/2}=\|X-Y\|_{2,P}<\infty.\]
-
-
-The defining transport infimum is no larger than this particular cost. It is therefore finite, and the ordinary real estimate is
 
 \[W_2(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}.\]
 
 
-Only the displacement moment is needed for this argument. Separate second moments of the two variables, or independence between them, are not required for the coupling-cost comparison.
+\textbf{Proof.} By Step 6, \((X,Y)_\#P\in\Gamma(X_\#P,Y_\#P)\). By Step 5, \(W_2(X_\#P,Y_\#P)\le c((X,Y)_\#P)\), and by Step 8 this cost equals \(\|X-Y\|_{2,P}\). \(\square\)
 
 
-\section{\texorpdfstring{The transport bound for \(L^2\) classes}{The transport bound for L² classes}}
 
 
-For \(X,Y\in L^2(P;H)\), choose measurable representatives. Their joint law has the two representative laws as marginals. On a common full-measure set, the difference of the representatives equals a representative of the class \(X-Y\). Hence the joint-law displacement energy is exactly \(\|X-Y\|_{L^2}^2\).
+Thus any two random vectors defined on a common probability space, for instance two copies of an algorithm driven by the same noise, give an upper bound for the transport distance between their laws.
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 89–93}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_random\_cost\ (X\ Y\ :\ Ω\ →\ H)}
+\leanline{4}{(hX\ :\ Measurable\ X)\ (hY\ :\ Measurable\ Y)\ :}
+\leanline{4}{wasserstein2\ (P.map\ X)\ (P.map\ Y)\ ≤\ eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost} is \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}coupling\allowbreak{}Cost (random\allowbreak{}Variable\allowbreak{}Coupling P X Y h\allowbreak{}X h\allowbreak{}Y)} rewritten by \texttt{random\allowbreak{}Variable\allowbreak{}Coupling\_\allowbreak{}cost} (inside \texttt{simpa}).
+\end{leanbox}
+
+\section{\texorpdfstring{The same bound for almost everywhere measurable vectors}{The same bound for almost everywhere measurable vectors}}
+
+
+\textbf{Claim.} For \(P\)-almost everywhere measurable \(X,Y:\Omega\to H\),
+
+
+\[W_2(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}.\]
+
+
+\textbf{Proof.} By Step 7, \((X,Y)_\#P\) is a coupling, so \(W_2(X_\#P,Y_\#P)\le c((X,Y)_\#P)\) by Step 5. The change of variables of Step 8 holds for the almost everywhere measurable map \((X,Y)\) and gives \(c((X,Y)_\#P)=\|X-Y\|_{2,P}\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}ae\_\allowbreak{}random\_\allowbreak{}cost}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}ae\_\allowbreak{}random\_\allowbreak{}cost} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 96–100}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_ae\_random\_cost\ (X\ Y\ :\ Ω\ →\ H)}
+\leanline{4}{(hX\ :\ AEMeasurable\ X\ P)\ (hY\ :\ AEMeasurable\ Y\ P)\ :}
+\leanline{4}{wasserstein2\ (P.map\ X)\ (P.map\ Y)\ ≤\ eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}ae\_\allowbreak{}random\_\allowbreak{}cost} composes \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}coupling\allowbreak{}Cost (ae\allowbreak{}Random\allowbreak{}Variable\allowbreak{}Coupling P X Y h\allowbreak{}X h\allowbreak{}Y)} with the identity \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}map\_\allowbreak{}measure} (via \texttt{trans\_\allowbreak{}eq}).
+\end{leanbox}
+
+\section{\texorpdfstring{A finite coupled cost gives a real bound}{A finite coupled cost gives a real bound}}
+
+
+\textbf{Claim.} Let \(X,Y:\Omega\to H\) be measurable with \(X-Y\) square integrable, i.e. \(\|X-Y\|_{2,P}<\infty\). Then \(W_2(X_\#P,Y_\#P)<\infty\) and
+
+
+\[W_2^{\mathbb R}(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}.\]
+
+
+\textbf{Proof.} By Step 9, \(W_2(X_\#P,Y_\#P)\le\|X-Y\|_{2,P}<\infty\). Both sides are finite, so the same inequality holds between real numbers, and the left-hand side is \(W_2^{\mathbb R}(X_\#P,Y_\#P)\). \(\square\)
+
+
+
+
+Only the difference \(X-Y\) needs a finite second moment, not \(X\) and \(Y\) separately.
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost\_\allowbreak{}real}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost\_\allowbreak{}real} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 103–108}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_random\_cost\_real\ (X\ Y\ :\ Ω\ →\ H)}
+\leanline{4}{(hX\ :\ Measurable\ X)\ (hY\ :\ Measurable\ Y)}
+\leanline{4}{(hXY\ :\ MemLp\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ X)\ (P.map\ Y)\ ≤}
+\leanline{6}{(eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost\_\allowbreak{}real} the hypothesis \texttt{h\allowbreak{}XY : Mem\allowbreak{}Lp (fun \ensuremath{\omega} \ensuremath{\mapsto} X \ensuremath{\omega} -\allowbreak{} Y \ensuremath{\omega}) 2 P} is square integrability of the difference; \texttt{h\allowbreak{}XY.\allowbreak{}e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}ne\_\allowbreak{}top} is finiteness of its norm. Mathlib's \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} (if \(b\ne\infty\) and \(a\le b\) then \(a\) and \(b\) compare in the same way as real numbers) converts the inequality of Step 9. The right-hand side of the conclusion is \texttt{(e\allowbreak{}Lp\allowbreak{}Norm (fun \ensuremath{\omega} \ensuremath{\mapsto} X \ensuremath{\omega} -\allowbreak{} Y \ensuremath{\omega}) 2 P).\allowbreak{}to\allowbreak{}Real}, the finite value of \(\|X-Y\|_{2,P}\).
+\end{leanbox}
+
+\section{\texorpdfstring{The transport bound for classes in \(L^2\)}{The transport bound for classes in L²}}
+
+
+\textbf{Claim.} Let \(P\) be a measure and \(X,Y\in L^2(P;H)\), with representatives also denoted \(X,Y\). Then
+
 
 \[W_2(X_\#P,Y_\#P)\le\|X-Y\|_{L^2}<\infty.\]
 
 
-The finite upper bound also establishes finiteness of the transport distance. Changing either representative on a null set changes neither the law nor the norm, so this comparison is well defined for the original equivalence classes.
+\textbf{Proof.} Representatives of classes in \(L^2\) are almost everywhere strongly measurable, hence almost everywhere measurable, so Step 10 gives \(W_2(X_\#P,Y_\#P)\le\|\omega\mapsto X(\omega)-Y(\omega)\|_{2,P}\). The function \(\omega\mapsto X(\omega)-Y(\omega)\) agrees almost everywhere with the representative of the class \(X-Y\); hence its extended norm is \(\|X-Y\|_{L^2}\), which is finite. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 112–119}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_Lp\_cost\ (X\ Y\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{wasserstein2\ (P.map\ X)\ (P.map\ Y)\ ≤\ ENNReal.ofReal\ ‖X\ -\ Y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The conclusion of \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost} is stated in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, with the real norm embedded by \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}. \texttt{hcost} identifies the two extended norms through \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}congr\_\allowbreak{}ae} and the almost-everywhere identity \texttt{Lp.\allowbreak{}coe\allowbreak{}Fn\_\allowbreak{}sub X Y}; \texttt{Lp.\allowbreak{}norm\_\allowbreak{}def} writes \(\|X-Y\|\) as the real value of the extended norm, and \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}to\allowbreak{}Real} (with finiteness \texttt{Lp.\allowbreak{}e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}ne\_\allowbreak{}top}) undoes the conversion. The bound itself is \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}ae\_\allowbreak{}random\_\allowbreak{}cost}, with almost everywhere measurability from \texttt{Lp.\allowbreak{}aestrongly\allowbreak{}Measurable}.
+\end{leanbox}
+
+\section{\texorpdfstring{The real transport bound for classes in \(L^2\)}{The real transport bound for classes in L²}}
 
 
-\section{\texorpdfstring{Transport bounded by a square-mean difference}{Transport bounded by a square-mean difference}}
+\textbf{Claim.} For \(X,Y\in L^2(P;H)\),
 
 
-The preceding joint-law construction gives, for every pair \(X,Y\in L^2(P;H)\), the finite comparison
-
-\[0\le W_2(X_\#P,Y_\#P)\le\|X-Y\|_{L^2}.\]
+\[W_2^{\mathbb R}(X_\#P,Y_\#P)\le\|X-Y\|_{L^2}.\]
 
 
-Its right side is an ordinary Hilbert norm, and its finiteness proves that the left side is an ordinary finite transport distance as well. Consequently any upper bound on the square-mean error of these two classes is also an upper bound on the distance of their laws.
-
-
-
-This is the form used after the synchronous error recurrence has been summed. The reference marginal is then the target law, so the coupled Hilbert-space error directly controls convergence in Wasserstein distance.
-
-
-\section{\texorpdfstring{Pointwise domination passes to \(L^2\)}{Pointwise domination passes to L²}}
-
-
-Let \(q\ge0\), let \(A\) be almost everywhere strongly measurable, and suppose \(\|A(\omega)\|\le q\|D(\omega)\|\) almost everywhere. Then
-
-\[\|A\|_{2,P}\le q\|D\|_{2,P}.\]
-
-Apply monotonicity and positive homogeneity of the extended \(L^2\) seminorm to the almost everywhere domination. No independence is required.
+\textbf{Proof.} By the previous step \(W_2(X_\#P,Y_\#P)\) is finite and at most \(\|X-Y\|_{L^2}\); hence \(W_2^{\mathbb R}(X_\#P,Y_\#P)=W_2(X_\#P,Y_\#P)\le\|X-Y\|_{L^2}\). \(\square\)
 
 
 
-Squaring the pointwise domination gives \(\|A\|^2\le q^2\|D\|^2\), since both norms and \(q\) are nonnegative. Integral monotonicity then yields the same relation for squared \(L^2\) norms. Taking square roots recovers the factor \(q\), with no assumption on the dependence of \(A\) and \(D\).
+
+This is the form used at the end of the convergence proofs: if \(X\) is the output of the algorithm and \(Y\) has the target law \(\pi\), any bound on \(\|X-Y\|_{L^2}\) bounds \(W_2^{\mathbb R}(X_\#P,\pi)\).
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost\_\allowbreak{}real}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost\_\allowbreak{}real} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 122–126}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_Lp\_cost\_real\ (X\ Y\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ X)\ (P.map\ Y)\ ≤\ ‖X\ -\ Y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost\_\allowbreak{}real} applies \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} to the previous step (the right-hand side \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real \ensuremath{\Vert}X -\allowbreak{} Y\ensuremath{\Vert}} is finite by \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}ne\_\allowbreak{}top}) and simplifies with \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real} and \texttt{norm\_\allowbreak{}nonneg}.
+\end{leanbox}
+
+\section{\texorpdfstring{Pointwise domination passes to the \(L^2\)-norm}{Pointwise domination passes to the L²-norm}}
 
 
-\section{\texorpdfstring{One-step error from contraction and a defect}{One-step error from contraction and a defect}}
+\textbf{Claim.} Let \(P\) be a measure on \(\Omega\), \(A,D:\Omega\to H\) and \(q\ge0\). Assume that \(A\) is almost everywhere strongly measurable and that \(\|A(\omega)\|\le q\|D(\omega)\|\) for \(P\)-almost every \(\omega\). Then
 
 
-Suppose \(q\ge0\), \(A\) is almost everywhere strongly measurable, and almost everywhere
+\[\|A\|_{2,P}\le q\,\|D\|_{2,P}\qquad\text{in }[0,\infty].\]
 
-\[X'-Y'=A-V,\qquad\|A\|\le q\|X-Y\|.\]
+
+\textbf{Proof.} If \(D\) is almost everywhere strongly measurable, squaring the pointwise bound (both sides are nonnegative) and integrating gives \(\int\|A\|^2\,dP\le q^2\int\|D\|^2\,dP\) in \([0,\infty]\); taking square roots gives the claim. Otherwise \(\|D\|_{2,P}=\infty\): if \(q>0\) the right-hand side is \(\infty\); if \(q=0\), then \(A=0\) almost everywhere, so \(\|A\|_{2,P}=0=0\cdot\infty\). \(\square\)
+
+
+
+
+No relation between the laws of \(A\) and \(D\) is needed.
+
+\begin{leanbox}{Lean: \texttt{eLpNorm\_\allowbreak{}contraction}}
+\leansource{\texttt{eLpNorm\_\allowbreak{}contraction} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 130–136}
+\begin{leancode}
+\leanline{0}{theorem\ eLpNorm\_contraction\ (A\ D\ :\ Ω\ →\ H)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hA\ :\ AEStronglyMeasurable\ A\ P)}
+\leanline{4}{(hcontract\ :\ ∀ᵐ\ ω\ ∂P,\ ‖A\ ω‖\ ≤\ (q\ :\ ℝ)\ *\ ‖D\ ω‖)\ :}
+\leanline{4}{eLpNorm\ A\ 2\ P\ ≤\ (q\ :\ ℝ≥0∞)\ *\ eLpNorm\ D\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}contraction}, \texttt{q : \ensuremath{\mathbb R}\ensuremath{\ge}0}, \texttt{h\allowbreak{}A : AEStrongly\allowbreak{}Measurable A P}, and \texttt{hcontract : \ensuremath{\forall}ᵐ \ensuremath{\omega} \ensuremath{\partial}P, \ensuremath{\Vert}A \ensuremath{\omega}\ensuremath{\Vert} \ensuremath{\le} (q : \ensuremath{\mathbb R}) * \ensuremath{\Vert}D \ensuremath{\omega}\ensuremath{\Vert}}; the notation \texttt{\ensuremath{\forall}ᵐ \ensuremath{\omega} \ensuremath{\partial}P} means "for \(P\)-almost every \(\omega\)". The coercion \texttt{(q : \ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty})} embeds \(q\) into \([0,\infty]\). The proof is Mathlib's \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}nnreal\_\allowbreak{}smul\_\allowbreak{}e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}le\_\allowbreak{}mul} at exponent \(2\); the pointwise hypothesis is converted to nonnegative-real norms by \texttt{exact\_\allowbreak{}mod\_\allowbreak{}cast}, and \texttt{ENNReal.\allowbreak{}smul\_\allowbreak{}def} rewrites the scalar multiplication as a product.
+\end{leanbox}
+
+\section{\texorpdfstring{One step: contraction plus defect}{One step: contraction plus defect}}
+
+
+\textbf{Claim.} Let \(P\) be a measure on \(\Omega\), \(X,Y,X',Y',A,V:\Omega\to H\) and \(q\ge0\). Assume that \(A\) is almost everywhere strongly measurable and that, for \(P\)-almost every \(\omega\),
+
+
+\[X'(\omega)-Y'(\omega)=A(\omega)-V(\omega),\qquad\|A(\omega)\|\le q\,\|X(\omega)-Y(\omega)\|.\]
+
 
 Then
 
-\[\|X'-Y'\|_{2,P}\le q\|X-Y\|_{2,P}+\|V\|_{2,P}.\]
 
-Replace \(X'-Y'\) by \(A-V\) in the seminorm using the almost everywhere error identity.
-
+\[\|X'-Y'\|_{2,P}\le q\,\|X-Y\|_{2,P}+\|V\|_{2,P}\qquad\text{in }[0,\infty].\]
 
 
-Minkowski gives \(\|A-V\|_2\le\|A\|_2+\|V\|_2\). Pointwise contraction bounds the first term by \(q\|X-Y\|_2\).
+\textbf{Proof.} Since \(X'-Y'=A-V\) almost everywhere, \(\|X'-Y'\|_{2,P}=\|A-V\|_{2,P}\). By Minkowski's inequality, \(\|A-V\|_{2,P}\le\|A\|_{2,P}+\|V\|_{2,P}\), and by the previous step \(\|A\|_{2,P}\le q\|X-Y\|_{2,P}\). \(\square\)
 
 
 
-The defect sign does not affect its norm: \(\|-V\|_2=\|V\|_2\). Hence Minkowski adds the local defect size to the contracted previous error. This addition, rather than a squared-norm expansion, avoids requiring any orthogonality between the existing error and the defect.
+
+In the application, \(X,Y\) are the current numerical and reference states, \(X',Y'\) the next ones, \(A\) the difference of the two updates with common noise, and \(V\) the local defect. The defect enters additively through Minkowski's inequality; no orthogonality between \(A\) and \(V\) is needed.
+
+\begin{leanbox}{Lean: \texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound}}
+\leansource{\texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 141–149}
+\begin{leancode}
+\leanline{0}{theorem\ synchronous\_l2\_bound\ (X\ Y\ X'\ Y'\ A\ V\ :\ Ω\ →\ H)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hA\ :\ AEStronglyMeasurable\ A\ P)}
+\leanline{4}{(hidentity\ :\ ∀ᵐ\ ω\ ∂P,\ X'\ ω\ -\ Y'\ ω\ =\ A\ ω\ -\ V\ ω)}
+\leanline{4}{(hcontract\ :\ ∀ᵐ\ ω\ ∂P,\ ‖A\ ω‖\ ≤\ (q\ :\ ℝ)\ *\ ‖X\ ω\ -\ Y\ ω‖)\ :}
+\leanline{4}{eLpNorm\ (fun\ ω\ ↦\ X'\ ω\ -\ Y'\ ω)\ 2\ P\ ≤}
+\leanline{6}{(q\ :\ ℝ≥0∞)\ *\ eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P\ +\ eLpNorm\ V\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound} rewrites the left-hand side with \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}congr\_\allowbreak{}ae hidentity} (equal almost everywhere, equal norms), applies Minkowski's inequality \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}sub\_\allowbreak{}le} for the exponent \(2\ge1\), and bounds the first term by \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}contraction} (with \texttt{add\_\allowbreak{}le\_\allowbreak{}add} and \texttt{le\_\allowbreak{}rfl} for the second term).
+\end{leanbox}
+
+\section{\texorpdfstring{One step in transport distance}{One step in transport distance}}
 
 
-\section{\texorpdfstring{One-step transport estimate}{One-step transport estimate}}
+\textbf{Claim.} Under the hypotheses of the previous step, assume in addition that \(X'\) and \(Y'\) are measurable. Then
 
 
-Under the preceding decomposition and contraction hypotheses, if \(X',Y'\) are measurable, then
-
-\[W_2(X'_\#P,Y'_\#P)\le q\|X-Y\|_{2,P}+\|V\|_{2,P}.\]
-
-The joint-law coupling bounds transport by \(\|X'-Y'\|_2\). Compose this with the synchronous \(L^2\) estimate.
+\[W_2\bigl(X'_\#P,Y'_\#P\bigr)\le q\,\|X-Y\|_{2,P}+\|V\|_{2,P}.\]
 
 
+\textbf{Proof.} By Step 9, \(W_2(X'_\#P,Y'_\#P)\le\|X'-Y'\|_{2,P}\); the previous step bounds the right-hand side. \(\square\)
 
-The final pair itself supplies the admissible coupling for the next marginal laws. Therefore the one-step stochastic estimate need not compare two transition kernels abstractly; it can use the explicit shared-noise pair already constructed on the common space. Under finite displacement and defect moments, all quantities in the resulting scalar estimate are finite.
+\begin{leanbox}{Lean: \texttt{synchronous\_\allowbreak{}wasserstein\_\allowbreak{}bound}}
+\leansource{\texttt{synchronous\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 152–160}
+\begin{leancode}
+\leanline{0}{theorem\ synchronous\_wasserstein\_bound\ (X\ Y\ X'\ Y'\ A\ V\ :\ Ω\ →\ H)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hX'\ :\ Measurable\ X')\ (hY'\ :\ Measurable\ Y')}
+\leanline{4}{(hA\ :\ AEStronglyMeasurable\ A\ P)}
+\leanline{4}{(hidentity\ :\ ∀ᵐ\ ω\ ∂P,\ X'\ ω\ -\ Y'\ ω\ =\ A\ ω\ -\ V\ ω)}
+\leanline{4}{(hcontract\ :\ ∀ᵐ\ ω\ ∂P,\ ‖A\ ω‖\ ≤\ (q\ :\ ℝ)\ *\ ‖X\ ω\ -\ Y\ ω‖)\ :}
+\leanline{4}{wasserstein2\ (P.map\ X')\ (P.map\ Y')\ ≤}
+\leanline{6}{(q\ :\ ℝ≥0∞)\ *\ eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P\ +\ eLpNorm\ V\ 2\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{synchronous\_\allowbreak{}wasserstein\_\allowbreak{}bound} is \texttt{(wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost P X' Y' h\allowbreak{}X' h\allowbreak{}Y').\allowbreak{}trans} applied to \texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound}.
+\end{leanbox}
+
+\section{\texorpdfstring{The one-step inequality in real numbers}{The one-step inequality in real numbers}}
 
 
-\section{\texorpdfstring{The finite-moment one-step inequality}{The finite-moment one-step inequality}}
+\textbf{Claim.} Under the hypotheses of Step 15, assume in addition that \(X-Y\) and \(V\) are square integrable. Then all quantities below are finite and
 
 
-Assume \(q\ge0\), \(A\) is almost everywhere strongly measurable, and
-
-\[X'-Y'=A-V,\qquad\|A\|\le q\|X-Y\|\quad\text{almost everywhere}.\]
+\[\|X'-Y'\|_{2,P}\le q\,\|X-Y\|_{2,P}+\|V\|_{2,P}\qquad\text{in }\mathbb R.\]
 
 
-If \(X-Y,V\in L^2(P;H)\), then the domination makes \(A\) square-integrable. Therefore \(A-V\), and hence \(X'-Y'\), is also square-integrable. All norms in the following estimate are consequently finite:
-
-\[\begin{aligned}
-\|X'-Y'\|_{2,P}&=\|A-V\|_{2,P}\\
-&\le\|A\|_{2,P}+\|V\|_{2,P}\\
-&\le q\|X-Y\|_{2,P}+\|V\|_{2,P}.
-\end{aligned}\]
+\textbf{Proof.} Since \(q<\infty\), \(\|X-Y\|_{2,P}<\infty\) and \(\|V\|_{2,P}<\infty\), the right-hand side of Step 15 is finite; hence so is the left-hand side, and the inequality of Step 15 is an inequality between real numbers. For finite values, the real value of a sum or product in \([0,\infty]\) is the sum or product of the real values. \(\square\)
 
 
-The first inequality is Minkowski, and the second follows by squaring the nonnegative pointwise domination, integrating, and taking square roots. This proves the numerical affine recurrence together with the finite moment needed to interpret it.
 
+
+In particular \(X'-Y'\) is square integrable whenever \(X-Y\) and \(V\) are. Iterating this one-step inequality gives the scalar recurrence \(e_{k+1}\le qe_k+b\) for \(e_k=\|X_k-Y_k\|_{2,P}\).
+
+\begin{leanbox}{Lean: \texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound\_\allowbreak{}real}}
+\leansource{\texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound\_\allowbreak{}real} \quad UnadjustedLangevin/\allowbreak{}Coupling.lean, lines 163–176}
+\begin{leancode}
+\leanline{0}{theorem\ synchronous\_l2\_bound\_real\ (X\ Y\ X'\ Y'\ A\ V\ :\ Ω\ →\ H)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hA\ :\ AEStronglyMeasurable\ A\ P)}
+\leanline{4}{(hidentity\ :\ ∀ᵐ\ ω\ ∂P,\ X'\ ω\ -\ Y'\ ω\ =\ A\ ω\ -\ V\ ω)}
+\leanline{4}{(hcontract\ :\ ∀ᵐ\ ω\ ∂P,\ ‖A\ ω‖\ ≤\ (q\ :\ ℝ)\ *\ ‖X\ ω\ -\ Y\ ω‖)}
+\leanline{4}{(hXY\ :\ MemLp\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P)\ (hV\ :\ MemLp\ V\ 2\ P)\ :}
+\leanline{4}{(eLpNorm\ (fun\ ω\ ↦\ X'\ ω\ -\ Y'\ ω)\ 2\ P).toReal\ ≤}
+\leanline{6}{(q\ :\ ℝ)\ *\ (eLpNorm\ (fun\ ω\ ↦\ X\ ω\ -\ Y\ ω)\ 2\ P).toReal\ +\ (eLpNorm\ V\ 2\ P).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound\_\allowbreak{}real}, \texttt{hprod} (via \texttt{ENNReal.\allowbreak{}mul\_\allowbreak{}ne\_\allowbreak{}top}) and the sum condition (via \texttt{ENNReal.\allowbreak{}add\_\allowbreak{}ne\_\allowbreak{}top}) prove finiteness of the right-hand side; \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} converts \texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound} to real numbers, and \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}add}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mul} and \texttt{ENNReal.\allowbreak{}coe\_\allowbreak{}to\allowbreak{}Real} distribute the conversion over the sum and the product. Each norm in the statement appears as \texttt{(e\allowbreak{}Lp\allowbreak{}Norm f 2 P).\allowbreak{}to\allowbreak{}Real}, the finite value of \(\|f\|_{2,P}\).
+\end{leanbox}
 
 \end{document}

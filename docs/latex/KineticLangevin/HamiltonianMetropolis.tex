@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,25 @@ For \(J^2=\mathrm{id}\), the graph map is \(G(z)=(z,Jz)\). Swapping the old and 
 
 The proposal graph associates each state with its deterministic proposal. Swapping the two graph coordinates corresponds to applying the proposal again. Involutivity and volume preservation therefore identify the swapped graph measure with the original one after the appropriate density change.
 
+\begin{leanbox}{Lean: \texttt{proposalGraph}, \texttt{proposalGraph\_\allowbreak{}swap\_\allowbreak{}invariant}}
+\leansource{\texttt{proposalGraph} \quad KineticLangevin/\allowbreak{}HamiltonianMetropolis.lean, lines 23–23}
+\begin{leancode}
+\leanline{0}{def\ proposalGraph\ (J\ :\ H\ →\ H)\ (z\ :\ H)\ :\ H\ ×\ H\ :=\ (z,J\ z)}
+\end{leancode}
+\leansource{\texttt{proposalGraph\_\allowbreak{}swap\_\allowbreak{}invariant} \quad KineticLangevin/\allowbreak{}HamiltonianMetropolis.lean, lines 26–34}
+\begin{leancode}
+\leanline{0}{theorem\ proposalGraph\_swap\_invariant\ (base\ :\ Measure\ H)\ (J\ :\ H\ →\ H)}
+\leanline{4}{(hJ\ :\ Function.Involutive\ J)\ (hp\ :\ MeasurePreserving\ J\ base\ base)\ :}
+\leanline{4}{(base.map\ (proposalGraph\ J)).map\ Prod.swap\ =\ base.map\ (proposalGraph\ J)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{proposal\allowbreak{}Graph} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{proposal\allowbreak{}Graph\_\allowbreak{}swap\_\allowbreak{}invariant} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg}, \texttt{he} in that order. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply the accepted-flow argument to an arbitrary positive density}{Apply the accepted-flow argument to an arbitrary positive density}}
 
@@ -45,6 +87,20 @@ Let the target be \(w\lambda\), with measurable \(w>0\). Its proposal joint law 
 
 The accepted mass is the smaller of the initial and proposed density weights. This minimum is symmetric under swapping the graph coordinates. Rejected mass remains at the initial state, so the accepted and rejected contributions together have the required invariant marginal.
 
+\begin{leanbox}{Lean: \texttt{metropolis\_\allowbreak{}involution\_\allowbreak{}preserves\_\allowbreak{}density}}
+\leansource{\texttt{metropolis\_\allowbreak{}involution\_\allowbreak{}preserves\_\allowbreak{}density} \quad KineticLangevin/\allowbreak{}HamiltonianMetropolis.lean, lines 38–60}
+\begin{leancode}
+\leanline{0}{theorem\ metropolis\_involution\_preserves\_density\ (base\ :\ Measure\ H)\ (J\ :\ H\ →\ H)}
+\leanline{4}{(hJ\ :\ Function.Involutive\ J)\ (hp\ :\ MeasurePreserving\ J\ base\ base)}
+\leanline{4}{(w\ :\ H\ →\ ℝ)\ (hw\ :\ Measurable\ w)\ (hwpos\ :\ ∀\ z,\ 0\ <\ w\ z)\ :}
+\leanline{4}{ULA.metropolisOutput}
+\leanline{6}{((base.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (w\ z))).map\ (proposalGraph\ J))}
+\leanline{6}{(fun\ p\ ↦\ min\ 1\ (w\ p.2\ /\ w\ p.1))\ =}
+\leanline{8}{base.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (w\ z))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\_\allowbreak{}involution\_\allowbreak{}preserves\_\allowbreak{}density} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg}, \texttt{W}, \texttt{h\allowbreak{}W}, \texttt{hweighted}, \texttt{hm}, \texttt{hfirst} in that order. Named proof applications include \texttt{ULA.\allowbreak{}map\_\allowbreak{}weighted\_\allowbreak{}comp}, \texttt{hm.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.35.12]{LangevinLean2026ULASC}; \cite[Section~3.35.3]{LangevinLean2026ULASC}; \cite[Section~3.35.7]{LangevinLean2026ULASC}.
@@ -58,6 +114,25 @@ For energy increment \(d\), rejection is \(1-\min\{1,e^{-d}\}\). If \(d\le0\), t
 
 For a nonnegative energy increase \(u\), the rejection probability is \(1-e^{-u}\le u\); for a nonpositive increase it is zero. Thus rejection is bounded by the positive part of the energy defect. The inequality turns an analytic energy estimate into a probabilistic rejection bound.
 
+\begin{leanbox}{Lean: \texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}energy\_\allowbreak{}increase}, \texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs\_\allowbreak{}energy}}
+\leansource{\texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}energy\_\allowbreak{}increase} \quad KineticLangevin/\allowbreak{}HamiltonianMetropolis.lean, lines 66–74}
+\begin{leancode}
+\leanline{0}{theorem\ metropolis\_rejection\_le\_energy\_increase\ (d\ :\ ℝ)\ :}
+\leanline{4}{1\ -\ min\ 1\ (Real.exp\ (-d))\ ≤\ max\ d\ 0}
+\end{leancode}
+\leansource{\texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs\_\allowbreak{}energy} \quad KineticLangevin/\allowbreak{}HamiltonianMetropolis.lean, lines 76–81}
+\begin{leancode}
+\leanline{0}{theorem\ metropolis\_rejection\_le\_abs\_energy\ (d\ :\ ℝ)\ :}
+\leanline{4}{1\ -\ min\ 1\ (Real.exp\ (-d))\ ≤\ |d|}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}energy\_\allowbreak{}increase} separates the cases \texttt{hd : 0 \ensuremath{\le} d} and its negation before combining them. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs\_\allowbreak{}energy} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Instantiate the exact corrected Verlet Gibbs theorem}{Instantiate the exact corrected Verlet Gibbs theorem}}
 
@@ -68,13 +143,28 @@ Take \(\lambda\) to be product Haar phase measure, \(J_h=R\,V_h\) to be the cons
 
 For the Gibbs density the ratio of proposal and initial weights is the exponential of the negative energy defect. Substitution in the general balance calculation gives the corrected Verlet invariant measure. This exact statement does not imply invariance of uncorrected Verlet.
 
+\begin{leanbox}{Lean: \texttt{metropolis\_\allowbreak{}verlet\_\allowbreak{}preserves\_\allowbreak{}gibbs}}
+\leansource{\texttt{metropolis\_\allowbreak{}verlet\_\allowbreak{}preserves\_\allowbreak{}gibbs} \quad KineticLangevin/\allowbreak{}HamiltonianMetropolis.lean, lines 88–101}
+\begin{leancode}
+\leanline{0}{theorem\ metropolis\_verlet\_preserves\_gibbs\ (f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)}
+\leanline{4}{(hg\ :\ Measurable\ (gradient\ f))\ (h\ :\ ℝ)\ :}
+\leanline{4}{ULA.metropolisOutput}
+\leanline{6}{(((μ.prod\ μ).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (Real.exp\ (-hamiltonianEnergy\ f\ z)))).map}
+\leanline{8}{(proposalGraph\ (verletProposal\ (gradient\ f)\ h)))}
+\leanline{6}{(fun\ p\ ↦\ min\ 1\ (Real.exp\ (-hamiltonianEnergy\ f\ p.2)\ /}
+\leanline{8}{Real.exp\ (-hamiltonianEnergy\ f\ p.1)))\ =}
+\leanline{6}{(μ.prod\ μ).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (Real.exp\ (-hamiltonianEnergy\ f\ z)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\_\allowbreak{}verlet\_\allowbreak{}preserves\_\allowbreak{}gibbs} gives the formal counterpart of this step. Named proof applications include \texttt{metropolis\_\allowbreak{}involution\_\allowbreak{}preserves\_\allowbreak{}density}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.35.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

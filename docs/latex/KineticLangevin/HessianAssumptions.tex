@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,18 @@ Let \(H(x)\) be the Fréchet derivative of \(\nabla f\). Along \(x+tu\), the fir
 
 On an affine line, the first derivative of the potential is the gradient paired with the line direction. Differentiating again gives the Hessian quadratic form in that direction. These are chain-rule derivatives, tying the matrix assumptions to one-dimensional convexity.
 
+\begin{leanbox}{Lean: \texttt{hessian\_\allowbreak{}line\_\allowbreak{}derivatives}}
+\leansource{\texttt{hessian\_\allowbreak{}line\_\allowbreak{}derivatives} \quad KineticLangevin/\allowbreak{}HessianAssumptions.lean, lines 15–30}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_line\_derivatives\ (f\ :\ E→ℝ)\ (H\ :\ E→E→L[ℝ]\ E)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hH\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(x\ u\ :\ E)\ (t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (fun\ s\ :\ ℝ\ ↦\ f\ (x+s\ •\ u))\ {\leanfallback ⟪}gradient\ f\ (x+t\ •\ u),u{\leanfallback ⟫}\ t\ ∧}
+\leanline{4}{HasDerivAt\ (fun\ s\ :\ ℝ\ ↦\ {\leanfallback ⟪}gradient\ f\ (x+s\ •\ u),u{\leanfallback ⟫})\ {\leanfallback ⟪}H\ (x+t\ •\ u)\ u,u{\leanfallback ⟫}\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hessian\_\allowbreak{}line\_\allowbreak{}derivatives} gives the formal counterpart of this step. The main intermediate facts are \texttt{hl} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Strong convexity from the lower Hessian bound}{Strong convexity from the lower Hessian bound}}
 
@@ -45,6 +80,16 @@ The definition of strong convexity is equivalent to convexity of \(g(x)=f(x)-m\|
 
 Subtracting \(m\|x\|^2/2\) from the potential makes every line second derivative nonnegative. One-dimensional convexity on each segment therefore yields convexity of the shifted potential. Rearranging its Jensen inequality gives precisely \(m\)-strong convexity.
 
+\begin{leanbox}{Lean: \texttt{strongConvex\_\allowbreak{}of\_\allowbreak{}hessian\_\allowbreak{}lower}}
+\leansource{\texttt{strongConvex\_\allowbreak{}of\_\allowbreak{}hessian\_\allowbreak{}lower} \quad KineticLangevin/\allowbreak{}HessianAssumptions.lean, lines 33–71}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvex\_of\_hessian\_lower\ (f\ :\ E→ℝ)\ (H\ :\ E→E→L[ℝ]\ E)\ (m\ :\ ℝ)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hH\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(hlower\ :\ ∀\ x\ u,m*‖u‖\textasciicircum{}2≤{\leanfallback ⟪}H\ x\ u,u{\leanfallback ⟫})\ :\ StrongConvexOn\ univ\ m\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\allowbreak{}Convex\_\allowbreak{}of\_\allowbreak{}hessian\_\allowbreak{}lower} gives the formal counterpart of this step. The main intermediate facts are \texttt{u}, \texttt{F}, \texttt{D}, \texttt{Q}, \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}Q} in that order. Named proof applications include \texttt{convex\allowbreak{}On\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At2\_\allowbreak{}nonneg}, \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{An operator norm bound from the upper symmetric quadratic bound}{An operator norm bound from the upper symmetric quadratic bound}}
 
@@ -55,6 +100,15 @@ For a symmetric positive semidefinite operator \(T\), its operator norm is the s
 
 For a symmetric positive semidefinite Hessian, the operator norm equals its largest Rayleigh quotient. The upper quadratic-form bound controls every nonzero quotient by \(M\). This converts a spectral assumption into the operator estimate required for the gradient mean-value bound.
 
+\begin{leanbox}{Lean: \texttt{hessian\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}quadratic}}
+\leansource{\texttt{hessian\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}HessianAssumptions.lean, lines 74–84}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_norm\_le\_of\_quadratic\ (T\ :\ E→L[ℝ]\ E)\ (M\ :\ ℝ≥0)\ (hSym\ :\ T.IsSymmetric)}
+\leanline{4}{(hpos\ :\ ∀\ u,0≤{\leanfallback ⟪}T\ u,u{\leanfallback ⟫})\ (hupp\ :\ ∀\ u,{\leanfallback ⟪}T\ u,u{\leanfallback ⟫}≤(M\ :\ ℝ)*‖u‖\textasciicircum{}2)\ :\ ‖T‖≤M}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hessian\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}quadratic} separates the cases \texttt{hu : u=0} and its negation before combining them. Named proof applications include \texttt{ci\allowbreak{}Sup\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply the mean value theorem to the gradient derivative}{Apply the mean value theorem to the gradient derivative}}
 
@@ -65,10 +119,36 @@ Each Hessian has operator norm at most \(M\), by the preceding symmetric argumen
 
 Integrating the gradient derivative along a segment, or applying the Banach-space mean-value inequality, gives gradient Lipschitz constant \(M\). Together with the lower-Hessian argument, this verifies the first-order sampler hypotheses from the manuscript’s Hessian hypotheses.
 
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}hessian\_\allowbreak{}bounds}, \texttt{hessian\_\allowbreak{}bounds\_\allowbreak{}firstOrder}}
+\leansource{\texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}hessian\_\allowbreak{}bounds} \quad KineticLangevin/\allowbreak{}HessianAssumptions.lean, lines 87–96}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_lipschitz\_of\_hessian\_bounds\ (f\ :\ E→ℝ)\ (H\ :\ E→E→L[ℝ]\ E)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0≤m)\ (hH\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(hSym\ :\ ∀\ x,(H\ x).IsSymmetric)}
+\leanline{4}{(hlower\ :\ ∀\ x\ u,m*‖u‖\textasciicircum{}2≤{\leanfallback ⟪}H\ x\ u,u{\leanfallback ⟫})}
+\leanline{4}{(hupper\ :\ ∀\ x\ u,{\leanfallback ⟪}H\ x\ u,u{\leanfallback ⟫}≤(M\ :\ ℝ)*‖u‖\textasciicircum{}2)\ :\ LipschitzWith\ M\ (gradient\ f)}
+\end{leancode}
+\leansource{\texttt{hessian\_\allowbreak{}bounds\_\allowbreak{}firstOrder} \quad KineticLangevin/\allowbreak{}HessianAssumptions.lean, lines 99–106}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_bounds\_firstOrder\ (f\ :\ E→ℝ)\ (H\ :\ E→E→L[ℝ]\ E)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0≤m)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hH\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(hSym\ :\ ∀\ x,(H\ x).IsSymmetric)}
+\leanline{4}{(hlower\ :\ ∀\ x\ u,m*‖u‖\textasciicircum{}2≤{\leanfallback ⟪}H\ x\ u,u{\leanfallback ⟫})}
+\leanline{4}{(hupper\ :\ ∀\ x\ u,{\leanfallback ⟪}H\ x\ u,u{\leanfallback ⟫}≤(M\ :\ ℝ)*‖u‖\textasciicircum{}2)\ :}
+\leanline{4}{StrongConvexOn\ univ\ m\ f\ ∧\ LipschitzWith\ M\ (gradient\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}hessian\_\allowbreak{}bounds} gives the formal counterpart of this step. Named proof applications include \texttt{lipschitz\allowbreak{}With\_\allowbreak{}of\_\allowbreak{}nnnorm\_\allowbreak{}fderiv\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{hessian\_\allowbreak{}bounds\_\allowbreak{}first\allowbreak{}Order} gives the formal counterpart of this step.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

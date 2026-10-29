@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,46 +39,105 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-In scaled particle coordinates every velocity coordinate has variance \(1/N\). The thermal target is explicitly the image of a standard Gaussian under multiplication by \(N^{-1/2}\). This section proves the reverse normalization as an equality of laws and computes the exact \(L^{2}\) radius \(\sqrt{(d_\theta+Nd_x)/N}\). No independence of coordinates is needed beyond what is specified by that Gaussian vector law; zero-dimensional spaces are included.
+In the scaled coordinates each velocity coordinate has the thermal variance \(1/N\): the velocity law is \(\kappa_N=\mathcal N(0,N^{-1}I)\) on \(\mathcal Z_N\), defined in the target section as the image of the standard Gaussian law under \(v\mapsto N^{-1/2}v\). This section proves the reverse identity, that \(\sqrt N\,V\) is standard Gaussian when \(V\) has law \(\kappa_N\), and computes the root mean square norm of a thermal velocity,
 
 
+\[\bigl(\mathbb E\|V\|^2\bigr)^{1/2}=\sqrt{\frac{d_\theta+Nd_x}N}=\sqrt{\frac{d_\theta}N+d_x}.\]
 
-Gaussian scaling divides the squared equilibrium velocity radius by the particle count. This exact radius determines the dimension dependence of the first particle method’s numerical bias.
+
+This number is the velocity radius that enters the local error of the exponential integrator; it is the source of the factor \(\sqrt{d_\theta/N+d_x}\) in the discretization term of the KIPLMC1 bound, and of the corresponding factor for KIPLMC2.
 
 
 
 Earlier results used here: \cite[Section~3.40]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{Undo the thermal normalization as a pushforward equality}{Undo the thermal normalization as a pushforward equality}}
+\section{\texorpdfstring{Undoing the thermal scaling of the velocity law}{Undoing the thermal scaling of the velocity law}}
 
 
-For \(N>0\), the scalar \(\sqrt N\) is nonzero. Composing the target's defining map \(v\mapsto N^{-1/2}v\) with \(v\mapsto\sqrt Nv\) gives the identity on the configuration space. The argument rewrites the two successive pushforwards with composition of pushforwards, proves the two scalar multiplications cancel using associativity of scalar multiplication and cancellation of a nonzero scalar, then applies the identity pushforward. Both maps are continuous and hence measurable. This is an exact distributional normalization, rather than a covariance-only assertion.
-
-
-
-Multiplication by \(\sqrt N\) exactly reverses thermal velocity pushforward. The normalized velocity therefore has the standard Gaussian law on the full scaled coordinate space. This is an equality of measures and transfers all Gaussian moment identities.
-
-
-\section{\texorpdfstring{Read off the \(L^{2}\) moment from the Gaussian marginal}{Read off the L² moment from the Gaussian marginal}}
-
-
-Suppose the \(L^{2}\) random velocity \(V\) has thermal marginal. The preceding map equality and composition of distributional identities show that \(\sqrt NV\) has the standard Gaussian law. The almost-everywhere scalar-multiplication rule for \(L^p\) representatives transfers this statement to the \(L^p\) class. The shared Gaussian-moment theorem therefore gives \(\|\sqrt NV\|_{L^2}=\sqrt{d_\theta+Nd_x}\). Since \(\sqrt N>0\), the norm scaling rule and division yield
-
-\[\|V\|_{L^2}=\sqrt{\frac{d_\theta+Nd_x}{N}}.\]
-
-The argument simplifies the cardinality of the sum/\allowbreak{}product coordinate index, rewrites the square root of a quotient, and divides by the strictly positive \(\sqrt N\). The moment is exactly the constant needed by the shared kinetic local-error argument at temperature \(1/N\).
+\textbf{Claim.} Let \(N>0\). The image of \(\kappa_N\) under \(v\mapsto\sqrt N\,v\) is the standard Gaussian measure \(\gamma_{\mathcal Z_N}\).
 
 
 
-There are \(d_\theta+Nd_x\) independent scaled coordinates, each with variance \(1/N\). Their second moments sum to \(d_\theta/N+d_x\). Taking the square root gives the thermal velocity radius used in the first-order particle bias.
 
+\textbf{Proof.} By definition \(\kappa_N=(s_N)_\#\gamma_{\mathcal Z_N}\) with \(s_N(v)=(\sqrt N)^{-1}v\). Let \(r_N(v)=\sqrt N\,v\). Both maps are linear, hence continuous and measurable, so the pushforward of a composition is the composition of pushforwards:
+
+
+\[(r_N)_\#\kappa_N=(r_N)_\#(s_N)_\#\gamma_{\mathcal Z_N}=(r_N\circ s_N)_\#\gamma_{\mathcal Z_N}.\]
+
+
+Since \(N>0\), \(\sqrt N\ne0\) and \(r_N(s_N(v))=(\sqrt N\cdot(\sqrt N)^{-1})v=v\), so \(r_N\circ s_N\) is the identity, and the pushforward of a measure by the identity is the measure itself. \(\square\)
+
+
+
+
+This is an equality of measures, so every statement about the law of a standard Gaussian vector, in particular every moment identity, transfers to \(\sqrt N\,V\) when \(V\sim\kappa_N\).
+
+\begin{leanbox}{Lean: \texttt{velocityTarget\_\allowbreak{}unscale}}
+\leansource{\texttt{velocityTarget\_\allowbreak{}unscale} \quad KIPLMC/\allowbreak{}Moments.lean, lines 18–29}
+\begin{leancode}
+\leanline{0}{theorem\ velocityTarget\_unscale\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ :}
+\leanline{4}{(velocityTarget\ N\ dθ\ dx).map\ (fun\ v\ ↦\ Real.sqrt\ N\ •\ v)\ =}
+\leanline{6}{stdGaussian\ (State\ N\ dθ\ dx)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Target\_\allowbreak{}unscale} assumes \texttt{h\allowbreak{}N : 0 < N} and states \texttt{(velocity\allowbreak{}Target N d\ensuremath{\theta} dx).\allowbreak{}map (fun v \ensuremath{\mapsto} Real.\allowbreak{}sqrt N \ensuremath{\bullet} v) = std\allowbreak{}Gaussian (State N d\ensuremath{\theta} dx)}. \texttt{hs} is \(\sqrt N\ne0\), from \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}ne\_\allowbreak{}zero'} and \(N>0\). After unfolding \texttt{velocity\allowbreak{}Target}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}map} merges the two pushforwards, both maps being measurable by \texttt{fun\_\allowbreak{}prop}. \texttt{hid} proves that the composed map is the identity \texttt{id}, using \texttt{smul\_\allowbreak{}smul}, \texttt{mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}} hs} and \texttt{one\_\allowbreak{}smul}; after \texttt{change} displays the composed map, \texttt{rw [hid, Measure.\allowbreak{}map\_\allowbreak{}id]} finishes.
+\end{leanbox}
+
+\section{\texorpdfstring{The root mean square norm of a thermal velocity}{The root mean square norm of a thermal velocity}}
+
+
+\textbf{Claim.} Let \((\Omega,\mathcal F,\mathbb P)\) be a measure space, \(N>0\), and let \(V\) be a square-integrable random vector with values in \(\mathcal Z_N\) whose law is \(\kappa_N\). Then
+
+
+\[\|V\|_{L^2}=\Bigl(\int_\Omega\|V\|^2\,d\mathbb P\Bigr)^{1/2}=\sqrt{\frac{d_\theta+Nd_x}N}.\]
+
+
+\textbf{Proof.} By the previous step, \(\sqrt N\,V=r_N(V)\) has law \((r_N)_\#\kappa_N=\gamma_{\mathcal Z_N}\), the standard Gaussian law on the space \(\mathcal Z_N\) of dimension \(D=d_\theta+Nd_x\) (the number of elements of \(I_N\)). For a standard Gaussian vector \(G\) on \(\mathbb R^D\) the coordinates are standard normal, so
+
+
+\[\mathbb E\|G\|^2=\sum_{a\in I_N}\mathbb E\,G_a^2=D,\qquad\text{that is}\qquad\|G\|_{L^2}=\sqrt D\]
+
+
+(\cite[Section~3.40.1]{LangevinLean2026Kinetic}). Applied to \(G=\sqrt N\,V\) and combined with homogeneity of the \(L^2\) norm and \(\sqrt N>0\), this gives \(\sqrt N\,\|V\|_{L^2}=\sqrt D\). Dividing by \(\sqrt N\) and using \(\sqrt D/\sqrt N=\sqrt{D/N}\) for \(D\ge0\), \(N>0\) proves the claim. \(\square\)
+
+
+
+
+The law of \(V\) is a probability measure, so the hypothesis forces \(\mathbb P(\Omega)=1\). Each of the \(D\) coordinates has variance \(1/N\), and the squared radius \(D/N=d_\theta/N+d_x\) is the sum of these variances. Its square root is the velocity radius at the thermal equilibrium of the particle system; it does not grow with \(N\) when \(d_\theta\) and \(d_x\) are fixed, and the case of zero dimensions is included.
+
+\begin{leanbox}{Lean: \texttt{thermal\_\allowbreak{}velocity\_\allowbreak{}Lp\_\allowbreak{}norm}}
+\leansource{\texttt{thermal\_\allowbreak{}velocity\_\allowbreak{}Lp\_\allowbreak{}norm} \quad KIPLMC/\allowbreak{}Moments.lean, lines 33–53}
+\begin{leancode}
+\leanline{0}{theorem\ thermal\_velocity\_Lp\_norm\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(V\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (hlaw\ :\ HasLaw\ V\ (velocityTarget\ N\ dθ\ dx)\ P)\ :}
+\leanline{4}{‖V‖\ =\ Real.sqrt\ (((dθ\ :\ ℝ)+(N\ :\ ℝ)*(dx\ :\ ℝ))/(N\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{thermal\_\allowbreak{}velocity\_\allowbreak{}Lp\_\allowbreak{}norm} takes a measure \texttt{P} on \texttt{\ensuremath{\Omega}}, \texttt{h\allowbreak{}N : 0 < N}, an element \texttt{V : Lp (State N d\ensuremath{\theta} dx) 2 P} of the space \(L^2(\mathbb P;\mathcal Z_N)\) of square-integrable random vectors modulo almost sure equality, whose norm \texttt{\ensuremath{\Vert}V\ensuremath{\Vert}} is \(\|V\|_{L^2}\), and \texttt{hlaw : Has\allowbreak{}Law V (velocity\allowbreak{}Target N d\ensuremath{\theta} dx) P}. Mathlib's \texttt{Has\allowbreak{}Law X \ensuremath{\mu} P} states that \(X\) is almost everywhere measurable and \texttt{P.\allowbreak{}map X = \ensuremath{\mu}}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hmap} is the statement that the map \(r_N\) has law \(\gamma_{\mathcal Z_N}\) under \(\kappa_N\), built from \texttt{velocity\allowbreak{}Target\_\allowbreak{}unscale h\allowbreak{}N} and measurability by \texttt{fun\_\allowbreak{}prop}.
+
+\item \texttt{h\allowbreak{}G} composes it with \texttt{hlaw} (\texttt{hmap.\allowbreak{}comp hlaw}) and transfers the result to the element \texttt{Real.\allowbreak{}sqrt N \ensuremath{\bullet} V} of \(L^2\), whose representative agrees almost everywhere with \(\sqrt N\) times that of \texttt{V} (\texttt{Lp.\allowbreak{}coe\allowbreak{}Fn\_\allowbreak{}smul}).
+
+\item \texttt{hm} is the kinetic report's \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}gaussian\_\allowbreak{}velocity\_\allowbreak{}Lp\_\allowbreak{}norm}, \(\|\sqrt N\,V\|_{L^2}=\sqrt{|I_N|}\); \texttt{norm\_\allowbreak{}smul} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}pos hs} turn its left side into \(\sqrt N\|V\|_{L^2}\).
+
+\item \texttt{hcard} computes the cardinality of \texttt{Fin d\ensuremath{\theta} ⊕ (Fin N \ensuremath{\times} Fin dx)} as \(d_\theta+Nd_x\), and the last lines rewrite \(\sqrt{D/N}=\sqrt D/\sqrt N\) (\texttt{Real.\allowbreak{}sqrt\_\allowbreak{}div}) and divide by \(\sqrt N\) (\texttt{eq\_\allowbreak{}div\_\allowbreak{}iff}, with \texttt{nlinarith} closing the rearranged identity).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.40.1]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

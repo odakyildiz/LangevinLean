@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ For a fixed initial state \(x\), the Gaussian proposal has center \(c_t(x)=x-t\n
 
 Differentiate the logarithm of one Gaussian component in the observation variable. The normalizer is constant in that variable, leaving the negative centered displacement divided by \(2t\).
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianScore}}
+\leansource{\texttt{frozenGaussianScore} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 20–21}
+\begin{leancode}
+\leanline{0}{def\ frozenGaussianScore\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ :\ E)\ :\ E\ :=}
+\leanline{2}{(-(1\ /\ (2\ *\ t)))\ •\ (y\ -\ (x\ -\ t\ •\ gradient\ U\ x))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Score} is a definition with defining expression \texttt{(-\allowbreak{}(1 /\allowbreak{} (2 * t))) \ensuremath{\bullet} (y -\allowbreak{} (x -\allowbreak{} t \ensuremath{\bullet} gradient U x))}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Square-integrability of the component score}{Square-integrability of the component score}}
 
@@ -42,6 +74,19 @@ Represent the initial/\allowbreak{}output pair as \((X,Y_t)\), with \(Y_t=c_t(X)
 
 Under the independent-noise representation the centered component displacement is \(\sqrt{2t}Z\). Its score energy is therefore \(d/(2t)\), finite for every positive time.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianScore\_\allowbreak{}memLp}}
+\leansource{\texttt{frozenGaussianScore\_\allowbreak{}memLp} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 25–42}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianScore\_memLp\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{MemLp\ (fun\ z\ :\ E\ ×\ E\ ↦\ frozenGaussianScore\ U\ t\ z.1\ z.2)\ 2}
+\leanline{6}{((μ.prod\ (stdGaussian\ E)).map\ (fun\ z\ :\ E\ ×\ E\ ↦}
+\leanline{8}{(z.1,\ ULA.malaProposal\ U\ t\ z.1\ z.2)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Score\_\allowbreak{}mem\allowbreak{}Lp}: the intermediate facts include \texttt{h\allowbreak{}Y}, \texttt{h\allowbreak{}T}, \texttt{h\allowbreak{}S}, \texttt{hz}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}, \texttt{h\allowbreak{}S.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left}, \texttt{smul\_\allowbreak{}smul}, \texttt{Pi.\allowbreak{}smul\_\allowbreak{}apply}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}.
@@ -55,6 +100,20 @@ If \(V\in L^2(\rho_t)\), then \(V(Y_t)\in L^2(\mu\otimes\mathcal N(0,I))\), beca
 
 A state-space field with finite square energy under \(\rho_t\) has the same square energy when composed with the proposed coordinate on the joint pair. This is pushforward change of variables.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianJoint\_\allowbreak{}memLp\_\allowbreak{}state\_\allowbreak{}field}}
+\leansource{\texttt{frozenGaussianJoint\_\allowbreak{}memLp\_\allowbreak{}state\_\allowbreak{}field} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 46–57}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianJoint\_memLp\_state\_field\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (V\ :\ E\ →\ E)\ (hV\ :\ Continuous\ V)}
+\leanline{4}{(hVLp\ :\ MemLp\ V\ 2\ (interpolationLaw\ U\ μ\ t))\ :}
+\leanline{4}{MemLp\ (fun\ z\ :\ E\ ×\ E\ ↦\ V\ z.2)\ 2}
+\leanline{6}{((μ.prod\ (stdGaussian\ E)).map\ (fun\ z\ :\ E\ ×\ E\ ↦}
+\leanline{8}{(z.1,\ ULA.malaProposal\ U\ t\ z.1\ z.2)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Joint\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}state\_\allowbreak{}field}: the intermediate facts include \texttt{h\allowbreak{}Y}, \texttt{h\allowbreak{}T}, in source order; the source steps apply or rewrite \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}, \texttt{h\allowbreak{}VLp.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{h\allowbreak{}Y.\allowbreak{}aemeasurable}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}.
@@ -68,6 +127,19 @@ The component score and the state field \(V(y)\) are both square integrable unde
 
 Cauchy–Schwarz on the pair probability bounds the absolute pairing integral by the product of component-score and state-field \(L^2\) norms. Hence the signed pairing is integrable before its order is exchanged.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}frozenGaussianScore\_\allowbreak{}pairing}}
+\leansource{\texttt{integrable\_\allowbreak{}frozenGaussianScore\_\allowbreak{}pairing} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 61–95}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_frozenGaussianScore\_pairing\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (V\ :\ E\ →\ E)\ (hV\ :\ Continuous\ V)}
+\leanline{4}{(hVLp\ :\ MemLp\ V\ 2\ (interpolationLaw\ U\ μ\ t))\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ frozenGaussianKernel\ U\ t\ z.1\ z.2\ *}
+\leanline{6}{inner\ ℝ\ (frozenGaussianScore\ U\ t\ z.1\ z.2)\ (V\ z.2))\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Score\_\allowbreak{}pairing}: the intermediate facts include \texttt{Q}, \texttt{h\allowbreak{}S}, \texttt{h\allowbreak{}VQ}, \texttt{hqnonneg}, \texttt{hw}, in source order; the source steps apply or rewrite \texttt{hprod.\allowbreak{}integrable}, \texttt{h\allowbreak{}S.\allowbreak{}aestrongly\allowbreak{}Measurable.\allowbreak{}inner}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}eq\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -81,6 +153,19 @@ The already constructed spatial derivative of the Gaussian mixture identifies it
 
 Integrating the component gradient over the starting law gives \(\nabla p_t\). Dividing by the positive mixture identifies its averaged score with \(\nabla\log p_t\), the posterior-score identity in weighted form.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensity\_\allowbreak{}weighted\_\allowbreak{}score}}
+\leansource{\texttt{interpolationLebesgueDensity\_\allowbreak{}weighted\_\allowbreak{}score} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 100–142}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgueDensity\_weighted\_score\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :}
+\leanline{4}{interpolationLebesgueDensity\ U\ μ\ t\ y\ •}
+\leanline{8}{gradient\ (fun\ y\ ↦\ Real.log\ (interpolationLebesgueDensity\ U\ μ\ t\ y))\ y\ =}
+\leanline{6}{∫\ x,\ frozenGaussianKernel\ U\ t\ x\ y\ •\ frozenGaussianScore\ U\ t\ x\ y\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}weighted\_\allowbreak{}score}: the intermediate facts include \texttt{a}, \texttt{c}, \texttt{ha}, \texttt{hmeas}, \texttt{hnonneg}, in source order; the source steps apply or rewrite \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}integral}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{integral\_\allowbreak{}smul}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}eq\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}, \texttt{smul\_\allowbreak{}smul}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.4]{LangevinLean2026ULASC}.
@@ -94,6 +179,18 @@ The component score is \(L^2\) under the pair probability law, hence is also \(L
 
 The Gaussian score has finite square norm and the tested state field has finite square norm. Their product is therefore integrable, supplying the precise Fubini hypothesis for the following averaging identity.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}frozenGaussianScore\_\allowbreak{}weighted}}
+\leansource{\texttt{integrable\_\allowbreak{}frozenGaussianScore\_\allowbreak{}weighted} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 146–164}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_frozenGaussianScore\_weighted\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ frozenGaussianKernel\ U\ t\ z.1\ z.2\ •}
+\leanline{6}{frozenGaussianScore\ U\ t\ z.1\ z.2)\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Score\_\allowbreak{}weighted}: the intermediate facts include \texttt{hint}, \texttt{hqmeas}, \texttt{hg}, \texttt{hqnonneg}, \texttt{hw}, in source order; the source steps apply or rewrite \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Joint\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}density}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}eq\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.4]{LangevinLean2026ULASC}.
@@ -111,6 +208,21 @@ The scalar pairing is jointly integrable by the preceding Holder argument, so Fu
 
 Average the component score at a fixed observation, then integrate its pairing with the state test. The mixture-gradient identity converts the result into the pairing with the Lebesgue score under \(\rho_t\).
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}frozenGaussianScore\_\allowbreak{}pairing}}
+\leansource{\texttt{integral\_\allowbreak{}frozenGaussianScore\_\allowbreak{}pairing} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 170–208}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_frozenGaussianScore\_pairing\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (V\ :\ E\ →\ E)\ (hV\ :\ Continuous\ V)}
+\leanline{4}{(hVLp\ :\ MemLp\ V\ 2\ (interpolationLaw\ U\ μ\ t))\ :}
+\leanline{4}{(∫\ z\ :\ E\ ×\ E,\ frozenGaussianKernel\ U\ t\ z.1\ z.2\ *}
+\leanline{6}{inner\ ℝ\ (frozenGaussianScore\ U\ t\ z.1\ z.2)\ (V\ z.2)\ ∂μ.prod\ volume)\ =}
+\leanline{6}{∫\ y,\ inner\ ℝ\ (gradient\ (fun\ y\ ↦\ Real.log\ (interpolationLebesgueDensity\ U\ μ\ t\ y))\ y)}
+\leanline{8}{(V\ y)\ ∂interpolationLaw\ U\ μ\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Score\_\allowbreak{}pairing}: the intermediate facts include \texttt{hpair}, \texttt{hweighted}, \texttt{hpoint}, \texttt{hqmeas}, \texttt{hqpos}, in source order; the source steps apply or rewrite \texttt{real\_\allowbreak{}inner\_\allowbreak{}smul\_\allowbreak{}right}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}, \texttt{interpolation\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}real\_\allowbreak{}with\allowbreak{}Density}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 \section{\texorpdfstring{The score identity on the independent-noise space}{The score identity on the independent-noise space}}
 
@@ -125,13 +237,29 @@ Substitute \(Y_t=c_t(x)+\sqrt{2t}z\) in the component score. The residual become
 
 Use the joint-law identity to rewrite the same integral on the original independent state-noise space. This lets the entropy flux be combined with the exact displacement and gradient-error estimates already proved there.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}frozenGaussianScore\_\allowbreak{}pairing\_\allowbreak{}independent}}
+\leansource{\texttt{integral\_\allowbreak{}frozenGaussianScore\_\allowbreak{}pairing\_\allowbreak{}independent} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianScorePairing.lean, lines 212–248}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_frozenGaussianScore\_pairing\_independent\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (V\ :\ E\ →\ E)\ (hV\ :\ Continuous\ V)}
+\leanline{4}{(hVLp\ :\ MemLp\ V\ 2\ (interpolationLaw\ U\ μ\ t))\ :}
+\leanline{4}{(∫\ z\ :\ E\ ×\ E,\ inner\ ℝ}
+\leanline{6}{((-(1\ /\ (2\ *\ t))\ *\ Real.sqrt\ (2\ *\ t))\ •\ z.2)}
+\leanline{6}{(V\ (ULA.malaProposal\ U\ t\ z.1\ z.2))\ ∂μ.prod\ (stdGaussian\ E))\ =}
+\leanline{6}{∫\ y,\ inner\ ℝ\ (gradient\ (fun\ y\ ↦\ Real.log\ (interpolationLebesgueDensity\ U\ μ\ t\ y))\ y)}
+\leanline{8}{(V\ y)\ ∂interpolationLaw\ U\ μ\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Score\_\allowbreak{}pairing\_\allowbreak{}independent}: the intermediate facts include \texttt{T}, \texttt{F}, \texttt{h\allowbreak{}T}, \texttt{hpair}, \texttt{hfinal}, in source order; the source steps apply or rewrite \texttt{fun\_\allowbreak{}prop}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Joint\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}density}, \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal}, \texttt{add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left}, \texttt{smul\_\allowbreak{}smul}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.37.4]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

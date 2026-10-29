@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -34,6 +57,25 @@ The reference initialization and its entire Brownian innovation stream have the 
 
 
 
+
+More precisely, let the state dimension be a nonnegative integer, let \(f\) be differentiable and \(m\)-strongly convex with \(m>0\), and let its gradient be \(M\)-Lipschitz with \(M\ge0\). For every \(\gamma\ge0\), every initial position coupling with the Gibbs law, and every terminal time \(T\ge0\), the constructed reference has phase law \(\mathcal N(0,I_d)\otimes\pi\) at every \(t\in[0,T]\). Indeed its initial/\allowbreak{}noise joint law is a product; the stationarity theorem applies to the restriction of the integral equation to \([0,t]\). This result needs no contraction or small-step assumption: those assumptions enter the numerical comparison below.
+
+\begin{leanbox}{Lean: \texttt{globalReferenceFlow\_\allowbreak{}stationary}}
+\leansource{\texttt{globalReferenceFlow\_\allowbreak{}stationary} \quad KineticLangevin/\allowbreak{}CanonicalKLMC.lean, lines 12–37}
+\begin{leancode}
+\leanline{0}{theorem\ globalReferenceFlow\_stationary}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ f))}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ (ULA.gibbsMeasure\ f))\ :}
+\leanline{4}{GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{global\allowbreak{}Reference\allowbreak{}Flow\_\allowbreak{}stationary} unfolds \texttt{Global\allowbreak{}Reference\allowbreak{}Stationary} by introducing the horizon and observation time. \texttt{Y} is the constructed reference and \texttt{hs} its continuity/\allowbreak{}integral specification. \texttt{hjoint} rewrites \texttt{initial\_\allowbreak{}ou\allowbreak{}Input\_\allowbreak{}joint\allowbreak{}Law} as the required Gibbs-phase/\allowbreak{}OU-stream product law. \texttt{heq} restricts the integral equation from the original horizon to the observation interval. \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}stationary\_\allowbreak{}of\_\allowbreak{}joint\allowbreak{}Noise} then proves the endpoint target law; the final pair adds measurability of the phase representative to package it as \texttt{Has\allowbreak{}Law}.
+\end{leanbox}
+
+
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \section{\texorpdfstring{Conclude the source-paper KLMC Wasserstein estimate}{Conclude the source-paper KLMC Wasserstein estimate}}
@@ -47,11 +89,33 @@ Combine the verified local comparison, scalar recurrence, position projection, a
 
 
 
+
+\textbf{Proof of the transport passage.} Recall that a coupling of \(\mu\) and \(\pi\) is a probability law \(\lambda\) on pairs \((X_0,Y_0)\) with these marginals, and that \(W_2(\mu,\pi)\) is the infimum of \((\int\|x-y\|^2\,d\lambda)^{1/2}\) over such laws. Extend any finite-cost coupling by the independent Gaussian velocity and Brownian source. The proved recurrence gives the displayed right side with the coupling cost in place of \(W_2(\mu,\pi)\); stationarity makes \(Y_n\) Gibbs, while the numerical marginal is independent of the chosen plan. The output transport distance is at most this particular coupled root-mean-square discrepancy. For every \(\varepsilon>0\), choose an initial cost less than \(W_2(\mu,\pi)+\varepsilon\). The transient coefficient is nonnegative by the step and friction restrictions, so the same bound holds with this larger cost. Letting \(\varepsilon\) decrease to zero proves the formula, without requiring an optimal plan. The Gibbs second moment and the coupled numerical construction guarantee that all distances in this real inequality are finite. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound}}
+\leansource{\texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}CanonicalKLMC.lean, lines 41–53}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_wasserstein\_bound}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m+(M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ (h\ :\ ℝ))\ (hstep\ :\ 4*(γ\ :\ ℝ)*(M\ :\ ℝ)*(h\ :\ ℝ)\ ≤\ m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (klmcLaw\ f\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)\ ≤}
+\leanline{6}{Real.sqrt\ 2\ *\ (1-3*m*(h\ :\ ℝ)/(4*(γ\ :\ ℝ)))\textasciicircum{}n\ *\ ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)\ +}
+\leanline{8}{(M\ :\ ℝ)*(h\ :\ ℝ)*Real.sqrt\ (2*(d\ :\ ℝ))/m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound} combines one-step contraction and local error, iterates the scalar affine recurrence and projects its transformed phase norm to position. \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound} obtains the Gibbs second moment as \texttt{h\ensuremath{\pi}}, then applies \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}global\allowbreak{}Stationarity} with the stationarity function proved for every initial coupling. The helper theorem identifies both output marginals and takes the initial-coupling infimum. The displayed transient and bias are therefore conclusions for the actual sampler law.
+\end{leanbox}
+
+
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

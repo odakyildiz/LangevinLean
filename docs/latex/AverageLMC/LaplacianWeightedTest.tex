@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,22 +62,74 @@ Earlier results used here: \cite[Section~3.13]{LangevinLean2026ULASC}.
 
 Define the weighted observation \(wF(X)\) using the actual representative of \(X\) and the measure \(P\). Measurability of \(w\) and continuity of \(F\) give measurability of the product; the bounds \(|w|\le A\) almost everywhere and \(|F|\le C\) dominate it by the integrable constant \(AC\).
 
+\begin{leanbox}{Lean: \texttt{lpWeightedTest}, \texttt{lpWeightedTest\_\allowbreak{}integrable}}
+\leansource{\texttt{lpWeightedTest} \quad AverageLMC/\allowbreak{}LaplacianWeightedTest.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ lpWeightedTest\ (w\ :\ Ω\ →\ ℝ)\ (F\ :\ H\ →\ ℝ)\ (X\ :\ Lp\ H\ 2\ P)\ :\ ℝ\ :=}
+\leanline{2}{∫\ a,\ w\ a\ *\ F\ (X\ a)\ ∂P}
+\end{leancode}
+\leansource{\texttt{lpWeightedTest\_\allowbreak{}integrable} \quad AverageLMC/\allowbreak{}LaplacianWeightedTest.lean, lines 31–42}
+\begin{leancode}
+\leanline{0}{theorem\ lpWeightedTest\_integrable}
+\leanline{4}{(w\ :\ Ω\ →\ ℝ)\ (hw\ :\ Measurable\ w)\ (A\ :\ ℝ)\ (hA\ :\ 0\ ≤\ A)}
+\leanline{4}{(hwA\ :\ ∀ᵐ\ a\ ∂P,\ |w\ a|\ ≤\ A)}
+\leanline{4}{(F\ :\ H\ →\ ℝ)\ (hF\ :\ Continuous\ F)\ (C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hFC\ :\ ∀\ x,\ |F\ x|\ ≤\ C)\ (X\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{Integrable\ (fun\ a\ ↦\ w\ a\ *\ F\ (X\ a))\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Weighted\allowbreak{}Test} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lp\allowbreak{}Weighted\allowbreak{}Test\_\allowbreak{}integrable} gives the formal counterpart of this step. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Make the continuity estimate explicit}{Make the continuity estimate explicit}}
 
 
 If \(F\) oscillates by at most \(\varepsilon\) at distance at most \(\delta\), then everywhere \(|F(x)-F(y)|\le \varepsilon +(2C/\delta ^{2})\|x-y\|^{2}\). Integrate against the bounded weight and identify the squared \(L^{2}\) norm with the squared-distance integral. The resulting bound is \(A[\varepsilon +(2C/\delta ^{2})\|X-Y\|^{2}]\).
 
+\begin{leanbox}{Lean: \texttt{lpWeightedTest\_\allowbreak{}difference\_\allowbreak{}le}}
+\leansource{\texttt{lpWeightedTest\_\allowbreak{}difference\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}LaplacianWeightedTest.lean, lines 46–100}
+\begin{leancode}
+\leanline{0}{theorem\ lpWeightedTest\_difference\_le}
+\leanline{4}{(w\ :\ Ω\ →\ ℝ)\ (hw\ :\ Measurable\ w)\ (A\ :\ ℝ)\ (hA\ :\ 0\ ≤\ A)}
+\leanline{4}{(hwA\ :\ ∀ᵐ\ a\ ∂P,\ |w\ a|\ ≤\ A)}
+\leanline{4}{(F\ :\ H\ →\ ℝ)\ (hF\ :\ Continuous\ F)\ (C\ ε\ δ\ :\ ℝ)}
+\leanline{4}{(hC\ :\ 0\ ≤\ C)\ (hε\ :\ 0\ ≤\ ε)\ (hδ\ :\ 0\ <\ δ)}
+\leanline{4}{(hFC\ :\ ∀\ x,\ |F\ x|\ ≤\ C)}
+\leanline{4}{(hmod\ :\ ∀\ x\ y,\ ‖x\ -\ y‖\ ≤\ δ\ →\ |F\ x\ -\ F\ y|\ ≤\ ε)}
+\leanline{4}{(X\ Y\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{|lpWeightedTest\ P\ w\ F\ X\ -\ lpWeightedTest\ P\ w\ F\ Y|\ ≤}
+\leanline{6}{A\ *\ (ε\ +\ (2\ *\ C\ /\ δ\ \textasciicircum{}\ 2)\ *\ ‖X\ -\ Y‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Weighted\allowbreak{}Test\_\allowbreak{}difference\_\allowbreak{}le} separates the cases \texttt{hxy : \ensuremath{\Vert}x -\allowbreak{} y\ensuremath{\Vert} \ensuremath{\le} \ensuremath{\delta}} and its negation before combining them. The main intermediate facts are \texttt{\ensuremath{\beta}}, \texttt{h\ensuremath{\beta}}, \texttt{hp}, \texttt{hwi\allowbreak{}X}, \texttt{hwi\allowbreak{}Y}, \texttt{hdiff} in that order. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{abs\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}abs.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Transfer uniform continuity from state tests}{Transfer uniform continuity from state tests}}
 
 
 Choose a small test oscillation first, then a sufficiently small \(L^{2}\) radius to control the quadratic tail term. This proves uniform continuity of \(X\mapsto\mathbb E[wF(X)]\) for every bounded uniformly continuous \(F\).
 
+\begin{leanbox}{Lean: \texttt{lpWeightedTest\_\allowbreak{}uniformContinuous}}
+\leansource{\texttt{lpWeightedTest\_\allowbreak{}uniformContinuous} \quad AverageLMC/\allowbreak{}LaplacianWeightedTest.lean, lines 104–135}
+\begin{leancode}
+\leanline{0}{theorem\ lpWeightedTest\_uniformContinuous}
+\leanline{4}{(w\ :\ Ω\ →\ ℝ)\ (hw\ :\ Measurable\ w)\ (A\ :\ ℝ)\ (hA\ :\ 0\ ≤\ A)}
+\leanline{4}{(hwA\ :\ ∀ᵐ\ a\ ∂P,\ |w\ a|\ ≤\ A)}
+\leanline{4}{(F\ :\ H\ →\ ℝ)\ (hF\ :\ UniformContinuous\ F)\ (C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hFC\ :\ ∀\ x,\ |F\ x|\ ≤\ C)\ :\ UniformContinuous\ (lpWeightedTest\ P\ w\ F)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Weighted\allowbreak{}Test\_\allowbreak{}uniform\allowbreak{}Continuous} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\eta}}, \texttt{h\ensuremath{\eta}}, \texttt{h\ensuremath{\eta}scale}, \texttt{\ensuremath{\beta}}, \texttt{h\ensuremath{\beta}}, \texttt{r} in that order. Named proof applications include \texttt{Metric.\allowbreak{}uniform\allowbreak{}Continuous\_\allowbreak{}iff.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

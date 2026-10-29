@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,23 @@ Let \(Y_t-x=-\int_0^tg(Y_s)ds+B_t\) and \(Z_t-y=-\int_0^tg(Z_s)ds+C_t\). The inp
 
 Subtracting the additive input replaces a rough forced path by a differentiable integral path. The resulting equation still contains the input through its state argument, but its time derivative is now an ordinary drift evaluation. The resulting differential inequality gives stability for continuous inputs.
 
+\begin{leanbox}{Lean: \texttt{additive\_\allowbreak{}integral\_\allowbreak{}input\_\allowbreak{}stability}}
+\leansource{\texttt{additive\_\allowbreak{}integral\_\allowbreak{}input\_\allowbreak{}stability} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 25–85}
+\begin{leancode}
+\leanline{0}{theorem\ additive\_integral\_input\_stability}
+\leanline{4}{(g\ :\ E\ →\ E)\ (L\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ y\ :\ E)\ (B\ C\ Y\ Z\ :\ ℝ\ →\ E)}
+\leanline{4}{(hB\ :\ Continuous\ B)\ (hC\ :\ Continuous\ C)\ (hY\ :\ Continuous\ Y)\ (hZ\ :\ Continuous\ Z)}
+\leanline{4}{(T\ D\ :\ ℝ)\ (hD\ :\ 0\ ≤\ D)}
+\leanline{4}{(hinput\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ ‖B\ t\ -\ C\ t‖\ ≤\ D)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(hZe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Z\ t\ -\ y\ =\ -(∫\ s\ in\ 0..t,\ g\ (Z\ s))\ +\ C\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖Y\ t\ -\ Z\ t‖\ ≤\ (‖x\ -\ y‖\ +\ D)\ *\ Real.exp\ (((L\ :\ ℝ)\ +\ 1)\ *\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\_\allowbreak{}integral\_\allowbreak{}input\_\allowbreak{}stability} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{G}, \texttt{h\allowbreak{}FG}, \texttt{hc\allowbreak{}Y}, \texttt{hc\allowbreak{}Z}, \texttt{hder} in that order. Named proof applications include \texttt{h\allowbreak{}FG}, \texttt{hd.\allowbreak{}has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At.\allowbreak{}congr\_\allowbreak{}of\_\allowbreak{}eventually\allowbreak{}Eq}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Use compact paths with a uniform norm}{Use compact paths with a uniform norm}}
 
@@ -45,6 +85,55 @@ The space of continuous forcing paths is the Banach space of continuous velocity
 
 Continuity on a compact interval implies a finite uniform bound. Consequently the drift is bounded along each path and its integral is well defined. The supremum norm also controls every endpoint evaluation, linking path estimates to continuity of the terminal map.
 
+\begin{leanbox}{Lean: \texttt{VelocityForcing}, \texttt{normalizedForcing}, \texttt{continuous\_\allowbreak{}normalizedForcing} and 2 more}
+\leansource{\texttt{VelocityForcing} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 88–88}
+\begin{leancode}
+\leanline{0}{abbrev\ VelocityForcing\ (T\ :\ ℝ)\ :=\ C(Icc\ (0\ :\ ℝ)\ T,\ E)}
+\end{leancode}
+\leansource{\texttt{normalizedForcing} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 91–92}
+\begin{leancode}
+\leanline{0}{def\ normalizedForcing\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (B\ :\ VelocityForcing\ (E\ :=\ E)\ T)}
+\leanline{4}{(t\ :\ ℝ)\ :\ E\ :=\ B\ (projIcc\ 0\ T\ hT\ t)\ -\ B\ ⟨0,\ ⟨le\_rfl,\ hT⟩⟩}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}normalizedForcing} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 94–96}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_normalizedForcing\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(B\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ :\ Continuous\ (normalizedForcing\ T\ hT\ B)}
+\end{leancode}
+\leansource{\texttt{normalizedForcing\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 98–100}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ normalizedForcing\_zero\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(B\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ :\ normalizedForcing\ T\ hT\ B\ 0\ =\ 0}
+\end{leancode}
+\leansource{\texttt{normalizedForcing\_\allowbreak{}sub\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 103–113}
+\begin{leancode}
+\leanline{0}{theorem\ normalizedForcing\_sub\_le\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(B\ C\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ (t\ :\ ℝ)\ :}
+\leanline{4}{‖normalizedForcing\ T\ hT\ B\ t\ -\ normalizedForcing\ T\ hT\ C\ t‖\ ≤\ 2\ *\ ‖B\ -\ C‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Velocity\allowbreak{}Forcing} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{normalized\allowbreak{}Forcing} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{continuous\_\allowbreak{}normalized\allowbreak{}Forcing} gives the formal counterpart of this step.
+
+
+
+
+\texttt{normalized\allowbreak{}Forcing\_\allowbreak{}zero} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{normalized\allowbreak{}Forcing\_\allowbreak{}sub\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{h1}, \texttt{h0}, \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Select a solution from proved existence}{Select a solution from proved existence}}
 
@@ -59,6 +148,48 @@ Uniqueness of the selected kinetic solution applies the proved Lipschitz integra
 
 Existence and uniqueness together turn the integral equation into a well-defined solution operator. Any choice made while constructing a solution has the same output. Consequently its pushforward under a probability law of initial states and continuous inputs is well defined.
 
+\begin{leanbox}{Lean: \texttt{kineticFlow}, \texttt{kineticFlow\_\allowbreak{}spec}, \texttt{kineticFlow\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}integral}}
+\leansource{\texttt{kineticFlow} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 116–120}
+\begin{leancode}
+\leanline{0}{def\ kineticFlow\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ E\ ×\ E)\ (B\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ :}
+\leanline{4}{ℝ\ →\ E\ ×\ E\ :=}
+\leanline{2}{Classical.choose\ (exists\_kinetic\_integral\ g\ L\ γ\ u\ hg\ initial\ (normalizedForcing\ T\ hT\ B)}
+\leanline{4}{(continuous\_normalizedForcing\ T\ hT\ B)\ (normalizedForcing\_zero\ T\ hT\ B)\ T\ hT)}
+\end{leancode}
+\leansource{\texttt{kineticFlow\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 122–131}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlow\_spec\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ E\ ×\ E)\ (B\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ :}
+\leanline{4}{Continuous\ (kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ B)\ ∧}
+\leanline{6}{kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ B\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{8}{kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ B\ t\ -\ initial\ =}
+\leanline{10}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ B\ s))\ +}
+\leanline{12}{(normalizedForcing\ T\ hT\ B\ t,\ 0)}
+\end{leancode}
+\leansource{\texttt{kineticFlow\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}integral} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 136–145}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlow\_eq\_of\_integral\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ E\ ×\ E)\ (B\ :\ VelocityForcing\ (E\ :=\ E)\ T)}
+\leanline{4}{(Y\ :\ ℝ\ →\ E\ ×\ E)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(heY\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (normalizedForcing\ T\ hT\ B\ t,0))\ :}
+\leanline{4}{EqOn\ (kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ B)\ Y\ (Icc\ 0\ T)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Flow} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Flow\_\allowbreak{}spec} gives the formal counterpart of this step.
+
+
+
+
+\texttt{kinetic\allowbreak{}Flow\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}integral} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. Named proof applications include \texttt{ULA.\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}unique}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.43.2]{LangevinLean2026ULASC}.
@@ -76,6 +207,44 @@ In the product parameter norm both input differences are bounded by the same dis
 
 For two initial phases and inputs, the difference is bounded by the initial discrepancy plus the uniform input discrepancy plus a Lipschitz drift integral. Grönwall gives a bound proportional to \(e^{LT}\). Hence small perturbations of both arguments produce small changes at every fixed endpoint.
 
+\begin{leanbox}{Lean: \texttt{kineticFlow\_\allowbreak{}input\_\allowbreak{}stability}, \texttt{kineticFlow\_\allowbreak{}endpoint\_\allowbreak{}lipschitz}, \texttt{kineticFlow\_\allowbreak{}endpoint\_\allowbreak{}continuous}}
+\leansource{\texttt{kineticFlow\_\allowbreak{}input\_\allowbreak{}stability} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 148–171}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlow\_input\_stability\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ other\ :\ E\ ×\ E)}
+\leanline{4}{(B\ C\ :\ VelocityForcing\ (E\ :=\ E)\ T)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ B\ t\ -\ kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ other\ C\ t‖\ ≤}
+\leanline{6}{(‖initial-other‖\ +\ 2\ *\ ‖B-C‖)\ *}
+\leanline{8}{Real.exp\ (((γ\ +\ u\ *\ L\ +\ 1\ :\ ℝ≥0)\ :\ ℝ)\ *\ t\ +\ t)}
+\end{leancode}
+\leansource{\texttt{kineticFlow\_\allowbreak{}endpoint\_\allowbreak{}lipschitz} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 175–192}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlow\_endpoint\_lipschitz\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{LipschitzWith\ ⟨3\ *\ Real.exp\ (((γ\ +\ u\ *\ L\ +\ 1\ :\ ℝ≥0)\ :\ ℝ)\ *\ t\ +\ t),\ by\ positivity⟩}
+\leanline{6}{(fun\ p\ :\ (E\ ×\ E)\ ×\ VelocityForcing\ (E\ :=\ E)\ T\ ↦}
+\leanline{8}{kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ p.1\ p.2\ t)}
+\end{leancode}
+\leansource{\texttt{kineticFlow\_\allowbreak{}endpoint\_\allowbreak{}continuous} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 195–199}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlow\_endpoint\_continuous\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{Continuous\ (fun\ p\ :\ (E\ ×\ E)\ ×\ VelocityForcing\ (E\ :=\ E)\ T\ ↦}
+\leanline{6}{kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ p.1\ p.2\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Flow\_\allowbreak{}input\_\allowbreak{}stability} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hb}, \texttt{he} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\allowbreak{}Flow\_\allowbreak{}endpoint\_\allowbreak{}lipschitz} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{h1}, \texttt{h2}, \texttt{hsum}, \texttt{hm} in that order. Named proof applications include \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{he.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\allowbreak{}Flow\_\allowbreak{}endpoint\_\allowbreak{}continuous} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Control the entire solution as a compact continuous path}{Control the entire solution as a compact continuous path}}
 
@@ -86,10 +255,44 @@ The continuous kinetic path restricts the selected solution to \([0,T]\), retain
 
 The same estimate holds uniformly in terminal time on the compact horizon. Thus the solution map is continuous as a map into the continuous-path space, not merely pointwise in time. In particular, composing it with a random input gives a measurable path-valued object.
 
+\begin{leanbox}{Lean: \texttt{kineticFlowPath}, \texttt{kineticFlowPath\_\allowbreak{}lipschitz}, \texttt{kineticFlowPath\_\allowbreak{}continuous}}
+\leansource{\texttt{kineticFlowPath} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 202–206}
+\begin{leancode}
+\leanline{0}{def\ kineticFlowPath\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (p\ :\ (E\ ×\ E)\ ×\ VelocityForcing\ (E\ :=\ E)\ T)\ :}
+\leanline{4}{C(Icc\ (0\ :\ ℝ)\ T,\ E\ ×\ E)\ :=}
+\leanline{2}{⟨fun\ t\ ↦\ kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ p.1\ p.2\ t,}
+\leanline{4}{(kineticFlow\_spec\ g\ L\ γ\ u\ hg\ T\ hT\ p.1\ p.2).1.comp\ continuous\_subtype\_val⟩}
+\end{leancode}
+\leansource{\texttt{kineticFlowPath\_\allowbreak{}lipschitz} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 210–231}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlowPath\_lipschitz\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{LipschitzWith\ ⟨3\ *\ Real.exp\ (((γ\ +\ u\ *\ L\ +\ 1\ :\ ℝ≥0)\ :\ ℝ)\ *\ T\ +\ T),\ by\ positivity⟩}
+\leanline{6}{(kineticFlowPath\ g\ L\ γ\ u\ hg\ T\ hT)}
+\end{leancode}
+\leansource{\texttt{kineticFlowPath\_\allowbreak{}continuous} \quad KineticLangevin/\allowbreak{}Flow.lean, lines 233–235}
+\begin{leancode}
+\leanline{0}{theorem\ kineticFlowPath\_continuous\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :\ Continuous\ (kineticFlowPath\ g\ L\ γ\ u\ hg\ T\ hT)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Flow\allowbreak{}Path} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Flow\allowbreak{}Path\_\allowbreak{}lipschitz} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hexp}, \texttt{hmul} in that order. Named proof applications include \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\allowbreak{}Flow\allowbreak{}Path\_\allowbreak{}continuous} gives the formal counterpart of this step.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

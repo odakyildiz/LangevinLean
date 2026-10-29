@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,102 +32,481 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{A norm for position and velocity differences}{A norm for position and velocity differences}}
+\title{\texorpdfstring{A transformed Euclidean norm for position and velocity differences}{A transformed Euclidean norm for position and velocity differences}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-A phase vector is written as \((v,x)\), velocity first. Consider the linear transformation \(T_{\gamma,a}(v,x)=(v+(\gamma-a)x,-v-ax)\). Its squared energy is the sum of the two squared Hilbert norms. We equip the phase pair with the Euclidean product norm \(\|(v,x)\|_2^2=\|v\|^2+\|x\|^2\), so the transformed energy is a Hilbert-space squared norm. The identities below also apply with the underlying Hilbert space equal to an \(L^{2}\) space of random vectors.
+Throughout this section \(\mathcal H\) is a real inner product space with norm \(\|\cdot\|\); completeness is not needed. In the applications \(\mathcal H=\mathbb R^p\), or \(\mathcal H\) is the space \(L^2(\Omega;\mathbb R^p)\) of square-integrable random vectors with norm \(\|X\|=(\mathbb E\|X\|_2^2)^{1/2}\). A \emph{phase point} is a pair \(s=(v,x)\in \mathcal H\times \mathcal H\), velocity first and position second. For real numbers \(\gamma\) (the friction) and \(a\) (a shift) define the linear map
+
+
+\[T_{\gamma,a}(v,x)=\bigl(v+(\gamma-a)x,\;-v-ax\bigr),\]
+
+
+the transformed energy \(\mathcal E_{\gamma,a}(s)=\|y\|^2+\|z\|^2\), where \((y,z)=T_{\gamma,a}s\), and the transformed norm \(\|s\|_{\gamma,a}=\mathcal E_{\gamma,a}(s)^{1/2}\), the norm of \(T_{\gamma,a}s\) in the Euclidean product \(\mathcal H\oplus \mathcal H\), whose norm is \(\|(y,z)\|=(\|y\|^2+\|z\|^2)^{1/2}\). In the notation of Dalalyan and Riou-Durand, \(a=\lambda_-\) and \(\gamma-a=\lambda_+\) (the shift is called \(v\) in their Theorem 1); applied to the difference of two coupled trajectories, \(T_{\gamma,a}\) produces the pair \((\psi_t,z_t)\) of the proof of their Proposition 1.
 
 
 
-These are deterministic Hilbert-space identities. Their stochastic use requires only that the coupled position and velocity differences are square integrable; the same inner-product calculations then hold after expectation, with the corresponding root-mean-square norm.
+
+We prove that \(T_{\gamma,a}\) is invertible when \(\gamma\neq2a\), with explicit inverse; that \((\gamma-2a)^2\|x\|^2\le2\,\mathcal E_{\gamma,a}(v,x)\); that a phase point with zero velocity has energy \(((\gamma-a)^2+a^2)\|x\|^2\); that \(\|\cdot\|_{\gamma,a}\) satisfies the triangle inequality; and, for the shift \(a=0\), the projection bounds \(\|v\|\le\|s\|_{\gamma,0}\) and \(\|x\|\le(\sqrt2/\gamma)\|s\|_{\gamma,0}\) together with the identity \(\|(0,x)\|_{\gamma,0}=\gamma\|x\|\). These facts are used throughout the contraction arguments for the kinetic diffusion and its discretizations: the discrepancy between two coupled phase points is measured in \(\|\cdot\|_{\gamma,a}\), the initial discrepancy of a coupling with equal velocities is expressed through the position distance, and the final estimate is projected back onto the position coordinate.
+
+
+\section{\texorpdfstring{The transformation and the nonnegativity of its energy}{The transformation and the nonnegativity of its energy}}
+
+
+\textbf{Definitions.} For \(\gamma,a\in\mathbb R\) and \(s=(v,x)\in \mathcal H\times \mathcal H\) put
+
+
+\[T_{\gamma,a}(v,x)=\bigl(v+(\gamma-a)x,\;-v-ax\bigr),\qquad \mathcal E_{\gamma,a}(v,x)=\|v+(\gamma-a)x\|^2+\|-v-ax\|^2 .\]
+
+
+Thus \(\mathcal E_{\gamma,a}(s)=\|y\|^2+\|z\|^2\) with \((y,z)=T_{\gamma,a}s\). The map \(T_{\gamma,a}\) is linear, because each coordinate of its value is a linear combination of \(v\) and \(x\) with real coefficients.
 
 
 
-The inverse formulas determine when this transformation is nonsingular. They also give the constants relating position and velocity norms to the transformed norm. These constants are used when estimating the initial and terminal discrepancies of a coupling.
 
-
-\section{\texorpdfstring{Definition and nonnegativity of the transformed energy}{Definition and nonnegativity of the transformed energy}}
-
-
-Set \(y=v+(\gamma-a)x\), \(z=-v-ax\), and \(\mathcal E=\|y\|^2+\|z\|^2\). The energy is a sum of two squared Hilbert norms. Each summand is nonnegative, independently of the signs of \(\gamma\) or \(a\). Nonsingularity of the transformation, rather than nonnegativity of the energy, will require a restriction on these parameters.
+\textbf{Claim.} For all \(\gamma,a\in\mathbb R\) and all \(s\in \mathcal H\times \mathcal H\), \(\mathcal E_{\gamma,a}(s)\ge0\).
 
 
 
-The state here may be a difference of two trajectories. In that application the same formula measures how far the trajectories are apart, rather than their absolute energy. Positivity is immediate, while strict definiteness additionally needs the transformation to be invertible.
 
+\textbf{Proof.} The norms \(\|y\|\) and \(\|z\|\) are real numbers, so \(\|y\|^2\ge0\) and \(\|z\|^2\ge0\). A sum of two nonnegative numbers is nonnegative. \(\square\)
+
+
+
+
+No condition on \(\gamma\) or \(a\) is needed here. The energy vanishes exactly on the kernel of \(T_{\gamma,a}\), which by the next step is \(\{0\}\) when \(\gamma\neq2a\). In the contraction arguments \(s\) is the difference of two phase points driven by the same noise. For \(a=\lambda_-\) the two coordinates \(v+\lambda_+x\) and \(-v-\lambda_-x\) of \(T_{\gamma,a}s\) are the quantities \(\psi_t\) and \(z_t\) of the paper's proof of Proposition 1, and \(\mathcal E_{\gamma,a}(s)\) is the squared Euclidean norm of the vector \((\psi_t,z_t)\) used there.
+
+\begin{leanbox}{Lean: \texttt{transform}, \texttt{transformEnergy}, \texttt{transformEnergy\_\allowbreak{}nonneg}}
+\leansource{\texttt{transform} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 20–21}
+\begin{leancode}
+\leanline{0}{def\ transform\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{(s.1\ +\ (γ\ -\ a)\ •\ s.2,\ -s.1\ -\ a\ •\ s.2)}
+\end{leancode}
+\leansource{\texttt{transformEnergy} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{def\ transformEnergy\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ ℝ\ :=}
+\leanline{2}{‖(transform\ γ\ a\ s).1‖\ \textasciicircum{}\ 2\ +\ ‖(transform\ γ\ a\ s).2‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{transformEnergy\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 27–30}
+\begin{leancode}
+\leanline{0}{theorem\ transformEnergy\_nonneg\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{0\ ≤\ transformEnergy\ γ\ a\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The section fixes a type \texttt{E} with the instances \texttt{[Normed\allowbreak{}Add\allowbreak{}Comm\allowbreak{}Group E] [Inner\allowbreak{}Product\allowbreak{}Space \ensuremath{\mathbb R} E]}, that is, a real inner product space \(\mathcal H\); completeness is not assumed. A phase point is an element \texttt{s : E \ensuremath{\times} E}, where \texttt{s.\allowbreak{}1} is the velocity \(v\) and \texttt{s.\allowbreak{}2} the position \(x\); the symbol \texttt{\ensuremath{\bullet}} is multiplication by a real scalar.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{transform \ensuremath{\gamma} a s} is the pair \texttt{(s.\allowbreak{}1 + (\ensuremath{\gamma} -\allowbreak{} a) \ensuremath{\bullet} s.\allowbreak{}2, -\allowbreak{}s.\allowbreak{}1 -\allowbreak{} a \ensuremath{\bullet} s.\allowbreak{}2)}, which is \(T_{\gamma,a}(v,x)\) verbatim.
+
+\item \texttt{transform\allowbreak{}Energy \ensuremath{\gamma} a s} is \texttt{\ensuremath{\Vert}(transform \ensuremath{\gamma} a s).\allowbreak{}1\ensuremath{\Vert} \textasciicircum{} 2 + \ensuremath{\Vert}(transform \ensuremath{\gamma} a s).\allowbreak{}2\ensuremath{\Vert} \textasciicircum{} 2}. The energy is written as an explicit sum of squares because the norm that Mathlib places on the product type \texttt{E \ensuremath{\times} E} is the maximum norm \(\max(\|y\|,\|z\|)\), not the Euclidean norm of the paper.
+
+\item \texttt{transform\allowbreak{}Energy\_\allowbreak{}nonneg} states \texttt{0 \ensuremath{\le} transform\allowbreak{}Energy \ensuremath{\gamma} a s} for arbitrary real \texttt{\ensuremath{\gamma}} and \texttt{a}. The proof unfolds the definition (\texttt{unfold transform\allowbreak{}Energy}) and calls \texttt{positivity}, which proves nonnegativity of a sum of squares term by term, as in the proof above.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Inverse formulas for position and velocity}{Inverse formulas for position and velocity}}
 
 
-Adding the new coordinates gives \(y+z=(\gamma-2a)x\). Distributing scalar multiplication and cancelling the two velocity terms gives this identity. If \(\gamma-2a\ne0\), multiply by its inverse to recover position. A second identity is \(ay+(\gamma-a)z=-(\gamma-2a)v\), giving \(v=-(\gamma-2a)^{-1}(ay+(\gamma-a)z)\). Distributing the coefficients in the second identity cancels the position terms; division by the same nonzero coefficient then gives the velocity formula. The hypothesis excludes the singular coordinate choice \(a=\gamma/2\).
+\textbf{Claim.} Let \(\gamma,a\in\mathbb R\), \(s=(v,x)\in \mathcal H\times \mathcal H\) and \((y,z)=T_{\gamma,a}s\). Then
+
+
+\[y+z=(\gamma-2a)\,x.\qquad(1)\]
+
+
+If moreover \(\gamma-2a\neq0\), then
+
+
+\[x=(\gamma-2a)^{-1}(y+z),\qquad v=-(\gamma-2a)^{-1}\bigl(a\,y+(\gamma-a)\,z\bigr).\qquad(2)\]
+
+
+\textbf{Proof.} By the definition of \(T_{\gamma,a}\) and distributivity of scalar multiplication, \((\gamma-a)x=\gamma x-ax\), so
+
+
+\[y+z=v+\gamma x-ax-v-ax=(\gamma-2a)\,x,\]
+
+
+which is (1). If \(\gamma-2a\neq0\), multiply (1) by \((\gamma-2a)^{-1}\). Since \(c\,(d\,x)=(cd)\,x\) for real \(c,d\) and \((\gamma-2a)^{-1}(\gamma-2a)=1\), we get \((\gamma-2a)^{-1}(y+z)=1\cdot x=x\), the first formula of (2). For the second, expand both terms:
+
+
+\[\begin{aligned}
+a\,y+(\gamma-a)\,z&=a v+a(\gamma-a)x-(\gamma-a)v-(\gamma-a)a\,x\\
+&=\bigl(a-(\gamma-a)\bigr)v=-(\gamma-2a)\,v ,
+\end{aligned}\]
+
+
+because the two position terms cancel. Multiplying by \(-(\gamma-2a)^{-1}\) and using \(\bigl(-(\gamma-2a)^{-1}\bigr)\bigl(-(\gamma-2a)\bigr)=(\gamma-2a)^{-1}(\gamma-2a)=1\) gives \(-(\gamma-2a)^{-1}(a\,y+(\gamma-a)z)=v\). \(\square\)
 
 
 
-The determinant of this two-by-two scalar transformation is \(\gamma-2a\). Thus the denominator in both inverse formulas has the same geometric origin. At the exceptional value both new coordinates are negatives of one another, and position and velocity can no longer be recovered separately.
 
+On each pair \((v,x)\) the map \(T_{\gamma,a}\) acts through the \(2\times2\) real matrix with rows \((1,\ \gamma-a)\) and \((-1,\ -a)\), whose determinant is \(-a+(\gamma-a)=\gamma-2a\). Formula (2) is the product with the inverse matrix \((\gamma-2a)^{-1}\) times the matrix with rows \((-a,\ -(\gamma-a))\) and \((1,\ 1)\). The hypothesis \(\gamma\neq2a\) excludes the singular shift \(a=\gamma/2\), at which \(z=-y\) and position and velocity can no longer be recovered; the paper restricts the shift to \([0,\gamma/2)\), where \(\gamma-2a>0\).
+
+\begin{leanbox}{Lean: \texttt{transform\_\allowbreak{}add}, \texttt{transform\_\allowbreak{}inverse\_\allowbreak{}position}, \texttt{transform\_\allowbreak{}inverse\_\allowbreak{}velocity}}
+\leansource{\texttt{transform\_\allowbreak{}add} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 33–36}
+\begin{leancode}
+\leanline{0}{theorem\ transform\_add\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{(transform\ γ\ a\ s).1\ +\ (transform\ γ\ a\ s).2\ =\ (γ\ -\ 2\ *\ a)\ •\ s.2}
+\end{leancode}
+\leansource{\texttt{transform\_\allowbreak{}inverse\_\allowbreak{}position} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 39–41}
+\begin{leancode}
+\leanline{0}{theorem\ transform\_inverse\_position\ (γ\ a\ :\ ℝ)\ (h\ :\ γ\ -\ 2\ *\ a\ ≠\ 0)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{(γ\ -\ 2\ *\ a)⁻¹\ •\ ((transform\ γ\ a\ s).1\ +\ (transform\ γ\ a\ s).2)\ =\ s.2}
+\end{leancode}
+\leansource{\texttt{transform\_\allowbreak{}inverse\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 43–54}
+\begin{leancode}
+\leanline{0}{theorem\ transform\_inverse\_velocity\ (γ\ a\ :\ ℝ)\ (h\ :\ γ\ -\ 2\ *\ a\ ≠\ 0)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{-(γ\ -\ 2\ *\ a)⁻¹\ •}
+\leanline{6}{(a\ •\ (transform\ γ\ a\ s).1\ +\ (γ\ -\ a)\ •\ (transform\ γ\ a\ s).2)\ =\ s.1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{transform\_\allowbreak{}add} states \texttt{(transform \ensuremath{\gamma} a s).\allowbreak{}1 + (transform \ensuremath{\gamma} a s).\allowbreak{}2 = (\ensuremath{\gamma} -\allowbreak{} 2 * a) \ensuremath{\bullet} s.\allowbreak{}2}, identity (1). The call \texttt{simp only [transform, sub\_\allowbreak{}smul, mul\_\allowbreak{}smul]} unfolds \(T_{\gamma,a}\) and distributes \((\gamma-a)x=\gamma x-ax\) and \((2a)x=2(ax)\); the tactic \texttt{module} then proves the resulting identity between linear combinations of \(v\) and \(x\) by normalizing the real coefficients.
+
+\item \texttt{transform\_\allowbreak{}inverse\_\allowbreak{}position} assumes \texttt{h : \ensuremath{\gamma} -\allowbreak{} 2 * a ≠ 0}, the condition \(\gamma\neq2a\), and concludes the first formula of (2). The proof rewrites with \texttt{transform\_\allowbreak{}add}, merges the scalars with \texttt{smul\_\allowbreak{}smul} (\(c\,(d\,x)=(cd)\,x\)), cancels \((\gamma-2a)^{-1}(\gamma-2a)=1\) by \texttt{inv\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}} h} and removes the factor \(1\) with \texttt{one\_\allowbreak{}smul}.
+
+\item \texttt{transform\_\allowbreak{}inverse\_\allowbreak{}velocity} has the same hypothesis and concludes the second formula of (2). Its first block \texttt{he} is the displayed identity \(ay+(\gamma-a)z=-(\gamma-2a)v\), obtained by distributing the scalars (\texttt{smul\_\allowbreak{}add}, \texttt{smul\_\allowbreak{}sub}, \texttt{smul\_\allowbreak{}neg}, \texttt{smul\_\allowbreak{}smul}) and calling \texttt{module}. After \texttt{rw [he, smul\_\allowbreak{}smul]} the goal is \(\bigl((-(\gamma-2a)^{-1})(-(\gamma-2a))\bigr)v=v\); the block \texttt{hc} evaluates the scalar to \(1\) by \texttt{neg\_\allowbreak{}mul\_\allowbreak{}neg} and \texttt{inv\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}} h}, and \texttt{one\_\allowbreak{}smul} concludes.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{A bound for the position projection}{A bound for the position projection}}
 
 
-The triangle inequality and \((\|y\|-\|z\|)^2\ge0\) give \(\|y+z\|^2\le2(\|y\|^2+\|z\|^2)\). Substituting \(y+z=(\gamma-2a)x\) yields \((\gamma-2a)^2\|x\|^2\le2\mathcal E\). Squaring the triangle inequality is valid because both sides are nonnegative. The nonnegative square of the difference of the two norms bounds the resulting mixed term by the sum of their squares. Homogeneity of the norm and \(|c|^2=c^2\) give the squared bound without requiring the scalar coefficient to be positive.
+\textbf{Claim.} For all \(\gamma,a\in\mathbb R\) and all \(s=(v,x)\in \mathcal H\times \mathcal H\),
+
+
+\[(\gamma-2a)^2\,\|x\|^2\le2\,\mathcal E_{\gamma,a}(s).\]
+
+
+\textbf{Proof.} Write \((y,z)=T_{\gamma,a}s\). By the triangle inequality in \(\mathcal H\),
+
+
+\[\|y+z\|\le\|y\|+\|z\|.\qquad(1)\]
+
+
+Both sides of (1) are nonnegative, and for real numbers \(0\le u\le w\) we have \(u^2\le w^2\). Squaring (1) therefore gives
+
+
+\[\|y+z\|^2\le\|y\|^2+2\|y\|\,\|z\|+\|z\|^2\le2\bigl(\|y\|^2+\|z\|^2\bigr)=2\,\mathcal E_{\gamma,a}(s),\qquad(2)\]
+
+
+where the second inequality is \(2\|y\|\,\|z\|\le\|y\|^2+\|z\|^2\), equivalent to \((\|y\|-\|z\|)^2\ge0\). By identity (1) of the previous step, \(y+z=(\gamma-2a)x\). Homogeneity of the norm gives \(\|(\gamma-2a)x\|=|\gamma-2a|\,\|x\|\), hence \(\|y+z\|^2=|\gamma-2a|^2\|x\|^2=(\gamma-2a)^2\|x\|^2\). Substituting this into the left-hand side of (2) proves the claim. \(\square\)
 
 
 
-The factor two is the sharp constant for adding two Hilbert vectors: equality occurs when the two vectors coincide. Consequently the loss in position projection is a property of the chosen coordinates. It is independent of dimension and survives unchanged on a space of random variables.
 
+No sign condition is used: for \(\gamma=2a\) the claim is the nonnegativity of the energy. When \(\gamma\neq2a\), dividing by \((\gamma-2a)^2\) and taking square roots gives \(\|x\|\le\sqrt2\,\mathcal E_{\gamma,a}(s)^{1/2}/|\gamma-2a|\), the factor \(\sqrt2/(\lambda_+-\lambda_-)\) at the end of the paper's proof of Proposition 1. The constant \(2\) in (2) cannot be improved, since equality holds when \(y=z\).
 
-\section{\texorpdfstring{Initial energy when velocities agree}{Initial energy when velocities agree}}
-
-
-If the velocity difference is zero, the transformed pair is \(((\gamma-a)x,-ax)\). Its energy is therefore \(((\gamma-a)^2+a^2)\|x\|^2\). Homogeneity and invariance of the norm under negation reduce the energy to the two scalar squares. Applying \( |c|^2=c^2 \) removes the absolute values from those squares. This is the exact initialization coefficient in the synchronous-position contraction theorem.
-
-
-
-For a coupling with a common initial velocity, the initial transformed cost therefore depends only on the position coupling. Consequently a bound for the phase discrepancy can be initialized using the cost of a position coupling. No initial velocity transport penalty is introduced by this choice.
-
-
-\section{\texorpdfstring{Velocity control and the ordinary phase energy}{Velocity control and the ordinary phase energy}}
-
-
-At \(a=0\), the second transformed coordinate is \(-v\), so \(\|v\|^2\le\|v+\gamma x\|^2+\|v\|^2=\mathcal E\). The first squared term is nonnegative. The ordinary phase energy is \(\|v\|^2+\|x\|^2\), the ordinary squared Euclidean phase norm. Both definitions avoid relying on the product's maximum norm; only the transformed energy contains the mixed position–velocity geometry needed for contraction.
+\begin{leanbox}{Lean: \texttt{position\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy}}
+\leansource{\texttt{position\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 58–66}
+\begin{leancode}
+\leanline{0}{theorem\ position\_sq\_le\_energy\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{(γ\ -\ 2\ *\ a)\ \textasciicircum{}\ 2\ *\ ‖s.2‖\ \textasciicircum{}\ 2\ ≤\ 2\ *\ transformEnergy\ γ\ a\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{position\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy} has no hypothesis on \texttt{\ensuremath{\gamma}} or \texttt{a}, and its conclusion \texttt{(\ensuremath{\gamma} -\allowbreak{} 2 * a) \textasciicircum{} 2 * \ensuremath{\Vert}s.\allowbreak{}2\ensuremath{\Vert} \textasciicircum{} 2 \ensuremath{\le} 2 * transform\allowbreak{}Energy \ensuremath{\gamma} a s} is the claim.
 
 
 
-Controlling both position and velocity follows by combining their projection inequalities. The transformed energy is therefore equivalent to the usual phase energy whenever the coordinate transformation is invertible. The constants of equivalence become large near the singular value, explaining the restriction on the shift.
+\begin{enumerate}
 
 
-\section{\texorpdfstring{The Euclidean transformed norm}{The Euclidean transformed norm}}
+\item \texttt{htriangle} is the triangle inequality (1), the Mathlib lemma \texttt{norm\_\allowbreak{}add\_\allowbreak{}le} applied to the two transformed coordinates.
+
+\item \texttt{hsum} is inequality (2). It is proved by \texttt{nlinarith} from \texttt{htriangle}, the nonnegativity \texttt{norm\_\allowbreak{}nonneg} of \(\|y+z\|\), and \texttt{sq\_\allowbreak{}nonneg (\ensuremath{\Vert}(transform \ensuremath{\gamma} a s).\allowbreak{}1\ensuremath{\Vert} -\allowbreak{} \ensuremath{\Vert}(transform \ensuremath{\gamma} a s).\allowbreak{}2\ensuremath{\Vert})}, which is \((\|y\|-\|z\|)^2\ge0\). Squaring (1) and adding this square is precisely the computation in the proof; \texttt{nlinarith} finds it by multiplying the supplied inequalities in pairs.
+
+\item \texttt{rw [transform\_\allowbreak{}add, norm\_\allowbreak{}smul, Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs, mul\_\allowbreak{}pow, sq\_\allowbreak{}abs] at hsum} replaces \(y+z\) by \((\gamma-2a)x\) and then applies \(\|c\,x\|=\|c\|\,\|x\|\), \(\|c\|=|c|\) for real \(c\), \((|c|\,\|x\|)^2=|c|^2\|x\|^2\) and \(|c|^2=c^2\). The rewritten \texttt{hsum} is the goal, because \texttt{transform\allowbreak{}Energy \ensuremath{\gamma} a s} unfolds by definition to the sum of squares on its right-hand side.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The energy of a phase point with zero velocity}{The energy of a phase point with zero velocity}}
 
 
-Define \(\|s\|_T\) as the norm of \(T_{\gamma,a}s\) in the Euclidean product Hilbert space. The norm of this product space is the square root of the sum of the two component norm squares. Its square is exactly the transformed energy, by the Euclidean squared-norm identity. Thus the norm, squared-energy calculations, and later triangle inequalities all describe the same geometry. In particular, this transformed norm is nonnegative. The construction applies to a Hilbert space of vectors or a Hilbert space of square-integrable random vectors.
+\textbf{Claim.} For all \(\gamma,a\in\mathbb R\) and \(x\in \mathcal H\),
+
+
+\[\mathcal E_{\gamma,a}(0,x)=\bigl((\gamma-a)^2+a^2\bigr)\|x\|^2.\]
+
+
+\textbf{Proof.} With \(v=0\) the definition gives \(T_{\gamma,a}(0,x)=\bigl((\gamma-a)x,\,-(ax)\bigr)\). The norm is invariant under negation and homogeneous, so
+
+
+\[\|(\gamma-a)x\|^2=|\gamma-a|^2\|x\|^2=(\gamma-a)^2\|x\|^2,\qquad\|-(ax)\|^2=|a|^2\|x\|^2=a^2\|x\|^2 .\]
+
+
+Adding the two identities gives the claim. \(\square\)
 
 
 
-Taking the square root is essential before combining two different errors. Squared energies do not obey the triangle inequality, whereas their square roots do. The Euclidean product construction supplies exactly the Hilbert norm needed for the subsequent insertion of an auxiliary exact trajectory.
+
+In a synchronous coupling the two processes start with the same velocity, so the initial difference is \((0,x_0-x_0')\) and its transformed energy is \(((\gamma-a)^2+a^2)\|x_0-x_0'\|^2\). With \(a=\lambda_-\), \(\gamma-a=\lambda_+\) this is the factor \(\lambda_+^2+\lambda_-^2\) inside the prefactor \(\sqrt{2(\lambda_+^2+\lambda_-^2)}/(\lambda_+-\lambda_-)\) of the paper's Proposition 1: the initial transformed discrepancy is determined by the position coupling alone.
+
+\begin{leanbox}{Lean: \texttt{transformEnergy\_\allowbreak{}zero\_\allowbreak{}velocity}}
+\leansource{\texttt{transformEnergy\_\allowbreak{}zero\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 70–74}
+\begin{leancode}
+\leanline{0}{theorem\ transformEnergy\_zero\_velocity\ (γ\ a\ :\ ℝ)\ (x\ :\ E)\ :}
+\leanline{4}{transformEnergy\ γ\ a\ (0,\ x)\ =\ ((γ\ -\ a)\ \textasciicircum{}\ 2\ +\ a\ \textasciicircum{}\ 2)\ *\ ‖x‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{transform\allowbreak{}Energy\_\allowbreak{}zero\_\allowbreak{}velocity} the phase point \texttt{(0, x)} has velocity \texttt{0} and position \texttt{x}. The proof is a single simplification followed by \texttt{ring}: \texttt{simp only} unfolds \texttt{transform\allowbreak{}Energy} and \texttt{transform}, removes the zero velocity with \texttt{zero\_\allowbreak{}add}, \texttt{neg\_\allowbreak{}zero} and \texttt{zero\_\allowbreak{}sub}, drops the sign with \texttt{norm\_\allowbreak{}neg}, and turns \(\|c\,x\|^2\) into \(c^2\|x\|^2\) with \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}pow} and \texttt{sq\_\allowbreak{}abs}. The remaining identity \((\gamma-a)^2\|x\|^2+a^2\|x\|^2=((\gamma-a)^2+a^2)\|x\|^2\) is closed by \texttt{ring}.
+\end{leanbox}
+
+\section{\texorpdfstring{Velocity control at zero shift and the Euclidean phase energy}{Velocity control at zero shift and the Euclidean phase energy}}
 
 
-\section{\texorpdfstring{Triangle inequalities and velocity projection}{Triangle inequalities and velocity projection}}
-
-
-The transformation is additive because each of its coordinates is a linear combination of position and velocity. Applying the triangle inequality in the Euclidean product space therefore gives the triangle inequality for the transformed norm. Rewriting \(s-t=(s-r)+(r-t)\) gives the three-point bound needed to insert an auxiliary exact path. To pass from an energy bound \(\mathcal E(s)\le B^2\) to \(\|s\|_T\le B\), use nonnegativity and comparison of nonnegative squares, then replace the norm square by energy. Applying the same argument to the already proved velocity-square projection gives \(\|v\|\le\|(v,x)\|_T\) at \(a=0\).
+\textbf{Definition.} The Euclidean phase energy of \(s=(v,x)\in \mathcal H\times \mathcal H\) is \(\|v\|^2+\|x\|^2\), the squared norm of \(s\) in the Euclidean product \(\mathcal H\oplus \mathcal H\).
 
 
 
-In the coupling proof the intermediate state is the exact endpoint started from the numerical initial phase. The triangle inequality then separates propagation of the old discrepancy from the newly created local numerical error. Both terms remain in one common geometry until the final projection.
+
+\textbf{Claim.} For every \(\gamma\in\mathbb R\) and every \(s=(v,x)\in \mathcal H\times \mathcal H\),
 
 
-\section{\texorpdfstring{Position projection after iteration}{Position projection after iteration}}
+\[\|v\|^2\le\mathcal E_{\gamma,0}(s).\]
 
 
-The squared position bound is \(\gamma^2\|x\|^2\le2\|s\|_T^2\). Both sides are squares of nonnegative quantities, so comparison of nonnegative squares gives \(\gamma\|x\|\le\sqrt2\|s\|_T\). Division by positive friction yields the exact projection factor \(\sqrt2/\gamma\). If the velocity difference initially vanishes, the energy identity gives \(\|(0,x)\|_T^2=\gamma^2\|x\|^2\). Comparing squares with nonnegative \(\gamma\) proves \(\|(0,x)\|_T=\gamma\|x\|\). These two identities explain why the eventual position theorem loses only one factor \(\sqrt2\), while the friction factors cancel in the persistent discretization term.
+\textbf{Proof.} For \(a=0\) we have \(\gamma-a=\gamma\) and \(ax=0\), so \(T_{\gamma,0}(v,x)=(v+\gamma x,\,-v)\). Since \(\|-v\|=\|v\|\),
+
+
+\[\mathcal E_{\gamma,0}(s)=\|v+\gamma x\|^2+\|v\|^2\ge\|v\|^2,\]
+
+
+because \(\|v+\gamma x\|^2\ge0\). \(\square\)
 
 
 
-To retain this constant in an iterated estimate, initialize the transformed discrepancy using the equal-velocity identity, propagate that norm through all iterations, and project position once at the endpoint. Projecting after every step would unnecessarily multiply the positional prefactor at every iteration.
 
+The bound holds for every real \(\gamma\). With zero shift the second transformed coordinate is the velocity itself (up to sign), which is why the velocity projection costs no constant; for a general shift one would use the inverse formula (2) of the second step instead. The Euclidean phase energy is recorded for comparison with the transformed energy; like the latter it is an explicit sum of squares.
+
+\begin{leanbox}{Lean: \texttt{velocity\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy}, \texttt{phaseEnergy}}
+\leansource{\texttt{velocity\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 77–80}
+\begin{leancode}
+\leanline{0}{theorem\ velocity\_sq\_le\_energy\ (γ\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{‖s.1‖\ \textasciicircum{}\ 2\ ≤\ transformEnergy\ γ\ 0\ s}
+\end{leancode}
+\leansource{\texttt{phaseEnergy} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 84–84}
+\begin{leancode}
+\leanline{0}{def\ phaseEnergy\ (s\ :\ E\ ×\ E)\ :\ ℝ\ :=\ ‖s.1‖\ \textasciicircum{}\ 2\ +\ ‖s.2‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{velocity\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy} states \texttt{\ensuremath{\Vert}s.\allowbreak{}1\ensuremath{\Vert} \textasciicircum{} 2 \ensuremath{\le} transform\allowbreak{}Energy \ensuremath{\gamma} 0 s} for every real \texttt{\ensuremath{\gamma}}. \texttt{simp only [transform\allowbreak{}Energy, transform, sub\_\allowbreak{}zero, zero\_\allowbreak{}smul, norm\_\allowbreak{}neg]} rewrites \(\gamma-0=\gamma\), \(0\cdot x=0\), \(-v-0=-v\) and \(\|-v\|=\|v\|\), leaving \(\|v\|^2\le\|v+\gamma x\|^2+\|v\|^2\); \texttt{nlinarith [sq\_\allowbreak{}nonneg \ensuremath{\Vert}s.\allowbreak{}1 + \ensuremath{\gamma} \ensuremath{\bullet} s.\allowbreak{}2\ensuremath{\Vert}]} closes it from the nonnegativity of the first square.
+
+\item \texttt{phase\allowbreak{}Energy s} is \texttt{\ensuremath{\Vert}s.\allowbreak{}1\ensuremath{\Vert} \textasciicircum{} 2 + \ensuremath{\Vert}s.\allowbreak{}2\ensuremath{\Vert} \textasciicircum{} 2}. As with the transformed energy, it is written as a sum of squares so that it is the Euclidean, and not the maximum, norm of the product type. It is a definition only; no property of it is proved in this section.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The transformed norm}{The transformed norm}}
+
+
+\textbf{Definition.} Let \(\mathcal H\oplus \mathcal H\) denote the product \(\mathcal H\times \mathcal H\) with the inner product \(\langle(y,z),(y',z')\rangle=\langle y,y'\rangle+\langle z,z'\rangle\), whose norm is \(\|(y,z)\|=(\|y\|^2+\|z\|^2)^{1/2}\). For \(\gamma,a\in\mathbb R\) define
+
+
+\[\|s\|_{\gamma,a}=\bigl\|T_{\gamma,a}s\bigr\|_{\mathcal H\oplus \mathcal H},\qquad s\in \mathcal H\times \mathcal H.\]
+
+
+\textbf{Claim.} For all \(\gamma,a\) and \(s\), \(\|s\|_{\gamma,a}\ge0\) and \(\|s\|_{\gamma,a}^2=\mathcal E_{\gamma,a}(s)\).
+
+
+
+
+\textbf{Proof.} The first statement holds because a norm is nonnegative. For the second, write \((y,z)=T_{\gamma,a}s\); by the formula for the norm of \(\mathcal H\oplus \mathcal H\), \(\|s\|_{\gamma,a}^2=\|y\|^2+\|z\|^2=\mathcal E_{\gamma,a}(s)\). \(\square\)
+
+
+
+
+The point of the definition is that \(\|\cdot\|_{\gamma,a}\) is the composition of a linear map with a genuine Hilbert-space norm, so it satisfies the triangle inequality (next step), whereas the energy \(\mathcal E_{\gamma,a}\), a squared quantity, does not. When \(\mathcal H=L^2(\Omega;\mathbb R^p)\), \(\|s\|_{\gamma,a}\) is the root-mean-square transformed distance \(\bigl(\mathbb E[\|y\|_2^2+\|z\|_2^2]\bigr)^{1/2}\) between two coupled random phase points.
+
+\begin{leanbox}{Lean: \texttt{transformNorm}, \texttt{transformNorm\_\allowbreak{}nonneg}, \texttt{transformNorm\_\allowbreak{}sq}}
+\leansource{\texttt{transformNorm} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 88–89}
+\begin{leancode}
+\leanline{0}{def\ transformNorm\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ ℝ\ :=}
+\leanline{2}{‖WithLp.toLp\ 2\ (transform\ γ\ a\ s)‖}
+\end{leancode}
+\leansource{\texttt{transformNorm\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 91–92}
+\begin{leancode}
+\leanline{0}{theorem\ transformNorm\_nonneg\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ 0\ ≤\ transformNorm\ γ\ a\ s}
+\end{leancode}
+\leansource{\texttt{transformNorm\_\allowbreak{}sq} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 94–96}
+\begin{leancode}
+\leanline{0}{theorem\ transformNorm\_sq\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{transformNorm\ γ\ a\ s\ \textasciicircum{}\ 2\ =\ transformEnergy\ γ\ a\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{transform\allowbreak{}Norm \ensuremath{\gamma} a s} is \texttt{\ensuremath{\Vert}With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (transform \ensuremath{\gamma} a s)\ensuremath{\Vert}}. Here \texttt{With\allowbreak{}Lp 2 (E \ensuremath{\times} E)} is Mathlib's copy of the product carrying the \(L^2\) (Euclidean) norm \((\|y\|^2+\|z\|^2)^{1/2}\) and the corresponding inner product, and \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2} is the identity map from \texttt{E \ensuremath{\times} E} into that copy. This is \(\|T_{\gamma,a}s\|_{\mathcal H\oplus \mathcal H}\).
+
+\item \texttt{transform\allowbreak{}Norm\_\allowbreak{}nonneg} is \texttt{norm\_\allowbreak{}nonneg \_\allowbreak{}}.
+
+\item \texttt{transform\allowbreak{}Norm\_\allowbreak{}sq} states \texttt{transform\allowbreak{}Norm \ensuremath{\gamma} a s \textasciicircum{} 2 = transform\allowbreak{}Energy \ensuremath{\gamma} a s}. It is the Mathlib lemma \texttt{With\allowbreak{}Lp.\allowbreak{}prod\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}L2}, which says that every element of \texttt{With\allowbreak{}Lp 2 (\ensuremath{\alpha} \ensuremath{\times} \ensuremath{\beta})} satisfies \(\|w\|^2=\|w_1\|^2+\|w_2\|^2\), applied to \(w=T_{\gamma,a}s\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Triangle inequalities and the passage from energy to norm}{Triangle inequalities and the passage from energy to norm}}
+
+
+\textbf{Claim.} Let \(\gamma,a\in\mathbb R\) and \(s,r,t\in \mathcal H\times \mathcal H\), and write \(s=(v,x)\).
+
+
+
+
+(i) \(T_{\gamma,a}(s+t)=T_{\gamma,a}s+T_{\gamma,a}t\).
+(ii) \(\|s+t\|_{\gamma,a}\le\|s\|_{\gamma,a}+\|t\|_{\gamma,a}\).
+(iii) \(\|s-t\|_{\gamma,a}\le\|s-r\|_{\gamma,a}+\|r-t\|_{\gamma,a}\).
+(iv) If \(B\ge0\) and \(\mathcal E_{\gamma,a}(s)\le B^2\), then \(\|s\|_{\gamma,a}\le B\).
+(v) \(\|v\|\le\|s\|_{\gamma,0}\).
+
+
+
+
+\textbf{Proof.} (i) Write \(t=(v',x')\). Distributing the scalars,
+
+
+\[\begin{aligned}
+(v+v')+(\gamma-a)(x+x')&=\bigl(v+(\gamma-a)x\bigr)+\bigl(v'+(\gamma-a)x'\bigr),\\
+-(v+v')-a(x+x')&=(-v-ax)+(-v'-ax'),
+\end{aligned}\]
+
+
+which are the two coordinates of (i).
+
+
+
+
+(ii) By (i) and the triangle inequality of the norm of \(\mathcal H\oplus \mathcal H\),
+
+
+\[\|s+t\|_{\gamma,a}=\|T_{\gamma,a}s+T_{\gamma,a}t\|_{\mathcal H\oplus \mathcal H}\le\|T_{\gamma,a}s\|_{\mathcal H\oplus \mathcal H}+\|T_{\gamma,a}t\|_{\mathcal H\oplus \mathcal H}=\|s\|_{\gamma,a}+\|t\|_{\gamma,a}.\]
+
+
+(iii) Since \(s-t=(s-r)+(r-t)\), (ii) applied to \(s-r\) and \(r-t\) gives (iii).
+
+
+
+
+(iv) For real numbers \(u,w\ge0\) one has \(u^2\le w^2\) if and only if \(u\le w\) (the function \(u\mapsto u^2\) is increasing on \([0,\infty)\)). Apply this with \(u=\|s\|_{\gamma,a}\ge0\) and \(w=B\ge0\): by the previous step \(u^2=\mathcal E_{\gamma,a}(s)\le B^2\), so \(u\le B\).
+
+
+
+
+(v) By the velocity bound of the fifth step and the previous step, \(\|v\|^2\le\mathcal E_{\gamma,0}(s)=\|s\|_{\gamma,0}^2\). Both \(\|v\|\) and \(\|s\|_{\gamma,0}\) are nonnegative, so the same monotonicity gives \(\|v\|\le\|s\|_{\gamma,0}\). \(\square\)
+
+
+
+
+The hypothesis \(B\ge0\) in (iv) is necessary: for \(B<0\) the bound \(\mathcal E_{\gamma,a}(s)\le B^2\) may hold while \(\|s\|_{\gamma,a}\le B\) fails. Inequality (iii) is used in the error analysis of the discretizations with \(s\) the numerical state, \(t\) the reference state and \(r\) an intermediate state, so that the error splits into the propagated old discrepancy and the error created in one step, both measured in the same norm.
+
+\begin{leanbox}{Lean: \texttt{transform\_\allowbreak{}add\_\allowbreak{}states}, \texttt{transformNorm\_\allowbreak{}add\_\allowbreak{}le}, \texttt{transformNorm\_\allowbreak{}sub\_\allowbreak{}triangle} and 2 more}
+\leansource{\texttt{transform\_\allowbreak{}add\_\allowbreak{}states} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 98–100}
+\begin{leancode}
+\leanline{0}{theorem\ transform\_add\_states\ (γ\ a\ :\ ℝ)\ (s\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{transform\ γ\ a\ (s\ +\ t)\ =\ transform\ γ\ a\ s\ +\ transform\ γ\ a\ t}
+\end{leancode}
+\leansource{\texttt{transformNorm\_\allowbreak{}add\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 102–106}
+\begin{leancode}
+\leanline{0}{theorem\ transformNorm\_add\_le\ (γ\ a\ :\ ℝ)\ (s\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{transformNorm\ γ\ a\ (s\ +\ t)\ ≤\ transformNorm\ γ\ a\ s\ +\ transformNorm\ γ\ a\ t}
+\end{leancode}
+\leansource{\texttt{transformNorm\_\allowbreak{}sub\_\allowbreak{}triangle} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 108–112}
+\begin{leancode}
+\leanline{0}{theorem\ transformNorm\_sub\_triangle\ (γ\ a\ :\ ℝ)\ (s\ r\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{transformNorm\ γ\ a\ (s\ -\ t)\ ≤\ transformNorm\ γ\ a\ (s\ -\ r)\ +\ transformNorm\ γ\ a\ (r\ -\ t)}
+\end{leancode}
+\leansource{\texttt{transformNorm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 114–118}
+\begin{leancode}
+\leanline{0}{theorem\ transformNorm\_le\_of\_energy\_le\ (γ\ a\ B\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ (hB\ :\ 0\ ≤\ B)}
+\leanline{4}{(he\ :\ transformEnergy\ γ\ a\ s\ ≤\ B\ \textasciicircum{}\ 2)\ :\ transformNorm\ γ\ a\ s\ ≤\ B}
+\end{leancode}
+\leansource{\texttt{velocity\_\allowbreak{}le\_\allowbreak{}transformNorm} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 120–123}
+\begin{leancode}
+\leanline{0}{theorem\ velocity\_le\_transformNorm\ (γ\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ ‖s.1‖\ ≤\ transformNorm\ γ\ 0\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{transform\_\allowbreak{}add\_\allowbreak{}states} is (i). \texttt{ext} reduces the equality of pairs to its two coordinates, \texttt{simp only [transform, Prod.\allowbreak{}fst\_\allowbreak{}add, Prod.\allowbreak{}snd\_\allowbreak{}add]} unfolds the map and the coordinates of a sum, and \texttt{module} verifies each linear identity.
+
+\item \texttt{transform\allowbreak{}Norm\_\allowbreak{}add\_\allowbreak{}le} is (ii). After \texttt{unfold transform\allowbreak{}Norm}, the rewrite \texttt{rw [transform\_\allowbreak{}add\_\allowbreak{}states, With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp\_\allowbreak{}add]} turns \(T_{\gamma,a}(s+t)\) into the sum of the two images inside \texttt{With\allowbreak{}Lp 2 (E \ensuremath{\times} E)} (\texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp\_\allowbreak{}add} says the identity map into the \(L^2\) product is additive), and \texttt{norm\_\allowbreak{}add\_\allowbreak{}le} is the triangle inequality there.
+
+\item \texttt{transform\allowbreak{}Norm\_\allowbreak{}sub\_\allowbreak{}triangle} is (iii): \texttt{he : s -\allowbreak{} t = (s -\allowbreak{} r) + (r -\allowbreak{} t)} is proved by \texttt{abel}, and \texttt{transform\allowbreak{}Norm\_\allowbreak{}add\_\allowbreak{}le} is applied after rewriting.
+
+\item \texttt{transform\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le} is (iv), with hypotheses \texttt{h\allowbreak{}B : 0 \ensuremath{\le} B} and \texttt{he : transform\allowbreak{}Energy \ensuremath{\gamma} a s \ensuremath{\le} B \textasciicircum{} 2}. The Mathlib lemma \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}} states that for \(0\le u\) and \(0\le w\), \(u^2\le w^2\iff u\le w\); it is applied with \texttt{transform\allowbreak{}Norm\_\allowbreak{}nonneg} and \texttt{h\allowbreak{}B}, and the squared goal is rewritten by \texttt{transform\allowbreak{}Norm\_\allowbreak{}sq} into \texttt{he}.
+
+\item \texttt{velocity\_\allowbreak{}le\_\allowbreak{}transform\allowbreak{}Norm} is (v), proved in the same way from \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}}, \texttt{transform\allowbreak{}Norm\_\allowbreak{}sq} and \texttt{velocity\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Position projection and equal-velocity initialization at zero shift}{Position projection and equal-velocity initialization at zero shift}}
+
+
+\textbf{Claim.} Let \(\gamma\in\mathbb R\) and \(x\in \mathcal H\).
+
+
+
+
+(i) If \(\gamma>0\), then \(\|x\|\le(\sqrt2/\gamma)\,\|s\|_{\gamma,0}\) for every \(s=(v,x)\in \mathcal H\times \mathcal H\).
+(ii) If \(\gamma\ge0\), then \(\|(0,x)\|_{\gamma,0}=\gamma\,\|x\|\).
+
+
+
+
+\textbf{Proof.} (i) The position bound of the third step with \(a=0\), together with \(\mathcal E_{\gamma,0}(s)=\|s\|_{\gamma,0}^2\), gives
+
+
+\[\gamma^2\|x\|^2\le2\,\|s\|_{\gamma,0}^2=\bigl(\sqrt2\,\|s\|_{\gamma,0}\bigr)^2,\]
+
+
+using \((\sqrt2)^2=2\). Since \(\gamma>0\), the number \(\gamma\|x\|\) is nonnegative, and \(\sqrt2\,\|s\|_{\gamma,0}\ge0\); comparing nonnegative squares yields \(\gamma\|x\|\le\sqrt2\,\|s\|_{\gamma,0}\). Dividing by \(\gamma>0\) preserves the inequality and gives (i).
+
+
+
+
+(ii) The zero-velocity identity of the fourth step with \(a=0\) gives \(\|(0,x)\|_{\gamma,0}^2=(\gamma^2+0)\|x\|^2=(\gamma\|x\|)^2\). Both \(\|(0,x)\|_{\gamma,0}\) and \(\gamma\|x\|\) are nonnegative, the latter because \(\gamma\ge0\). Two nonnegative numbers with equal squares are equal, which proves (ii). \(\square\)
+
+
+
+
+Together, (i) and (ii) produce the prefactor \(\sqrt2\) of the paper's Theorem 1 at shift \(0\): if a bound \(\|s_t\|_{\gamma,0}\le e^{-\beta t}\|s_0\|_{\gamma,0}\) holds for a coupled pair with initial difference \(s_0=(0,x_0)\), then \(\|x_t\|\le(\sqrt2/\gamma)e^{-\beta t}\gamma\|x_0\|=\sqrt2\,e^{-\beta t}\|x_0\|\). The prefactor is \(\sqrt2\), not the value \(\sqrt2/\gamma\) printed in display (exp1) of the paper; this is one of the corrections recorded in the reference audit. In iterated estimates the transformed norm is propagated through all steps and the position is projected only once, at the end, so the factor \(\sqrt2\) appears only once.
+
+\begin{leanbox}{Lean: \texttt{position\_\allowbreak{}le\_\allowbreak{}transformNorm}, \texttt{transformNorm\_\allowbreak{}zero\_\allowbreak{}velocity}}
+\leansource{\texttt{position\_\allowbreak{}le\_\allowbreak{}transformNorm} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 127–137}
+\begin{leancode}
+\leanline{0}{theorem\ position\_le\_transformNorm\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{‖s.2‖\ ≤\ Real.sqrt\ 2\ /\ γ\ *\ transformNorm\ γ\ 0\ s}
+\end{leancode}
+\leansource{\texttt{transformNorm\_\allowbreak{}zero\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 140–144}
+\begin{leancode}
+\leanline{0}{theorem\ transformNorm\_zero\_velocity\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (x\ :\ E)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (0,\ x)\ =\ γ\ *\ ‖x‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{position\_\allowbreak{}le\_\allowbreak{}transform\allowbreak{}Norm} assumes \texttt{h\ensuremath{\gamma} : 0 < \ensuremath{\gamma}} and concludes \texttt{\ensuremath{\Vert}s.\allowbreak{}2\ensuremath{\Vert} \ensuremath{\le} Real.\allowbreak{}sqrt 2 /\allowbreak{} \ensuremath{\gamma} * transform\allowbreak{}Norm \ensuremath{\gamma} 0 s}. The proof takes \texttt{hs := position\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}energy \ensuremath{\gamma} 0 s} and simplifies it with \texttt{mul\_\allowbreak{}zero}, \texttt{sub\_\allowbreak{}zero} and the reversed rewrite \texttt{← transform\allowbreak{}Norm\_\allowbreak{}sq} into \(\gamma^2\|x\|^2\le2\|s\|_{\gamma,0}^2\). The block \texttt{hnorm} is \(\gamma\|x\|\le\sqrt2\|s\|_{\gamma,0}\): it applies \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}} with the two nonnegativity facts \texttt{mul\_\allowbreak{}nonneg h\ensuremath{\gamma}.\allowbreak{}le (norm\_\allowbreak{}nonneg \_\allowbreak{})} and \texttt{mul\_\allowbreak{}nonneg (Real.\allowbreak{}sqrt\_\allowbreak{}nonneg \_\allowbreak{}) (transform\allowbreak{}Norm\_\allowbreak{}nonneg \_\allowbreak{} \_\allowbreak{} \_\allowbreak{})}, and rewrites \((\sqrt2)^2=2\) with \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt}. The block \texttt{hdiv} divides by \(\gamma\) using \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}} h\ensuremath{\gamma}} (for \(c>0\), \(u\le w/c\iff uc\le w\)), and \texttt{convert hdiv using 1 <;> ring} matches \(\sqrt2/\gamma\cdot\|s\|\) with \(\sqrt2\|s\|/\gamma\).
+
+\item \texttt{transform\allowbreak{}Norm\_\allowbreak{}zero\_\allowbreak{}velocity} assumes \texttt{h\ensuremath{\gamma} : 0 \ensuremath{\le} \ensuremath{\gamma}}. It applies \texttt{sq\_\allowbreak{}eq\_\allowbreak{}sq\ensuremath{{}_{0}}} (for \(u,w\ge0\), \(u^2=w^2\iff u=w\)) with \texttt{transform\allowbreak{}Norm\_\allowbreak{}nonneg} and \texttt{mul\_\allowbreak{}nonneg h\ensuremath{\gamma} (norm\_\allowbreak{}nonneg \_\allowbreak{})}, rewrites the square with \texttt{transform\allowbreak{}Norm\_\allowbreak{}sq} and \texttt{transform\allowbreak{}Energy\_\allowbreak{}zero\_\allowbreak{}velocity}, and finishes with \texttt{simp [mul\_\allowbreak{}pow]}, which evaluates \(((\gamma-0)^2+0^2)\|x\|^2=(\gamma\|x\|)^2\).
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

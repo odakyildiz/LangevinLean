@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ Let \(r=\sqrt{1-mh/(3\gamma)}\). The scalar bound \(1-x\le e^{-x}\), followed by
 
 The square-root geometric factor is converted to an exponential with half its linear exponent. This gives the manuscript’s exponential decay in iteration count. Raising the scalar bound to an integer power preserves it because both sides are nonnegative.
 
+\begin{leanbox}{Lean: \texttt{kiplmc2\_\allowbreak{}rate\_\allowbreak{}exp\_\allowbreak{}bound}}
+\leansource{\texttt{kiplmc2\_\allowbreak{}rate\_\allowbreak{}exp\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}OBABOPaperRate.lean, lines 10–27}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2\_rate\_exp\_bound\ (m\ γ\ h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(KineticLangevin.obaboContractionRate\ m\ γ\ h\ :\ ℝ)\textasciicircum{}n\ ≤}
+\leanline{6}{Real.exp\ (-m*h*(n\ :\ ℝ)/(6*γ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\_\allowbreak{}rate\_\allowbreak{}exp\_\allowbreak{}bound} separates the cases \texttt{hq : 0\ensuremath{\le}1-\allowbreak{}m*h/\allowbreak{}(3*\ensuremath{\gamma})} and its negation before combining them. The main intermediate facts are \texttt{hr}, \texttt{hp} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.113.4]{LangevinLean2026Kinetic}.
@@ -49,6 +82,37 @@ Choose \(C=\sqrt2+B+1/\sqrt m\). All three summands are nonnegative, so \(C\) do
 
 The step-dependent coefficient is bounded using the explicit stability cap. The resulting constant depends only on curvature and friction. Taking one larger constant dominating all three coefficients makes its independence from particle count, dimension, and requested accuracy explicit.
 
+\begin{leanbox}{Lean: \texttt{kiplmc2PaperBiasCoefficient}, \texttt{kiplmc2PaperConstant}, \texttt{kiplmc2PaperConstant\_\allowbreak{}bounds}}
+\leansource{\texttt{kiplmc2PaperBiasCoefficient} \quad KIPLMC/\allowbreak{}OBABOPaperRate.lean, lines 30–31}
+\begin{leancode}
+\leanline{0}{def\ kiplmc2PaperBiasCoefficient\ (m\ L\ γ\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(6*Real.sqrt\ 2*γ/m)*(4*Real.sqrt\ L+L*m/(66*γ\textasciicircum{}3))}
+\end{leancode}
+\leansource{\texttt{kiplmc2PaperConstant} \quad KIPLMC/\allowbreak{}OBABOPaperRate.lean, lines 34–35}
+\begin{leancode}
+\leanline{0}{def\ kiplmc2PaperConstant\ (m\ L\ γ\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ 2+kiplmc2PaperBiasCoefficient\ m\ L\ γ+1/Real.sqrt\ m}
+\end{leancode}
+\leansource{\texttt{kiplmc2PaperConstant\_\allowbreak{}bounds} \quad KIPLMC/\allowbreak{}OBABOPaperRate.lean, lines 37–48}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2PaperConstant\_bounds\ (m\ L\ γ\ :\ ℝ)\ (hm\ :\ 0<m)\ (hL\ :\ 0≤L)\ (hγ\ :\ 0<γ)\ :}
+\leanline{4}{0≤kiplmc2PaperConstant\ m\ L\ γ\ ∧\ Real.sqrt\ 2≤kiplmc2PaperConstant\ m\ L\ γ\ ∧}
+\leanline{6}{kiplmc2PaperBiasCoefficient\ m\ L\ γ≤kiplmc2PaperConstant\ m\ L\ γ\ ∧}
+\leanline{6}{1/Real.sqrt\ m≤kiplmc2PaperConstant\ m\ L\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\allowbreak{}Paper\allowbreak{}Bias\allowbreak{}Coefficient} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Paper\allowbreak{}Constant} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Paper\allowbreak{}Constant\_\allowbreak{}bounds} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}B}, \texttt{h\allowbreak{}I} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Termwise comparison with the supplied particle bound}{Termwise comparison with the supplied particle bound}}
 
@@ -59,6 +123,22 @@ For \(N\ge1\), \(D\le\sqrt N D+hN\sqrt{d_z}\) and \(\sqrt{d_z/N}\le\sqrt{Nd_z}\)
 
 The sharper thermal estimate can be enlarged term by term into the printed particle bound. Every enlargement adds a nonnegative quantity or uses \(N\ge1\). This derives the coarser displayed statement without asserting that its particle dependence is optimal.
 
+\begin{leanbox}{Lean: \texttt{kiplmc2\_\allowbreak{}paper\_\allowbreak{}envelope}}
+\leansource{\texttt{kiplmc2\_\allowbreak{}paper\_\allowbreak{}envelope} \quad KIPLMC/\allowbreak{}OBABOPaperRate.lean, lines 52–108}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2\_paper\_envelope\ (m\ L\ γ\ h\ N\ d\ dθ\ D\ error\ :\ ℝ)\ (n\ :\ ℕ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hL\ :\ 0≤L)\ (hγ\ :\ 0<γ)\ (hh\ :\ 0≤h)\ (hN\ :\ 1≤N)}
+\leanline{4}{(hd\ :\ 0≤d)\ (hθ\ :\ 0≤dθ)\ (hD\ :\ 0≤D)\ (hstep\ :\ 33*γ\textasciicircum{}3*h≤m)}
+\leanline{4}{(hbound\ :\ error≤Real.sqrt\ 2*(KineticLangevin.obaboContractionRate\ m\ γ\ h\ :\ ℝ)\textasciicircum{}n*D+}
+\leanline{6}{Real.sqrt\ 2*((6*γ/m)*h*(Real.sqrt\ d/Real.sqrt\ N)*(4*Real.sqrt\ L+L*h/2))+}
+\leanline{6}{Real.sqrt\ (dθ/(N*m)))\ :}
+\leanline{4}{error≤kiplmc2PaperConstant\ m\ L\ γ*}
+\leanline{6}{((Real.sqrt\ N*D+h*N*Real.sqrt\ d)*Real.exp\ (-m*h*(n\ :\ ℝ)/(6*γ))+}
+\leanline{8}{h*Real.sqrt\ (N*d)+Real.sqrt\ (dθ/N))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\_\allowbreak{}paper\_\allowbreak{}envelope} gives the formal counterpart of this step. The main intermediate facts are \texttt{C}, \texttt{h\allowbreak{}Cb}, \texttt{h\allowbreak{}C}, \texttt{h\allowbreak{}C2}, \texttt{hn}, \texttt{hs} in that order. Named proof applications include \texttt{le\_\allowbreak{}trans}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.113.4]{LangevinLean2026Kinetic}.
@@ -76,17 +156,40 @@ This is the supplied manuscript theorem with an explicit constant and the indepe
 
 The scalar comparison is applied to the unconditional parameter theorem, with its initial transport discrepancy. Thus the coarser rate still describes the independent-Gaussian sampler. Its explicit constant makes clear which parameters are suppressed in asymptotic notation.
 
+\begin{leanbox}{Lean: \texttt{kiplmc2\_\allowbreak{}parameter\_\allowbreak{}paper\_\allowbreak{}bound}}
+\leansource{\texttt{kiplmc2\_\allowbreak{}parameter\_\allowbreak{}paper\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}OBABOPaperRate.lean, lines 112–133}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2\_parameter\_paper\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ γ\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0<m)\ (hmL\ :\ m≤(L\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0<γ)\ (hh\ :\ 0<h)\ (hfriction\ :\ 4*(L\ :\ ℝ)≤γ\textasciicircum{}2)\ (hstep\ :\ 33*γ\textasciicircum{}3*h≤m)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx\ →\ State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ U\ θStar)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,‖IPLA.parameterCLM\ z-θStar‖\textasciicircum{}2}
+\leanline{6}{∂(kiplmc2Laws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd)\ ≤}
+\leanline{6}{kiplmc2PaperConstant\ m\ L\ γ*}
+\leanline{8}{((Real.sqrt\ N*ULA.wasserstein2Real\ ν\ (IPLA.gibbsTarget\ U)+}
+\leanline{10}{h*(N\ :\ ℝ)*Real.sqrt\ ((dθ\ :\ ℝ)+(N\ :\ ℝ)*(dx\ :\ ℝ)))*}
+\leanline{12}{Real.exp\ (-m*h*(n\ :\ ℝ)/(6*γ))+}
+\leanline{10}{h*Real.sqrt\ ((N\ :\ ℝ)*((dθ\ :\ ℝ)+(N\ :\ ℝ)*(dx\ :\ ℝ)))+}
+\leanline{10}{Real.sqrt\ ((dθ\ :\ ℝ)/(N\ :\ ℝ)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\_\allowbreak{}parameter\_\allowbreak{}paper\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hn} in that order. Named proof applications include \texttt{kiplmc2\_\allowbreak{}paper\_\allowbreak{}envelope}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

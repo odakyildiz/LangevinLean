@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,35 +39,154 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The numerical method uses fresh correlated noise on each interval \((a,a+t]\). The preceding module constructs those noises on the same specified Brownian source and proves independence across disjoint intervals. Here the noises also satisfy the integrated kinetic equations, so their relationship to the continuous diffusion is an equality in \(L^{2}\) rather than a matching-law assumption.
+This module works with one scalar Brownian motion constructed on a probability space \((\Omega,\mathcal F,\mathbb P)\) from an isonormal Gaussian map. Let \(L^2(\mathbb R)\) be the real Hilbert space of (classes of) functions on \(\mathbb R\) that are square integrable for Lebesgue measure, and let \(I:L^2(\mathbb R)\to L^2(\mathbb P)\) be a linear isometry whose values are centred Gaussian random variables; such a map is built from a Hilbert basis of \(L^2(\mathbb R)\) and an independent family of standard Gaussian variables. The Brownian motion is \(B_t=I(\mathbf 1_{(0,t]})\), \(t\ge0\), so that \(\mathbb E[B_sB_t]=\langle\mathbf 1_{(0,s]},\mathbf 1_{(0,t]}\rangle=\min(s,t)\). For a continuous \(k:\mathbb R\to\mathbb R\) and \(t\ge0\) the time kernel \(\kappa^k_t\in L^2(\mathbb R)\) is the class of \(r\mapsto\mathbf 1_{(0,t]}(r)\,k(t-r)\), and \(I(\kappa^k_t)\) is the Wiener integral \(\int_0^tk(t-r)\,dB_r\).
 
 
 
-The local filtered responses are exact translated pieces of the global source. Their damped and primitive equations ensure every numerical interval uses the same forcing as its corresponding exact segment.
+
+For \(a\ge0\) let \(\tau_a\) be the translation \((\tau_ag)(r)=g(r-a)\) of \(L^2(\mathbb R)\); it is a linear isometry because Lebesgue measure is translation invariant. The segment response
+
+
+\[J^a_t(k)=I(\tau_a\kappa^k_t)=\int_a^{a+t}k(a+t-r)\,dB_r,\qquad a,t\ge0,\]
+
+
+is the Wiener integral of \(k\) against the Brownian fluctuations on the interval \((a,a+t]\). With \(\psi_0(u)=e^{-\gamma u}\) and \(\psi_1(u)=\int_0^u\psi_0(s)\,ds\) put \(V^a_t=J^a_t(\psi_0)\) and \(P^a_t=J^a_t(\psi_1)\) (velocity and position responses), and \(W^a_t=B_{a+t}-B_a\) (Brownian increment). The module proves, as identities in \(L^2(\mathbb P)\), that \(J^a_t(1)=W^a_t\), that \(t\mapsto J^a_t(k)\) is continuous, that \(P^a_t=\int_0^tV^a_s\,ds\), that \(V^a_t+\gamma P^a_t=W^a_t\), and the integration-by-parts formulas \(P^a_t=\int_0^te^{-\gamma(t-s)}W^a_s\,ds\) and \(V^a_t=W^a_t-\gamma\int_0^te^{-\gamma(t-s)}W^a_s\,ds\). The case \(a=0\) was treated in the module on Brownian convolutions; the translated versions show that the Gaussian innovations used on the numerical interval \((a,a+t]\) are built from the same Brownian path as the continuous kinetic diffusion on that interval, and they are used to construct exact kinetic segments driven by the same increments.
 
 
 \section{\texorpdfstring{The Brownian increment on a translated interval}{The Brownian increment on a translated interval}}
 
 
-Define \(W^a_t=B_{a+t}-B_a\). The unit response kernel on \((a,a+t]\) is exactly the difference \(1_{(0,a+t]}-1_{(0,a]}\). One proves the indicator identity almost everywhere using equality almost everywhere, the explicit representatives, and real order arithmetic. Linearity of the isonormal Wiener-integral map then identifies its image with the Brownian increment. This fixes the driving noise as a constructed object on the original probability space.
+\textbf{Definition.} For \(a,t\ge0\) the Brownian increment on \((a,a+t]\) is \(W^a_t=B_{a+t}-B_a\in L^2(\mathbb P)\).
 
 
 
-The increment over a translated interval is represented by the indicator of that interval in the deterministic time Hilbert space. Linearity identifies it with the difference of the two Brownian endpoint values. This connects the local response to the original global process.
 
+\textbf{Claim.} For all \(a,t\ge0\), the segment kernel of the constant function \(1\) satisfies
+
+
+\[\tau_a\kappa^1_t=\mathbf 1_{(0,a+t]}-\mathbf 1_{(0,a]}\quad\text{in }L^2(\mathbb R),\qquad\text{hence}\qquad J^a_t(1)=W^a_t .\]
+
+
+\textbf{Proof.} By definition of the translation, \((\tau_a\kappa^1_t)(r)=\kappa^1_t(r-a)=\mathbf 1_{(0,t]}(r-a)=\mathbf 1_{(a,a+t]}(r)\) for almost every \(r\) (the elements of \(L^2(\mathbb R)\) are classes, so the identity of representatives is an almost-everywhere identity). Next we show \(\mathbf 1_{(0,a+t]}(r)-\mathbf 1_{(0,a]}(r)=\mathbf 1_{(a,a+t]}(r)\) for every real \(r\), distinguishing three cases.
+
+
+
+\begin{itemize}
+
+
+\item If \(r\le0\) or \(r>a+t\), all three indicators vanish.
+
+\item If \(0<r\le a\), then also \(r\le a+t\) because \(t\ge0\); the left-hand side is \(1-1=0\), and \(r\notin(a,a+t]\).
+
+\item If \(a<r\le a+t\), then \(r>0\) because \(a\ge0\); the left-hand side is \(1-0=1\), and \(r\in(a,a+t]\).
+
+\end{itemize}
+
+
+
+Two elements of \(L^2(\mathbb R)\) with almost everywhere equal representatives are equal, which proves the first identity. Applying the linear map \(I\) gives
+
+
+\[J^a_t(1)=I(\tau_a\kappa^1_t)=I(\mathbf 1_{(0,a+t]})-I(\mathbf 1_{(0,a]})=B_{a+t}-B_a=W^a_t .\qquad\square\]
+
+
+The nonnegativity of \(a\) and \(t\) is used in the case distinction; it ensures \((0,a]\subseteq(0,a+t]\).
+
+\begin{leanbox}{Lean: \texttt{segmentBrownianLp}, \texttt{segmentKernelLp\_\allowbreak{}one}, \texttt{segmentConvolutionLp\_\allowbreak{}one}}
+\leansource{\texttt{segmentBrownianLp} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 9–10}
+\begin{leancode}
+\leanline{0}{def\ segmentBrownianLp\ (a\ t\ :\ ℝ≥0)\ :\ Lp\ ℝ\ 2\ probability\ :=}
+\leanline{2}{ULA.CanonicalBrownian.valueLp\ (a+t)\ -\ ULA.CanonicalBrownian.valueLp\ a}
+\end{leancode}
+\leansource{\texttt{segmentKernelLp\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 13–27}
+\begin{leancode}
+\leanline{0}{theorem\ segmentKernelLp\_one\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentKernelLp\ (fun\ \_\ =>\ 1)\ continuous\_const\ a\ t\ =}
+\leanline{6}{ULA.CanonicalBrownian.timeIndicator\ (a+t)\ -\ ULA.CanonicalBrownian.timeIndicator\ a}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 30–33}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_one\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentConvolutionLp\ (fun\ \_\ =>\ 1)\ continuous\_const\ a\ t\ =\ segmentBrownianLp\ a\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The definition \texttt{segment\allowbreak{}Brownian\allowbreak{}Lp a t} is \texttt{ULA.\allowbreak{}Canonical\allowbreak{}Brownian.\allowbreak{}value\allowbreak{}Lp (a+t) -\allowbreak{} ULA.\allowbreak{}Canonical\allowbreak{}Brownian.\allowbreak{}value\allowbreak{}Lp a}, a difference in the Hilbert space \texttt{Lp \ensuremath{\mathbb R} 2 probability} of square-integrable real random variables. Here \texttt{value\allowbreak{}Lp t} is \(B_t=I(\mathbf 1_{(0,t]})\), with \texttt{ULA.\allowbreak{}Gaussian\allowbreak{}Hilbert.\allowbreak{}isonormal ULA.\allowbreak{}Canonical\allowbreak{}Brownian.\allowbreak{}basis} playing the role of \(I\), and the time arguments \texttt{a t : \ensuremath{\mathbb R}\ensuremath{\ge}0} are nonnegative reals. The segment kernel \texttt{segment\allowbreak{}Kernel\allowbreak{}Lp k hk a t} is \texttt{time\allowbreak{}Shift a (time\allowbreak{}Kernel\allowbreak{}Lp k hk t)}, i.e. \(\tau_a\kappa^k_t\), and \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp k hk a t} is its image under \(I\), i.e. \(J^a_t(k)\); \texttt{hk} is the continuity of \texttt{k}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{segment\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}one} is the identity of kernels with \texttt{k = fun \_\allowbreak{} => 1}; its right-hand side is \texttt{ULA.\allowbreak{}Canonical\allowbreak{}Brownian.\allowbreak{}time\allowbreak{}Indicator (a+t) -\allowbreak{} ULA.\allowbreak{}Canonical\allowbreak{}Brownian.\allowbreak{}time\allowbreak{}Indicator a}. The proof applies \texttt{Lp.\allowbreak{}ext}, which reduces equality in \texttt{Lp} to almost-everywhere equality of representatives. \texttt{hb} and \texttt{ha} are the almost-everywhere representatives of the two indicators (\texttt{indicator\allowbreak{}Const\allowbreak{}Lp\_\allowbreak{}coe\allowbreak{}Fn}), and \texttt{filter\_\allowbreak{}upwards} combines them with the representative \texttt{segment\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}coe} of the translated kernel and the representative of a difference (\texttt{Lp.\allowbreak{}coe\allowbreak{}Fn\_\allowbreak{}sub}). After the rewriting, \texttt{split\_\allowbreak{}ifs} performs the case distinction on the three memberships, and \texttt{simp\_\allowbreak{}all} and \texttt{linarith} close each case using \texttt{a.\allowbreak{}coe\_\allowbreak{}nonneg} and \texttt{t.\allowbreak{}coe\_\allowbreak{}nonneg}.
+
+\item \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}one} unfolds the definitions, rewrites the kernel by \texttt{segment\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}one} and uses \texttt{map\_\allowbreak{}sub}, the linearity of \(I\).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.2]{LangevinLean2026ULASC}; \cite[Section~3.8.9]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Integrate the shifted velocity response}{Integrate the shifted velocity response}}
+\section{\texorpdfstring{Continuity and the time primitive of the velocity response}{Continuity and the time primitive of the velocity response}}
 
 
-Write \(V^a_t=\int_a^{a+t}e^{-\gamma(a+t-r)}\,dB_r\) and \(P^a_t=\int_a^{a+t}\psi_1(a+t-r)\,dB_r\). Translation of deterministic time kernels is a continuous linear isometry. Therefore continuity of the unshifted kernels gives continuity of each translated stochastic response in \(L^{2}\). The already proved deterministic primitive identity \(K_{\psi_1}(t)=\int_0^tK_{\psi_0}(s)ds\) survives translation and application of the isonormal map. The proof composes their continuous linear maps and invokes commutation of a bounded linear map with integration, proving \(P^a_t=\int_0^tV^a_sds\) without pointwise evaluation of an \(L^{2}\) class.
+\textbf{Claim.} (a) For every continuous \(k\) and every \(a\ge0\), the map \(t\mapsto J^a_t(k)\) from \([0,\infty)\) to \(L^2(\mathbb P)\) is continuous. (b) If \(\gamma\ge0\), then for all \(a,t\ge0\)
+
+
+\[P^a_t=\int_0^tV^a_s\,ds ,\]
+
+
+where the right-hand side is the Bochner integral in the Hilbert space \(L^2(\mathbb P)\) of the continuous map \(s\mapsto V^a_s\).
 
 
 
-Integrating the shifted velocity response creates the corresponding position response because both use the same translated time support. The equality is an identity in the square-integrable Hilbert space. It retains the correlation needed for exact local noise cancellation.
 
+Recall that for a continuous map \(F:[0,t]\to\mathcal X\) into a Banach space \(\mathcal X\), the Bochner integral \(\int_0^tF(s)\,ds\) exists and equals the limit of Riemann sums, and that every bounded linear map \(\Lambda:\mathcal X\to\mathcal Y\) between Banach spaces satisfies \(\Lambda\bigl(\int_0^tF(s)\,ds\bigr)=\int_0^t\Lambda(F(s))\,ds\).
+
+
+
+
+\textbf{Proof.} (a) In the module on Brownian convolutions it was proved that \(t\mapsto\kappa^k_t\) is continuous from \([0,\infty)\) into \(L^2(\mathbb R)\) (by dominated convergence: on a bounded time range the kernels are bounded by \(\sup|k|\) and supported in a bounded interval). The maps \(\tau_a\) and \(I\) are linear isometries, hence continuous, and \(J^a_t(k)=I(\tau_a(\kappa^k_t))\) is a composition of continuous maps.
+
+
+
+
+(b) Put \(\Lambda=I\circ\tau_a\), a bounded linear map from \(L^2(\mathbb R)\) to \(L^2(\mathbb P)\). For \(\gamma\ge0\) the deterministic primitive identity
+
+
+\[\kappa^{\psi_1}_t=\int_0^t\kappa^{\psi_0}_s\,ds\qquad\text{in }L^2(\mathbb R)\qquad(1)\]
+
+
+was proved earlier: both sides have inner product \(\int_0^tg(r)\psi_1(t-r)\,dr\) with every \(g\in L^2(\mathbb R)\), by Fubini's theorem applied to \((s,r)\mapsto\mathbf 1_{\{r\le s\}}e^{-\gamma(s-r)}g(r)\) on \((0,t]^2\) and the computation \(\int_r^te^{-\gamma(s-r)}\,ds=\psi_1(t-r)\). The function is integrable on \((0,t]^2\) because \(g\) is integrable on the bounded interval \((0,t]\) (Cauchy–Schwarz) and \(0\le e^{-\gamma(s-r)}\le1\) when \(\gamma\ge0\) and \(r\le s\); this is where \(\gamma\ge0\) is used. The map \(s\mapsto\kappa^{\psi_0}_s\) is continuous by (a), hence integrable on \([0,t]\). Applying \(\Lambda\) to (1) and moving \(\Lambda\) inside the integral,
+
+
+\[P^a_t=\Lambda(\kappa^{\psi_1}_t)=\Lambda\Bigl(\int_0^t\kappa^{\psi_0}_s\,ds\Bigr)=\int_0^t\Lambda(\kappa^{\psi_0}_s)\,ds=\int_0^tV^a_s\,ds .\qquad\square\]
+
+
+The identity holds in \(L^2(\mathbb P)\); no pointwise evaluation of the random variables is involved.
+
+\begin{leanbox}{Lean: \texttt{continuous\_\allowbreak{}segmentConvolutionLp}, \texttt{segmentConvolutionLp\_\allowbreak{}primitive}}
+\leansource{\texttt{continuous\_\allowbreak{}segmentConvolutionLp} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 35–38}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_segmentConvolutionLp\ (k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ (a\ :\ ℝ≥0)\ :}
+\leanline{4}{Continuous\ (segmentConvolutionLp\ k\ hk\ a)}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}primitive} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 41–50}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_primitive\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentConvolutionLp\ (psi\ γ\ 1)\ (continuous\_psi\ γ\ 1)\ a\ t\ =}
+\leanline{6}{∫\ s\ in\ 0..(t\ :\ ℝ),\ segmentConvolutionLp\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ s.toNNReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{continuous\_\allowbreak{}segment\allowbreak{}Convolution\allowbreak{}Lp} composes three continuous maps: \texttt{continuous\_\allowbreak{}time\allowbreak{}Kernel\allowbreak{}Lp k hk} (continuity of \(t\mapsto\kappa^k_t\)), \texttt{(time\allowbreak{}Shift a).\allowbreak{}continuous} and \texttt{(ULA.\allowbreak{}Gaussian\allowbreak{}Hilbert.\allowbreak{}isonormal ULA.\allowbreak{}Canonical\allowbreak{}Brownian.\allowbreak{}basis).\allowbreak{}continuous}.
+
+\item In \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}primitive} the integral is the interval integral \texttt{\ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}(t : \ensuremath{\mathbb R}), …} over \([0,t]\); its integrand is evaluated at \texttt{s.\allowbreak{}to\allowbreak{}NNReal}, the nonnegative real \(\max(s,0)\), which equals \(s\) on the interval. The map \texttt{L} is \(\Lambda=I\circ\tau_a\), built as a composition of the continuous linear maps underlying the two isometries (\texttt{to\allowbreak{}Continuous\allowbreak{}Linear\allowbreak{}Map}). After \texttt{change} exposes \(P^a_t\) as \texttt{L (time\allowbreak{}Kernel\allowbreak{}Lp (psi \ensuremath{\gamma} 1) (continuous\_\allowbreak{}psi \ensuremath{\gamma} 1) t)}, the rewrite \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}primitive \ensuremath{\gamma} h\ensuremath{\gamma} t} is identity (1), and \texttt{L.\allowbreak{}interval\allowbreak{}Integral\_\allowbreak{}comp\_\allowbreak{}comm} is the commutation of a continuous linear map with the integral; its integrability hypothesis is supplied by continuity of \texttt{s \ensuremath{\mapsto} time\allowbreak{}Kernel\allowbreak{}Lp (psi \ensuremath{\gamma} 0) … s.\allowbreak{}to\allowbreak{}NNReal} (\texttt{continuous\_\allowbreak{}time\allowbreak{}Kernel\allowbreak{}Lp} composed with \texttt{continuous\_\allowbreak{}real\_\allowbreak{}to\allowbreak{}NNReal}) and \texttt{.\allowbreak{}interval\allowbreak{}Integrable}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}.
@@ -52,12 +194,54 @@ Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[S
 \section{\texorpdfstring{The damped Brownian integral equation}{The damped Brownian integral equation}}
 
 
-The exact coefficient identity \(\psi_0+\gamma\psi_1=1\) gives \(V^a_t+\gamma P^a_t=W^a_t\). First, the argument uses injectivity of the isonormal linear isometry to recover the deterministic kernel identity from the unshifted balance, then applies time translation and the same map. Substituting the primitive gives \(V^a_t=W^a_t-\gamma\int_0^tV^a_sds\). This equality supplies the additive forcing needed when a continuous reference trajectory and a numerical step share one Brownian interval.
+\textbf{Claim.} (a) For every real \(\gamma\) and all \(a,t\ge0\),
+
+
+\[V^a_t+\gamma P^a_t=W^a_t .\]
+
+
+(b) If \(\gamma\ge0\), then for all \(a,t\ge0\)
+
+
+\[V^a_t=W^a_t-\gamma\int_0^tV^a_s\,ds .\]
+
+
+\textbf{Proof.} (a) The response functions satisfy \(\gamma\psi_1(u)=1-\psi_0(u)\) for every real \(u\): both sides vanish at \(u=0\) and have derivative \(\gamma e^{-\gamma u}\), so they agree by the fundamental theorem of calculus. Multiplying by the indicator, \(\kappa^{\psi_0}_t+\gamma\kappa^{\psi_1}_t=\mathbf 1_{(0,t]}=\kappa^1_t\) in \(L^2(\mathbb R)\). The case \(a=0\) of the claim, \(I(\kappa^{\psi_0}_t)+\gamma I(\kappa^{\psi_1}_t)=B_t\), is the image of this identity under \(I\). Applying instead the linear map \(\Lambda=I\circ\tau_a\) and the previous step's identity \(\Lambda(\kappa^1_t)=J^a_t(1)=W^a_t\),
+
+
+\[V^a_t+\gamma P^a_t=\Lambda(\kappa^{\psi_0}_t)+\gamma\Lambda(\kappa^{\psi_1}_t)=\Lambda\bigl(\kappa^{\psi_0}_t+\gamma\kappa^{\psi_1}_t\bigr)=\Lambda(\kappa^1_t)=W^a_t .\]
+
+
+(b) For \(\gamma\ge0\) the previous step gives \(P^a_t=\int_0^tV^a_s\,ds\). Substituting this into (a) and moving \(\gamma\int_0^tV^a_s\,ds\) to the right-hand side gives the claim. \(\square\)
 
 
 
-The translated filtered response satisfies the same damped integral equation as the response starting at zero. Only the global time origin has changed. This allows every numerical interval to reuse the same kinetic local-error argument with its own fresh Brownian increment.
 
+Identity (b) says that \(s\mapsto V^a_s\) solves the linear equation \(dV=-\gamma V\,ds+dW^a\) in integral form, with the Brownian increment of the interval \((a,a+t]\) as forcing; this is the velocity equation of the kinetic diffusion without the force term.
+
+\begin{leanbox}{Lean: \texttt{segmentConvolutionLp\_\allowbreak{}balance}, \texttt{segmentConvolutionLp\_\allowbreak{}integral\_\allowbreak{}equation}}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}balance} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 53–63}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_balance\ (γ\ :\ ℝ)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentConvolutionLp\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ t\ +}
+\leanline{6}{γ\ •\ segmentConvolutionLp\ (psi\ γ\ 1)\ (continuous\_psi\ γ\ 1)\ a\ t\ =\ segmentBrownianLp\ a\ t}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}integral\_\allowbreak{}equation} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 66–70}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_integral\_equation\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentConvolutionLp\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ t\ =\ segmentBrownianLp\ a\ t\ -}
+\leanline{6}{γ\ •\ ∫\ s\ in\ 0..(t\ :\ ℝ),\ segmentConvolutionLp\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ s.toNNReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item In \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}balance} the kernel identity is not recomputed. \texttt{hbase} is the unshifted identity \texttt{velocity\allowbreak{}Lp\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}position\allowbreak{}Lp \ensuremath{\gamma} t}; after unfolding and rewriting with \texttt{map\_\allowbreak{}smul} and \texttt{map\_\allowbreak{}add} it reads \(I(\kappa^{\psi_0}_t+\gamma\kappa^{\psi_1}_t)=I(\mathbf 1_{(0,t]})\). Since a linear isometry is injective, \texttt{(…).\allowbreak{}injective hbase} gives the kernel identity \texttt{hker}: \(\kappa^{\psi_0}_t+\gamma\kappa^{\psi_1}_t=\mathbf 1_{(0,t]}\). The goal is then rewritten by linearity of \texttt{time\allowbreak{}Shift a} and of \(I\), \texttt{hker} is substituted, \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}one} identifies \(\mathbf 1_{(0,t]}\) with \(\kappa^1_t\), and \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}one} finishes.
+
+\item \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}integral\_\allowbreak{}equation} rewrites the integral by \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}primitive \ensuremath{\gamma} h\ensuremath{\gamma}} (backwards) and obtains the equation from the balance identity via \texttt{eq\_\allowbreak{}sub\_\allowbreak{}iff\_\allowbreak{}add\_\allowbreak{}eq}, the equivalence \(x=y-z\iff x+z=y\).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}; \cite[Section~3.8.9]{LangevinLean2026ULASC}.
@@ -65,19 +249,83 @@ Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[S
 \section{\texorpdfstring{The ordinary Brownian convolution formula}{The ordinary Brownian convolution formula}}
 
 
-The position response also equals \(P^a_t=\int_0^te^{-\gamma(t-s)}W^a_sds\), hence \(V^a_t=W^a_t-\gamma\int_0^te^{-\gamma(t-s)}W^a_sds\). For the translated construction, the argument pulls the established unshifted formula back through the injective isonormal isometry, then sends the deterministic identity through the translated continuous linear map. Continuity ensures Bochner integrability. Commuting that map with the integral and its scalar factors yields the formula; the velocity version follows by the balance identity. These are exact integration-by-parts identities on the constructed Brownian source.
+\textbf{Claim.} If \(\gamma\ge0\), then for all \(a,t\ge0\)
+
+
+\[P^a_t=\int_0^te^{-\gamma(t-s)}\,W^a_s\,ds\qquad\text{and}\qquad V^a_t=W^a_t-\gamma\int_0^te^{-\gamma(t-s)}\,W^a_s\,ds,\]
+
+
+with Bochner integrals in \(L^2(\mathbb P)\) of continuous integrands.
 
 
 
-Integration by parts converts the filtered response into an ordinary integral of the Brownian increment path. The formula uses only path continuity. It therefore can be substituted into the deterministic continuous-input integral equation used to construct exact kinetic segments.
 
+\textbf{Proof.} The case \(a=0\) of the first formula, \(P_t=\int_0^te^{-\gamma(t-s)}B_s\,ds\) with \(P_t=I(\kappa^{\psi_1}_t)\), was proved in the module on Brownian convolutions: the map \(s\mapsto e^{\gamma s}P_s\) has derivative \(e^{\gamma s}(V_s+\gamma P_s)=e^{\gamma s}B_s\) for \(s>0\), by the product rule, \(P_s=\int_0^sV_r\,dr\) and part (a) of the previous step with \(a=0\); integrating from \(0\) to \(t\) and using \(P_0=0\) gives \(e^{\gamma t}P_t=\int_0^te^{\gamma s}B_s\,ds\).
+
+
+
+
+We transfer this formula to the interval \((a,a+t]\). The map \(s\mapsto\mathbf 1_{(0,s]}=\kappa^1_s\) is continuous into \(L^2(\mathbb R)\) by part (a) of the second step, hence so is \(s\mapsto e^{-\gamma(t-s)}\mathbf 1_{(0,s]}\), and its integral over \([0,t]\) exists. Since \(I\) commutes with this integral and \(I(\mathbf 1_{(0,s]})=B_s\),
+
+
+\[I(\kappa^{\psi_1}_t)=\int_0^te^{-\gamma(t-s)}B_s\,ds=I\Bigl(\int_0^te^{-\gamma(t-s)}\mathbf 1_{(0,s]}\,ds\Bigr).\]
+
+
+The map \(I\) is injective, being an isometry, so
+
+
+\[\kappa^{\psi_1}_t=\int_0^te^{-\gamma(t-s)}\mathbf 1_{(0,s]}\,ds\qquad\text{in }L^2(\mathbb R).\qquad(1)\]
+
+
+Apply \(\Lambda=I\circ\tau_a\) to (1), move it inside the integral, use linearity to pull out the scalar \(e^{-\gamma(t-s)}\), and use \(\Lambda(\mathbf 1_{(0,s]})=\Lambda(\kappa^1_s)=W^a_s\) from the first step:
+
+
+\[P^a_t=\Lambda(\kappa^{\psi_1}_t)=\int_0^te^{-\gamma(t-s)}\Lambda(\mathbf 1_{(0,s]})\,ds=\int_0^te^{-\gamma(t-s)}W^a_s\,ds .\]
+
+
+For the velocity, substitute this expression for \(P^a_t\) into the identity \(V^a_t+\gamma P^a_t=W^a_t\) of the previous step and solve for \(V^a_t\). \(\square\)
+
+
+
+
+The right-hand sides involve only the continuous path \(s\mapsto W^a_s\) and ordinary integrals, so they can be inserted into the pathwise kinetic integral equation with continuous forcing.
+
+\begin{leanbox}{Lean: \texttt{segmentConvolutionLp\_\allowbreak{}position\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}convolution}, \texttt{segmentConvolutionLp\_\allowbreak{}velocity\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}sub\_\allowbreak{}convolution}}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}position\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}convolution} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 73–103}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_position\_eq\_brownian\_convolution\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)}
+\leanline{4}{(a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentConvolutionLp\ (psi\ γ\ 1)\ (continuous\_psi\ γ\ 1)\ a\ t\ =}
+\leanline{6}{∫\ s\ in\ 0..(t\ :\ ℝ),\ Real.exp\ (-γ*((t\ :\ ℝ)-s))\ •\ segmentBrownianLp\ a\ s.toNNReal}
+\end{leancode}
+\leansource{\texttt{segmentConvolutionLp\_\allowbreak{}velocity\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}sub\_\allowbreak{}convolution} \quad KineticLangevin/\allowbreak{}BrownianSegmentEquations.lean, lines 106–111}
+\begin{leancode}
+\leanline{0}{theorem\ segmentConvolutionLp\_velocity\_eq\_brownian\_sub\_convolution\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)}
+\leanline{4}{(a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{segmentConvolutionLp\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ t\ =\ segmentBrownianLp\ a\ t\ -}
+\leanline{6}{γ\ •\ ∫\ s\ in\ 0..(t\ :\ ℝ),\ Real.exp\ (-γ*((t\ :\ ℝ)-s))\ •\ segmentBrownianLp\ a\ s.toNNReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item In \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}position\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}convolution}, \texttt{I} is the isonormal isometry and \texttt{L} is \(\Lambda\). \texttt{hi} is the unshifted formula \texttt{position\allowbreak{}Lp\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}convolution \ensuremath{\gamma} h\ensuremath{\gamma} t}, unfolded to an identity about \(I(\kappa^{\psi_1}_t)\). \texttt{hcont} is the continuity of \(s\mapsto e^{-\gamma(t-s)}\mathbf 1_{(0,s]}\): the indicator path is rewritten as \texttt{time\allowbreak{}Kernel\allowbreak{}Lp (fun \_\allowbreak{} => 1) continuous\_\allowbreak{}const s.\allowbreak{}to\allowbreak{}NNReal} using \texttt{time\allowbreak{}Kernel\allowbreak{}Lp\_\allowbreak{}one}, whose continuity is \texttt{continuous\_\allowbreak{}time\allowbreak{}Kernel\allowbreak{}Lp}, and the scalar factor is handled by \texttt{fun\_\allowbreak{}prop} and \texttt{.\allowbreak{}smul}.
+
+\item \texttt{hi'} moves \(I\) inside the integral with \texttt{interval\allowbreak{}Integral\_\allowbreak{}comp\_\allowbreak{}comm} and \texttt{map\_\allowbreak{}smul}; \texttt{hker := I.\allowbreak{}injective hi'} is the kernel identity (1).
+
+\item The goal \(\Lambda(\kappa^{\psi_1}_t)=\dots\) is rewritten with \texttt{hker} and \texttt{L.\allowbreak{}interval\allowbreak{}Integral\_\allowbreak{}comp\_\allowbreak{}comm}; \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr} then compares the integrands pointwise on \([0,t]\), where \texttt{map\_\allowbreak{}smul} extracts the scalar and \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}one a s.\allowbreak{}to\allowbreak{}NNReal} identifies \(\Lambda(\mathbf 1_{(0,s]})\) with \(W^a_s\).
+
+\item \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}velocity\_\allowbreak{}eq\_\allowbreak{}brownian\_\allowbreak{}sub\_\allowbreak{}convolution} rewrites the convolution integral back into \(P^a_t\) by the first formula and concludes with \texttt{eq\_\allowbreak{}sub\_\allowbreak{}iff\_\allowbreak{}add\_\allowbreak{}eq} and \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}balance}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.8.2]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}; \cite[Section~3.8.9]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

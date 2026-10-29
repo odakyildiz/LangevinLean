@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,126 +32,479 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Exact maps for MYIPLA, PIPULA and PIPGLA}{Exact maps for MYIPLA, PIPULA and PIPGLA}}
+\title{\texorpdfstring{The update maps of MYIPLA, PIPULA and PIPGLA}{The update maps of MYIPLA, PIPULA and PIPGLA}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-MYIPLA, PIPULA, and PIPGLA use the same scaled parameter–particle space but apply drift, proximal maps, and Gaussian perturbations in different orders. Define these update maps first for arbitrary deterministic inputs. The residual identity identifies MYIPLA and its PIPULA specialization with Euler updates for suitable envelopes. PIPGLA applies proximity after the noisy drift and therefore requires its own splitting estimate.
+This section defines the three proximal interacting particle algorithms as deterministic maps of a state and an innovation, and proves the algebraic identities relating them. The state space is \(\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N\) with scaled coordinates \(z=(\theta,z_1,\dots,z_N)\) (physical particles \(x_i=\sqrt Nz_i\)), \(J_iz=(\theta,\sqrt Nz_i)\) is the \(i\)-th parameter–particle pair, and \(F_g(z)=\sum_{i=1}^Ng(J_iz)\) is the lifted potential of a pair function \(g\). For a map \(P\) of the pair space, \(\mathcal P\) denotes the pairwise map that applies \(P\) to every pair, averages the parameter outputs and divides the latent outputs by \(\sqrt N\). With step \(\gamma\), smoothing parameter \(\eta\) and innovation \(\xi\) in the state space:
 
+
+\[\begin{aligned}
+\text{PIPULA:}\quad&z\mapsto\mathcal Pz+\sqrt{2\gamma/N}\,\xi,\\
+\text{MYIPLA:}\quad&z\mapsto\Bigl(1-\frac\gamma\eta\Bigr)z-\frac\gamma N\nabla F_{g_1}(z)+\frac\gamma\eta\,\mathcal Pz+\sqrt{2\gamma/N}\,\xi,\\
+\text{PIPGLA:}\quad&z\mapsto\mathcal P\Bigl(z-\frac\gamma N\nabla F_{g_1}(z)+\sqrt{2\gamma/N}\,\xi\Bigr).
+\end{aligned}\]
+
+
+Each algorithm is the recursion \(Z_{n+1}=T(Z_n,\xi_n)\) driven by a given innovation sequence. We prove that PIPULA is MYIPLA with \(g_1=0\) and \(\eta=\gamma\), write MYIPLA in parameter and physical-particle coordinates, and prove that if \(\nabla e=\eta^{-1}(I-P)\) (as for \(e=g_2^\eta\) and \(P=P_\eta\)) then MYIPLA coincides, iterate by iterate, with the Euler scheme (IPLA) for the smooth potential \(g_1+e\). PIPGLA applies the proximal map after the noisy gradient step and has no such identity; it is analysed separately. No probabilistic assumption enters this section.
 
 
 
 Earlier results used here: \cite[Section~3.4]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The averaged pair map in coordinates}{The averaged pair map in coordinates}}
+\section{\texorpdfstring{The pairwise map in coordinates}{The pairwise map in coordinates}}
 
 
-Define the parameter and latent coordinates of the pair map by \(\operatorname{Pair}_P(z)_\theta=N^{-1}\sum_i(P(J_i z))_\theta\) and \(\operatorname{Pair}_P(z)_{x_i}=N^{-1/2}(P(J_i z))_x\). Every pair is evaluated at the same preceding parameter. The proposed parameters are averaged, and each proposed latent coordinate returns to its own block.
+\textbf{Definition.} Let \(P\) be any map from the pair space \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\) to itself, and write \(P(w)=([P(w)]_\theta,[P(w)]_x)\). The \emph{pairwise map} \(\mathcal P\) on the state space is defined by
+
+
+\[(\mathcal Pz)_\theta=\frac1N\sum_{i=1}^N\bigl[P(J_iz)\bigr]_\theta,\qquad(\mathcal Pz)_i=\frac1{\sqrt N}\bigl[P(J_iz)\bigr]_x\quad(i=1,\dots,N).\]
+
+
+\textbf{Claim.} For every parameter coordinate \(j\le d_\theta\), every particle \(i\) and every latent coordinate \(j\le d_x\), the coordinates of \(\mathcal Pz\) are \(N^{-1}\sum_i[P(J_iz)]_{\theta,j}\) and \(N^{-1/2}[P(J_iz)]_{x,j}\).
 
 
 
-The coefficient \(1/N\) averages the common parameter, while \(1/\sqrt N\) converts each physical latent output to a scaled coordinate. These definitions specify one shared parameter rather than separate evolving parameter copies. They do not assert minimization of a full-state proximal objective.
+
+\textbf{Proof.} This is the definition read coordinatewise. \(\square\)
 
 
+
+
+All \(N\) pairs are formed with the same current parameter \(\theta\). The \(N\) proposed parameters \([P(J_iz)]_\theta\) are averaged into one new parameter, while the latent output of pair \(i\) is a physical particle and is divided by \(\sqrt N\) to return to scaled coordinates. When \(P\) is a proximal map, \(\mathcal P\) need not be the proximal map of any function on the state space.
+
+\begin{leanbox}{Lean: \texttt{pairwiseMap}, \texttt{pairwiseMap\_\allowbreak{}parameter}, \texttt{pairwiseMap\_\allowbreak{}particle}}
+\leansource{\texttt{pairwiseMap} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 22–26}
+\begin{leancode}
+\leanline{0}{def\ pairwiseMap\ \{N\ dθ\ dx\ :\ ℕ\}\ (P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{WithLp.toLp\ 2\ (Sum.elim}
+\leanline{4}{(fun\ j\ ↦\ (N\ :\ ℝ)⁻¹\ *\ ∑\ i\ :\ Fin\ N,\ P\ (IPLA.joint\ i\ z)\ (Sum.inl\ j))}
+\leanline{4}{(fun\ ij\ ↦\ (Real.sqrt\ N)⁻¹\ *\ P\ (IPLA.joint\ ij.1\ z)\ (Sum.inr\ ij.2)))}
+\end{leancode}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 28–32}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ pairwiseMap\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{pairwiseMap\ P\ z\ (Sum.inl\ j)\ =}
+\leanline{6}{(N\ :\ ℝ)⁻¹\ *\ ∑\ i\ :\ Fin\ N,\ P\ (IPLA.joint\ i\ z)\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}particle} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 34–38}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ pairwiseMap\_particle\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{pairwiseMap\ P\ z\ (Sum.inr\ (i,\ j))\ =}
+\leanline{6}{(Real.sqrt\ N)⁻¹\ *\ P\ (IPLA.joint\ i\ z)\ (Sum.inr\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pairwise\allowbreak{}Map P z} is defined as \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (Sum.\allowbreak{}elim … …)}: the coordinate function on \texttt{Fin d\ensuremath{\theta} ⊕ (Fin N \ensuremath{\times} Fin dx)} is given by \texttt{Sum.\allowbreak{}elim}, which uses the first function on parameter indices \texttt{Sum.\allowbreak{}inl j} and the second on latent indices \texttt{Sum.\allowbreak{}inr (i, j)}, and \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2} regards the coordinate function as an element of the Euclidean space \texttt{IPLA.\allowbreak{}State N d\ensuremath{\theta} dx}. The parameter coordinate is \texttt{(N : \ensuremath{\mathbb R})\ensuremath{{}^{-1}} * ∑ i : Fin N, P (IPLA.\allowbreak{}joint i z) (Sum.\allowbreak{}inl j)} and the latent coordinate is \texttt{(Real.\allowbreak{}sqrt N)\ensuremath{{}^{-1}} * P (IPLA.\allowbreak{}joint ij.\allowbreak{}1 z) (Sum.\allowbreak{}inr ij.\allowbreak{}2)}; here \texttt{IPLA.\allowbreak{}joint i z} is \(J_iz\) and \texttt{(N : \ensuremath{\mathbb R})} is the particle number cast to a real number. The two lemmas \texttt{pairwise\allowbreak{}Map\_\allowbreak{}parameter} and \texttt{pairwise\allowbreak{}Map\_\allowbreak{}particle} state these coordinates and are proved by \texttt{rfl} (they hold by definition); being tagged \texttt{@[simp]}, they are used automatically by the simplifier in later proofs.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The order of drift, proximity, and noise}{The order of drift, proximity, and noise}}
+\section{\texorpdfstring{The PIPULA, MYIPLA and PIPGLA update maps}{The PIPULA, MYIPLA and PIPGLA update maps}}
 
 
-PIPGLA first takes the noisy gradient step for \(g_1\) and then applies the pairwise proximal map:
-
-\[
-y_n=z_n-\frac\gamma N\nabla\!\left(\sum_i g_1(J_i z_n)\right)
- +\sqrt{\frac{2\gamma}{N}}\xi_n,
-\qquad z_{n+1}=\operatorname{Pair}_{P_\lambda}(y_n).
-\]
-
-PIPULA is the MYIPLA specialization with \(g_1=0\) and \(\lambda=\gamma\), in which proximity precedes the added Gaussian perturbation. The expanded MYIPLA update is
-
-\[T_{\mathrm{MY}}(z,\xi)=(1-\gamma/\eta)z-\frac\gamma N\nabla F_{g_1}(z)+\frac\gamma\eta\operatorname{Pair}_P(z)+\sqrt{2\gamma/N}\xi.\]
-
-In MYIPLA the pairwise proximal value is evaluated at the preceding state and contributes through an explicit residual drift. In PIPGLA it is evaluated at the already perturbed smooth step. These compositions give different outputs for the same innovation. Their update identities must therefore be proved separately. In the source convergence analysis PIPGLA is compared with the original nonsmooth Gibbs model; the MYIPLA theorem cannot be applied merely by changing the update’s name.
+\textbf{Definitions.} Let \(P\) be a map of the pair space, \(g_1\) a real function on the pair space, \(\gamma,\eta\in\mathbb R\), and \(z,\xi\) states. The gradient of the lifted potential \(F_{g_1}(z)=\sum_ig_1(J_iz)\) is taken on the state space with its Euclidean inner product. The three update maps are
 
 
+\[\begin{aligned}
+T_{\mathrm{PIPULA}}(z,\xi)&=\mathcal Pz+\sqrt{\frac{2\gamma}{N}}\,\xi,\\
+T_{\mathrm{MYIPLA}}(z,\xi)&=\Bigl(1-\frac\gamma\eta\Bigr)z-\frac\gamma N\nabla F_{g_1}(z)+\frac\gamma\eta\,\mathcal Pz+\sqrt{\frac{2\gamma}{N}}\,\xi,\\
+T_{\mathrm{PIPGLA}}(z,\xi)&=\mathcal P\bigl(S_\gamma(z,\xi)\bigr),\qquad S_\gamma(z,\xi)=z-\frac\gamma N\nabla F_{g_1}(z)+\sqrt{\frac{2\gamma}{N}}\,\xi .
+\end{aligned}\]
+
+
+\(S_\gamma\) is the scaled Euler (IPLA) step for the potential \(g_1\) with step \(\gamma\). In PIPULA the proximal pairwise map is applied to the current state and the Gaussian increment is added afterwards. In MYIPLA the proximal output enters through the term \(\frac\gamma\eta(\mathcal Pz-z)\), which for \(P=P_\eta\) is \(-\gamma\) times the scaled Moreau residual (see the last step), and \(\eta\) and \(\gamma\) are independent. In PIPGLA the proximal pairwise map is applied after the noisy gradient step, so the increment passes through \(\mathcal P\). For the same input the three maps generally give different outputs, and their analyses are separate.
+
+
+
+
+The definitions involve no hypothesis on \(P\), \(g_1\), \(\gamma\) or \(\eta\); the results that use them assume \(\gamma>0\) (and \(\eta>0\) for MYIPLA) wherever the noise coefficient or the ratio \(\gamma/\eta\) matters.
+
+\begin{leanbox}{Lean: \texttt{pipulaUpdate}, \texttt{myiplaUpdate}, \texttt{pipglaUpdate}}
+\leansource{\texttt{pipulaUpdate} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 41–43}
+\begin{leancode}
+\leanline{0}{def\ pipulaUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(γ\ :\ ℝ)\ (z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{pairwiseMap\ P\ z\ +\ Real.sqrt\ (2\ *\ γ\ /\ N)\ •\ ξ}
+\end{leancode}
+\leansource{\texttt{myiplaUpdate} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 46–50}
+\begin{leancode}
+\leanline{0}{def\ myiplaUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{(1\ -\ γ\ /\ η)\ •\ z\ -\ (γ\ /\ N)\ •\ gradient\ (IPLA.potential\ g₁)\ z\ +}
+\leanline{4}{(γ\ /\ η)\ •\ pairwiseMap\ P\ z\ +\ Real.sqrt\ (2\ *\ γ\ /\ N)\ •\ ξ}
+\end{leancode}
+\leansource{\texttt{pipglaUpdate} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 54–57}
+\begin{leancode}
+\leanline{0}{def\ pipglaUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (γ\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{pairwiseMap\ P\ (IPLA.scaledUpdate\ g₁\ γ\ z\ ξ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pipula\allowbreak{}Update P \ensuremath{\gamma} z \ensuremath{\xi}} is \texttt{pairwise\allowbreak{}Map P z + Real.\allowbreak{}sqrt (2 * \ensuremath{\gamma} /\allowbreak{} N) \ensuremath{\bullet} \ensuremath{\xi}}. \texttt{myipla\allowbreak{}Update g\ensuremath{{}_{1}} P \ensuremath{\eta} \ensuremath{\gamma} z \ensuremath{\xi}} is \texttt{(1 -\allowbreak{} \ensuremath{\gamma} /\allowbreak{} \ensuremath{\eta}) \ensuremath{\bullet} z -\allowbreak{} (\ensuremath{\gamma} /\allowbreak{} N) \ensuremath{\bullet} gradient (IPLA.\allowbreak{}potential g\ensuremath{{}_{1}}) z + (\ensuremath{\gamma} /\allowbreak{} \ensuremath{\eta}) \ensuremath{\bullet} pairwise\allowbreak{}Map P z + Real.\allowbreak{}sqrt (2 * \ensuremath{\gamma} /\allowbreak{} N) \ensuremath{\bullet} \ensuremath{\xi}}, where \texttt{IPLA.\allowbreak{}potential g\ensuremath{{}_{1}}} is \(F_{g_1}\) and \texttt{gradient} is the gradient in the Euclidean state space (the vector representing the Fréchet derivative). \texttt{pipgla\allowbreak{}Update g\ensuremath{{}_{1}} P \ensuremath{\gamma} z \ensuremath{\xi}} is \texttt{pairwise\allowbreak{}Map P (IPLA.\allowbreak{}scaled\allowbreak{}Update g\ensuremath{{}_{1}} \ensuremath{\gamma} z \ensuremath{\xi})}, and \texttt{IPLA.\allowbreak{}scaled\allowbreak{}Update U h z \ensuremath{\xi}} is defined in the IPLA development as \texttt{z -\allowbreak{} (h /\allowbreak{} N) \ensuremath{\bullet} gradient (potential U) z + Real.\allowbreak{}sqrt (2 * h /\allowbreak{} N) \ensuremath{\bullet} \ensuremath{\xi}}, which is \(S_\gamma\). The function \texttt{Real.\allowbreak{}sqrt} is total and returns \(0\) on negative arguments, so the definitions make sense for every real \(\gamma\). The map \texttt{P} is an arbitrary function at this stage; later sections substitute \texttt{prox g\ensuremath{{}_{2}} \ensuremath{\eta}}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.7]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{Recursion with a supplied innovation sequence}{Recursion with a supplied innovation sequence}}
+\section{\texorpdfstring{Recursions driven by an innovation sequence}{Recursions driven by an innovation sequence}}
 
 
-For an update function \(T\), define \(Z_0=z_0\) and \(Z_{n+1}=T(Z_n,\xi_n)\). Induction determines a unique finite-time sequence from the initial state and innovation sequence. Substitution of the three update maps defines the three particle algorithms.
+\textbf{Definition.} Let \(X\) be a set, \(T:X\times X\to X\) an update map, \(z_0\in X\) and \((\xi_n)_{n\ge0}\) a sequence in \(X\). The chain driven by \((\xi_n)\) is the sequence defined recursively by
+
+
+\[Z_0=z_0,\qquad Z_{n+1}=T(Z_n,\xi_n)\quad(n\ge0).\]
+
+
+By the recursion theorem this defines a unique sequence. The MYIPLA, PIPULA and PIPGLA chains are the chains of \(T_{\mathrm{MYIPLA}}\), \(T_{\mathrm{PIPULA}}\) and \(T_{\mathrm{PIPGLA}}\) on the state space.
 
 
 
-This deterministic definition requires no Gaussian law or measurability assumption. When those properties and input independence are imposed, the same finite recursion becomes a measurable function of the inputs and defines its probability law. This permits the update equalities to be used on any probability space chosen for a coupling argument.
+
+\textbf{Claim.} \(Z_0=z_0\) and \(Z_{n+1}=T(Z_n,\xi_n)\) for every \(n\).
 
 
+
+
+\textbf{Proof.} These are the two defining equations. \(\square\)
+
+
+
+
+The definition is deterministic: the innovations are arbitrary elements of the state space, and no distribution, independence or measurability is assumed. When the initial state and the innovations are random variables, the \(n\)-th iterate is the composition of \(n\) applications of \(T\) with these inputs, and its law is determined by the joint law of \((z_0,\xi_0,\dots,\xi_{n-1})\) once \(T\) is measurable; these probabilistic statements are proved in later sections.
+
+\begin{leanbox}{Lean: \texttt{algorithmChain}, \texttt{algorithmChain\_\allowbreak{}zero}, \texttt{algorithmChain\_\allowbreak{}succ} and 3 more}
+\leansource{\texttt{algorithmChain} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 60–63}
+\begin{leancode}
+\leanline{0}{def\ algorithmChain\ \{E\ :\ Type*\}\ (update\ :\ E\ →\ E\ →\ E)\ (initial\ :\ E)}
+\leanline{4}{(noise\ :\ ℕ\ →\ E)\ :\ ℕ\ →\ E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n\ +\ 1\ =>\ update\ (algorithmChain\ update\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leansource{\texttt{algorithmChain\_\allowbreak{}zero} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 65–66}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ algorithmChain\_zero\ \{E\ :\ Type*\}\ (update\ :\ E\ →\ E\ →\ E)}
+\leanline{4}{(initial\ :\ E)\ (noise\ :\ ℕ\ →\ E)\ :\ algorithmChain\ update\ initial\ noise\ 0\ =\ initial}
+\end{leancode}
+\leansource{\texttt{algorithmChain\_\allowbreak{}succ} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 68–71}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ algorithmChain\_succ\ \{E\ :\ Type*\}\ (update\ :\ E\ →\ E\ →\ E)}
+\leanline{4}{(initial\ :\ E)\ (noise\ :\ ℕ\ →\ E)\ (n\ :\ ℕ)\ :}
+\leanline{4}{algorithmChain\ update\ initial\ noise\ (n\ +\ 1)\ =}
+\leanline{6}{update\ (algorithmChain\ update\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leansource{\texttt{myiplaChain} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 74–77}
+\begin{leancode}
+\leanline{0}{def\ myiplaChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ :=}
+\leanline{2}{algorithmChain\ (myiplaUpdate\ g₁\ P\ η\ γ)\ initial\ noise}
+\end{leancode}
+\leansource{\texttt{pipulaChain} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 80–82}
+\begin{leancode}
+\leanline{0}{def\ pipulaChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(γ\ :\ ℝ)\ (initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ :=}
+\leanline{2}{algorithmChain\ (pipulaUpdate\ P\ γ)\ initial\ noise}
+\end{leancode}
+\leansource{\texttt{pipglaChain} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 85–88}
+\begin{leancode}
+\leanline{0}{def\ pipglaChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ :=}
+\leanline{2}{algorithmChain\ (pipglaUpdate\ g₁\ P\ γ)\ initial\ noise}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{algorithm\allowbreak{}Chain update initial noise} is defined by structural recursion on the natural number argument, with the two clauses \texttt{| 0 => initial} and \texttt{| n + 1 => update (algorithm\allowbreak{}Chain update initial noise n) (noise n)}; it is polymorphic in the type \texttt{E} of states. \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}zero} and \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}succ} are the two defining equations, proved by \texttt{rfl} and tagged \texttt{@[simp]}. \texttt{myipla\allowbreak{}Chain}, \texttt{pipula\allowbreak{}Chain} and \texttt{pipgla\allowbreak{}Chain} are \texttt{algorithm\allowbreak{}Chain} applied to \texttt{myipla\allowbreak{}Update g\ensuremath{{}_{1}} P \ensuremath{\eta} \ensuremath{\gamma}}, \texttt{pipula\allowbreak{}Update P \ensuremath{\gamma}} and \texttt{pipgla\allowbreak{}Update g\ensuremath{{}_{1}} P \ensuremath{\gamma}}, with an initial state \texttt{initial} and an innovation sequence \texttt{noise : \ensuremath{\mathbb N} \ensuremath{\to} IPLA.\allowbreak{}State N d\ensuremath{\theta} dx}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{Equality of PIPULA and the specified MYIPLA specialization}{Equality of PIPULA and the specified MYIPLA specialization}}
+\section{\texorpdfstring{PIPULA is MYIPLA without smooth part and with equal scales}{PIPULA is MYIPLA without smooth part and with equal scales}}
 
 
-The PIPULA parameter update is \(N^{-1}\sum_i(P(J_i z))_\theta+a\xi_\theta\). Specialize MYIPLA to \(g_1=0\) and \(\eta=\gamma\ne0\). The smooth gradient vanishes, \(1-\gamma/\gamma=0\) removes the old-state term, and \(\gamma/\gamma=1\) gives the pairwise proximal term with coefficient one. Thus the two updates agree for every state and innovation.
+\textbf{Claim.} Let \(P\) be a map of the pair space and \(\gamma\in\mathbb R\).
 
 
 
-Induction in the common recursion gives equality of every finite iterate. Any probability law on the inputs consequently gives equal output laws. The identity uses equality and positivity of the relevant scales, rather than a limiting approximation.
+\begin{enumerate}
 
 
+\item For every state \(z\), innovation \(\xi\) and parameter coordinate \(j\),
+\[T_{\mathrm{PIPULA}}(z,\xi)_{\theta,j}=\frac1N\sum_{i=1}^N\bigl[P(J_iz)\bigr]_{\theta,j}+\sqrt{\frac{2\gamma}N}\,\xi_{\theta,j}.\]
+
+\item If \(\gamma\ne0\), then \(T_{\mathrm{PIPULA}}(z,\xi)=T_{\mathrm{MYIPLA}}(z,\xi)\) for all \(z,\xi\), where \(T_{\mathrm{MYIPLA}}\) is formed with \(g_1=0\) and \(\eta=\gamma\).
+
+\item If \(\gamma\ne0\), the PIPULA chain and the MYIPLA chain with \(g_1=0\) and \(\eta=\gamma\), started at the same \(z_0\) and driven by the same innovations, coincide: \(Z_n^{\mathrm{PIPULA}}=Z_n^{\mathrm{MYIPLA}}\) for every \(n\).
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (a) is the parameter coordinate of \(\mathcal Pz+\sqrt{2\gamma/N}\,\xi\) given by the previous coordinate formula.
+
+
+
+
+(b) With \(g_1=0\) the lifted potential \(F_{g_1}\) is identically \(0\), so its gradient vanishes. With \(\eta=\gamma\ne0\), \(1-\gamma/\eta=0\) and \(\gamma/\eta=1\). Hence \(T_{\mathrm{MYIPLA}}(z,\xi)=0\cdot z-0+1\cdot\mathcal Pz+\sqrt{2\gamma/N}\,\xi=T_{\mathrm{PIPULA}}(z,\xi)\).
+
+
+
+
+(c) By (b) the two update maps are equal as functions, so the two recursions with the same initial value and the same innovations define the same sequence; formally, induction on \(n\) with base case \(Z_0=z_0\) for both chains and inductive step \(Z_{n+1}=T(Z_n,\xi_n)\) with the common map \(T\). \(\square\)
+
+
+
+
+The hypothesis \(\gamma\ne0\) is needed for \(\gamma/\gamma=1\).
+
+\begin{leanbox}{Lean: \texttt{pipulaUpdate\_\allowbreak{}parameter}, \texttt{pipulaUpdate\_\allowbreak{}eq\_\allowbreak{}myiplaUpdate}, \texttt{pipulaChain\_\allowbreak{}eq\_\allowbreak{}myiplaChain}}
+\leansource{\texttt{pipulaUpdate\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 92–97}
+\begin{leancode}
+\leanline{0}{theorem\ pipulaUpdate\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (γ\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{pipulaUpdate\ P\ γ\ z\ ξ\ (Sum.inl\ j)\ =}
+\leanline{6}{(N\ :\ ℝ)⁻¹\ *\ ∑\ i\ :\ Fin\ N,\ P\ (IPLA.joint\ i\ z)\ (Sum.inl\ j)\ +}
+\leanline{8}{Real.sqrt\ (2\ *\ γ\ /\ N)\ *\ ξ\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{pipulaUpdate\_\allowbreak{}eq\_\allowbreak{}myiplaUpdate} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 101–109}
+\begin{leancode}
+\leanline{0}{theorem\ pipulaUpdate\_eq\_myiplaUpdate\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ \{γ\ :\ ℝ\}\ (hγ\ :\ γ\ ≠\ 0)}
+\leanline{4}{(z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{pipulaUpdate\ P\ γ\ z\ ξ\ =\ myiplaUpdate\ (fun\ \_\ ↦\ 0)\ P\ γ\ γ\ z\ ξ}
+\end{leancode}
+\leansource{\texttt{pipulaChain\_\allowbreak{}eq\_\allowbreak{}myiplaChain} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 112–118}
+\begin{leancode}
+\leanline{0}{theorem\ pipulaChain\_eq\_myiplaChain\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ \{γ\ :\ ℝ\}\ (hγ\ :\ γ\ ≠\ 0)}
+\leanline{4}{(initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipulaChain\ P\ γ\ initial\ noise\ n\ =\ myiplaChain\ (fun\ \_\ ↦\ 0)\ P\ γ\ γ\ initial\ noise\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pipula\allowbreak{}Update\_\allowbreak{}parameter} is (a) and is proved by \texttt{rfl}. \texttt{pipula\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Update} is (b), with the hypothesis \texttt{h\ensuremath{\gamma} : \ensuremath{\gamma} ≠ 0} and the smooth part written as the constant function \texttt{fun \_\allowbreak{} \ensuremath{\mapsto} 0}. Its \texttt{hpot} proves that the lifted potential of the zero function is the zero function (by \texttt{funext} and \texttt{simp}), and the final \texttt{simp} call uses \texttt{h\ensuremath{\gamma}} (so that \(\gamma/\gamma=1\)), \texttt{hpot} and the Mathlib lemma \texttt{gradient\_\allowbreak{}fun\_\allowbreak{}const} (the gradient of a constant function is \(0\)). \texttt{pipula\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Chain} is (c): \texttt{hu} upgrades (b) to equality of the update functions by function extensionality (\texttt{funext}), and rewriting both chains with \texttt{hu} makes them syntactically equal.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The physical parameter and latent-coordinate equations}{The physical parameter and latent-coordinate equations}}
+\section{\texorpdfstring{MYIPLA in parameter and physical-particle coordinates}{MYIPLA in parameter and physical-particle coordinates}}
 
 
-The lifted smooth gradient has parameter block \(\sum_i\nabla_\theta g_1(J_i z)\) and latent block \(\sqrt N\nabla_x g_1(J_i z)\). Substitute these formulas into the state update. Multiplication of a latent coordinate by \(\sqrt N\) changes the Gaussian coefficient to \(\sqrt{2\gamma}\) and the smooth drift coefficient to \(\gamma\), using \(\sqrt N\sqrt{2\gamma/N}=\sqrt{2\gamma}\).
+For a differentiable pair function \(g_1\), the chain rule applied to \(F_{g_1}(z)=\sum_ig_1(\theta,\sqrt Nz_i)\) gives the block formulas
+
+
+\[\nabla_\theta F_{g_1}(z)=\sum_{i=1}^N\nabla_\theta g_1(J_iz),\qquad\nabla_{z_i}F_{g_1}(z)=\sqrt N\,\nabla_xg_1(J_iz),\]
+
+
+proved in \cite[Section~3.1.5]{LangevinLean2026IPLA} and \cite[Section~3.1.5]{LangevinLean2026IPLA}.
 
 
 
-The parameter equation contains the average smooth force and average proximal parameter output. The physical latent equation contains the force and proximal output of its own pair. Multiplication by \(\sqrt N\) affects only the latent block. The resulting equations have parameter variance divided by particle count and the usual physical latent variance.
+
+\textbf{Claim.} Let \(g_1\) be differentiable, \(P\) a map of the pair space, \(\eta,\gamma\in\mathbb R\), and \(z,\xi\) states; write \(z^+=T_{\mathrm{MYIPLA}}(z,\xi)\).
 
 
+
+\begin{enumerate}
+
+
+\item For every parameter coordinate \(j\),
+\[z^+_{\theta,j}=\Bigl(1-\frac\gamma\eta\Bigr)\theta_j-\frac\gamma N\sum_{i=1}^N\partial_{\theta_j}g_1(J_iz)+\frac\gamma\eta\cdot\frac1N\sum_{i=1}^N\bigl[P(J_iz)\bigr]_{\theta,j}+\sqrt{\frac{2\gamma}N}\,\xi_{\theta,j}.\]
+
+\item If \(N\ge1\), then for every particle \(i\) and latent coordinate \(j\), with \(x_{i,j}=\sqrt Nz_{i,j}\) and \(x^+_{i,j}=\sqrt Nz^+_{i,j}\),
+\[x^+_{i,j}=\Bigl(1-\frac\gamma\eta\Bigr)x_{i,j}-\gamma\,\partial_{x_j}g_1(J_iz)+\frac\gamma\eta\bigl[P(J_iz)\bigr]_{x,j}+\sqrt{2\gamma}\,\xi_{i,j}.\]
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (a) Take the parameter coordinate of each term of \(T_{\mathrm{MYIPLA}}\): the first gives \((1-\gamma/\eta)\theta_j\), the second gives \(-(\gamma/N)\sum_i\partial_{\theta_j}g_1(J_iz)\) by the parameter block formula, the third is \(\gamma/\eta\) times the parameter coordinate of \(\mathcal Pz\), and the fourth is \(\sqrt{2\gamma/N}\,\xi_{\theta,j}\).
+
+
+
+
+(b) Take the \((i,j)\) latent coordinate of each term and multiply by \(\sqrt N\). The first term gives \((1-\gamma/\eta)\sqrt Nz_{i,j}\). By the latent block formula the second gives \(-\frac\gamma N\sqrt N\cdot\sqrt N\,\partial_{x_j}g_1(J_iz)=-\gamma\,\partial_{x_j}g_1(J_iz)\), since \((\sqrt N)^2=N\) and \(N\ne0\). The third gives \(\frac\gamma\eta\sqrt N\cdot N^{-1/2}[P(J_iz)]_{x,j}=\frac\gamma\eta[P(J_iz)]_{x,j}\), since \(\sqrt N\ne0\). The fourth gives \(\sqrt N\sqrt{2\gamma/N}\,\xi_{i,j}=\sqrt{2\gamma}\,\xi_{i,j}\), because \(\sqrt N\sqrt{2\gamma/N}=\sqrt{N\cdot2\gamma/N}=\sqrt{2\gamma}\) (the product rule \(\sqrt a\sqrt b=\sqrt{ab}\) for \(a\ge0\)). \(\square\)
+
+
+
+
+In physical coordinates, the parameter moves by the average force \(N^{-1}\sum_i\nabla_\theta g_1\) times \(\gamma\) with noise of variance \(2\gamma/N\) per coordinate, while each particle moves by its own force times \(\gamma\) with noise of variance \(2\gamma\) per coordinate.
+
+\begin{leanbox}{Lean: \texttt{myiplaUpdate\_\allowbreak{}parameter}, \texttt{myiplaUpdate\_\allowbreak{}particle}}
+\leansource{\texttt{myiplaUpdate\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 121–129}
+\begin{leancode}
+\leanline{0}{theorem\ myiplaUpdate\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ \{g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(η\ γ\ :\ ℝ)\ (z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{myiplaUpdate\ g₁\ P\ η\ γ\ z\ ξ\ (Sum.inl\ j)\ =}
+\leanline{6}{(1\ -\ γ\ /\ η)\ *\ z\ (Sum.inl\ j)\ -}
+\leanline{8}{(γ\ /\ N)\ *\ ∑\ i\ :\ Fin\ N,\ gradient\ g₁\ (IPLA.joint\ i\ z)\ (Sum.inl\ j)\ +}
+\leanline{8}{(γ\ /\ η)\ *\ ((N\ :\ ℝ)⁻¹\ *\ ∑\ i\ :\ Fin\ N,\ P\ (IPLA.joint\ i\ z)\ (Sum.inl\ j))\ +}
+\leanline{8}{Real.sqrt\ (2\ *\ γ\ /\ N)\ *\ ξ\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{myiplaUpdate\_\allowbreak{}particle} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 132–155}
+\begin{leancode}
+\leanline{0}{theorem\ myiplaUpdate\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₁\ :\ Differentiable\ ℝ\ g₁)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ myiplaUpdate\ g₁\ P\ η\ γ\ z\ ξ\ (Sum.inr\ (i,\ j))\ =}
+\leanline{6}{(1\ -\ γ\ /\ η)\ *\ (Real.sqrt\ N\ *\ z\ (Sum.inr\ (i,\ j)))\ -}
+\leanline{8}{γ\ *\ gradient\ g₁\ (IPLA.joint\ i\ z)\ (Sum.inr\ j)\ +}
+\leanline{8}{(γ\ /\ η)\ *\ P\ (IPLA.joint\ i\ z)\ (Sum.inr\ j)\ +}
+\leanline{8}{Real.sqrt\ (2\ *\ γ)\ *\ ξ\ (Sum.inr\ (i,\ j))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{myipla\allowbreak{}Update\_\allowbreak{}parameter} assumes \texttt{hg\ensuremath{{}_{1}} : Differentiable \ensuremath{\mathbb R} g\ensuremath{{}_{1}}} and is proved by \texttt{simp} with the definition and \texttt{IPLA.\allowbreak{}gradient\_\allowbreak{}potential\_\allowbreak{}parameter hg\ensuremath{{}_{1}}} (the parameter block formula). \texttt{myipla\allowbreak{}Update\_\allowbreak{}particle} additionally assumes \texttt{h\allowbreak{}N : 0 < N}. Its proof records \texttt{hn} (\(N\ne0\)), \texttt{hs} (\(\sqrt N\ne0\)), and \texttt{hnoise}, the identity \(\sqrt N\sqrt{2\gamma/N}=\sqrt{2\gamma}\), obtained from \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}mul} and \texttt{field\_\allowbreak{}simp}. The coordinate expression is produced by \texttt{simp only} with the coordinate lemmas \texttt{Pi\allowbreak{}Lp.\allowbreak{}add\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{pairwise\allowbreak{}Map\_\allowbreak{}particle} and \texttt{IPLA.\allowbreak{}gradient\_\allowbreak{}potential\_\allowbreak{}particle hg\ensuremath{{}_{1}}}; the \texttt{calc} block first regroups the terms by \texttt{ring} so that the factors \((\sqrt N)^2\), \(\sqrt N(\sqrt N)^{-1}\) and \(\sqrt N\sqrt{2\gamma/N}\) appear, and then replaces them using \texttt{hs2} (\((\sqrt N)^2=N\)), \texttt{mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}} hs} and \texttt{hnoise}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.5]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The residual identity and the smoothed Euler update}{The residual identity and the smoothed Euler update}}
+\section{\texorpdfstring{MYIPLA is the Euler scheme for the smoothed potential}{MYIPLA is the Euler scheme for the smoothed potential}}
 
 
-For a joint-pair map \(P\), apply \(P\) to each \(J_i z\), average the parameter outputs, and divide the physical latent outputs by \(\sqrt N\). This retains one common parameter rather than \(N\) parameter variables. For \(P=P_\lambda\), MYIPLA is the Euler update for \(V_\lambda=g_1+g_2^\lambda\) because
-
-\[
-\operatorname{Pair}_P(z)=z-\frac\lambda N\nabla\!\left(\sum_i g_2^\lambda(J_i z)\right).
-\]
-
-Substitution into the expanded update cancels the extra multiples of \(z\) and gives
-
-\[
-z_{n+1}=z_n-\frac\gamma N\nabla\mathcal V_\lambda(z_n)
- +\sqrt{\frac{2\gamma}{N}}\,\xi_n.
-\]
-
-The parameter and physical latent Gaussian coefficients are \(\sqrt{2\gamma/N}\) and \(\sqrt{2\gamma}\). More explicitly, substituting \(P_\eta(v)=v-\eta\nabla g_2^\eta(v)\) in each pair makes the averaged and rescaled residual exactly \((\eta/N)\nabla F_{g_2^\eta}\). Addition of the smooth gradient then gives the force of \(g_1+g_2^\eta\). The Gaussian perturbation is unchanged. Equality of the complete chains follows by induction from equality of the update maps.
+\textbf{Claim.} Let \(N\ge1\), let \(e\) be a differentiable function on the pair space, \(P\) a map of the pair space and \(\eta\ne0\) such that
 
 
+\[\nabla e(w)=\eta^{-1}\bigl(w-P(w)\bigr)\qquad\text{for every pair }w.\qquad(1)\]
+
+\begin{enumerate}
 
 
+\item For every state \(z\), \(\mathcal Pz=z-\frac\eta N\nabla F_e(z)\).
+
+\item In a complete real inner-product space, if \(f\) and \(g\) are differentiable then \(\nabla(f+g)(x)=\nabla f(x)+\nabla g(x)\).
+
+\item If moreover \(g_1\) is differentiable, then for all \(\gamma\) and all states \(z,\xi\),
+\[T_{\mathrm{MYIPLA}}(z,\xi)=z-\frac\gamma N\nabla F_{g_1+e}(z)+\sqrt{\frac{2\gamma}N}\,\xi,\]
+the scaled Euler step for the potential \(g_1+e\).
+
+\item Under the same hypotheses the MYIPLA chain coincides with the scaled Euler chain for \(g_1+e\) with step \(\gamma\), started at the same \(z_0\) with the same innovations, at every iteration \(n\).
+
+\end{enumerate}
+
+
+
+The main application is \(e=g_2^\eta\) and \(P=P_\eta\) for a convex, bounded-below \(g_2\) and \(\eta>0\): then (1) is the Moreau gradient formula, and MYIPLA is the Euler scheme for \(V_\eta=g_1+g_2^\eta\).
+
+
+
+
+\textbf{Proof.} (a) By (1), \(P(w)=w-\eta\nabla e(w)\). Parameter block: using \([J_iz]_\theta=\theta\) and the parameter block formula of the previous step,
+
+
+\[(\mathcal Pz)_\theta=\frac1N\sum_{i=1}^N\bigl(\theta-\eta\nabla_\theta e(J_iz)\bigr)=\theta-\frac\eta N\sum_{i=1}^N\nabla_\theta e(J_iz)=\theta-\frac\eta N\nabla_\theta F_e(z).\]
+
+
+Latent block \(i\): using \([J_iz]_x=\sqrt Nz_i\) and the latent block formula,
+
+
+\[(\mathcal Pz)_i=\frac1{\sqrt N}\bigl(\sqrt Nz_i-\eta\nabla_xe(J_iz)\bigr)=z_i-\frac{\eta}{\sqrt N}\nabla_xe(J_iz)=z_i-\frac\eta N\sqrt N\,\nabla_xe(J_iz)=z_i-\frac\eta N\nabla_{z_i}F_e(z),\]
+
+
+where \(1/\sqrt N=\sqrt N/N\) because \((\sqrt N)^2=N>0\).
+
+
+
+
+(b) The Fréchet derivative of a sum of two functions differentiable at \(x\) is the sum of the derivatives, and the vector representing a functional depends linearly on the functional.
+
+
+
+
+(c) The lifted potential is additive: \(F_{g_1+e}(z)=\sum_i\bigl(g_1(J_iz)+e(J_iz)\bigr)=F_{g_1}(z)+F_e(z)\), and both summands are differentiable (compositions of differentiable functions with the linear maps \(J_i\)), so by (b) \(\nabla F_{g_1+e}=\nabla F_{g_1}+\nabla F_e\). Substituting (a) into the definition of \(T_{\mathrm{MYIPLA}}\),
+
+
+\[\begin{aligned}
+T_{\mathrm{MYIPLA}}(z,\xi)&=\Bigl(1-\frac\gamma\eta\Bigr)z-\frac\gamma N\nabla F_{g_1}(z)+\frac\gamma\eta\Bigl(z-\frac\eta N\nabla F_e(z)\Bigr)+\sqrt{\frac{2\gamma}N}\,\xi\\
+&=z-\frac\gamma N\bigl(\nabla F_{g_1}(z)+\nabla F_e(z)\bigr)+\sqrt{\frac{2\gamma}N}\,\xi=z-\frac\gamma N\nabla F_{g_1+e}(z)+\sqrt{\frac{2\gamma}N}\,\xi,
+\end{aligned}\]
+
+
+where \(\frac\gamma\eta\cdot\frac\eta N=\frac\gamma N\) uses \(\eta\ne0\).
+
+
+
+
+(d) Induction on \(n\). Both chains equal \(z_0\) at \(n=0\). If they agree at \(n\), then at \(n+1\) both are obtained by applying the respective update to the same state and the same innovation \(\xi_n\), and these updates agree by (c). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{pairwiseMap\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}step}, \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}, \texttt{myiplaUpdate\_\allowbreak{}eq\_\allowbreak{}scaledUpdate} and 1 more}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}step} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 159–187}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_eq\_gradient\_step\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{e\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ \{η\ :\ ℝ\}\ (hη\ :\ η\ ≠\ 0)}
+\leanline{4}{(hgrad\ :\ ∀\ x,\ gradient\ e\ x\ =\ η⁻¹\ •\ (x\ -\ P\ x))}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{pairwiseMap\ P\ z\ =\ z\ -\ (η\ /\ N)\ •\ gradient\ (IPLA.potential\ e)\ z}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 190–194}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_add\_of\_differentiable\ \{E\ :\ Type*\}\ [NormedAddCommGroup\ E]}
+\leanline{4}{[InnerProductSpace\ ℝ\ E]\ [CompleteSpace\ E]\ \{f\ g\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hg\ :\ Differentiable\ ℝ\ g)\ (x\ :\ E)\ :}
+\leanline{4}{gradient\ (fun\ y\ ↦\ f\ y\ +\ g\ y)\ x\ =\ gradient\ f\ x\ +\ gradient\ g\ x}
+\end{leancode}
+\leansource{\texttt{myiplaUpdate\_\allowbreak{}eq\_\allowbreak{}scaledUpdate} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 198–216}
+\begin{leancode}
+\leanline{0}{theorem\ myiplaUpdate\_eq\_scaledUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ e\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₁\ :\ Differentiable\ ℝ\ g₁)}
+\leanline{4}{(he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ \{η\ :\ ℝ\}\ (hη\ :\ η\ ≠\ 0)}
+\leanline{4}{(hgrad\ :\ ∀\ x,\ gradient\ e\ x\ =\ η⁻¹\ •\ (x\ -\ P\ x))}
+\leanline{4}{(γ\ :\ ℝ)\ (z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{myiplaUpdate\ g₁\ P\ η\ γ\ z\ ξ\ =\ IPLA.scaledUpdate\ (fun\ x\ ↦\ g₁\ x\ +\ e\ x)\ γ\ z\ ξ}
+\end{leancode}
+\leansource{\texttt{myiplaChain\_\allowbreak{}eq\_\allowbreak{}scaledChain} \quad ProximalLangevin/\allowbreak{}Algorithms.lean, lines 220–233}
+\begin{leancode}
+\leanline{0}{theorem\ myiplaChain\_eq\_scaledChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ e\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₁\ :\ Differentiable\ ℝ\ g₁)}
+\leanline{4}{(he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ \{η\ :\ ℝ\}\ (hη\ :\ η\ ≠\ 0)}
+\leanline{4}{(hgrad\ :\ ∀\ x,\ gradient\ e\ x\ =\ η⁻¹\ •\ (x\ -\ P\ x))}
+\leanline{4}{(γ\ :\ ℝ)\ (initial\ :\ IPLA.State\ N\ dθ\ dx)}
+\leanline{4}{(noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{myiplaChain\ g₁\ P\ η\ γ\ initial\ noise\ n\ =}
+\leanline{6}{IPLA.scaledChain\ (fun\ x\ ↦\ g₁\ x\ +\ e\ x)\ γ\ initial\ noise\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{pairwise\allowbreak{}Map\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}step} assumes \texttt{h\allowbreak{}N : 0 < N}, \texttt{he : Differentiable \ensuremath{\mathbb R} e}, \texttt{h\ensuremath{\eta} : \ensuremath{\eta} ≠ 0} and \texttt{hgrad : \ensuremath{\forall} x, gradient e x = \ensuremath{\eta}\ensuremath{{}^{-1}} \ensuremath{\bullet} (x -\allowbreak{} P x)}, which is (1). The local fact \texttt{h\allowbreak{}P} rewrites (1) as \(P(x)=x-\eta\nabla e(x)\), and \texttt{hroot} is \((\sqrt N)^{-1}=\sqrt N/N\). After \texttt{ext a}, \texttt{rcases a with j | \ensuremath{\langle}i, j\ensuremath{\rangle}} splits into a parameter coordinate and a latent coordinate; each case is simplified with the coordinate lemmas, \texttt{IPLA.\allowbreak{}gradient\_\allowbreak{}potential\_\allowbreak{}parameter} or \texttt{IPLA.\allowbreak{}gradient\_\allowbreak{}potential\_\allowbreak{}particle}, and closed by \texttt{field\_\allowbreak{}simp} (and, in the latent case, \texttt{linear\_\allowbreak{}combination} with the identity \texttt{hs2}, \((\sqrt N)^2=N\)). The equality is an identity of maps, valid for every state.
+
+\item \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable} is (b), stated for a complete real inner-product space (\texttt{[Complete\allowbreak{}Space E]} is needed for the gradient to be defined through the Riesz isomorphism); the proof unfolds \texttt{gradient} and uses \texttt{fderiv\_\allowbreak{}fun\_\allowbreak{}add} and additivity (\texttt{map\_\allowbreak{}add}) of the Riesz isomorphism.
+
+\item \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Update} is (c): \texttt{hpot} is the additivity \(F_{g_1+e}=F_{g_1}+F_e\) (\texttt{Finset.\allowbreak{}sum\_\allowbreak{}add\_\allowbreak{}distrib}), and the rewrite chain uses \texttt{pairwise\allowbreak{}Map\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}step}, the definition \texttt{IPLA.\allowbreak{}scaled\allowbreak{}Update}, \texttt{hpot} and \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable} with differentiability of both lifted potentials (\texttt{IPLA.\allowbreak{}potential\_\allowbreak{}differentiable}); the remaining coordinate identity is closed by \texttt{field\_\allowbreak{}simp} and \texttt{ring}.
+
+\item \texttt{myipla\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Chain} is (d), proved by \texttt{induction n}: the \texttt{zero} case is \texttt{rfl}, and in the \texttt{succ} case the induction hypothesis \texttt{ih} and \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Update} rewrite the next iterate, using \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}succ} and \texttt{IPLA.\allowbreak{}scaled\allowbreak{}Chain\_\allowbreak{}succ}.
+
+\end{enumerate}
+
+
+
+These are identities of explicit maps. The probabilistic consequences (equality of laws of the iterates) are drawn later from these pointwise identities.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.5]{LangevinLean2026IPLA}; \cite[Section~3.1.7]{LangevinLean2026IPLA}; \cite[Section~3.4.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

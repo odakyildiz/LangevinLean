@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ A measure-preserving map leaves the law of every measurable random variable unch
 
 If a map preserves the source probability, the law of any measurable finite collection of source evaluations is unchanged after composition. Apply this to the Brownian values at arbitrary finitely many times. Their centered Gaussian joint distribution and covariance \(\min(s,t)\) are preserved. Thus pulling the paths to the coupling extension retains the required Brownian finite-dimensional laws.
 
+\begin{leanbox}{Lean: \texttt{preBrownian\_\allowbreak{}comp\_\allowbreak{}measurePreserving}}
+\leansource{\texttt{preBrownian\_\allowbreak{}comp\_\allowbreak{}measurePreserving} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 32–35}
+\begin{leancode}
+\leanline{0}{theorem\ preBrownian\_comp\_measurePreserving\ (hf\ :\ MeasurePreserving\ f\ P'\ P)}
+\leanline{4}{(B\ :\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ IsPreBrownianReal\ B\ P)\ :}
+\leanline{4}{IsPreBrownianReal\ (fun\ t\ ω\ ↦\ B\ t\ (f\ ω))\ P'}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pre\allowbreak{}Brownian\_\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving}: the proof is the application \texttt{(h\allowbreak{}B.\allowbreak{}has\allowbreak{}Law I).\allowbreak{}comp hf.\allowbreak{}has\allowbreak{}Law}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Pulling back the square-integrable Brownian vector}{Pulling back the square-integrable Brownian vector}}
 
@@ -42,6 +75,18 @@ Both sides represent the vector \((B_i(t,f(\omega)))_i\). Pulling back a full-me
 
 Both constructions evaluate the same finite vector of scalar Brownian coordinates after the measure-preserving map. Their representatives agree almost surely because the source representative equality pulls back to a full-measure event. Equality almost surely identifies the two \(L^2\) vectors. This makes coordinate assembly compatible with moving between source and extended probability spaces.
 
+\begin{leanbox}{Lean: \texttt{brownianCoordinatesLp\_\allowbreak{}pullback}}
+\leansource{\texttt{brownianCoordinatesLp\_\allowbreak{}pullback} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 38–49}
+\begin{leancode}
+\leanline{0}{theorem\ brownianCoordinatesLp\_pullback\ (hf\ :\ MeasurePreserving\ f\ P'\ P)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)\ (t\ :\ ℝ≥0)\ :}
+\leanline{4}{Lp.compMeasurePreserving\ f\ hf\ (brownianCoordinatesLp\ P\ B\ hB\ t)\ =}
+\leanline{6}{brownianCoordinatesLp\ P'\ (fun\ i\ t\ ω\ ↦\ B\ i\ t\ (f\ ω))}
+\leanline{8}{(fun\ i\ ↦\ preBrownian\_comp\_measurePreserving\ hf\ (B\ i)\ (hB\ i))\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Coordinates\allowbreak{}Lp\_\allowbreak{}pullback}: the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{Lp.\allowbreak{}ext}, \texttt{hcomp.\allowbreak{}trans}, \texttt{hsource.\allowbreak{}trans}, \texttt{htarget.\allowbreak{}symm}.
+\end{leanbox}
 
 \section{\texorpdfstring{Pulling back the endpoint innovation}{Pulling back the endpoint innovation}}
 
@@ -52,6 +97,19 @@ The \(L^2\) pullback is linear, hence commutes with subtraction and scalar multi
 
 The normalized Euler noise is a fixed scalar multiple of a difference of two Brownian \(L^2\) vectors. A measure-preserving pullback is linear, so it commutes with that subtraction and scalar multiplication. Applying the coordinate-vector pullback identity at both endpoints yields equality of the two noise constructions. Therefore extending first or normalizing first produces the same innovation.
 
+\begin{leanbox}{Lean: \texttt{brownianEulerNoise\_\allowbreak{}pullback}}
+\leansource{\texttt{brownianEulerNoise\_\allowbreak{}pullback} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 52–66}
+\begin{leancode}
+\leanline{0}{theorem\ brownianEulerNoise\_pullback\ (hf\ :\ MeasurePreserving\ f\ P'\ P)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)}
+\leanline{4}{(h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp.compMeasurePreserving\ f\ hf\ (brownianEulerNoise\ P\ B\ hB\ h\ n)\ =}
+\leanline{6}{brownianEulerNoise\ P'\ (fun\ i\ t\ ω\ ↦\ B\ i\ t\ (f\ ω))}
+\leanline{8}{(fun\ i\ ↦\ preBrownian\_comp\_measurePreserving\ hf\ (B\ i)\ (hB\ i))\ h\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}pullback}: the intermediate facts include \texttt{T}, \texttt{h\allowbreak{}T}, in source order.
+\end{leanbox}
 
 \section{\texorpdfstring{The source Euler innovation}{The source Euler innovation}}
 
@@ -62,6 +120,16 @@ Take a measurable representative of the previously constructed \(L^2\) Brownian 
 
 Choose a measurable random-function version of each source Euler innovation. These functions supply the input path for the generic product-law construction. Their finite-time laws and independence will be proved from the Brownian formulas below. Fixing the functions on the source before choosing an initial coupling ensures that the numerical output can be represented by one common source law.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise}}
+\leansource{\texttt{sourceEulerNoise} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 81–83}
+\begin{leancode}
+\leanline{0}{def\ sourceEulerNoise\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (n\ :\ ℕ)\ :\ S\ →\ EuclideanSpace\ ℝ\ ι\ :=}
+\leanline{2}{brownianEulerNoise\ Q\ B\ hB\ h\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise} is a definition with defining expression \texttt{brownian\allowbreak{}Euler\allowbreak{}Noise Q B h\allowbreak{}B h n}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Square-integrability of the source innovation}{Square-integrability of the source innovation}}
 
@@ -72,6 +140,16 @@ A representative of an \(L^2\) class has finite second moment. Apply that fact t
 
 An \(L^2\) random variable has finite second moment for every representative agreeing with it almost surely. Therefore the selected source innovation functions inherit the finite norm already established for the Brownian-normalized class. No additional moment condition is required merely because a pointwise version is chosen for the product recursion.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}memLp}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}memLp} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 87–89}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_memLp\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{MemLp\ (sourceEulerNoise\ Q\ B\ hB\ h\ n)\ 2\ Q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}mem\allowbreak{}Lp}: the proof is the application \texttt{Lp.\allowbreak{}mem\allowbreak{}Lp \_\allowbreak{}}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Its vector representative}{Its vector representative}}
 
@@ -82,6 +160,19 @@ Unfold the nested class-valued noise definition and apply representative equalit
 
 Expand the innovation into its two Brownian endpoint values and fixed normalization factors. Almost-sure identities for sums, differences and scalar multiples show that its pointwise version equals the normalized vector increment. The time extension only specifies how Brownian evaluation is interpreted outside nonnegative times; in the positive mesh regime every grid endpoint already lies in the ordinary Brownian domain.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}coe}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}coe} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 94–112}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_coe\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{sourceEulerNoise\ Q\ B\ hB\ h\ n\ =ᵐ[Q]\ fun\ ω\ ↦}
+\leanline{6}{(Real.sqrt\ (2\ *\ h))⁻¹\ •\ (Real.sqrt\ 2\ •}
+\leanline{8}{(brownianCoordinates\ B\ (((n\ :\ ℝ)\ *\ h\ +\ h).toNNReal)\ ω\ -}
+\leanline{10}{brownianCoordinates\ B\ (((n\ :\ ℝ)\ *\ h).toNNReal)\ ω))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}coe}: the source steps apply or rewrite \texttt{Pi.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{Pi.\allowbreak{}sub\_\allowbreak{}apply}.
+\end{leanbox}
 
 \section{\texorpdfstring{Its scalar coordinate representative}{Its scalar coordinate representative}}
 
@@ -92,6 +183,18 @@ Evaluate the vector representative formula in coordinate \(i\). For \(h>0\), use
 
 For \(h>0\), factor \(\sqrt{2h}=\sqrt2\sqrt h\) and cancel the positive \(\sqrt2\). In coordinate \(i\), the result is \([B_i((n+1)h)-B_i(nh)]/\sqrt h\). This explicit formula connects the exact innovation representative to the standard Gaussian increment law and fixes the variance normalization without an inequality.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}coordinate\_\allowbreak{}coe}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}coordinate\_\allowbreak{}coe} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 117–130}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_coordinate\_coe\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (n\ :\ ℕ)\ (i\ :\ ι)\ :}
+\leanline{4}{(fun\ ω\ ↦\ sourceEulerNoise\ Q\ B\ hB\ h\ n\ ω\ i)\ =ᵐ[Q]\ fun\ ω\ ↦}
+\leanline{6}{(B\ i\ ((((n\ :\ ℝ)\ +\ 1)\ *\ h).toNNReal)\ ω\ -}
+\leanline{8}{B\ i\ (((n\ :\ ℝ)\ *\ h).toNNReal)\ ω)\ /\ Real.sqrt\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}coordinate\_\allowbreak{}coe}: the intermediate facts include \texttt{hs2}, \texttt{hsh}, \texttt{hi}, in source order. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{The coordinate at nonnegative mesh times}{The coordinate at nonnegative mesh times}}
 
@@ -102,6 +205,18 @@ For nonnegative mesh times, restriction to nonnegative time leaves their real va
 
 All grid times \(nh\) and \((n+1)h\) are nonnegative when \(h>0\). Hence the real-time extension agrees there with the original nonnegative-time Brownian process. The coordinate identity is consequently the usual Brownian grid-increment formula. The Gaussian increment and independence results therefore apply at these endpoints.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}coordinate\_\allowbreak{}coe\_\allowbreak{}nnreal}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}coordinate\_\allowbreak{}coe\_\allowbreak{}nnreal} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 134–146}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_coordinate\_coe\_nnreal\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)\ (n\ :\ ℕ)\ (i\ :\ ι)\ :}
+\leanline{4}{(fun\ ω\ ↦\ sourceEulerNoise\ Q\ B\ hB\ (h\ :\ ℝ)\ n\ ω\ i)\ =ᵐ[Q]\ fun\ ω\ ↦}
+\leanline{6}{(B\ i\ (((n\ +\ 1\ :\ ℕ)\ :\ ℝ≥0)\ *\ h)\ ω\ -\ B\ i\ ((n\ :\ ℝ≥0)\ *\ h)\ ω)\ /}
+\leanline{8}{Real.sqrt\ (h\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}coordinate\_\allowbreak{}coe\_\allowbreak{}nnreal}: the intermediate facts include \texttt{ht}, \texttt{hn}, in source order; the source steps apply or rewrite \texttt{NNReal.\allowbreak{}eq}, \texttt{Real.\allowbreak{}coe\_\allowbreak{}to\allowbreak{}NNReal}, \texttt{h.\allowbreak{}coe\_\allowbreak{}nonneg}, \texttt{Nat.\allowbreak{}cast\_\allowbreak{}add}, \texttt{Nat.\allowbreak{}cast\_\allowbreak{}one}.
+\end{leanbox}
 
 \section{\texorpdfstring{The normalized Brownian coordinate increment}{The normalized Brownian coordinate increment}}
 
@@ -112,6 +227,17 @@ The nonnegative-grid formula is the normalized Brownian mesh increment. After co
 
 The innovation coordinate equals the established normalized Brownian increment almost surely at each fixed step and coordinate. Thus every distributional statement proved for the normalized increment applies to the source coordinate. The selected \(L^2\) representatives and the scalar increment functions have equal pushforward measures because they agree almost surely.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}normalized\_\allowbreak{}coordinate}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}normalized\_\allowbreak{}coordinate} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 150–157}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_normalized\_coordinate\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (n\ :\ ℕ)\ (i\ :\ ι)\ :}
+\leanline{4}{(fun\ ω\ ↦\ sourceEulerNoise\ Q\ B\ hB\ h\ n\ ω\ i)\ =ᵐ[Q]}
+\leanline{6}{normalizedBrownianIncrement\ (B\ i)\ h.toNNReal\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}normalized\_\allowbreak{}coordinate}: the intermediate fact is \texttt{hn}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}coe\_\allowbreak{}to\allowbreak{}NNReal}, \texttt{hh.\allowbreak{}le}.
+\end{leanbox}
 
 \section{\texorpdfstring{The scalar innovation law}{The scalar innovation law}}
 
@@ -122,6 +248,16 @@ A normalized Brownian increment has law \(\mathcal N(0,1)\). Transfer this law a
 
 A length-\(h\) Brownian increment is centered Gaussian with variance \(h\). Scaling by \(h^{-1/2}\) multiplies its variance by \(h^{-1}\), giving variance one. Equality almost surely of the two coordinate versions preserves their pushforward distributions. This proves the standard Gaussian law of the precise source innovation used in the algorithm.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}coordinateLaw}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}coordinateLaw} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 161–166}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_coordinateLaw\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (n\ :\ ℕ)\ (i\ :\ ι)\ :}
+\leanline{4}{HasLaw\ (fun\ ω\ ↦\ sourceEulerNoise\ Q\ B\ hB\ h\ n\ ω\ i)\ (gaussianReal\ 0\ 1)\ Q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}coordinate\allowbreak{}Law}: the proof is the application \texttt{(normalized\allowbreak{}Brownian\allowbreak{}Increment\_\allowbreak{}has\allowbreak{}Law Q (B i) (h\allowbreak{}B i) h.\allowbreak{}to\allowbreak{}NNReal}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Independence of the source innovation array}{Independence of the source innovation array}}
 
@@ -132,6 +268,17 @@ The Brownian grid-path theorem gives independence of all normalized coordinates 
 
 Independent Brownian coordinates and independent disjoint increments give one jointly independent family indexed by coordinate and time interval. Swapping the order of these two indices is a bijection and preserves every finite factorization. Almost-sure coordinate replacement then transfers that full independence to the selected source innovations. Correct marginal laws alone would not establish this joint conclusion.
 
+\begin{leanbox}{Lean: \texttt{sourceEulerNoise\_\allowbreak{}independent}}
+\leansource{\texttt{sourceEulerNoise\_\allowbreak{}independent} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 171–180}
+\begin{leancode}
+\leanline{0}{theorem\ sourceEulerNoise\_independent\ (B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hpaths\ :\ iIndepFun\ (fun\ i\ ω\ (n\ :\ ℕ)\ ↦\ B\ i\ ((n\ :\ ℝ≥0)\ *\ h.toNNReal)\ ω)\ Q)\ :}
+\leanline{4}{iIndepFun\ (fun\ p\ :\ ℕ\ ×\ ι\ ↦\ fun\ ω\ ↦\ sourceEulerNoise\ Q\ B\ hB\ h\ p.1\ ω\ p.2)\ Q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}independent}: the intermediate facts include \texttt{hind}, \texttt{hswap}, in source order; the source steps apply or rewrite \texttt{Prod.\allowbreak{}ext}, \texttt{Prod.\allowbreak{}snd}, \texttt{Prod.\allowbreak{}fst}, \texttt{hswap.\allowbreak{}congr}, \texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}normalized\_\allowbreak{}coordinate}.
+\end{leanbox}
 
 \section{\texorpdfstring{Brownian coordinates on the product space}{Brownian coordinates on the product space}}
 
@@ -142,6 +289,17 @@ Projection from an initial-coupling product extension to the noise source is mea
 
 On \(c\otimes Q\), the second-factor projection is measure preserving because \(c\) has mass one. Pulling every scalar Brownian path through it leaves its finite-dimensional distributions unchanged. This constructs Brownian coordinate processes on the same space as the coupled initial states, with no dependence of their source laws on the particular initial coupling.
 
+\begin{leanbox}{Lean: \texttt{productPreBrownian}}
+\leansource{\texttt{productPreBrownian} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 184–189}
+\begin{leancode}
+\leanline{0}{theorem\ productPreBrownian\ \{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (i\ :\ ι)\ :}
+\leanline{4}{IsPreBrownianReal\ (fun\ t\ (p\ :\ (EuclideanSpace\ ℝ\ ι\ ×\ EuclideanSpace\ ℝ\ ι)\ ×\ S)\ ↦\ B\ i\ t\ p.2)}
+\leanline{6}{(initialExtension\ c\ Q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Pre\allowbreak{}Brownian}: the source steps apply or rewrite \texttt{pre\allowbreak{}Brownian\_\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving}, \texttt{measure\allowbreak{}Preserving\_\allowbreak{}snd}.
+\end{leanbox}
 
 \section{\texorpdfstring{Identification of product and reference noise}{Identification of product and reference noise}}
 
@@ -152,6 +310,20 @@ The lifted source noise and the extension's constructed Brownian noise are both 
 
 The product innovation is the pullback of the fixed source innovation, whereas the reference noise is normalized after pulling back the Brownian coordinates. Linearity and the preceding pullback identities show that these are the same \(L^2\) vector. Consequently the numerical and reference constructions share the same endpoint noise as \(L^2\) classes, permitting exact cancellation in their coupled difference.
 
+\begin{leanbox}{Lean: \texttt{productNoise\_\allowbreak{}eq\_\allowbreak{}brownianEulerNoise}}
+\leansource{\texttt{productNoise\_\allowbreak{}eq\_\allowbreak{}brownianEulerNoise} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 194–210}
+\begin{leancode}
+\leanline{0}{theorem\ productNoise\_eq\_brownianEulerNoise}
+\leanline{4}{\{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)}
+\leanline{4}{(h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{productNoise\ Q\ c\ (sourceEulerNoise\ Q\ B\ hB\ h)\ (sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ n\ =}
+\leanline{6}{brownianEulerNoise\ (initialExtension\ c\ Q)\ (fun\ i\ t\ p\ ↦\ B\ i\ t\ p.2)}
+\leanline{8}{(productPreBrownian\ Q\ c\ B\ hB)\ h\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Noise\_\allowbreak{}eq\_\allowbreak{}brownian\allowbreak{}Euler\allowbreak{}Noise}: the source steps apply or rewrite \texttt{Lp.\allowbreak{}ext}, \texttt{product\allowbreak{}Noise\_\allowbreak{}coe}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 \section{\texorpdfstring{The product coordinate innovation law}{The product coordinate innovation law}}
 
@@ -162,6 +334,20 @@ Pull the source standard-Gaussian coordinate law through the extension's noise p
 
 The source projection preserves the standard Gaussian coordinate law, so its raw pullback remains standard Gaussian. The product innovation representative agrees almost surely with that pullback. Changing representatives therefore gives the same Gaussian marginal for the exact variables used by the numerical chain. This verifies the distributional premise without replacing the coupled construction by a separate Gaussian source.
 
+\begin{leanbox}{Lean: \texttt{productEulerNoise\_\allowbreak{}coordinateLaw}}
+\leansource{\texttt{productEulerNoise\_\allowbreak{}coordinateLaw} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 213–224}
+\begin{leancode}
+\leanline{0}{theorem\ productEulerNoise\_coordinateLaw}
+\leanline{4}{\{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (n\ :\ ℕ)\ (i\ :\ ι)\ :}
+\leanline{4}{HasLaw\ (fun\ p\ ↦\ productNoise\ Q\ c\ (sourceEulerNoise\ Q\ B\ hB\ h)}
+\leanline{6}{(sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ n\ p\ i)\ (gaussianReal\ 0\ 1)}
+\leanline{8}{(initialExtension\ c\ Q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}coordinate\allowbreak{}Law}: the source steps apply or rewrite \texttt{source\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}coordinate\allowbreak{}Law}.
+\end{leanbox}
 
 \section{\texorpdfstring{Independence of product innovations}{Independence of product innovations}}
 
@@ -172,6 +358,21 @@ Identify the source coordinate-time path law as the product of standard Gaussian
 
 Pulling the complete source innovation path through a measure-preserving map preserves its whole joint product Gaussian law. Every finite subfamily of product innovation coordinates therefore remains independent. Countably many almost-sure coordinate equalities can be imposed simultaneously on a full-measure event, allowing the raw path law to be transferred to the chosen representative path.
 
+\begin{leanbox}{Lean: \texttt{productEulerNoise\_\allowbreak{}independent}}
+\leansource{\texttt{productEulerNoise\_\allowbreak{}independent} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 228–263}
+\begin{leancode}
+\leanline{0}{theorem\ productEulerNoise\_independent}
+\leanline{4}{\{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hpaths\ :\ iIndepFun\ (fun\ i\ ω\ (n\ :\ ℕ)\ ↦\ B\ i\ ((n\ :\ ℝ≥0)\ *\ h.toNNReal)\ ω)\ Q)\ :}
+\leanline{4}{iIndepFun\ (fun\ j\ :\ ℕ\ ×\ ι\ ↦\ fun\ p\ ↦}
+\leanline{6}{productNoise\ Q\ c\ (sourceEulerNoise\ Q\ B\ hB\ h)}
+\leanline{8}{(sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ j.1\ p\ j.2)\ (initialExtension\ c\ Q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}independent}: the intermediate facts include \texttt{hsource}, \texttt{hpull}, \texttt{hraw}, \texttt{hcoord}, in source order; the source steps apply or rewrite \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}iff\_\allowbreak{}map\_\allowbreak{}fun\_\allowbreak{}eq\_\allowbreak{}infinite\allowbreak{}Pi\_\allowbreak{}map\ensuremath{{}_{0}}'}, \texttt{hpull.\allowbreak{}map\_\allowbreak{}eq}, \texttt{map\_\allowbreak{}eq.\allowbreak{}symm}, \texttt{hraw.\allowbreak{}congr}, \texttt{product\allowbreak{}Noise\_\allowbreak{}coe}.
+\end{leanbox}
 
 \section{\texorpdfstring{Independence from numerical initialization}{Independence from numerical initialization}}
 
@@ -182,6 +383,21 @@ The raw first initial coordinate depends only on the coupling factor, while the 
 
 The first initial coordinate is measurable from the coupling factor, while the complete innovation path is measurable from the independent source factor. Product independence gives their factorized joint law. Simultaneous almost-sure representative identities preserve this independence for the \(L^2\) initialization and innovation path. Independence therefore applies to all future innovations together, as required by the recursion law theorem.
 
+\begin{leanbox}{Lean: \texttt{productEulerNoise\_\allowbreak{}independentInitial}}
+\leansource{\texttt{productEulerNoise\_\allowbreak{}independentInitial} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 267–289}
+\begin{leancode}
+\leanline{0}{theorem\ productEulerNoise\_independentInitial}
+\leanline{4}{\{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)}
+\leanline{4}{(hc\ :\ couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (fun\ x\ :\ EuclideanSpace\ ℝ\ ι\ ↦\ x)\ 2\ π)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ :}
+\leanline{4}{IndepFun\ (initialExtension\_lpInitial\ c\ Q\ hc\ hπ)}
+\leanline{6}{(fun\ p\ n\ ↦\ productNoise\ Q\ c\ (sourceEulerNoise\ Q\ B\ hB\ h)}
+\leanline{8}{(sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ n\ p)\ (initialExtension\ c\ Q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}independent\allowbreak{}Initial}: the intermediate facts include \texttt{hnoise}, \texttt{hall}, \texttt{hraw}, in source order; the source steps apply or rewrite \texttt{hall.\allowbreak{}mono}, \texttt{hraw.\allowbreak{}congr}, \texttt{initial\allowbreak{}Extension\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}initial}, \texttt{coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp.\allowbreak{}symm}, \texttt{hnoise.\allowbreak{}symm}.
+\end{leanbox}
 
 \section{\texorpdfstring{Independence from reference initialization}{Independence from reference initialization}}
 
@@ -192,6 +408,20 @@ Use the same product independence argument with the second initial coordinate. B
 
 The reference initialization uses the second coordinate of the same coupling factor and is likewise independent of the entire source. Replacing it and the innovation path by almost-surely equal representatives leaves the joint law unchanged. This independence is used when constructing a Langevin process started at Gibbs law with fresh Brownian forcing, rather than only in the numerical algorithm-law argument.
 
+\begin{leanbox}{Lean: \texttt{productEulerNoise\_\allowbreak{}independentReference}}
+\leansource{\texttt{productEulerNoise\_\allowbreak{}independentReference} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 292–313}
+\begin{leancode}
+\leanline{0}{theorem\ productEulerNoise\_independentReference}
+\leanline{4}{\{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)}
+\leanline{4}{(hπ\ :\ MemLp\ (fun\ x\ :\ EuclideanSpace\ ℝ\ ι\ ↦\ x)\ 2\ π)}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)\ (h\ :\ ℝ)\ :}
+\leanline{4}{IndepFun\ (initialExtension\_lpReference\ c\ Q\ hπ)}
+\leanline{6}{(fun\ p\ n\ ↦\ productNoise\ Q\ c\ (sourceEulerNoise\ Q\ B\ hB\ h)}
+\leanline{8}{(sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ n\ p)\ (initialExtension\ c\ Q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Euler\allowbreak{}Noise\_\allowbreak{}independent\allowbreak{}Reference}: the intermediate facts include \texttt{hnoise}, \texttt{hall}, \texttt{hraw}, in source order; the source steps apply or rewrite \texttt{hall.\allowbreak{}mono}, \texttt{hraw.\allowbreak{}congr}, \texttt{initial\allowbreak{}Extension\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}reference}, \texttt{coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp.\allowbreak{}symm}, \texttt{hnoise.\allowbreak{}symm}.
+\end{leanbox}
 
 \section{\texorpdfstring{The Brownian product probability}{The Brownian product probability}}
 
@@ -202,6 +432,15 @@ The coupling is a probability by its marginal identity and the Brownian source m
 
 The Brownian extension's normalization follows from \(c(E\times E)=1\) and \(Q(S)=1\). Thus all pulled-back Brownian and square-integrable constructions occur on a probability space. Unit mass also ensures that adding the source does not change initial second moments, noise norms or the cost of the chosen initial coupling.
 
+\begin{leanbox}{Lean: \texttt{brownianProductProbability}}
+\leansource{\texttt{brownianProductProbability} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 76–77}
+\begin{leancode}
+\leanline{0}{local\ instance\ brownianProductProbability\ \{π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ (c\ :\ Coupling\ μ\ π)\ :}
+\leanline{4}{IsProbabilityMeasure\ (initialExtension\ c\ Q)\ :=\ initialExtension\_isProbabilityMeasure\ c\ Q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Product\allowbreak{}Probability} is a definition with defining expression \texttt{initial\allowbreak{}Extension\_\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure c Q}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The Gibbs reference as a square-integrable class}{The Gibbs reference as a square-integrable class}}
 
@@ -212,6 +451,15 @@ The strongly convex Gibbs law has finite second moment. Thus the identity map be
 
 Positive strong convexity gives a Gaussian upper bound on the target density and its quadratic moment weight. The normalized Gibbs law consequently has finite second moment. This proved target fact supplies the reference-coordinate integrability on every finite-coupling extension, and finite coupling cost then supplies the algorithm-coordinate integrability as well.
 
+\begin{leanbox}{Lean: \texttt{productGibbsMemLp}}
+\leansource{\texttt{productGibbsMemLp} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 322–323}
+\begin{leancode}
+\leanline{0}{abbrev\ productGibbsMemLp\ :\ MemLp\ (fun\ x\ :\ EuclideanSpace\ ℝ\ ι\ ↦\ x)\ 2\ (gibbsMeasure\ U)\ :=}
+\leanline{2}{memLp\_id\_gibbsMeasure\ U\ m\ hm\ hdiff\ hsc}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Gibbs\allowbreak{}Mem\allowbreak{}Lp} is a definitional abbreviation with defining expression \texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure U m hm hdiff hsc}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The square-integrable Brownian product reference}{The square-integrable Brownian product reference}}
 
@@ -222,6 +470,38 @@ The pulled-back Brownian segments have continuous square-mean paths and satisfy 
 
 The constructed local segments supply continuity, joining and the gradient integral equation. Their Brownian endpoint noise equals the common product innovation by the preceding identity. Given their target laws, the Gibbs score moment supplies the uniform drift bound. The resulting analytic reference therefore has each required property, while segment stationarity remains an explicit premise at this intermediate stage.
 
+\begin{leanbox}{Lean: \texttt{brownianProductL2Reference}}
+\leansource{\texttt{brownianProductL2Reference} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 328–352}
+\begin{leancode}
+\leanline{0}{def\ brownianProductL2Reference\ (c\ :\ Coupling\ μ\ (gibbsMeasure\ U))}
+\leanline{4}{(hstationary\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{6}{(initialExtension\ c\ Q).map}
+\leanline{8}{(brownianSegments\ (initialExtension\ c\ Q)\ U\ L\ hLip}
+\leanline{10}{(fun\ i\ t\ p\ ↦\ B\ i\ t\ p.2)\ (productPreBrownian\ Q\ c\ B\ hB)\ h\ hh.le}
+\leanline{10}{(initialExtension\_lpReference\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc))\ n\ t)\ =}
+\leanline{8}{gibbsMeasure\ U)\ :}
+\leanline{4}{L2Reference\ (initialExtension\ c\ Q)\ (Fintype.card\ ι)\ U\ h\ L\ hLip}
+\leanline{6}{(productNoise\ Q\ c\ (sourceEulerNoise\ Q\ B\ hB\ h)\ (sourceEulerNoise\_memLp\ Q\ B\ hB\ h))}
+\leanline{6}{(gibbsMeasure\ U)\ :=\ by}
+\leanline{2}{let\ ref\ :=\ brownianReference\_of\_strongConvex\ (initialExtension\ c\ Q)\ U\ m\ L\ hm\ hdiff\ hsc\ hLip}
+\leanline{4}{(fun\ i\ t\ p\ ↦\ B\ i\ t\ p.2)\ (productPreBrownian\ Q\ c\ B\ hB)\ h\ hh}
+\leanline{4}{(initialExtension\_lpReference\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc))\ hstationary}
+\leanline{2}{exact\ \{}
+\leanline{4}{segment\ :=\ ref.segment}
+\leanline{4}{increment\ :=\ ref.increment}
+\leanline{4}{continuous\ :=\ ref.continuous}
+\leanline{4}{join\ :=\ ref.join}
+\leanline{4}{noiseEndpoint\ :=\ fun\ n\ ↦\ by}
+\leanline{6}{rw\ [productNoise\_eq\_brownianEulerNoise]}
+\leanline{6}{exact\ ref.noiseEndpoint\ n}
+\leanline{4}{stationary\ :=\ ref.stationary}
+\leanline{4}{integralEquation\ :=\ ref.integralEquation}
+\leanline{4}{scoreBound\ :=\ ref.scoreBound}
+\leanline{4}{noiseBound\ :=\ ref.noiseBound\ \}}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{brownian\allowbreak{}Product\allowbreak{}L2\allowbreak{}Reference} is a definition with defining expression \texttt{let ref := brownian\allowbreak{}Reference\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex (initial\allowbreak{}Extension c Q) U m L hm hdiff hsc h\allowbreak{}Lip}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The product reference supplied by the Brownian construction}{The product reference supplied by the Brownian construction}}
 
@@ -232,6 +512,30 @@ For each finite initial coupling, construct the square-integrable Brownian refer
 
 For every finite initial coupling, form the same source product and construct its Brownian reference. Its first segment starts at the second-coordinate reference state, preserving the initial cost. These references together satisfy the coupling-family requirement. The Gibbs law at each segment time remains the stated assumption; the subsequent stationarity proof establishes it for all these constructions.
 
+\begin{leanbox}{Lean: \texttt{productReference\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}brownian}}
+\leansource{\texttt{productReference\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}brownian} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 358–374}
+\begin{leancode}
+\leanline{0}{def\ productReference\_of\_constructed\_brownian}
+\leanline{4}{(hstationary\ :\ ∀\ (c\ :\ Coupling\ μ\ (gibbsMeasure\ U))\ (\_\ :\ couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{6}{n\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{6}{(initialExtension\ c\ Q).map}
+\leanline{8}{(brownianSegments\ (initialExtension\ c\ Q)\ U\ L\ hLip}
+\leanline{10}{(fun\ i\ t\ p\ ↦\ B\ i\ t\ p.2)\ (productPreBrownian\ Q\ c\ B\ hB)\ h\ hh.le}
+\leanline{10}{(initialExtension\_lpReference\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc))\ n\ t)\ =}
+\leanline{8}{gibbsMeasure\ U)\ :}
+\leanline{4}{ProductReference\ Q\ (Fintype.card\ ι)\ U\ h\ L\ hLip\ μ\ (gibbsMeasure\ U)}
+\leanline{6}{(productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc)}
+\leanline{6}{(sourceEulerNoise\ Q\ B\ hB\ h)\ (sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ where}
+\leanline{2}{reference\ c\ hc\ :=\ brownianProductL2Reference\ Q\ U\ m\ L\ hm\ hdiff\ hsc\ hLip\ B\ hB\ h\ hh\ c}
+\leanline{4}{(hstationary\ c\ hc)}
+\leanline{2}{start\ c\ hc\ :=\ by}
+\leanline{4}{exact\ brownianSegments\_initial\ (initialExtension\ c\ Q)\ U\ L\ hLip}
+\leanline{6}{(fun\ i\ t\ p\ ↦\ B\ i\ t\ p.2)\ (productPreBrownian\ Q\ c\ B\ hB)\ h\ hh.le}
+\leanline{6}{(initialExtension\_lpReference\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Reference\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}brownian} is a definition with defining expression \texttt{exact brownian\allowbreak{}Segments\_\allowbreak{}initial (initial\allowbreak{}Extension c Q) U L h\allowbreak{}Lip}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The convergence bound from the constructed product Brownian source}{The convergence bound from the constructed product Brownian source}}
 
@@ -242,5 +546,26 @@ Derive \(m\le L\) from strong convexity and smoothness, construct the product re
 
 Strong convexity and smoothness imply \(m\le L\) on a nontrivial space, placing the parameters in the deterministic contraction regime. Apply the product-reference theorem with the constructed Brownian family and supplied segment target laws. Taking the initial coupling infimum gives the initial Wasserstein term. This estimate assumes segment stationarity, which is proved subsequently.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}product\_\allowbreak{}brownian}}
+\leansource{\texttt{dalalyan\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}product\_\allowbreak{}brownian} \quad UnadjustedLangevin/\allowbreak{}ProductBrownian.lean, lines 380–398}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_of\_constructed\_product\_brownian\ [Nonempty\ ι]}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ U)\ ≠\ ⊤)}
+\leanline{4}{(hstationary\ :\ ∀\ (c\ :\ Coupling\ μ\ (gibbsMeasure\ U))\ (\_\ :\ couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{6}{n\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{6}{(initialExtension\ c\ Q).map}
+\leanline{8}{(brownianSegments\ (initialExtension\ c\ Q)\ U\ L\ hLip}
+\leanline{10}{(fun\ i\ t\ p\ ↦\ B\ i\ t\ p.2)\ (productPreBrownian\ Q\ c\ B\ hB)\ h\ hh.le}
+\leanline{10}{(initialExtension\_lpReference\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc))\ n\ t)\ =}
+\leanline{8}{gibbsMeasure\ U)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real}
+\leanline{6}{(productOutputLaw\ Q\ U\ h\ μ\ (sourceEulerNoise\ Q\ B\ hB\ h)\ n)\ (gibbsMeasure\ U)\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ n\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ U)\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *\ Real.sqrt\ (h\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}product\_\allowbreak{}brownian}: the source steps apply or rewrite \texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}product\_\allowbreak{}reference}, \texttt{Fintype.\allowbreak{}card}.
+\end{leanbox}
 
 \end{document}

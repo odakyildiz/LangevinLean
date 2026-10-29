@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,88 +39,319 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The pathwise algorithm maps become probability transitions by integrating them against independent fresh-noise measures. This section reuses the generic Markov-law construction and independence argument already proved for ULA. For KIPLMC1 it accepts a specified correlated phase innovation law; KIPLMC2 uses an explicit pair of independent standard Gaussian vectors for its two OU half steps. Law equality is kept distinct from convergence rates.
+Both particle algorithms are recursions \(Y_{n+1}=\Phi(Y_n,\zeta_n)\) on phase space \(\mathcal Z_N\times\mathcal Z_N\), driven by fresh innovations \(\zeta_n\). This section turns them into Markov chains. For a measurable update \(\Phi\), an innovation law \(\eta\) and an initial law \(\mu\), the laws of the iterates are defined by
 
 
+\[\mu_0=\mu,\qquad\mu_{n+1}=\Phi_\#(\mu_n\otimes\eta),\]
 
-Both explicit particle recursions are identified with their independent-noise Markov iterates. The exponential transition retains correlated response pairs, while OBABO retains two distinct independent thermostat noises.
+
+that is, \(\mu_{n+1}\) is the law of \(\Phi(Y,\zeta)\) when \(Y\sim\mu_n\) and \(\zeta\sim\eta\) are independent. We prove that the KIPLMC1 update \(K\) and the KIPLMC2 update \(S\) are measurable, that the resulting \(\mu_n\) are probability measures, and that every realization of the recursions with an initial state independent of a sequence of independent innovations with law \(\eta\) has exactly the law \(\mu_n\) at step \(n\). For KIPLMC2 the innovation law is the product of two standard Gaussian laws, one for each thermostat half-step; for KIPLMC1 it is the correlated Gaussian law constructed in the section on the innovation measure. These law identities connect the algorithms to the convergence theorems proved later; they contain no quantitative estimate.
 
 
 
 Earlier results used here: \cite[Section~3.33]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The OBABO noise law and measurability of both step maps}{The OBABO noise law and measurability of both step maps}}
+\section{\texorpdfstring{The thermostat noise law and measurability of both updates}{The thermostat noise law and measurability of both updates}}
 
 
-The thermostat noise law is the product of two standard Gaussian measures on the particle Euclidean space. Its product probability property gives total mass one. Lipschitzness of the particle force implies continuity. Unfolding the exponential or OBABO map shows that each is built from this continuous force, coordinate projections, addition and scalar multiplication, so each uncurried state–noise map is continuous and hence measurable. The argument supplies force continuity first, applies measurability of continuous maps, and uses continuity of each operation in the finite composition.
-
-
-
-The two thermostat noises form an independent product of Gaussian vector measures. Continuity of the force makes each finite-stage update measurable. Both particle algorithms therefore define probability transitions by pushing forward the state/\allowbreak{}noise product.
+\textbf{Definition.} The KIPLMC2 noise law is \(\eta_2=\gamma_{\mathcal Z_N}\otimes\gamma_{\mathcal Z_N}\) on \(\mathcal Z_N\times\mathcal Z_N\), the joint law of two independent standard Gaussian vectors \((\xi,\xi')\); here \(\gamma_{\mathcal Z_N}\) is the standard Gaussian measure on \(\mathcal Z_N\).
 
 
 
-Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}; \cite[Section~3.20.1]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{Define numerical laws by independent-noise pushforwards}{Define numerical laws by independent-noise pushforwards}}
-
-
-The KIPLMC1 law sequence applies the shared Markov recursion with the exponential step, an initial phase measure \(\mu\), and a supplied innovation measure \(\eta\). The KIPLMC2 law sequence uses the OBABO step and its fixed two-Gaussian noise measure. Each successor law is the pushforward of the product of the current-state law and the fresh-noise law. The probability theorems invoke the proved step measurability and probability of the initial and innovation measures, so every iterate is a probability measure. For KIPLMC1 the covariance specification of \(\eta\) remains explicit and separate; probability alone does not identify the intended correlated Gaussian law.
+\textbf{Claim.} (a) \(\eta_2\) is a probability measure. (b) Let \(N>0\), \(L\ge0\), and let \(U\) be differentiable with \(L\)-Lipschitz gradient. For all \(\gamma,h\in\mathbb R\), the maps
 
 
+\[\bigl((v,z),(\xi,\xi')\bigr)\mapsto K\bigl((v,z),(\xi,\xi')\bigr),\qquad\bigl((v,z),(\xi,\xi')\bigr)\mapsto S\bigl((v,z),\xi,\xi'\bigr)\]
 
-At each step take a fresh innovation independent of the present state and apply the specified map. Integrating this update against its innovation measure defines one transition. Repeated pushforward gives the numerical laws without assuming an underlying chain with the desired estimates.
 
+from \((\mathcal Z_N\times\mathcal Z_N)\times(\mathcal Z_N\times\mathcal Z_N)\) to \(\mathcal Z_N\times\mathcal Z_N\) are Borel measurable.
+
+
+
+
+\textbf{Proof.} (a) \(\eta_2(\mathcal Z_N\times\mathcal Z_N)=\gamma_{\mathcal Z_N}(\mathcal Z_N)^2=1\).
+
+
+
+
+(b) The force \(F_N\) is \(L\)-Lipschitz (\cite[Section~3.1.5]{LangevinLean2026KIPLMC}), hence continuous. The KIPLMC1 update is \(\bigl(\psi_0(h)v-\psi_1(h)F_N(z)+a_N\xi,\;z+\psi_1(h)v-\psi_2(h)F_N(z)+a_N\xi'\bigr)\), a combination of the coordinate projections, the continuous map \(F_N\), vector addition and multiplication by fixed scalars, so it is continuous. The KIPLMC2 update is the composition of the five continuous substeps \(O\), \(B\), \(A\), \(B\), \(O\), in which the force appears only through \(F_N(z)\) and \(F_N(z+hv_{1/2})\); it is continuous for the same reason. A continuous map between finite-dimensional normed spaces is measurable for the Borel \(\sigma\)-algebras, because preimages of open sets are open. \(\square\)
+
+
+
+
+Measurability is what makes the laws \(\Phi_\#(\mu_n\otimes\eta)\) of the next step meaningful. The Lipschitz hypothesis is used only through the continuity of \(F_N\).
+
+\begin{leanbox}{Lean: \texttt{obaboNoise}, \texttt{obaboNoise\_\allowbreak{}probability}, \texttt{kiplmc1Step\_\allowbreak{}measurable} and 1 more}
+\leansource{\texttt{obaboNoise} \quad KIPLMC/\allowbreak{}Laws.lean, lines 22–23}
+\begin{leancode}
+\leanline{0}{def\ obaboNoise\ (N\ dθ\ dx\ :\ ℕ)\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ :=}
+\leanline{2}{(stdGaussian\ (State\ N\ dθ\ dx)).prod\ (stdGaussian\ (State\ N\ dθ\ dx))}
+\end{leancode}
+\leansource{\texttt{obaboNoise\_\allowbreak{}probability} \quad KIPLMC/\allowbreak{}Laws.lean, lines 25–28}
+\begin{leancode}
+\leanline{0}{instance\ obaboNoise\_probability\ (N\ dθ\ dx\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (obaboNoise\ N\ dθ\ dx)\ :=\ by}
+\leanline{2}{unfold\ obaboNoise}
+\leanline{2}{infer\_instance}
+\end{leancode}
+\leansource{\texttt{kiplmc1Step\_\allowbreak{}measurable} \quad KIPLMC/\allowbreak{}Laws.lean, lines 30–37}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Step\_measurable\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{\{L\ :\ ℝ≥0\}\ (hN\ :\ 0\ <\ N)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (@kiplmc1Step\ N\ dθ\ dx\ U\ γ\ h))}
+\end{leancode}
+\leansource{\texttt{kiplmc2Step\_\allowbreak{}measurable} \quad KIPLMC/\allowbreak{}Laws.lean, lines 39–48}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Step\_measurable\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{\{L\ :\ ℝ≥0\}\ (hN\ :\ 0\ <\ N)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (fun\ z\ (ξ\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ ↦}
+\leanline{6}{@kiplmc2Step\ N\ dθ\ dx\ U\ γ\ h\ z\ ξ.1\ ξ.2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{obabo\allowbreak{}Noise N d\ensuremath{\theta} dx} is \texttt{(std\allowbreak{}Gaussian (State N d\ensuremath{\theta} dx)).\allowbreak{}prod (std\allowbreak{}Gaussian (State N d\ensuremath{\theta} dx))}, and \texttt{obabo\allowbreak{}Noise\_\allowbreak{}probability} is the instance stating that it is a probability measure; after unfolding, \texttt{infer\_\allowbreak{}instance} uses the instances for \texttt{std\allowbreak{}Gaussian} and for products.
+
+
+
+
+\texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}measurable} and \texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}measurable} state \texttt{Measurable (Function.\allowbreak{}uncurry …)}; \texttt{Function.\allowbreak{}uncurry} turns the two-argument update into a function of the pair (state, innovation), and for KIPLMC2 the innovation pair \texttt{\ensuremath{\xi}} is split as \texttt{\ensuremath{\xi}.\allowbreak{}1}, \texttt{\ensuremath{\xi}.\allowbreak{}2}. In both proofs \texttt{hg} is the continuity of the force, \texttt{(force\_\allowbreak{}lipschitz h\allowbreak{}N hdiff h\allowbreak{}Lip).\allowbreak{}continuous}; \texttt{apply Continuous.\allowbreak{}measurable} reduces measurability to continuity; the definitions are unfolded (for KIPLMC2 down to \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}ornstein\allowbreak{}Step}, \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}kick\allowbreak{}Step} and \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}drift\allowbreak{}Step}); and the tactic \texttt{fun\_\allowbreak{}prop} proves continuity of the resulting composition of continuous operations, using \texttt{hg} for the force.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}; \cite[Section~3.20.1]{LangevinLean2026Kinetic}.
+
+\section{\texorpdfstring{Markov transitions and the laws of the iterates}{Markov transitions and the laws of the iterates}}
+
+
+\textbf{Definition.} Let \(\Phi:H\times Z\to H\) be measurable, \(\eta\) a probability measure on the innovation space \(Z\) and \(\mu\) a probability measure on \(H\). The Markov laws are \(\mu_0=\mu\) and \(\mu_{n+1}=\Phi_\#(\mu_n\otimes\eta)\). Equivalently, \(\mu_{n+1}=\mu_nP\) for the Markov kernel \(P(y,A)=\eta(\{\zeta:\Phi(y,\zeta)\in A\})\), since by Fubini–Tonelli
+
+
+\[\Phi_\#(\mu_n\otimes\eta)(A)=\int_H\eta\bigl(\{\zeta:\Phi(y,\zeta)\in A\}\bigr)\,\mu_n(dy).\]
+
+
+The KIPLMC1 laws \(\mu^{(1)}_n(\mu,\eta)\) are the Markov laws for \(\Phi=K\), with initial phase law \(\mu\) and an innovation law \(\eta\) on \(\mathcal Z_N\times\mathcal Z_N\) that is left as a parameter. The KIPLMC2 laws \(\mu^{(2)}_n(\mu)\) are the Markov laws for \(\Phi((v,z),(\xi,\xi'))=S((v,z),\xi,\xi')\) with \(\eta=\eta_2\).
+
+
+
+
+\textbf{Claim.} Let \(N>0\), \(L\ge0\), \(U\) differentiable with \(L\)-Lipschitz gradient, \(\gamma,h\in\mathbb R\), and \(\mu,\eta\) probability measures. Then \(\mu^{(1)}_n(\mu,\eta)\) and \(\mu^{(2)}_n(\mu)\) are probability measures for every \(n\).
+
+
+
+
+\textbf{Proof.} Induction on \(n\). For \(n=0\) the law is \(\mu\). If \(\mu_n\) is a probability measure, then so is the product \(\mu_n\otimes\eta\), and the pushforward by the measurable map \(\Phi\) of the previous step has total mass \((\mu_n\otimes\eta)(\Phi^{-1}(H))=(\mu_n\otimes\eta)(H\times Z)=1\). \(\square\)
+
+
+
+
+The innovation law of KIPLMC1 is kept general here so that the correlated Gaussian law can be inserted later; probability of \(\eta\) is the only property used in this step.
+
+\begin{leanbox}{Lean: \texttt{kiplmc1Laws}, \texttt{kiplmc2Laws}, \texttt{kiplmc1Laws\_\allowbreak{}probability} and 1 more}
+\leansource{\texttt{kiplmc1Laws} \quad KIPLMC/\allowbreak{}Laws.lean, lines 53–55}
+\begin{leancode}
+\leanline{0}{def\ kiplmc1Laws\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(μ\ η\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))\ (n\ :\ ℕ)\ :=}
+\leanline{2}{ULA.markovLaws\ (kiplmc1Step\ U\ γ\ h)\ η\ μ\ n}
+\end{leancode}
+\leansource{\texttt{kiplmc2Laws} \quad KIPLMC/\allowbreak{}Laws.lean, lines 63–65}
+\begin{leancode}
+\leanline{0}{def\ kiplmc2Laws\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))\ (n\ :\ ℕ)\ :=}
+\leanline{2}{ULA.markovLaws\ (fun\ z\ ξ\ ↦\ kiplmc2Step\ U\ γ\ h\ z\ ξ.1\ ξ.2)\ (obaboNoise\ N\ dθ\ dx)\ μ\ n}
+\end{leancode}
+\leansource{\texttt{kiplmc1Laws\_\allowbreak{}probability} \quad KIPLMC/\allowbreak{}Laws.lean, lines 74–80}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Laws\_probability\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{\{L\ :\ ℝ≥0\}\ (hN\ :\ 0\ <\ N)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(μ\ η\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ η]\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (kiplmc1Laws\ U\ γ\ h\ μ\ η\ n)}
+\end{leancode}
+\leansource{\texttt{kiplmc2Laws\_\allowbreak{}probability} \quad KIPLMC/\allowbreak{}Laws.lean, lines 82–87}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Laws\_probability\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{\{L\ :\ ℝ≥0\}\ (hN\ :\ 0\ <\ N)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (kiplmc2Laws\ U\ γ\ h\ μ\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Laws U \ensuremath{\gamma} h \ensuremath{\mu} \ensuremath{\eta} n} is \texttt{ULA.\allowbreak{}markov\allowbreak{}Laws (kiplmc1\allowbreak{}Step U \ensuremath{\gamma} h) \ensuremath{\eta} \ensuremath{\mu} n}, and \texttt{kiplmc2\allowbreak{}Laws U \ensuremath{\gamma} h \ensuremath{\mu} n} is \texttt{ULA.\allowbreak{}markov\allowbreak{}Laws (fun z \ensuremath{\xi} \ensuremath{\mapsto} kiplmc2\allowbreak{}Step U \ensuremath{\gamma} h z \ensuremath{\xi}.\allowbreak{}1 \ensuremath{\xi}.\allowbreak{}2) (obabo\allowbreak{}Noise N d\ensuremath{\theta} dx) \ensuremath{\mu} n}. The generic function \texttt{ULA.\allowbreak{}markov\allowbreak{}Laws} of the unadjusted Langevin report is defined by recursion: at \texttt{0} it is \texttt{\ensuremath{\mu}}, and at \texttt{n + 1} it is the pushforward of the product of the previous law with \texttt{\ensuremath{\eta}} under the uncurried update, which is the definition above.
+
+
+
+
+\texttt{kiplmc1\allowbreak{}Laws\_\allowbreak{}probability} and \texttt{kiplmc2\allowbreak{}Laws\_\allowbreak{}probability} are both one application of \texttt{ULA.\allowbreak{}markov\allowbreak{}Laws\_\allowbreak{}is\allowbreak{}Probability}, which proves the induction above for any measurable update. The measurability argument is \texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}measurable h\allowbreak{}N hdiff h\allowbreak{}Lip \ensuremath{\gamma} h} or \texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}measurable h\allowbreak{}N hdiff h\allowbreak{}Lip \ensuremath{\gamma} h}; the probability of \texttt{\ensuremath{\mu}} and \texttt{\ensuremath{\eta}} enters through the instance arguments \texttt{[Is\allowbreak{}Probability\allowbreak{}Measure \ensuremath{\mu}]} and \texttt{[Is\allowbreak{}Probability\allowbreak{}Measure \ensuremath{\eta}]}, and for KIPLMC2 through the instance \texttt{obabo\allowbreak{}Noise\_\allowbreak{}probability}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The explicit exponential recursion has the Markov law}{The explicit exponential recursion has the Markov law}}
+\section{\texorpdfstring{The correlated Gaussian laws of KIPLMC1}{The correlated Gaussian laws of KIPLMC1}}
 
 
-First show that the KIPLMC1 sequence equals the generic noise-driven recursion. Induction is exact: both start at the same phase and their successor expressions use the same step and innovation number. The law theorem then assumes a measurable initial random phase, a jointly independent innovation sequence with common law \(\eta\), and independence of initialization from the whole sequence. The shared generic result derives the law at every step; no additional per-step state–noise independence premise is inserted. Rewriting the explicit recursion by the proved equality yields the pushforward identity with the KIPLMC1 laws. This theorem establishes equality of the recursion law and the iterated transition law, while a quantitative sampling estimate still requires moment and coupling analysis for the specified Gaussian innovation.
+\textbf{Definition.} Let \(\eta_1(\gamma,h)\) be the KIPLMC1 innovation law on \(\mathcal Z_N\times\mathcal Z_N\) constructed in the section on the innovation measure (\cite[Section~3.6.2]{LangevinLean2026KIPLMC}): the coordinate pairs \((\xi_a,\xi'_a)\), \(a\in I_N\), are independent, and each is a centered Gaussian vector in \(\mathbb R^2\) with covariance
 
 
-
-The explicit recursion is a measurable function of initialization and the innovation prefix. Independence of the next block gives the one-step transition identity. Induction then identifies its law with the iterated exponential transition measure.
-
+\[C(\gamma,h)=\int_0^h\begin{pmatrix}\psi_0(t)^2&\psi_0(t)\psi_1(t)\\\psi_0(t)\psi_1(t)&\psi_1(t)^2\end{pmatrix}dt.\]
 
 
-Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}; \cite[Section~3.33.12]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
-
-\section{\texorpdfstring{The independent-Gaussian OBABO trajectory has the constructed transition law}{The independent-Gaussian OBABO trajectory has the constructed transition law}}
-
-
-The KIPLMC2 sequence iterates the OBABO map with the two thermostat vectors from each supplied noise pair. If these pairs are independent across time, have the product law of two independent standard Gaussian vectors, and are independent of initialization, then the pushforward of the pathwise recursion equals the KIPLMC2 laws at every step. The generic independence theorem derives independence of the current state from the fresh pair from these global assumptions. The proof is a direct reuse of that theorem with the established measurable OBABO map. Independence within each pair is given by its product Gaussian law; it is not confused with the independent sequence of pairs. This completes the algorithm-law correspondence, while contraction and the discrete invariant-measure bias remain separate quantitative conclusions.
+The Gaussian KIPLMC1 laws are \(\mu^{(1)}_n(\mu)=\mu^{(1)}_n(\mu,\eta_1(\gamma,h))\).
 
 
 
-The same argument applies to the two-thermostat recursion, keeping the two noises distinct and independent. Their common block law is used at every step. Thus the trajectory’s pushforward agrees with the constructed OBABO Markov law.
 
+The update multiplies this innovation by \(a_N=\sqrt{2\gamma/N}\). For \(\gamma\ge0\), \(h\ge0\) and a Brownian motion \(W\), the pair \(\bigl(\int_0^h\psi_0(h-s)\,dW_s,\int_0^h\psi_1(h-s)\,dW_s\bigr)\) of Wiener integrals is centered Gaussian with this covariance by the Itô isometry, after the substitution \(t=h-s\); so \(\mu^{(1)}_n(\mu)\) is the law of the exponential integrator driven by the exact stochastic integrals of the frozen-force equation, which is Algorithm 1. The velocity and position innovations are correlated: the off-diagonal entry \(\int_0^h\psi_0\psi_1\,dt\) is positive for \(h>0\). Replacing \(\eta_1\) by a product of two independent Gaussian vectors would define a different algorithm.
 
-
-Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.33.12]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
-
-\section{\texorpdfstring{Choose the constructed kinetic Gaussian for Algorithm 1}{Choose the constructed kinetic Gaussian for Algorithm 1}}
-
-
-The generic law identity accepts a specified iid innovation measure. The Gaussian KIPLMC1 law sequence uses the correlated Gaussian measure constructed in the explicit correlated particle-noise construction, whose spatial pairs have the shared kinetic Gram covariance. Thus the transition and its particle scaling are explicit. The earlier iid realization theorem specializes to this measure, with ordinary independence of initialization and fresh innovations. A convergence theorem must still derive a target comparison for these laws; the definition does not assert such a bound.
-
-
-
-For Algorithm 1 the innovation law is the constructed exponential response Gaussian, including its off-diagonal covariance. Substituting that law specializes the generic transition to the correlated-Gaussian sampler. Independent velocity and position noises would define a different law.
-
+\begin{leanbox}{Lean: \texttt{kiplmc1GaussianLaws}}
+\leansource{\texttt{kiplmc1GaussianLaws} \quad KIPLMC/\allowbreak{}Laws.lean, lines 58–60}
+\begin{leancode}
+\leanline{0}{def\ kiplmc1GaussianLaws\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))\ (n\ :\ ℕ)\ :=}
+\leanline{2}{kiplmc1Laws\ U\ γ\ h\ μ\ (exponentialNoise\ N\ dθ\ dx\ γ\ h)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Laws U \ensuremath{\gamma} h \ensuremath{\mu} n} is \texttt{kiplmc1\allowbreak{}Laws U \ensuremath{\gamma} h \ensuremath{\mu} (exponential\allowbreak{}Noise N d\ensuremath{\theta} dx \ensuremath{\gamma} h) n}. The measure \texttt{exponential\allowbreak{}Noise N d\ensuremath{\theta} dx \ensuremath{\gamma} h} is defined in the innovation section, where its coordinate pairs are shown to be independent with the shared kinetic Gaussian law; the KIPLMC1 error theorems are stated for these laws with the thermal initialization.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
+\section{\texorpdfstring{Every realization of KIPLMC1 has the Markov laws}{Every realization of KIPLMC1 has the Markov laws}}
+
+
+\textbf{Definitions.} For \(\Phi:H\times Z\to H\), an initial point \(y\) and a sequence \(w=(w_n)\) in \(Z\), the noise-driven recursion is \(Y_0=y\), \(Y_{n+1}=\Phi(Y_n,w_n)\). Random variables \(X_1,X_2,\dots\) on a probability space \((\Omega,\mathcal F,\mathbb P)\) are mutually independent if \(\mathbb P(X_{j_1}\in A_1,\dots,X_{j_k}\in A_k)=\prod_r\mathbb P(X_{j_r}\in A_r)\) for all distinct indices and measurable sets; the law of \(X\) is \(\mathbb P_X=X_\#\mathbb P\).
+
+
+
+
+\textbf{Claim.} (a) For every initial state and every innovation sequence, the KIPLMC1 sequence of the exponential section coincides with the noise-driven recursion for \(\Phi=K\).
+
+
+
+
+(b) Let \(N>0\), \(L\ge0\), \(U\) differentiable with \(L\)-Lipschitz gradient, and \(\gamma,h\in\mathbb R\). Let \(X:\Omega\to\mathcal Z_N\times\mathcal Z_N\) and \(W_n:\Omega\to\mathcal Z_N\times\mathcal Z_N\) (\(n\ge0\)) be almost everywhere measurable, such that \(X\) is independent of the whole sequence \((W_n)_{n\ge0}\), the \(W_n\) are mutually independent, and every \(W_n\) has law \(\eta\), a probability measure. Let \(Y_n(\omega)\) be the KIPLMC1 sequence started at \(X(\omega)\) with innovations \(W_k(\omega)\). Then \(\mathbb P_{Y_n}=\mu^{(1)}_n(\mathbb P_X,\eta)\) for every \(n\).
+
+
+
+
+\textbf{Proof.} (a) Induction on \(n\): both sequences start at the given state, and both successor values apply \(K\) to the previous value and the \(n\)th innovation.
+
+
+
+
+(b) By (a) it suffices to treat the noise-driven recursion, for which this is the Markov law theorem of the unadjusted Langevin report (\cite[Section~3.33.12]{LangevinLean2026ULASC}), applicable because \(K\) is measurable by the first step. Its proof is an induction on \(n\). The base case is \(\mathbb P_{Y_0}=\mathbb P_X\). For the step, \(Y_n\) is a measurable function of \((X,W_0,\dots,W_{n-1})\). The independence hypotheses imply that \(W_n\) is independent of the vector \((X,W_0,\dots,W_{n-1})\): independence of \(X\) from the whole sequence, together with mutual independence of the \(W_k\), gives mutual independence of \(X,W_0,W_1,\dots\), and disjoint groups of mutually independent variables are independent. Hence \(W_n\) is independent of \(Y_n\), the joint law of \((Y_n,W_n)\) is \(\mathbb P_{Y_n}\otimes\eta\), and
+
+
+\[\mathbb P_{Y_{n+1}}=K_\#\bigl(\mathbb P_{Y_n}\otimes\eta\bigr)=K_\#\bigl(\mu^{(1)}_n(\mathbb P_X,\eta)\otimes\eta\bigr)=\mu^{(1)}_{n+1}(\mathbb P_X,\eta)\]
+
+
+by the induction hypothesis. \(\square\)
+
+
+
+
+Independence of the current state from the fresh innovation is derived, not assumed: the hypotheses concern only the initial state and the innovation sequence, as in any execution of Algorithm 1 that draws fresh noise at every step.
+
+\begin{leanbox}{Lean: \texttt{kiplmc1Chain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain}, \texttt{kiplmc1Chain\_\allowbreak{}law}}
+\leansource{\texttt{kiplmc1Chain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain} \quad KIPLMC/\allowbreak{}Laws.lean, lines 90–98}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Chain\_eq\_noiseDrivenChain\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(noise\ :\ ℕ\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{kiplmc1Chain\ U\ γ\ h\ z\ noise\ n\ =}
+\leanline{6}{ULA.noiseDrivenChain\ (kiplmc1Step\ U\ γ\ h)\ z\ noise\ n}
+\end{leancode}
+\leansource{\texttt{kiplmc1Chain\_\allowbreak{}law} \quad KIPLMC/\allowbreak{}Laws.lean, lines 102–116}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Chain\_law\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hN\ :\ 0\ <\ N)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (X\ :\ Ω\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(W\ :\ ℕ\ →\ Ω\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(hX\ :\ AEMeasurable\ X\ P)\ (hW\ :\ ∀\ n,\ AEMeasurable\ (W\ n)\ P)}
+\leanline{4}{(hind\ :\ IndepFun\ X\ (fun\ ω\ n\ ↦\ W\ n\ ω)\ P)\ (hiid\ :\ iIndepFun\ W\ P)}
+\leanline{4}{(η\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hlaw\ :\ ∀\ n,\ P.map\ (W\ n)\ =\ η)\ (n\ :\ ℕ)\ :}
+\leanline{4}{P.map\ (fun\ ω\ ↦\ kiplmc1Chain\ U\ γ\ h\ (X\ ω)\ (fun\ k\ ↦\ W\ k\ ω)\ n)\ =}
+\leanline{6}{kiplmc1Laws\ U\ γ\ h\ (P.map\ X)\ η\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain} states \texttt{kiplmc1\allowbreak{}Chain U \ensuremath{\gamma} h z noise n = ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain (kiplmc1\allowbreak{}Step U \ensuremath{\gamma} h) z noise n}. It is proved by \texttt{induction n with}: the \texttt{zero} case is \texttt{rfl}, and the \texttt{succ} case unfolds one step of each recursion (\texttt{kiplmc1\allowbreak{}Chain}, \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}succ}) and uses the induction hypothesis \texttt{ih}.
+
+
+
+
+\texttt{kiplmc1\allowbreak{}Chain\_\allowbreak{}law} is stated on a measurable space \texttt{\ensuremath{\Omega}} with a probability measure \texttt{P}. Its hypotheses are \texttt{h\allowbreak{}X : AEMeasurable X P} and \texttt{h\allowbreak{}W : \ensuremath{\forall} n, AEMeasurable (W n) P} (measurability up to a \texttt{P}-null set), \texttt{hind : Indep\allowbreak{}Fun X (fun \ensuremath{\omega} n \ensuremath{\mapsto} W n \ensuremath{\omega}) P} (independence of \texttt{X} from the random sequence), \texttt{hiid : i\allowbreak{}Indep\allowbreak{}Fun W P} (mutual independence of the family \texttt{W}), and \texttt{hlaw : \ensuremath{\forall} n, P.\allowbreak{}map (W n) = \ensuremath{\eta}}. The conclusion is \texttt{P.\allowbreak{}map (fun \ensuremath{\omega} \ensuremath{\mapsto} kiplmc1\allowbreak{}Chain U \ensuremath{\gamma} h (X \ensuremath{\omega}) (fun k \ensuremath{\mapsto} W k \ensuremath{\omega}) n) = kiplmc1\allowbreak{}Laws U \ensuremath{\gamma} h (P.\allowbreak{}map X) \ensuremath{\eta} n}. The proof rewrites the chain with \texttt{kiplmc1\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain} (\texttt{simp\_\allowbreak{}rw}) and applies \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws} with the measurability statement \texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}measurable h\allowbreak{}N hdiff h\allowbreak{}Lip \ensuremath{\gamma} h} and the given hypotheses.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}; \cite[Section~3.33.12]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Every realization of KIPLMC2 has the Markov laws}{Every realization of KIPLMC2 has the Markov laws}}
+
+
+\textbf{Definition.} The KIPLMC2 sequence started at \(y\in\mathcal Z_N\times\mathcal Z_N\) with innovation pairs \(w_n=(\xi_n,\xi'_n)\) is the noise-driven recursion
+
+
+\[Y_0=y,\qquad Y_{n+1}=S(Y_n,\xi_n,\xi'_n).\]
+
+
+\textbf{Claim.} Let \(N>0\), \(L\ge0\), \(U\) differentiable with \(L\)-Lipschitz gradient, and \(\gamma,h\in\mathbb R\). Let \(X\) and \(W_n=(\xi_n,\xi'_n)\) be almost everywhere measurable random variables with values in \(\mathcal Z_N\times\mathcal Z_N\) such that \(X\) is independent of \((W_n)_{n\ge0}\), the \(W_n\) are mutually independent, and every \(W_n\) has law \(\eta_2=\gamma_{\mathcal Z_N}\otimes\gamma_{\mathcal Z_N}\). Then the KIPLMC2 sequence \(Y_n\) started at \(X\) with innovations \(W_n\) satisfies \(\mathbb P_{Y_n}=\mu^{(2)}_n(\mathbb P_X)\) for every \(n\).
+
+
+
+
+\textbf{Proof.} This is the Markov law theorem (\cite[Section~3.33.12]{LangevinLean2026ULASC}) for the measurable update \(((v,z),(\xi,\xi'))\mapsto S((v,z),\xi,\xi')\) of the first step, with the induction described in the previous step. \(\square\)
+
+
+
+
+Two different independence structures are involved. Within a step, the law \(\eta_2\) makes the two thermostat noises \(\xi_n\) and \(\xi'_n\) independent standard Gaussian vectors, as in Algorithm 2. Across steps, the pairs \(W_n\) are independent of each other and of the initial state. Within the update the two noises are not used symmetrically: \(\xi_n\) affects the new position through \(v_{1/2}\), whereas \(\xi'_n\) affects only the new velocity.
+
+\begin{leanbox}{Lean: \texttt{kiplmc2Chain}, \texttt{kiplmc2Chain\_\allowbreak{}law}}
+\leansource{\texttt{kiplmc2Chain} \quad KIPLMC/\allowbreak{}Laws.lean, lines 69–72}
+\begin{leancode}
+\leanline{0}{def\ kiplmc2Chain\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(noise\ :\ ℕ\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :=}
+\leanline{2}{ULA.noiseDrivenChain\ (fun\ z\ ξ\ ↦\ kiplmc2Step\ U\ γ\ h\ z\ ξ.1\ ξ.2)\ z\ noise\ n}
+\end{leancode}
+\leansource{\texttt{kiplmc2Chain\_\allowbreak{}law} \quad KIPLMC/\allowbreak{}Laws.lean, lines 121–133}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Chain\_law\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hN\ :\ 0\ <\ N)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (X\ :\ Ω\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(W\ :\ ℕ\ →\ Ω\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(hX\ :\ AEMeasurable\ X\ P)\ (hW\ :\ ∀\ n,\ AEMeasurable\ (W\ n)\ P)}
+\leanline{4}{(hind\ :\ IndepFun\ X\ (fun\ ω\ n\ ↦\ W\ n\ ω)\ P)\ (hiid\ :\ iIndepFun\ W\ P)}
+\leanline{4}{(hlaw\ :\ ∀\ n,\ P.map\ (W\ n)\ =\ obaboNoise\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{P.map\ (fun\ ω\ ↦\ kiplmc2Chain\ U\ γ\ h\ (X\ ω)\ (fun\ k\ ↦\ W\ k\ ω)\ n)\ =}
+\leanline{6}{kiplmc2Laws\ U\ γ\ h\ (P.map\ X)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\allowbreak{}Chain U \ensuremath{\gamma} h z noise n} is \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain (fun z \ensuremath{\xi} \ensuremath{\mapsto} kiplmc2\allowbreak{}Step U \ensuremath{\gamma} h z \ensuremath{\xi}.\allowbreak{}1 \ensuremath{\xi}.\allowbreak{}2) z noise n}, so no separate recursion needs to be compared with the generic one. \texttt{kiplmc2\allowbreak{}Chain\_\allowbreak{}law} has the same hypotheses as \texttt{kiplmc1\allowbreak{}Chain\_\allowbreak{}law} with \texttt{hlaw : \ensuremath{\forall} n, P.\allowbreak{}map (W n) = obabo\allowbreak{}Noise N d\ensuremath{\theta} dx}, and its proof is the term \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws P \_\allowbreak{} (kiplmc2\allowbreak{}Step\_\allowbreak{}measurable h\allowbreak{}N hdiff h\allowbreak{}Lip \ensuremath{\gamma} h) X W h\allowbreak{}X h\allowbreak{}W hind hiid \_\allowbreak{} hlaw n}.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.33.12]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+\bibitem[KIPLMC]{LangevinLean2026KIPLMC}
+LangevinLean Project. \emph{Kinetic Interacting Particle Langevin Monte Carlo}. LL-07, 2026. Draft report, content revision 391be0a29054. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KIPLMC/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

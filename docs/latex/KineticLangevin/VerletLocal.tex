@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,31 @@ The Hamiltonian equations are \(v(t)-v(0)=-\int_0^t g(x(s))ds\) and \(x(t)-x(0)=
 
 The exact Hamiltonian solution satisfies integrated velocity and position equations. Substitute the position primitive into the force difference and use smoothness to obtain explicit integral remainders. This derives a local state error from the differential equation itself.
 
+\begin{leanbox}{Lean: \texttt{hamiltonian\_\allowbreak{}velocity\_\allowbreak{}increment\_\allowbreak{}bound}, \texttt{hamiltonian\_\allowbreak{}position\_\allowbreak{}euler\_\allowbreak{}defect}}
+\leansource{\texttt{hamiltonian\_\allowbreak{}velocity\_\allowbreak{}increment\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}VerletLocal.lean, lines 20–29}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonian\_velocity\_increment\_bound\ (g\ :\ E\ →\ E)\ (v\ x\ :\ ℝ\ →\ E)\ (T\ G\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖g\ (x\ s)‖\ ≤\ G)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ v\ t\ -\ v\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (x\ s)))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :\ ‖v\ t\ -\ v\ 0‖\ ≤\ G\ *\ t}
+\end{leancode}
+\leansource{\texttt{hamiltonian\_\allowbreak{}position\_\allowbreak{}euler\_\allowbreak{}defect} \quad KineticLangevin/\allowbreak{}VerletLocal.lean, lines 31–49}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonian\_position\_euler\_defect\ (g\ :\ E\ →\ E)\ (v\ x\ :\ ℝ\ →\ E)\ (T\ G\ :\ ℝ)}
+\leanline{4}{(hv\ :\ Continuous\ v)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖g\ (x\ s)‖\ ≤\ G)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ v\ t\ -\ v\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (x\ s)))}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ x\ t\ -\ x\ 0\ =\ ∫\ s\ in\ 0..t,\ v\ s)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :\ ‖x\ t\ -\ (x\ 0\ +\ t\ •\ v\ 0)‖\ ≤\ G\ *\ t\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\_\allowbreak{}velocity\_\allowbreak{}increment\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb} in that order. Named proof applications include \texttt{hbound}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{hamiltonian\_\allowbreak{}position\_\allowbreak{}euler\_\allowbreak{}defect} gives the formal counterpart of this step. The main intermediate facts are \texttt{hid} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}norm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Compare both Verlet components to the true endpoint}{Compare both Verlet components to the true endpoint}}
 
@@ -42,6 +90,22 @@ The defined drift-stage position is \(x_V=x_0+hv_0-h^2g(x_0)/2\). Its difference
 
 The first half kick, drift, and final half kick are compared componentwise with those exact integrals. Terms sharing the same leading Taylor contribution cancel. The remaining bounds retain the initial velocity and force magnitudes needed for subsequent moment integration.
 
+\begin{leanbox}{Lean: \texttt{verlet\_\allowbreak{}local\_\allowbreak{}component\_\allowbreak{}bounds}}
+\leansource{\texttt{verlet\_\allowbreak{}local\_\allowbreak{}component\_\allowbreak{}bounds} \quad KineticLangevin/\allowbreak{}VerletLocal.lean, lines 51–110}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_local\_component\_bounds\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(v\ x\ :\ ℝ\ →\ E)\ (h\ C\ G\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (hC\ :\ 0\ ≤\ C)\ (hG\ :\ 0\ ≤\ G)}
+\leanline{4}{(hv\ :\ Continuous\ v)\ (hx\ :\ Continuous\ x)}
+\leanline{4}{(hvelocity\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hforce\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖g\ (x\ s)‖\ ≤\ G)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ v\ t\ -\ v\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (x\ s)))}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ x\ t\ -\ x\ 0\ =\ ∫\ s\ in\ 0..t,\ v\ s)\ :}
+\leanline{4}{‖(verletStep\ g\ h\ (v\ 0,x\ 0)).2\ -\ x\ h‖\ ≤\ G\ *\ h\ \textasciicircum{}\ 2\ ∧}
+\leanline{6}{‖(verletStep\ g\ h\ (v\ 0,x\ 0)).1\ -\ v\ h‖\ ≤\ (M\ :\ ℝ)\ *\ C\ *\ h\ \textasciicircum{}\ 2\ +\ (M\ :\ ℝ)\ *\ G\ *\ h\ \textasciicircum{}\ 3\ /\ 4}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{verlet\_\allowbreak{}local\_\allowbreak{}component\_\allowbreak{}bounds} gives the formal counterpart of this step. The main intermediate facts are \texttt{h0}, \texttt{hhmem}, \texttt{h\allowbreak{}V0}, \texttt{h\allowbreak{}F0}, \texttt{xe}, \texttt{xn} in that order. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{velocity\allowbreak{}Defect\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Express the state defect in the contracting OBABO metric}{Express the state defect in the contracting OBABO metric}}
 
@@ -56,6 +120,34 @@ This estimate uses only a Lipschitz force and the explicit moment bounds; no Hes
 
 The physical component errors are inserted into the verified weighted transformation. The triangle inequality yields a phase defect in the same norm used for contraction. Keeping this common metric avoids an extra norm-conversion loss at each later iteration.
 
+\begin{leanbox}{Lean: \texttt{weightedPhaseNorm\_\allowbreak{}le\_\allowbreak{}components}, \texttt{verlet\_\allowbreak{}local\_\allowbreak{}weighted\_\allowbreak{}bound}}
+\leansource{\texttt{weightedPhaseNorm\_\allowbreak{}le\_\allowbreak{}components} \quad KineticLangevin/\allowbreak{}VerletLocal.lean, lines 112–128}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseNorm\_le\_components\ (γ\ L\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hfriction\ :\ 4\ *\ L\ ≤\ γ\ \textasciicircum{}\ 2)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhaseNorm\ (1\ /\ L)\ (1\ /\ γ)\ s\ ≤\ 2\ *\ (‖s.2‖\ +\ ‖s.1‖\ /\ Real.sqrt\ L)}
+\end{leancode}
+\leansource{\texttt{verlet\_\allowbreak{}local\_\allowbreak{}weighted\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}VerletLocal.lean, lines 130–155}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_local\_weighted\_bound\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(v\ x\ :\ ℝ\ →\ E)\ (γ\ h\ C\ G\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (hM\ :\ 0\ <\ (M\ :\ ℝ))}
+\leanline{4}{(hfriction\ :\ 4\ *\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)\ (hh\ :\ 0\ ≤\ h)\ (hC\ :\ 0\ ≤\ C)\ (hG\ :\ 0\ ≤\ G)}
+\leanline{4}{(hv\ :\ Continuous\ v)\ (hx\ :\ Continuous\ x)}
+\leanline{4}{(hvelocity\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hforce\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖g\ (x\ s)‖\ ≤\ G)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ v\ t\ -\ v\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (x\ s)))}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ x\ t\ -\ x\ 0\ =\ ∫\ s\ in\ 0..t,\ v\ s)\ :}
+\leanline{4}{weightedPhaseNorm\ (1\ /\ (M\ :\ ℝ))\ (1\ /\ γ)\ (verletStep\ g\ h\ (v\ 0,x\ 0)\ -\ (v\ h,x\ h))\ ≤}
+\leanline{6}{2\ *\ h\ \textasciicircum{}\ 2\ *\ (G\ +\ Real.sqrt\ (M\ :\ ℝ)\ *\ C\ +\ Real.sqrt\ (M\ :\ ℝ)\ *\ G\ *\ h\ /\ 4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{weighted\allowbreak{}Phase\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}components} gives the formal counterpart of this step. The main intermediate facts are \texttt{hmetric}, \texttt{hab}, \texttt{hu}, \texttt{hn}, \texttt{hsq}, \texttt{hp} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{verlet\_\allowbreak{}local\_\allowbreak{}weighted\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hroot}, \texttt{hratio} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Couple the defined OBABO step with the exact target-preserving split}{Couple the defined OBABO step with the exact target-preserving split}}
 
@@ -66,5 +158,24 @@ Start the Hamiltonian path at the first Ornstein–Uhlenbeck half-step. Apply th
 
 The defined OBABO step and its exact comparator use identical first and second thermostat noises. Their only difference is replacing the central exact Hamiltonian evolution by Verlet. Thus the deterministic Hamiltonian local defect directly controls the coupled stochastic step discrepancy.
 
+\begin{leanbox}{Lean: \texttt{obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}bound}}
+\leansource{\texttt{obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}VerletLocal.lean, lines 157–195}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_hamiltonian\_local\_bound\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(v\ x\ :\ ℝ\ →\ E)\ (γ\ h\ δ\ σ\ C\ G\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (hM\ :\ 0\ <\ (M\ :\ ℝ))}
+\leanline{4}{(hfriction\ :\ 4\ *\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)\ (hh\ :\ 0\ ≤\ h)\ (hC\ :\ 0\ ≤\ C)\ (hG\ :\ 0\ ≤\ G)}
+\leanline{4}{(hδ\ :\ |δ|\ ≤\ 1)\ (hv\ :\ Continuous\ v)\ (hx\ :\ Continuous\ x)}
+\leanline{4}{(hvelocity\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hforce\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖g\ (x\ s)‖\ ≤\ G)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ v\ t\ -\ v\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (x\ s)))}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ x\ t\ -\ x\ 0\ =\ ∫\ s\ in\ 0..t,\ v\ s)}
+\leanline{4}{(z\ :\ E\ ×\ E)\ (ξ\ ξ'\ :\ E)\ (hinit\ :\ (v\ 0,x\ 0)\ =\ ornsteinStep\ δ\ σ\ ξ\ z)\ :}
+\leanline{4}{weightedPhaseNorm\ (1\ /\ (M\ :\ ℝ))\ (1\ /\ γ)}
+\leanline{6}{(obaboStep\ g\ h\ δ\ σ\ z\ ξ\ ξ'\ -\ ornsteinStep\ δ\ σ\ ξ'\ (v\ h,x\ h))\ ≤}
+\leanline{6}{2\ *\ h\ \textasciicircum{}\ 2\ *\ (G\ +\ Real.sqrt\ (M\ :\ ℝ)\ *\ C\ +\ Real.sqrt\ (M\ :\ ℝ)\ *\ G\ *\ h\ /\ 4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hid}, \texttt{hp}, \texttt{hvbound}, \texttt{hroot}, \texttt{hratio} in that order. Named proof applications include \texttt{hc.\allowbreak{}1}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

@@ -27,7 +27,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from build_site import HELPERS, ROOT, imports, load, module_page
 from math_notation import plain_math_text
 from full_proofs import full_proof_inventory
-from report_citations import PROJECT_URL, REPORT_ORDER, REPORTS, report_owner
+from report_citations import PROJECT_URL, REPORT_ORDER, REPORTS, SEPARATE_REPORTS, report_owner
 from report_links import CITE, ReportCatalog, citation_target
 from site_content import CONFIG
 
@@ -190,18 +190,20 @@ def bib_entries(value, label):
     return result
 
 
-def validate_bibliographies(plans, root=ROOT):
+def validate_bibliographies(plans, root=ROOT, separate=None):
+    separate = separate_plans() if separate is None else separate
     combined = bib_entries((root / 'docs/bib/all-reports.bib').read_text(), 'all-reports.bib')
-    expected = {REPORTS[library]['key'] for library in plans}
+    expected = {REPORTS[library]['key'] for library in plans} | {SEPARATE_REPORTS[library]['key'] for library in separate}
     require(set(combined) == expected, 'Combined BibTeX does not cover exactly the project reports')
-    for library, plan in plans.items():
+    registry = {**REPORTS, **SEPARATE_REPORTS}
+    for library, plan in {**plans, **separate}.items():
         path = root / f'docs/bib/{library}.bib'
         entries = bib_entries(path.read_text(), str(path.relative_to(root)))
-        key = REPORTS[library]['key']
+        key = registry[library]['key']
         require(set(entries) == {key}, f'{path}: incorrect report identity')
         entry = entries[key]
         require(entry.strip() == combined[key].strip(), f'{path}: combined/individual citations differ')
-        require(plan['revision'] in entry and REPORTS[library]['number'] in entry,
+        require(plan['revision'] in entry and registry[library]['number'] in entry,
                 f'{path}: stale content revision or report number')
         require(PROJECT_URL + plan['pdf'] in entry, f'{path}: incorrect report URL')
     project = bib_entries((root / 'docs/bib/project.bib').read_text(), 'project.bib')
@@ -343,7 +345,9 @@ def generated_checks(plans, catalog, root=ROOT):
                 library = location['library'] if location else None
             else:
                 library = overview_for_page.get(relative)
-            key = REPORTS[library]['key'] if library else 'LangevinLeanProject2026'
+            separate = next((name for name in SEPARATE_REPORTS if relative.startswith(name + '/')), None)
+            key = (REPORTS[library]['key'] if library else SEPARATE_REPORTS[separate]['key'] if separate
+                   else 'LangevinLeanProject2026')
             html_links.update(validate_html_content((root / relative).read_text(), relative,
                                                    plans, registry, key, root))
             pages += 1
@@ -373,6 +377,11 @@ def _destination_signature(reader, destination):
             coordinate(destination.get('/Left')), coordinate(destination.get('/Top')))
 
 
+def separate_plans():
+    from separate_reports import plans
+    return plans()
+
+
 def validate_pdfs(plans, html_links, root=ROOT):
     try:
         from pypdf import PdfReader
@@ -380,8 +389,17 @@ def validate_pdfs(plans, html_links, root=ROOT):
         raise InvalidReport('--pdf requires pypdf; use the bundled runtime Python, or run without --pdf') from error
     manifest = json.loads((root / 'docs/pdf/manifest.json').read_text())
     records = manifest['documents']
-    require(set(records) == {plan['latex'] for plan in plans.values()},
-            'PDF manifest does not cover exactly the modular reports')
+    require(set(records) == {plan['latex'] for plan in plans.values()} |
+            {plan['latex'] for plan in separate_plans().values()},
+            'PDF manifest does not cover exactly the project reports')
+    for library, plan in separate_plans().items():
+        path, record = root / plan['pdf'], records[plan['latex']]
+        require(hashlib.sha256(path.read_bytes()).hexdigest() == record['pdf_sha256'],
+                f'{library}: PDF content hash is stale')
+        require(hashlib.sha256((root / plan['latex']).read_bytes()).hexdigest() == record['source_sha256'],
+                f'{library}: PDF was compiled from another source revision')
+        require(PdfReader(path).metadata.get('/Author') == 'LangevinLean Project',
+                f'{library}: PDF metadata lacks the corporate author')
     destinations, count = {}, 0
     for library, plan in plans.items():
         path = root / plan['pdf']

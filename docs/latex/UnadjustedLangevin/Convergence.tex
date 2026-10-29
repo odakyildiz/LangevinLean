@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -76,5 +99,31 @@ Iterate the derived recurrence to get \(e_n\le q^ne_0+b/(1-q)\), and compose wit
 
 For the chosen reference, let \(e_k=(\mathbb E\|X_k-Y_k\|^2)^{1/2}\). The shared-noise decomposition gives \(e_{k+1}\le qe_k+b\), with all norms finite by the preceding induction. Therefore \(e_n\le q^ne_0+b(1-q^n)/(1-q)\). The coupling inequality and stationarity of \(Y_n\) yield the displayed result after replacing the finite geometric factor by its uniform upper bound.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}reference}}
+\leansource{\texttt{ula\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}reference} \quad UnadjustedLangevin/\allowbreak{}Convergence.lean, lines 25–72}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_wasserstein\_bound\_of\_reference}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ \{d\ :\ ℕ\}}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ q\ :\ ℝ≥0)\ (b\ :\ ℝ)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hq1\ :\ (q\ :\ ℝ)\ <\ 1)\ (hb\ :\ 0\ ≤\ b)}
+\leanline{4}{(initial\ :\ Ω\ →\ E\ d)\ (noise\ :\ ℕ\ →\ Ω\ →\ E\ d)}
+\leanline{4}{(Y\ V\ :\ ℕ\ →\ Ω\ →\ E\ d)\ (π\ :\ Measure\ (E\ d))}
+\leanline{4}{(hinitial\ :\ Measurable\ initial)\ (hnoise\ :\ ∀\ n,\ Measurable\ (noise\ n))}
+\leanline{4}{(hY\ :\ ∀\ n,\ Measurable\ (Y\ n))\ (hlaw\ :\ ∀\ n,\ P.map\ (Y\ n)\ =\ π)}
+\leanline{4}{(hreference\ :\ ∀\ n,\ ∀ᵐ\ ω\ ∂P,}
+\leanline{6}{Y\ (n\ +\ 1)\ ω\ =\ ulaUpdate\ U\ h\ (Y\ n\ ω)\ (noise\ n\ ω)\ +\ V\ n\ ω)}
+\leanline{4}{(hcontract\ :\ ∀\ x\ y\ z,}
+\leanline{6}{‖ulaUpdate\ U\ h\ x\ z\ -\ ulaUpdate\ U\ h\ y\ z‖\ ≤\ (q\ :\ ℝ)\ *\ ‖x\ -\ y‖)}
+\leanline{4}{(hfinite0\ :\ MemLp\ (fun\ ω\ ↦\ initial\ ω\ -\ Y\ 0\ ω)\ 2\ P)}
+\leanline{4}{(hVfinite\ :\ ∀\ n,\ MemLp\ (V\ n)\ 2\ P)}
+\leanline{4}{(hdefect\ :\ ∀\ n,\ (eLpNorm\ (V\ n)\ 2\ P).toReal\ ≤\ b)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real}
+\leanline{6}{(P.map\ (fun\ ω\ ↦\ ulaChain\ U\ h\ (initial\ ω)\ (fun\ k\ ↦\ noise\ k\ ω)\ n))\ π\ ≤}
+\leanline{6}{(q\ :\ ℝ)\ \textasciicircum{}\ n\ *\ (eLpNorm\ (fun\ ω\ ↦\ initial\ ω\ -\ Y\ 0\ ω)\ 2\ P).toReal\ +}
+\leanline{8}{b\ /\ (1\ -\ (q\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}reference}: the intermediate facts include \texttt{X}, \texttt{e}, \texttt{hfinite}, \texttt{hc}, \texttt{hw}, in source order; the source steps apply or rewrite \texttt{hm.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{synchronous\_\allowbreak{}l2\_\allowbreak{}bound\_\allowbreak{}real}, \texttt{hw.\allowbreak{}trans}, \texttt{affine\_\allowbreak{}recurrence\_\allowbreak{}bound}, \texttt{q.\allowbreak{}coe\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 \end{document}

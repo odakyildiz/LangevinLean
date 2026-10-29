@@ -295,3 +295,54 @@ AVERAGE_CONFIG = {
 
 
 AVERAGE_PAGES = {}
+
+# Sequential correspondence for the mathematical argument.
+_AVERAGE_PROOF_CORRESPONDENCE = {
+    'energy': r'''
+<p><code>integral_stdGaussian_smoothing</code> specializes the independent-coordinate smoothing theorem to the standard Gaussian law. In its finite-coordinate induction, centering removes the linear term and the unit second moment evaluates the quadratic term. <code>gaussian_energy_bound</code> inserts this smoothing inequality into the common-noise stationary comparison; the Brownian orthogonality identity contributes the extra curvature-times-dimension term. All these are integral statements with integrability discharged before linearity is used.</p>
+''',
+    'local': r'''
+<p><code>lp_gradient_step</code> and <code>lp_gradient_descent</code> are the two expected deterministic inequalities whose potential terms cancel. <code>lmc_one_step</code> first separates the zero step. In the positive branch, <code>hsm</code> is the exact coordinate smoothing estimate, <code>houtput</code> proves the output transport finite, and <code>wasserstein2_sq_bound_of_finite_couplings</code> passes the common bound to the infimum even when its input-cost coefficient has either sign. The final field normalization divides by the strictly positive denominator.</p>
+''',
+    'constant': r'''
+<p><code>lmc_one_step_stable</code> first proves that the score correction is nonpositive. <code>lmc_constant_step</code> defines the actual squared-distance sequence as <code>r</code>; <code>lmcLaws_finite</code> allows the one-step theorem to be applied at every index. The block <code>hs</code> is the scalar recurrence after normalization. <code>constant_step_normalized</code> iterates it and uses <code>contraction_le_exp</code>. Finally <code>lmcLaws_const</code> identifies the recursively constructed marginal laws with iteration of the Gaussian transition.</p>
+''',
+    'decreasing': r'''
+<p><code>warmup_decay</code> checks the initial exponential allocation, including the logarithmic ceiling. <code>harmonic_step</code> proves the single rational induction step after warmup. <code>lmc_variable_step</code> verifies admissibility of every actual step in <code>hs</code>, normalizes the initial cost in <code>hi</code>, and derives the normalized recurrence in <code>hrec</code>. <code>variable_step_normalized_all</code> handles zero initial error explicitly before applying the scalar warmup-and-tail estimate.</p>
+''',
+    'laplacian': r'''
+<p><code>lp_stationary_gradient_pairing_bound</code> bounds the cross term with the actual stationary diffusion and the stated gradient-of-Laplacian assumption. <code>lp_laplacian_one_step_bound</code> combines that pairing with the local integral remainder and gradient-step contraction. <code>laplacian_recurrence_bound_of_global_defect</code> iterates the resulting quadratic-plus-linear scalar estimate. The final theorem <code>lmc_laplacian</code> obtains the required finite-distance recurrence for the actual Gaussian laws and simplifies its constant using the exact Gibbs score moment bound.</p>
+''',
+    'sgld': r'''
+<p><code>sgld_variance_addition</code> uses a lifted coupling to remove the centered estimator cross term. <code>controlVariateEstimator_second_moment_le</code> bounds the estimator using the actual component Lipschitz seminorms. <code>sgld_one_step_rms</code> combines this variance bound with the one-step LMC comparison. <code>sgld_recurrence_bound</code> uses the small-step condition to bound the contraction and forcing, then sums the affine recurrence. The extended theorem separates infinite initial transport before converting any distance to a real number.</p>
+''',
+}
+for _part in AVERAGE_PROOF:
+    _part["lean"] = _AVERAGE_PROOF_CORRESPONDENCE[_part["id"]]
+
+# Additional sequential derivations for readers of the report.
+_AVERAGE_ARGUMENT_DETAILS = {
+    'energy': r'''
+<p><strong>Objects and hypotheses.</strong> Let \(p\ge1\), \(m&gt;0\), and let \(f:\mathbb R^p\to\mathbb R\) be differentiable, \(m\)-strongly convex and have an \(M_\infty\)-Lipschitz gradient. Thus</p>\[f(y)\ge f(x)+\langle\nabla f(x),y-x\rangle+\frac m2\|y-x\|^2,\qquad\|\nabla f(x)-\nabla f(y)\|\le M_\infty\|x-y\|.\]<p>The Gibbs probability law is \(\pi(dx)=Z^{-1}e^{-f(x)}dx\), where strong convexity makes \(0&lt;Z&lt;\infty\) and gives finite second moments. A coupling of two probability laws is a joint law with those marginals, and \(W_2\) is the infimum of the root-mean-square displacement over couplings. Work first with \(W_2(\nu,\pi)&lt;\infty\). Throughout, a norm of a random vector means \(\|X\|_{L^2}=(\mathbb E\|X\|_2^2)^{1/2}\); its inner product is \(\mathbb E\langle X,Y\rangle\). The gradient bound \(\|\nabla f(x)\|\le\|\nabla f(0)\|+M_\infty\|x\|\) makes all score second moments finite for the states considered. The two Taylor bounds give \(|f(x)|\le|f(0)|+\|\nabla f(0)\|\|x\|+M_\infty\|x\|^2/2\), justifying the expected potential differences.</p>
+''',
+    'local': r'''
+<p><strong>The cancellation explicitly.</strong> Strong convexity at \(\vartheta\), with comparison point \(Y_0\), gives</p>\[-2h\mathbb E\langle\nabla f(\vartheta),\vartheta-Y_0\rangle\le2h\mathbb E[f(Y_0)-f(\vartheta)]-mh\|\vartheta-Y_0\|_{L^2}^2.\]<p>Expanding \(\|\vartheta-h\nabla f(\vartheta)-Y_0\|_{L^2}^2\) produces the gradient-step bound. For the descent bound apply the upper Taylor model at \(\vartheta\) with displacement \(-h\nabla f(\vartheta)\): its linear term is \(-h\|\nabla f(\vartheta)\|^2\) and its quadratic term is \(M_\infty h^2\|\nabla f(\vartheta)\|^2/2\). Adding the two inequalities to the energy comparison cancels \(f(Y_0)\), \(f(\vartheta)\) and \(f(A)\) exactly. The remaining score coefficient is \(h^2-2h^2+h^3M_\infty=h^2(hM_\infty-1)\). Every denominator is positive because \(m&gt;0\) and \(h\ge0\).</p>
+''',
+    'constant': r'''
+<p><strong>Induction explicitly.</strong> If \(h=0\), the chain is constant and the assertion follows by equality. If \(h&gt;0\), write \(F=(M_{\rm av}+m)h^2p/(1+mh)\). Since \(0\le q&lt;1\), the identity \(F=(1-q)c\) holds with \(c=(M_{\rm av}+m)hp/(2m)\). At \(k=0\) the proposed sharper bound \(r_k\le q^kr_0+(1-q^k)c\) is equality. If it holds at \(k\), multiply it by \(q\ge0\), add \((1-q)c\), and obtain \(q^{k+1}r_0+(1-q^{k+1})c\). This proves the induction. For \(0\le t&lt;1\), differentiation gives</p>\[\frac{d}{dt}\left(\log\frac{1-t}{1+t}+2t\right)=-\frac2{1-t^2}+2=-\frac{2t^2}{1-t^2}\le0.\]<p>The expression vanishes at zero, so \(q\le e^{-2t}\). At \(t=1\), \(q=0\) and the same inequality is immediate. Raising this nonnegative comparison to the natural power \(k\) yields the displayed exponential rate.</p>
+''',
+    'decreasing': r'''
+<p><strong>The warmup ceiling.</strong> For \(\varepsilon_0\ne0\), set \(R=2\kappa_\infty\varepsilon_0^2/a\) and \(\log_+R=\max(\log R,0)\). If \(R\le1\), the initial error already satisfies \(\varepsilon_0^2\le a/(2\kappa_\infty)\), and the warmup may be zero. If \(R&gt;1\), the ceiling ensures \(2k_0/\kappa_\infty\ge\log R\); exponentiating its negative gives \(e^{-2k_0/\kappa_\infty}\varepsilon_0^2\le a/(2\kappa_\infty)\). In both cases the constant-step bias contributes the other half of \(a/\kappa_\infty\). After warmup \(x=\kappa_\infty+k-k_0\ge1\), so the factor \((x-1)/(x+1)\) multiplying the induction hypothesis is nonnegative. The rational calculation above therefore preserves the inequality. Positive dimension and positive \(m\) justify the final multiplication by \(p/m\). When \(\varepsilon_0=0\), the logarithmic warmup is defined to be zero and \(r_0=0\le a/\kappa_\infty\), giving the same induction directly.</p>
+''',
+    'laplacian': r'''
+<p><strong>Bounds used by the recurrence.</strong> Here the additional assumptions are \(f\in C^3\), \(M_\Delta\ge0\) and \(\|\nabla\Delta f(x)\|^2\le M_\Delta^2p\) for every \(x\), with \(0&lt;hM_\infty&lt;1\). The derivative of the gradient has operator norm at most \(M_\infty\). Thus Cauchy–Schwarz and the score moment bound give</p>\[\|\nabla\Delta f(Y_t)-\nabla^2f(Y_t)\nabla f(Y_t)\|_{L^2}\le(M_\Delta+M_\infty\sqrt{M_{\rm av}})\sqrt p=G_\Delta.\]<p>Integrating the pairing bound over time gives \(2\langle\Psi,R\rangle\le h^2G_\Delta\|\Psi\|_{L^2}\). For the total defect, the integral equation, Minkowski and the stationary score moment give \(\|Y_t-Y_0\|_{L^2}\le t\sqrt{M_\infty p}+\sqrt{2pt}\). Hence</p>\[\begin{aligned}\|R\|_{L^2}&\le M_\infty\int_0^h\left(t\sqrt{M_\infty p}+\sqrt{2pt}\right)dt\\&=M_\infty\left(\frac{h^2}2\sqrt{M_\infty p}+\frac{2\sqrt2}3h^{3/2}\sqrt p\right)\\&\le\left(\frac12+\frac{2\sqrt2}3\right)M_\infty h^{3/2}\sqrt p\le\frac32M_\infty h^{3/2}\sqrt p.\end{aligned}\]<p>The penultimate inequality uses \(hM_\infty\le1\); the last uses \(\sqrt2\le3/2\). For the stated recurrence floor, \(C=h^2G_\Delta/2=(1-q)a\). Also \(B^2\le mh\,b^2\) follows from \(m\le M_{\rm av}\), and \(mh\le1-q^2=mh(2-mh)\). These verify both scalar recurrence hypotheses. The final enlargement of the nonnegative \(M_\Delta\) term gives precisely the printed coefficient.</p>
+''',
+    'sgld': r'''
+<p><strong>Why the variance adds.</strong> Conditional on \((\vartheta,\xi)\), the index \(I\) is uniform and its centered error \(\eta=g_I-\nabla f(\vartheta)\) has mean zero. Expanding a lifted coupled square gives \(\mathbb E\|D-h\eta\|^2=\mathbb E\|D\|^2+h^2\mathbb E\|\eta\|^2\), because the conditional expectation of \(\langle D,\eta\rangle\) is zero. Also \(\mathbb E_I\|\eta\|^2=\mathbb E_I\|g_I\|^2-\|\nabla f(\vartheta)\|^2\). If \(L_i\) is the actual Lipschitz seminorm of \(\nabla f_i\), then</p>\[\mathbb E_I\|g_I\|^2=n\sum_i\|\nabla f_i(\vartheta)-\nabla f_i(\theta_*)\|^2\le n\sum_iL_i^2\|\vartheta-\theta_*\|^2=n^2M_{\rm rms}^2\|\vartheta-\theta_*\|^2.\]<p>For any coupling with Gibbs, \(\|\vartheta-\theta_*\|^2\le2\|\vartheta-Y\|^2+2\|Y-\theta_*\|^2\). Integrate, use the Gibbs second moment, and pass costs to their infimum to obtain the displayed second-moment bound. With \(R=nM_{\rm rms}\), the small-step condition \(3R^2h\le m\) and \(m\le R\) imply \(mh\le1/3\). The forcing comparison uses \(2R^2h\le m\): after multiplication by \(1+mh\), its extra term is at most \(mh\) in the required coefficient. The recurrence fixed point is the forcing divided by \(1-(1+mh)^{-1}=mh/(1+mh)\). At \(h=0\) the transition is the identity and this division is unnecessary.</p>
+''',
+}
+for _part in AVERAGE_PROOF:
+    if _part["id"] == "energy":
+        _part["body"] = _AVERAGE_ARGUMENT_DETAILS["energy"] + _part["body"]
+    else:
+        _part["body"] += _AVERAGE_ARGUMENT_DETAILS[_part["id"]]

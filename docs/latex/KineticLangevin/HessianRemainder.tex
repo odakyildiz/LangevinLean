@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,31 +39,121 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The second-order integrator linearizes the force at its initial position. Its error requires a quadratic estimate for this linearization, obtained from the explicitly integrated Hessian along a segment. The derivative and Hessian Lipschitz assumptions are ordinary analytic hypotheses on the force.
+Let \(E\) be a real Hilbert space and \(H:E\to\mathcal L(E)\) a map into the bounded linear operators on \(E\), Lipschitz with constant \(M_2\) for the operator norm. In the application \(H=\nabla^2f\) is the Hessian of the potential and \(g=\nabla f\) the force. For \(x,y\in E\), the averaged Hessian on the segment from \(y\) to \(x\) is the operator
+
+
+\[\bar H(x,y)=\int_0^1H\bigl(y+t(x-y)\bigr)\,dt,\]
+
+
+a Bochner integral in the Banach space \(\mathcal L(E)\). This section proves \(\|\bar H(x,y)-H(y)\|\le\frac{M_2}{2}\|x-y\|\) and, when \(H(x)\) is the derivative of \(g\) at every \(x\), the Taylor remainder bound
+
+
+\[\bigl\|g(x)-g(y)-H(y)(x-y)\bigr\|\le\frac{M_2}{2}\,\|x-y\|^2.\]
+
+
+This is the deterministic estimate behind the term \(M_2\|L_s-L_0\|^2/2\) in the local error of the second-order algorithm; the factor \(\frac12\) is \(\int_0^1t\,dt\). No probability enters this section.
+
+
+\section{\texorpdfstring{Variation of the Hessian along the segment}{Variation of the Hessian along the segment}}
+
+
+\textbf{Claim.} Let \(H:E\to\mathcal L(E)\) be \(M_2\)-Lipschitz, \(\|H(u)-H(w)\|\le M_2\|u-w\|\) for all \(u,w\), with \(M_2\ge0\). Then for all \(x,y\in E\),
+
+
+\[\bigl\|\bar H(x,y)-H(y)\bigr\|\le\frac{M_2}{2}\,\|x-y\|.\]
+
+
+\textbf{Proof.} The map \(t\mapsto H(y+t(x-y))\) is continuous, as the composition of the Lipschitz map \(H\) with a continuous path; hence it is Bochner integrable on \([0,1]\). The integral of the constant \(H(y)\) over \([0,1]\) is \(H(y)\), and the integral is linear, so
+
+
+\[\bar H(x,y)-H(y)=\int_0^1\Bigl(H\bigl(y+t(x-y)\bigr)-H(y)\Bigr)\,dt.\]
+
+
+For \(t\in(0,1]\) the Lipschitz condition gives
+
+
+\[\bigl\|H(y+t(x-y))-H(y)\bigr\|\le M_2\,\|t(x-y)\|=M_2\,t\,\|x-y\|,\]
+
+
+using \(t\ge0\). The norm of a Bochner integral is at most the integral of any integrable bound on the norm of the integrand, so
+
+
+\[\bigl\|\bar H(x,y)-H(y)\bigr\|\le\int_0^1M_2\,t\,\|x-y\|\,dt=M_2\|x-y\|\int_0^1t\,dt=\frac{M_2}{2}\|x-y\|.\qquad\square\]\begin{leanbox}{Lean: \texttt{averagedHessian\_\allowbreak{}sub\_\allowbreak{}base\_\allowbreak{}bound}}
+\leansource{\texttt{averagedHessian\_\allowbreak{}sub\_\allowbreak{}base\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}HessianRemainder.lean, lines 10–28}
+\begin{leancode}
+\leanline{0}{theorem\ averagedHessian\_sub\_base\_bound\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M2\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M2\ H)\ (x\ y\ :\ E)\ :}
+\leanline{4}{‖averagedHessian\ H\ x\ y\ -\ H\ y‖\ ≤\ (M2\ :\ ℝ)\ /\ 2\ *\ ‖x-y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The ambient space is a complete real inner product space \texttt{E}; \texttt{E \ensuremath{\to}L[\ensuremath{\mathbb R}] E} is the space \(\mathcal L(E)\) of bounded linear operators with the operator norm, and \texttt{averaged\allowbreak{}Hessian H x y}, defined in an earlier file, is the interval integral \texttt{\ensuremath{\int} t in (0 : \ensuremath{\mathbb R}).\allowbreak{}.\allowbreak{}1, H (y + t \ensuremath{\bullet} (x -\allowbreak{} y))}. The Lipschitz hypothesis is \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With M2 H} with \texttt{M2 : \ensuremath{\mathbb R}\ensuremath{\ge}0}.
 
 
 
-Hessian Lipschitzness controls the true force Taylor remainder by a quadratic displacement norm. The exact one-half factor comes from integrating the segment parameter, before any stochastic moment estimate is applied.
+\begin{enumerate}
 
 
-\section{\texorpdfstring{Integrate Hessian variation along the segment}{Integrate Hessian variation along the segment}}
+\item \texttt{hc} is continuity of the integrand, obtained by \texttt{fun\_\allowbreak{}prop} from \texttt{h\allowbreak{}Lip.\allowbreak{}continuous}.
+
+\item \texttt{hid} moves \(H(y)\) inside the integral: \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}sub} splits the integral of the difference and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const} evaluates the constant part.
+
+\item The \texttt{calc} applies \texttt{interval\allowbreak{}Integral.\allowbreak{}norm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le} with the bound \(M_2t\|x-y\|\). The pointwise bound \texttt{hs} is \texttt{h\allowbreak{}Lip.\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}, simplified with \texttt{add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left}, \texttt{norm\_\allowbreak{}smul} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg} (here \(t>0\) on the interval \((0,1]\)); integrability of the bound follows from its continuity.
+
+\item The last line evaluates \(\int_0^1M_2t\|x-y\|\,dt\) by pulling out constants (\texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}mul\_\allowbreak{}const}, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul}) and \texttt{integral\_\allowbreak{}id}, \(\int_0^1t\,dt=\frac12\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The first-order Taylor remainder of the force}{The first-order Taylor remainder of the force}}
 
 
-The averaged Hessian is the Bochner integral of \(H(y+t(x-y))\), with \(t\) between zero and one. Subtracting \(H(y)\) inside the integral gives an integrand with norm at most \(M_{2}t\|x-y\|\). The norm of an integral is at most the integral of this nonnegative upper bound, whose value is \(M_{2}\|x-y\|/2\). The argument checks continuity of the integrand, moves subtraction through the integral, applies the Lipschitz inequality on the segment, and evaluates the elementary integral of \(t\).
+\textbf{Claim.} Let \(g:E\to E\) be Fréchet differentiable at every point with derivative \(Dg(u)=H(u)\), and let \(H\) be \(M_2\)-Lipschitz. Then for all \(x,y\in E\),
+
+
+\[\bigl\|g(x)-g(y)-H(y)(x-y)\bigr\|\le\frac{M_2}{2}\,\|x-y\|^2.\]
+
+
+\textbf{Proof.} \emph{Integral form of the increment.} The path \(c(t)=y+t(x-y)\) has derivative \(x-y\), so by the chain rule \(\frac{d}{dt}g(c(t))=H(c(t))(x-y)\), which is continuous in \(t\) because \(H\) is continuous. By the fundamental theorem of calculus,
+
+
+\[g(x)-g(y)=\int_0^1H\bigl(c(t)\bigr)(x-y)\,dt=\bar H(x,y)(x-y).\]
+
+
+The second equality holds because evaluation at the fixed vector \(x-y\) is a bounded linear map on \(\mathcal L(E)\), and bounded linear maps commute with Bochner integrals. This identity was proved in the earlier section on the averaged Hessian.
 
 
 
-Along the displacement segment, write the force change as the integral of its Hessian applied to the displacement. Subtract the Hessian frozen at the starting point inside that integral. Hessian Lipschitzness bounds the operator difference by the segment parameter times the displacement length.
+
+\emph{Estimate.} Consequently \(g(x)-g(y)-H(y)(x-y)=\bigl(\bar H(x,y)-H(y)\bigr)(x-y)\). By the definition of the operator norm and the previous step,
 
 
-\section{\texorpdfstring{Apply the averaged operator to the displacement}{Apply the averaged operator to the displacement}}
+\[\bigl\|(\bar H(x,y)-H(y))(x-y)\bigr\|\le\bigl\|\bar H(x,y)-H(y)\bigr\|\,\|x-y\|\le\frac{M_2}{2}\|x-y\|\cdot\|x-y\|.\qquad\square\]
 
 
-The fundamental theorem of calculus identifies \(g(x)-g(y)\) with the averaged Hessian applied to \(x-y\). Thus the true Taylor remainder equals \((\bar H-H(y))(x-y)\). The operator norm inequality bounds this by \(\|\bar H-H(y)\|\|x-y\|\), yielding \(M_{2}\|x-y\|^{2}/2\). This is a remainder estimate; the Hessian is never replaced by an assumed scalar or a single intermediate point common to all vector coordinates.
+The operator \(\bar H(x,y)\) is an average of Hessians along the whole segment; it is not the Hessian at a single intermediate point, which would not exist in general for vector-valued maps.
+
+\begin{leanbox}{Lean: \texttt{force\_\allowbreak{}taylor\_\allowbreak{}remainder\_\allowbreak{}bound}}
+\leansource{\texttt{force\_\allowbreak{}taylor\_\allowbreak{}remainder\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}HessianRemainder.lean, lines 30–39}
+\begin{leancode}
+\leanline{0}{theorem\ force\_taylor\_remainder\_bound\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M2\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M2\ H)\ (hg\ :\ ∀\ x,\ HasFDerivAt\ g\ (H\ x)\ x)\ (x\ y\ :\ E)\ :}
+\leanline{4}{‖g\ x\ -\ g\ y\ -\ H\ y\ (x-y)‖\ ≤\ (M2\ :\ ℝ)\ /\ 2\ *\ ‖x-y‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{force\_\allowbreak{}taylor\_\allowbreak{}remainder\_\allowbreak{}bound} has the hypotheses \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With M2 H} and \texttt{hg : \ensuremath{\forall} x, Has\allowbreak{}FDeriv\allowbreak{}At g (H x) x}; \texttt{Has\allowbreak{}FDeriv\allowbreak{}At g L x} states that the continuous linear map \texttt{L} is the Fréchet derivative of \texttt{g} at \texttt{x}.
 
 
 
-Applying the resulting operator average to the displacement contributes a second displacement factor. Integration of the segment parameter gives one half. Thus the first-order Taylor remainder is bounded by \(M_2\|x-y\|^2/2\), with no probabilistic assumption.
+\begin{enumerate}
 
+
+\item \texttt{he} is the identity \(\bar H(x,y)(x-y)=g(x)-g(y)\), the earlier lemma \texttt{averaged\allowbreak{}Hessian\_\allowbreak{}force\_\allowbreak{}difference}, which needs continuity of \texttt{H} (\texttt{h\allowbreak{}Lip.\allowbreak{}continuous}).
+
+\item The rewrite \texttt{rw [← he, ← Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}sub\_\allowbreak{}apply]} turns the remainder into \((\bar H(x,y)-H(y))(x-y)\).
+
+\item The \texttt{calc} uses \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}le\_\allowbreak{}op\allowbreak{}Norm} (\(\|Tv\|\le\|T\|\|v\|\)), then \texttt{averaged\allowbreak{}Hessian\_\allowbreak{}sub\_\allowbreak{}base\_\allowbreak{}bound} multiplied by \(\|x-y\|\ge0\) (\texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}), and finally \texttt{ring}.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

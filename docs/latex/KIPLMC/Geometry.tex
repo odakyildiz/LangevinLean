@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,71 +39,381 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The shared IPLA state stores \(z=(\theta,X^1/\sqrt N,\ldots,X^N/\sqrt N)\) in a Euclidean coordinate space with independent parameter and latent dimensions. This section keeps physical time, scaling velocities by the same spatial map. In this convention the kinetic temperature is \(1/N\), the potential is the particle average \(\bar U_N\), and the force is its gradient. It is equivalent to the manuscript's additional time change but uses the same kinetic step.
+Throughout this report \(d_\theta,d_x\ge0\) and \(N\ge0\) are integers and \(U:\mathbb R^{d_\theta}\times\mathbb R^{d_x}\to\mathbb R\) is a joint potential of a parameter \(\theta\) and a latent variable \(x\); in the statistical application \(U(\theta,x)=-\log p_\theta(x,y)\) for fixed data \(y\). The product \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\) carries the Euclidean norm \(\|(\theta,x)\|^2=\|\theta\|^2+\|x\|^2\). The particle state space is \(\mathcal Z_N=\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N\), with points \(z=(\theta,z_1,\dots,z_N)\) and Euclidean norm \(\|z\|^2=\|\theta\|^2+\sum_{i=1}^N\|z_i\|^2\); it has dimension \(d_\theta+Nd_x\). The block \(z_i\) stands for \(X^i/\sqrt N\), where \(X^i\in\mathbb R^{d_x}\) is the latent variable of particle \(i\), and the linear map \(J_i(z)=(\theta,\sqrt Nz_i)\) recovers the physical pair \((\theta,X^i)\).
 
 
 
-The scaled average potential keeps curvature and smoothness independent of particle count in physical time. Its coordinate derivatives explain why the parameter force is averaged while physical latent forces are unaveraged.
+
+This section studies the lifted potential \(V_N(z)=\sum_{i=1}^NU(J_iz)\), the averaged potential \(\bar U_N=N^{-1}V_N\) and the force \(F_N=N^{-1}\nabla V_N\). We prove that \(F_N=\nabla\bar U_N\); that \(\bar U_N\) is \(m\)-strongly convex whenever \(U\) is, and that \(F_N\) is \(L\)-Lipschitz whenever \(\nabla U\) is, with the same constants \(m\) and \(L\) for every \(N>0\); and that the parameter block of \(F_N\) is the particle average of \(\nabla_\theta U(\theta,X^i)\), while the latent block multiplied by \(\sqrt N\) is the unaveraged gradient \(\nabla_xU(\theta,X^i)\). The force \(F_N\) drives the kinetic particle diffusion and both particle algorithms of this report, and the constants \(m,L\) enter every convergence estimate.
 
 
 
 Earlier results used here: \cite[Section~3.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The averaged potential and its gradient}{The averaged potential and its gradient}}
+\section{\texorpdfstring{The particle state space, the averaged potential and the force}{The particle state space, the averaged potential and the force}}
 
 
-The scaled particle state space is the scaled Euclidean IPLA state. The existing lifted potential is \(V_N(z)=\sum_iU(\theta,\sqrt Nz_i)\). Define \(\bar U_N=V_N/N\) and \(F=\nabla V_N/N\). To prove \(\nabla\bar U_N=F\), compare their inner products against an arbitrary vector. The derivative rule for a scalar multiple gives \(D\bar U_N[w]=N^{-1}DV_N[w]\), and the inner-product characterization of gradients identifies the two vectors. The argument uses equality of all inner products, the proved differentiability of the lifted potential, and the derivative rule for a constant multiple. For \(N>0\), cancellation of the nonzero particle number gives \(V_N=N\bar U_N\).
+\textbf{Definition.} Let \(I_N\) be the disjoint union of \(\{1,\dots,d_\theta\}\) and \(\{1,\dots,N\}\times\{1,\dots,d_x\}\), and let \(\mathcal Z_N=\mathbb R^{I_N}\) with the inner product \(\langle z,w\rangle=\sum_{a\in I_N}z_aw_a\). The parameter block of \(z\) is \(\theta=(z_j)_{j\le d_\theta}\) and the \(i\)th latent block is \(z_i=(z_{(i,j)})_{j\le d_x}\). For \(U:\mathbb R^{d_\theta}\times\mathbb R^{d_x}\to\mathbb R\) and \(z\in\mathcal Z_N\) define
+
+
+\[V_N(z)=\sum_{i=1}^NU(\theta,\sqrt Nz_i),\qquad\bar U_N(z)=N^{-1}V_N(z),\qquad F_N(z)=N^{-1}\nabla V_N(z),\]
+
+
+where \(N^{-1}\) is read as \(0\) when \(N=0\). For \(N=0\) the sum is empty, so \(V_0=\bar U_0=0\) and \(F_0=0\).
 
 
 
-The spatial scaling places the common parameter and all latent particles in one Euclidean space while preserving the physical latent coordinates through multiplication by \(\sqrt N\). Dividing the lifted potential by \(N\) makes its gradient the physical-time force. The potential and temperature must be scaled consistently.
 
+\textbf{Gradient.} If \(f:\mathcal Z_N\to\mathbb R\) is differentiable at \(z\), its derivative \(Df(z)\) is a linear functional on the finite-dimensional inner product space \(\mathcal Z_N\). By the Riesz representation theorem there is a unique vector \(\nabla f(z)\) with
+
+
+\[\langle\nabla f(z),w\rangle=Df(z)[w]\qquad\text{for every }w\in\mathcal Z_N;\]
+
+
+in coordinates \(\nabla f(z)_a=\partial_af(z)\). Where \(f\) is not differentiable the gradient is defined to be \(0\); this convention plays no role below, because every potential to which it is applied is differentiable.
+
+
+
+
+\textbf{Interpretation.} Writing \(X^i=\sqrt Nz_i\), one has \(J_iz=(\theta,X^i)\), \(V_N(z)=\sum_iU(\theta,X^i)\) and \(\|z\|^2=\|\theta\|^2+N^{-1}\sum_i\|X^i\|^2\). The maps \(J_i:\mathcal Z_N\to\mathbb R^{d_\theta}\times\mathbb R^{d_x}\), \(J_i(z)=(\theta,\sqrt Nz_i)\), are linear, and for every \(w\in\mathcal Z_N\) with parameter block \(w_\theta\),
+
+
+\[\sum_{i=1}^N\|J_iw\|^2=\sum_{i=1}^N\bigl(\|w_\theta\|^2+N\|w_i\|^2\bigr)=N\Bigl(\|w_\theta\|^2+\sum_{i=1}^N\|w_i\|^2\Bigr)=N\|w\|^2.\]
+
+
+This norm identity is used in the next steps. The parameter block is copied into all \(N\) pairs, which produces the factor \(N\) in front of \(\|w_\theta\|^2\); the latent blocks carry the factor \(\sqrt N\) inside \(J_i\), which produces the same factor in front of \(\|w_i\|^2\). The two contributions therefore combine into \(N\|w\|^2\), and dividing \(V_N\) by \(N\) removes this factor from the curvature constants.
+
+\begin{leanbox}{Lean: \texttt{State}, \texttt{averagePotential}, \texttt{force}}
+\leansource{\texttt{State} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 18–18}
+\begin{leancode}
+\leanline{0}{abbrev\ State\ :=\ IPLA.State}
+\end{leancode}
+\leansource{\texttt{averagePotential} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 21–22}
+\begin{leancode}
+\leanline{0}{def\ averagePotential\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx)\ :\ ℝ\ :=\ (N\ :\ ℝ)⁻¹\ *\ IPLA.potential\ U\ z}
+\end{leancode}
+\leansource{\texttt{force} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 25–27}
+\begin{leancode}
+\leanline{0}{def\ force\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx)\ :\ State\ N\ dθ\ dx\ :=}
+\leanline{2}{(N\ :\ ℝ)⁻¹\ •\ gradient\ (@IPLA.potential\ N\ dθ\ dx\ U)\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{State} is an \texttt{abbrev} for \texttt{IPLA.\allowbreak{}State}, which is \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d\ensuremath{\theta} ⊕ (Fin N \ensuremath{\times} Fin dx))}. Here \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota}} is the space of real vectors indexed by a finite type \(\iota\) with the \(\ell^2\) inner product, \texttt{Fin n} is \(\{0,\dots,n-1\}\), and \texttt{⊕} is the disjoint union, so the index set is \(I_N\). A parameter coordinate is written \texttt{Sum.\allowbreak{}inl j} and a latent coordinate \texttt{Sum.\allowbreak{}inr (i,j)}. The pair space \texttt{IPLA.\allowbreak{}Joint d\ensuremath{\theta} dx} is \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d\ensuremath{\theta} ⊕ Fin dx)}, that is \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\) with the parameter block first. Because \texttt{State} is an abbreviation, every result of the IPLA particle geometry applies to it without conversion.
+
+
+
+
+\texttt{average\allowbreak{}Potential} is \texttt{(N : \ensuremath{\mathbb R})\ensuremath{{}^{-1}} * IPLA.\allowbreak{}potential U z}. The function \texttt{IPLA.\allowbreak{}potential U} is \(V_N\), defined in the IPLA geometry as the sum over \texttt{i : Fin N} of \texttt{U (IPLA.\allowbreak{}joint i z)}, and \texttt{IPLA.\allowbreak{}joint i} is the map \(J_i\). The cast \texttt{(N : \ensuremath{\mathbb R})} views the natural number as a real number, and Lean's real inverse satisfies \(0^{-1}=0\), which is the convention for \(N=0\) above.
+
+
+
+
+\texttt{force} is \texttt{(N : \ensuremath{\mathbb R})\ensuremath{{}^{-1}} \ensuremath{\bullet} gradient (@IPLA.\allowbreak{}potential N d\ensuremath{\theta} dx U) z}, where \texttt{\ensuremath{\bullet}} is scalar multiplication. Mathlib's \texttt{gradient f z} is defined as the vector representing the Fréchet derivative of \texttt{f} at \texttt{z} through the inner product (and is \(0\) where \texttt{f} is not differentiable), which is the definition of \(\nabla f(z)\) above. The prefix \texttt{@} only makes the implicit dimension arguments \texttt{N d\ensuremath{\theta} dx} explicit.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{The force is the gradient of the averaged potential}{The force is the gradient of the averaged potential}}
+
+
+\textbf{Claim.} Let \(U\) be differentiable on \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\) and let \(N\ge0\). Then \(\bar U_N\) is differentiable and
+
+
+\[\nabla\bar U_N(z)=F_N(z)\qquad\text{for every }z\in\mathcal Z_N.\]
+
+
+If \(N>0\), then moreover \(V_N(z)=N\,\bar U_N(z)\) for every \(z\in\mathcal Z_N\).
+
+
+
+
+\textbf{Proof.} Each \(J_i\) is linear, hence differentiable with derivative \(J_i\) at every point, so by the chain rule \(z\mapsto U(J_iz)\) is differentiable with derivative \(w\mapsto DU(J_iz)[J_iw]\). A finite sum of differentiable functions is differentiable; hence \(V_N\) is differentiable, which is the differentiability statement of the particle geometry (\cite[Section~3.1.3]{LangevinLean2026IPLA}). By the rule for constant multiples, \(\bar U_N=N^{-1}V_N\) is differentiable and
+
+
+\[D\bar U_N(z)[w]=N^{-1}\,DV_N(z)[w]\qquad(w\in\mathcal Z_N).\qquad(1)\]
+
+
+Fix \(z\) and an arbitrary \(w\in\mathcal Z_N\). By the defining property of \(\nabla\bar U_N(z)\), identity (1), the defining property of \(\nabla V_N(z)\) and linearity of the inner product in its first argument,
+
+
+\[\langle\nabla\bar U_N(z),w\rangle=D\bar U_N(z)[w]=N^{-1}DV_N(z)[w]=N^{-1}\langle\nabla V_N(z),w\rangle=\langle F_N(z),w\rangle.\]
+
+
+Hence \(u=\nabla\bar U_N(z)-F_N(z)\) satisfies \(\langle u,w\rangle=0\) for every \(w\). Taking \(w=u\) gives \(\|u\|^2=0\), so \(u=0\).
+
+
+
+
+For the second statement, \(N>0\) means that the real number \(N\) is nonzero, so \(N\cdot N^{-1}=1\) and
+
+
+\[N\,\bar U_N(z)=N\bigl(N^{-1}V_N(z)\bigr)=(N\cdot N^{-1})\,V_N(z)=V_N(z).\qquad\square\]
+
+
+When \(N=0\) both sides of the gradient identity vanish, so that identity needs no hypothesis on \(N\). The force \(F_N\) is thus a gradient field, which is what allows the kinetic theory for a potential \(f\) to be applied with \(f=\bar U_N\); the identity \(V_N=N\bar U_N\) converts between the averaged normalization and the sum normalization used for the rescaled dynamics later in the report.
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}averagePotential}, \texttt{potential\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}average}}
+\leansource{\texttt{gradient\_\allowbreak{}averagePotential} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 30–39}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_averagePotential\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (z\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{gradient\ (@averagePotential\ N\ dθ\ dx\ U)\ z\ =\ force\ U\ z}
+\end{leancode}
+\leansource{\texttt{potential\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}average} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 42–45}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_eq\_mul\_average\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (z\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{IPLA.potential\ U\ z\ =\ (N\ :\ ℝ)\ *\ averagePotential\ U\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}average\allowbreak{}Potential} assumes \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U}, Fréchet differentiability of \(U\) at every point, and proves \texttt{gradient (@average\allowbreak{}Potential N d\ensuremath{\theta} dx U) z = force U z} for every \texttt{z}, with no hypothesis on \texttt{N}. The proof is the inner-product argument above.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{apply ext\_\allowbreak{}inner\_\allowbreak{}right \ensuremath{\mathbb R}} reduces the equality of vectors to the equality of their inner products with every vector \texttt{w}; this is the step "take \(w=u\)".
+
+\item \texttt{rw [inner\_\allowbreak{}gradient\_\allowbreak{}left]} rewrites \(\langle\nabla\bar U_N(z),w\rangle\) as the derivative of \(\bar U_N\) at \texttt{z} applied to \texttt{w}; the Mathlib lemma \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}left} is the defining property of the gradient.
+
+\item \texttt{hd} is identity (1). The term \texttt{IPLA.\allowbreak{}potential\_\allowbreak{}differentiable (N := N) hdiff z} gives differentiability of \(V_N\) at \texttt{z}; \texttt{.\allowbreak{}has\allowbreak{}FDeriv\allowbreak{}At} turns it into the statement \texttt{Has\allowbreak{}FDeriv\allowbreak{}At} that \(V_N\) has the continuous linear map \(DV_N(z)\) as Fréchet derivative at \texttt{z}; and \texttt{.\allowbreak{}const\_\allowbreak{}mul (N : \ensuremath{\mathbb R})\ensuremath{{}^{-1}}} multiplies the function and its derivative by \(N^{-1}\). The \texttt{change} line restates \texttt{hd} for \texttt{average\allowbreak{}Potential}, which is the same function by definition.
+
+\item \texttt{rw [hd.\allowbreak{}fderiv]} replaces the derivative of \(\bar U_N\) by \(N^{-1}DV_N(z)\), and \texttt{simp [force, inner\_\allowbreak{}smul\_\allowbreak{}left, inner\_\allowbreak{}gradient\_\allowbreak{}left]} unfolds \texttt{force}, moves the scalar out of the inner product and uses the gradient property of \(V_N\); this is the displayed chain of equalities.
+
+\end{enumerate}
+
+
+
+\texttt{potential\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}average} assumes \texttt{h\allowbreak{}N : 0 < N} and proves \texttt{IPLA.\allowbreak{}potential U z = (N : \ensuremath{\mathbb R}) * average\allowbreak{}Potential U z}. Its one-line proof unfolds \texttt{average\allowbreak{}Potential}, reassociates \(N\cdot(N^{-1}\cdot V_N(z))\) to \((N\cdot N^{-1})\cdot V_N(z)\) with \texttt{← mul\_\allowbreak{}assoc}, and cancels using \texttt{Nat.\allowbreak{}cast\_\allowbreak{}ne\_\allowbreak{}zero.\allowbreak{}mpr h\allowbreak{}N.\allowbreak{}ne'}, the fact that the real cast of a nonzero natural number is nonzero.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{Average the lifted strong convexity}{Average the lifted strong convexity}}
+\section{\texorpdfstring{Averaging preserves the strong convexity constant}{Averaging preserves the strong convexity constant}}
 
 
-The existing particle geometry proves \(V_N\) is \(Nm\)-strongly convex whenever the pair potential is \(m\)-strongly convex. Multiply its convex-combination inequality by \(N^{-1}>0\): the function terms become \(\bar U_N\), and the quadratic correction \(N^{-1}(Nm)\|x-y\|^2/2\) becomes \(m\|x-y\|^2/2\). The argument writes the strong-convexity inequality, obtains the lifted inequality, multiplies it by the nonnegative inverse particle number, and uses cancellation of nonzero denominators and expansion of the scalar polynomials to cancel constants. The proof requires positive particle count but imposes no artificial equality of the parameter and latent dimensions.
+\textbf{Strong convexity.} Let \(m\in\mathbb R\). A function \(f\) on a real inner product space \(E\) is \(m\)-strongly convex if for all \(x,y\in E\) and all \(a,b\ge0\) with \(a+b=1\),
+
+
+\[f(ax+by)\le af(x)+bf(y)-ab\,\frac m2\,\|x-y\|^2.\qquad(1)\]
+
+
+For \(m=0\) this is convexity. For differentiable \(f\) and \(m>0\) it is equivalent to the monotonicity condition \(\langle\nabla f(x)-\nabla f(y),x-y\rangle\ge m\|x-y\|^2\), which is the form of Assumption H1 in the paper; this equivalence is not used below.
 
 
 
-The quadratic correction in strong convexity scales by exactly the same scalar as the potential. Since the lifted potential’s curvature is \(Nm\), averaging removes the particle factor. The resulting force geometry therefore has the original pair curvature, regardless of the total particle-space dimension.
 
+\textbf{Claim.} Let \(N>0\) and \(m\in\mathbb R\), and let \(U\) be \(m\)-strongly convex on \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\). Then \(\bar U_N\) is \(m\)-strongly convex on \(\mathcal Z_N\).
+
+
+
+
+\textbf{Proof.} We first recall why \(V_N\) is \((Nm)\)-strongly convex (\cite[Section~3.1.3]{LangevinLean2026IPLA}). Let \(x,y\in\mathcal Z_N\) and \(a,b\ge0\) with \(a+b=1\). Linearity of \(J_i\) gives \(J_i(ax+by)=aJ_ix+bJ_iy\) and \(J_ix-J_iy=J_i(x-y)\), so (1) for \(U\) at the points \(J_ix\) and \(J_iy\) reads
+
+
+\[U(J_i(ax+by))\le aU(J_ix)+bU(J_iy)-ab\,\frac m2\,\|J_i(x-y)\|^2.\]
+
+
+Summing over \(i=1,\dots,N\) and using the norm identity \(\sum_i\|J_i(x-y)\|^2=N\|x-y\|^2\) from the first step,
+
+
+\[V_N(ax+by)\le aV_N(x)+bV_N(y)-ab\,\frac{Nm}2\,\|x-y\|^2.\qquad(2)\]
+
+
+Since \(N>0\), the number \(N^{-1}\) is positive, and multiplying (2) by it preserves the inequality. The three function values become values of \(\bar U_N=N^{-1}V_N\), and the last term becomes
+
+
+\[N^{-1}\cdot ab\,\frac{Nm}2\,\|x-y\|^2=ab\,\frac m2\,\|x-y\|^2,\]
+
+
+because \(N^{-1}N=1\). The result is (1) for \(f=\bar U_N\). \(\square\)
+
+
+
+
+No sign condition on \(m\) and no relation between \(d_\theta\) and \(d_x\) is needed. The factor \(N\) gained by adding \(N\) copies of \(U\) is removed exactly by the average, so the strong convexity constant of \(\bar U_N\) does not depend on the number of particles, although the dimension \(d_\theta+Nd_x\) of \(\mathcal Z_N\) does.
+
+\begin{leanbox}{Lean: \texttt{averagePotential\_\allowbreak{}strongConvex}}
+\leansource{\texttt{averagePotential\_\allowbreak{}strongConvex} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 48–58}
+\begin{leancode}
+\leanline{0}{theorem\ averagePotential\_strongConvex\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{m\ :\ ℝ\}}
+\leanline{4}{(hU\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{StrongConvexOn\ Set.univ\ m\ (@averagePotential\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{average\allowbreak{}Potential\_\allowbreak{}strong\allowbreak{}Convex} takes \texttt{h\allowbreak{}N : 0 < N} and \texttt{h\allowbreak{}U : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m U}. In Mathlib, \texttt{Strong\allowbreak{}Convex\allowbreak{}On s m f} is the conjunction of convexity of the set \texttt{s} and inequality (1) for all points of \texttt{s} (with the modulus \(r\mapsto\frac m2r^2\)); here \texttt{s = Set.\allowbreak{}univ} is the whole space and \texttt{m} is an arbitrary real number. The conclusion is the same predicate for \texttt{average\allowbreak{}Potential}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{refine \ensuremath{\langle}convex\_\allowbreak{}univ, ?\_\allowbreak{}\ensuremath{\rangle}} supplies convexity of the whole space and leaves the inequality; \texttt{intro x hx y hy a b ha hb hab} introduces the two points, the weights and the hypotheses \(a\ge0\), \(b\ge0\), \(a+b=1\).
+
+\item \texttt{hs} is inequality (2): the second component \texttt{.\allowbreak{}2} of \texttt{IPLA.\allowbreak{}potential\_\allowbreak{}strong\allowbreak{}Convex (N := N) h\allowbreak{}U}, applied to the same points and weights.
+
+\item \texttt{hn} is \(N>0\) as a real number, and \texttt{hi} multiplies \texttt{hs} by \(N^{-1}\ge0\) with \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left} and \texttt{inv\_\allowbreak{}nonneg.\allowbreak{}mpr hn.\allowbreak{}le}.
+
+\item \texttt{convert hi using 1} reduces the goal to the equality of its two sides with the two sides of \texttt{hi}; after unfolding \texttt{average\allowbreak{}Potential}, \texttt{field\_\allowbreak{}simp} and \texttt{ring} verify them, which is the cancellation \(N^{-1}\cdot Nm=m\).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The mean parameter force and unaveraged latent force}{The mean parameter force and unaveraged latent force}}
+\section{\texorpdfstring{The averaged parameter force and the unaveraged latent force}{The averaged parameter force and the unaveraged latent force}}
 
 
-The parameter block of \(\nabla V_N\) is the sum of pair parameter gradients, so \(F_\theta=N^{-1}\sum_i\nabla_\theta U(\theta,X^i)\). Each latent block of \(\nabla V_N\) is \(\sqrt N\nabla_xU\). Dividing by \(N\) and undoing the spatial scaling gives \(\sqrt N F_i=\nabla_xU(\theta,X^i)\). The parameter proof simplifies with the existing gradient-coordinate theorem. The latent proof expands coordinate scalar multiplication, groups the coefficient into \((\sqrt N)^2N^{-1}\), rewrites \((\sqrt N)^2=N\), and cancels the nonzero \(N\). These identities verify the force used by both particle algorithms.
+\textbf{Claim.} Let \(U\) be differentiable, let \(z\in\mathcal Z_N\) with parameter block \(\theta\), and write \(\partial_{\theta_j}U\) and \(\partial_{x_j}U\) for the coordinates of \(\nabla U\) in its parameter and latent blocks. Then for every parameter coordinate \(j\in\{1,\dots,d_\theta\}\),
+
+
+\[F_N(z)_{\theta,j}=\frac1N\sum_{i=1}^N\partial_{\theta_j}U(\theta,\sqrt Nz_i).\qquad(1)\]
+
+
+If in addition \(N>0\), then for every particle \(i\in\{1,\dots,N\}\) and latent coordinate \(j\in\{1,\dots,d_x\}\),
+
+
+\[\sqrt N\,F_N(z)_{(i,j)}=\partial_{x_j}U(\theta,\sqrt Nz_i).\qquad(2)\]
+
+
+\textbf{Proof.} We first compute the coordinates of \(\nabla V_N(z)\) (\cite[Section~3.1.5]{LangevinLean2026IPLA}, \cite[Section~3.1.5]{LangevinLean2026IPLA}). By the chain rule, as in the previous step,
+
+
+\[DV_N(z)[w]=\sum_{q=1}^NDU(J_qz)[J_qw]=\sum_{q=1}^N\langle\nabla U(J_qz),J_qw\rangle.\]
+
+
+Let \(e_a\) be the standard basis vector of coordinate \(a\). A parameter basis vector is copied by every \(J_q\): \(J_qe_{\theta,j}=e_{\theta,j}\). A latent basis vector \(e_{(i,j)}\) is seen only by particle \(i\): \(J_qe_{(i,j)}=\sqrt N\,e_{x,j}\) if \(q=i\) and \(J_qe_{(i,j)}=0\) if \(q\ne i\). Since \(\partial_aV_N(z)=DV_N(z)[e_a]\), we obtain
+
+
+\[\partial_{\theta_j}V_N(z)=\sum_{q=1}^N\partial_{\theta_j}U(J_qz),\qquad\partial_{(i,j)}V_N(z)=\sqrt N\,\partial_{x_j}U(J_iz).\]
+
+
+The coordinates of the scalar multiple \(F_N=N^{-1}\nabla V_N\) are \(N^{-1}\) times those of \(\nabla V_N\). The first identity therefore gives (1), because \(J_qz=(\theta,\sqrt Nz_q)\). For (2), multiply the second identity by \(N^{-1}\) and then by \(\sqrt N\):
+
+
+\[\sqrt N\,F_N(z)_{(i,j)}=\sqrt N\cdot N^{-1}\cdot\sqrt N\,\partial_{x_j}U(J_iz)=\bigl((\sqrt N)^2N^{-1}\bigr)\,\partial_{x_j}U(J_iz)=\partial_{x_j}U(J_iz),\]
+
+
+since \((\sqrt N)^2=N\) for \(N\ge0\) and \(NN^{-1}=1\) for \(N\ne0\). \(\square\)
 
 
 
-The parameter appears in every summand, so its derivative is a particle average. Each latent coordinate appears in just one summand, and undoing the coordinate scaling recovers its unaveraged derivative. These different factors explain the apparent asymmetry between parameter and latent equations.
 
+In physical coordinates \(X^i=\sqrt Nz_i\), identity (1) says that the parameter force is the average \(N^{-1}\sum_i\nabla_\theta U(\theta,X^i)\), and identity (2) says that the latent force, once the scaling is undone, is the single-particle gradient \(\nabla_xU(\theta,X^i)\). The parameter occurs in every summand of \(V_N\), whereas the latent block of particle \(i\) occurs only in the \(i\)th summand; this is the origin of the different normalizations of the parameter and latent equations in the particle algorithms.
+
+\begin{leanbox}{Lean: \texttt{force\_\allowbreak{}parameter}, \texttt{force\_\allowbreak{}particle}}
+\leansource{\texttt{force\_\allowbreak{}parameter} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 61–65}
+\begin{leancode}
+\leanline{0}{theorem\ force\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (z\ :\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{force\ U\ z\ (Sum.inl\ j)\ =\ (N\ :\ ℝ)⁻¹\ *}
+\leanline{6}{∑\ i\ :\ Fin\ N,\ gradient\ U\ (IPLA.joint\ i\ z)\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{force\_\allowbreak{}particle} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 68–78}
+\begin{leancode}
+\leanline{0}{theorem\ force\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ force\ U\ z\ (Sum.inr\ (i,j))\ =}
+\leanline{6}{gradient\ U\ (IPLA.joint\ i\ z)\ (Sum.inr\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In both statements the coordinates of a vector \texttt{v : State N d\ensuremath{\theta} dx} are \texttt{v (Sum.\allowbreak{}inl j)} and \texttt{v (Sum.\allowbreak{}inr (i,j))}, \texttt{IPLA.\allowbreak{}joint i z} is \(J_iz\), and \texttt{gradient U (IPLA.\allowbreak{}joint i z) (Sum.\allowbreak{}inl j)} is \(\partial_{\theta_j}U(J_iz)\). The sum \texttt{∑ i : Fin N, …} runs over the \(N\) particles.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{force\_\allowbreak{}parameter} needs only \texttt{hdiff}. The proof \texttt{simp [force, IPLA.\allowbreak{}gradient\_\allowbreak{}potential\_\allowbreak{}parameter hdiff]} unfolds the force as a scalar multiple, evaluates the coordinate of a scalar multiple and substitutes the parameter-coordinate formula for \(\nabla V_N\) proved in the IPLA geometry; this is identity (1).
+
+\item \texttt{force\_\allowbreak{}particle} needs \texttt{h\allowbreak{}N : 0 < N} and \texttt{hdiff}; \texttt{hn} records that \(N\ne0\) as a real number. The \texttt{simp only} line unfolds \texttt{force}, evaluates the coordinate of a scalar multiple (\texttt{Pi\allowbreak{}Lp.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}) and substitutes \texttt{IPLA.\allowbreak{}gradient\_\allowbreak{}potential\_\allowbreak{}particle hdiff}, the latent formula with its factor \texttt{Real.\allowbreak{}sqrt N}. The \texttt{calc} block is the displayed computation: \texttt{ring} regroups the product as \(((\sqrt N)^2N^{-1})\,\partial_{x_j}U(J_iz)\), and \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt (Nat.\allowbreak{}cast\_\allowbreak{}nonneg N)}, \texttt{mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}} hn} and \texttt{one\_\allowbreak{}mul} reduce the coefficient to \(1\).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.5]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The force retains the pair smoothness constant}{The force retains the pair smoothness constant}}
+\section{\texorpdfstring{The force has the Lipschitz constant of the pair gradient}{The force has the Lipschitz constant of the pair gradient}}
 
 
-The shared lifted gradient has Lipschitz constant \(NL\). Since \(F=\nabla V_N/N\), its difference satisfies \(\|F(x)-F(y)\|\le N^{-1}(NL)\|x-y\|=L\|x-y\|\). The argument starts from the existing lifted Lipschitz estimate, rewrites norms of scalar multiples with the nonnegative inverse particle count, multiplies the inequality by that inverse, and cancels \(N\). This proves that the physical-time scaled force has a smoothness constant independent of the number of particles, as required for the particle-independent deterministic contraction rate.
+\textbf{Lipschitz maps.} For \(L\ge0\), a map \(G\) between normed spaces is \(L\)-Lipschitz if \(\|G(x)-G(y)\|\le L\|x-y\|\) for all \(x,y\).
 
 
 
-The average-potential normalization cancels the lifted gradient’s factor \(N\). Consequently neither the strong-convexity nor smoothness constant grows with particle count in physical time. The dimension still affects thermal moments, but the deterministic contraction rate is particle independent.
 
+\textbf{Claim.} Let \(N>0\) and \(L\ge0\), let \(U\) be differentiable, and let \(\nabla U\) be \(L\)-Lipschitz on \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\). Then \(F_N\) is \(L\)-Lipschitz on \(\mathcal Z_N\).
+
+
+
+
+\textbf{Proof.} We first show that \(\nabla V_N\) is \(NL\)-Lipschitz (\cite[Section~3.1.4]{LangevinLean2026IPLA}). Let \(x,y,w\in\mathcal Z_N\) and put \(g=\nabla V_N(x)-\nabla V_N(y)\). The chain-rule formula of the previous step, the Cauchy–Schwarz inequality in \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\), the Lipschitz property of \(\nabla U\) and linearity of \(J_i\) give
+
+
+\[\langle g,w\rangle=\sum_{i=1}^N\bigl\langle\nabla U(J_ix)-\nabla U(J_iy),J_iw\bigr\rangle\le L\sum_{i=1}^N\|J_i(x-y)\|\,\|J_iw\|.\]
+
+
+The Cauchy–Schwarz inequality for finite sums, \(\sum_ia_ib_i\le(\sum_ia_i^2)^{1/2}(\sum_ib_i^2)^{1/2}\), together with the norm identity \(\sum_i\|J_iu\|^2=N\|u\|^2\) from the first step, gives
+
+
+\[\sum_{i=1}^N\|J_i(x-y)\|\,\|J_iw\|\le\bigl(N\|x-y\|^2\bigr)^{1/2}\bigl(N\|w\|^2\bigr)^{1/2}=N\|x-y\|\,\|w\|.\]
+
+
+Taking \(w=g\) yields \(\|g\|^2\le NL\|x-y\|\,\|g\|\). If \(g=0\), the bound \(\|g\|\le NL\|x-y\|\) holds trivially; otherwise divide by \(\|g\|>0\). Hence
+
+
+\[\|\nabla V_N(x)-\nabla V_N(y)\|\le NL\|x-y\|.\qquad(1)\]
+
+
+Now \(F_N(x)-F_N(y)=N^{-1}g\) with \(N^{-1}>0\). By homogeneity of the norm and (1),
+
+
+\[\|F_N(x)-F_N(y)\|=N^{-1}\|g\|\le N^{-1}\cdot NL\|x-y\|=L\|x-y\|.\qquad\square\]
+
+
+Combined with the previous steps, \(F_N=\nabla\bar U_N\), where \(\bar U_N\) is \(m\)-strongly convex with \(L\)-Lipschitz gradient. The theory of kinetic Langevin dynamics for one strongly convex potential with Lipschitz gradient therefore applies to the particle system with the constants \(m\) and \(L\) of the pair potential; only the dimension \(d_\theta+Nd_x\) of the state space depends on \(N\).
+
+\begin{leanbox}{Lean: \texttt{force\_\allowbreak{}lipschitz}}
+\leansource{\texttt{force\_\allowbreak{}lipschitz} \quad KIPLMC/\allowbreak{}Geometry.lean, lines 82–98}
+\begin{leancode}
+\leanline{0}{theorem\ force\_lipschitz\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{LipschitzWith\ L\ (@force\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{force\_\allowbreak{}lipschitz} has hypotheses \texttt{h\allowbreak{}N}, \texttt{hdiff} and \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With L (gradient U)}. The constant \texttt{L : \ensuremath{\mathbb R}\ensuremath{\ge}0} is a nonnegative real number (the type \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0}), and Mathlib's predicate \texttt{Lipschitz\allowbreak{}With L f} is the Lipschitz inequality stated with extended distances. The conclusion is \texttt{Lipschitz\allowbreak{}With L (@force N d\ensuremath{\theta} dx U)}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{apply Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul} reduces the goal to the real inequality \(\operatorname{dist}(F_N(x),F_N(y))\le L\operatorname{dist}(x,y)\) for all \texttt{x y}, and \texttt{rw [dist\_\allowbreak{}eq\_\allowbreak{}norm, dist\_\allowbreak{}eq\_\allowbreak{}norm]} writes both distances as norms of differences.
+
+\item \texttt{hl} is inequality (1): the inequality \texttt{norm\_\allowbreak{}sub\_\allowbreak{}le} extracted from \texttt{IPLA.\allowbreak{}potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}, whose Lipschitz constant is the product \texttt{(N : \ensuremath{\mathbb R}\ensuremath{\ge}0) * L}.
+
+\item The \texttt{simp only} line rewrites \(F_N(x)-F_N(y)\) as \(N^{-1}(\nabla V_N(x)-\nabla V_N(y))\) (\texttt{← smul\_\allowbreak{}sub}) and evaluates its norm as \(|N^{-1}|\,\|g\|=N^{-1}\|g\|\) (\texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}).
+
+\item The \texttt{calc} block multiplies \texttt{hl} by \(N^{-1}\ge0\) (\texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}), converts the product of nonnegative reals into a product of reals (\texttt{NNReal.\allowbreak{}coe\_\allowbreak{}mul}, \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}nat\allowbreak{}Cast}) and cancels \(N^{-1}N=1\) with \texttt{inv\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}}}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,25 @@ For \(x>0\), \(e^x\ge1+x\ge x\), hence \(e^{-x}\le1/x\). Apply this at \(x=m^2/(
 
 The sharper tail behaves like \(h e^{-c/h^2}\). An elementary exponential bound controls it by a constant times \(h^2\) on the chosen small-step range. This permits a single quadratic upper bound while retaining a fully explicit finite coefficient.
 
+\begin{leanbox}{Lean: \texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}reciprocal}, \texttt{secondOrderCutoff\_\allowbreak{}tail\_\allowbreak{}quadratic}}
+\leansource{\texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}reciprocal} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 7–10}
+\begin{leancode}
+\leanline{0}{theorem\ exp\_neg\_le\_reciprocal\ (x\ :\ ℝ)\ (hx\ :\ 0<x)\ :\ Real.exp\ (-x)≤1/x}
+\end{leancode}
+\leansource{\texttt{secondOrderCutoff\_\allowbreak{}tail\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 13–21}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderCutoff\_tail\_quadratic\ (m\ M2\ h\ p\ :\ ℝ)\ (hm\ :\ 0<m)\ (hM2\ :\ 0<M2)}
+\leanline{4}{(hh\ :\ 0<h)\ (hp\ :\ 0≤p)\ (hdim\ :\ 4*Real.sqrt\ (5*p)*M2*h≤m)\ :}
+\leanline{4}{Real.exp\ (-(secondOrderCutoff\ m\ M2\ h-p)/8)≤160*M2\textasciicircum{}2*h\textasciicircum{}2/m\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}reciprocal} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Named proof applications include \texttt{one\_\allowbreak{}div\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}div\_\allowbreak{}of\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Cutoff\_\allowbreak{}tail\_\allowbreak{}quadratic} gives the formal counterpart of this step. The main intermediate facts are \texttt{ht}, \texttt{he}, \texttt{hid} in that order. Named proof applications include \texttt{ht.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Collect the complete persistent error into a quadratic coefficient}{Collect the complete persistent error into a quadratic coefficient}}
 
@@ -42,6 +84,29 @@ Write \(C_p=M_2\sqrt{p^2+2p}+M\sqrt{Mp}\). The exact persistent error is \(\sqrt
 
 Combine the exact fourth-moment Taylor coefficient, the score-moment coefficient, and the controlled tail coefficient into one nonnegative constant. The persistent error term is then at most that constant times \(h^2\). This is the quantity allocated to the requested accuracy.
 
+\begin{leanbox}{Lean: \texttt{secondOrderBiasCoefficient}, \texttt{secondOrder\_\allowbreak{}bias\_\allowbreak{}quadratic}}
+\leansource{\texttt{secondOrderBiasCoefficient} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{def\ secondOrderBiasCoefficient\ (m\ M\ M2\ p\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ 2*(M2*Real.sqrt\ (p\textasciicircum{}2+2*p)+M*Real.sqrt\ (M*p))/m+1280*M*M2\textasciicircum{}2/m\textasciicircum{}3}
+\end{leancode}
+\leansource{\texttt{secondOrder\_\allowbreak{}bias\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 28–46}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrder\_bias\_quadratic\ (m\ M\ M2\ h\ p\ :\ ℝ)\ (hm\ :\ 0<m)\ (hmM\ :\ m≤M)}
+\leanline{4}{(hM2\ :\ 0<M2)\ (hh\ :\ 0<h)\ (hh1\ :\ h≤1)\ (hp\ :\ 0≤p)}
+\leanline{4}{(hdim\ :\ 4*Real.sqrt\ (5*p)*M2*h≤m)\ :}
+\leanline{4}{Real.sqrt\ 2*h\textasciicircum{}2*(M2*Real.sqrt\ (p\textasciicircum{}2+2*p)+M*Real.sqrt\ (M*p))/m+}
+\leanline{6}{8*(M-m)*h/m*Real.exp\ (-(secondOrderCutoff\ m\ M2\ h-p)/8)≤}
+\leanline{6}{secondOrderBiasCoefficient\ m\ M\ M2\ p*h\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Bias\allowbreak{}Coefficient} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{second\allowbreak{}Order\_\allowbreak{}bias\_\allowbreak{}quadratic} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}M}, \texttt{h\allowbreak{}B}, \texttt{ht}, \texttt{h3}, \texttt{htail} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Choose a positive step satisfying every restriction}{Choose a positive step satisfying every restriction}}
 
@@ -52,5 +117,29 @@ For positive dimension and accuracy choose the minimum of \(1\), \(m/(5\gamma M)
 
 Take the minimum of the stability limit, cutoff limit, any auxiliary small-step limit, and the square-root accuracy limit. Positivity of each entry gives a positive admissible step. Every analytic restriction and the bias allocation then hold simultaneously.
 
+\begin{leanbox}{Lean: \texttt{secondOrderAccuracyStep}, \texttt{secondOrderAccuracyStep\_\allowbreak{}spec}}
+\leansource{\texttt{secondOrderAccuracyStep} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 49–51}
+\begin{leancode}
+\leanline{0}{def\ secondOrderAccuracyStep\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{min\ 1\ (min\ (m/(5*γ*M))\ (min\ (m/(4*Real.sqrt\ (5*p)*M2))}
+\leanline{4}{(Real.sqrt\ ((47/50:ℝ)*ε/secondOrderBiasCoefficient\ m\ M\ M2\ p))))}
+\end{leancode}
+\leansource{\texttt{secondOrderAccuracyStep\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 54–79}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderAccuracyStep\_spec\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)\ (hm\ :\ 0<m)\ (hM\ :\ 0<M)}
+\leanline{4}{(hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{0<secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε\ ∧\ secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε≤1\ ∧}
+\leanline{4}{5*γ*M*secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{4*Real.sqrt\ (5*p)*M2*secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{secondOrderBiasCoefficient\ m\ M\ M2\ p*(secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε)\textasciicircum{}2≤(47/50:ℝ)*ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Accuracy\allowbreak{}Step} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Accuracy\allowbreak{}Step\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{B}, \texttt{h\allowbreak{}B}, \texttt{h}, \texttt{hh}, \texttt{hcap}, \texttt{htail} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

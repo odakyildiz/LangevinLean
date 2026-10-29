@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Define \(T_2\varphi(x;v)=\varphi(x)+D\varphi(x)[v]+\frac12D^2\varphi(x)[v,v]\). 
 
 The bilinear second derivative is evaluated twice on the same displacement. This retains all mixed coordinate contributions and makes the subsequent Gaussian expectation basis-independent.
 
+\begin{leanbox}{Lean: \texttt{secondOrderExpansion}}
+\leansource{\texttt{secondOrderExpansion} \quad UnadjustedLangevin/\allowbreak{}WeakForwardTaylor.lean, lines 25–26}
+\begin{leancode}
+\leanline{0}{def\ secondOrderExpansion\ (φ\ :\ H\ →\ ℝ)\ (x\ v\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{φ\ x\ +\ fderiv\ ℝ\ φ\ x\ v\ +\ (1\ /\ 2\ :\ ℝ)\ *\ iteratedFDeriv\ ℝ\ 2\ φ\ x\ (fun\ \_\ ↦\ v)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Expansion} is a definition with defining expression \texttt{\ensuremath{\varphi} x + fderiv \ensuremath{\mathbb R} \ensuremath{\varphi} x v + (1 /\allowbreak{} 2 : \ensuremath{\mathbb R}) * iterated\allowbreak{}FDeriv \ensuremath{\mathbb R} 2 \ensuremath{\varphi} x (fun \_\allowbreak{} \ensuremath{\mapsto} v)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{A cubic Taylor remainder bound}{A cubic Taylor remainder bound}}
 
@@ -42,6 +74,17 @@ Restrict \(\varphi\) to the segment \(t\mapsto x+tv\). Its third scalar derivati
 
 The scalar segment derivative of order three has three copies of the displacement, hence the factor \(\|v\|^3\). The factorial \(3!=6\) in Taylor's formula determines the precise remainder coefficient.
 
+\begin{leanbox}{Lean: \texttt{secondOrderExpansion\_\allowbreak{}remainder\_\allowbreak{}le}}
+\leansource{\texttt{secondOrderExpansion\_\allowbreak{}remainder\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}WeakForwardTaylor.lean, lines 29–95}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderExpansion\_remainder\_le}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 3\ φ)\ (C\ :\ ℝ)}
+\leanline{4}{(hC\ :\ ∀\ x,\ ‖iteratedFDeriv\ ℝ\ 3\ φ\ x‖\ ≤\ C)\ (x\ v\ :\ H)\ :}
+\leanline{4}{|φ\ (x\ +\ v)\ -\ secondOrderExpansion\ φ\ x\ v|\ ≤\ C\ /\ 6\ *\ ‖v‖\ \textasciicircum{}\ 3}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Expansion\_\allowbreak{}remainder\_\allowbreak{}le}: the intermediate facts include \texttt{line}, \texttt{q}, \texttt{hline}, \texttt{hb}, \texttt{he}, in source order; the source steps apply or rewrite \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}id}, \texttt{smul\_\allowbreak{}const}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}div}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}pos}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The uniform remainder for a smooth compactly supported test}{The uniform remainder for a smooth compactly supported test}}
 
@@ -52,5 +95,16 @@ Smoothness makes \(D^3\varphi\) continuous, and compact support of \(\varphi\) i
 
 Compact support extends to derivatives because a smooth function vanishes with all derivatives off its support. Continuity then gives one global third-derivative bound, uniform in both the expansion point and displacement.
 
+\begin{leanbox}{Lean: \texttt{compactSmooth\_\allowbreak{}secondOrderExpansion\_\allowbreak{}remainder}}
+\leansource{\texttt{compactSmooth\_\allowbreak{}secondOrderExpansion\_\allowbreak{}remainder} \quad UnadjustedLangevin/\allowbreak{}WeakForwardTaylor.lean, lines 99–106}
+\begin{leancode}
+\leanline{0}{theorem\ compactSmooth\_secondOrderExpansion\_remainder}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ ∞\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{∃\ C\ :\ ℝ,\ 0\ ≤\ C\ ∧\ ∀\ x\ v,}
+\leanline{6}{|φ\ (x\ +\ v)\ -\ secondOrderExpansion\ φ\ x\ v|\ ≤\ C\ *\ ‖v‖\ \textasciicircum{}\ 3}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}Smooth\_\allowbreak{}second\allowbreak{}Order\allowbreak{}Expansion\_\allowbreak{}remainder}: the source steps apply or rewrite \texttt{second\allowbreak{}Order\allowbreak{}Expansion\_\allowbreak{}remainder\_\allowbreak{}le}, \texttt{h\ensuremath{\varphi}.\allowbreak{}of\_\allowbreak{}le}.
+\end{leanbox}
 
 \end{document}

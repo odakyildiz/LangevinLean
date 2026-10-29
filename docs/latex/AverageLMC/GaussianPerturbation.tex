@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -33,21 +56,53 @@ Earlier results used here: \cite[Section~3.18]{LangevinLean2026Proximal}; \cite[
 
 For independent \(L^{2}\) vectors \(X\) and \(Z\), their joint pushforward measure is the product of their marginal laws. The function \(F(x,z)=f(x+cz)-f(x)\) is continuous and integrable under this joint law because both arguments have finite second moment and \(f\) has quadratic growth. The pushforward identity and Fubini turn its expectation into the iterated integral. Integrate the pointwise smoothing bound over the law of \(X\), which is a probability measure, to retain the same constant. Finally use almost-everywhere representatives to identify the pointwise sum with the sum in \(L^{2}\).
 
+\begin{leanbox}{Lean: \texttt{independent\_\allowbreak{}smoothing}}
+\leansource{\texttt{independent\_\allowbreak{}smoothing} \quad AverageLMC/\allowbreak{}GaussianPerturbation.lean, lines 21–53}
+\begin{leancode}
+\leanline{0}{theorem\ independent\_smoothing\ (f\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(X\ Z\ :\ Lp\ E\ 2\ P)\ (η\ :\ Measure\ E)\ (hZ\ :\ P.map\ Z\ =\ η)}
+\leanline{4}{(hind\ :\ IndepFun\ X\ Z\ P)\ (c\ C\ :\ ℝ)}
+\leanline{4}{(hsm\ :\ ∀\ x,\ (∫\ z,\ f\ (x\ +\ c\ •\ z)\ -\ f\ x\ ∂η)\ ≤\ C)\ :}
+\leanline{4}{(∫\ ω,\ f\ ((X\ +\ c\ •\ Z)\ ω)\ ∂P)\ -\ (∫\ ω,\ f\ (X\ ω)\ ∂P)\ ≤\ C}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{independent\_\allowbreak{}smoothing} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{h\allowbreak{}Fm}, \texttt{hjoint}, \texttt{hpair}, \texttt{hcomp}, \texttt{h\allowbreak{}Fint} in that order. Named proof applications include \texttt{hsm}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{heq}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrate strong convexity with the future-noise correction}{Integrate strong convexity with the future-noise correction}}
 
 
 Let \(w\) be a common lower bound for the squared coupling costs between \(X+B(h)\) and the stationary comparison \(Y(t)\). Orthogonality expands the latter cost exactly as \(\|X+B(t)-Y(t)\|^{2}+2(h-t)d\). Integrate the strong supporting-plane bound, using an affine upper bound \(a+b\) \(t\) for the potential expectation difference. The integrand is bounded by \(2a+2mhd-mw+(2b-2md)t\). Its explicit integral is \(2ha+mh^{2}d-mhw+h^{2}b\). Combine this with the exact synchronous energy identity and the endpoint coupling bound to obtain \((1+mh)w\le \|X-Y(0)\|^{2}+2ha+h^{2}b+mh^{2}d\). Every input involving noise or stationarity is discharged for the actual Gaussian step by the canonical construction in the following modules.
 
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}energy\_\allowbreak{}bound}}
+\leansource{\texttt{gaussian\_\allowbreak{}energy\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}GaussianPerturbation.lean, lines 58–106}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_energy\_bound\ (f\ :\ E\ →\ ℝ)\ (m\ h\ d\ a\ b\ w\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hm\ :\ 0\ ≤\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(X\ :\ Lp\ E\ 2\ P)\ (Y\ B\ :\ ℝ\ →\ Lp\ E\ 2\ P)\ (hY\ :\ Continuous\ Y)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(horth\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ {\leanfallback ⟪}X\ +\ B\ t\ -\ Y\ t,\ B\ h\ -\ B\ t{\leanfallback ⟫}\ =\ 0)}
+\leanline{4}{(hnoise\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖B\ h\ -\ B\ t‖\ \textasciicircum{}\ 2\ =\ 2\ *\ (h\ -\ t)\ *\ d)}
+\leanline{4}{(hcost\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ w\ ≤\ ‖X\ +\ B\ h\ -\ Y\ t‖\ \textasciicircum{}\ 2)}
+\leanline{4}{(henergy\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{(∫\ ω,\ f\ ((X\ +\ B\ t)\ ω)\ ∂P)\ -\ (∫\ ω,\ f\ (Y\ t\ ω)\ ∂P)\ ≤\ a\ +\ b\ *\ t)\ :}
+\leanline{4}{(1\ +\ m\ *\ h)\ *\ w\ ≤\ ‖X\ -\ Y\ 0‖\ \textasciicircum{}\ 2\ +\ 2\ *\ h\ *\ a\ +\ h\ \textasciicircum{}\ 2\ *\ b\ +\ m\ *\ h\ \textasciicircum{}\ 2\ *\ d}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}energy\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{g}, \texttt{hg}, \texttt{hi}, \texttt{hpoint}, \texttt{hr}, \texttt{hmono} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[Proximal]{LangevinLean2026Proximal}
-LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision 314590ce9586. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Restrict the family of couplings to those with \(c\ne\infty\). This family retai
 
 Finite cost means \(\int\|x-y\|^2dc(x,y)<\infty\). It controls the difference between initial states even before separate moment estimates for each coordinate are used. Restricting to these couplings does not alter a finite transport infimum, since infinite costs cannot improve it.
 
+\begin{leanbox}{Lean: \texttt{FiniteCoupling}}
+\leansource{\texttt{FiniteCoupling} \quad UnadjustedLangevin/\allowbreak{}ReferenceFamily.lean, lines 23–24}
+\begin{leancode}
+\leanline{0}{abbrev\ FiniteCoupling\ (ν₀\ π\ :\ Measure\ H)\ :=}
+\leanline{2}{\{c\ :\ Coupling\ ν₀\ π\ //\ couplingCost\ c.joint\ ≠\ ⊤\}}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Finite\allowbreak{}Coupling} is a definitional abbreviation with defining expression \texttt{\{c : Coupling \ensuremath{\nu}\ensuremath{{}_{0}} \ensuremath{\pi} /\allowbreak{}/\allowbreak{} coupling\allowbreak{}Cost c.\allowbreak{}joint ≠ \ensuremath{\top}\}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{A reference for every finite-cost initial coupling}{A reference for every finite-cost initial coupling}}
 
@@ -42,6 +74,23 @@ On one probability space \(P\), for each finite-cost coupling, suppose there are
 
 Index the realizations by the initial coupling \(c\). At each iteration \(n\), the required identity is \(\operatorname{Law}(X_n^c)=\nu_n\) for every \(c\), while the reference distribution is the fixed target. This common numerical distribution permits taking the infimum of the initial coupling costs without changing the distribution whose transport error is bounded. The hypothesis is the common-law identity itself.
 
+\begin{leanbox}{Lean: \texttt{ReferenceFamily}}
+\leansource{\texttt{ReferenceFamily} \quad UnadjustedLangevin/\allowbreak{}ReferenceFamily.lean, lines 32–41}
+\begin{leancode}
+\leanline{0}{structure\ ReferenceFamily\ (d\ :\ ℕ)\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (ν₀\ π\ :\ Measure\ H)}
+\leanline{4}{(ν\ :\ ℕ\ →\ Measure\ H)\ where}
+\leanline{2}{initial\ :\ FiniteCoupling\ ν₀\ π\ →\ Lp\ H\ 2\ P}
+\leanline{2}{noise\ :\ FiniteCoupling\ ν₀\ π\ →\ ℕ\ →\ Lp\ H\ 2\ P}
+\leanline{2}{reference\ :\ ∀\ c,\ L2Reference\ P\ d\ U\ h\ L\ hLip\ (noise\ c)\ π}
+\leanline{2}{initialLaw\ :\ ∀\ c,\ P.map\ (initial\ c)\ =\ ν₀}
+\leanline{2}{initialCost\ :\ ∀\ c,}
+\leanline{4}{‖initial\ c\ -\ (reference\ c).segment\ 0\ 0‖\ ≤\ (couplingCost\ c.val.joint).toReal}
+\leanline{2}{outputLaw\ :\ ∀\ c\ n,\ P.map\ (lpChain\ P\ U\ h\ hLip\ (initial\ c)\ (noise\ c)\ n)\ =\ ν\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Reference\allowbreak{}Family} packages the objects and hypotheses in the displayed statement. Its named fields are \texttt{initial}, \texttt{noise}, \texttt{reference}, \texttt{initial\allowbreak{}Law}, \texttt{initial\allowbreak{}Cost}, \texttt{output\allowbreak{}Law}. Supplying this structure means supplying each field, with the types shown in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of the output transport distance}{Finiteness of the output transport distance}}
 
@@ -52,6 +101,19 @@ Choose one finite initial coupling using the finite initial Wasserstein premise.
 
 One finite initial coupling is enough to exhibit a finite output coupling, since both endpoint random vectors then have a square-integrable difference. This preliminary finiteness result permits the later convergence inequality to be stated with ordinary real Wasserstein distances.
 
+\begin{leanbox}{Lean: \texttt{ReferenceFamily.\allowbreak{}output\_\allowbreak{}finite}}
+\leansource{\texttt{ReferenceFamily.\allowbreak{}output\_\allowbreak{}finite} \quad UnadjustedLangevin/\allowbreak{}ReferenceFamily.lean, lines 45–57}
+\begin{leancode}
+\leanline{0}{theorem\ ReferenceFamily.output\_finite}
+\leanline{4}{\{d\ :\ ℕ\}\ \{U\ :\ H\ →\ ℝ\}\ \{h\ :\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{\{hLip\ :\ LipschitzWith\ L\ (gradient\ U)\}\ \{ν₀\ π\ :\ Measure\ H\}\ \{ν\ :\ ℕ\ →\ Measure\ H\}}
+\leanline{4}{(family\ :\ ReferenceFamily\ P\ d\ U\ h\ L\ hLip\ ν₀\ π\ ν)}
+\leanline{4}{(hfinite\ :\ wasserstein2\ ν₀\ π\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ (ν\ n)\ π\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Reference\allowbreak{}Family.\allowbreak{}output\_\allowbreak{}finite}: the intermediate facts include \texttt{c}, \texttt{hb}, in source order; the source steps apply or rewrite \texttt{family.\allowbreak{}output\allowbreak{}Law}, \texttt{family.\allowbreak{}reference}, \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}ne\_\allowbreak{}top}.
+\end{leanbox}
 
 \section{\texorpdfstring{Passing the analytic bound through the initial infimum}{Passing the analytic bound through the initial infimum}}
 
@@ -62,5 +124,23 @@ Apply the analytic \(L^2\) estimate to every finite coupling realization in the 
 
 The coefficient of the initial cost is nonnegative, so taking its infimum preserves the affine bound. A negative coefficient would reverse the minimization and invalidate this step. The small-step restrictions guarantee the required sign as well as strict contraction.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}reference\_\allowbreak{}family}}
+\leansource{\texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}reference\_\allowbreak{}family} \quad UnadjustedLangevin/\allowbreak{}ReferenceFamily.lean, lines 61–86}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_small\_step\_of\_reference\_family}
+\leanline{4}{(d\ :\ ℕ)\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(ν₀\ π\ :\ Measure\ H)\ (ν\ :\ ℕ\ →\ Measure\ H)}
+\leanline{4}{(hfinite\ :\ wasserstein2\ ν₀\ π\ ≠\ ⊤)}
+\leanline{4}{(family\ :\ ReferenceFamily\ P\ d\ U\ h\ L\ hLip\ ν₀\ π\ ν)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (ν\ n)\ π\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ n\ *\ wasserstein2Real\ ν₀\ π\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *\ Real.sqrt\ (h\ *\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}reference\_\allowbreak{}family}: the intermediate facts include \texttt{hpos}, \texttt{hproduct}, \texttt{hq}, \texttt{c}, \texttt{hb}, in source order; the source steps apply or rewrite \texttt{wasserstein2\_\allowbreak{}affine\_\allowbreak{}bound\_\allowbreak{}real\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings}, \texttt{family.\allowbreak{}output\allowbreak{}Law}, \texttt{hb.\allowbreak{}trans}, \texttt{add\_\allowbreak{}le\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \end{document}

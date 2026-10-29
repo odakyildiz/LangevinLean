@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -24,6 +47,19 @@ The potential in the Laplacian theorem (Theorem 2, source th:3) is \(C^{3}\), so
 
 Restrict the test to the line \(x+t\) \(v\). The ordinary Taylor theorem with first-order polynomial and second derivative remainder gives a point \(u\) strictly between zero and one. The first derivative on this line is the Frechet derivative applied to \(v\); the second derivative is the actual second Frechet derivative applied twice to \(v\). Subtract the quadratic Taylor term at \(x\). The remaining error is exactly one half of the difference between the Hessians at \(x+u\) \(v\) and \(x\), evaluated twice on \(v\).
 
+\begin{leanbox}{Lean: \texttt{secondOrderExpansion\_\allowbreak{}remainder\_\allowbreak{}eq\_\allowbreak{}second\_\allowbreak{}difference}}
+\leansource{\texttt{secondOrderExpansion\_\allowbreak{}remainder\_\allowbreak{}eq\_\allowbreak{}second\_\allowbreak{}difference} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 17–56}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderExpansion\_remainder\_eq\_second\_difference}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (x\ v\ :\ H)\ :}
+\leanline{4}{∃\ u\ ∈\ Ioo\ (0\ :\ ℝ)\ 1,}
+\leanline{6}{φ\ (x\ +\ v)\ -\ ULA.secondOrderExpansion\ φ\ x\ v\ =}
+\leanline{8}{(1\ /\ 2\ :\ ℝ)\ *\ ((iteratedFDeriv\ ℝ\ 2\ φ\ (x\ +\ u\ •\ v)\ -}
+\leanline{10}{iteratedFDeriv\ ℝ\ 2\ φ\ x)\ (fun\ \_\ ↦\ v))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Expansion\_\allowbreak{}remainder\_\allowbreak{}eq\_\allowbreak{}second\_\allowbreak{}difference} gives the formal counterpart of this step. The main intermediate facts are \texttt{line}, \texttt{q}, \texttt{hline}, \texttt{hq}, \texttt{hline\allowbreak{}D}, \texttt{hline2} in that order. Named proof applications include \texttt{deriv\_\allowbreak{}const}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}.
@@ -37,6 +73,30 @@ A compactly supported \(C^{2}\) test has a continuous compactly supported Hessia
 
 The same bounded Hessian proves that the actual gradient of the compact \(C^{2}\) test is Lipschitz.
 
+\begin{leanbox}{Lean: \texttt{compactC2\_\allowbreak{}secondOrderExpansion\_\allowbreak{}remainder}, \texttt{compactC2\_\allowbreak{}gradient\_\allowbreak{}lipschitz}}
+\leansource{\texttt{compactC2\_\allowbreak{}secondOrderExpansion\_\allowbreak{}remainder} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 60–106}
+\begin{leancode}
+\leanline{0}{theorem\ compactC2\_secondOrderExpansion\_remainder}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)}
+\leanline{4}{(η\ :\ ℝ)\ (hη\ :\ 0\ <\ η)\ :}
+\leanline{4}{∃\ C\ :\ ℝ,\ 0\ ≤\ C\ ∧\ ∀\ x\ v,}
+\leanline{6}{|φ\ (x\ +\ v)\ -\ ULA.secondOrderExpansion\ φ\ x\ v|\ ≤}
+\leanline{8}{η\ *\ ‖v‖\ \textasciicircum{}\ 2\ +\ C\ *\ ‖v‖\ \textasciicircum{}\ 3}
+\end{leancode}
+\leansource{\texttt{compactC2\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 110–126}
+\begin{leancode}
+\leanline{0}{theorem\ compactC2\_gradient\_lipschitz}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{∃\ L\ :\ ℝ≥0,\ LipschitzWith\ L\ (gradient\ φ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}C2\_\allowbreak{}second\allowbreak{}Order\allowbreak{}Expansion\_\allowbreak{}remainder} separates the cases \texttt{hv : \ensuremath{\Vert}v\ensuremath{\Vert} < \ensuremath{\delta}} and its negation before combining them. The main intermediate facts are \texttt{h\allowbreak{}Hc}, \texttt{h\allowbreak{}Huc}, \texttt{B}, \texttt{h\allowbreak{}B}, \texttt{hbound}, \texttt{hop} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{compact\allowbreak{}C2\_\allowbreak{}gradient\_\allowbreak{}lipschitz} gives the formal counterpart of this step. The main intermediate facts are \texttt{C}, \texttt{L}, \texttt{h\allowbreak{}Ddiff}, \texttt{h\allowbreak{}Dlip} in that order. Named proof applications include \texttt{lipschitz\allowbreak{}With\_\allowbreak{}of\_\allowbreak{}nnnorm\_\allowbreak{}fderiv\_\allowbreak{}le}, \texttt{h\allowbreak{}Dlip.\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}.
@@ -50,6 +110,20 @@ Expand the test first at the Gaussian perturbation alone. Its linear term averag
 
 The bound is uniform in the center, drift and admissible step size. No third moment of the drift is required.
 
+\begin{leanbox}{Lean: \texttt{compactC2\_\allowbreak{}gaussian\_\allowbreak{}weak\_\allowbreak{}step}}
+\leansource{\texttt{compactC2\_\allowbreak{}gaussian\_\allowbreak{}weak\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 130–273}
+\begin{leancode}
+\leanline{0}{theorem\ compactC2\_gaussian\_weak\_step}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)\ :}
+\leanline{4}{∃\ K\ :\ ℝ,\ 0\ ≤\ K\ ∧\ ∀\ (x\ v\ :\ H)\ (h\ :\ ℝ),\ 0\ ≤\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{|(∫\ z\ :\ H,\ φ\ (x\ +\ h\ •\ v\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)\ ∂stdGaussian\ H)\ -}
+\leanline{8}{φ\ x\ -\ h\ *\ (fderiv\ ℝ\ φ\ x\ v\ +\ Laplacian.laplacian\ φ\ x)|\ ≤}
+\leanline{10}{h\ *\ (ε\ +\ K\ *\ Real.sqrt\ h)\ *\ (1\ +\ ‖v‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}C2\_\allowbreak{}gaussian\_\allowbreak{}weak\_\allowbreak{}step} gives the formal counterpart of this step. The main intermediate facts are \texttt{hz2}, \texttt{G\ensuremath{{}_{2}}}, \texttt{h\allowbreak{}G\ensuremath{{}_{2}}}, \texttt{\ensuremath{\eta}}, \texttt{h\ensuremath{\eta}}, \texttt{hz1} in that order. Named proof applications include \texttt{hnoise.\allowbreak{}sub}, \texttt{abs\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}abs.\allowbreak{}trans}, \texttt{htotal.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}.
@@ -59,10 +133,65 @@ Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}.
 
 The \(C^{2}\) Laplacian is continuous as a finite sum of continuous second derivatives. This makes the entire weak residual measurable for measurable random centers and drifts. If the past weight has absolute value at most \(A\) almost everywhere, multiply the pointwise residual bound by \(A\) and integrate. Square integrability of the random drift makes the majorant integrable. The resulting bound is \(Ah(\varepsilon+K\sqrt h)\) times one plus the drift second moment. The fixed-\(K\) version retains a supplied uniform pointwise constant unchanged, so the same constant can be used across every Euler mesh and mesh state.
 
+\begin{leanbox}{Lean: \texttt{compactC2\_\allowbreak{}continuous\_\allowbreak{}laplacian}, \texttt{compactC2\_\allowbreak{}gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step}, \texttt{gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}bound}}
+\leansource{\texttt{compactC2\_\allowbreak{}continuous\_\allowbreak{}laplacian} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 276–289}
+\begin{leancode}
+\leanline{0}{theorem\ compactC2\_continuous\_laplacian}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ :\ Continuous\ (Laplacian.laplacian\ φ)}
+\end{leancode}
+\leansource{\texttt{compactC2\_\allowbreak{}gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 294–351}
+\begin{leancode}
+\leanline{0}{theorem\ compactC2\_gaussian\_weighted\_weak\_step}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)}
+\leanline{4}{(x\ v\ :\ Ω\ →\ H)\ (w\ :\ Ω\ →\ ℝ)\ (A\ :\ ℝ)}
+\leanline{4}{(hx\ :\ Measurable\ x)\ (hv\ :\ Measurable\ v)\ (hw\ :\ Measurable\ w)}
+\leanline{4}{(hv₂\ :\ MemLp\ v\ 2\ P)\ (hA\ :\ 0\ ≤\ A)\ (hwA\ :\ ∀ᵐ\ a\ ∂P,\ |w\ a|\ ≤\ A)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)\ :}
+\leanline{4}{∃\ K\ :\ ℝ,\ 0\ ≤\ K\ ∧\ ∀\ h\ :\ ℝ,\ 0\ ≤\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{|∫\ a,\ w\ a\ *\ ((∫\ z\ :\ H,}
+\leanline{8}{φ\ (x\ a\ +\ h\ •\ v\ a\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)\ ∂stdGaussian\ H)\ -}
+\leanline{10}{φ\ (x\ a)\ -\ h\ *\ (fderiv\ ℝ\ φ\ (x\ a)\ (v\ a)\ +}
+\leanline{12}{Laplacian.laplacian\ φ\ (x\ a)))\ ∂P|\ ≤}
+\leanline{8}{A\ *\ h\ *\ (ε\ +\ K\ *\ Real.sqrt\ h)\ *\ (1\ +\ ∫\ a,\ ‖v\ a‖\ \textasciicircum{}\ 2\ ∂P)}
+\end{leancode}
+\leansource{\texttt{gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}CompactC2Taylor.lean, lines 355–414}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_weighted\_weak\_step\_of\_bound}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)}
+\leanline{4}{(x\ v\ :\ Ω\ →\ H)\ (w\ :\ Ω\ →\ ℝ)\ (A\ :\ ℝ)}
+\leanline{4}{(hx\ :\ Measurable\ x)\ (hv\ :\ Measurable\ v)\ (hw\ :\ Measurable\ w)}
+\leanline{4}{(hv₂\ :\ MemLp\ v\ 2\ P)\ (hA\ :\ 0\ ≤\ A)\ (hwA\ :\ ∀ᵐ\ a\ ∂P,\ |w\ a|\ ≤\ A)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)\ (K\ :\ ℝ)\ (hK\ :\ 0\ ≤\ K)}
+\leanline{4}{(hbound\ :\ ∀\ (x\ v\ :\ H)\ (h\ :\ ℝ),\ 0\ ≤\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{|(∫\ z\ :\ H,\ φ\ (x\ +\ h\ •\ v\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)\ ∂stdGaussian\ H)\ -}
+\leanline{8}{φ\ x\ -\ h\ *\ (fderiv\ ℝ\ φ\ x\ v\ +\ Laplacian.laplacian\ φ\ x)|\ ≤}
+\leanline{10}{h\ *\ (ε\ +\ K\ *\ Real.sqrt\ h)\ *\ (1\ +\ ‖v‖\ \textasciicircum{}\ 2))\ :}
+\leanline{4}{∀\ h\ :\ ℝ,\ 0\ ≤\ h\ →\ h\ ≤\ 1\ →}
+\leanline{6}{|∫\ a,\ w\ a\ *\ ((∫\ z\ :\ H,}
+\leanline{8}{φ\ (x\ a\ +\ h\ •\ v\ a\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)\ ∂stdGaussian\ H)\ -}
+\leanline{10}{φ\ (x\ a)\ -\ h\ *\ (fderiv\ ℝ\ φ\ (x\ a)\ (v\ a)\ +}
+\leanline{12}{Laplacian.laplacian\ φ\ (x\ a)))\ ∂P|\ ≤}
+\leanline{8}{A\ *\ h\ *\ (ε\ +\ K\ *\ Real.sqrt\ h)\ *\ (1\ +\ ∫\ a,\ ‖v\ a‖\ \textasciicircum{}\ 2\ ∂P)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}C2\_\allowbreak{}continuous\_\allowbreak{}laplacian} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}DD}, \texttt{he} in that order. Named proof applications include \texttt{continuous\_\allowbreak{}finset\_\allowbreak{}sum}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{compact\allowbreak{}C2\_\allowbreak{}gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step} gives the formal counterpart of this step. The main intermediate facts are \texttt{r}, \texttt{h\ensuremath{\varphi}m}, \texttt{hjoint}, \texttt{hint}, \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}Lap} in that order. Named proof applications include \texttt{Measurable.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{abs\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}abs.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{gaussian\_\allowbreak{}weighted\_\allowbreak{}weak\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{r}, \texttt{h\ensuremath{\varphi}m}, \texttt{hjoint}, \texttt{hint}, \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}Lap} in that order. Named proof applications include \texttt{Measurable.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{abs\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}abs.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

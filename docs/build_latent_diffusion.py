@@ -17,8 +17,10 @@ import re
 import shutil
 from urllib.parse import unquote, urlsplit
 
-from build_site import ROOT, HELPERS, anchor, code, commands, relative, shell, toolbar
-from build_pbgso import pbgso_declarations, header_lines, header_text, context_text, source_docstring
+from build_site import ROOT, HELPERS, anchor, code, commands, proof_diagram, relative, shell, toolbar
+from build_pbgso import (pbgso_declarations, header_lines, header_text, context_text, source_docstring,
+                         authored_steps, load_notes, statement_code, step_anchor)
+from references import reference_notice
 from math_notation import render_prose_math
 
 E = html.escape
@@ -145,6 +147,11 @@ def exact_contract(path, name, sources, parsed, *, page=PAGE):
     # Lean short names can occur in different modules.
     result = result.replace(' id="' + anchor(name), ' id="' + anchor(Path(path).stem + "." + name))
     return result
+
+
+def argument_data():
+    from separate_reports import argument
+    return argument("LatentDiffusion")
 
 
 def eq(tex):
@@ -496,17 +503,20 @@ def paper_document(path):
     page = paper_page(path)
     source = (ROOT / path).read_text()
     title = "Paper source — " + Path(path).name
-    body = ('<div class="breadcrumb"><a href="' + relative(PAGE, page) + '">Latent diffusion</a> / Supplied paper</div>'
-            '<header class="hero"><h1>' + E(title) + '</h1><p>Verbatim local source with stable line anchors. '
-            'Line references on the statement page resolve here. This view contains no corrections to the manuscript.</p>'
+    body = ('<div class="breadcrumb"><a href="' + relative(PAGE, page) + '">Latent diffusion</a> / Paper source</div>'
+            '<header class="hero"><h1>' + E(title) + '</h1><p>Verbatim source of arXiv:2505.12412v3, the camera-ready '
+            'version of the AISTATS 2026 paper, with stable line anchors. '
+            'Line references on the statement page resolve here. This view contains no corrections to the paper.</p>'
             '<p><a href="' + relative(path, page) + '">Original TeX file</a> · SHA-256: <code>'
             + hashlib.sha256(source.encode()).hexdigest() + '</code></p></header><pre class="paper-source"><code>')
     body += '\n'.join(f'<span class="paper-source-line" id="L{number}"><a href="#L{number}" aria-label="Line {number}">{number:4}</a> '
                       + E(line) + '</span>' for number, line in enumerate(source.splitlines(), 1))
     body += '</code></pre>'
     from report_citations import citation_panel
-    body += citation_panel(None, None, None, page)
-    return shell(page, title, body, "LatentDiffusion").replace('</head>', '<style>.paper-source{font:13px/1.7 var(--font-code);white-space:pre-wrap;overflow-wrap:anywhere}'
+    from separate_reports import report_revision
+    body += citation_panel("LatentDiffusion", "Training Latent Diffusion Models with Interacting Particle Algorithms",
+                           report_revision("LatentDiffusion"), page)
+    return shell(page, title, body).replace('</head>', '<style>.paper-source{font:13px/1.7 var(--font-code);white-space:pre-wrap;overflow-wrap:anywhere}'
                                            '.paper-source-line:target{background:#f5cf7555;outline:1px solid #c89a3c}'
                                            '.paper-source-line>a{color:var(--muted);text-decoration:none}</style></head>')
 
@@ -550,17 +560,21 @@ def overview(sources, parsed, math):
             '<div class="eyebrow">Part I · Paper results and corrections &nbsp; / &nbsp; Part II · New theory</div>'
             '<h1>Training Latent Diffusion Models with Interacting Particle Algorithms</h1>'
             '<p class="subtitle">The paper’s statements first; additional assumptions and new theorems second. Mathematics and exact Lean code appear side by side.</p>'
-            '<p class="reference-notice"><strong>Source:</strong> Tim Y. J. Wang, Juan Kuntz and O. Deniz Akyildiz, '
-            '<em>Training Latent Diffusion Models with Interacting Particle Algorithms</em>, local manuscript.</p><p>'
+            + reference_notice('LatentDiffusion') + '<p>'
             '<a href="paper/main_aistats.html">Main text with line numbers</a> · '
             '<a href="paper/supp_aistats.html">Supplement with line numbers</a> · '
             '<a href="source_audit.md">Source audit and coverage</a> · '
             '<a href="source_inventory.json">Exact source inventory</a></p></header>'
+            '<p class="proof-download"><a href="' + relative('docs/pdf/LatentDiffusion/FullProof.pdf', PAGE) + '" download>Download full proof (PDF)</a> · '
+            '<a href="' + relative('docs/latex/LatentDiffusion/FullProof.tex', PAGE) + '" download>Download full proof (LaTeX)</a></p>'
             '<nav class="jump-nav" aria-label="Report contents"><a href="#assumptions">Paper assumptions</a>'
             '<a href="#source-regularity">Added regularity R1–R7</a><a href="#source-results">Paper results</a><a href="#source-corrections">Corrections</a>'
             '<a href="#new-assumptions">New assumptions</a><a href="#new-theorems">New theorems</a>'
             '<a href="#complete-numerical-budget">Main numerical bound</a>'
-            '<a href="#verification">Check the statements</a></nav>'
+            '<a href="#verification">Check the proofs</a>'
+            + ('<a href="#proof-roadmap">Proof roadmap</a>' if argument_data()["roadmap"] else '')
+            + ('<a href="#mathematical-proof">Mathematical argument</a>' if argument_data()["parts"] else '')
+            + '<a href="#modules">Supporting proofs</a></nav>'
             '<p class="formal-status"><strong>Formalization status.</strong> All 19 source result statements are stated below, '
             'including appendix restatements, with their corrected mathematical statements, precise source references and Lean proofs. '
             'The blue R1–R7 panels state the added regularity and domain hypotheses used to prove those corrections. '
@@ -659,40 +673,93 @@ def overview(sources, parsed, math):
         panel["prose"] += '<p class="contribution"><strong>What this adds to the paper.</strong> ' + contributions[panel["id"]] + '</p>'
         body += render_panel(panel, sources, parsed, math)
     body += '</section></section>'
-    body += ('<section class="section" id="verification"><h2>Check the displayed statements</h2>'
-             '<p>The Lean panes contain full signatures and omit proof bodies. '
-             'These commands check the available imported proofs, exact displayed code, source coverage and page ordering. '
-             'The source audit separately records proof completion for corrected statements and fidelity to the exact printed statements.</p>'
-             + commands("python3 scripts/verify-latent-diffusion.py --lean\npython3 docs/test_latent_diffusion_landing.py\npython3 docs/build_latent_diffusion.py --check", "verify-latent")
-             + '<p><a href="statement_checks.lean">Statement checks</a> invoke the displayed Lean theorem endpoints as imported proof constants, without copying their proofs.</p>'
-             + '<p>Proof modules: '
-             + ' · '.join('<a href="' + relative(proof_page(path), PAGE) + '">' + E(path) + '</a>' for path in sources)
-             + '</p></section></div>')
+    body += ('<section class="section" id="verification"><h2>Check the proofs</h2>'
+             '<p>From the repository root, fetch the pinned Mathlib cache, compile the development and print the axioms '
+             'of its main theorems; then check that every displayed statement is the imported Lean theorem and that '
+             'the page matches the sources:</p>'
+             + commands("lake exe cache get\nlake build LatentDiffusion\nlake env lean LatentDiffusion/Check.lean\n"
+                        "lake env lean LatentDiffusion/exposition/statement_checks.lean\n"
+                        "python3 scripts/verify-latent-diffusion.py --lean\npython3 docs/build_latent_diffusion.py --check", "verify-latent")
+             + '<p><code>lake build LatentDiffusion</code> checks every proof; the printed axioms are only '
+             '<code>propext</code>, <code>Classical.choice</code> and <code>Quot.sound</code>. '
+             'The Lean panes contain full signatures and omit proof bodies. '
+             '<a href="statement_checks.lean">Statement checks</a> invoke the displayed Lean theorem endpoints as imported proof constants, '
+             'without copying their proofs. The source audit separately records proof completion for corrected statements '
+             'and fidelity to the exact printed statements.</p></section>')
+    roadmap = argument_data()["roadmap"]
+    notes = load_notes("LatentDiffusion")
+    if roadmap:
+        nodes = [dict(node, href=proof_page(node["file"]) + "#" + step_anchor(node["file"], node["declaration"], notes))
+                 for node in roadmap]
+        body += ('<section class="section" id="proof-roadmap"><h2>Proof roadmap</h2>'
+                 '<p class="section-intro">Read from top to bottom: from the model and its assumptions, through the '
+                 'variational identities and the flow, to the particle error bounds and the explicit accuracy choices. '
+                 'Each box opens the mathematical statement and proof of that step beside its complete Lean code.</p>'
+                 + proof_diagram(nodes, PAGE, math, "Latent diffusion proof roadmap") + '</section>')
+    parts = argument_data()["parts"]
+    if parts:
+        body += ('<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2>'
+                 '<p class="section-intro">The argument below proves the results in order. The adjacent panels give the '
+                 'exact Lean statements it rests on and explain how the formal proof assembles them.</p>')
+        for i, part in enumerate(parts, 1):
+            body += (f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>'
+                     f'{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair">'
+                     '<div class="math-pane">' + math(part["body"]) + '</div><div class="lean-pane">')
+            if part.get("lean"):
+                body += ('<div class="lean-logic"><div class="pane-label">How the Lean proof follows this argument</div>'
+                         + math(part["lean"]) + '</div>')
+            for j, reference in enumerate(part.get("references", []), 1):
+                path, name = reference["file"], reference["name"]
+                body += statement_code(path, name, sources, parsed, PAGE, f"argument-{i}-{j}")
+                body += (f'<p class="small"><a href="{relative(proof_page(path), PAGE)}#{step_anchor(path, name, notes)}">'
+                         f'Detailed proof in {E(Path(path).name)} →</a></p>')
+            body += '</div></div></article>'
+        body += '</section>'
+    roadmap_files = list(dict.fromkeys(node["file"] for node in roadmap))
+    body += ('<section class="section" id="modules"><h2>Supporting proofs</h2>'
+             '<p class="section-intro">The roadmap modules pair their mathematical statements and proofs with the complete '
+             'Lean declarations; the remaining modules list their declarations with the complete source.</p><div class="dependencies">'
+             + ''.join('<a href="' + relative(proof_page(path), PAGE) + '">' + E(notes[path]["title"] if path in notes else path) + '</a>'
+                       for path in roadmap_files + [path for path in sources if path not in roadmap_files])
+             + '</div></section></div>')
     from report_citations import citation_panel
-    body += citation_panel(None, None, None, PAGE)
-    document = shell(PAGE, "Latent diffusion: assumptions and checked results", render_prose_math(body, math), "LatentDiffusion")
+    from separate_reports import report_revision
+    body += citation_panel("LatentDiffusion", "Training Latent Diffusion Models with Interacting Particle Algorithms",
+                           report_revision("LatentDiffusion"), PAGE)
+    document = shell(PAGE, "Latent diffusion: assumptions and checked results", render_prose_math(body, math))
     return document.replace('<body data-theme-family="modern">', '<body data-theme-family="modern" class="pbgso-page">').replace(
         '</head>', '<link rel="stylesheet" href="' + relative("docs/assets/pbgso.css", PAGE) + '"><style>' + EXTRA_CSS + '</style></head>')
 
 
-def module_document(path, sources, parsed, math):
+def module_document(path, sources, parsed, math, notes=None, revision=""):
     from math_notation import display_docstring
     page = proof_page(path)
     title, summary = MODULES.get(Path(path).stem, (Path(path).stem, "Exact current Lean declarations."))
+    note = (notes or {}).get(path)
+    explained = {name for step in (note or {}).get("steps", []) for name in step["declarations"]}
     body = ('<div class="breadcrumb"><a href="' + relative(PAGE, page) + '">Latent diffusion statements</a> / ' + E(path) + '</div>'
-            '<header class="hero"><h1>' + E(title) + '</h1><p>' + E(summary) + '</p>'
-            '<p>Each declaration below is read directly from the current source. Its complete signature specifies all inputs. '
+            '<header class="hero module-hero">'
+            + ('<div class="eyebrow">Module proof · Mathematics alongside Lean</div><h1>' + E(note["title"]) + '</h1>' + math(note["summary"])
+               if note else '<h1>' + E(title) + '</h1><p>' + E(summary) + '</p>')
+            + '<p>Each declaration below is read directly from the current source. Its complete signature specifies all inputs. '
             'Shared variables, typeclasses, imports and namespace scope are preserved in the complete module.</p></header>' + toolbar())
-    for name, decl in parsed[path].items():
+    if note:
+        body += authored_steps(path, note, sources, parsed, page, math)
+    remaining = [(name, decl) for name, decl in parsed[path].items() if name not in explained]
+    if remaining and note:
+        body += '<section class="section" id="declarations"><h2>Further declarations in this module</h2>'
+    for name, decl in remaining:
         doc = source_docstring(sources[path], decl["start"])
         body += ('<article class="proof-step" id="' + anchor(name) + '"><h2>' + E(name) + '</h2>'
                  '<p>' + math(display_docstring(doc or "Supporting declaration; the exact source below specifies its assumptions and mathematical role.")) + '</p>'
                  + code(path, decl["start"], decl["end"], sources, page, "declaration", name) + '</article>')
+    if remaining and note:
+        body += '</section>'
     body += '<details class="source-section" id="complete-source"><summary>Complete Lean module and shared context</summary>'
     body += code(path, 1, len(sources[path].splitlines()), sources, page, "module") + '</details>'
     from report_citations import citation_panel
-    body += citation_panel(None, None, None, page)
-    return shell(page, title, render_prose_math(body, math), "LatentDiffusion")
+    body += citation_panel("LatentDiffusion", "Training Latent Diffusion Models with Interacting Particle Algorithms", revision, page)
+    return shell(page, note["title"] if note else title, render_prose_math(body, math))
 
 
 def inventory_document(sources, parsed):
@@ -727,9 +794,11 @@ def outputs():
     def collect_math(value):
         math_inputs.append(value)
         return value
+    from separate_reports import report_revision
+    notes, revision = load_notes("LatentDiffusion"), report_revision("LatentDiffusion")
     overview(sources, parsed, collect_math)
     for path in sources:
-        module_document(path, sources, parsed, collect_math)
+        module_document(path, sources, parsed, collect_math, notes, revision)
     math = HELPERS.render_mathematics(math_inputs)
     result = {PAGE: overview(sources, parsed, math),
               INVENTORY: json.dumps(inventory_document(sources, parsed), ensure_ascii=False, indent=2) + "\n"}
@@ -746,7 +815,7 @@ def outputs():
                                + "\n".join("-- " + path + ":" + str(decl["start"]) + "\n"
                                            "def check_" + re.sub(r"[^\w]", "_", decl["lean_name"]) + " := @" + decl["lean_name"] + "\n"
                                            for path, decl in checked))
-    result.update({proof_page(path): module_document(path, sources, parsed, math) for path in sources})
+    result.update({proof_page(path): module_document(path, sources, parsed, math, notes, revision) for path in sources})
     result.update({paper_page(path): paper_document(path) for path in paper_audit()["source"]["source_hashes"]
                    if path.endswith(".tex")})
     verify_outputs(result, sources, parsed)
@@ -791,7 +860,10 @@ def verify_outputs(result, sources, parsed):
             destination = (ROOT / path).parent / unquote(parts.path) if parts.path else ROOT / path
             destination = destination.resolve()
             target = destination.relative_to(ROOT).as_posix()
-            if target not in result and not destination.is_file():
+            # The report is compiled from the generated LaTeX after this build.
+            report = target in ("docs/pdf/LatentDiffusion/FullProof.pdf", "docs/latex/LatentDiffusion/FullProof.tex",
+                                "docs/bib/LatentDiffusion.bib")
+            if target not in result and not destination.is_file() and not report:
                 raise ValueError(f"Broken local link: {path}: {href}")
             if parts.fragment and destination.suffix == ".html":
                 linked = html_pages.get(target)

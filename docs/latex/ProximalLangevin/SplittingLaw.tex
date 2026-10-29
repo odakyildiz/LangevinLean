@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,7 +58,45 @@ Proximal nonexpansiveness gives \(\operatorname{Lip}(\operatorname{Pair}_{P_\lam
 
 is jointly continuous because its gradient is Lipschitz. Its composition with the continuous averaged proximal map is therefore measurable. Finite composition proves that each recursive state is a measurable function of initialization and innovations. The custom splitting recursion and the recursion using this same update agree by induction.
 
+\begin{leanbox}{Lean: \texttt{pairwiseMap\_\allowbreak{}prox\_\allowbreak{}lipschitz}, \texttt{pipglaUpdate\_\allowbreak{}measurable}, \texttt{pipglaChain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain}}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}prox\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 19–26}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_prox\_lipschitz\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₂\ :\ ConvexOn\ ℝ\ Set.univ\ g₂)}
+\leanline{4}{(hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)\ \{lam\ :\ ℝ\}\ (hlam\ :\ 0\ <\ lam)\ :}
+\leanline{4}{LipschitzWith\ 1\ (@pairwiseMap\ N\ dθ\ dx\ (prox\ g₂\ lam))}
+\end{leancode}
+\leansource{\texttt{pipglaUpdate\_\allowbreak{}measurable} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 29–40}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaUpdate\_measurable\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L₁\ :\ ℝ≥0\}}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ Set.univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{\{lam\ :\ ℝ\}\ (hlam\ :\ 0\ <\ lam)\ (γ\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (@pipglaUpdate\ N\ dθ\ dx\ g₁\ (prox\ g₂\ lam)\ γ))}
+\end{leancode}
+\leansource{\texttt{pipglaChain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 43–52}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaChain\_eq\_noiseDrivenChain\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(γ\ :\ ℝ)\ (z\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipglaChain\ g₁\ P\ γ\ z\ noise\ n\ =\ ULA.noiseDrivenChain\ (pipglaUpdate\ g₁\ P\ γ)\ z\ noise\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipglaUpdate\_measurable : The exact splitting update is jointly measurable in the state and noise. pipglaChain\_eq\_noiseDrivenChain : The pointwise recursion is the existing generic noise-driven chain.
 
+
+
+\texttt{pairwise\allowbreak{}Map\_\allowbreak{}prox\_\allowbreak{}lipschitz}: the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}one}, \texttt{one\_\allowbreak{}mul}.
+
+
+
+\texttt{pipgla\allowbreak{}Update\_\allowbreak{}measurable}: the intermediate facts include \texttt{hg}, \texttt{hs}, in source order; the source steps apply or rewrite \texttt{pairwise\allowbreak{}Map\_\allowbreak{}prox\_\allowbreak{}lipschitz}, \texttt{continuous.\allowbreak{}measurable.\allowbreak{}comp}.
+
+
+
+\texttt{pipgla\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain}: the argument uses \texttt{induction n with}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.1.7]{LangevinLean2026IPLA}.
@@ -49,8 +110,75 @@ Define the output law from the pointwise recursion. An \(L^2\) update is obtaine
 
 At each finite step, intersect the probability-one events for the preceding representative equality and the update formula. Induction then proves agreement with the explicit recursion. These law and moment conclusions require neither Gaussian innovations nor equilibrium assumptions; square-integrable supplied innovations suffice.
 
+\begin{leanbox}{Lean: \texttt{pipglaLaws}, \texttt{lpPipglaUpdate}, \texttt{lpPipglaUpdate\_\allowbreak{}coe} and 2 more}
+\leansource{\texttt{pipglaLaws} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 55–62}
+\begin{leancode}
+\leanline{0}{def\ pipglaLaws\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ Ω\ →\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ Ω\ →\ IPLA.State\ N\ dθ\ dx)}
+\leanline{4}{(n\ :\ ℕ)\ :\ Measure\ (IPLA.State\ N\ dθ\ dx)\ :=}
+\leanline{2}{Q.map\ (fun\ ω\ ↦\ pipglaChain\ g₁\ P\ γ\ (initial\ ω)\ (fun\ k\ ↦\ noise\ k\ ω)\ n)}
+\leanline{0}{\strut}
+\leanline{0}{section\ LpRealization}
+\end{leancode}
+\leansource{\texttt{lpPipglaUpdate} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 72–77}
+\begin{leancode}
+\leanline{0}{def\ lpPipglaUpdate\ (X\ Z\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q\ :=}
+\leanline{2}{ULA.lpDrift\ Q\ (pairwiseMap\ (prox\ g₂\ lam))}
+\leanline{4}{(pairwiseMap\_prox\_lipschitz\ hN\ hg₂\ hb\ hlam)}
+\leanline{4}{(ULA.lpUlaUpdate\ Q\ (@IPLA.potential\ N\ dθ\ dx\ g₁)\ (γ\ /\ N)}
+\leanline{6}{(IPLA.potential\_gradient\_lipschitz\ hg₁\ hLip)\ X\ Z)}
+\end{leancode}
+\leansource{\texttt{lpPipglaUpdate\_\allowbreak{}coe} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 79–91}
+\begin{leancode}
+\leanline{0}{theorem\ lpPipglaUpdate\_coe\ (X\ Z\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ :}
+\leanline{4}{lpPipglaUpdate\ Q\ hN\ lam\ γ\ L₁\ hg₁\ hLip\ hg₂\ hb\ hlam\ X\ Z\ =ᵐ[Q]}
+\leanline{6}{fun\ ω\ ↦\ pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ\ (X\ ω)\ (Z\ ω)}
+\end{leancode}
+\leansource{\texttt{lpPipglaChain} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 94–98}
+\begin{leancode}
+\leanline{0}{def\ lpPipglaChain\ (initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n\ +\ 1\ =>\ lpPipglaUpdate\ Q\ hN\ lam\ γ\ L₁\ hg₁\ hLip\ hg₂\ hb\ hlam}
+\leanline{6}{(lpPipglaChain\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leansource{\texttt{lpPipglaChain\_\allowbreak{}coe} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 100–110}
+\begin{leancode}
+\leanline{0}{theorem\ lpPipglaChain\_coe\ (initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{lpPipglaChain\ Q\ hN\ lam\ γ\ L₁\ hg₁\ hLip\ hg₂\ hb\ hlam\ initial\ noise\ n\ =ᵐ[Q]}
+\leanline{6}{fun\ ω\ ↦\ pipglaChain\ g₁\ (prox\ g₂\ lam)\ γ\ (initial\ ω)\ (fun\ k\ ↦\ noise\ k\ ω)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The square-integrable update first applies the Euler drift/\allowbreak{}noise map and then the genuine pairwise proximal map. Both are Lipschitz, so the result is again an \(L^2\) random variable. The update representative theorem intersects the full-measure sets for these two operations and obtains the pointwise PIPGLA formula. An induction repeats this at each fixed finite time, replacing the previous representative by the pointwise iterate on their common full-measure event. The chain's pushforward law is therefore exactly \texttt{pipgla\allowbreak{}Laws}, rather than merely a convenient auxiliary recursion.
 
 
+
+Formal correspondence: pipglaLaws : The law of the actual PIPGLA state after a supplied innovation sequence. lpPipglaUpdate : The actual noisy forward step followed by the genuine pairwise proximal map, represented in \(L^2\). lpPipglaChain : Every iterate is an actual \(L^2\) random variable.
+
+
+
+\texttt{pipgla\allowbreak{}Laws} is a definition with defining expression \texttt{Q.\allowbreak{}map (fun \ensuremath{\omega} \ensuremath{\mapsto} pipgla\allowbreak{}Chain g\ensuremath{{}_{1}} P \ensuremath{\gamma} (initial \ensuremath{\omega}) (fun k \ensuremath{\mapsto} noise k \ensuremath{\omega}) n)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{lp\allowbreak{}Pipgla\allowbreak{}Update} is a definition with defining expression \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift Q (pairwise\allowbreak{}Map (prox g\ensuremath{{}_{2}} lam))}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{lp\allowbreak{}Pipgla\allowbreak{}Update\_\allowbreak{}coe}: the intermediate fact is \texttt{hs}, in source order. The remaining scalar rearrangements are checked by \texttt{ring}.
+
+
+
+\texttt{lp\allowbreak{}Pipgla\allowbreak{}Chain} is a definition with defining expression \texttt{def lp\allowbreak{}Pipgla\allowbreak{}Chain (initial : Lp (IPLA.\allowbreak{}State N d\ensuremath{\theta} dx) 2 Q)}. Its pattern-matching branches specify the initial value and the successor update.
+
+
+
+\texttt{lp\allowbreak{}Pipgla\allowbreak{}Chain\_\allowbreak{}coe}: the argument uses \texttt{induction n with}; the source steps apply or rewrite \texttt{Filter.\allowbreak{}Eventually.\allowbreak{}of\_\allowbreak{}forall}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.11]{LangevinLean2026ULASC}; \cite[Section~3.13.12]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}.
@@ -64,6 +192,27 @@ Equality almost surely of the two realizations gives \(\rho_n=Q\circ X_n^{-1}\) 
 
 Almost-sure replacement does not change a pushforward law. Thus normalization of the pointwise splitting law follows independently of its second-moment or transport estimates.
 
+\begin{leanbox}{Lean: \texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}lpLaw}, \texttt{pipglaLaws\_\allowbreak{}isProbability}}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}lpLaw} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 112–119}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_eq\_lpLaw\ (initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n\ =}
+\leanline{6}{Q.map\ (lpPipglaChain\ Q\ hN\ lam\ γ\ L₁\ hg₁\ hLip\ hg₂\ hb\ hlam\ initial\ noise\ n)}
+\end{leancode}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}isProbability} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 120–126}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_isProbability\ (initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Law}: the proof is the application \texttt{Measure.\allowbreak{}map\_\allowbreak{}congr (lp\allowbreak{}Pipgla\allowbreak{}Chain\_\allowbreak{}coe Q h\allowbreak{}N lam \ensuremath{\gamma} L\ensuremath{{}_{1}} hg\ensuremath{{}_{1}} h\allowbreak{}Lip hg\ensuremath{{}_{2}} hb hlam}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}is\allowbreak{}Probability}: the source steps apply or rewrite \texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Law}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply\_\allowbreak{}of\_\allowbreak{}aemeasurable}, \texttt{Lp.\allowbreak{}aestrongly\allowbreak{}Measurable}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -77,17 +226,44 @@ Assume initialization is independent of the complete innovation sequence and the
 
 In initial-law notation that input measure is \(\mu_0\otimes\eta^{\otimes\mathbb N}\). The state at time \(n\) depends on finitely many innovation coordinates. Therefore two realizations with the same initial law and innovation law have identical output laws. In particular a product probability space may be used for the coupling proof without changing the distribution of the stated algorithm.
 
+\begin{leanbox}{Lean: \texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}canonical}}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}canonical} \quad ProximalLangevin/\allowbreak{}SplittingLaw.lean, lines 132–150}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_eq\_canonical\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L₁\ :\ ℝ≥0\}}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ Set.univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{\{lam\ :\ ℝ\}\ (hlam\ :\ 0\ <\ lam)\ (γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ Ω\ →\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ Ω\ →\ IPLA.State\ N\ dθ\ dx)}
+\leanline{4}{(hinit\ :\ AEMeasurable\ initial\ Q)\ (hnoise\ :\ ∀\ k,\ AEMeasurable\ (noise\ k)\ Q)}
+\leanline{4}{(hind\ :\ IndepFun\ initial\ (fun\ ω\ k\ ↦\ noise\ k\ ω)\ Q)}
+\leanline{4}{(hiid\ :\ iIndepFun\ noise\ Q)\ (η\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))}
+\leanline{4}{(hlaw\ :\ ∀\ k,\ Q.map\ (noise\ k)\ =\ η)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ noise\ n\ =}
+\leanline{6}{ULA.chainLaw\ (pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ)\ (Q.map\ initial)}
+\leanline{8}{(Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ η))\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+For a measurable update, the time-\(n\) state is a measurable function of initialization and the innovation path. Independence of initialization from that path makes their joint law a product; iid innovations make the path law \(\eta^{\otimes\mathbb N}\). Pushing this product through the finite recursion proves the canonical-law equality. The assumptions \texttt{hinit}, \texttt{hnoise}, \texttt{hind}, \texttt{hiid} and \texttt{hlaw} respectively supply these measurability, independence and distribution facts; none is a convergence-rate premise.
 
 
+
+Formal correspondence: pipglaLaws\_eq\_canonical : Any independent iid realization has the canonical splitting law. This proves law transfer across coupling spaces without a convergence assumption.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical}: the source steps apply or rewrite \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}of\_\allowbreak{}iid}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.5]{LangevinLean2026ULASC}; \cite[Section~3.20.8]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

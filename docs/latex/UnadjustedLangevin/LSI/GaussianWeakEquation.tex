@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,6 +62,16 @@ The last expression defines this flux. Its divergence equals the density's time 
 
 The flux uses the frozen starting gradient \(\nabla U(x)\), not the current gradient at the observation. Its divergence equals the kernel time derivative, while the difference from the target drift later appears as entropy forcing.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianFlux}}
+\leansource{\texttt{frozenGaussianFlux} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 26–28}
+\begin{leancode}
+\leanline{0}{def\ frozenGaussianFlux\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ :\ E)\ :\ E\ :=}
+\leanline{2}{realGaussianKernel\ (1\ /\ (4\ *\ t))\ (x\ -\ t\ •\ gradient\ U\ x)\ y\ •}
+\leanline{4}{(gradient\ U\ x\ -\ (1\ /\ (2\ *\ t))\ •\ (y\ -\ (x\ -\ t\ •\ gradient\ U\ x)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux} is a definition with defining expression \texttt{real\allowbreak{}Gaussian\allowbreak{}Kernel (1 /\allowbreak{} (4 * t)) (x -\allowbreak{} t \ensuremath{\bullet} gradient U x) y \ensuremath{\bullet}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Differentiate each coordinate of the flux explicitly}{Differentiate each coordinate of the flux explicitly}}
 
@@ -53,6 +86,19 @@ The affine vector factor has derivative \(-v/(2t)\) in direction \(v\). Pairing 
 
 Differentiate each flux component using the Gaussian gradient and product rules. The resulting diagonal quadratic displacement and drift terms are the coordinate contributions to its divergence.
 
+\begin{leanbox}{Lean: \texttt{fderiv\_\allowbreak{}frozenGaussianFlux\_\allowbreak{}coord}}
+\leansource{\texttt{fderiv\_\allowbreak{}frozenGaussianFlux\_\allowbreak{}coord} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 33–62}
+\begin{leancode}
+\leanline{0}{theorem\ fderiv\_frozenGaussianFlux\_coord\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (x\ y\ v\ :\ E)\ :}
+\leanline{4}{fderiv\ ℝ\ (fun\ y\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ x\ y)\ v)\ y\ v\ =}
+\leanline{6}{realGaussianKernel\ (1\ /\ (4\ *\ t))\ (x\ -\ t\ •\ gradient\ U\ x)\ y\ *}
+\leanline{8}{((inner\ ℝ\ (y\ -\ (x\ -\ t\ •\ gradient\ U\ x))\ v)\ \textasciicircum{}\ 2\ /\ (4\ *\ t\ \textasciicircum{}\ 2)\ -}
+\leanline{10}{(inner\ ℝ\ (y\ -\ (x\ -\ t\ •\ gradient\ U\ x))\ v)\ *\ (inner\ ℝ\ (gradient\ U\ x)\ v)\ /}
+\leanline{12}{(2\ *\ t)\ -\ ‖v‖\ \textasciicircum{}\ 2\ /\ (2\ *\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}coord}: the intermediate facts include \texttt{c}, \texttt{hlin}, \texttt{hi}, \texttt{hd}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{Pi.\allowbreak{}mul\_\allowbreak{}apply}, \texttt{Pi.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{hd.\allowbreak{}fderiv}, \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}add\_\allowbreak{}apply}, \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}smul\_\allowbreak{}apply}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Sum the directional derivatives to obtain a coordinate-free divergence}{Sum the directional derivatives to obtain a coordinate-free divergence}}
 
@@ -67,6 +113,20 @@ For the last equality substitute \(r=y-x+tg\) and expand its squared norm. Its m
 
 Summing over an orthonormal coordinate basis collects displacement squares into a Euclidean squared norm and diagonal constants into the dimension. This gives a coordinate-free divergence formula.
 
+\begin{leanbox}{Lean: \texttt{sum\_\allowbreak{}fderiv\_\allowbreak{}frozenGaussianFlux}}
+\leansource{\texttt{sum\_\allowbreak{}fderiv\_\allowbreak{}frozenGaussianFlux} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 66–94}
+\begin{leancode}
+\leanline{0}{theorem\ sum\_fderiv\_frozenGaussianFlux\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ t\ ≠\ 0)\ (x\ y\ :\ E)\ :}
+\leanline{4}{(∑\ i\ :\ Fin\ (Module.finrank\ ℝ\ E),}
+\leanline{6}{fderiv\ ℝ\ (fun\ y\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ x\ y)}
+\leanline{8}{(stdOrthonormalBasis\ ℝ\ E\ i))\ y\ (stdOrthonormalBasis\ ℝ\ E\ i))\ =}
+\leanline{6}{realGaussianKernel\ (1\ /\ (4\ *\ t))\ (x\ -\ t\ •\ gradient\ U\ x)\ y\ *}
+\leanline{8}{(-(Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ (2\ *\ t)\ +}
+\leanline{10}{‖y\ -\ x‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t\ \textasciicircum{}\ 2)\ -\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ /\ 4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{sum\_\allowbreak{}fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux}: the intermediate facts include \texttt{b}, \texttt{r}, \texttt{hsq}, \texttt{hres}, \texttt{hnorm}, in source order; the source steps apply or rewrite \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}, \texttt{b.\allowbreak{}sum\_\allowbreak{}inner\_\allowbreak{}mul\_\allowbreak{}inner}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}div}, \texttt{inner\_\allowbreak{}add\_\allowbreak{}left}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{The density of the initial/\allowbreak{}output pair}{The density of the initial/output pair}}
 
@@ -81,6 +141,19 @@ The identity for the conditional Gaussian starting-proposal pair-density formula
 
 The independent state-noise pair is pushed to the starting-proposal pair. Its conditional Gaussian density is the kernel, so nonnegative and integrable pair expectations have the stated Lebesgue representation.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianJointLaw\_\allowbreak{}eq\_\allowbreak{}density}}
+\leansource{\texttt{frozenGaussianJointLaw\_\allowbreak{}eq\_\allowbreak{}density} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 99–114}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianJointLaw\_eq\_density\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{(μ.prod\ (stdGaussian\ E)).map\ (fun\ z\ :\ E\ ×\ E\ ↦}
+\leanline{6}{(z.1,\ ULA.malaProposal\ U\ t\ z.1\ z.2))\ =}
+\leanline{6}{(μ.prod\ volume).withDensity\ (fun\ z\ :\ E\ ×\ E\ ↦\ ENNReal.ofReal}
+\leanline{8}{(realGaussianKernel\ (1\ /\ (4\ *\ t))\ (z.1\ -\ t\ •\ gradient\ U\ z.1)\ z.2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Joint\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}density}: the source steps apply or rewrite \texttt{ULA.\allowbreak{}gaussian\_\allowbreak{}proposal\_\allowbreak{}pair\_\allowbreak{}density}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.13]{LangevinLean2026ULASC}; \cite[Section~3.38.1]{LangevinLean2026ULASC}.
@@ -98,6 +171,20 @@ Under the independent pair \((X,Z)\), the vector factor is \(g(X)-(\sqrt{2t}/(2t
 
 The flux pairing can be transported to a product of square-integrable fields on the independent-noise source. Cauchy–Schwarz proves absolute integrability there and hence in the kernel representation.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianFlux\_\allowbreak{}mul\_\allowbreak{}integrable}}
+\leansource{\texttt{frozenGaussianFlux\_\allowbreak{}mul\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 119–170}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianFlux\_mul\_integrable\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)}
+\leanline{4}{(φ\ :\ E\ →\ ℝ)\ (hφ\ :\ Continuous\ φ)}
+\leanline{4}{(hφLp\ :\ MemLp\ φ\ 2\ (interpolationLaw\ U\ μ\ t))\ (v\ :\ E)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ z.2)\ v\ *}
+\leanline{6}{φ\ z.2)\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}mul\_\allowbreak{}integrable}: the intermediate facts include \texttt{P}, \texttt{T}, \texttt{F}, \texttt{hqnonneg}, \texttt{hw}, in source order; the source steps apply or rewrite \texttt{Continuous.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}smul\_\allowbreak{}left}, \texttt{mul\_\allowbreak{}assoc}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.37.4]{LangevinLean2026ULASC}.
@@ -115,6 +202,20 @@ For a fixed direction \(v\), the derivative of the \(C^1\) test is \(D\psi(y)[v]
 
 A bounded \(C^1\) test with finite gradient square energy lies in the intended weak-test class. The preceding flux estimate verifies integrability of its gradient pairing before integration by parts.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianFlux\_\allowbreak{}test\_\allowbreak{}gradient\_\allowbreak{}integrable}}
+\leansource{\texttt{frozenGaussianFlux\_\allowbreak{}test\_\allowbreak{}gradient\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 174–184}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianFlux\_test\_gradient\_integrable\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)}
+\leanline{4}{(ψ\ :\ E\ →\ ℝ)\ (hψ\ :\ ContDiff\ ℝ\ 1\ ψ)}
+\leanline{4}{(hψgrad\ :\ MemLp\ (gradient\ ψ)\ 2\ (interpolationLaw\ U\ μ\ t))\ (v\ :\ E)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ z.2)\ v\ *}
+\leanline{6}{fderiv\ ℝ\ ψ\ z.2\ v)\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}test\_\allowbreak{}gradient\_\allowbreak{}integrable}: the source steps apply or rewrite \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}mul\_\allowbreak{}integrable}, \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}left}, \texttt{h\ensuremath{\psi}grad.\allowbreak{}inner\_\allowbreak{}const}.
+\end{leanbox}
 
 \section{\texorpdfstring{Control the boundary product from boundedness of the test}{Control the boundary product from boundedness of the test}}
 
@@ -129,6 +230,19 @@ A bounded test has finite square energy under the interpolation probability. Pai
 
 The test itself is bounded, so multiplying by an integrable flux component preserves integrability. This supplies the boundary-product condition in the global coordinate integration-by-parts theorem.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianFlux\_\allowbreak{}bounded\_\allowbreak{}test\_\allowbreak{}integrable}}
+\leansource{\texttt{frozenGaussianFlux\_\allowbreak{}bounded\_\allowbreak{}test\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 188–196}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianFlux\_bounded\_test\_integrable\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)}
+\leanline{4}{(ψ\ :\ E\ →\ ℝ)\ (hψ\ :\ Continuous\ ψ)\ (M\ :\ ℝ)\ (hM\ :\ ∀\ y,\ ‖ψ\ y‖\ ≤\ M)\ (v\ :\ E)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ z.2)\ v\ *}
+\leanline{6}{ψ\ z.2)\ (μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}bounded\_\allowbreak{}test\_\allowbreak{}integrable}: the source steps apply or rewrite \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}mul\_\allowbreak{}integrable}.
+\end{leanbox}
 
 \section{\texorpdfstring{Match the divergence to the independently differentiated Gaussian kernel}{Match the divergence to the independently differentiated Gaussian kernel}}
 
@@ -143,6 +257,19 @@ Summing the coordinate flux derivatives gives the same scalar expression as the 
 
 The divergence and time derivative have been calculated independently from their explicit formulas. Algebraic comparison identifies them pointwise, fixing both the diffusion and drift signs in the weak equation.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianKernelDot\_\allowbreak{}eq\_\allowbreak{}sum\_\allowbreak{}fderiv\_\allowbreak{}flux}}
+\leansource{\texttt{frozenGaussianKernelDot\_\allowbreak{}eq\_\allowbreak{}sum\_\allowbreak{}fderiv\_\allowbreak{}flux} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 199–207}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianKernelDot\_eq\_sum\_fderiv\_flux\ (U\ :\ E\ →\ ℝ)\ (t\ :\ ℝ)}
+\leanline{4}{(ht\ :\ 0\ <\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{frozenGaussianKernelDot\ U\ t\ x\ y\ =}
+\leanline{6}{∑\ i\ :\ Fin\ (Module.finrank\ ℝ\ E),}
+\leanline{8}{fderiv\ ℝ\ (fun\ y\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ x\ y)}
+\leanline{10}{(stdOrthonormalBasis\ ℝ\ E\ i))\ y\ (stdOrthonormalBasis\ ℝ\ E\ i)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\allowbreak{}Dot\_\allowbreak{}eq\_\allowbreak{}sum\_\allowbreak{}fderiv\_\allowbreak{}flux}: the source steps apply or rewrite \texttt{sum\_\allowbreak{}fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux}, \texttt{ht.\allowbreak{}ne'}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}eq\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}.
+\end{leanbox}
 
 \section{\texorpdfstring{Dominate each unit-coordinate flux derivative by a quadratic Gaussian energy}{Dominate each unit-coordinate flux derivative by a quadratic Gaussian energy}}
 
@@ -157,6 +284,17 @@ Apply the triangle inequality to the three coordinate derivative terms. The squa
 
 A derivative of one flux coordinate is bounded by the kernel times a constant plus quadratic displacement and gradient energies. These are precisely the terms included in the established Gaussian energy envelope.
 
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}fderiv\_\allowbreak{}frozenGaussianFlux\_\allowbreak{}coord\_\allowbreak{}le\_\allowbreak{}energy}}
+\leansource{\texttt{norm\_\allowbreak{}fderiv\_\allowbreak{}frozenGaussianFlux\_\allowbreak{}coord\_\allowbreak{}le\_\allowbreak{}energy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 211–259}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_fderiv\_frozenGaussianFlux\_coord\_le\_energy\ (U\ :\ E\ →\ ℝ)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (x\ y\ v\ :\ E)\ (hv\ :\ ‖v‖\ =\ 1)\ :}
+\leanline{4}{‖fderiv\ ℝ\ (fun\ y\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ x\ y)\ v)\ y\ v‖\ ≤}
+\leanline{6}{(1\ /\ (4\ *\ t\ \textasciicircum{}\ 2)\ +\ 1\ /\ (2\ *\ t))\ *\ frozenGaussianEnergy\ U\ t\ x\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{norm\_\allowbreak{}fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}coord\_\allowbreak{}le\_\allowbreak{}energy}: the intermediate facts include \texttt{r}, \texttt{hi}, \texttt{hg}, \texttt{hd}, \texttt{h\allowbreak{}K}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}one}, \texttt{fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}coord}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}eq\_\allowbreak{}real\allowbreak{}Gaussian\allowbreak{}Kernel}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.4]{LangevinLean2026ULASC}.
@@ -174,6 +312,19 @@ The explicit polynomial-Gaussian derivative formula is jointly measurable becaus
 
 Integrating the quadratic envelope first in the Gaussian observation and then in the initial law gives a finite value from dimension and \(G_0\). This verifies absolute integrability of each coordinate derivative.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}fderiv\_\allowbreak{}frozenGaussianFlux\_\allowbreak{}coord}}
+\leansource{\texttt{integrable\_\allowbreak{}fderiv\_\allowbreak{}frozenGaussianFlux\_\allowbreak{}coord} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 263–286}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_fderiv\_frozenGaussianFlux\_coord\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (v\ :\ E)\ (hv\ :\ ‖v‖\ =\ 1)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦}
+\leanline{6}{fderiv\ ℝ\ (fun\ y\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ y)\ v)\ z.2\ v)}
+\leanline{6}{(μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}coord}: the intermediate facts include \texttt{h\allowbreak{}E}, \texttt{heq}, \texttt{hg}, in source order; the source steps apply or rewrite \texttt{h\allowbreak{}E.\allowbreak{}const\_\allowbreak{}mul}, \texttt{fderiv\_\allowbreak{}frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}coord}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply global integration by parts after proving all three product integrabilities}{Apply global integration by parts after proving all three product integrabilities}}
 
@@ -188,6 +339,23 @@ The coordinate derivative times the bounded test is integrable by derivative dom
 
 The product, its directional derivative, and the flux-gradient pairing are all integrable. These checks make global integration by parts applicable without assuming compact support of the bounded test.
 
+\begin{leanbox}{Lean: \texttt{frozenGaussianFlux\_\allowbreak{}coord\_\allowbreak{}weak\_\allowbreak{}identity}}
+\leansource{\texttt{frozenGaussianFlux\_\allowbreak{}coord\_\allowbreak{}weak\_\allowbreak{}identity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 291–328}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianFlux\_coord\_weak\_identity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)}
+\leanline{4}{(ψ\ :\ E\ →\ ℝ)\ (hψ\ :\ ContDiff\ ℝ\ 1\ ψ)\ (M\ :\ ℝ)\ (hM\ :\ ∀\ y,\ ‖ψ\ y‖\ ≤\ M)}
+\leanline{4}{(hψgrad\ :\ MemLp\ (gradient\ ψ)\ 2\ (interpolationLaw\ U\ μ\ t))\ (v\ :\ E)\ (hv\ :\ ‖v‖\ =\ 1)\ :}
+\leanline{4}{(∫\ z\ :\ E\ ×\ E,}
+\leanline{6}{fderiv\ ℝ\ (fun\ y\ ↦\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ y)\ v)\ z.2\ v\ *\ ψ\ z.2}
+\leanline{6}{∂μ.prod\ volume)\ =}
+\leanline{6}{-(∫\ z\ :\ E\ ×\ E,\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ z.2)\ v\ *}
+\leanline{8}{fderiv\ ℝ\ ψ\ z.2\ v\ ∂μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Gaussian\allowbreak{}Flux\_\allowbreak{}coord\_\allowbreak{}weak\_\allowbreak{}identity}: the intermediate facts include \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}Df}, \texttt{h\allowbreak{}Fg}, \texttt{hl}, \texttt{hi}, in source order; the source steps apply or rewrite \texttt{hq.\allowbreak{}smul}, \texttt{differentiable\_\allowbreak{}const}, \texttt{integral\_\allowbreak{}prod}, \texttt{integral\_\allowbreak{}neg}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The weak equation for bounded continuously differentiable tests}{The weak equation for bounded continuously differentiable tests}}
 
@@ -202,10 +370,25 @@ Each coordinate integrand is integrable by the preceding estimates, so finite su
 
 Sum the coordinate identities and use divergence equal to the kernel time derivative. Fubini identifies the mixture derivative on the left, producing the weak equation for every admitted bounded finite-energy test.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensity\_\allowbreak{}weak\_\allowbreak{}identity}}
+\leansource{\texttt{interpolationLebesgueDensity\_\allowbreak{}weak\_\allowbreak{}identity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 334–384}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgueDensity\_weak\_identity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)}
+\leanline{4}{(ψ\ :\ E\ →\ ℝ)\ (hψ\ :\ ContDiff\ ℝ\ 1\ ψ)\ (M\ :\ ℝ)\ (hM\ :\ ∀\ y,\ ‖ψ\ y‖\ ≤\ M)}
+\leanline{4}{(hψgrad\ :\ MemLp\ (gradient\ ψ)\ 2\ (interpolationLaw\ U\ μ\ t))\ :}
+\leanline{4}{(∫\ y,\ interpolationLebesgueDensityTimeDerivative\ U\ μ\ t\ y\ *\ ψ\ y)\ =}
+\leanline{6}{-(∫\ z\ :\ E\ ×\ E,\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ z.2)}
+\leanline{8}{(gradient\ ψ\ z.2)\ ∂μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\_\allowbreak{}fisher\_\allowbreak{}bound} uses the differentiated mixture formula and weighted Cauchy–Schwarz to bound the mixture score by the averaged component-score energy. \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}time} justifies differentiation of the Gaussian probability mixture with the positive-time kernel domination estimates. \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}weak\_\allowbreak{}identity} applies the Gaussian flux integration-by-parts result under its bounded-test and finite-energy premises. The statements use the same interpolation density and initial gradient moment, so these results can be combined with the relative-density identity and the log-Sobolev inequality. Their conclusions concern positive times; none assumes differentiability at zero.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -41,6 +64,22 @@ Earlier results used here: \cite[Section~3.33]{LangevinLean2026ULASC}.
 
 The iid family has the infinite product path law. Independence makes its joint law with the initialization a product. Push this identity through the measurable recursion and use freshness of the canonical product chain to obtain the product of the actual current-state law and the innovation law.
 
+\begin{leanbox}{Lean: \texttt{noiseDrivenChain\_\allowbreak{}joint\_\allowbreak{}fresh\_\allowbreak{}of\_\allowbreak{}iid}}
+\leansource{\texttt{noiseDrivenChain\_\allowbreak{}joint\_\allowbreak{}fresh\_\allowbreak{}of\_\allowbreak{}iid} \quad AverageLMC/\allowbreak{}LaplacianIndependentSteps.lean, lines 25–55}
+\begin{leancode}
+\leanline{0}{theorem\ noiseDrivenChain\_joint\_fresh\_of\_iid}
+\leanline{4}{(P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(F\ :\ H\ →\ Z\ →\ H)\ (hF\ :\ Measurable\ (Function.uncurry\ F))}
+\leanline{4}{(X\ :\ Ω\ →\ H)\ (W\ :\ ℕ\ →\ Ω\ →\ Z)\ (hX\ :\ AEMeasurable\ X\ P)}
+\leanline{4}{(hW\ :\ ∀\ n,\ AEMeasurable\ (W\ n)\ P)}
+\leanline{4}{(hind\ :\ IndepFun\ X\ (fun\ a\ n\ ↦\ W\ n\ a)\ P)\ (hiid\ :\ iIndepFun\ W\ P)}
+\leanline{4}{(η\ :\ Measure\ Z)\ [IsProbabilityMeasure\ η]\ (hlaw\ :\ ∀\ n,\ P.map\ (W\ n)\ =\ η)\ (n\ :\ ℕ)\ :}
+\leanline{4}{P.map\ (fun\ a\ ↦\ (ULA.noiseDrivenChain\ F\ (X\ a)\ (fun\ k\ ↦\ W\ k\ a)\ n,\ W\ n\ a))\ =}
+\leanline{6}{(P.map\ (fun\ a\ ↦\ ULA.noiseDrivenChain\ F\ (X\ a)\ (fun\ k\ ↦\ W\ k\ a)\ n)).prod\ η}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}joint\_\allowbreak{}fresh\_\allowbreak{}of\_\allowbreak{}iid} gives the formal counterpart of this step. The main intermediate facts are \texttt{Q}, \texttt{hpath}, \texttt{hpair}, \texttt{hmap}, \texttt{hprod}, \texttt{hjoint} in that order. Named proof applications include \texttt{hp}, \texttt{hjoint}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.4]{LangevinLean2026ULASC}; \cite[Section~3.20.8]{LangevinLean2026ULASC}; \cite[Section~3.33.7]{LangevinLean2026ULASC}.
@@ -50,13 +89,24 @@ Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[S
 
 Run the recursion on a pair whose first coordinate is copied at each step. Induction proves that this coordinate remains the original value while the second coordinate is precisely the ordinary noise-driven chain. This allows a bounded initial weight to be included in the freshness argument.
 
+\begin{leanbox}{Lean: \texttt{noiseDrivenChain\_\allowbreak{}passive}}
+\leansource{\texttt{noiseDrivenChain\_\allowbreak{}passive} \quad AverageLMC/\allowbreak{}LaplacianIndependentSteps.lean, lines 58–64}
+\begin{leancode}
+\leanline{0}{theorem\ noiseDrivenChain\_passive\ \{A\ :\ Type*\}\ (F\ :\ H\ →\ Z\ →\ H)}
+\leanline{4}{(a\ :\ A)\ (x\ :\ H)\ (w\ :\ ℕ\ →\ Z)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.noiseDrivenChain\ (fun\ p\ :\ A\ ×\ H\ ↦\ fun\ z\ ↦\ (p.1,\ F\ p.2\ z))\ (a,\ x)\ w\ n\ =}
+\leanline{6}{(a,\ ULA.noiseDrivenChain\ F\ x\ w\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}passive} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

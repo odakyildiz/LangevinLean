@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,82 @@ For Proposition 1 put \(\kappa=L/m\), \(a=M_{\rm av}/m+1\), and assume \(W_2^2(\
 
 The recursive law at step \(k+1\) is the independent Gaussian Euler transition at the deterministic step \(h(k)\), applied to the current law. The zero and successor identities expose this recursion. A pushforward of a product of probability laws remains a probability law, proving normalization at every \(k\). For each nonnegative step, the already constructed \(L^{2}\) Brownian realization gives finite output transport whenever initial transport is finite; the zero-step identity covers \(h=0\). Induction gives finite moments for every law of an arbitrary nonnegative deterministic schedule.
 
+\begin{leanbox}{Lean: \texttt{lmcLaws}, \texttt{lmcLaws\_\allowbreak{}zero}, \texttt{lmcLaws\_\allowbreak{}succ} and 3 more}
+\leansource{\texttt{lmcLaws} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 13–16}
+\begin{leancode}
+\leanline{0}{def\ lmcLaws\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (steps\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ :\ ℕ\ →\ Measure\ (State\ p)}
+\leanline{2}{|\ 0\ =>\ μ}
+\leanline{2}{|\ k\ +\ 1\ =>\ ulaLawStep\ f\ (steps\ k)\ (lmcLaws\ f\ steps\ μ\ k)}
+\end{leancode}
+\leansource{\texttt{lmcLaws\_\allowbreak{}zero} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 18–19}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ lmcLaws\_zero\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (steps\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ :\ lmcLaws\ f\ steps\ μ\ 0\ =\ μ}
+\end{leancode}
+\leansource{\texttt{lmcLaws\_\allowbreak{}succ} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 21–23}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ lmcLaws\_succ\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (steps\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ (k\ :\ ℕ)\ :}
+\leanline{4}{lmcLaws\ f\ steps\ μ\ (k\ +\ 1)\ =\ ulaLawStep\ f\ (steps\ k)\ (lmcLaws\ f\ steps\ μ\ k)}
+\end{leancode}
+\leansource{\texttt{lmcLaws\_\allowbreak{}isProbability} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 25–32}
+\begin{leancode}
+\leanline{0}{instance\ lmcLaws\_isProbability\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (steps\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ (k\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (lmcLaws\ f\ steps\ μ\ k)\ :=\ by}
+\leanline{2}{induction\ k\ with}
+\leanline{2}{|\ zero\ =>\ exact\ inferInstanceAs\ (IsProbabilityMeasure\ μ)}
+\leanline{2}{|\ succ\ k\ ih\ =>}
+\leanline{4}{change\ IsProbabilityMeasure\ ((lmcLaws\ f\ steps\ μ\ k).prod\ (stdGaussian\ (State\ p))\ |>.map\ \_)}
+\leanline{4}{infer\_instance}
+\end{leancode}
+\leansource{\texttt{lmc\_\allowbreak{}step\_\allowbreak{}finite} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 35–43}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_step\_finite\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ :}
+\leanline{4}{wasserstein2\ (ulaLawStep\ f\ h\ μ)\ (gibbsMeasure\ f)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{lmcLaws\_\allowbreak{}finite} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 46–54}
+\begin{leancode}
+\leanline{0}{theorem\ lmcLaws\_finite\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (steps\ :\ ℕ\ →\ ℝ)\ (hsteps\ :\ ∀\ k,\ 0\ ≤\ steps\ k)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ (lmcLaws\ f\ steps\ μ\ k)\ (gibbsMeasure\ f)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lmc\allowbreak{}Laws} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lmc\allowbreak{}Laws\_\allowbreak{}zero} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+
+
+
+
+\texttt{lmc\allowbreak{}Laws\_\allowbreak{}succ} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+
+
+
+
+\texttt{lmc\allowbreak{}Laws\_\allowbreak{}is\allowbreak{}Probability} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lmc\_\allowbreak{}step\_\allowbreak{}finite} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{lmc\allowbreak{}Laws\_\allowbreak{}finite} proceeds by \texttt{induction k with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.45.6]{LangevinLean2026ULASC}.
@@ -44,6 +143,40 @@ Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[S
 
 When \(hL\le1\), the score correction coefficient is nonpositive and the score second moment is nonnegative, so the exact one-step theorem implies the two-term affine recurrence. A constant schedule agrees by induction with iteration of the actual Gaussian transition. Strong convexity and coordinate smoothness imply \(m\le M_{\mathrm{av}}\le L\), hence \(0\le mh\le 1\). Apply the scalar recurrence theorem with \(t=mh\) and forcing coefficient \((M_{\mathrm{av}}+m)p/m^2\). Its exponential contraction becomes \(\exp(-2mkh)\), and its fixed point becomes exactly \((M_{\mathrm{av}}+m)hp/(2m)\). This proves Theorem 1’s global claim for actual LMC laws.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}stable}, \texttt{lmcLaws\_\allowbreak{}const}, \texttt{lmc\_\allowbreak{}constant\_\allowbreak{}step}}
+\leansource{\texttt{lmc\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}stable} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 57–73}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_one\_step\_stable\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hstep\ :\ h\ *\ (L\ :\ ℝ)\ ≤\ 1)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ :}
+\leanline{4}{wasserstein2Real\ (ulaLawStep\ f\ h\ μ)\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ /\ (1\ +\ m\ *\ h)\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ +}
+\leanline{6}{((averageSmoothness\ f\ +\ m)\ *\ h\ \textasciicircum{}\ 2\ *\ p)\ /\ (1\ +\ m\ *\ h)}
+\end{leancode}
+\leansource{\texttt{lmcLaws\_\allowbreak{}const} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 76–81}
+\begin{leancode}
+\leanline{0}{theorem\ lmcLaws\_const\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ (k\ :\ ℕ)\ :}
+\leanline{4}{lmcLaws\ f\ (fun\ \_\ ↦\ h)\ μ\ k\ =\ (ulaLawStep\ f\ h)\textasciicircum{}[k]\ μ}
+\end{leancode}
+\leansource{\texttt{lmc\_\allowbreak{}constant\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 84–111}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_constant\_step\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hstep\ :\ h\ *\ (L\ :\ ℝ)\ ≤\ 1)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ ((ulaLawStep\ f\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{Real.exp\ (-2\ *\ m\ *\ (k\ :\ ℝ)\ *\ h)\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ +}
+\leanline{8}{(averageSmoothness\ f\ +\ m)\ *\ h\ *\ p\ /\ (2\ *\ m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lmc\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}stable} first proves that the score correction is nonpositive. \texttt{lmc\_\allowbreak{}constant\_\allowbreak{}step} defines the actual squared-distance sequence as \texttt{r}; \texttt{lmc\allowbreak{}Laws\_\allowbreak{}finite} allows the one-step theorem to be applied at every index. The block \texttt{hs} is the scalar recurrence after normalization. \texttt{constant\_\allowbreak{}step\_\allowbreak{}normalized} iterates it and uses \texttt{contraction\_\allowbreak{}le\_\allowbreak{}exp}. Finally \texttt{lmc\allowbreak{}Laws\_\allowbreak{}const} identifies the recursively constructed marginal laws with iteration of the Gaussian transition.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
@@ -53,6 +186,46 @@ Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[S
 
 Multiplying the proved stable one-step inequality by \(m/p\) gives the dimensionless recurrence for \(r(k)=m\) \(W_{2}^{2}/p\) with \(a=M_{\mathrm{av}}/m+1\). The schedule is initially written as the dimensionless schedule divided by \(m\); elementary division shows it is exactly \(1/(L+m(k-k_{0})_{+})\), as displayed in Proposition 1. The scalar warmup proof is extended to zero initial error: then \(k_{0}=0\) and the harmonic tail applies immediately. For nonzero initial error, its absolute value has the same square and the same warmup, so the existing positive-parameter scalar theorem applies without adding a sign restriction.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}normalized\_\allowbreak{}step}, \texttt{lmcVariableSchedule}, \texttt{lmcVariableSchedule\_\allowbreak{}eq} and 1 more}
+\leansource{\texttt{lmc\_\allowbreak{}normalized\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 114–128}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_normalized\_step\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hstep\ :\ h\ *\ (L\ :\ ℝ)\ ≤\ 1)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)\ :}
+\leanline{4}{m\ /\ p\ *\ wasserstein2Real\ (ulaLawStep\ f\ h\ μ)\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ /\ (1\ +\ m\ *\ h)\ *}
+\leanline{8}{(m\ /\ p\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2)\ +}
+\leanline{6}{(averageSmoothness\ f\ /\ m\ +\ 1)\ *\ (m\ *\ h)\ \textasciicircum{}\ 2\ /\ (1\ +\ m\ *\ h)}
+\end{leancode}
+\leansource{\texttt{lmcVariableSchedule} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 131–132}
+\begin{leancode}
+\leanline{0}{def\ lmcVariableSchedule\ (M\ m\ :\ ℝ)\ (k₀\ k\ :\ ℕ)\ :\ ℝ\ :=}
+\leanline{2}{variableStep\ (M\ /\ m)\ k₀\ k\ /\ m}
+\end{leancode}
+\leansource{\texttt{lmcVariableSchedule\_\allowbreak{}eq} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 135–141}
+\begin{leancode}
+\leanline{0}{theorem\ lmcVariableSchedule\_eq\ \{M\ m\ :\ ℝ\}\ (hm\ :\ 0\ <\ m)\ (hM\ :\ 0\ <\ M)}
+\leanline{4}{(k₀\ k\ :\ ℕ)\ :}
+\leanline{4}{lmcVariableSchedule\ M\ m\ k₀\ k\ =\ 1\ /\ (M\ +\ m\ *\ ((k\ -\ k₀\ :\ ℕ)\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized\_\allowbreak{}all} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 144–164}
+\begin{leancode}
+\leanline{0}{private\ theorem\ variable\_step\_normalized\_all\ (r\ :\ ℕ\ →\ ℝ)\ (a\ κ\ ε₀\ :\ ℝ)}
+\leanline{4}{(ha\ :\ 0\ <\ a)\ (hκ\ :\ 1\ ≤\ κ)\ (hr0\ :\ 0\ ≤\ r\ 0)\ (hinit\ :\ r\ 0\ ≤\ ε₀\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ ∀\ k,\ r\ (k\ +\ 1)\ ≤}
+\leanline{6}{(1\ -\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k)\ /}
+\leanline{8}{(1\ +\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k)\ *\ r\ k\ +}
+\leanline{6}{a\ *\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k\ \textasciicircum{}\ 2\ /}
+\leanline{8}{(1\ +\ variableStep\ κ\ (warmup\ κ\ a\ ε₀)\ k))}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ warmup\ κ\ a\ ε₀\ ≤\ k)\ :}
+\leanline{4}{r\ k\ ≤\ a\ /\ (κ\ +\ ((k\ -\ warmup\ κ\ a\ ε₀\ :\ ℕ)\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lmc\_\allowbreak{}normalized\_\allowbreak{}step} multiplies the stable one-step inequality by \(m/p>0\) and simplifies the fractions. \texttt{lmc\allowbreak{}Variable\allowbreak{}Schedule} divides the scalar normalized step by \(m\); \texttt{lmc\allowbreak{}Variable\allowbreak{}Schedule\_\allowbreak{}eq} proves its equality to the displayed reciprocal schedule by clearing positive denominators. \texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized\_\allowbreak{}all} splits \texttt{h\ensuremath{\varepsilon}}, the zero-initial-error case. There the warmup is zero and \texttt{variable\_\allowbreak{}step\_\allowbreak{}tail} applies directly. Otherwise it uses the unchanged square of the absolute initial-error parameter to invoke \texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
@@ -62,6 +235,43 @@ Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[S
 
 The coordinate comparison gives \(\kappa =L/m\ge 1\) and \(a>0\). The chosen schedule is positive and satisfies \(h(k)L\le 1\) at every step. Use the actual-law normalized estimate and the derived finite moments to discharge every recurrence premise. The warmup and harmonic-tail theorem then gives \(r(k)\le a/(\kappa +k-k_{0})\) for all \(k\ge k_{0}\). Multiply back by \(p/m\) to recover the exact paper envelope. Finally, the explicit positive-part ceiling defining the sufficient iteration count makes this envelope at most \(\varepsilon ^{2}\); multiplying by \(p/m\) proves the stated sufficient iteration threshold for the actual algorithm.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step}, \texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}accuracy}}
+\leansource{\texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 168–227}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_variable\_step\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ ε₀\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)}
+\leanline{4}{(hinit\ :\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ ε₀\ \textasciicircum{}\ 2\ *\ p\ /\ m)}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ warmup\ ((L\ :\ ℝ)\ /\ m)\ (averageSmoothness\ f\ /\ m\ +\ 1)\ ε₀\ ≤\ k)\ :}
+\leanline{4}{let\ κ\ :=\ (L\ :\ ℝ)\ /\ m}
+\leanline{4}{let\ a\ :=\ averageSmoothness\ f\ /\ m\ +\ 1}
+\leanline{4}{let\ k₀\ :=\ warmup\ κ\ a\ ε₀}
+\leanline{4}{wasserstein2Real\ (lmcLaws\ f\ (lmcVariableSchedule\ (L\ :\ ℝ)\ m\ k₀)\ μ\ k)}
+\leanline{6}{(gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{a\ /\ (κ\ +\ ((k\ -\ k₀\ :\ ℕ)\ :\ ℝ))\ *\ p\ /\ m}
+\end{leancode}
+\leansource{\texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}accuracy} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 231–252}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_variable\_step\_accuracy\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ ε₀\ ε\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ ≠\ ⊤)}
+\leanline{4}{(hinit\ :\ wasserstein2Real\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ ε₀\ \textasciicircum{}\ 2\ *\ p\ /\ m)}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ variableIterations\ ((L\ :\ ℝ)\ /\ m)\ (averageSmoothness\ f\ /\ m\ +\ 1)\ ε₀\ ε\ ≤\ k)\ :}
+\leanline{4}{let\ κ\ :=\ (L\ :\ ℝ)\ /\ m}
+\leanline{4}{let\ a\ :=\ averageSmoothness\ f\ /\ m\ +\ 1}
+\leanline{4}{let\ k₀\ :=\ warmup\ κ\ a\ ε₀}
+\leanline{4}{wasserstein2Real\ (lmcLaws\ f\ (lmcVariableSchedule\ (L\ :\ ℝ)\ m\ k₀)\ μ\ k)}
+\leanline{6}{(gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ ε\ \textasciicircum{}\ 2\ *\ p\ /\ m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{warmup\_\allowbreak{}decay} checks the initial exponential allocation, including the logarithmic ceiling. \texttt{harmonic\_\allowbreak{}step} proves the single rational induction step after warmup. \texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step} verifies admissibility of every actual step in \texttt{hs}, normalizes the initial cost in \texttt{hi}, and derives the normalized recurrence in \texttt{hrec}. \texttt{variable\_\allowbreak{}step\_\allowbreak{}normalized\_\allowbreak{}all} handles zero initial error explicitly before applying the scalar warmup-and-tail estimate.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -71,13 +281,66 @@ Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[S
 
 The exponential contraction factor is strictly positive. If the initial extended Wasserstein distance is infinite, the extended global constant-step inequality has infinite right side and follows immediately. If it is finite, the proved real-valued estimate and finite-output transport convert back to the extended nonnegative inequality. For the variable-step proposition, its stated finite initial squared-distance bound already forces finite initial distance; taking real values gives exactly the initial-error inequality used above. Applying the actual-law variable envelope and accuracy theorems therefore requires no independent finite-moment premise.
 
+\begin{leanbox}{Lean: \texttt{lmc\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended}, \texttt{finite\_\allowbreak{}initial\_\allowbreak{}error\_\allowbreak{}of\_\allowbreak{}extended}, \texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}extended\_\allowbreak{}initial} and 1 more}
+\leansource{\texttt{lmc\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 256–275}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_constant\_step\_extended\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hstep\ :\ h\ *\ (L\ :\ ℝ)\ ≤\ 1)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ ((ulaLawStep\ f\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{ENNReal.ofReal\ (Real.exp\ (-2\ *\ m\ *\ (k\ :\ ℝ)\ *\ h))\ *}
+\leanline{8}{wasserstein2\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ +}
+\leanline{6}{ENNReal.ofReal\ ((averageSmoothness\ f\ +\ m)\ *\ h\ *\ p\ /\ (2\ *\ m))}
+\end{leancode}
+\leansource{\texttt{finite\_\allowbreak{}initial\_\allowbreak{}error\_\allowbreak{}of\_\allowbreak{}extended} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 279–289}
+\begin{leancode}
+\leanline{0}{theorem\ finite\_initial\_error\_of\_extended\ \{p\ :\ ℕ\}\ (μ\ π\ :\ Measure\ (State\ p))}
+\leanline{4}{(m\ ε₀\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hinit\ :\ wasserstein2\ μ\ π\ \textasciicircum{}\ 2\ ≤\ ENNReal.ofReal\ (ε₀\ \textasciicircum{}\ 2\ *\ p\ /\ m))\ :}
+\leanline{4}{wasserstein2\ μ\ π\ ≠\ ⊤\ ∧\ wasserstein2Real\ μ\ π\ \textasciicircum{}\ 2\ ≤\ ε₀\ \textasciicircum{}\ 2\ *\ p\ /\ m}
+\end{leancode}
+\leansource{\texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}extended\_\allowbreak{}initial} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 293–306}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_variable\_step\_extended\_initial\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ ε₀\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hinit\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ ENNReal.ofReal\ (ε₀\ \textasciicircum{}\ 2\ *\ p\ /\ m))}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ warmup\ ((L\ :\ ℝ)\ /\ m)\ (averageSmoothness\ f\ /\ m\ +\ 1)\ ε₀\ ≤\ k)\ :}
+\leanline{4}{let\ κ\ :=\ (L\ :\ ℝ)\ /\ m}
+\leanline{4}{let\ a\ :=\ averageSmoothness\ f\ /\ m\ +\ 1}
+\leanline{4}{let\ k₀\ :=\ warmup\ κ\ a\ ε₀}
+\leanline{4}{wasserstein2Real\ (lmcLaws\ f\ (lmcVariableSchedule\ (L\ :\ ℝ)\ m\ k₀)\ μ\ k)}
+\leanline{6}{(gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ a\ /\ (κ\ +\ ((k\ -\ k₀\ :\ ℕ)\ :\ ℝ))\ *\ p\ /\ m}
+\end{leancode}
+\leansource{\texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}accuracy\_\allowbreak{}extended\_\allowbreak{}initial} \quad AverageLMC/\allowbreak{}Theorem.lean, lines 310–323}
+\begin{leancode}
+\leanline{0}{theorem\ lmc\_variable\_step\_accuracy\_extended\_initial\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ ε₀\ ε\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hinit\ :\ wasserstein2\ μ\ (gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ ENNReal.ofReal\ (ε₀\ \textasciicircum{}\ 2\ *\ p\ /\ m))}
+\leanline{4}{(k\ :\ ℕ)\ (hk\ :\ variableIterations\ ((L\ :\ ℝ)\ /\ m)\ (averageSmoothness\ f\ /\ m\ +\ 1)\ ε₀\ ε\ ≤\ k)\ :}
+\leanline{4}{let\ κ\ :=\ (L\ :\ ℝ)\ /\ m}
+\leanline{4}{let\ a\ :=\ averageSmoothness\ f\ /\ m\ +\ 1}
+\leanline{4}{let\ k₀\ :=\ warmup\ κ\ a\ ε₀}
+\leanline{4}{wasserstein2Real\ (lmcLaws\ f\ (lmcVariableSchedule\ (L\ :\ ℝ)\ m\ k₀)\ μ\ k)}
+\leanline{6}{(gibbsMeasure\ f)\ \textasciicircum{}\ 2\ ≤\ ε\ \textasciicircum{}\ 2\ *\ p\ /\ m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lmc\_\allowbreak{}constant\_\allowbreak{}step\_\allowbreak{}extended} splits finite and infinite initial extended distance, converting the finite real theorem back with \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real}. \texttt{finite\_\allowbreak{}initial\_\allowbreak{}error\_\allowbreak{}of\_\allowbreak{}extended} derives finiteness from the stated finite squared-distance bound. \texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}extended\_\allowbreak{}initial} and \texttt{lmc\_\allowbreak{}variable\_\allowbreak{}step\_\allowbreak{}accuracy\_\allowbreak{}extended\_\allowbreak{}initial} then use that derived fact as the initial finiteness premise of their real-valued counterparts. Thus the extended statements do not interpret an infinite distance through \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

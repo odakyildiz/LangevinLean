@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,80 +39,393 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The deterministic maps accept a force vector field and supplied noise vectors. The same map can be applied to a particle force or to a force multiplied by inverse mass. Throughout the section, the first phase coordinate is velocity and the second is position. The response-kernel construction specifies the covariance matrices required by the probabilistic interpretation; these maps accept arbitrary noise vectors, so the Gaussian law remains an additional assumption when the maps define a stochastic algorithm.
+Let \(\mathcal X\) be a real normed space, \(\gamma\in\mathbb R\) the friction, \(h\) the step size and \(F:\mathcal X\to\mathcal X\) a force field (in the paper \(F=\nabla f\)). Phase points are pairs \((v,x)\), velocity first. The coefficients \(\psi_k,\varphi_k\) are those of the previous section. This section defines the deterministic maps from which the samplers are built, with the innovations supplied as arguments:
+
+
+\[\Phi_h\bigl((v,x),(\xi,\xi')\bigr)=\bigl(\psi_0(h)v-\psi_1(h)F(x)+\xi,\;x+\psi_1(h)v-\psi_2(h)F(x)+\xi'\bigr),\]
+
+
+the KLMC step \(\Phi_h((v,x),\sqrt{2\gamma}(\xi,\xi'))\), which is display (KLMC) of Dalalyan and Riou-Durand, and the second-order (KLMC2) step, which subtracts \(\varphi_2(h)H(x)v\), \(\varphi_3(h)H(x)v\) and uses four innovations \(\xi^{(1)},\dots,\xi^{(4)}\) as in display (KLMC2), with a general operator field \(H\) in place of \(\nabla^2f\).
 
 
 
-The update is an exact solution of the linear frozen-force problem. Local numerical error therefore comes only from the nonlinear force variation, while all friction and Gaussian response coefficients remain exact.
+
+We prove that the deterministic part of \(\Phi_h\) is the exact solution at time \(h\) of the frozen-force equation \(v'=-\gamma v-F(x_0)\), \(x'=v\), started at \((v_0,x_0)\); that the step is the identity for \(h=0\) without noise; that two steps with the same innovation differ by an expression in which the innovation has cancelled; that at zero friction the step is the constant-acceleration update; and that the second-order step with zero Hessian is the first-order step. Finally the numerical chains are defined for a prescribed innovation sequence. The Gaussian law of the innovations is not part of these definitions; it is imposed and constructed in later sections.
 
 
-\section{\texorpdfstring{Definition of the frozen-force phase update}{Definition of the frozen-force phase update}}
+\section{\texorpdfstring{The exact response to a frozen force}{The exact response to a frozen force}}
 
 
-The velocity–position space is \(E\times E\). For supplied additive innovation \((n_v,n_x)\), define
-
-\[v^+=\psi_0v-\psi_1g(x)+n_v,\qquad x^+=x+\psi_1v-\psi_2g(x)+n_x.\]
-
-For KLMC, take the innovation to be \(\sqrt{2\gamma}(\xi,\xi')\), matching the paper's noise normalization. The two coordinates of the update are the displayed velocity and position expressions. KIPLMC1 uses this same map with its particle force and thermal amplitude.
+\textbf{Definition.} For \(\gamma\in\mathbb R\), \(v,x,F\in\mathcal X\) and \(t\in\mathbb R\) put
 
 
-
-Conditioning on the starting phase freezes the force at one position. The resulting affine linear system can be solved by an integrating factor for velocity and then a time integral for position. The only nonlinear approximation in this step is keeping that force constant.
-
-
-\section{\texorpdfstring{Zero step length and subtraction with common noise}{Zero step length and subtraction with common noise}}
+\[V(t)=\psi_0(t)\,v-\psi_1(t)\,F,\qquad X(t)=x+\psi_1(t)\,v-\psi_2(t)\,F .\]
 
 
-At zero time, \(\psi_0=1\), \(\psi_1=\psi_2=0\); with zero innovation the step is the identity. Both coordinate formulas reduce to their initial values. For two starting phases driven by the same innovation, subtraction cancels each additive noise term before any estimate:
-
-\[\Delta v^+=\psi_0\Delta v-\psi_1\Delta g,\quad
-\Delta x^+=\Delta x+\psi_1\Delta v-\psi_2\Delta g.\]
-
-Subtracting the corresponding velocity formulas and then the position formulas cancels the common innovation and gives these identities. The KLMC cancellation theorem reuses this exact identity with the scaled noise argument. It does not need Gaussianity.
+\textbf{Claim.} For every \(t\in\mathbb R\), \(X\) and \(V\) are differentiable at \(t\) and
 
 
-
-For two states using the same additive innovation, subtraction removes the innovation exactly. The remaining difference is a deterministic expression involving the two starting velocities, positions, and force values. This permits the numerical comparison to be analyzed pathwise before any expectation is taken.
-
-
-\section{\texorpdfstring{The Hessian-corrected phase update}{The Hessian-corrected phase update}}
+\[X'(t)=V(t),\qquad V'(t)=-\gamma\,V(t)-F .\]
 
 
-With \(H=\nabla^2f(x)\), the second-order map subtracts \(\varphi_2Hv\) from velocity and \(\varphi_3Hv\) from position. Its innovations are \(\sqrt{2\gamma}(\xi_0-H\xi_2)\) and \(\sqrt{2\gamma}(\xi_1-H\xi_3)\). The Hessian-corrected update includes all four terms. With zero Hessian, the deterministic and random corrections vanish and the map becomes the original KLMC map using \((\xi_0,\xi_1)\). This follows by setting each Hessian term in the two coordinates equal to zero. When comparing two nonzero Hessians, the noise terms differ too; this explicit map prevents silently discarding that contribution.
+\textbf{Proof.} A function \(t\mapsto c(t)\,w\), with \(c\) a real differentiable function and \(w\in\mathcal X\) fixed, has derivative \(c'(t)\,w\). Using \(\psi_1'=\psi_0\) and \(\psi_2'=\psi_1\) (first step of the previous section),
+
+
+\[X'(t)=\psi_0(t)\,v-\psi_1(t)\,F=V(t).\]
+
+
+Using \(\psi_0'=-\gamma\psi_0\) and \(\psi_1'=\psi_0\), \(V'(t)=-\gamma\psi_0(t)v-\psi_0(t)F\). On the other hand, by the friction identity \(\gamma\psi_1(t)=1-\psi_0(t)\),
+
+
+\[-\gamma V(t)-F=-\gamma\psi_0(t)v+\gamma\psi_1(t)F-F=-\gamma\psi_0(t)v-\bigl(1-\gamma\psi_1(t)\bigr)F=-\gamma\psi_0(t)v-\psi_0(t)F .\]
+
+
+The two expressions coincide. \(\square\)
 
 
 
-The four innovations are correlated because all are deterministic responses to the same Brownian interval. A Hessian multiplies the appropriate noise responses as well as the deterministic response. Omitting those stochastic correction terms changes the map and invalidates a second-order comparison.
+
+Since \(V(0)=v\) and \(X(0)=x\) (values of \(\psi_k\) at \(0\)), the pair \((V,X)\) is the solution of the kinetic equation without noise in which the force is frozen at the constant vector \(F\). In the numerical scheme \(F=F(x_k)\) is the force at the current position, and the only approximation made by the deterministic part of the step is this freezing. The friction identity is what makes the formula exact for every real \(\gamma\), including \(\gamma=0\).
+
+\begin{leanbox}{Lean: \texttt{frozenVelocity}, \texttt{frozenPosition}, \texttt{hasDerivAt\_\allowbreak{}frozenPosition} and 1 more}
+\leansource{\texttt{frozenVelocity} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{def\ frozenVelocity\ (γ\ :\ ℝ)\ (v\ force\ :\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{psi\ γ\ 0\ t\ •\ v\ -\ psi\ γ\ 1\ t\ •\ force}
+\end{leancode}
+\leansource{\texttt{frozenPosition} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ frozenPosition\ (γ\ :\ ℝ)\ (x\ v\ force\ :\ E)\ (t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{x\ +\ psi\ γ\ 1\ t\ •\ v\ -\ psi\ γ\ 2\ t\ •\ force}
+\end{leancode}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}frozenPosition} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 31–37}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_frozenPosition\ (γ\ :\ ℝ)\ (x\ v\ force\ :\ E)\ (t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (frozenPosition\ γ\ x\ v\ force)\ (frozenVelocity\ γ\ v\ force\ t)\ t}
+\end{leancode}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}frozenVelocity} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 41–54}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_frozenVelocity\ (γ\ :\ ℝ)\ (v\ force\ :\ E)\ (t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (frozenVelocity\ γ\ v\ force)}
+\leanline{6}{(-γ\ •\ frozenVelocity\ γ\ v\ force\ t\ -\ force)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The section works over a real normed space \texttt{E} (instances \texttt{[Normed\allowbreak{}Add\allowbreak{}Comm\allowbreak{}Group E] [Normed\allowbreak{}Space \ensuremath{\mathbb R} E]}).
 
 
-\section{\texorpdfstring{Constant-force motion at zero friction}{Constant-force motion at zero friction}}
+
+\begin{enumerate}
 
 
-At \(\gamma=0\), the coefficient identities give \(\psi_0=1\), \(\psi_1=h\), \(\psi_2=h^2/2\), while \(\sqrt{2\gamma}=0\). Therefore \(v^+=v-hg(x)\) and \(x^+=x+hv-h^2g(x)/2\). The proof simplifies the map with the exact zero-friction coefficient lemmas. It asserts exact integration of a frozen force, not exact integration of a spatially varying Hamiltonian force along the whole interval.
+\item \texttt{frozen\allowbreak{}Velocity \ensuremath{\gamma} v force t} is \texttt{psi \ensuremath{\gamma} 0 t \ensuremath{\bullet} v -\allowbreak{} psi \ensuremath{\gamma} 1 t \ensuremath{\bullet} force} and \texttt{frozen\allowbreak{}Position \ensuremath{\gamma} x v force t} is \texttt{x + psi \ensuremath{\gamma} 1 t \ensuremath{\bullet} v -\allowbreak{} psi \ensuremath{\gamma} 2 t \ensuremath{\bullet} force}, the functions \(V\) and \(X\).
+
+\item \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}frozen\allowbreak{}Position} combines \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}const} with \texttt{(has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}succ \ensuremath{\gamma} t 0).\allowbreak{}smul\_\allowbreak{}const v} and \texttt{(has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}succ \ensuremath{\gamma} t 1).\allowbreak{}smul\_\allowbreak{}const force}; the lemma \texttt{Has\allowbreak{}Deriv\allowbreak{}At.\allowbreak{}smul\_\allowbreak{}const} is the rule \((c(t)w)'=c'(t)w\). \texttt{change} unfolds the definitions and \texttt{simpa} tidies the indices.
+
+\item \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}frozen\allowbreak{}Velocity}: \texttt{hd} is the derivative \(-\gamma\psi_0(t)v-\psi_0(t)F\) obtained from \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}zero} and \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}succ}; \texttt{he} is the displayed identity \(-\gamma V(t)-F=-\gamma\psi_0(t)v-\psi_0(t)F\), proved by expanding the scalars and inserting \(-\gamma\psi_1(t)=\psi_0(t)-1\), which \texttt{linarith} derives from \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one}, before \texttt{module} closes the linear identity. Rewriting the goal with \texttt{he} leaves \texttt{hd}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The exponential step and the KLMC step}{The exponential step and the KLMC step}}
+
+
+\textbf{Definitions.} Let \(F:\mathcal X\to\mathcal X\), \(\gamma,h\in\mathbb R\). The exponential step with innovation \((\xi,\xi')\in\mathcal X\times\mathcal X\) is
+
+
+\[\Phi_h\bigl((v,x),(\xi,\xi')\bigr)=\bigl(\psi_0(h)v-\psi_1(h)F(x)+\xi,\;x+\psi_1(h)v-\psi_2(h)F(x)+\xi'\bigr),\]
+
+
+and the KLMC step is \(\Phi_h((v,x),\sqrt{2\gamma}\,(\xi,\xi'))\), where \(\sqrt{\cdot}\) is the real square root.
 
 
 
-When friction is zero, \(\psi_0=1\), \(\psi_1=h\), and \(\psi_2=h^2/2\). Substitution gives the elementary constant-acceleration formulas. This is a useful consistency check on signs, on the order of the phase coordinates, and on the factor one half in position.
+
+\textbf{Claim.} In the notation of the previous step with frozen force \(F(x)\),
 
 
-\section{\texorpdfstring{Recursion for a prescribed innovation sequence}{Recursion for a prescribed innovation sequence}}
+\[\Phi_h\bigl((v,x),(\xi,\xi')\bigr)=\bigl(V(h)+\xi,\;X(h)+\xi'\bigr),\]
 
 
-The KLMC sequence starts at the supplied phase and recursively applies the KLMC update with innovation number \(k\). The initial value is the prescribed phase, and the successor value is the preceding phase updated with the next innovation. The Hessian-corrected sequence uses the same recursion pattern with the four-block innovation required by the Hessian-corrected update. A prescribed noise stream is a pathwise object: assigning independent Gaussian coordinate laws and proving finite moments of this recursion is the next probabilistic task, not a hidden assumption in the definitions.
-
-
-
-The recursion is a deterministic measurable function of the initial phase and the full innovation sequence. Probabilistic assumptions are imposed on these inputs afterward. In particular, independence across time is a property of the prescribed stream and is not supplied by recursion alone.
-
-
-\section{\texorpdfstring{Differential equations for the frozen-force response}{Differential equations for the frozen-force response}}
-
-
-For constant force \(g\), define \(v_t=\psi_0(t)v_0-\psi_1(t)g\) and \(x_t=x_0+\psi_1(t)v_0-\psi_2(t)g\). The coefficient derivative identities immediately give \(x'_t=v_t\). For velocity they give \(v'_t=-\gamma\psi_0(t)v_0-\psi_0(t)g\). Substituting \(\gamma\psi_1=1-\psi_0\) proves this equals \(-\gamma v_t-g\). The proof builds the vector derivatives from the scalar coefficient derivatives and rewrites the friction balance before normalizing scalar actions. the exact frozen-force response identity is then a definitional equality: the deterministic step evaluates these exact frozen responses at \(h\) and adds the supplied noise. Thus the term “exponential integrator” is supported by an ODE identity.
+and the velocity and position coordinates of \(\Phi_h\) are the two displayed expressions.
 
 
 
-The deterministic response has initial velocity \(v\) and acceleration \(-\gamma v_t-g(x)\). Its integrated position starts at \(x\). Verifying these equations and the initial conditions identifies the response uniquely, providing a precise reference for the local force-freezing error.
 
+\textbf{Proof.} Both statements hold by the definitions: \(V(h)=\psi_0(h)v-\psi_1(h)F(x)\) and \(X(h)=x+\psi_1(h)v-\psi_2(h)F(x)\). \(\square\)
+
+
+
+
+With \(F=\nabla f\), \((v,x)=(v_k,\vartheta_k)\) and \((\xi,\xi')=(\xi_{k+1},\xi'_{k+1})\), the KLMC step is the recursion (KLMC) of the paper. The paper requires the innovations to be centred Gaussian, independent across steps and coordinates, with covariance matrix \(\mathbf C=\int_0^h(\psi_0,\psi_1)^\top(\psi_0,\psi_1)\,dt\) in each coordinate; these probabilistic requirements are not part of the map. If \(\gamma<0\) the real square root returns \(0\); in the applications \(\gamma>0\).
+
+\begin{leanbox}{Lean: \texttt{PhaseSpace}, \texttt{exponentialStep}, \texttt{exponentialStep\_\allowbreak{}eq\_\allowbreak{}frozen} and 3 more}
+\leansource{\texttt{PhaseSpace} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 19–19}
+\begin{leancode}
+\leanline{0}{abbrev\ PhaseSpace\ (E\ :\ Type*)\ :=\ E\ ×\ E}
+\end{leancode}
+\leansource{\texttt{exponentialStep} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 57–60}
+\begin{leancode}
+\leanline{0}{def\ exponentialStep\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :\ PhaseSpace\ E\ :=}
+\leanline{2}{(psi\ γ\ 0\ h\ •\ state.1\ -\ psi\ γ\ 1\ h\ •\ force\ state.2\ +\ noise.1,}
+\leanline{3}{state.2\ +\ psi\ γ\ 1\ h\ •\ state.1\ -\ psi\ γ\ 2\ h\ •\ force\ state.2\ +\ noise.2)}
+\end{leancode}
+\leansource{\texttt{exponentialStep\_\allowbreak{}eq\_\allowbreak{}frozen} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 62–66}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialStep\_eq\_frozen\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{exponentialStep\ force\ γ\ h\ state\ noise\ =}
+\leanline{6}{(frozenVelocity\ γ\ state.1\ (force\ state.2)\ h\ +\ noise.1,}
+\leanline{7}{frozenPosition\ γ\ state.2\ state.1\ (force\ state.2)\ h\ +\ noise.2)}
+\end{leancode}
+\leansource{\texttt{klmcStep} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 70–72}
+\begin{leancode}
+\leanline{0}{def\ klmcStep\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :\ PhaseSpace\ E\ :=}
+\leanline{2}{exponentialStep\ force\ γ\ h\ state\ (Real.sqrt\ (2\ *\ γ)\ •\ noise)}
+\end{leancode}
+\leansource{\texttt{exponentialStep\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 74–77}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ exponentialStep\_velocity\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{(exponentialStep\ force\ γ\ h\ state\ noise).1\ =}
+\leanline{6}{psi\ γ\ 0\ h\ •\ state.1\ -\ psi\ γ\ 1\ h\ •\ force\ state.2\ +\ noise.1}
+\end{leancode}
+\leansource{\texttt{exponentialStep\_\allowbreak{}position} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 79–82}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ exponentialStep\_position\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{(exponentialStep\ force\ γ\ h\ state\ noise).2\ =}
+\leanline{6}{state.2\ +\ psi\ γ\ 1\ h\ •\ state.1\ -\ psi\ γ\ 2\ h\ •\ force\ state.2\ +\ noise.2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{Phase\allowbreak{}Space E} is an abbreviation (\texttt{abbrev}) for \texttt{E \ensuremath{\times} E}, with \texttt{.\allowbreak{}1} the velocity and \texttt{.\allowbreak{}2} the position.
+
+\item \texttt{exponential\allowbreak{}Step force \ensuremath{\gamma} h state noise} is the pair displayed above, and \texttt{klmc\allowbreak{}Step force \ensuremath{\gamma} h state noise} is \texttt{exponential\allowbreak{}Step force \ensuremath{\gamma} h state (Real.\allowbreak{}sqrt (2 * \ensuremath{\gamma}) \ensuremath{\bullet} noise)}; \texttt{Real.\allowbreak{}sqrt} is the real square root, which Mathlib sets to \(0\) on negative arguments.
+
+\item \texttt{exponential\allowbreak{}Step\_\allowbreak{}eq\_\allowbreak{}frozen} expresses the step through \texttt{frozen\allowbreak{}Velocity} and \texttt{frozen\allowbreak{}Position} with the force \texttt{force state.\allowbreak{}2}; \texttt{exponential\allowbreak{}Step\_\allowbreak{}velocity} and \texttt{exponential\allowbreak{}Step\_\allowbreak{}position} give its two coordinates. All three are definitional equalities, proved by \texttt{rfl}; the last two are \texttt{@[simp]} lemmas used to unfold steps in later proofs.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Zero step size and subtraction with a common innovation}{Zero step size and subtraction with a common innovation}}
+
+
+\textbf{Claim.} (i) For every \(F\), \(\gamma\) and \((v,x)\), \(\Phi_0((v,x),(0,0))=(v,x)\).
+(ii) For all phase points \((v,x)\), \((v',x')\) and every innovation \(\eta\),
+
+
+\[\begin{aligned}
+&\Phi_h((v,x),\eta)-\Phi_h((v',x'),\eta)\\
+&\quad=\Bigl(\psi_0(h)(v-v')-\psi_1(h)\bigl(F(x)-F(x')\bigr),\\
+&\qquad\quad(x-x')+\psi_1(h)(v-v')-\psi_2(h)\bigl(F(x)-F(x')\bigr)\Bigr).
+\end{aligned}\]
+
+
+(iii) The same identity holds for two KLMC steps with a common innovation.
+
+
+
+
+\textbf{Proof.} (i) \(\psi_0(0)=1\) and \(\psi_1(0)=\psi_2(0)=0\), so \(\Phi_0((v,x),(0,0))=(v-0+0,\;x+0-0+0)=(v,x)\).
+
+
+
+
+(ii) Subtract the two definitions coordinatewise; the innovation appears with opposite signs and cancels, and the scalar coefficients are distributed over the differences.
+
+
+
+
+(iii) A KLMC step is an exponential step with innovation \(\sqrt{2\gamma}\,\eta\), which is again common to both; apply (ii). \(\square\)
+
+
+
+
+Identity (ii) is the algebraic core of the synchronous coupling of two chains: when the same Gaussian innovations drive both chains, the difference of the states evolves by a deterministic map, and no moment of the noise enters the comparison of one step.
+
+\begin{leanbox}{Lean: \texttt{exponentialStep\_\allowbreak{}zero}, \texttt{exponentialStep\_\allowbreak{}sub}, \texttt{klmcStep\_\allowbreak{}sub}}
+\leansource{\texttt{exponentialStep\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 84–86}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ exponentialStep\_zero\ (force\ :\ E\ →\ E)\ (γ\ :\ ℝ)\ (state\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{exponentialStep\ force\ γ\ 0\ state\ 0\ =\ state}
+\end{leancode}
+\leansource{\texttt{exponentialStep\_\allowbreak{}sub} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 90–98}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialStep\_sub\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ other\ noise\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{exponentialStep\ force\ γ\ h\ state\ noise\ -\ exponentialStep\ force\ γ\ h\ other\ noise\ =}
+\leanline{6}{(psi\ γ\ 0\ h\ •\ (state.1\ -\ other.1)\ -}
+\leanline{8}{psi\ γ\ 1\ h\ •\ (force\ state.2\ -\ force\ other.2),}
+\leanline{7}{(state.2\ -\ other.2)\ +\ psi\ γ\ 1\ h\ •\ (state.1\ -\ other.1)\ -}
+\leanline{8}{psi\ γ\ 2\ h\ •\ (force\ state.2\ -\ force\ other.2))}
+\end{leancode}
+\leansource{\texttt{klmcStep\_\allowbreak{}sub} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 100–107}
+\begin{leancode}
+\leanline{0}{theorem\ klmcStep\_sub\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ other\ noise\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{klmcStep\ force\ γ\ h\ state\ noise\ -\ klmcStep\ force\ γ\ h\ other\ noise\ =}
+\leanline{6}{(psi\ γ\ 0\ h\ •\ (state.1\ -\ other.1)\ -}
+\leanline{8}{psi\ γ\ 1\ h\ •\ (force\ state.2\ -\ force\ other.2),}
+\leanline{7}{(state.2\ -\ other.2)\ +\ psi\ γ\ 1\ h\ •\ (state.1\ -\ other.1)\ -}
+\leanline{8}{psi\ γ\ 2\ h\ •\ (force\ state.2\ -\ force\ other.2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{exponential\allowbreak{}Step\_\allowbreak{}zero}: \texttt{ext} splits the equality of pairs and \texttt{simp [exponential\allowbreak{}Step]} uses the \texttt{@[simp]} values \texttt{psi\_\allowbreak{}at\_\allowbreak{}zero}.
+
+\item \texttt{exponential\allowbreak{}Step\_\allowbreak{}sub}: after \texttt{ext}, \texttt{simp only [exponential\allowbreak{}Step, Prod.\allowbreak{}fst\_\allowbreak{}sub, Prod.\allowbreak{}snd\_\allowbreak{}sub, smul\_\allowbreak{}sub]} computes the coordinates of the difference and distributes the scalars, and \texttt{abel} proves the remaining identities in the additive group.
+
+\item \texttt{klmc\allowbreak{}Step\_\allowbreak{}sub} is \texttt{exponential\allowbreak{}Step\_\allowbreak{}sub} applied with the common innovation \texttt{Real.\allowbreak{}sqrt (2 * \ensuremath{\gamma}) \ensuremath{\bullet} noise}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Constant-acceleration motion at zero friction}{Constant-acceleration motion at zero friction}}
+
+
+\textbf{Claim.} For \(\gamma=0\), every \(h\in\mathbb R\), every phase point \((v,x)\) and every innovation,
+
+
+\[\text{KLMC step}=\Bigl(v-h\,F(x),\;x+h\,v-\frac{h^2}{2}F(x)\Bigr).\]
+
+
+\textbf{Proof.} At zero friction \(\psi_0=1\), \(\psi_1(h)=h\) and \(\psi_2(h)=h^2/2\) (zero-friction formulas of the previous section), and the innovation is multiplied by \(\sqrt{2\cdot0}=0\). \(\square\)
+
+
+
+
+Without friction there is no fluctuation either: the step reduces to the exact motion under the constant force \(F(x)\) during time \(h\), as in a Taylor expansion of order two of the position.
+
+\begin{leanbox}{Lean: \texttt{klmcStep\_\allowbreak{}zero\_\allowbreak{}friction}}
+\leansource{\texttt{klmcStep\_\allowbreak{}zero\_\allowbreak{}friction} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 129–134}
+\begin{leancode}
+\leanline{0}{theorem\ klmcStep\_zero\_friction\ (force\ :\ E\ →\ E)\ (h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :}
+\leanline{4}{klmcStep\ force\ 0\ h\ state\ noise\ =}
+\leanline{6}{(state.1\ -\ h\ •\ force\ state.2,}
+\leanline{7}{state.2\ +\ h\ •\ state.1\ -\ (h\ \textasciicircum{}\ 2\ /\ 2)\ •\ force\ state.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Step\_\allowbreak{}zero\_\allowbreak{}friction} is proved by \texttt{ext <;> simp [klmc\allowbreak{}Step, exponential\allowbreak{}Step]}; the simplifier uses the \texttt{@[simp]} lemmas \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}zero}, \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}one} and \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}two} of the coefficient section and evaluates \(\sqrt{2\cdot0}=0\).
+\end{leanbox}
+
+\section{\texorpdfstring{The Hessian-corrected step}{The Hessian-corrected step}}
+
+
+\textbf{Definition.} Let \(H:\mathcal X\to\mathcal L(\mathcal X)\) assign to each position a continuous linear operator (in the paper \(H=\nabla^2f\)). For a phase point \((v,x)\) and innovations \(\xi^{(1)},\dots,\xi^{(4)}\in\mathcal X\), the second-order step is
+
+
+\[\begin{aligned}
+v^+&=\psi_0(h)v-\psi_1(h)F(x)-\varphi_2(h)H(x)v+\sqrt{2\gamma}\,\bigl(\xi^{(1)}-H(x)\xi^{(3)}\bigr),\\
+x^+&=x+\psi_1(h)v-\psi_2(h)F(x)-\varphi_3(h)H(x)v+\sqrt{2\gamma}\,\bigl(\xi^{(2)}-H(x)\xi^{(4)}\bigr).
+\end{aligned}\]
+
+
+\textbf{Claim.} If \(H\equiv0\), the second-order step coincides with the KLMC step driven by the innovation \((\xi^{(1)},\xi^{(2)})\).
+
+
+
+
+\textbf{Proof.} With \(H(x)=0\), the terms \(\varphi_2(h)H(x)v\), \(\varphi_3(h)H(x)v\), \(H(x)\xi^{(3)}\) and \(H(x)\xi^{(4)}\) vanish, and what remains is the definition of the KLMC step with innovation \((\xi^{(1)},\xi^{(2)})\). \(\square\)
+
+
+
+
+This is display (KLMC2) of the paper. The corrections linearize the force along the free motion: over the step the force \(\nabla f(x_t)\) is approximated by \(\nabla f(x)+\nabla^2f(x)(x_t-x)\), and the displacement \(x_t-x\) contains the deterministic part \(\psi_1(t)v\) and a stochastic part, which produce the \(\varphi\) terms and the innovations \(\xi^{(3)},\xi^{(4)}\). The four innovations are required to be jointly Gaussian with covariance \(\bar{\mathbf C}\) of the previous section; this is not part of the map.
+
+\begin{leanbox}{Lean: \texttt{klmc2Step}, \texttt{klmc2Step\_\allowbreak{}zero\_\allowbreak{}hessian}}
+\leansource{\texttt{klmc2Step} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 110–117}
+\begin{leancode}
+\leanline{0}{def\ klmc2Step\ (force\ :\ E\ →\ E)\ (hessian\ :\ E\ →\ E\ →L[ℝ]\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ :\ PhaseSpace\ E)\ (noise\ :\ Fin\ 4\ →\ E)\ :\ PhaseSpace\ E\ :=}
+\leanline{2}{(psi\ γ\ 0\ h\ •\ state.1\ -\ psi\ γ\ 1\ h\ •\ force\ state.2\ -}
+\leanline{6}{phi\ γ\ 2\ h\ •\ hessian\ state.2\ state.1\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ γ)\ •\ (noise\ 0\ -\ hessian\ state.2\ (noise\ 2)),}
+\leanline{3}{state.2\ +\ psi\ γ\ 1\ h\ •\ state.1\ -\ psi\ γ\ 2\ h\ •\ force\ state.2\ -}
+\leanline{6}{phi\ γ\ 3\ h\ •\ hessian\ state.2\ state.1\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ γ)\ •\ (noise\ 1\ -\ hessian\ state.2\ (noise\ 3)))}
+\end{leancode}
+\leansource{\texttt{klmc2Step\_\allowbreak{}zero\_\allowbreak{}hessian} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 121–125}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2Step\_zero\_hessian\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ :\ PhaseSpace\ E)\ (noise\ :\ Fin\ 4\ →\ E)\ :}
+\leanline{4}{klmc2Step\ force\ (fun\ \_\ =>\ 0)\ γ\ h\ state\ noise\ =}
+\leanline{6}{klmcStep\ force\ γ\ h\ state\ (noise\ 0,\ noise\ 1)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{klmc2\allowbreak{}Step force hessian \ensuremath{\gamma} h state noise} takes \texttt{hessian : E \ensuremath{\to} E \ensuremath{\to}L[\ensuremath{\mathbb R}] E}, a field of continuous linear operators, and \texttt{noise : Fin 4 \ensuremath{\to} E}; the indices \texttt{0, 1, 2, 3} are \(\xi^{(1)},\dots,\xi^{(4)}\). \texttt{hessian state.\allowbreak{}2 state.\allowbreak{}1} is \(H(x)v\).
+
+\item \texttt{klmc2\allowbreak{}Step\_\allowbreak{}zero\_\allowbreak{}hessian} takes the zero field \texttt{fun \_\allowbreak{} => 0} and compares with \texttt{klmc\allowbreak{}Step force \ensuremath{\gamma} h state (noise 0, noise 1)}; \texttt{ext <;> simp [klmc2\allowbreak{}Step, klmc\allowbreak{}Step, exponential\allowbreak{}Step]} evaluates the zero operator and compares the coordinates.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The numerical chains for prescribed innovations}{The numerical chains for prescribed innovations}}
+
+
+\textbf{Definition.} Given an initial phase point \(y_0\) and innovations \((\eta_k)_{k\in\mathbb N}\) in \(\mathcal X\times\mathcal X\), the KLMC chain is defined recursively by
+
+
+\[y_0=\text{the initial point},\qquad y_{k+1}=\text{KLMC step}(y_k,\eta_k),\qquad k\in\mathbb N .\]
+
+
+The second-order chain is defined in the same way from the second-order step and innovations \((\xi_k^{(1)},\dots,\xi_k^{(4)})_{k\in\mathbb N}\).
+
+
+
+
+\textbf{Claim.} The KLMC chain satisfies \(y_0=\) the initial point and \(y_{k+1}=\text{KLMC step}(y_k,\eta_k)\) for every \(k\).
+
+
+
+
+\textbf{Proof.} These are the defining equations of the recursion. \(\square\)
+
+
+
+
+For a fixed innovation sequence the chain is a deterministic sequence. It becomes the KLMC (respectively KLMC2) Markov chain of the paper when the initial point is random and the innovations are independent Gaussian vectors with the prescribed covariance, independent of the initial point.
+
+\begin{leanbox}{Lean: \texttt{klmcChain}, \texttt{klmcChain\_\allowbreak{}zero}, \texttt{klmcChain\_\allowbreak{}succ} and 1 more}
+\leansource{\texttt{klmcChain} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 137–140}
+\begin{leancode}
+\leanline{0}{def\ klmcChain\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)\ (initial\ :\ PhaseSpace\ E)}
+\leanline{4}{(noise\ :\ ℕ\ →\ PhaseSpace\ E)\ :\ ℕ\ →\ PhaseSpace\ E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ k\ +\ 1\ =>\ klmcStep\ force\ γ\ h\ (klmcChain\ force\ γ\ h\ initial\ noise\ k)\ (noise\ k)}
+\end{leancode}
+\leansource{\texttt{klmcChain\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 142–144}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ klmcChain\_zero\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ PhaseSpace\ E)\ (noise\ :\ ℕ\ →\ PhaseSpace\ E)\ :}
+\leanline{4}{klmcChain\ force\ γ\ h\ initial\ noise\ 0\ =\ initial}
+\end{leancode}
+\leansource{\texttt{klmcChain\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 146–149}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ klmcChain\_succ\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ PhaseSpace\ E)\ (noise\ :\ ℕ\ →\ PhaseSpace\ E)\ (k\ :\ ℕ)\ :}
+\leanline{4}{klmcChain\ force\ γ\ h\ initial\ noise\ (k\ +\ 1)\ =}
+\leanline{6}{klmcStep\ force\ γ\ h\ (klmcChain\ force\ γ\ h\ initial\ noise\ k)\ (noise\ k)}
+\end{leancode}
+\leansource{\texttt{klmc2Chain} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 152–156}
+\begin{leancode}
+\leanline{0}{def\ klmc2Chain\ (force\ :\ E\ →\ E)\ (hessian\ :\ E\ →\ E\ →L[ℝ]\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ PhaseSpace\ E)\ (noise\ :\ ℕ\ →\ Fin\ 4\ →\ E)\ :\ ℕ\ →\ PhaseSpace\ E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ k\ +\ 1\ =>\ klmc2Step\ force\ hessian\ γ\ h}
+\leanline{6}{(klmc2Chain\ force\ hessian\ γ\ h\ initial\ noise\ k)\ (noise\ k)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Chain force \ensuremath{\gamma} h initial noise : \ensuremath{\mathbb N} \ensuremath{\to} Phase\allowbreak{}Space E} and \texttt{klmc2\allowbreak{}Chain force hessian \ensuremath{\gamma} h initial noise} are defined by structural recursion on the step index, with the innovation sequences \texttt{noise : \ensuremath{\mathbb N} \ensuremath{\to} Phase\allowbreak{}Space E} and \texttt{noise : \ensuremath{\mathbb N} \ensuremath{\to} Fin 4 \ensuremath{\to} E}; note that the step from \(k\) to \(k+1\) uses \texttt{noise k}. \texttt{klmc\allowbreak{}Chain\_\allowbreak{}zero} and \texttt{klmc\allowbreak{}Chain\_\allowbreak{}succ} restate the two defining equations and are proved by \texttt{rfl}.
+\end{leanbox}
 
 \end{document}

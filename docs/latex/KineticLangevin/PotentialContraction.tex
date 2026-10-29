@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,26 @@ For velocity difference \(v\), position difference \(x\), and force difference \
 
 Write the displacement as \(q=x-y\) and the force difference as \(d=\nabla f(x)-\nabla f(y)\). Strong convexity and smoothness place \((q,d)\) in a sector narrower than a bare Lipschitz ball. This relation implies dissipation of the transformed energy.
 
+\begin{leanbox}{Lean: \texttt{forceEnergyDerivative}, \texttt{interpolation\_\allowbreak{}sector}}
+\leansource{\texttt{forceEnergyDerivative} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 23–24}
+\begin{leancode}
+\leanline{0}{def\ forceEnergyDerivative\ (γ\ :\ ℝ)\ (v\ x\ force\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{2\ *\ {\leanfallback ⟪}v\ +\ γ\ •\ x,\ -force{\leanfallback ⟫}\ +\ 2\ *\ {\leanfallback ⟪}-v,\ γ\ •\ v\ +\ force{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{interpolation\_\allowbreak{}sector} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 28–34}
+\begin{leancode}
+\leanline{0}{theorem\ interpolation\_sector\ (m\ M\ :\ ℝ)\ (x\ force\ :\ E)}
+\leanline{4}{(hi\ :\ m\ *\ M\ *\ ‖x‖\ \textasciicircum{}\ 2\ +\ ‖force‖\ \textasciicircum{}\ 2\ ≤\ (m\ +\ M)\ *\ {\leanfallback ⟪}force,\ x{\leanfallback ⟫})\ :}
+\leanline{4}{‖force\ -\ m\ •\ x‖\ \textasciicircum{}\ 2\ ≤\ (M\ -\ m)\ *\ {\leanfallback ⟪}x,\ force\ -\ m\ •\ x{\leanfallback ⟫}}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{force\allowbreak{}Energy\allowbreak{}Derivative} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{interpolation\_\allowbreak{}sector} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Complete a square to prove dissipativity}{Complete a square to prove dissipativity}}
 
@@ -50,6 +93,18 @@ When \(M=m\), the sector inequality forces \(k=0\); friction gives \(\gamma^2\ge
 
 The potentially positive mixed term is paired with the negative position term and rewritten as a square plus a curvature contribution. The sector inequality controls the square. Using this relation retains the strong-convexity coefficient in the differential inequality.
 
+\begin{leanbox}{Lean: \texttt{force\_\allowbreak{}dissipativity}}
+\leansource{\texttt{force\_\allowbreak{}dissipativity} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 38–83}
+\begin{leancode}
+\leanline{0}{theorem\ force\_dissipativity\ (γ\ m\ M\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (hmM\ :\ m\ ≤\ M)}
+\leanline{4}{(hfriction\ :\ m\ +\ M\ ≤\ γ\ \textasciicircum{}\ 2)\ (v\ x\ force\ :\ E)}
+\leanline{4}{(hsector\ :\ ‖force\ -\ m\ •\ x‖\ \textasciicircum{}\ 2\ ≤\ (M\ -\ m)\ *\ {\leanfallback ⟪}x,\ force\ -\ m\ •\ x{\leanfallback ⟫})\ :}
+\leanline{4}{forceEnergyDerivative\ γ\ v\ x\ force\ ≤}
+\leanline{6}{(-2\ *\ m\ /\ γ)\ *\ transformEnergy\ γ\ 0\ (v,\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{force\_\allowbreak{}dissipativity} gives the formal counterpart of this step. The main intermediate facts are \texttt{k}, \texttt{hk}, \texttt{hid}, \texttt{hb}, \texttt{hdiv} in that order. Named proof applications include \texttt{norm\_\allowbreak{}eq\_\allowbreak{}zero.\allowbreak{}mp}, \texttt{mul\_\allowbreak{}nonneg}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The sector condition from the potential}{The sector condition from the potential}}
 
@@ -60,6 +115,20 @@ For \(g=\nabla f(x)-\nabla f(y)\) and displacement \(x-y\), the strong-smooth in
 
 One may apply the strong-smooth interpolation inequality directly to \(f\). No continuous Hessian is required: differentiability, strong convexity, and a Lipschitz gradient already imply the needed two-point estimate. Thus this proof applies to the regularity assumptions of the first-order sampling theorem.
 
+\begin{leanbox}{Lean: \texttt{potential\_\allowbreak{}force\_\allowbreak{}dissipativity}}
+\leansource{\texttt{potential\_\allowbreak{}force\_\allowbreak{}dissipativity} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 87–96}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_force\_dissipativity\ [CompleteSpace\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ γ\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)\ (v\ x\ y\ :\ E)\ :}
+\leanline{4}{forceEnergyDerivative\ γ\ v\ (x\ -\ y)\ (gradient\ f\ x\ -\ gradient\ f\ y)\ ≤}
+\leanline{6}{(-2\ *\ m\ /\ γ)\ *\ transformEnergy\ γ\ 0\ (v,\ x\ -\ y)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{potential\_\allowbreak{}force\_\allowbreak{}dissipativity} gives the formal counterpart of this step. Named proof applications include \texttt{force\_\allowbreak{}dissipativity}, \texttt{interpolation\_\allowbreak{}sector}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.10.2]{LangevinLean2026ULASC}.
@@ -73,6 +142,18 @@ Assume \(v'=-\gamma v-g\) and \(x'=v\). Then \((v+\gamma x)'=-g\), while \((-v)'
 
 For two paths driven by identical forcing, subtract their integral equations first. Their position difference has derivative equal to their velocity difference, and their velocity difference has derivative equal to the negative friction and force difference. The energy chain rule is then an ordinary deterministic calculation.
 
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}forceEnergy}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}forceEnergy} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 100–114}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_forceEnergy\ (γ\ :\ ℝ)\ (v\ x\ force\ :\ ℝ\ →\ E)\ (t\ :\ ℝ)}
+\leanline{4}{(hv\ :\ HasDerivAt\ v\ (-γ\ •\ v\ t\ -\ force\ t)\ t)}
+\leanline{4}{(hx\ :\ HasDerivAt\ x\ (v\ t)\ t)\ :}
+\leanline{4}{HasDerivAt\ (fun\ r\ ↦\ transformEnergy\ γ\ 0\ (v\ r,\ x\ r))}
+\leanline{6}{(forceEnergyDerivative\ γ\ (v\ t)\ (x\ t)\ (force\ t))\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}force\allowbreak{}Energy} gives the formal counterpart of this step. The main intermediate facts are \texttt{hy}, \texttt{hz}, \texttt{hyd}, \texttt{hzd} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrate energy decay and take the position square root}{Integrate energy decay and take the position square root}}
 
@@ -83,6 +164,48 @@ For two continuous position paths \(x,y\), set \(F(t)=\mathcal E(v_t,x_t-y_t)\).
 
 After the differential inequality is established, integration gives exponential decay of the squared energy. Taking a square root halves its exponent. The equal-initial-velocity identity and the position projection then give the visible \(\sqrt2\) coefficient in the simple friction regime.
 
+\begin{leanbox}{Lean: \texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}energy\_\allowbreak{}decay}, \texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}position\_\allowbreak{}decay}}
+\leansource{\texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}energy\_\allowbreak{}decay} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 119–153}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_synchronous\_energy\_decay\ [CompleteSpace\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ γ\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)}
+\leanline{4}{(T\ :\ ℝ)\ (v\ x\ y\ :\ ℝ\ →\ E)}
+\leanline{4}{(hvcont\ :\ ContinuousOn\ v\ (Icc\ 0\ T))}
+\leanline{4}{(hxcont\ :\ ContinuousOn\ x\ (Icc\ 0\ T))\ (hycont\ :\ ContinuousOn\ y\ (Icc\ 0\ T))}
+\leanline{4}{(hv\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivAt\ v}
+\leanline{6}{(-γ\ •\ v\ t\ -\ (gradient\ f\ (x\ t)\ -\ gradient\ f\ (y\ t)))\ t)}
+\leanline{4}{(hx\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivAt\ (fun\ r\ ↦\ x\ r\ -\ y\ r)\ (v\ t)\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (v\ t,\ x\ t\ -\ y\ t)\ ≤}
+\leanline{6}{transformEnergy\ γ\ 0\ (v\ 0,\ x\ 0\ -\ y\ 0)\ *\ Real.exp\ ((-2\ *\ m\ /\ γ)\ *\ t)}
+\end{leancode}
+\leansource{\texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}position\_\allowbreak{}decay} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 158–186}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_synchronous\_position\_decay\ [CompleteSpace\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ γ\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)}
+\leanline{4}{(T\ :\ ℝ)\ (v\ x\ y\ :\ ℝ\ →\ E)\ (hv0\ :\ v\ 0\ =\ 0)}
+\leanline{4}{(hvcont\ :\ ContinuousOn\ v\ (Icc\ 0\ T))}
+\leanline{4}{(hxcont\ :\ ContinuousOn\ x\ (Icc\ 0\ T))\ (hycont\ :\ ContinuousOn\ y\ (Icc\ 0\ T))}
+\leanline{4}{(hv\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivAt\ v}
+\leanline{6}{(-γ\ •\ v\ t\ -\ (gradient\ f\ (x\ t)\ -\ gradient\ f\ (y\ t)))\ t)}
+\leanline{4}{(hx\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivAt\ (fun\ r\ ↦\ x\ r\ -\ y\ r)\ (v\ t)\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖x\ t\ -\ y\ t‖\ ≤\ Real.sqrt\ 2\ *\ Real.exp\ ((-m\ /\ γ)\ *\ t)\ *\ ‖x\ 0\ -\ y\ 0‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}energy\_\allowbreak{}decay} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{hcont}, \texttt{hder}, \texttt{hbound}, \texttt{hgr} in that order. Named proof applications include \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}force\allowbreak{}Energy}, \texttt{potential\_\allowbreak{}force\_\allowbreak{}dissipativity}, \texttt{hgr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}position\_\allowbreak{}decay} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hp}, \texttt{hs}, \texttt{hexp} in that order. Named proof applications include \texttt{hs}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Use right derivatives at the initial time}{Use right derivatives at the initial time}}
 
@@ -93,10 +216,44 @@ A finite-horizon integral solution is constrained only for nonnegative time. Its
 
 At time zero all derivatives are interpreted from within the nonnegative time interval. This is sufficient for the integrating-factor argument on a closed finite horizon. It avoids extending either trajectory or its driving noise to negative times.
 
+\begin{leanbox}{Lean: \texttt{hasDerivWithinAt\_\allowbreak{}forceEnergy}, \texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}energy\_\allowbreak{}decay\_\allowbreak{}right}}
+\leansource{\texttt{hasDerivWithinAt\_\allowbreak{}forceEnergy} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 190–204}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivWithinAt\_forceEnergy\ (γ\ :\ ℝ)\ (v\ x\ force\ :\ ℝ\ →\ E)\ (t\ :\ ℝ)}
+\leanline{4}{(hv\ :\ HasDerivWithinAt\ v\ (-γ\ •\ v\ t\ -\ force\ t)\ (Ici\ t)\ t)}
+\leanline{4}{(hx\ :\ HasDerivWithinAt\ x\ (v\ t)\ (Ici\ t)\ t)\ :}
+\leanline{4}{HasDerivWithinAt\ (fun\ r\ ↦\ transformEnergy\ γ\ 0\ (v\ r,\ x\ r))}
+\leanline{6}{(forceEnergyDerivative\ γ\ (v\ t)\ (x\ t)\ (force\ t))\ (Ici\ t)\ t}
+\end{leancode}
+\leansource{\texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}energy\_\allowbreak{}decay\_\allowbreak{}right} \quad KineticLangevin/\allowbreak{}PotentialContraction.lean, lines 209–243}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_synchronous\_energy\_decay\_right\ [CompleteSpace\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ γ\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)}
+\leanline{4}{(T\ :\ ℝ)\ (v\ x\ y\ :\ ℝ\ →\ E)}
+\leanline{4}{(hvcont\ :\ ContinuousOn\ v\ (Icc\ 0\ T))}
+\leanline{4}{(hxcont\ :\ ContinuousOn\ x\ (Icc\ 0\ T))\ (hycont\ :\ ContinuousOn\ y\ (Icc\ 0\ T))}
+\leanline{4}{(hv\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivWithinAt\ v}
+\leanline{6}{(-γ\ •\ v\ t\ -\ (gradient\ f\ (x\ t)\ -\ gradient\ f\ (y\ t)))\ (Ici\ t)\ t)}
+\leanline{4}{(hx\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivWithinAt\ (fun\ r\ ↦\ x\ r\ -\ y\ r)\ (v\ t)\ (Ici\ t)\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (v\ t,\ x\ t\ -\ y\ t)\ ≤}
+\leanline{6}{transformEnergy\ γ\ 0\ (v\ 0,\ x\ 0\ -\ y\ 0)\ *\ Real.exp\ ((-2\ *\ m\ /\ γ)\ *\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At\_\allowbreak{}force\allowbreak{}Energy} gives the formal counterpart of this step. The main intermediate facts are \texttt{hy}, \texttt{hz}, \texttt{hyd}, \texttt{hzd} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{potential\_\allowbreak{}synchronous\_\allowbreak{}energy\_\allowbreak{}decay\_\allowbreak{}right} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{hcont}, \texttt{hder}, \texttt{hbound}, \texttt{hgr} in that order. Named proof applications include \texttt{has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At\_\allowbreak{}force\allowbreak{}Energy}, \texttt{potential\_\allowbreak{}force\_\allowbreak{}dissipativity}, \texttt{hgr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

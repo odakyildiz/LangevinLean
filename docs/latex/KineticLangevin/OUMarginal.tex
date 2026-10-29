@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,30 @@ A scalar \(L^{2}\) variable \(Z\) is evaluated on each independent coordinate Br
 
 The scalar response at each spatial index has the computed centered Gaussian law. Independence of the coordinate sources gives their product law. Assembling coordinates then yields a Euclidean Gaussian with a scalar covariance multiple of the identity.
 
+\begin{leanbox}{Lean: \texttt{spatialLift\_\allowbreak{}hasLaw}, \texttt{spatialLift\_\allowbreak{}hasLaw\_\allowbreak{}scaledStandard}}
+\leansource{\texttt{spatialLift\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}OUMarginal.lean, lines 13–30}
+\begin{leancode}
+\leanline{0}{theorem\ spatialLift\_hasLaw\ (Z\ :\ Lp\ ℝ\ 2\ probability)\ (ν\ :\ Measure\ ℝ)}
+\leanline{4}{[IsProbabilityMeasure\ ν]\ (hZ\ :\ HasLaw\ Z\ ν\ probability)\ :}
+\leanline{4}{HasLaw\ (spatialLift\ ι\ Z)\ ((Measure.pi\ (fun\ \_\ :\ ι\ ↦\ ν)).map\ (WithLp.toLp\ 2))}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leansource{\texttt{spatialLift\_\allowbreak{}hasLaw\_\allowbreak{}scaledStandard} \quad KineticLangevin/\allowbreak{}OUMarginal.lean, lines 34–46}
+\begin{leancode}
+\leanline{0}{theorem\ spatialLift\_hasLaw\_scaledStandard\ (Z\ :\ Lp\ ℝ\ 2\ probability)\ (σ\ :\ ℝ)}
+\leanline{4}{(hZ\ :\ HasLaw\ Z\ ((gaussianReal\ 0\ 1).map\ (fun\ x\ ↦\ σ*x))\ probability)\ :}
+\leanline{4}{HasLaw\ (spatialLift\ ι\ Z)}
+\leanline{6}{((stdGaussian\ (EuclideanSpace\ ℝ\ ι)).map\ (fun\ x\ ↦\ σ\ •\ x))}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{spatial\allowbreak{}Lift\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{hm}, \texttt{hi}, \texttt{hl}, \texttt{hp}, \texttt{ht} in that order.
+
+
+
+
+\texttt{spatial\allowbreak{}Lift\_\allowbreak{}has\allowbreak{}Law\_\allowbreak{}scaled\allowbreak{}Standard} gives the formal counterpart of this step. The main intermediate facts are \texttt{hprod} in that order. Named proof applications include \texttt{spatial\allowbreak{}Lift\_\allowbreak{}has\allowbreak{}Law}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}.
@@ -45,6 +92,17 @@ The scalar segment convolution is the constructed isonormal map applied to its t
 
 The filtered velocity response variance is the square integral of the exponential kernel. After multiplying by \(2\gamma\), it is \(1-e^{-2\gamma h}\). This is the missing variance of a velocity damped for time \(h\).
 
+\begin{leanbox}{Lean: \texttt{scalarOU\_\allowbreak{}hasLaw}}
+\leansource{\texttt{scalarOU\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}OUMarginal.lean, lines 50–80}
+\begin{leancode}
+\leanline{0}{theorem\ scalarOU\_hasLaw\ (γ\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (Real.sqrt\ (2*γ)\ •\ segmentConvolutionLp\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ t)}
+\leanline{6}{((gaussianReal\ 0\ 1).map}
+\leanline{8}{(fun\ x\ ↦\ Real.sqrt\ (1-(psi\ γ\ 0\ t)\textasciicircum{}2)*x))\ probability}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{scalar\allowbreak{}OU\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{K}, \texttt{c}, \texttt{\ensuremath{\sigma}}, \texttt{hvariance}, \texttt{hnorm}, \texttt{hnormc} in that order. Named proof applications include \texttt{NNReal.\allowbreak{}eq}, \texttt{Real.\allowbreak{}coe\_\allowbreak{}to\allowbreak{}NNReal}, \texttt{hz}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.6.24]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}.
@@ -58,6 +116,18 @@ Apply the independent-spatial-copy result to the proved scalar thermal law. Line
 
 A centered Euclidean Gaussian is determined by its covariance bilinear form. The independent coordinates give covariance equal to the scalar thermal variance times the identity. Thus the assembled innovation is exactly the thermal Gaussian law required by the thermostat.
 
+\begin{leanbox}{Lean: \texttt{vectorOU\_\allowbreak{}hasLaw}}
+\leansource{\texttt{vectorOU\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}OUMarginal.lean, lines 84–92}
+\begin{leancode}
+\leanline{0}{theorem\ vectorOU\_hasLaw\ (γ\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (a\ t\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (Real.sqrt\ (2*γ)\ •\ vectorSegmentLp\ ι\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ a\ t)}
+\leanline{6}{((stdGaussian\ (EuclideanSpace\ ℝ\ ι)).map}
+\leanline{8}{(fun\ x\ ↦\ Real.sqrt\ (1-(psi\ γ\ 0\ t)\textasciicircum{}2)\ •\ x))}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{vector\allowbreak{}OU\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{hz} in that order. Named proof applications include \texttt{hz}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.17]{LangevinLean2026ULASC}.
@@ -71,6 +141,16 @@ The constructed KLMC innovation pairs are already proved independent over disjoi
 
 Entire vector blocks from different intervals are measurable functions of disjoint collections of Gaussian response variables. Independence of those collections therefore gives independence of the vectors, rather than only pairwise independence of their individual coordinates.
 
+\begin{leanbox}{Lean: \texttt{vectorOU\_\allowbreak{}grid\_\allowbreak{}independent}}
+\leansource{\texttt{vectorOU\_\allowbreak{}grid\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}OUMarginal.lean, lines 96–107}
+\begin{leancode}
+\leanline{0}{theorem\ vectorOU\_grid\_independent\ (d\ :\ ℕ)\ (γ\ c\ :\ ℝ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{iIndepFun\ (fun\ n\ :\ ℕ\ ↦\ c\ •\ vectorSegmentLp\ (Fin\ d)\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)}
+\leanline{6}{((n\ :\ ℝ≥0)*h)\ h)\ (ULA.CanonicalBrownian.vectorProbability\ (Fin\ d))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{vector\allowbreak{}OU\_\allowbreak{}grid\_\allowbreak{}independent} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi} in that order. Named proof applications include \texttt{hi.\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.17]{LangevinLean2026ULASC}.
@@ -84,13 +164,27 @@ Every scaled OU grid innovation has the exact thermal Gaussian law, and the prec
 
 The finite-dimensional distributions of the full stream are products of thermal Gaussian vector law. This identifies the stream as independent and identically distributed. It supplies the exact fresh-noise law required when the splitting transition is iterated.
 
+\begin{leanbox}{Lean: \texttt{vectorOU\_\allowbreak{}grid\_\allowbreak{}hasLaw}}
+\leansource{\texttt{vectorOU\_\allowbreak{}grid\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}OUMarginal.lean, lines 111–124}
+\begin{leancode}
+\leanline{0}{theorem\ vectorOU\_grid\_hasLaw\ (d\ :\ ℕ)\ (γ\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (fun\ ω\ (n\ :\ ℕ)\ ↦\ (Real.sqrt\ (2*γ)\ •}
+\leanline{6}{vectorSegmentLp\ (Fin\ d)\ (psi\ γ\ 0)\ (continuous\_psi\ γ\ 0)\ ((n\ :\ ℝ≥0)*h)\ h)\ ω)}
+\leanline{6}{(Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦}
+\leanline{8}{(stdGaussian\ (EuclideanSpace\ ℝ\ (Fin\ d))).map}
+\leanline{10}{(fun\ x\ ↦\ Real.sqrt\ (1-(psi\ γ\ 0\ h)\textasciicircum{}2)\ •\ x)))}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ (Fin\ d))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{vector\allowbreak{}OU\_\allowbreak{}grid\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step. Named proof applications include \texttt{vector\allowbreak{}OU\_\allowbreak{}has\allowbreak{}Law}, \texttt{measurable\_\allowbreak{}pi\_\allowbreak{}iff.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.17]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

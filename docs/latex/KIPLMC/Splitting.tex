@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,82 +39,272 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-In scaled physical-time particle coordinates every velocity block has temperature \(1/N\). The parameter coordinates stay unchanged. Multiplying a latent coordinate by \(\sqrt N\) recovers the physical latent position and velocity and the unit-temperature latent noise used in Algorithm 2. The module proves these coordinate identities for the five-subflow map; no OBABO contraction theorem is hidden in the definitions.
+KIPLMC2 is the OBABO splitting scheme applied to the kinetic particle system in the scaled coordinates \(\mathcal Z_N\) of the geometry section. For a step size \(h\), friction \(\gamma\) and a phase state \((v,z)\), velocity first, one step composes five maps: an Ornstein–Uhlenbeck half-step (O) on the velocity, a half kick (B) by the force \(F_N\), a full drift (A) of the position, a second half kick at the new position, and a second Ornstein–Uhlenbeck half-step with a fresh noise vector. With \(\delta=e^{-\gamma h/2}\) and \(\sigma_N=\sqrt{(1-\delta^2)/N}\), the result is
 
 
+\[v_{1/2}=\delta v+\sigma_N\xi-\tfrac h2F_N(z),\qquad z^+=z+hv_{1/2},\qquad v^+=\delta\bigl(v_{1/2}-\tfrac h2F_N(z^+)\bigr)+\sigma_N\xi'.\]
 
-The particle OBABO map retains the exact order of the five substeps in scaled coordinates. Undoing latent scaling restores the physical thermostat temperature and the original pair-gradient half kicks.
+
+This section defines the step and proves these formulas, and then proves that in coordinates they are Algorithm 2 of the paper: the parameter half kick uses the averaged parameter gradient, and after multiplication by \(\sqrt N\) the latent half velocity has the unit-temperature thermostat noise \(\sqrt{1-\delta^2}\,\xi\) and the single-particle gradient. All statements are identities for given noise vectors \(\xi,\xi'\); the law of the resulting chain and its convergence are studied in later sections.
 
 
 
 Earlier results used here: \cite[Section~3.20]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{The scaled thermostat and half velocity}{The scaled thermostat and half velocity}}
+\section{\texorpdfstring{The five substeps and the KIPLMC2 update}{The five substeps and the KIPLMC2 update}}
 
 
-Let \(\delta=e^{-\gamma h/2}\) and \(\sigma_N=\sqrt{(1-\delta^2)/N}\). The thermostat amplitude is \(\sigma_N\), and the KIPLMC2 update uses it with the force \(F\) to the shared OBABO map, and the half-step velocity records \(v_{1/2}=\delta v+\sigma_N\xi-hF(x)/2\). The algorithm uses this newly formed half velocity for its full position drift. The second force kick is evaluated at the new position, and the final OU half step receives the distinct noise \(\xi'\). The position and velocity formulas follow by evaluating these five successive maps.
+\textbf{Definition.} Let \(E\) be a real vector space, \(G:E\to E\) a map, and \(\delta,\sigma,\tau\in\mathbb R\). On phase states \((v,x)\in E\times E\) define
+
+
+\[O_{\delta,\sigma,\xi}(v,x)=(\delta v+\sigma\xi,\;x),\qquad B_\tau(v,x)=(v-\tau G(x),\;x),\qquad A_\tau(v,x)=(v,\;x+\tau v),\]
+
+
+for a noise vector \(\xi\in E\). The OBABO step with step size \(h\) and noise vectors \(\xi,\xi'\) is the composition
+
+
+\[\mathrm{OBABO}\bigl((v,x),\xi,\xi'\bigr)=O_{\delta,\sigma,\xi'}\circ B_{h/2}\circ A_h\circ B_{h/2}\circ O_{\delta,\sigma,\xi}\,(v,x).\]
+
+
+For KIPLMC2 take \(E=\mathcal Z_N\), \(G=F_N\), \(\delta=e^{-\gamma h/2}\) and
+
+
+\[\sigma_N=\sqrt{\frac{1-\delta^2}N}=\sqrt{\frac{1-e^{-\gamma h}}N},\]
+
+
+with the conventions \(\sqrt a=0\) for \(a<0\) and \(N^{-1}=0\) for \(N=0\). The KIPLMC2 step is \(S((v,z),\xi,\xi')=\mathrm{OBABO}((v,z),\xi,\xi')\), and the half velocity is \(v_{1/2}=\delta v+\sigma_N\xi-\frac h2F_N(z)\).
 
 
 
-The first thermostat refresh and first force kick create the velocity used by the drift. The final force is evaluated at the newly updated position before the second thermostat refresh. Reordering either evaluation would produce a different splitting method.
 
+\textbf{Claim.} For all \(\gamma,h\in\mathbb R\), all phase states \((v,z)\) and all \(\xi,\xi'\in\mathcal Z_N\), the step \(S((v,z),\xi,\xi')=(v^+,z^+)\) satisfies
+
+
+\[z^+=z+h\,v_{1/2},\qquad v^+=\delta\Bigl(v_{1/2}-\frac h2F_N\bigl(z+h\,v_{1/2}\bigr)\Bigr)+\sigma_N\xi'.\]
+
+
+\textbf{Proof.} Evaluate the five maps in order. The first thermostat gives \((\delta v+\sigma_N\xi,\,z)\). The half kick subtracts \(\frac h2F_N(z)\) from the velocity, giving \((v_{1/2},\,z)\). The drift gives \((v_{1/2},\,z+hv_{1/2})\); call this position \(z^+\). The second half kick evaluates the force at the current position \(z^+\), giving \((v_{1/2}-\frac h2F_N(z^+),\,z^+)\). The last thermostat multiplies the velocity by \(\delta\) and adds \(\sigma_N\xi'\), and leaves the position unchanged. \(\square\)
+
+
+
+
+\textbf{The thermostat coefficients.} For \(\gamma>0\), the Ornstein–Uhlenbeck equation \(dv=-\gamma v\,dt+\sqrt{2\gamma/N}\,dB\) solved exactly over a time \(h/2\) gives \(v\mapsto e^{-\gamma h/2}v+\sqrt{2\gamma/N}\int_0^{h/2}e^{-\gamma(h/2-s)}\,dB_s\). By the Itô isometry the Wiener integral is centered Gaussian with variance per coordinate
+
+
+\[\frac{2\gamma}N\int_0^{h/2}e^{-2\gamma(h/2-s)}\,ds=\frac{1-e^{-\gamma h}}N=\sigma_N^2.\]
+
+
+Hence the O half-step is the exact Ornstein–Uhlenbeck transition when \(\xi\) is a standard Gaussian vector independent of \((v,z)\), and it leaves the Gaussian law with covariance \(N^{-1}I\) invariant, since \(\delta^2N^{-1}+\sigma_N^2=N^{-1}\). The B and A maps are the exact flows of \(v'=-G(x)\) and \(x'=v\) over the indicated times.
+
+
+
+
+The order of the substeps matters: the drift uses the refreshed and kicked half velocity, the second kick uses the force at the new position \(z^+\), and the last thermostat uses a second noise vector \(\xi'\). Only first derivatives of \(U\) enter, through \(F_N\).
+
+\begin{leanbox}{Lean: \texttt{thermalAmplitude}, \texttt{kiplmc2Step}, \texttt{halfVelocity} and 2 more}
+\leansource{\texttt{thermalAmplitude} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 16–17}
+\begin{leancode}
+\leanline{0}{def\ thermalAmplitude\ (N\ :\ ℕ)\ (γ\ h\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ (KineticLangevin.obaboVariance\ γ\ h\ /\ N)}
+\end{leancode}
+\leansource{\texttt{kiplmc2Step} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 20–23}
+\begin{leancode}
+\leanline{0}{def\ kiplmc2Step\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ ξ'\ :\ State\ N\ dθ\ dx)\ :=}
+\leanline{2}{KineticLangevin.obaboStep\ (force\ U)\ h\ (KineticLangevin.obaboDamping\ γ\ h)}
+\leanline{4}{(thermalAmplitude\ N\ γ\ h)\ z\ ξ\ ξ'}
+\end{leancode}
+\leansource{\texttt{halfVelocity} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 26–29}
+\begin{leancode}
+\leanline{0}{def\ halfVelocity\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ :\ State\ N\ dθ\ dx)\ :\ State\ N\ dθ\ dx\ :=}
+\leanline{2}{KineticLangevin.obaboDamping\ γ\ h\ •\ z.1\ +\ thermalAmplitude\ N\ γ\ h\ •\ ξ\ -}
+\leanline{4}{(h\ /\ 2)\ •\ force\ U\ z.2}
+\end{leancode}
+\leansource{\texttt{kiplmc2Step\_\allowbreak{}position} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 32–34}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Step\_position\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ ξ'\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{(kiplmc2Step\ U\ γ\ h\ z\ ξ\ ξ').2\ =\ z.2\ +\ h\ •\ halfVelocity\ U\ γ\ h\ z\ ξ}
+\end{leancode}
+\leansource{\texttt{kiplmc2Step\_\allowbreak{}velocity} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 37–41}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Step\_velocity\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ ξ'\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{(kiplmc2Step\ U\ γ\ h\ z\ ξ\ ξ').1\ =\ KineticLangevin.obaboDamping\ γ\ h\ •}
+\leanline{6}{(halfVelocity\ U\ γ\ h\ z\ ξ\ -\ (h\ /\ 2)\ •}
+\leanline{8}{force\ U\ (z.2\ +\ h\ •\ halfVelocity\ U\ γ\ h\ z\ ξ))\ +\ thermalAmplitude\ N\ γ\ h\ •\ ξ'}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{thermal\allowbreak{}Amplitude N \ensuremath{\gamma} h} is \texttt{Real.\allowbreak{}sqrt (Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Variance \ensuremath{\gamma} h /\allowbreak{} N)}, where the kinetic library defines \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Damping \ensuremath{\gamma} h = Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma} * h /\allowbreak{} 2)}, which is \(\delta\), and \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Variance \ensuremath{\gamma} h = 1 -\allowbreak{} obabo\allowbreak{}Damping \ensuremath{\gamma} h \textasciicircum{} 2}, which is \(1-\delta^2\). Hence \texttt{thermal\allowbreak{}Amplitude} is \(\sigma_N\).
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Step U \ensuremath{\gamma} h z \ensuremath{\xi} \ensuremath{\xi}'} is \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Step (force U) h (Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Damping \ensuremath{\gamma} h) (thermal\allowbreak{}Amplitude N \ensuremath{\gamma} h) z \ensuremath{\xi} \ensuremath{\xi}'}. The shared map \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Step force h \ensuremath{\delta} \ensuremath{\sigma} z \ensuremath{\xi} \ensuremath{\xi}'} of the kinetic report is defined as the composition of \texttt{ornstein\allowbreak{}Step \ensuremath{\delta} \ensuremath{\sigma} \ensuremath{\xi}}, \texttt{kick\allowbreak{}Step force (h /\allowbreak{} 2)}, \texttt{drift\allowbreak{}Step h}, \texttt{kick\allowbreak{}Step force (h /\allowbreak{} 2)} and \texttt{ornstein\allowbreak{}Step \ensuremath{\delta} \ensuremath{\sigma} \ensuremath{\xi}'}, which are the maps \(O\), \(B_{h/2}\), \(A_h\), \(B_{h/2}\), \(O\) above acting on pairs (velocity, position). \texttt{half\allowbreak{}Velocity U \ensuremath{\gamma} h z \ensuremath{\xi}} is \texttt{obabo\allowbreak{}Damping \ensuremath{\gamma} h \ensuremath{\bullet} z.\allowbreak{}1 + thermal\allowbreak{}Amplitude N \ensuremath{\gamma} h \ensuremath{\bullet} \ensuremath{\xi} -\allowbreak{} (h /\allowbreak{} 2) \ensuremath{\bullet} force U z.\allowbreak{}2}, the vector \(v_{1/2}\).
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}position} and \texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}velocity} are the two identities of the claim. Both are proved by \texttt{rfl}: after unfolding the definitions the two sides are the same term, which is the evaluation of the five maps carried out in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.20.1]{LangevinLean2026Kinetic}; \cite[Section~3.20.5]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{The parameter half velocity contains the average gradient}{The parameter half velocity contains the average gradient}}
+\section{\texorpdfstring{The parameter half velocity contains the averaged gradient}{The parameter half velocity contains the averaged gradient}}
 
 
-Evaluating the half velocity on parameter index \(j\) gives
-
-\[(v_{1/2})_{\theta,j}=\delta v_{\theta,j}+\sigma_N\xi_{\theta,j}
--\frac{h}{2N}\sum_i\nabla_\theta U(\theta,X^i)_j.\]
-
-The proof unfolds the half-velocity definition, distributes coordinate evaluation over vector addition, subtraction and scalar multiplication, then substitutes the parameter-average force identity. The remaining equality is scalar rational algebra, verified by distributing scalar products. This proof keeps the particle mean in the force rather than adding an assumed algorithm-equivalence premise.
+\textbf{Claim.} Let \(U\) be differentiable and \(\gamma,h\in\mathbb R\), let \((v,z)\) be a phase state with parameter block \(\theta\) of \(z\), and let \(\xi\in\mathcal Z_N\). Then for every parameter coordinate \(j\in\{1,\dots,d_\theta\}\),
 
 
+\[(v_{1/2})_{\theta,j}=\delta\,v_{\theta,j}+\sigma_N\,\xi_{\theta,j}-\frac h{2N}\sum_{i=1}^N\partial_{\theta_j}U(\theta,\sqrt Nz_i).\]
 
-The average parameter gradient is inherited from the averaged potential. It is multiplied by the half-step length because this is one of the two \(B\) stages. The full parameter force action over a step is distributed between the old and new positions.
 
+\textbf{Proof.} Taking the coordinate \((\theta,j)\) of \(v_{1/2}=\delta v+\sigma_N\xi-\frac h2F_N(z)\) gives \(\delta v_{\theta,j}+\sigma_N\xi_{\theta,j}-\frac h2F_N(z)_{\theta,j}\). By the parameter formula for the force (\cite[Section~3.1.4]{LangevinLean2026KIPLMC}),
+
+
+\[\frac h2F_N(z)_{\theta,j}=\frac h2\cdot\frac1N\sum_{i=1}^N\partial_{\theta_j}U(\theta,\sqrt Nz_i)=\frac h{2N}\sum_{i=1}^N\partial_{\theta_j}U(\theta,\sqrt Nz_i).\qquad\square\]
+
+
+Since the parameter coordinates are not rescaled, this is the first parameter line of Algorithm 2, \(V^\theta_{n+1/2}=\delta V^\theta_n+\sqrt{(1-\delta^2)/N}\,\xi^0_n-\frac h2F^\theta_n\), with \(F^\theta_n=N^{-1}\sum_i\nabla_\theta U(\theta_n,X^i_n)\). The parameter thermostat has the reduced amplitude \(\sigma_N\), which corresponds to temperature \(1/N\).
+
+\begin{leanbox}{Lean: \texttt{halfVelocity\_\allowbreak{}parameter}}
+\leansource{\texttt{halfVelocity\_\allowbreak{}parameter} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 44–53}
+\begin{leancode}
+\leanline{0}{theorem\ halfVelocity\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ :\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{halfVelocity\ U\ γ\ h\ z\ ξ\ (Sum.inl\ j)\ =}
+\leanline{6}{KineticLangevin.obaboDamping\ γ\ h\ *\ z.1\ (Sum.inl\ j)\ +}
+\leanline{6}{thermalAmplitude\ N\ γ\ h\ *\ ξ\ (Sum.inl\ j)\ -}
+\leanline{6}{h\ /\ (2\ *\ N)\ *\ ∑\ i\ :\ Fin\ N,\ gradient\ U\ (IPLA.joint\ i\ z.2)\ (Sum.inl\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{half\allowbreak{}Velocity\_\allowbreak{}parameter} assumes \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U}. Its left-hand side \texttt{half\allowbreak{}Velocity U \ensuremath{\gamma} h z \ensuremath{\xi} (Sum.\allowbreak{}inl j)} is the parameter coordinate \texttt{j} of \(v_{1/2}\), and the right-hand side uses \texttt{h /\allowbreak{} (2 * N)} times the sum over particles of \texttt{gradient U (IPLA.\allowbreak{}joint i z.\allowbreak{}2) (Sum.\allowbreak{}inl j)}. The proof unfolds \texttt{half\allowbreak{}Velocity}, evaluates coordinates of sums, differences and scalar multiples (\texttt{Pi\allowbreak{}Lp.\allowbreak{}add\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}), substitutes \texttt{force\_\allowbreak{}parameter hdiff} from the geometry section, and closes the identity \(\frac h2\cdot N^{-1}\cdot s=\frac h{2N}s\) with \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.20.5]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{Undo latent scaling in the first \(O\) and \(B\) substeps}{Undo latent scaling in the first O and B substeps}}
+\section{\texorpdfstring{The latent half velocity after undoing the scaling}{The latent half velocity after undoing the scaling}}
 
 
-The thermostat identity is \(\sqrt N\sigma_N=\sqrt{1-\delta^2}\). Its proof combines square roots and cancels the positive \(N\) inside the argument. Multiplying the latent half velocity by \(\sqrt N\) then gives
-
-\[\sqrt N(v_{1/2})_i=\delta(\sqrt Nv_i)+\sqrt{1-\delta^2}\xi_i-\frac h2\nabla_xU(\theta,X^i).\]
-
-The coordinate proof expands multiplication through the three terms, applies the proved thermostat and force-unscaling identities, and normalizes multiplication order with expansion of the scalar polynomials. This yields exactly the physical latent OU refresh and unaveraged force kick.
+\textbf{Claim.} Let \(N>0\) and \(\gamma,h\in\mathbb R\). Then
 
 
+\[\sqrt N\,\sigma_N=\sqrt{1-\delta^2}.\qquad(1)\]
 
-The latent scaling cancels the temperature reduction in thermostat amplitude. Its physical noise is therefore the standard unit-temperature OU noise. The same scaling cancels the averaging in the latent force, giving the physical pair-gradient kick.
 
+If moreover \(U\) is differentiable, then for every phase state \((v,z)\), every \(\xi\in\mathcal Z_N\), every particle \(i\) and every latent coordinate \(j\in\{1,\dots,d_x\}\),
+
+
+\[\sqrt N\,(v_{1/2})_{(i,j)}=\delta\bigl(\sqrt N\,v_{(i,j)}\bigr)+\sqrt{1-\delta^2}\,\xi_{(i,j)}-\frac h2\,\partial_{x_j}U(\theta,\sqrt Nz_i).\qquad(2)\]
+
+
+\textbf{Proof.} For (1): since \(N\ge0\), \(\sqrt N\sqrt{(1-\delta^2)/N}=\sqrt{N(1-\delta^2)/N}\) by the product rule for square roots, valid when the first factor is nonnegative, and \(N(1-\delta^2)/N=1-\delta^2\) because \(N\ne0\).
+
+
+
+
+For (2), take the coordinate \((i,j)\) of \(v_{1/2}\), multiply by \(\sqrt N\) and distribute:
+
+
+\[\sqrt N\,(v_{1/2})_{(i,j)}=\delta\sqrt N\,v_{(i,j)}+\bigl(\sqrt N\,\sigma_N\bigr)\xi_{(i,j)}-\frac h2\bigl(\sqrt N\,F_N(z)_{(i,j)}\bigr).\]
+
+
+By (1) the middle coefficient is \(\sqrt{1-\delta^2}\), and by the latent formula for the force (\cite[Section~3.1.4]{LangevinLean2026KIPLMC}) \(\sqrt N\,F_N(z)_{(i,j)}=\partial_{x_j}U(\theta,\sqrt Nz_i)\). \(\square\)
+
+
+
+
+With \(V^{x_i}=\sqrt Nv_i\) and \(X^i=\sqrt Nz_i\), (2) is the latent line \(V^{x_i}_{n+1/2}=\delta V^{x_i}_n+\sqrt{1-\delta^2}\,\xi^i_n-\frac h2\nabla_xU(\theta_n,X^i_n)\) of Algorithm 2. The same two identities, applied to the last two substeps, give the final latent velocity: by linearity, \(\sqrt N\,v^+_{(i,j)}=\delta\bigl(\sqrt N(v_{1/2})_{(i,j)}-\frac h2\partial_{x_j}U(\theta^+,\sqrt Nz^+_i)\bigr)+\sqrt{1-\delta^2}\,\xi'_{(i,j)}\), where \(\theta^+\) is the parameter block of \(z^+\). The factor \(\sqrt N\) restores unit temperature in the latent thermostat and removes the average from the latent force.
+
+\begin{leanbox}{Lean: \texttt{unscale\_\allowbreak{}thermalAmplitude}, \texttt{halfVelocity\_\allowbreak{}particle}}
+\leansource{\texttt{unscale\_\allowbreak{}thermalAmplitude} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 56–61}
+\begin{leancode}
+\leanline{0}{theorem\ unscale\_thermalAmplitude\ \{N\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ thermalAmplitude\ N\ γ\ h\ =}
+\leanline{6}{Real.sqrt\ (KineticLangevin.obaboVariance\ γ\ h)}
+\end{leancode}
+\leansource{\texttt{halfVelocity\_\allowbreak{}particle} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 64–76}
+\begin{leancode}
+\leanline{0}{theorem\ halfVelocity\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ :\ State\ N\ dθ\ dx)}
+\leanline{4}{(i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ halfVelocity\ U\ γ\ h\ z\ ξ\ (Sum.inr\ (i,j))\ =}
+\leanline{6}{KineticLangevin.obaboDamping\ γ\ h\ *\ (Real.sqrt\ N\ *\ z.1\ (Sum.inr\ (i,j)))\ +}
+\leanline{6}{Real.sqrt\ (KineticLangevin.obaboVariance\ γ\ h)\ *\ ξ\ (Sum.inr\ (i,j))\ -}
+\leanline{6}{(h\ /\ 2)\ *\ gradient\ U\ (IPLA.joint\ i\ z.2)\ (Sum.inr\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{unscale\_\allowbreak{}thermal\allowbreak{}Amplitude} assumes \texttt{h\allowbreak{}N : 0 < N} and states \texttt{Real.\allowbreak{}sqrt N * thermal\allowbreak{}Amplitude N \ensuremath{\gamma} h = Real.\allowbreak{}sqrt (Kinetic\allowbreak{}Langevin.\allowbreak{}obabo\allowbreak{}Variance \ensuremath{\gamma} h)}. As for the KIPLMC1 amplitude, \texttt{rw [thermal\allowbreak{}Amplitude, ← Real.\allowbreak{}sqrt\_\allowbreak{}mul (Nat.\allowbreak{}cast\_\allowbreak{}nonneg N)]} merges the roots, \texttt{congr 1} reduces to the radicands, and \texttt{field\_\allowbreak{}simp} cancels \(N\ne0\).
+
+
+
+
+\texttt{half\allowbreak{}Velocity\_\allowbreak{}particle} assumes \texttt{h\allowbreak{}N} and \texttt{hdiff} and states (2). The \texttt{simp only} line unfolds \texttt{half\allowbreak{}Velocity}, evaluates coordinates and distributes \(\sqrt N\) (\texttt{mul\_\allowbreak{}sub}, \texttt{mul\_\allowbreak{}add}). Then \texttt{rw [← mul\_\allowbreak{}assoc (Real.\allowbreak{}sqrt N) (thermal\allowbreak{}Amplitude N \ensuremath{\gamma} h), unscale\_\allowbreak{}thermal\allowbreak{}Amplitude h\allowbreak{}N]} applies (1) to the noise term, \texttt{rw [mul\_\allowbreak{}left\_\allowbreak{}comm (Real.\allowbreak{}sqrt N) (h /\allowbreak{} 2), force\_\allowbreak{}particle h\allowbreak{}N hdiff]} moves \(\sqrt N\) next to the force coordinate and replaces it by the pair gradient, and \texttt{ring} finishes. The remark on the final latent velocity is not stated separately; it follows from the same two rewrites applied to \texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}velocity}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.20.5]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{Recover physical parameter and latent position drifts}{Recover physical parameter and latent position drifts}}
+\section{\texorpdfstring{The parameter and latent position updates}{The parameter and latent position updates}}
 
 
-The common position formula is \(z^+=z+h v_{1/2}\). Its parameter coordinate reads \(\theta^+=\theta+hV^\theta_{1/2}\) directly because that coordinate was not scaled; its theorem is definitional. In a latent coordinate, multiply both sides by \(\sqrt N\) and distribute: \(X^{i+}=X^i+hV^{x_i}_{1/2}\). The argument rewrites the shared position identity, simplifies Euclidean coordinate operations and proves the scalar distributive equality with expansion of the scalar polynomials. Together with the half-velocity and final-velocity identities, these are the paper's complete pointwise OBABO stages. Gaussian transition laws and their numerical bias remain separate analytic assertions.
+\textbf{Claim.} For all \(\gamma,h\in\mathbb R\), phase states \((v,z)\) and \(\xi,\xi'\in\mathcal Z_N\), with \((v^+,z^+)=S((v,z),\xi,\xi')\),
+
+
+\[z^+_{\theta,j}=z_{\theta,j}+h\,(v_{1/2})_{\theta,j}\qquad(j\le d_\theta),\]
+\[\sqrt N\,z^+_{(i,j)}=\sqrt N\,z_{(i,j)}+h\bigl(\sqrt N\,(v_{1/2})_{(i,j)}\bigr)\qquad(i\le N,\;j\le d_x).\]
+
+
+\textbf{Proof.} By the first step, \(z^+=z+hv_{1/2}\). Taking the coordinate \((\theta,j)\) gives the first identity. Taking the coordinate \((i,j)\) and multiplying by \(\sqrt N\) gives \(\sqrt N z^+_{(i,j)}=\sqrt N z_{(i,j)}+\sqrt N\,h\,(v_{1/2})_{(i,j)}\), and \(\sqrt N\,h=h\sqrt N\) by commutativity. \(\square\)
 
 
 
-Position does not receive an independent direct noise in this splitting. Its randomness is transported by the refreshed half velocity. The parameter and latent position formulas therefore follow from the same deterministic drift stage after their respective coordinate scalings.
 
+In physical coordinates these are the (A) lines \(\theta_{n+1}=\theta_n+hV^\theta_{n+1/2}\) and \(X^i_{n+1}=X^i_n+hV^{x_i}_{n+1/2}\) of Algorithm 2. The position receives no separate noise: its randomness enters only through the refreshed half velocity. Together with the half-velocity identities of the previous two steps and the final velocity formula of the first step, these identities recover every line of Algorithm 2, with the physical latent variables obtained by multiplying the scaled coordinates by \(\sqrt N\).
+
+\begin{leanbox}{Lean: \texttt{kiplmc2Step\_\allowbreak{}parameter\_\allowbreak{}position}, \texttt{kiplmc2Step\_\allowbreak{}particle\_\allowbreak{}position}}
+\leansource{\texttt{kiplmc2Step\_\allowbreak{}parameter\_\allowbreak{}position} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 79–83}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Step\_parameter\_position\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ ξ'\ :\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{(kiplmc2Step\ U\ γ\ h\ z\ ξ\ ξ').2\ (Sum.inl\ j)\ =}
+\leanline{6}{z.2\ (Sum.inl\ j)\ +\ h\ *\ halfVelocity\ U\ γ\ h\ z\ ξ\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{kiplmc2Step\_\allowbreak{}particle\_\allowbreak{}position} \quad KIPLMC/\allowbreak{}Splitting.lean, lines 86–95}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Step\_particle\_position\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ ξ'\ :\ State\ N\ dθ\ dx)}
+\leanline{4}{(i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ (kiplmc2Step\ U\ γ\ h\ z\ ξ\ ξ').2\ (Sum.inr\ (i,j))\ =}
+\leanline{6}{Real.sqrt\ N\ *\ z.2\ (Sum.inr\ (i,j))\ +}
+\leanline{6}{h\ *\ (Real.sqrt\ N\ *\ halfVelocity\ U\ γ\ h\ z\ ξ\ (Sum.inr\ (i,j)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}parameter\_\allowbreak{}position} states \texttt{(kiplmc2\allowbreak{}Step U \ensuremath{\gamma} h z \ensuremath{\xi} \ensuremath{\xi}').\allowbreak{}2 (Sum.\allowbreak{}inl j) = z.\allowbreak{}2 (Sum.\allowbreak{}inl j) + h * half\allowbreak{}Velocity U \ensuremath{\gamma} h z \ensuremath{\xi} (Sum.\allowbreak{}inl j)} and is proved by \texttt{rfl}: evaluating the coordinate of \texttt{z.\allowbreak{}2 + h \ensuremath{\bullet} half\allowbreak{}Velocity U \ensuremath{\gamma} h z \ensuremath{\xi}} is definitional.
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}particle\_\allowbreak{}position} multiplies the latent coordinate by \texttt{Real.\allowbreak{}sqrt N}. The proof rewrites the position with \texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}position}, evaluates the coordinate of the sum and scalar multiple (\texttt{Pi\allowbreak{}Lp.\allowbreak{}add\_\allowbreak{}apply}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}), and closes the commutativity rearrangement with \texttt{ring}. Neither statement needs differentiability of \(U\) or \(N>0\).
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision dc37c4f67baa. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+\bibitem[KIPLMC]{LangevinLean2026KIPLMC}
+LangevinLean Project. \emph{Kinetic Interacting Particle Langevin Monte Carlo}. LL-07, 2026. Draft report, content revision 391be0a29054. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KIPLMC/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

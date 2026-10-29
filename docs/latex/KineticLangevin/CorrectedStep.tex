@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,25 @@ For a continuous Banach-valued path \(F\), write \(D_\gamma F(t)=\int_0^te^{-\ga
 
 The factorized expression separates the time dependence of the exponential from the moving upper integration limit. The product rule then gives one forcing term and one damping term. This identity is the differential identity underlying the corrected free-OU equations.
 
+\begin{leanbox}{Lean: \texttt{dampedIntegral\_\allowbreak{}factor}, \texttt{hasDerivAt\_\allowbreak{}dampedIntegral}}
+\leansource{\texttt{dampedIntegral\_\allowbreak{}factor} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 14–22}
+\begin{leancode}
+\leanline{0}{theorem\ dampedIntegral\_factor\ (γ\ :\ ℝ)\ (F\ :\ ℝ→E)\ (t\ :\ ℝ)\ :}
+\leanline{4}{dampedIntegral\ γ\ F\ t=Real.exp\ (-γ*t)\ •\ ∫\ s\ in\ 0..t,Real.exp\ (γ*s)\ •\ F\ s}
+\end{leancode}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}dampedIntegral} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 25–38}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_dampedIntegral\ (γ\ :\ ℝ)\ (F\ :\ ℝ→E)\ (hF\ :\ Continuous\ F)\ (t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (dampedIntegral\ γ\ F)\ (F\ t-γ\ •\ dampedIntegral\ γ\ F\ t)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{damped\allowbreak{}Integral\_\allowbreak{}factor} gives the formal counterpart of this step. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}damped\allowbreak{}Integral} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hd}, \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrate the entire stochastic correction}{Integrate the entire stochastic correction}}
 
@@ -42,6 +84,54 @@ The constructed Wiener kernel on an interval of zero duration is zero in \(L^{2}
 
 The correction’s zero initial value and its derivative identity determine its primitive uniquely. Both statements retain the stochastic response part. Thus integrating the complete correction yields the correct position term, including the Hessian-multiplied position noise.
 
+\begin{leanbox}{Lean: \texttt{vectorSegmentLp\_\allowbreak{}zero}, \texttt{continuous\_\allowbreak{}freeOUCorrection}, \texttt{freeOUCorrection\_\allowbreak{}zero} and 2 more}
+\leansource{\texttt{vectorSegmentLp\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 45–53}
+\begin{leancode}
+\leanline{0}{theorem\ vectorSegmentLp\_zero\ (k\ :\ ℝ→ℝ)\ (hk\ :\ Continuous\ k)\ (a\ :\ ℝ≥0)\ :}
+\leanline{4}{vectorSegmentLp\ ι\ k\ hk\ a\ 0=0}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}freeOUCorrection} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 58–60}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_freeOUCorrection\ (k\ :\ ℕ)\ :\ Continuous\ (freeOUCorrection\ P\ L\ V\ γ\ a\ k)}
+\end{leancode}
+\leansource{\texttt{freeOUCorrection\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 62–63}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ freeOUCorrection\_zero\ (k\ :\ ℕ)\ :\ freeOUCorrection\ P\ L\ V\ γ\ a\ k\ 0=0}
+\end{leancode}
+\leansource{\texttt{freeOUCorrection\_\allowbreak{}primitive} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 66–86}
+\begin{leancode}
+\leanline{0}{theorem\ freeOUCorrection\_primitive\ (hγ\ :\ 0≤γ)\ (t\ :\ ℝ)\ (ht\ :\ 0≤t)\ :}
+\leanline{4}{freeOUCorrection\ P\ L\ V\ γ\ a\ 2\ t=∫\ s\ in\ 0..t,freeOUCorrection\ P\ L\ V\ γ\ a\ 1\ s}
+\end{leancode}
+\leansource{\texttt{freeOUCorrection\_\allowbreak{}phi\_\allowbreak{}two\_\allowbreak{}eq\_\allowbreak{}dampedPrimitive} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 89–97}
+\begin{leancode}
+\leanline{0}{theorem\ freeOUCorrection\_phi\_two\_eq\_dampedPrimitive\ (hγ\ :\ 0≤γ)\ (t\ :\ ℝ)\ (ht\ :\ 0≤t)\ :}
+\leanline{4}{freeOUCorrection\ P\ L\ V\ γ\ a\ 1\ t=}
+\leanline{6}{dampedIntegral\ γ\ (fun\ s\ ↦\ ∫\ r\ in\ 0..s,freeOUResponse\ P\ L\ V\ γ\ a\ 0\ r)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{vector\allowbreak{}Segment\allowbreak{}Lp\_\allowbreak{}zero} gives the formal counterpart of this step. The main intermediate facts are \texttt{hzero} in that order. Named proof applications include \texttt{Lp.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{continuous\_\allowbreak{}free\allowbreak{}OUCorrection} gives the formal counterpart of this step.
+
+
+
+
+\texttt{free\allowbreak{}OUCorrection\_\allowbreak{}zero} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{free\allowbreak{}OUCorrection\_\allowbreak{}primitive} gives the formal counterpart of this step. The main intermediate facts are \texttt{R}, \texttt{h\allowbreak{}R}, \texttt{hd}, \texttt{hi} in that order. Named proof applications include \texttt{hi.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{free\allowbreak{}OUCorrection\_\allowbreak{}phi\_\allowbreak{}two\_\allowbreak{}eq\_\allowbreak{}damped\allowbreak{}Primitive} gives the formal counterpart of this step. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The analytic velocity and position with full kernel formulas}{The analytic velocity and position with full kernel formulas}}
 
@@ -52,6 +142,33 @@ The Taylor analysis defines \(\widehat V_t=R_0(t)-\psi_1(t)F_0-A D_\gamma(\int R
 
 The frozen Hessian is constant in local time and defines a bounded operator on square-integrable variables. It can therefore be commuted with integration. This gives the position formula from the corrected velocity path, rather than guessing a matching endpoint expression.
 
+\begin{leanbox}{Lean: \texttt{correctedVelocity\_\allowbreak{}freeOUResponse}, \texttt{correctedPosition\_\allowbreak{}freeOUResponse}}
+\leansource{\texttt{correctedVelocity\_\allowbreak{}freeOUResponse} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 100–106}
+\begin{leancode}
+\leanline{0}{theorem\ correctedVelocity\_freeOUResponse}
+\leanline{4}{(F0\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(A\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ →L[ℝ]\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hγ\ :\ 0≤γ)\ (t\ :\ ℝ)\ (ht\ :\ 0≤t)\ :}
+\leanline{4}{correctedVelocity\ γ\ (freeOUResponse\ P\ L\ V\ γ\ a\ 0)\ F0\ A\ t=}
+\leanline{6}{freeOUResponse\ P\ L\ V\ γ\ a\ 0\ t-psi\ γ\ 1\ t\ •\ F0-A\ (freeOUCorrection\ P\ L\ V\ γ\ a\ 1\ t)}
+\end{leancode}
+\leansource{\texttt{correctedPosition\_\allowbreak{}freeOUResponse} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 109–135}
+\begin{leancode}
+\leanline{0}{theorem\ correctedPosition\_freeOUResponse}
+\leanline{4}{(x0\ F0\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(A\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ →L[ℝ]\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hγ\ :\ 0≤γ)\ (t\ :\ ℝ)\ (ht\ :\ 0≤t)\ :}
+\leanline{4}{correctedPosition\ γ\ (freeOUResponse\ P\ L\ V\ γ\ a\ 0)\ x0\ F0\ A\ t=}
+\leanline{6}{x0+freeOUResponse\ P\ L\ V\ γ\ a\ 1\ t-psi\ γ\ 2\ t\ •\ F0-A\ (freeOUCorrection\ P\ L\ V\ γ\ a\ 2\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Velocity\_\allowbreak{}free\allowbreak{}OUResponse} gives the formal counterpart of this step.
+
+
+
+
+\texttt{corrected\allowbreak{}Position\_\allowbreak{}free\allowbreak{}OUResponse} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}U}, \texttt{h\allowbreak{}F}, \texttt{h\allowbreak{}A}, \texttt{he}, \texttt{hi\allowbreak{}UF} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}, \texttt{corrected\allowbreak{}Velocity\_\allowbreak{}free\allowbreak{}OUResponse}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Match the defined four-noise KLMC2 update exactly}{Match the defined four-noise KLMC2 update exactly}}
 
@@ -64,13 +181,43 @@ Let \(R\) be the unscaled source pullback and sample the four correlated respons
 
 Expanding the four shared responses makes the two deterministic Hessian terms and the two stochastic Hessian terms explicit. This exact matching is required before applying the local Taylor estimate to the sampler. The identified map is the full defined KLMC2 update.
 
+\begin{leanbox}{Lean: \texttt{liftedKLMC2Noise}, \texttt{klmc2Step\_\allowbreak{}eq\_\allowbreak{}corrected\_\allowbreak{}freeOU}}
+\leansource{\texttt{liftedKLMC2Noise} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 138–142}
+\begin{leancode}
+\leanline{0}{def\ liftedKLMC2Noise}
+\leanline{4}{(R\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ (ULA.CanonicalBrownian.vectorProbability\ ι)\ →L[ℝ]}
+\leanline{6}{Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(γ\ :\ ℝ)\ (a\ :\ ℝ≥0)\ (t\ :\ ℝ)\ (j\ :\ Fin\ 4)\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ :=}
+\leanline{2}{R\ (vectorSegmentLp\ ι\ (klmc2Kernels\ γ\ j)\ (continuous\_klmc2Kernels\ γ\ j)\ a\ t.toNNReal)}
+\end{leancode}
+\leansource{\texttt{klmc2Step\_\allowbreak{}eq\_\allowbreak{}corrected\_\allowbreak{}freeOU} \quad KineticLangevin/\allowbreak{}CorrectedStep.lean, lines 145–160}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2Step\_eq\_corrected\_freeOU}
+\leanline{4}{(R\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ (ULA.CanonicalBrownian.vectorProbability\ ι)\ →L[ℝ]}
+\leanline{6}{Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(g\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(H\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ →L[ℝ]\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(γ\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (a\ :\ ℝ≥0)\ (t\ :\ ℝ)\ (ht\ :\ 0≤t)}
+\leanline{4}{(z\ :\ PhaseSpace\ (Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P))\ :}
+\leanline{4}{klmc2Step\ g\ H\ γ\ t\ z\ (liftedKLMC2Noise\ P\ R\ γ\ a\ t)=}
+\leanline{6}{(correctedVelocity\ γ\ (freeOUResponse\ P\ (Real.sqrt\ (2*γ)\ •\ R)\ z.1\ γ\ a\ 0)\ (g\ z.2)\ (H\ z.2)\ t,}
+\leanline{7}{correctedPosition\ γ\ (freeOUResponse\ P\ (Real.sqrt\ (2*γ)\ •\ R)\ z.1\ γ\ a\ 0)\ z.2\ (g\ z.2)\ (H\ z.2)\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lifted\allowbreak{}KLMC2\allowbreak{}Noise} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{klmc2\allowbreak{}Step\_\allowbreak{}eq\_\allowbreak{}corrected\_\allowbreak{}free\allowbreak{}OU} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.17]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

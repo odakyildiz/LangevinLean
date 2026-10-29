@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,6 +59,35 @@ The positive offset in \(c\) prevents division by zero even for \(m=0\). The int
 
 The scale \(M=m+1\) is strictly positive for every allowed index, avoiding a zero denominator. The arctangent bounds the test uniformly in its argument, while the derivative weight remains between zero and one.
 
+\begin{leanbox}{Lean: \texttt{boundedLogSlope}, \texttt{boundedLogWeight}, \texttt{boundedEntropy}}
+\leansource{\texttt{boundedLogSlope} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 26–27}
+\begin{leancode}
+\leanline{0}{def\ boundedLogSlope\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(m\ +\ 1\ :\ ℝ)\ *\ Real.arctan\ (z\ /\ (m\ +\ 1\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{boundedLogWeight} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 30–31}
+\begin{leancode}
+\leanline{0}{def\ boundedLogWeight\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(1\ +\ (z\ /\ (m\ +\ 1\ :\ ℝ))\ \textasciicircum{}\ 2)⁻¹}
+\end{leancode}
+\leansource{\texttt{boundedEntropy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 34–37}
+\begin{leancode}
+\leanline{0}{def\ boundedEntropy\ (m\ :\ ℕ)\ (r\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{∫\ u\ in\ (1\ :\ ℝ)..r,\ boundedLogSlope\ m\ (Real.log\ u)}
+\leanline{0}{\strut}
+\leanline{0}{@[simp]}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope} is a definition with defining expression \texttt{(m + 1 : \ensuremath{\mathbb R}) * Real.\allowbreak{}arctan (z /\allowbreak{} (m + 1 : \ensuremath{\mathbb R}))}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Weight} is a definition with defining expression \texttt{(1 + (z /\allowbreak{} (m + 1 : \ensuremath{\mathbb R})) \textasciicircum{} 2)\ensuremath{{}^{-1}}}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{bounded\allowbreak{}Entropy} is a definition with defining expression \texttt{\ensuremath{\int} u in (1 : \ensuremath{\mathbb R}).\allowbreak{}.\allowbreak{}r, bounded\allowbreak{}Log\allowbreak{}Slope m (Real.\allowbreak{}log u)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Differentiate and bound the test}{Differentiate and bound the test}}
 
@@ -50,6 +102,90 @@ The test is smooth of all orders because arctangent is smooth and \(c>0\). In it
 
 Differentiating arctangent gives the rational weight \(1/(1+(z/M)^2)\). Its denominator is at least one, proving nonnegativity and the upper bound used to dominate every truncated score energy.
 
+\begin{leanbox}{Lean: \texttt{boundedLogSlope\_\allowbreak{}zero}, \texttt{boundedLogSlope\_\allowbreak{}contDiff}, \texttt{boundedLogSlope\_\allowbreak{}hasDerivAt} and 7 more}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 38–39}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_zero\ (m\ :\ ℕ)\ :\ boundedLogSlope\ m\ 0\ =\ 0}
+\end{leancode}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}contDiff} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 41–45}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_contDiff\ (m\ :\ ℕ)\ :\ ContDiff\ ℝ\ ⊤\ (boundedLogSlope\ m)}
+\end{leancode}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}hasDerivAt} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 47–53}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_hasDerivAt\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (boundedLogSlope\ m)\ (boundedLogWeight\ m\ z)\ z}
+\end{leancode}
+\leansource{\texttt{boundedLogWeight\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 55–57}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogWeight\_nonneg\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :\ 0\ ≤\ boundedLogWeight\ m\ z}
+\end{leancode}
+\leansource{\texttt{boundedLogWeight\_\allowbreak{}le\_\allowbreak{}one} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 59–62}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogWeight\_le\_one\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :\ boundedLogWeight\ m\ z\ ≤\ 1}
+\end{leancode}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}lipschitz} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 64–71}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_lipschitz\ (m\ :\ ℕ)\ :\ LipschitzWith\ 1\ (boundedLogSlope\ m)}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}boundedLogSlope\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 73–75}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_boundedLogSlope\_le\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :\ ‖boundedLogSlope\ m\ z‖\ ≤\ ‖z‖}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}boundedLogSlope\_\allowbreak{}le\_\allowbreak{}const} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 77–82}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_boundedLogSlope\_le\_const\ (m\ :\ ℕ)\ (z\ :\ ℝ)\ :}
+\leanline{4}{‖boundedLogSlope\ m\ z‖\ ≤\ (m\ +\ 1\ :\ ℝ)\ *\ (Real.pi\ /\ 2)}
+\end{leancode}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 84–87}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_nonneg\ (m\ :\ ℕ)\ \{z\ :\ ℝ\}\ (hz\ :\ 0\ ≤\ z)\ :}
+\leanline{4}{0\ ≤\ boundedLogSlope\ m\ z}
+\end{leancode}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}nonpos} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 89–93}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_nonpos\ (m\ :\ ℕ)\ \{z\ :\ ℝ\}\ (hz\ :\ z\ ≤\ 0)\ :}
+\leanline{4}{boundedLogSlope\ m\ z\ ≤\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}zero}: the concluding step is \texttt{simp [bounded\allowbreak{}Log\allowbreak{}Slope]}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}cont\allowbreak{}Diff}: the intermediate fact is \texttt{ha}, in source order; the source steps apply or rewrite \texttt{cont\allowbreak{}Diff\_\allowbreak{}const.\allowbreak{}mul}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}: the intermediate fact is \texttt{hd}, in source order. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Weight\_\allowbreak{}nonneg}: the proof is the application \texttt{dsimp [bounded\allowbreak{}Log\allowbreak{}Weight]}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Weight\_\allowbreak{}le\_\allowbreak{}one}: the source steps apply or rewrite \texttt{inv\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}of\_\allowbreak{}one\_\allowbreak{}le\ensuremath{{}_{0}}}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}lipschitz}: the source steps apply or rewrite \texttt{lipschitz\allowbreak{}With\_\allowbreak{}of\_\allowbreak{}nnnorm\_\allowbreak{}deriv\_\allowbreak{}le}, \texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}, \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}le\_\allowbreak{}coe.\allowbreak{}mp}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{bounded\allowbreak{}Log\allowbreak{}Weight\_\allowbreak{}le\_\allowbreak{}one}.
+
+
+
+\texttt{norm\_\allowbreak{}bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}le}: the proof is the application \texttt{simpa only [bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}zero, sub\_\allowbreak{}zero, NNReal.\allowbreak{}coe\_\allowbreak{}one, one\_\allowbreak{}mul] using}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{norm\_\allowbreak{}bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}le\_\allowbreak{}const}: the intermediate fact is \texttt{hbound}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}mul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}pos}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}nonneg}: the source steps apply or rewrite \texttt{mul\_\allowbreak{}nonneg}, \texttt{Real.\allowbreak{}arctan\_\allowbreak{}nonneg.\allowbreak{}mpr}, \texttt{div\_\allowbreak{}nonneg}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}nonpos}: the source steps apply or rewrite \texttt{mul\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}of\_\allowbreak{}nonpos}.
+\end{leanbox}
 
 \section{\texorpdfstring{Recover the logarithm and its primitive}{Recover the logarithm and its primitive}}
 
@@ -64,6 +200,42 @@ The function \(u\mapsto\chi_m(\log u)\) is measurable and bounded, hence integra
 
 For fixed \(z\), the ratio \(z/M\) tends to zero, and \(\arctan u/u\to1\). This gives recovery of the logarithmic test and, after integration in the density variable, its entropy primitive.
 
+\begin{leanbox}{Lean: \texttt{boundedLogSlope\_\allowbreak{}tendsto}, \texttt{boundedLogWeight\_\allowbreak{}tendsto}, \texttt{boundedLog\_\allowbreak{}integrable} and 1 more}
+\leansource{\texttt{boundedLogSlope\_\allowbreak{}tendsto} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 95–113}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogSlope\_tendsto\ (z\ :\ ℝ)\ :}
+\leanline{4}{Tendsto\ (fun\ m\ :\ ℕ\ ↦\ boundedLogSlope\ m\ z)\ atTop\ ({\leanfallback 𝓝}\ z)}
+\end{leancode}
+\leansource{\texttt{boundedLogWeight\_\allowbreak{}tendsto} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 115–123}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLogWeight\_tendsto\ (z\ :\ ℝ)\ :}
+\leanline{4}{Tendsto\ (fun\ m\ :\ ℕ\ ↦\ boundedLogWeight\ m\ z)\ atTop\ ({\leanfallback 𝓝}\ 1)}
+\end{leancode}
+\leansource{\texttt{boundedLog\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 125–129}
+\begin{leancode}
+\leanline{0}{theorem\ boundedLog\_integrable\ (m\ :\ ℕ)\ (a\ b\ :\ ℝ)\ :}
+\leanline{4}{IntervalIntegrable\ (fun\ u\ ↦\ boundedLogSlope\ m\ (Real.log\ u))\ volume\ a\ b}
+\end{leancode}
+\leansource{\texttt{boundedEntropy\_\allowbreak{}hasDerivAt} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 131–139}
+\begin{leancode}
+\leanline{0}{theorem\ boundedEntropy\_hasDerivAt\ (m\ :\ ℕ)\ \{r\ :\ ℝ\}\ (hr\ :\ 0\ <\ r)\ :}
+\leanline{4}{HasDerivAt\ (boundedEntropy\ m)\ (boundedLogSlope\ m\ (Real.log\ r))\ r}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}tendsto}: the cases are separated by \texttt{by\_\allowbreak{}cases hz : z = 0}; the intermediate facts include \texttt{hden}, \texttt{hzero}, \texttt{hne}, \texttt{hd}, \texttt{hlim}, in source order; the source steps apply or rewrite \texttt{div\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}inv}, \texttt{mul\_\allowbreak{}zero}, \texttt{Real.\allowbreak{}arctan\_\allowbreak{}zero}, \texttt{sub\_\allowbreak{}zero}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}.
+
+
+
+\texttt{bounded\allowbreak{}Log\allowbreak{}Weight\_\allowbreak{}tendsto}: the intermediate facts include \texttt{hden}, \texttt{hzero}, in source order; the source steps apply or rewrite \texttt{div\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}inv}, \texttt{mul\_\allowbreak{}zero}, \texttt{zero\_\allowbreak{}pow}, \texttt{add\_\allowbreak{}zero}, \texttt{inv\_\allowbreak{}one}.
+
+
+
+\texttt{bounded\allowbreak{}Log\_\allowbreak{}integrable}: the source steps apply or rewrite \texttt{interval\allowbreak{}Integrable\_\allowbreak{}const}, \texttt{Real.\allowbreak{}pi}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{norm\_\allowbreak{}bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}le\_\allowbreak{}const}, \texttt{Real.\allowbreak{}log}.
+
+
+
+\texttt{bounded\allowbreak{}Entropy\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}: the intermediate fact is \texttt{hm}, in source order; the source steps apply or rewrite \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}right}, \texttt{bounded\allowbreak{}Log\_\allowbreak{}integrable}, \texttt{hm.\allowbreak{}strongly\allowbreak{}Measurable.\allowbreak{}strongly\allowbreak{}Measurable\allowbreak{}At\allowbreak{}Filter}, \texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}cont\allowbreak{}Diff}, \texttt{continuous.\allowbreak{}continuous\allowbreak{}At.\allowbreak{}comp}.
+\end{leanbox}
 
 \section{\texorpdfstring{Dominate the entropy endpoints}{Dominate the entropy endpoints}}
 
@@ -82,6 +254,29 @@ Pointwise convergence of the test and domination by \(|\log u|\), integrable on 
 
 The entropy integrand \(r\log r-r+1\) is nonnegative and dominates the bounded primitives. For a probability density its integral equals KL, so finite relative entropy supplies the endpoint majorant for dominated convergence.
 
+\begin{leanbox}{Lean: \texttt{boundedEntropy\_\allowbreak{}one}, \texttt{boundedEntropy\_\allowbreak{}nonneg}, \texttt{boundedEntropy\_\allowbreak{}le\_\allowbreak{}klFun} and 1 more}
+\leansource{\texttt{boundedEntropy\_\allowbreak{}one} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 140–141}
+\begin{leancode}
+\leanline{0}{theorem\ boundedEntropy\_one\ (m\ :\ ℕ)\ :\ boundedEntropy\ m\ 1\ =\ 0}
+\end{leancode}
+\leansource{\texttt{boundedEntropy\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 143–158}
+\begin{leancode}
+\leanline{0}{theorem\ boundedEntropy\_nonneg\ (m\ :\ ℕ)\ \{r\ :\ ℝ\}\ (hr\ :\ 0\ <\ r)\ :}
+\leanline{4}{0\ ≤\ boundedEntropy\ m\ r}
+\end{leancode}
+\leansource{\texttt{boundedEntropy\_\allowbreak{}le\_\allowbreak{}klFun} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 160–188}
+\begin{leancode}
+\leanline{0}{theorem\ boundedEntropy\_le\_klFun\ (m\ :\ ℕ)\ \{r\ :\ ℝ\}\ (hr\ :\ 0\ <\ r)\ :}
+\leanline{4}{boundedEntropy\ m\ r\ ≤\ InformationTheory.klFun\ r}
+\end{leancode}
+\leansource{\texttt{boundedEntropy\_\allowbreak{}tendsto} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 190–216}
+\begin{leancode}
+\leanline{0}{theorem\ boundedEntropy\_tendsto\ \{r\ :\ ℝ\}\ (\_hr\ :\ 0\ <\ r)\ :}
+\leanline{4}{Tendsto\ (fun\ m\ :\ ℕ\ ↦\ boundedEntropy\ m\ r)\ atTop\ ({\leanfallback 𝓝}\ (InformationTheory.klFun\ r))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{bounded\allowbreak{}Entropy\_\allowbreak{}tendsto} proves the endpoint limit of the bounded logarithmic primitives. \texttt{interpolation\allowbreak{}Entropy\_\allowbreak{}local\_\allowbreak{}chain\_\allowbreak{}rule} obtains \texttt{hq}, integrability of the raw flux from \texttt{interpolation\_\allowbreak{}entropy\_\allowbreak{}flux\_\allowbreak{}time\_\allowbreak{}domination}, and applies \texttt{regularity\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}identity} to the integrated identity. The result contains local absolute continuity and an almost-everywhere \texttt{Has\allowbreak{}Deriv\allowbreak{}At} statement. \texttt{interpolation\allowbreak{}Entropy\_\allowbreak{}derivative\_\allowbreak{}bound\_\allowbreak{}ae} applies this on a countable family of intervals starting at reciprocal integers. \texttt{hall} gathers their almost-everywhere statements, and \texttt{exists\_\allowbreak{}nat\_\allowbreak{}one\_\allowbreak{}div\_\allowbreak{}lt} chooses an interval containing any given positive time. Rewriting by \texttt{hd.\allowbreak{}deriv} and applying \texttt{interpolation\allowbreak{}Raw\allowbreak{}Entropy\allowbreak{}Flux\_\allowbreak{}le} gives the stated production inequality almost everywhere.
+\end{leanbox}
 
 \section{\texorpdfstring{Identify the spatial gradient of the test}{Identify the spatial gradient of the test}}
 
@@ -96,5 +291,26 @@ The inequality uses \(0\le w_m\le1\). With \(f=\log r_t\), it supplies square-in
 
 Applying the spatial chain rule multiplies the relative score by \(w_m(\log r)\). Since this weight is at most one, the gradient's squared energy is bounded by Fisher information, proving admissibility of every bounded test.
 
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}boundedLogSlope\_\allowbreak{}comp}, \texttt{norm\_\allowbreak{}gradient\_\allowbreak{}boundedLogSlope\_\allowbreak{}comp\_\allowbreak{}le}}
+\leansource{\texttt{gradient\_\allowbreak{}boundedLogSlope\_\allowbreak{}comp} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 220–230}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_boundedLogSlope\_comp\ (m\ :\ ℕ)\ (f\ :\ E\ →\ ℝ)\ (x\ :\ E)}
+\leanline{4}{(hf\ :\ DifferentiableAt\ ℝ\ f\ x)\ :}
+\leanline{4}{gradient\ (fun\ y\ ↦\ boundedLogSlope\ m\ (f\ y))\ x\ =}
+\leanline{6}{boundedLogWeight\ m\ (f\ x)\ •\ gradient\ f\ x}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}gradient\_\allowbreak{}boundedLogSlope\_\allowbreak{}comp\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 232–237}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_gradient\_boundedLogSlope\_comp\_le\ (m\ :\ ℕ)\ (f\ :\ E\ →\ ℝ)\ (x\ :\ E)}
+\leanline{4}{(hf\ :\ DifferentiableAt\ ℝ\ f\ x)\ :}
+\leanline{4}{‖gradient\ (fun\ y\ ↦\ boundedLogSlope\ m\ (f\ y))\ x‖\ ≤\ ‖gradient\ f\ x‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}comp}: the intermediate fact is \texttt{hd}, in source order; the source steps apply or rewrite \texttt{bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}, \texttt{has\allowbreak{}FDeriv\allowbreak{}At.\allowbreak{}comp}, \texttt{mul\_\allowbreak{}comm}, \texttt{hd.\allowbreak{}fderiv}, \texttt{map\_\allowbreak{}smul}.
+
+
+
+\texttt{norm\_\allowbreak{}gradient\_\allowbreak{}bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}comp\_\allowbreak{}le}: the source steps apply or rewrite \texttt{gradient\_\allowbreak{}bounded\allowbreak{}Log\allowbreak{}Slope\_\allowbreak{}comp}, \texttt{norm\_\allowbreak{}smul}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}left}, \texttt{norm\_\allowbreak{}nonneg}, \texttt{bounded\allowbreak{}Log\allowbreak{}Weight\_\allowbreak{}le\_\allowbreak{}one}.
+\end{leanbox}
 
 \end{document}

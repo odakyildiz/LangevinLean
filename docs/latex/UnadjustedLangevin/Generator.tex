@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,165 +39,540 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-For a compactly supported \(C^2\) test \(\varphi\), set \(\mathcal L\varphi=\Delta\varphi-\langle\nabla U,\nabla\varphi\rangle\). In a fixed direction \(v\), the product derivative \(D_v(e^{-U}D_v\varphi)\) equals the Gibbs weight times the directional generator. Its integral is zero because the differentiated product has compact support. Summing over an orthonormal basis and dividing by the positive finite partition gives \(\int\mathcal L\varphi\,d\pi_U=0\).
+Let \(H\) be a real inner product space of finite dimension \(d\), with Lebesgue measure \(dx\), a fixed orthonormal basis \(e_1,\dots,e_d\), and let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient for some \(L\ge0\). For a twice continuously differentiable function \(\varphi:H\to\mathbb R\) the Langevin generator is
 
 
+\[\mathcal L\varphi=\Delta\varphi-\langle\nabla U,\nabla\varphi\rangle=\sum_{i=1}^d\Bigl(\partial_{e_i}\partial_{e_i}\varphi-\langle\nabla U,e_i\rangle\,\partial_{e_i}\varphi\Bigr),\]
 
-Continuity and compact support justify the integrals and the finite sums. The resulting identity is infinitesimal invariance on the stated test class; it does not by itself identify the time marginals of a stochastic process.
+
+where \(\partial_v\varphi(x)=D\varphi(x)v\) is the derivative in the direction \(v\) and \(\Delta\) is the Laplacian. It is the generator of the overdamped Langevin diffusion \(dY_t=-\nabla U(Y_t)\,dt+\sqrt2\,dB_t\). The main result of this section is the infinitesimal invariance of the Gibbs measure \(\pi_U(dx)=Z_U^{-1}e^{-U(x)}\,dx\):
+
+
+\[\int_H\mathcal L\varphi\,d\pi_U=0\qquad\text{for every twice continuously differentiable }\varphi\text{ with compact support}.\]
+
+
+The proof treats one direction at a time. By the product rule, \(e^{-U}\bigl(\partial_v\partial_v\varphi-\langle\nabla U,v\rangle\partial_v\varphi\bigr)=\partial_v\bigl(e^{-U}\partial_v\varphi\bigr)\), and the integral of the directional derivative of a compactly supported function vanishes (integration by parts). Continuity and compact support make every function involved integrable. Only the first derivative of \(U\) appears. No finiteness of \(Z_U\) is assumed: if \(Z_U=\infty\), then \(\pi_U\) is the zero measure and the identities are trivial. Infinitesimal invariance is a statement about the generator only; that the diffusion started from \(\pi_U\) has law \(\pi_U\) at every time is a different assertion, proved in a later section. The identity is used in the sections on the Dirichlet form and on the Fokker–Planck equation.
 
 
 \section{\texorpdfstring{The generator in one direction}{The generator in one direction}}
 
 
-For a fixed direction \(v\), define \(L_v\varphi(x)=D(D\varphi(\cdot)[v])(x)[v]-\langle\nabla U(x),v\rangle D\varphi(x)[v]\). The first term is a directional second derivative of the test; the second is the directional gradient drift. No Hessian of \(U\) is part of this definition.
+\textbf{Definition.} For a function \(f:H\to\mathbb R\), a point \(x\) and a direction \(v\in H\), write \(\partial_vf(x)=Df(x)v\) for the derivative of \(f\) at \(x\) in the direction \(v\), where \(Df(x)\) is the derivative of \(f\) at \(x\), taken to be \(0\) if \(f\) is not differentiable at \(x\). Let \(U,\varphi:H\to\mathbb R\) and \(v\in H\). The directional Langevin generator in the direction \(v\) is the function
 
 
+\[\mathcal L_v\varphi(x)=\partial_v\bigl(\partial_v\varphi\bigr)(x)-\langle\nabla U(x),v\rangle\,\partial_v\varphi(x)\qquad(x\in H).\]
 
-For a direction \(v\), the second derivative contributes \(D^2\varphi[v,v]\), while the drift contributes \(-\langle\nabla U,v\rangle D\varphi[v]\). The weighted product derivative in this direction is the expression integrated below.
 
+The first term differentiates the function \(z\mapsto\partial_v\varphi(z)\) at \(x\) in the direction \(v\). For twice continuously differentiable \(\varphi\) it equals the second derivative \(D^2\varphi(x)[v,v]\), as shown in the step on the Laplacian formula. The convention for non-differentiable points plays no role for the twice continuously differentiable test functions used below. The definition involves only the gradient of \(U\), not its second derivative.
+
+\begin{leanbox}{Lean: \texttt{directionalGenerator}}
+\leansource{\texttt{directionalGenerator} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 27–29}
+\begin{leancode}
+\leanline{0}{def\ directionalGenerator\ (U\ φ\ :\ H\ →\ ℝ)\ (v\ x\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{fderiv\ ℝ\ (fun\ z\ ↦\ fderiv\ ℝ\ φ\ z\ v)\ x\ v\ -}
+\leanline{4}{inner\ ℝ\ (gradient\ U\ x)\ v\ *\ fderiv\ ℝ\ φ\ x\ v}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{directional\allowbreak{}Generator U \ensuremath{\varphi} v x} is defined as \texttt{fderiv \ensuremath{\mathbb R} (fun z \ensuremath{\mapsto} fderiv \ensuremath{\mathbb R} \ensuremath{\varphi} z v) x v -\allowbreak{} inner \ensuremath{\mathbb R} (gradient U x) v * fderiv \ensuremath{\mathbb R} \ensuremath{\varphi} x v}. Here \texttt{fderiv \ensuremath{\mathbb R} f x} is the Fréchet derivative \(Df(x)\), a continuous linear map, which Mathlib defines to be \(0\) at points where \(f\) is not differentiable; so \texttt{fderiv \ensuremath{\mathbb R} \ensuremath{\varphi} z v} is \(\partial_v\varphi(z)\), and the first term differentiates \texttt{fun z \ensuremath{\mapsto} fderiv \ensuremath{\mathbb R} \ensuremath{\varphi} z v} at \texttt{x} in the direction \texttt{v}. \texttt{gradient U x} is \(\nabla U(x)\) and \texttt{inner \ensuremath{\mathbb R} a b} is \(\langle a,b\rangle\).
+\end{leanbox}
 
 \section{\texorpdfstring{The Langevin generator}{The Langevin generator}}
 
 
-Choose the standard orthonormal basis and set \(L\varphi=\sum_iL_{e_i}\varphi\). The finite sum makes the construction meaningful in dimension zero and permits integration by parts one direction at a time. A subsequent identity proves that this is the usual basis-independent \(\Delta\varphi-\langle\nabla U,\nabla\varphi\rangle\).
+\textbf{Definition.} Let \(e_1,\dots,e_d\) be the fixed orthonormal basis of \(H\). For \(U,\varphi:H\to\mathbb R\), the Langevin generator is
 
 
+\[\mathcal L\varphi(x)=\sum_{i=1}^d\mathcal L_{e_i}\varphi(x)=\sum_{i=1}^d\partial_{e_i}\bigl(\partial_{e_i}\varphi\bigr)(x)-\sum_{i=1}^d\langle\nabla U(x),e_i\rangle\,\partial_{e_i}\varphi(x).\]
 
-Summing over an orthonormal basis yields the Euclidean diffusion operator. The basis is finite, so all sums in the definition and subsequent integrations are finite sums.
 
+For twice continuously differentiable \(\varphi\) this equals \(\Delta\varphi(x)-\langle\nabla U(x),\nabla\varphi(x)\rangle\) (step on the Laplacian formula), an expression that does not depend on the basis. The finite sum allows integration one direction at a time. For \(d=0\) the sum is empty and \(\mathcal L\varphi=0\).
+
+\begin{leanbox}{Lean: \texttt{langevinGenerator}}
+\leansource{\texttt{langevinGenerator} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 32–34}
+\begin{leancode}
+\leanline{0}{def\ langevinGenerator\ (U\ φ\ :\ H\ →\ ℝ)\ (x\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{∑\ i\ :\ Fin\ (Module.finrank\ ℝ\ H),}
+\leanline{4}{directionalGenerator\ U\ φ\ (stdOrthonormalBasis\ ℝ\ H\ i)\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{langevin\allowbreak{}Generator U \ensuremath{\varphi} x} is \texttt{∑ i : Fin (Module.\allowbreak{}finrank \ensuremath{\mathbb R} H), directional\allowbreak{}Generator U \ensuremath{\varphi} (std\allowbreak{}Orthonormal\allowbreak{}Basis \ensuremath{\mathbb R} H i) x}. \texttt{std\allowbreak{}Orthonormal\allowbreak{}Basis \ensuremath{\mathbb R} H} is Mathlib's fixed orthonormal basis of \(H\), indexed by \texttt{Fin (Module.\allowbreak{}finrank \ensuremath{\mathbb R} H)}, the set \(\{0,\dots,d-1\}\) with \(d\) the dimension; the sum over this finite type is the finite sum \(\sum_{i=1}^d\).
+\end{leanbox}
 
 \section{\texorpdfstring{The weighted Gibbs integral formula}{The weighted Gibbs integral formula}}
 
 
-Under the positive finite partition hypothesis, changing measure gives, for every integrable test,
-
-\[\int f\,d\pi_U=Z_U^{-1}\int e^{-U(x)}f(x)dx.\]
-
- Continuity of the potential makes the density measurable, and the same finite scalar \(Z_U^{-1}\) multiplies each weighted integral.
+In this section, as in measure theory generally, the integral of a real function that is not integrable is defined to be \(0\).
 
 
 
-Changing to Gibbs inserts the same scalar normalization \(Z^{-1}\) into every weighted integral. Positivity and finiteness of \(Z\) make this the usual density-change formula for signed integrable tests.
 
+\textbf{Claim.} Let \(U:H\to\mathbb R\) be differentiable and let \(f:H\to\mathbb R\) be any function. Then
+
+
+\[\int_Hf\,d\pi_U=Z_U^{-1}\int_He^{-U(x)}f(x)\,dx,\]
+
+
+where \(Z_U^{-1}\) is the real number \(1/Z_U\) if \(Z_U<\infty\) and \(0\) if \(Z_U=\infty\). In particular, if \(Z_U<\infty\) and \(f\) is \(\pi_U\)-integrable, this is the usual formula for integrals against the normalized density.
+
+
+
+
+\textbf{Proof.} Recall \(\pi_U=c\,\nu_U\), where \(c=Z_U^{-1}\in[0,\infty]\) and \(\nu_U\) has density \(e^{-U}\) with respect to Lebesgue measure. Since \(U\) is differentiable, \(Z_U>0\) \cite[Section~3.26.9]{LangevinLean2026ULASC}, so \(c<\infty\).
+
+
+
+
+(i) \(\int f\,d(c\nu_U)=c\int f\,d\nu_U\). If \(c=0\), then \(c\nu_U=0\) and both sides vanish. If \(0<c<\infty\), then \(\int|f|\,d(c\nu_U)=c\int|f|\,d\nu_U\), so \(f\) is integrable for one measure exactly when it is integrable for the other; for integrable \(f\) the identity holds for simple functions by the definition of \(c\nu_U\) and extends by dominated convergence along simple approximations, and for non-integrable \(f\) both sides are \(0\).
+
+
+
+
+(ii) \(\int f\,d\nu_U=\int e^{-U}f\,dx\). The density \(e^{-U}\) is continuous (hence Borel) and finite. As in the section on Gibbs normalization, \(\int|f|\,d\nu_U=\int e^{-U}|f|\,dx\), so \(f\) is \(\nu_U\)-integrable exactly when \(e^{-U}f\) is Lebesgue integrable; in that case the identity holds (for indicators by definition of \(\nu_U\), then for simple functions and by dominated convergence), and otherwise both sides are \(0\).
+
+
+
+
+Combining (i) and (ii) gives the claim. \(\square\)
+
+
+
+
+No finiteness of \(Z_U\) is assumed: if \(Z_U=\infty\) the identity reads \(0=0\).
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}weighted}}
+\leansource{\texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}weighted} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 37–48}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_gibbs\_eq\_weighted\ (U\ :\ H\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ :}
+\leanline{4}{(∫\ x,\ f\ x\ ∂gibbsMeasure\ U)\ =\ (gibbsPartition\ U)⁻¹.toReal\ *}
+\leanline{6}{(∫\ x,\ Real.exp\ (-U\ x)\ *\ f\ x\ ∂volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}weighted} holds for every \texttt{f : H \ensuremath{\to} \ensuremath{\mathbb R}}. The integral \texttt{\ensuremath{\int} x, f x \ensuremath{\partial}\ensuremath{\mu}} is Mathlib's Bochner integral, which is \(0\) for non-integrable functions, and the factor \texttt{(gibbs\allowbreak{}Partition U)\ensuremath{{}^{-1}}.\allowbreak{}to\allowbreak{}Real} is \(Z_U^{-1}\) converted to a real number by \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real}, which sends \(\infty\) to \(0\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{rw [gibbs\allowbreak{}Measure, integral\_\allowbreak{}smul\_\allowbreak{}measure]} is (i). The Mathlib identity \texttt{integral\_\allowbreak{}smul\_\allowbreak{}measure} states that the integral against \(c\cdot\mu\) is \(c\) (as a real number) times the integral against \(\mu\); it holds for every \(c\in[0,\infty]\), so the Lean proof does not need the positivity of \(Z_U\) used above.
+
+\item \texttt{hw} is the measurability of the density, proved by \texttt{fun\_\allowbreak{}prop} from the continuity \texttt{h\allowbreak{}Uc} of \(U\). \texttt{integral\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}to\allowbreak{}Real\_\allowbreak{}smul hw (ae\_\allowbreak{}of\_\allowbreak{}all \_\allowbreak{} fun \_\allowbreak{} \ensuremath{\mapsto} ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}lt\_\allowbreak{}top)} is (ii): for a measurable density that is finite almost everywhere, the integral of any function against \texttt{volume.\allowbreak{}with\allowbreak{}Density} equals the integral of the product with the density.
+
+\item \texttt{simp only [ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp\_\allowbreak{}nonneg \_\allowbreak{}), smul\_\allowbreak{}eq\_\allowbreak{}mul]} converts the density value back to the real number \(e^{-U(x)}\).
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of a compactly supported test}{Integrability of a compactly supported test}}
 
 
-A continuous compactly supported \(f\) gives a continuous compactly supported product \(e^{-U}f\), hence a Lebesgue-integrable function. The weighted-density integrability criterion and multiplication by the real normalization factor transfer this fact to \(\pi_U\). This explicitly supplies the integrability needed by subsequent linearity arguments.
+A function \(f:H\to\mathbb R\) has compact support if the closure of \(\{f\ne0\}\) is compact.
 
 
 
-A continuous function with compact support is bounded on its support. Multiplication by the continuous Gibbs weight preserves compact support, and hence provides a Lebesgue-integrable weighted function.
 
+\textbf{Claim.} Let \(U:H\to\mathbb R\) be differentiable and let \(f:H\to\mathbb R\) be continuous with compact support. Then \(f\) is \(\pi_U\)-integrable.
+
+
+
+
+\textbf{Proof.} The product \(e^{-U}f\) is continuous, because \(U\) is continuous, and it vanishes wherever \(f\) does, so it has compact support, contained in a compact set \(K\). A continuous function is bounded on the compact set \(K\), say by \(M\), and Lebesgue measure is finite on compact sets; hence \(\int_H|e^{-U}f|\,dx\le M\lambda(K)<\infty\), and \(e^{-U}f\) is Lebesgue integrable (it is measurable by continuity). By the density criterion recalled in the previous step, \(f\) is \(\nu_U\)-integrable. Finally \(\pi_U=Z_U^{-1}\nu_U\) with \(Z_U^{-1}<\infty\), because \(Z_U>0\) for differentiable \(U\); multiplying a measure by a finite constant preserves integrability. \(\square\)
+
+
+
+
+This guarantees that the integrals in the following steps are integrals of integrable functions, so that linearity of the integral may be used. No finiteness of \(Z_U\) is needed.
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}continuous\_\allowbreak{}hasCompactSupport}}
+\leansource{\texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}continuous\_\allowbreak{}hasCompactSupport} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 52–66}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_gibbs\_of\_continuous\_hasCompactSupport}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (f\ :\ H\ →\ ℝ)}
+\leanline{4}{(hf\ :\ Continuous\ f)\ (hc\ :\ HasCompactSupport\ f)\ :}
+\leanline{4}{Integrable\ f\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Has\allowbreak{}Compact\allowbreak{}Support f} is Mathlib's statement that the closure of the support of \texttt{f} is compact. In \texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}continuous\_\allowbreak{}has\allowbreak{}Compact\allowbreak{}Support}, \texttt{hw} is the measurability of the weight and \texttt{hi} the integrability with respect to \texttt{volume.\allowbreak{}with\allowbreak{}Density (gibbs\allowbreak{}Weight U)}, obtained through \texttt{integrable\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}smul'}. After \texttt{simp only} turns the density into \(e^{-U(x)}\), the term \texttt{(hcw.\allowbreak{}mul hf).\allowbreak{}integrable\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Compact\allowbreak{}Support hc.\allowbreak{}mul\_\allowbreak{}left} concludes: \texttt{hcw.\allowbreak{}mul hf} is the continuity of \(e^{-U}f\), \texttt{hc.\allowbreak{}mul\_\allowbreak{}left} its compact support (a product has compact support when its right factor does), and \texttt{integrable\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Compact\allowbreak{}Support} is Mathlib's integrability of continuous compactly supported functions for a measure that is finite on compact sets. The last line, \texttt{hi.\allowbreak{}smul\_\allowbreak{}measure} with \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}ne\_\allowbreak{}top.\allowbreak{}mpr (ne\_\allowbreak{}of\_\allowbreak{}gt (gibbs\allowbreak{}Partition\_\allowbreak{}pos U hdiff))}, multiplies the measure by the finite scalar \(Z_U^{-1}\).
+\end{leanbox}
 
 \section{\texorpdfstring{The derivative of the Gibbs weight}{The derivative of the Gibbs weight}}
 
 
-Apply the chain rule to \(x\mapsto e^{-U(x)}\): \(D(e^{-U})(x)[v]=-e^{-U(x)}DU(x)[v]\). The real Hilbert gradient identity rewrites \(DU(x)[v]\) as \(\langle\nabla U(x),v\rangle\). Only differentiability of \(U\) is used.
+\textbf{Claim.} Let \(U:H\to\mathbb R\) be differentiable. Then for all \(x,v\in H\),
 
 
+\[\partial_v\bigl(e^{-U}\bigr)(x)=-e^{-U(x)}\langle\nabla U(x),v\rangle.\]
 
-The minus sign arises from differentiating \(-U\), and the exponential factor remains unchanged. Identifying the directional derivative of \(U\) with its gradient pairing fixes the sign of the generator drift term.
 
+\textbf{Proof.} By the chain rule, \(x\mapsto e^{-U(x)}\) is differentiable with \(D(e^{-U})(x)=e^{-U(x)}\,D(-U)(x)=-e^{-U(x)}DU(x)\), since the exponential is its own derivative. Applying this linear map to \(v\) and using the defining property \(DU(x)v=\langle\nabla U(x),v\rangle\) of the gradient gives the claim. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{fderiv\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}apply}}
+\leansource{\texttt{fderiv\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}apply} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 70–77}
+\begin{leancode}
+\leanline{0}{theorem\ fderiv\_exp\_neg\_apply\ (U\ :\ H\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (x\ v\ :\ H)\ :}
+\leanline{4}{fderiv\ ℝ\ (fun\ z\ ↦\ Real.exp\ (-U\ z))\ x\ v\ =}
+\leanline{6}{-Real.exp\ (-U\ x)\ *\ inner\ ℝ\ (gradient\ U\ x)\ v}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{fderiv\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}apply}, \texttt{hd} is the chain rule in the form \texttt{Has\allowbreak{}FDeriv\allowbreak{}At (fun z \ensuremath{\mapsto} Real.\allowbreak{}exp (-\allowbreak{}U z)) (Real.\allowbreak{}exp (-\allowbreak{}U x) \ensuremath{\bullet} (-\allowbreak{}fderiv \ensuremath{\mathbb R} U x)) x}; \texttt{Has\allowbreak{}FDeriv\allowbreak{}At f f' x} states that \(f\) is differentiable at \(x\) with derivative the continuous linear map \(f'\). It is obtained as \texttt{(hdiff x).\allowbreak{}has\allowbreak{}FDeriv\allowbreak{}At.\allowbreak{}neg.\allowbreak{}exp}: the derivative of \(U\) at \(x\), negated, then composed with the exponential. \texttt{rw [hd.\allowbreak{}fderiv]} replaces \texttt{fderiv} by this map, and \texttt{simp [inner\_\allowbreak{}gradient\_\allowbreak{}left]} rewrites \(DU(x)v\) as \(\langle\nabla U(x),v\rangle\). The prefix \texttt{omit [Measurable\allowbreak{}Space H] [Borel\allowbreak{}Space H] in} drops the unused measurability assumptions.
+\end{leanbox}
 
 \section{\texorpdfstring{The weighted directional generator integral}{The weighted directional generator integral}}
 
 
-Differentiate \(e^{-U(x)}D\varphi(x)[v]\) in direction \(v\). The product rule gives exactly \(e^{-U(x)}L_v\varphi(x)\). Since derivatives of a compactly supported \(C^2\) test remain compactly supported, this weighted first derivative is integrable and has zero integral by integration by parts. The proof establishes continuity and compact support before invoking that theorem.
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, let \(\varphi:H\to\mathbb R\) be twice continuously differentiable with compact support, and let \(v\in H\). Then
+
+
+\[\int_He^{-U(x)}\,\mathcal L_v\varphi(x)\,dx=0.\]
+
+
+\textbf{Proof.} Put \(w=e^{-U}\) and \(g=\partial_v\varphi\).
 
 
 
-The product derivative is \(D_v(e^{-U}D_v\varphi)=e^{-U}(D_v^2\varphi-D_vU\,D_v\varphi)\). Its integral vanishes because the product has compact support, giving the weighted directional invariance identity.
 
+\emph{Regularity.} Since \(\varphi\) is twice continuously differentiable, \(D\varphi\) is continuously differentiable, and so is \(g=D\varphi(\cdot)v\), its composition with the continuous linear evaluation at \(v\). Hence \(\partial_vg\) is continuous. The function \(g\) has compact support: if \(K\) is the closure of \(\{\varphi\ne0\}\), then \(\varphi\) vanishes on the open set \(H\setminus K\), so \(D\varphi=0\) there and \(g\) vanishes outside \(K\); in the same way \(\partial_vg\) vanishes outside \(K\). The weight \(w\) is continuous, and by the previous step \(\partial_vw=-w\langle\nabla U,v\rangle\), which is continuous because the Lipschitz map \(\nabla U\) is continuous.
+
+
+
+
+\emph{Integrability.} The four functions \((\partial_vw)g\), \(w\,\partial_vg\), \(wg\) and \(w\langle\nabla U,v\rangle g\) are continuous and vanish outside \(K\), hence are Lebesgue integrable (as in the previous step: bounded on \(K\), and \(\lambda(K)<\infty\)).
+
+
+
+
+\emph{Integration by parts.} For differentiable \(f,h:H\to\mathbb R\) such that \(f\,\partial_vh\), \((\partial_vf)h\) and \(fh\) are integrable,
+
+
+\[\int_Hf\,\partial_vh\,dx=-\int_H(\partial_vf)\,h\,dx.\qquad(1)\]
+
+
+In the present situation (\(f=w\), \(h=g\)) this can be checked directly. If \(v=0\) both sides vanish. Otherwise write \(x=y+tv\) with \(t\in\mathbb R\) and \(y\) in the orthogonal complement \(v^\perp\); in orthonormal coordinates adapted to \(v\) this change of variables multiplies Lebesgue measure by the constant \(\|v\|\). For fixed \(y\), the function \(F(t)=w(y+tv)g(y+tv)\) is differentiable with continuous derivative \(F'(t)=\bigl((\partial_vw)g+w\,\partial_vg\bigr)(y+tv)\) and vanishes outside a bounded interval, so \(\int_{\mathbb R}F'(t)\,dt=0\) by the fundamental theorem of calculus. By Fubini's theorem for the integrable function \((\partial_vw)g+w\,\partial_vg\), its integral over \(H\) is \(\|v\|\int_{v^\perp}\int_{\mathbb R}F'(t)\,dt\,dy=0\), which is (1).
+
+
+
+
+By (1) and the previous step,
+
+
+\[\int_Hw\,\partial_vg\,dx=-\int_H(\partial_vw)\,g\,dx=\int_Hw\,\langle\nabla U,v\rangle\,g\,dx.\qquad(2)\]
+
+
+\emph{Conclusion.} By definition \(w\,\mathcal L_v\varphi=w\,\partial_vg-w\langle\nabla U,v\rangle g\), a difference of two integrable functions, so by linearity and (2)
+
+
+\[\int_Hw\,\mathcal L_v\varphi\,dx=\int_Hw\,\partial_vg\,dx-\int_Hw\langle\nabla U,v\rangle g\,dx=0.\qquad\square\]
+
+
+Equivalently, \(w\,\mathcal L_v\varphi=\partial_v(w\,\partial_v\varphi)\) is the directional derivative of a compactly supported function. Only the continuity of \(\nabla U\) is used; no second derivative of \(U\) appears.
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}directionalGenerator\_\allowbreak{}eq\_\allowbreak{}zero}}
+\leansource{\texttt{integral\_\allowbreak{}weighted\_\allowbreak{}directionalGenerator\_\allowbreak{}eq\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 81–120}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_weighted\_directionalGenerator\_eq\_zero}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ (v\ :\ H)\ :}
+\leanline{4}{(∫\ x,\ Real.exp\ (-U\ x)\ *\ directionalGenerator\ U\ φ\ v\ x\ ∂volume)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}directional\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}zero}, \texttt{h\ensuremath{\varphi} : Cont\allowbreak{}Diff \ensuremath{\mathbb R} 2 \ensuremath{\varphi}} says that \(\varphi\) is twice continuously differentiable and \texttt{hc : Has\allowbreak{}Compact\allowbreak{}Support \ensuremath{\varphi}} that it has compact support. The proof follows the paragraphs above.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{g} is \(\partial_v\varphi\). \texttt{hg : Cont\allowbreak{}Diff \ensuremath{\mathbb R} 1 g} is obtained from \texttt{h\ensuremath{\varphi}.\allowbreak{}fderiv\_\allowbreak{}right (m := 1)} (the derivative of a \(C^2\) map is \(C^1\)) composed with evaluation at the constant \(v\) (\texttt{clm\_\allowbreak{}apply cont\allowbreak{}Diff\_\allowbreak{}const}); \texttt{hgc} is the compact support of \(g\) (\texttt{hc.\allowbreak{}fderiv\_\allowbreak{}apply \ensuremath{\mathbb R} v}); \texttt{hgd}, \texttt{hw} and \texttt{hs} are the continuity of \(\partial_vg\), of \(w\) and of \(-w\langle\nabla U,v\rangle\), the latter using \texttt{h\allowbreak{}Lip.\allowbreak{}continuous}.
+
+\item \texttt{hi\ensuremath{{}_{1}}}, \texttt{hi\ensuremath{{}_{2}}}, \texttt{hi\ensuremath{{}_{3}}} and \texttt{hi\ensuremath{{}_{4}}} are the four integrability statements, each of the form continuity times compact support followed by \texttt{integrable\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Compact\allowbreak{}Support}; for \texttt{hi\ensuremath{{}_{1}}} the derivative of the weight is first rewritten by \texttt{fderiv\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}apply}.
+
+\item \texttt{hibp} is (1), Mathlib's \texttt{integral\_\allowbreak{}mul\_\allowbreak{}fderiv\_\allowbreak{}eq\_\allowbreak{}neg\_\allowbreak{}fderiv\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}integrable}, applied with \(f=w\) and \(h=g\). Its last two hypotheses require differentiability of \(w\) (\texttt{(hdiff x).\allowbreak{}neg.\allowbreak{}exp}) and of \(g\) (\texttt{hg.\allowbreak{}differentiable}) on the supports. Mathlib proves this formula from the one-dimensional case and Fubini's theorem, as above.
+
+\item \texttt{simp\_\allowbreak{}rw [fderiv\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}apply U hdiff] at hibp} substitutes \(\partial_vw=-w\langle\nabla U,v\rangle\); \texttt{heq}, \texttt{integral\_\allowbreak{}neg} and \texttt{neg\_\allowbreak{}neg} move the minus sign out, giving (2). The \texttt{change} displays the goal as \(\int w(\partial_vg-\langle\nabla U,v\rangle g)=0\); \texttt{mul\_\allowbreak{}sub} and \texttt{integral\_\allowbreak{}sub hi\ensuremath{{}_{2}} hi\ensuremath{{}_{4}}} split the integral, and \texttt{sub\_\allowbreak{}eq\_\allowbreak{}zero.\allowbreak{}mpr hibp} concludes.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The directional Gibbs generator integral}{The directional Gibbs generator integral}}
 
 
-Apply the weighted-to-Gibbs integral formula to \(L_v\varphi\). Its weighted Lebesgue integral is zero, so multiplication by the normalization factor still gives zero. This is infinitesimal invariance for a single direction and does not yet identify the law of a time-evolving process.
+\textbf{Claim.} Under the hypotheses of the previous step,
 
 
+\[\int_H\mathcal L_v\varphi\,d\pi_U=0.\]
 
-Dividing the zero weighted integral by the positive partition leaves zero. This is the normalized directional invariance statement, retaining the same compactly supported test and requiring no new derivative calculation.
 
+\textbf{Proof.} By the weighted Gibbs integral formula and the previous step,
+
+
+\[\int_H\mathcal L_v\varphi\,d\pi_U=Z_U^{-1}\int_He^{-U(x)}\mathcal L_v\varphi(x)\,dx=Z_U^{-1}\cdot0=0.\qquad\square\]\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}directionalGenerator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero}}
+\leansource{\texttt{integral\_\allowbreak{}directionalGenerator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 124–131}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_directionalGenerator\_gibbs\_eq\_zero}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ (v\ :\ H)\ :}
+\leanline{4}{(∫\ x,\ directionalGenerator\ U\ φ\ v\ x\ ∂gibbsMeasure\ U)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}directional\allowbreak{}Generator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero} is a rewriting chain: \texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}weighted U hdiff} converts the Gibbs integral, \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}directional\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}zero} replaces the weighted integral by \(0\), and \texttt{mul\_\allowbreak{}zero} concludes.
+\end{leanbox}
 
 \section{\texorpdfstring{Continuity of the directional generator}{Continuity of the directional generator}}
 
 
-The \(C^2\) hypothesis makes the first and second derivatives of \(\varphi\) continuous. The gradient of \(U\) is continuous by its Lipschitz hypothesis. Evaluating continuous linear maps in the fixed direction \(v\), multiplying the scalar factors, and subtracting therefore gives continuity of \(L_v\varphi\).
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) have \(L\)-Lipschitz gradient, let \(\varphi:H\to\mathbb R\) be twice continuously differentiable, and let \(v\in H\). Then \(\mathcal L_v\varphi\) is continuous.
 
 
 
-The second derivative of the test and the gradient of the potential are continuous. Evaluation in a fixed direction, multiplication, and subtraction therefore preserve continuity of the directional generator.
 
+\textbf{Proof.} As in the weighted directional step, \(g=\partial_v\varphi\) is continuously differentiable, so \(x\mapsto\partial_vg(x)=Dg(x)v\) is continuous, being the composition of the continuous map \(Dg\) with evaluation at the fixed vector \(v\). The gradient \(\nabla U\) is Lipschitz, hence continuous, so \(x\mapsto\langle\nabla U(x),v\rangle\) is continuous; \(g\) is continuous. Products and differences of continuous functions are continuous, so \(\mathcal L_v\varphi=\partial_vg-\langle\nabla U,v\rangle g\) is continuous. \(\square\)
+
+
+
+
+No differentiability hypothesis on \(U\) beyond the Lipschitz property of its gradient is used, and no support condition on \(\varphi\).
+
+\begin{leanbox}{Lean: \texttt{continuous\_\allowbreak{}directionalGenerator}}
+\leansource{\texttt{continuous\_\allowbreak{}directionalGenerator} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 135–142}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_directionalGenerator}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (v\ :\ H)\ :}
+\leanline{4}{Continuous\ (directionalGenerator\ U\ φ\ v)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{continuous\_\allowbreak{}directional\allowbreak{}Generator}, \texttt{hg} is the \(C^1\) regularity of \(g=\partial_v\varphi\), obtained as before from \texttt{h\ensuremath{\varphi}.\allowbreak{}fderiv\_\allowbreak{}right (m := 1)} and \texttt{clm\_\allowbreak{}apply cont\allowbreak{}Diff\_\allowbreak{}const}. The final term is the continuity of the difference (\texttt{sub}) of \texttt{(hg.\allowbreak{}continuous\_\allowbreak{}fderiv (by norm\_\allowbreak{}num)).\allowbreak{}clm\_\allowbreak{}apply continuous\_\allowbreak{}const}, the continuity of \(x\mapsto Dg(x)v\), and of \texttt{(h\allowbreak{}Lip.\allowbreak{}continuous.\allowbreak{}inner continuous\_\allowbreak{}const).\allowbreak{}mul hg.\allowbreak{}continuous}, the continuity of \(\langle\nabla U,v\rangle g\).
+\end{leanbox}
 
 \section{\texorpdfstring{Compact support of the directional generator}{Compact support of the directional generator}}
 
 
-Outside the compact support of \(\varphi\), the test is locally zero, so its first and second derivatives vanish there. Both terms of \(L_v\varphi\) therefore vanish. The support inclusion puts the support of the generator inside the same compact set; no support property of \(U\) is required.
+\textbf{Claim.} Let \(U,\varphi:H\to\mathbb R\), where \(\varphi\) has compact support, and let \(v\in H\). Then \(\mathcal L_v\varphi\) has compact support.
 
 
 
-Outside the support of a smooth compactly supported test, the test vanishes on a neighborhood, so all its derivatives vanish there. Both generator terms therefore have support inside that same compact set.
 
+\textbf{Proof.} Let \(K\) be the closure of \(\{\varphi\ne0\}\), a compact set. On the open set \(H\setminus K\) the function \(\varphi\) vanishes identically, so it is differentiable at every point of \(H\setminus K\) with derivative \(0\); hence \(\partial_v\varphi=0\) on \(H\setminus K\). Applying the same argument to \(\partial_v\varphi\), which vanishes on the open set \(H\setminus K\), gives \(\partial_v(\partial_v\varphi)=0\) on \(H\setminus K\). The product \(\langle\nabla U,v\rangle\partial_v\varphi\) also vanishes on \(H\setminus K\). Hence \(\mathcal L_v\varphi\) vanishes outside \(K\), so the closure of \(\{\mathcal L_v\varphi\ne0\}\) is a closed subset of \(K\) and therefore compact. \(\square\)
+
+
+
+
+No regularity of \(U\) or \(\varphi\) is used: derivatives are evaluated only where the function vanishes on a neighbourhood.
+
+\begin{leanbox}{Lean: \texttt{hasCompactSupport\_\allowbreak{}directionalGenerator}}
+\leansource{\texttt{hasCompactSupport\_\allowbreak{}directionalGenerator} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 146–149}
+\begin{leancode}
+\leanline{0}{theorem\ hasCompactSupport\_directionalGenerator\ (U\ φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hc\ :\ HasCompactSupport\ φ)\ (v\ :\ H)\ :}
+\leanline{4}{HasCompactSupport\ (directionalGenerator\ U\ φ\ v)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Compact\allowbreak{}Support\_\allowbreak{}directional\allowbreak{}Generator} is a single term. \texttt{hc.\allowbreak{}fderiv\_\allowbreak{}apply \ensuremath{\mathbb R} v} is Mathlib's fact that \(x\mapsto Df(x)v\) has compact support when \(f\) does; applied twice it gives the compact support of the second-derivative term, and once more (followed by \texttt{mul\_\allowbreak{}left}: a product has compact support when its right factor does) that of \(\langle\nabla U,v\rangle\partial_v\varphi\). \texttt{sub} combines the two terms.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of the directional generator}{Integrability of the directional generator}}
 
 
-Combine continuity of \(L_v\varphi\) with preservation of compact support. The established compact-support Gibbs integrability theorem then gives absolute integrability. This permits ordinary integral algebra, even though the ambient generator is not bounded uniformly for arbitrary tests.
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, let \(\varphi\) be twice continuously differentiable with compact support, and let \(v\in H\). Then \(\mathcal L_v\varphi\) is \(\pi_U\)-integrable.
 
 
 
-Continuity alone would not ensure integrability on an unbounded space. Here compact support supplies the needed localization, and the Gibbs density is continuous and bounded on that compact set.
 
+\textbf{Proof.} By the two previous steps \(\mathcal L_v\varphi\) is continuous with compact support. The integrability step for compactly supported tests gives the claim. \(\square\)
+
+
+
+
+Continuity alone would not suffice on the unbounded space \(H\); the compact support localizes the integral.
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}directionalGenerator\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{integrable\_\allowbreak{}directionalGenerator\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 152–159}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_directionalGenerator\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ (v\ :\ H)\ :}
+\leanline{4}{Integrable\ (directionalGenerator\ U\ φ\ v)\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}directional\allowbreak{}Generator\_\allowbreak{}gibbs\allowbreak{}Measure} applies \texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}of\_\allowbreak{}continuous\_\allowbreak{}has\allowbreak{}Compact\allowbreak{}Support} with the continuity \texttt{continuous\_\allowbreak{}directional\allowbreak{}Generator} and the compact support \texttt{has\allowbreak{}Compact\allowbreak{}Support\_\allowbreak{}directional\allowbreak{}Generator}.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of the full generator}{Integrability of the full generator}}
 
 
-The full generator is the finite sum of its directional pieces. Each piece is integrable under \(\pi_U\), so the finite-sum integrability theorem applies. Finiteness of the basis is the reason no exchange of an infinite series and integral is required.
+\textbf{Claim.} Under the hypotheses of the previous step, \(\mathcal L\varphi\) is \(\pi_U\)-integrable.
 
 
 
-Each directional summand has an absolutely integrable generator value. The finite orthonormal-basis sum is therefore integrable, allowing the full generator integral to be distributed term by term.
 
+\textbf{Proof.} \(\mathcal L\varphi=\sum_{i=1}^d\mathcal L_{e_i}\varphi\) is a finite sum, each term of which is \(\pi_U\)-integrable by the previous step. A finite sum of integrable functions is integrable. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}langevinGenerator\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{integrable\_\allowbreak{}langevinGenerator\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 162–168}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_langevinGenerator\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{Integrable\ (langevinGenerator\ U\ φ)\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}langevin\allowbreak{}Generator\_\allowbreak{}gibbs\allowbreak{}Measure} is \texttt{integrable\_\allowbreak{}finset\allowbreak{}Sum Finset.\allowbreak{}univ}, the integrability of a finite sum of integrable functions, applied to the terms supplied by \texttt{integrable\_\allowbreak{}directional\allowbreak{}Generator\_\allowbreak{}gibbs\allowbreak{}Measure} for each basis vector.
+\end{leanbox}
 
 \section{\texorpdfstring{The weighted full generator integral}{The weighted full generator integral}}
 
 
-Expand the finite basis sum defining \(L\varphi\) and distribute the Gibbs weight over it. Compact support supplies integrability of every summand, allowing \(\int\sum_i e^{-U}L_{e_i}\varphi=\sum_i\int e^{-U}L_{e_i}\varphi\). Every directional integral vanishes, hence so does their sum.
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, and let \(\varphi\) be twice continuously differentiable with compact support. Then
 
 
+\[\int_He^{-U(x)}\,\mathcal L\varphi(x)\,dx=0.\]
 
-Distribute the Gibbs weight through the finite basis sum and integrate. Every directional integral has already been shown to be zero, so their sum vanishes without an infinite-series interchange.
 
+\textbf{Proof.} For each \(i\), the function \(e^{-U}\mathcal L_{e_i}\varphi\) is continuous with compact support (by the continuity and compact-support steps, and continuity of \(e^{-U}\)), hence Lebesgue integrable. Distributing the weight over the finite sum and integrating term by term,
+
+
+\[\int_He^{-U}\mathcal L\varphi\,dx=\int_H\sum_{i=1}^de^{-U}\mathcal L_{e_i}\varphi\,dx=\sum_{i=1}^d\int_He^{-U}\mathcal L_{e_i}\varphi\,dx=\sum_{i=1}^d0=0,\]
+
+
+where each integral vanishes by the weighted directional step. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}langevinGenerator\_\allowbreak{}eq\_\allowbreak{}zero}}
+\leansource{\texttt{integral\_\allowbreak{}weighted\_\allowbreak{}langevinGenerator\_\allowbreak{}eq\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 171–185}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_weighted\_langevinGenerator\_eq\_zero}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{(∫\ x,\ Real.exp\ (-U\ x)\ *\ langevinGenerator\ U\ φ\ x\ ∂volume)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}langevin\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}zero}, \texttt{hi v} is the Lebesgue integrability of \(e^{-U}\mathcal L_v\varphi\), from the continuity of the product and \texttt{(has\allowbreak{}Compact\allowbreak{}Support\_\allowbreak{}directional\allowbreak{}Generator U \ensuremath{\varphi} hc v).\allowbreak{}mul\_\allowbreak{}left} through \texttt{integrable\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Compact\allowbreak{}Support}. \texttt{simp\_\allowbreak{}rw [langevin\allowbreak{}Generator, Finset.\allowbreak{}mul\_\allowbreak{}sum]} distributes the weight over the sum, \texttt{integral\_\allowbreak{}finset\allowbreak{}Sum} exchanges integral and finite sum, and \texttt{simp only} with \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}directional\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}zero} and \texttt{Finset.\allowbreak{}sum\_\allowbreak{}const\_\allowbreak{}zero} evaluates the sum of zeros.
+\end{leanbox}
 
 \section{\texorpdfstring{Infinitesimal Gibbs invariance}{Infinitesimal Gibbs invariance}}
 
 
-Normalization changes \(\int L\varphi\,d\pi_U\) into the real inverse partition times its weighted Lebesgue integral. The latter was proved to be zero. This establishes the full Gibbs infinitesimal invariance identity for compactly supported \(C^2\) tests.
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, and let \(\varphi\) be twice continuously differentiable with compact support. Then
+
+
+\[\int_H\mathcal L\varphi\,d\pi_U=0.\]
+
+
+\textbf{Proof.} By the weighted Gibbs integral formula and the previous step, \(\int\mathcal L\varphi\,d\pi_U=Z_U^{-1}\int e^{-U}\mathcal L\varphi\,dx=Z_U^{-1}\cdot0=0\). \(\square\)
 
 
 
-The normalization formula identifies the Gibbs generator integral with \(Z^{-1}\) times its weighted Lebesgue counterpart. The latter is zero, proving infinitesimal invariance for the full generator.
 
+Since \(\mathcal L\varphi\) is \(\pi_U\)-integrable (integrability of the full generator), this is a genuine identity between integrals of integrable functions and not an instance of the convention for non-integrable functions.
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}langevinGenerator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero}}
+\leansource{\texttt{integral\_\allowbreak{}langevinGenerator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 188–194}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_langevinGenerator\_gibbs\_eq\_zero}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{(∫\ x,\ langevinGenerator\ U\ φ\ x\ ∂gibbsMeasure\ U)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}langevin\allowbreak{}Generator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero} rewrites with \texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}weighted U hdiff}, then with \texttt{integral\_\allowbreak{}weighted\_\allowbreak{}langevin\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}zero}, and closes with \texttt{mul\_\allowbreak{}zero}.
+\end{leanbox}
 
 \section{\texorpdfstring{The Laplacian-minus-drift formula}{The Laplacian-minus-drift formula}}
 
 
-The sum of the directional second derivatives over an orthonormal basis is the Laplacian. For the drift sum, \(D\varphi(x)[e_i]=\langle\nabla\varphi(x),e_i\rangle\); Parseval turns the sum of products with \(\langle\nabla U(x),e_i\rangle\) into \(\langle\nabla U(x),\nabla\varphi(x)\rangle\). The proof rewrites the basis definition into this conventional formula pointwise.
+For a twice continuously differentiable \(\varphi\), the Laplacian is \(\Delta\varphi(x)=\sum_{i=1}^dD^2\varphi(x)[e_i,e_i]\), the trace of the second derivative \(D^2\varphi(x)\) (a symmetric bilinear form) with respect to the inner product; the sum is the same for every orthonormal basis.
 
 
 
-Parseval's identity gives \(\sum_i\langle\nabla U,e_i\rangle\langle\nabla\varphi,e_i\rangle=\langle\nabla U,\nabla\varphi\rangle\). The analogous sum of second directional derivatives is the Laplacian.
 
+\textbf{Claim.} Let \(U:H\to\mathbb R\) be any function and let \(\varphi:H\to\mathbb R\) be twice continuously differentiable. Then for every \(x\in H\),
+
+
+\[\mathcal L\varphi(x)=\Delta\varphi(x)-\langle\nabla U(x),\nabla\varphi(x)\rangle.\]
+
+
+\textbf{Proof.} (a) For \(v\in H\), \(\partial_v(\partial_v\varphi)(x)=D^2\varphi(x)[v,v]\). Indeed \(D\varphi\) is differentiable, and \(z\mapsto\partial_v\varphi(z)=D\varphi(z)v\) is its composition with the continuous linear map \(A\mapsto Av\); by the chain rule its derivative at \(x\) in the direction \(v\) is \(\bigl(D(D\varphi)(x)v\bigr)v=D^2\varphi(x)[v,v]\).
+
+
+
+
+(b) Summing (a) over \(v=e_1,\dots,e_d\) gives \(\sum_i\partial_{e_i}(\partial_{e_i}\varphi)(x)=\Delta\varphi(x)\).
+
+
+
+
+(c) By the definition of the gradient, \(\partial_{e_i}\varphi(x)=\langle\nabla\varphi(x),e_i\rangle\). Expanding \(\nabla\varphi(x)=\sum_i\langle\nabla\varphi(x),e_i\rangle e_i\) in the orthonormal basis,
+
+
+\[\sum_{i=1}^d\langle\nabla U(x),e_i\rangle\,\partial_{e_i}\varphi(x)=\sum_{i=1}^d\langle\nabla U(x),e_i\rangle\langle\nabla\varphi(x),e_i\rangle=\langle\nabla U(x),\nabla\varphi(x)\rangle.\]
+
+
+Subtracting (c) from (b) and using the definition of \(\mathcal L\varphi\) as the sum of the directional generators gives the claim. \(\square\)
+
+
+
+
+The identity is pointwise and involves only the gradient of \(U\) (with the convention \(\nabla U(x)=0\) at points of non-differentiability, it holds for every \(U\)).
+
+\begin{leanbox}{Lean: \texttt{langevinGenerator\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}inner}}
+\leansource{\texttt{langevinGenerator\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}inner} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 199–214}
+\begin{leancode}
+\leanline{0}{theorem\ langevinGenerator\_eq\_laplacian\_sub\_inner\ (U\ φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (x\ :\ H)\ :}
+\leanline{4}{langevinGenerator\ U\ φ\ x\ =}
+\leanline{6}{Laplacian.laplacian\ φ\ x\ -\ inner\ ℝ\ (gradient\ U\ x)\ (gradient\ φ\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{langevin\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}inner}, \texttt{Laplacian.\allowbreak{}laplacian \ensuremath{\varphi} x} is Mathlib's Laplacian, defined without a basis as the contraction of the second derivative with the inner product. \texttt{iterated\allowbreak{}FDeriv \ensuremath{\mathbb R} 2 \ensuremath{\varphi} x} is the second derivative \(D^2\varphi(x)\) as a bilinear map, evaluated on the pair \texttt{![v, v]}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hd} is the differentiability of \(D\varphi\), from \texttt{h\ensuremath{\varphi}.\allowbreak{}fderiv\_\allowbreak{}right (m := 1)}. \texttt{hsecond v} is (a): \texttt{fderiv\_\allowbreak{}clm\_\allowbreak{}apply} is the product rule for \(z\mapsto A(z)u(z)\) with \(A(z)=D\varphi(z)\) and the constant \(u(z)=v\), and \texttt{iterated\allowbreak{}FDeriv\_\allowbreak{}two\_\allowbreak{}apply} with \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}flip\_\allowbreak{}apply} identifies the result with \(D^2\varphi(x)[v,v]\).
+
+\item After unfolding the definitions, \texttt{simp\_\allowbreak{}rw [hsecond, Finset.\allowbreak{}sum\_\allowbreak{}sub\_\allowbreak{}distrib, ← inner\_\allowbreak{}gradient\_\allowbreak{}left]} splits the sum into the two sums of (b) and (c) and writes \(D\varphi(x)e_i\) as \(\langle\nabla\varphi(x),e_i\rangle\).
+
+\item \texttt{Inner\allowbreak{}Product\allowbreak{}Space.\allowbreak{}laplacian\_\allowbreak{}eq\_\allowbreak{}iterated\allowbreak{}FDeriv\_\allowbreak{}std\allowbreak{}Orthonormal\allowbreak{}Basis} is the basis formula (b) for the Laplacian, and \texttt{(std\allowbreak{}Orthonormal\allowbreak{}Basis \ensuremath{\mathbb R} H).\allowbreak{}sum\_\allowbreak{}inner\_\allowbreak{}mul\_\allowbreak{}inner} is the orthonormal expansion in (c), used after \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm} reorders the inner products.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The stationary identity in conventional notation}{The stationary identity in conventional notation}}
 
 
-Replace the conventional expression \(\Delta\varphi-\langle\nabla U,\nabla\varphi\rangle\) by the equal basis-defined generator inside the integral. The established zero-generator integral then gives zero. The rewrite makes the displayed mathematical identity refer to the same function that the preceding calculation integrated.
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, and let \(\varphi:H\to\mathbb R\) be twice continuously differentiable with compact support. Then
 
 
+\[\int_H\Bigl(\Delta\varphi(x)-\langle\nabla U(x),\nabla\varphi(x)\rangle\Bigr)\,\pi_U(dx)=0.\]
 
-Substitution of the pointwise generator formula yields the conventional stationary identity. It applies on the stated compactly supported test class; stationarity of the stochastic evolution is established later by identifying its laws.
 
+\textbf{Proof.} By the previous step the integrand equals \(\mathcal L\varphi(x)\) at every point, and \(\int\mathcal L\varphi\,d\pi_U=0\) by infinitesimal invariance. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero}}
+\leansource{\texttt{integral\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}Generator.lean, lines 217–224}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_laplacian\_sub\_gradient\_gibbs\_eq\_zero}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (φ\ :\ H\ →\ ℝ)}
+\leanline{4}{(hφ\ :\ ContDiff\ ℝ\ 2\ φ)\ (hc\ :\ HasCompactSupport\ φ)\ :}
+\leanline{4}{(∫\ x,\ Laplacian.laplacian\ φ\ x\ -\ inner\ ℝ\ (gradient\ U\ x)\ (gradient\ φ\ x)}
+\leanline{6}{∂gibbsMeasure\ U)\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero} rewrites the integrand pointwise by \texttt{simp\_\allowbreak{}rw [← langevin\allowbreak{}Generator\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}sub\_\allowbreak{}inner U \ensuremath{\varphi} h\ensuremath{\varphi}]}, that is, with the previous identity read from right to left, and concludes with \texttt{integral\_\allowbreak{}langevin\allowbreak{}Generator\_\allowbreak{}gibbs\_\allowbreak{}eq\_\allowbreak{}zero}.
+\end{leanbox}
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
 
 \end{document}

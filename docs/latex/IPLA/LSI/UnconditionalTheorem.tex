@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,26 @@ The lifted potential is differentiable with \(NL\)-Lipschitz gradient, and its G
 
 In detail, the squared gradient constant is \(\ell^2=N^2L^2\) and the step is \(h=\gamma/N\). These substitutions give restriction \(\gamma\le\beta/(4NL^2)\) and error term \(8\gamma NDL^2/\beta\). The Gaussian theorem supplies the interpolation regularity and the compatibility of constants, so neither is an additional premise here. The finite-divergence conclusion is retained alongside the real inequality, justifying each real-valued entropy in the formula.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 22–52}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{12}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} derives \texttt{hn} from positive particle count and proves \texttt{h\allowbreak{}L} by excluding zero smoothness: that case contradicts the admissible positive step. \texttt{hs} and \texttt{hscaled} express the lifted step restriction. \texttt{ULA.\allowbreak{}LSI.\allowbreak{}ula\_\allowbreak{}kl\_\allowbreak{}bound} supplies \texttt{hfinite} and \texttt{hb} for the actual summed potential. \texttt{potential\_\allowbreak{}differentiable} and \texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} supply its analytic hypotheses; the remaining simplification uses \texttt{finrank\_\allowbreak{}state}, \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq}. No regular-interpolation data is an additional premise here.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.29.7]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -48,7 +91,30 @@ Divide the finite joint entropy inequality by positive \(N\). Division preserves
 
 Because \(N>0\), every term is divided by the same finite positive number. The exponential is unchanged, and its initial factor is the initial joint entropy per particle. This is a numerical normalization of the joint divergence, not the divergence of the parameter marginal.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 56–72}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_normalized\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{8\ *\ γ\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} obtains the finite joint divergence \texttt{hfinite} and full bound \texttt{hb} from \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}. It keeps the former as the first component of its conclusion and applies \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} to the latter. Thus every term of the full inequality, including the initial entropy, is divided by the same positive particle count.
 
+
+
+The helper \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} divides both the initial contribution and the bias, canceling one particle factor in the latter. The same finite-KL witness is retained for the unnormalized divergence. This quantity is the entropy of the full state divided by particle number; parameter projection is handled separately.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -62,6 +128,26 @@ Assume the lifted Gibbs target has logarithmic Sobolev constant \(\beta=N\alpha\
 
 The functional-inequality premise concerns \(\Pi_N\) itself. The relation \(D/N=d_x+d_\theta/N\) separates the intensive latent and parameter contributions. Since the particles share a parameter, no product tensorization of independent pair targets is used to obtain the assumed constant.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 76–96}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_linear\_lsi\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} proves positive smoothness using \texttt{ULA.\allowbreak{}LSI.\allowbreak{}positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step}, then rewrites the step assumption with \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff}. It applies the normalized theorem at the supplied linearly scaled lifted-target constant. The final rewrites \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} give the stated exponent and effective dimension while retaining finite joint divergence.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.29.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -75,15 +161,37 @@ Project both the particle law and its Gibbs reference to their parameter coordin
 
 The initial quantity is the full joint entropy \(H_0\). The parameter divergence is unnormalized, so its error retains factor \(N\). If a joint bound is supplied per particle, it must first be multiplied by \(N\). Data processing changes only the left-hand divergence and does not replace the initial joint entropy by a smaller projected quantity.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 100–121}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{6}{(@parameterTarget\ N\ dθ\ dx\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{8}{(@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{12}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} installs probability instances for the numerical and target laws, then obtains \texttt{hfinite} and \texttt{hb} from the full joint entropy theorem. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} supplies finite marginal divergence and \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} transfers the full bound through the parameter projection. It is the unnormalized joint estimate that is passed to data processing.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-LSI]{LangevinLean2026ULALSI}
-LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision d01d1d7b45e1. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision 7046bc2a17e4. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

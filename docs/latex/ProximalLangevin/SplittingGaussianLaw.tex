@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,8 +54,28 @@ The scalar coordinate distributions and their mutual independence give \(\xi_k\s
 
 Indeed every finite set of vector coordinates has the product of its scalar Gaussian laws. These finite-coordinate distributions determine the vector-sequence product measure. Applying the general independent-innovation recursion result identifies the finite-time splitting laws without requiring a stationary distribution.
 
+\begin{leanbox}{Lean: \texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}canonicalGaussian}}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}canonicalGaussian} \quad ProximalLangevin/\allowbreak{}SplittingGaussianLaw.lean, lines 34–51}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_eq\_canonicalGaussian}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n\ =}
+\leanline{6}{ULA.chainLaw\ (pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ)\ (Q.map\ initial)}
+\leanline{8}{(Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ stdGaussian\ (IPLA.State\ N\ dθ\ dx)))\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The hypothesis \texttt{Gaussian\allowbreak{}Innovations} specifies laws and independence of all scalar coordinates over all times, as well as independence of initialization from the whole path. \texttt{gaussian\allowbreak{}Innovations\_\allowbreak{}vector\allowbreak{}Law} groups a finite set of independent standard scalar Gaussians into a standard state-space Gaussian; \texttt{gaussian\allowbreak{}Innovations\_\allowbreak{}vector\allowbreak{}Independent} groups the time slices into an independent vector family. The measurable recursion can then be pushed forward from the product of the initial law and this iid path law. Equality follows for the actual PIPGLA iterate at every finite time; it requires no invariant target.
 
 
+
+Formal correspondence: pipglaLaws\_eq\_canonicalGaussian : The full iid vector Gaussian algorithm law follows from the original scalar-coordinate Gaussian hypotheses.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical\allowbreak{}Gaussian}: the source steps apply or rewrite \texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.5]{LangevinLean2026ULASC}; \cite[Section~3.41.2]{LangevinLean2026ULASC}; \cite[Section~3.41.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -46,17 +89,55 @@ The map grouping scalar coordinates into time-indexed vectors is measurable. Its
 
 Consequently any two probability-space realizations with the same initial law and independent standard Gaussian sequence have equal splitting laws. The concrete representatives and the choice of auxiliary product space have no effect on this distributional conclusion.
 
+\begin{leanbox}{Lean: \texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}canonicalNoisePath}, \texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}initialLaw\_\allowbreak{}eq}}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}canonicalNoisePath} \quad ProximalLangevin/\allowbreak{}SplittingGaussianLaw.lean, lines 55–68}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_eq\_canonicalNoisePath}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n\ =}
+\leanline{6}{ULA.chainLaw\ (pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ)\ (Q.map\ initial)}
+\leanline{8}{(IPLA.canonicalNoisePathLaw\ N\ dθ\ dx)\ n}
+\end{leancode}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}initialLaw\_\allowbreak{}eq} \quad ProximalLangevin/\allowbreak{}SplittingGaussianLaw.lean, lines 72–85}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_eq\_of\_initialLaw\_eq}
+\leanline{4}{\{Ω'\ :\ Type*\}\ [MeasurableSpace\ Ω']\ (Q'\ :\ Measure\ Ω')\ [IsProbabilityMeasure\ Q']}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(initial'\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q')}
+\leanline{4}{(noise'\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q')}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)}
+\leanline{4}{(hGaussian'\ :\ IPLA.GaussianInnovations\ Q'\ initial'\ noise')}
+\leanline{4}{(hinitial\ :\ Q.map\ initial\ =\ Q'.map\ initial')\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n\ =}
+\leanline{6}{pipglaLaws\ Q'\ g₁\ (prox\ g₂\ lam)\ γ\ initial'\ (fun\ k\ ↦\ noise'\ k)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+There are two descriptions of the same noise source: a countable product of scalar coordinates, packed into vectors, or a countable product of standard vector Gaussians. The first law identity uses \texttt{noise\allowbreak{}Path\_\allowbreak{}law} directly; the second uses vector iid laws. To compare two probability spaces, rewrite both output laws in the vector representation and substitute the equal initial laws. The ambient probability spaces and their concrete random-variable representatives therefore disappear from the conclusion.
 
 
+
+Formal correspondence: pipglaLaws\_eq\_canonicalNoisePath : An equivalent canonical law uses the repository's single countable product of scalar Gaussian coordinates, grouped into vector innovations. pipglaLaws\_eq\_of\_initialLaw\_eq : Gaussian realizations on different probability spaces give identical actual PIPGLA output laws when the initialization laws agree.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical\allowbreak{}Noise\allowbreak{}Path}: the source steps apply or rewrite \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}of\_\allowbreak{}indep}.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}initial\allowbreak{}Law\_\allowbreak{}eq}: the source steps apply or rewrite \texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical\allowbreak{}Gaussian}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.5]{LangevinLean2026ULASC}; \cite[Section~3.20.7]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.15.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

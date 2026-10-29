@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -28,7 +51,57 @@ Let \(f\) be continuous, strictly positive, and integrable on \(\mathbb R\), wit
 
 The fundamental theorem of calculus gives \(F'(x)=f(x)\). Thus the cumulative function is differentiable and continuous. For \(y>x\), the difference \(F(y)-F(x)=\int_x^y f(t)dt\) is positive because a positive continuous function has positive integral on a nonempty interval. Consequently the cumulative function is strictly increasing. The infinite lower limit is constant in the local differentiation argument.
 
+\begin{leanbox}{Lean: \texttt{Density}, \texttt{cumulative}, \texttt{cumulative\_\allowbreak{}hasStrictDerivAt} and 2 more}
+\leansource{\texttt{Density} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 25–29}
+\begin{leancode}
+\leanline{0}{structure\ Density\ (f\ :\ ℝ\ →\ ℝ)\ :\ Prop\ where}
+\leanline{2}{continuous\ :\ Continuous\ f}
+\leanline{2}{positive\ :\ ∀\ x,\ 0\ <\ f\ x}
+\leanline{2}{integrable\ :\ Integrable\ f\ volume}
+\leanline{2}{integral\_one\ :\ ∫\ x,\ f\ x\ ∂volume\ =\ 1}
+\end{leancode}
+\leansource{\texttt{cumulative} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 32–34}
+\begin{leancode}
+\leanline{0}{def\ cumulative\ (f\ :\ ℝ\ →\ ℝ)\ (x\ :\ ℝ)\ :\ ℝ\ :=\ ∫\ t\ in\ Iic\ x,\ f\ t\ ∂volume}
+\leanline{0}{\strut}
+\leanline{0}{namespace\ Density}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}hasStrictDerivAt} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 39–48}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_hasStrictDerivAt\ (x\ :\ ℝ)\ :}
+\leanline{4}{HasStrictDerivAt\ (cumulative\ f)\ (f\ x)\ x}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}continuous} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 50–52}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_continuous\ :\ Continuous\ (cumulative\ f)}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}strictMono} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 54–55}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_strictMono\ :\ StrictMono\ (cumulative\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: Density : A positive, continuous probability density on the real line. cumulative : Cumulative integral of an ordinary real density.
 
+
+
+\texttt{Density} packages the objects and hypotheses in the displayed statement. Its named fields are \texttt{continuous}, \texttt{positive}, \texttt{integrable}, \texttt{integral\_\allowbreak{}one}. Supplying this structure means supplying each field, with the types shown in the exact statement.
+
+
+
+\texttt{cumulative} is a definition with defining expression \texttt{\ensuremath{\int} t in Iic x, f t \ensuremath{\partial}volume}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{cumulative\_\allowbreak{}has\allowbreak{}Strict\allowbreak{}Deriv\allowbreak{}At}: the intermediate facts include \texttt{heq}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{hf.\allowbreak{}continuous.\allowbreak{}integral\_\allowbreak{}has\allowbreak{}Strict\allowbreak{}Deriv\allowbreak{}At}, \texttt{const\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+
+
+
+\texttt{cumulative\_\allowbreak{}continuous}: the source steps apply or rewrite \texttt{continuous\_\allowbreak{}iff\_\allowbreak{}continuous\allowbreak{}At.\allowbreak{}mpr}.
+
+
+
+\texttt{cumulative\_\allowbreak{}strict\allowbreak{}Mono}: the proof is the application \texttt{strict\allowbreak{}Mono\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}pos (fun x \ensuremath{\mapsto} (hf.\allowbreak{}cumulative\_\allowbreak{}has\allowbreak{}Strict\allowbreak{}Deriv\allowbreak{}At x).\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At) hf.\allowbreak{}positive}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The cumulative range and the open unit interval}{The cumulative range and the open unit interval}}
 
@@ -39,6 +112,38 @@ Integrability gives \(F(x)\to0\) as \(x\to-\infty\). Splitting the unit integral
 
 For any \(u\in(0,1)\), the endpoint limits supply two finite arguments whose cumulative values lie below and above \(u\). Continuity gives an argument with \(F(x)=u\), and strict monotonicity makes it unique. Therefore \(F(\mathbb R)=(0,1)\). The inverse cumulative function is consequently defined exactly on the open unit interval; neither endpoint is attained at a finite argument.
 
+\begin{leanbox}{Lean: \texttt{cumulative\_\allowbreak{}tendsto\_\allowbreak{}atBot}, \texttt{cumulative\_\allowbreak{}tendsto\_\allowbreak{}atTop}, \texttt{cumulative\_\allowbreak{}mem\_\allowbreak{}Ioo} and 1 more}
+\leansource{\texttt{cumulative\_\allowbreak{}tendsto\_\allowbreak{}atBot} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 58–59}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_tendsto\_atBot\ :\ Tendsto\ (cumulative\ f)\ atBot\ ({\leanfallback 𝓝}\ 0)}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}tendsto\_\allowbreak{}atTop} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 61–69}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_tendsto\_atTop\ :\ Tendsto\ (cumulative\ f)\ atTop\ ({\leanfallback 𝓝}\ 1)}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}mem\_\allowbreak{}Ioo} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 71–82}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_mem\_Ioo\ (x\ :\ ℝ)\ :\ cumulative\ f\ x\ ∈\ Ioo\ (0\ :\ ℝ)\ 1}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}range} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 84–93}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_range\ :\ range\ (cumulative\ f)\ =\ Ioo\ (0\ :\ ℝ)\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{cumulative\_\allowbreak{}tendsto\_\allowbreak{}at\allowbreak{}Bot}: the proof is the application \texttt{tendsto\_\allowbreak{}integral\_\allowbreak{}Iic\_\allowbreak{}zero tendsto\_\allowbreak{}id}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{cumulative\_\allowbreak{}tendsto\_\allowbreak{}at\allowbreak{}Top}: the intermediate facts include \texttt{heq}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{hf.\allowbreak{}integral\_\allowbreak{}one}, \texttt{tendsto\_\allowbreak{}integral\_\allowbreak{}Ioi\_\allowbreak{}zero}, \texttt{tendsto\_\allowbreak{}id}, \texttt{const\_\allowbreak{}sub}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+
+
+
+\texttt{cumulative\_\allowbreak{}mem\_\allowbreak{}Ioo}: the intermediate facts include \texttt{hnonneg}, \texttt{hle}, \texttt{h}, \texttt{hp}, in source order; the source steps apply or rewrite \texttt{hf.\allowbreak{}integral\_\allowbreak{}one}, \texttt{lt\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lt}, \texttt{hf.\allowbreak{}cumulative\_\allowbreak{}strict\allowbreak{}Mono}, \texttt{lt\_\allowbreak{}of\_\allowbreak{}lt\_\allowbreak{}of\_\allowbreak{}le}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+
+
+
+\texttt{cumulative\_\allowbreak{}range}: the source steps apply or rewrite \texttt{Set.\allowbreak{}Subset.\allowbreak{}antisymm}, \texttt{hf.\allowbreak{}cumulative\_\allowbreak{}mem\_\allowbreak{}Ioo}, \texttt{mem\_\allowbreak{}range\_\allowbreak{}of\_\allowbreak{}exists\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}exists\_\allowbreak{}ge}, \texttt{hf.\allowbreak{}cumulative\_\allowbreak{}continuous}, \texttt{hx.\allowbreak{}le}.
+\end{leanbox}
 
 \section{\texorpdfstring{The increasing transport map and its derivative}{The increasing transport map and its derivative}}
 
@@ -49,8 +154,51 @@ For cumulative distribution functions \(F,G\), define \(T=G^{-1}\circ F\). Both 
 
 In particular \(T\) is strictly increasing. The identity \(G(T(x))=F(x)\) equates the cumulative probabilities at corresponding arguments. Its differentiated form is \(g(T(x))T'(x)=f(x)\). The denominator is positive, so division is justified and yields the derivative and density change-of-variables relation. Both the map and its derivative follow from the density assumptions.
 
+\begin{leanbox}{Lean: \texttt{transport}, \texttt{cumulative\_\allowbreak{}transport}, \texttt{transport\_\allowbreak{}hasStrictDerivAt} and 1 more}
+\leansource{\texttt{transport} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 98–101}
+\begin{leancode}
+\leanline{0}{def\ transport\ (f\ g\ :\ ℝ\ →\ ℝ)\ (x\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{Function.invFun\ (cumulative\ g)\ (cumulative\ f\ x)}
+\leanline{0}{\strut}
+\leanline{0}{namespace\ Density}
+\end{leancode}
+\leansource{\texttt{cumulative\_\allowbreak{}transport} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 106–114}
+\begin{leancode}
+\leanline{0}{theorem\ cumulative\_transport\ (x\ :\ ℝ)\ :}
+\leanline{4}{cumulative\ g\ (transport\ f\ g\ x)\ =\ cumulative\ f\ x}
+\end{leancode}
+\leansource{\texttt{transport\_\allowbreak{}hasStrictDerivAt} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 116–124}
+\begin{leancode}
+\leanline{0}{theorem\ transport\_hasStrictDerivAt\ (x\ :\ ℝ)\ :}
+\leanline{4}{HasStrictDerivAt\ (transport\ f\ g)\ (f\ x\ /\ g\ (transport\ f\ g\ x))\ x}
+\end{leancode}
+\leansource{\texttt{transport\_\allowbreak{}strictMono} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 126–129}
+\begin{leancode}
+\leanline{0}{theorem\ transport\_strictMono\ :\ StrictMono\ (transport\ f\ g)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+For positive continuous unit-mass densities, \(F(x)=\int_{-\infty}^xf\) and \(G(y)=\int_{-\infty}^yg\) are differentiable with strictly positive derivatives, hence strictly increasing, and their limits give range \((0,1)\). Define \(T=G^{-1}\circ F\), so \(G(T(x))=F(x)\). The inverse-function derivative gives \(T'(x)=f(x)/g(T(x))>0\). The cumulative identities and strict monotonicity declarations justify this change of variables on the whole real line.
 
 
+
+Formal correspondence: transport : The monotone transport from density \(f\) to density \(g\).
+
+
+
+\texttt{transport} is a definition with defining expression \texttt{Function.\allowbreak{}inv\allowbreak{}Fun (cumulative g) (cumulative f x)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{cumulative\_\allowbreak{}transport}: the intermediate fact is \texttt{hx}, in source order; the source steps apply or rewrite \texttt{hg.\allowbreak{}cumulative\_\allowbreak{}range}, \texttt{hf.\allowbreak{}cumulative\_\allowbreak{}mem\_\allowbreak{}Ioo}, \texttt{Function.\allowbreak{}apply\_\allowbreak{}inv\allowbreak{}Fun\_\allowbreak{}apply}.
+
+
+
+\texttt{transport\_\allowbreak{}has\allowbreak{}Strict\allowbreak{}Deriv\allowbreak{}At}: the intermediate fact is \texttt{hinv}, in source order; the source steps apply or rewrite \texttt{hf.\allowbreak{}cumulative\_\allowbreak{}transport}, \texttt{hinv.\allowbreak{}comp}, \texttt{hf.\allowbreak{}cumulative\_\allowbreak{}has\allowbreak{}Strict\allowbreak{}Deriv\allowbreak{}At}, \texttt{div\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}inv}, \texttt{mul\_\allowbreak{}comm}.
+
+
+
+\texttt{transport\_\allowbreak{}strict\allowbreak{}Mono}: the proof is the application \texttt{strict\allowbreak{}Mono\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}pos}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Change of variables in the normalized inequality}{Change of variables in the normalized inequality}}
 
@@ -69,7 +217,23 @@ The cancellation can also be written directly in terms of \(S(x)=(1-t)x+tT(x)\).
 
 The scalar inequality \((1-t)+tr\ge r^t\) is valid for all \(r>0\) and includes \(t=0,1\). Substituting \(r=f/g(T)\) is the reason the density factors cancel after multiplication by the Jacobian. The argument integrates only over the image of the interpolating map; nonnegativity of \(h\) makes surjectivity unnecessary.
 
+\begin{leanbox}{Lean: \texttt{normalized\_\allowbreak{}prekopa\_\allowbreak{}leindler}}
+\leansource{\texttt{normalized\_\allowbreak{}prekopa\_\allowbreak{}leindler} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 136–196}
+\begin{leancode}
+\leanline{0}{theorem\ normalized\_prekopa\_leindler}
+\leanline{4}{\{f\ g\ :\ ℝ\ →\ ℝ\}\ (hf\ :\ Density\ f)\ (hg\ :\ Density\ g)}
+\leanline{4}{(h\ :\ ℝ\ →\ ℝ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (ht1\ :\ t\ ≤\ 1)}
+\leanline{4}{(hpoint\ :\ ∀\ x\ y,\ Real.exp\ ((1\ -\ t)\ *\ Real.log\ (f\ x)\ +\ t\ *\ Real.log\ (g\ y))\ ≤}
+\leanline{6}{h\ ((1\ -\ t)\ *\ x\ +\ t\ *\ y))\ :}
+\leanline{4}{(1\ :\ ℝ≥0∞)\ ≤\ ∫⁻\ z,\ ENNReal.ofReal\ (h\ z)\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: normalized\_prekopa\_leindler : The normalized one-dimensional Prékopa--Leindler inequality, proved by the constructed monotone transport. The third weight need not be continuous or integrable; the conclusion is an extended nonnegative integral.
 
+
+
+\texttt{normalized\_\allowbreak{}prekopa\_\allowbreak{}leindler}: the intermediate facts include \texttt{S}, \texttt{ht0}, \texttt{h\allowbreak{}S}, \texttt{he}, \texttt{hchange}, in source order; the source steps apply or rewrite \texttt{hf.\allowbreak{}transport\_\allowbreak{}has\allowbreak{}Strict\allowbreak{}Deriv\allowbreak{}At}, \texttt{has\allowbreak{}Deriv\allowbreak{}At.\allowbreak{}const\_\allowbreak{}mul}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real}, \texttt{set\allowbreak{}LIntegral\_\allowbreak{}univ}, \texttt{hchange.\allowbreak{}symm}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The inequality for arbitrary positive finite masses}{The inequality for arbitrary positive finite masses}}
 
@@ -80,6 +244,34 @@ A strictly positive integrable function on a nonzero measure space has positive 
 
 Thus normalization of \(f\) and \(g\) changes the interpolation factor by \(A^{1-t}B^t\), and multiplication by that positive finite factor recovers the original statement. The logarithms occur only at positive numbers and therefore also define the formula at endpoint weights. The positivity argument applies to the one-point measure in dimension zero as well.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}positive}, \texttt{prekopa\_\allowbreak{}leindler\_\allowbreak{}real}}
+\leansource{\texttt{integral\_\allowbreak{}positive} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 200–209}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_positive\ \{E\ :\ Type*\}\ [MeasureSpace\ E]}
+\leanline{4}{[NeZero\ (volume\ :\ Measure\ E)]\ \{f\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hpos\ :\ ∀\ x,\ 0\ <\ f\ x)\ (hi\ :\ Integrable\ f\ volume)\ :\ 0\ <\ ∫\ x,\ f\ x\ ∂volume}
+\end{leancode}
+\leansource{\texttt{prekopa\_\allowbreak{}leindler\_\allowbreak{}real} \quad IPLA/\allowbreak{}PrekopaLeindler.lean, lines 213–248}
+\begin{leancode}
+\leanline{0}{theorem\ prekopa\_leindler\_real}
+\leanline{4}{\{f\ g\ h\ :\ ℝ\ →\ ℝ\}\ (hfcont\ :\ Continuous\ f)\ (hfpos\ :\ ∀\ x,\ 0\ <\ f\ x)}
+\leanline{4}{(hfint\ :\ Integrable\ f\ volume)\ (hgcont\ :\ Continuous\ g)\ (hgpos\ :\ ∀\ x,\ 0\ <\ g\ x)}
+\leanline{4}{(hgint\ :\ Integrable\ g\ volume)\ (hhint\ :\ Integrable\ h\ volume)\ (hhpos\ :\ ∀\ x,\ 0\ ≤\ h\ x)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (ht1\ :\ t\ ≤\ 1)}
+\leanline{4}{(hpoint\ :\ ∀\ x\ y,\ Real.exp\ ((1\ -\ t)\ *\ Real.log\ (f\ x)\ +\ t\ *\ Real.log\ (g\ y))\ ≤}
+\leanline{6}{h\ ((1\ -\ t)\ *\ x\ +\ t\ *\ y))\ :}
+\leanline{4}{Real.exp\ ((1\ -\ t)\ *\ Real.log\ (∫\ x,\ f\ x)\ +\ t\ *\ Real.log\ (∫\ x,\ g\ x))\ ≤\ ∫\ x,\ h\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: integral\_positive : Strict positivity of the real integral of an everywhere positive integrable function, including the zero-dimensional product space used in tensorization. prekopa\_leindler\_real : Prékopa--Leindler on the real line for arbitrary positive continuous integrable first and second weights. No normalization is assumed.
 
+
+
+\texttt{integral\_\allowbreak{}positive}: the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}pos\_\allowbreak{}iff\_\allowbreak{}support\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{Function.\allowbreak{}mem\_\allowbreak{}support}, \texttt{iff\_\allowbreak{}true}, \texttt{Measure.\allowbreak{}measure\_\allowbreak{}univ\_\allowbreak{}pos.\allowbreak{}mpr}, \texttt{Ne\allowbreak{}Zero.\allowbreak{}ne}.
+
+
+
+\texttt{prekopa\_\allowbreak{}leindler\_\allowbreak{}real}: the intermediate facts include \texttt{A}, \texttt{B}, \texttt{C}, \texttt{hnorm}, \texttt{he}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}div}, \texttt{div\_\allowbreak{}self}, \texttt{hhint.\allowbreak{}div\_\allowbreak{}const}, \texttt{one\_\allowbreak{}mul}, \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \end{document}

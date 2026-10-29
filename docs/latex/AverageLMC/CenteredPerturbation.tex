@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,37 +32,161 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Centered perturbations add their actual variance to transport}{Centered perturbations add their actual variance to transport}}
+\title{\texorpdfstring{Transport cost of a conditionally centred perturbation}{Transport cost of a conditionally centred perturbation}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-A square-integrable perturbation with zero conditional mean may be added to a measurable full-gradient output. This module constructs every required coupling and proves the variance addition estimate used by SGLD.
+This section proves the variance-addition inequality for quadratic transport that underlies the stochastic-gradient bound. Let \(s\) be a random input with law \(P\) on a measurable space \(S\), let \(i\) be an independent random index with law \(Q\) on a measurable space \(I\), let \(F(s)\) be an output in a Hilbert space \(E\) (for instance \(\mathbb R^p\)), and let \(D(s,i)\) be a perturbation whose mean over the index vanishes for every fixed input. Then, for every probability measure \(\pi\) on \(E\) with finite second moment,
 
-\[\mathbb E[D\mid S]=0\quad\Longrightarrow\quad W_2^2(\mathcal L(F(S)+D),\pi)\le W_2^2(\mathcal L(F(S)),\pi)+\mathbb E\|D\|^2.\]
+
+\[\mathsf W_2^2\bigl(\mathcal L(F(s)+D(s,i)),\pi\bigr)\le\mathsf W_2^2\bigl(\mathcal L(F(s)),\pi\bigr)+\mathbb E\|D(s,i)\|^2,\]
+
+
+where \(\mathcal L\) denotes the law under \(P\otimes Q\). For SGLD, \(s=(\vartheta,\xi)\), \(F(s)=\vartheta-h\nabla f(\vartheta)+\sqrt{2h}\,\xi\) is the full-gradient Langevin output, \(i=I\) is the uniform data index and \(D=-h(g_I(\vartheta)-\nabla f(\vartheta))\) is the stochastic-gradient error. The proof uses an arbitrary finite-cost coupling of \(\mathcal L(F(s))\) with \(\pi\), lifts it to the input by the construction of the previous section, adjoins the independent index, and shows that the cross term of the squared distance vanishes.
+
+
 
 Earlier results used here: \cite[Section~3.21]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Translate quadratic transport cost into an ordinary integral}{Translate quadratic transport cost into an ordinary integral}}
+\section{\texorpdfstring{The squared \(L_2\) norm as an integral}{The squared L₂ norm as an integral}}
 
 
-The square of the real \(L^{2}\) seminorm is the integral of the squared norm. Square integrability supplies finiteness, so taking the real value cannot discard an infinite cost.
+\textbf{Claim.} Let \((\Omega,\mathcal F,P)\) be a measure space, \(E\) a real inner product space and \(f:\Omega\to E\) square integrable, \(\int\|f\|^2\,dP<\infty\) (with \(f\) almost everywhere strongly measurable). Let \(\|f\|_{L_2(P)}=\bigl(\int\|f\|^2\,dP\bigr)^{1/2}\), a finite nonnegative number. Then
 
 
-\section{\texorpdfstring{Lift, expand and cancel the cross term}{Lift, expand and cancel the cross term}}
+\[\|f\|_{L_2(P)}^2=\int_\Omega\|f(\omega)\|^2\,P(d\omega).\]
 
 
-Disintegrate each finite-cost output coupling to the original input, and extend it by the independent index law. Expand the squared displacement after adding the perturbation. Fubini and the continuous linear functional given by inner product with the fixed displacement turn the cross term into the inner product with the conditional mean, which is zero. The remaining two energies are the original coupling cost and the actual perturbation second moment. Passing this bound through all finite coupling costs proves the squared Wasserstein inequality.
+\textbf{Proof.} Let \([f]\) denote the class of \(f\) in the Hilbert space \(L_2(P;E)\), whose inner product is \(\langle[g],[k]\rangle=\int\langle g(\omega),k(\omega)\rangle\,P(d\omega)\) and whose norm is \(\|f\|_{L_2(P)}\). Then
 
+
+\[\|f\|_{L_2(P)}^2=\langle[f],[f]\rangle=\int_\Omega\langle f(\omega),f(\omega)\rangle\,P(d\omega)=\int_\Omega\|f(\omega)\|^2\,P(d\omega),\]
+
+
+where the representative of \([f]\) used in the integral agrees with \(f\) almost everywhere, which does not change the integral. \(\square\)
+
+
+
+
+The finiteness assumption matters because the \(L_2\) norm is defined with values in \([0,\infty]\): for a function that is not square integrable, the real number associated with \(\infty\) would be \(0\) and the identity would fail.
+
+\begin{leanbox}{Lean: \texttt{eLpNorm\_\allowbreak{}toReal\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral}}
+\leansource{\texttt{eLpNorm\_\allowbreak{}toReal\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral} \quad AverageLMC/\allowbreak{}CenteredPerturbation.lean, lines 29–38}
+\begin{leancode}
+\leanline{0}{theorem\ eLpNorm\_toReal\_sq\_eq\_integral\ (P\ :\ Measure\ Ω)\ (f\ :\ Ω\ →\ E)\ (hf\ :\ MemLp\ f\ 2\ P)\ :}
+\leanline{4}{(eLpNorm\ f\ 2\ P).toReal\ \textasciicircum{}\ 2\ =\ ∫\ ω,\ ‖f\ ω‖\ \textasciicircum{}\ 2\ ∂P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}to\allowbreak{}Real\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral} takes \texttt{hf : Mem\allowbreak{}Lp f 2 P}, the statement that \(f\) is almost everywhere strongly measurable with finite \(L^2\) seminorm. \texttt{e\allowbreak{}Lp\allowbreak{}Norm f 2 P} is the seminorm with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} and \texttt{.\allowbreak{}to\allowbreak{}Real} converts it to a real number. The \texttt{calc} block follows the proof: \texttt{Lp.\allowbreak{}norm\_\allowbreak{}to\allowbreak{}Lp} identifies the real seminorm with the norm of \texttt{hf.\allowbreak{}to\allowbreak{}Lp f}, the class of \(f\) in \(L^2\); \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq} and \texttt{L2.\allowbreak{}inner\_\allowbreak{}def} write the squared norm as the integral of the pointwise inner product; and \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae} with \texttt{hf.\allowbreak{}coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp} (the representative agrees with \(f\) almost everywhere) replaces the representative by \(f\).
+\end{leanbox}
+
+\section{\texorpdfstring{Adding a centred perturbation adds its second moment}{Adding a centred perturbation adds its second moment}}
+
+
+\textbf{Claim.} Let \(S\) and \(I\) be measurable spaces with probability measures \(P\) and \(Q\). Let \(E\) be a real Hilbert space that is standard Borel and second countable with its Borel sets (for instance \(\mathbb R^p\)). Let \(F:S\to E\) be measurable and square integrable for \(P\), and let \(D:S\times I\to E\) be jointly measurable and square integrable for \(P\otimes Q\), such that for every \(s\in S\) the function \(D(s,\cdot)\) is \(Q\)-integrable with
+
+
+\[\int_ID(s,i)\,Q(di)=0.\qquad(1)\]
+
+
+Let \(\pi\) be a probability measure on \(E\) with \(\int\|x\|^2\pi(dx)<\infty\), let \(\mu=P\circ F^{-1}\) be the law of \(F\), and let \(\nu\) be the law of \((s,i)\mapsto F(s)+D(s,i)\) under \(P\otimes Q\). Then \(\mathsf W_2(\mu,\pi)\) and \(\mathsf W_2(\nu,\pi)\) are finite and
+
+
+\[\mathsf W_2(\nu,\pi)^2\le\mathsf W_2(\mu,\pi)^2+\int_{S\times I}\|D(s,i)\|^2\,(P\otimes Q)(ds,di).\]
+
+
+\textbf{Proof.} \emph{Finiteness.} The identity map has finite second moment under \(\mu\), because \(\int\|x\|^2\mu(dx)=\int\|F\|^2dP<\infty\), and under \(\nu\), because \(F(s)+D(s,i)\) is a sum of two square-integrable functions on \(S\times I\). For two probability measures with finite second moments the product coupling has finite cost, since \(\|x-y\|^2\le2\|x\|^2+2\|y\|^2\); hence \(\mathsf W_2(\mu,\pi)<\infty\) and \(\mathsf W_2(\nu,\pi)<\infty\).
+
+
+
+
+\emph{Reduction.} By the first result of the previous section (with \(a=1\) and \(b=\int\|D\|^2d(P\otimes Q)\)), it suffices to show that \(\mathsf W_2(\nu,\pi)^2\le C(\gamma)^2+\int\|D\|^2d(P\otimes Q)\) for every coupling \(\gamma\) of \(\mu\) and \(\pi\) with finite cost \(C(\gamma)\).
+
+
+
+
+\emph{Construction.} Fix such a \(\gamma\) and let \(R\) be the lifted coupling of the previous section: a probability measure on \(S\times E\) with first marginal \(P\), second marginal \(\pi\), under which \((F(s),y)\) has law \(\gamma\). Work on \((S\times E)\times I\) with the product probability \(R\otimes Q\) and the random variables
+
+
+\[A=F(s)-y,\qquad B=D(s,i),\qquad X=F(s)+D(s,i),\qquad Y=y.\]
+
+
+Since the first marginal of \(R\) is \(P\), the image of \(R\otimes Q\) under \(((s,y),i)\mapsto(s,i)\) is \(P\otimes Q\). Consequently \(X\) has law \(\nu\), and \(Y\) has law \(\pi\). Both \(A\) and \(B\) are square integrable: \(\int\|A\|^2d(R\otimes Q)=\int\|F(s)-y\|^2R(ds,dy)=\int\|x-y\|^2\gamma(dx,dy)=C(\gamma)^2<\infty\), where the first equality integrates out the probability measure \(Q\) and the second is the change of variables under \((s,y)\mapsto(F(s),y)\); and \(\int\|B\|^2d(R\otimes Q)=\int\|D\|^2d(P\otimes Q)\) by the change of variables under \(((s,y),i)\mapsto(s,i)\). We record these as
+
+
+\[\int\|A\|^2\,d(R\otimes Q)=C(\gamma)^2,\qquad\int\|B\|^2\,d(R\otimes Q)=\int\|D\|^2\,d(P\otimes Q).\qquad(2)\]
+
+
+\emph{The cross term vanishes.} By the Cauchy–Schwarz inequality \(|\langle A,B\rangle|\le\|A\|\,\|B\|\), and \(\|A\|\,\|B\|\) is integrable as a product of two square-integrable functions (Hölder's inequality); so \(\langle A,B\rangle\) is integrable. By Fubini's theorem,
+
+
+\[\int\langle A,B\rangle\,d(R\otimes Q)=\int_{S\times E}\Bigl(\int_I\bigl\langle F(s)-y,\,D(s,i)\bigr\rangle\,Q(di)\Bigr)R(ds,dy).\]
+
+
+For fixed \((s,y)\), the map \(v\mapsto\langle F(s)-y,v\rangle\) is a continuous linear functional on \(E\), and continuous linear functionals commute with Bochner integrals of integrable functions. Using the integrability of \(D(s,\cdot)\) and (1), the inner integral equals \(\langle F(s)-y,\int_ID(s,i)Q(di)\rangle=\langle F(s)-y,0\rangle=0\). Hence \(\int\langle A,B\rangle\,d(R\otimes Q)=0\).
+
+
+
+
+\emph{Energy identity.} Pointwise \(\|A+B\|^2=\|A\|^2+2\langle A,B\rangle+\|B\|^2\), and the three terms are integrable. Integrating and using the vanishing of the cross term and (2),
+
+
+\[\int\|A+B\|^2\,d(R\otimes Q)=C(\gamma)^2+\int\|D\|^2\,d(P\otimes Q).\qquad(3)\]
+
+
+\emph{Conclusion.} The pair \((X,Y)\) defines a coupling of \(\nu\) and \(\pi\), and \(X-Y=A+B\). Therefore \(\mathsf W_2(\nu,\pi)\le\bigl(\int\|A+B\|^2d(R\otimes Q)\bigr)^{1/2}\). Squaring this inequality between nonnegative numbers, using the identity of Step 1 for the square-integrable function \(A+B\), and inserting (3) gives the required bound. \(\square\)
+
+
+
+
+Two hypotheses deserve comment. Condition (1) must hold for every input \(s\), not only on average; it is what makes the cross term vanish after integrating out the index. The finiteness of the second moment of \(\pi\) is used only to make both distances finite, so that the bound over couplings passes to the distance.
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}perturbation}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}perturbation} \quad AverageLMC/\allowbreak{}CenteredPerturbation.lean, lines 42–146}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_sq\_centered\_perturbation}
+\leanline{4}{(P\ :\ Measure\ S)\ [IsProbabilityMeasure\ P]\ (Q\ :\ Measure\ I)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(F\ :\ S\ →\ E)\ (hF\ :\ Measurable\ F)\ (hF2\ :\ MemLp\ F\ 2\ P)}
+\leanline{4}{(D\ :\ S\ →\ I\ →\ E)\ (hD\ :\ Measurable\ (Function.uncurry\ D))}
+\leanline{4}{(hD2\ :\ MemLp\ (Function.uncurry\ D)\ 2\ (P.prod\ Q))}
+\leanline{4}{(hDi\ :\ ∀\ s,\ Integrable\ (D\ s)\ Q)\ (hmean\ :\ ∀\ s,\ ∫\ i,\ D\ s\ i\ ∂Q\ =\ 0)}
+\leanline{4}{(π\ :\ Measure\ E)\ [IsProbabilityMeasure\ π]\ (hπ\ :\ MemLp\ (fun\ x\ :\ E\ ↦\ x)\ 2\ π)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((P.prod\ Q).map\ (fun\ q\ ↦\ F\ q.1\ +\ D\ q.1\ q.2))\ π\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{ULA.wasserstein2Real\ (P.map\ F)\ π\ \textasciicircum{}\ 2\ +}
+\leanline{8}{∫\ q\ :\ S\ ×\ I,\ ‖D\ q.1\ q.2‖\ \textasciicircum{}\ 2\ ∂P.prod\ Q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}perturbation} has the hypotheses \texttt{h\allowbreak{}F : Measurable F}, \texttt{h\allowbreak{}F2 : Mem\allowbreak{}Lp F 2 P}, \texttt{h\allowbreak{}D : Measurable (Function.\allowbreak{}uncurry D)} (joint measurability), \texttt{h\allowbreak{}D2 : Mem\allowbreak{}Lp (Function.\allowbreak{}uncurry D) 2 (P.\allowbreak{}prod Q)}, \texttt{h\allowbreak{}Di : \ensuremath{\forall} s, Integrable (D s) Q}, \texttt{hmean : \ensuremath{\forall} s, \ensuremath{\int} i, D s i \ensuremath{\partial}Q = 0}, which is (1), and \texttt{h\ensuremath{\pi} : Mem\allowbreak{}Lp (fun x : E \ensuremath{\mapsto} x) 2 \ensuremath{\pi}}, the finite second moment of \(\pi\). The law \(\nu\) is the pushforward \texttt{(P.\allowbreak{}prod Q).\allowbreak{}map (fun q \ensuremath{\mapsto} F q.\allowbreak{}1 + D q.\allowbreak{}1 q.\allowbreak{}2)}, and distances are \texttt{ULA.\allowbreak{}wasserstein2\allowbreak{}Real}.
+
+
+
+\begin{enumerate}
+
+
+\item \emph{Finiteness.} \texttt{h\allowbreak{}Fm}, \texttt{hplus} and \texttt{h\ensuremath{\nu}} give the second moments of \(\mu\) and \(\nu\) (through \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}), and \texttt{hfinite}, \texttt{houtput} are the finiteness of both distances from \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp}.
+
+\item \emph{Reduction.} The \texttt{suffices} line inserts the factor \(1\), and \texttt{apply wasserstein2\_\allowbreak{}sq\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} reduces the goal to a fixed coupling \texttt{c} with finite cost \texttt{hc}.
+
+\item \emph{Construction.} \texttt{R := lifted\allowbreak{}Output\allowbreak{}Coupling P F h\allowbreak{}F c} with its marginal identities \texttt{h\allowbreak{}Rfst}, \texttt{h\allowbreak{}Rout}, \texttt{h\allowbreak{}Rsnd}; \texttt{h\allowbreak{}RI} is the identity of the image of \texttt{R.\allowbreak{}prod Q} under \(((s,y),i)\mapsto(s,i)\) with \texttt{P.\allowbreak{}prod Q}, from \texttt{Measure.\allowbreak{}map\_\allowbreak{}prod\_\allowbreak{}map}. \texttt{A} and \texttt{B} are the variables of the proof; \texttt{h\allowbreak{}A} and \texttt{h\allowbreak{}B} are their square integrability, transported from \texttt{h\allowbreak{}Ac} (finite cost of the coupling) and from \texttt{h\allowbreak{}D2} by \texttt{comp\_\allowbreak{}of\_\allowbreak{}map}.
+
+\item \emph{Cross term.} \texttt{hcross} is the integrability of \(\langle A,B\rangle\), from the integrability of \(\|A\|\|B\|\) (\texttt{integrable\_\allowbreak{}mul}) and \texttt{abs\_\allowbreak{}real\_\allowbreak{}inner\_\allowbreak{}le\_\allowbreak{}norm}. In \texttt{hzero}, \texttt{integral\_\allowbreak{}prod} is Fubini's theorem and \texttt{hz} evaluates the inner integral: \texttt{(inner\allowbreak{}SL \ensuremath{\mathbb R} (F r.\allowbreak{}1 -\allowbreak{} r.\allowbreak{}2)).\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}comm (h\allowbreak{}Di r.\allowbreak{}1)} moves the continuous linear functional \(\langle F(s)-y,\cdot\rangle\) through the integral, and \texttt{hmean} with \texttt{inner\_\allowbreak{}zero\_\allowbreak{}right} gives \(0\).
+
+\item \emph{Energy.} \texttt{henergy} is (3): \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real} expands the square and \texttt{integral\_\allowbreak{}add}, \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul} and \texttt{hzero} evaluate the integral. \texttt{h\allowbreak{}Acost} and \texttt{h\allowbreak{}Bcost} are the two identities (2), using \texttt{integral\_\allowbreak{}fun\_\allowbreak{}fst} (integration of a function of the first factor against a product with the probability measure \(Q\)), \texttt{integral\_\allowbreak{}map} with \texttt{h\allowbreak{}Rout} or \texttt{h\allowbreak{}RI}, and Step 1.
+
+\item \emph{Conclusion.} \texttt{h\allowbreak{}Xlaw} and \texttt{h\allowbreak{}Ylaw} identify the laws of \(X\) and \(Y\); \texttt{hw} is the bound of \(\mathsf W_2\) by the \(L^2\) distance of two random variables, \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}le\_\allowbreak{}random\_\allowbreak{}cost\_\allowbreak{}real}; \texttt{hs} squares it with \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}}, Step 1 turns the \(L^2\) norm into an integral, \texttt{heq} rewrites \(X-Y=A+B\), and the final \texttt{simpa} inserts \texttt{henergy}, \texttt{h\allowbreak{}Acost} and \texttt{h\allowbreak{}Bcost}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.11]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

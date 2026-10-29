@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,23 +39,142 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-For a positive differentiable function \(r\), the scalar derivative is \((r\log r)'=r'(\log r+1)\). Applying this identity to a density depending on time gives a derivative of its entropy integral when the differentiated integrands have a common integrable bound on a time neighborhood. This bound and the relevant measurability and integrability assumptions are hypotheses of the result.
+By the formula \(H_\nu(r_t\nu)=\int r_t\log r_t\,d\nu\) for normalized relative densities, the time derivative of the relative entropy along a path of densities \((r_t)\) is the derivative of a parameter-dependent integral. This section computes it under the hypotheses of the theorem on differentiation under the integral sign. The pointwise derivative is \(\frac{d}{dt}\bigl(r_t\log r_t\bigr)=\dot r_t(\log r_t+1)\) where \(r_t>0\), and if these derivatives are bounded, uniformly for \(t\) in a neighbourhood of \(t_0\), by a \(\nu\)-integrable function, then
+
+
+\[\frac{d}{dt}\Big|_{t=t_0}\int r_t\log r_t\,d\nu=\int\dot r_{t_0}\bigl(\log r_{t_0}+1\bigr)\,d\nu.\]
+
+
+This is the first step of the entropy computation in Vempala and Wibisono (2019), Lemma 3, written in relative-density form. No evolution equation for \(r_t\) and no integration by parts are used here; they enter later, when \(\int\dot r_t(\log r_t+1)\,d\nu\) is expressed through the Fisher information.
 
 
 \section{\texorpdfstring{The derivative of a positive function times its logarithm}{The derivative of a positive function times its logarithm}}
 
 
-Assume \(r\) is differentiable at \(t\) and \(r(t)>0\). The product rule and the derivative of the logarithm give \((r\log r)'(t)=r'(t)\log r(t)+r(t)r'(t)/r(t)\). Positivity implies \(r(t)\ne0\), so cancellation yields \(r'(t)(\log r(t)+1)\). The constant term is retained at this stage. Its contribution can be removed from an entropy calculation only after the derivative of total mass has been shown to vanish.
+\textbf{Claim.} Let \(r:\mathbb R\to\mathbb R\) be differentiable at \(t\) with derivative \(\dot r=r'(t)\), and assume \(r(t)>0\). Then \(s\mapsto r(s)\log r(s)\) is differentiable at \(t\) with derivative
 
+
+\[\frac{d}{ds}\Big|_{s=t}\bigl(r(s)\log r(s)\bigr)=\dot r\,\bigl(\log r(t)+1\bigr).\]
+
+
+\textbf{Proof.} Since \(r(t)>0\), the logarithm is differentiable at \(r(t)\) with derivative \(1/r(t)\), so by the chain rule \(s\mapsto\log r(s)\) is differentiable at \(t\) with derivative \(\dot r/r(t)\). The product rule then gives the derivative
+
+
+\[\dot r\,\log r(t)+r(t)\cdot\frac{\dot r}{r(t)}=\dot r\log r(t)+\dot r=\dot r\bigl(\log r(t)+1\bigr),\]
+
+
+where the cancellation \(r(t)\cdot\dot r/r(t)=\dot r\) uses \(r(t)\neq0\). \(\square\)
+
+
+
+
+The constant \(+1\) is kept. In the entropy calculation its contribution is \(\int\dot r_t\,d\nu\), the derivative of the total mass \(\int r_t\,d\nu=1\), and it may be dropped only after that derivative has been shown to vanish.
+
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}mul\_\allowbreak{}log}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}mul\_\allowbreak{}log} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyDerivative.lean, lines 25–31}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_mul\_log\ \{r\ :\ ℝ\ →\ ℝ\}\ \{rdot\ t\ :\ ℝ\}}
+\leanline{4}{(hr\ :\ HasDerivAt\ r\ rdot\ t)\ (hpos\ :\ 0\ <\ r\ t)\ :}
+\leanline{4}{HasDerivAt\ (fun\ s\ ↦\ r\ s\ *\ Real.log\ (r\ s))}
+\leanline{6}{(rdot\ *\ (Real.log\ (r\ t)\ +\ 1))\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}mul\_\allowbreak{}log}, \texttt{Has\allowbreak{}Deriv\allowbreak{}At f f' t} is Mathlib's statement that \(f:\mathbb R\to\mathbb R\) is differentiable at \(t\) with derivative \(f'\); the hypotheses are \texttt{hr : Has\allowbreak{}Deriv\allowbreak{}At r rdot t} and \texttt{hpos : 0 < r t}. The term \texttt{hr.\allowbreak{}mul (hr.\allowbreak{}log hpos.\allowbreak{}ne')} combines the product rule (\texttt{Has\allowbreak{}Deriv\allowbreak{}At.\allowbreak{}mul}) with the chain rule for the logarithm (\texttt{Has\allowbreak{}Deriv\allowbreak{}At.\allowbreak{}log}, which needs \(r(t)\neq0\), supplied by \texttt{hpos.\allowbreak{}ne'}); it gives the derivative \texttt{rdot * Real.\allowbreak{}log (r t) + r t * (rdot /\allowbreak{} r t)}. \texttt{hcancel} is the cancellation \(r(t)\cdot(\dot r/r(t))=\dot r\), proved with \texttt{div\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}}}, and \texttt{simpa only [hcancel, mul\_\allowbreak{}add, mul\_\allowbreak{}one] using! hr.\allowbreak{}mul (hr.\allowbreak{}log hpos.\allowbreak{}ne')} rewrites the derivative into the form \(\dot r(\log r(t)+1)\).
+\end{leanbox}
 
 \section{\texorpdfstring{Differentiation under the integral sign}{Differentiation under the integral sign}}
 
 
-Fix \(t\), and assume that almost every spatial function \(u\mapsto r_u(x)\) is positive and differentiable on a common neighborhood of \(t\). Suppose there is an integrable function \(M(x)\) such that \(|\partial_u r_u(x)(\log r_u(x)+1)|\le M(x)\) on that neighborhood. Assume also measurability of the integrands and integrability of \(r_t\log r_t\). The scalar chain rule identifies the pointwise derivative, and the dominated differentiation theorem gives
+\textbf{Claim.} Let \((X,\mathcal X)\) be a measurable space with a measure \(\nu\), let \(r,\dot r:\mathbb R\times X\to\mathbb R\), \((u,x)\mapsto r_u(x),\dot r_u(x)\), let \(t\in\mathbb R\), let \(S\subseteq\mathbb R\) be a neighbourhood of \(t\), and let \(M:X\to\mathbb R\). Assume:
 
-\[\frac{d}{dt}\int r_t\log r_t\,d\nu=\int\dot r_t(\log r_t+1)\,d\nu.\]
 
-The same bound proves integrability of the derivative integrand. Uniformity on a time neighborhood, rather than a bound at one time alone, is what justifies exchanging differentiation and integration.
 
+\begin{enumerate}
+
+
+\item for all \(u\) in some neighbourhood of \(t\), the function \(x\mapsto r_u(x)\log r_u(x)\) is \(\nu\)-almost-everywhere measurable, and \(r_t\log r_t\in L^1(\nu)\);
+
+\item \(x\mapsto\dot r_t(x)\bigl(\log r_t(x)+1\bigr)\) is \(\nu\)-almost-everywhere measurable;
+
+\item (domination) for \(\nu\)-almost every \(x\), \(\bigl|\dot r_u(x)\bigl(\log r_u(x)+1\bigr)\bigr|\le M(x)\) for all \(u\in S\), and \(M\in L^1(\nu)\);
+
+\item (positivity) for \(\nu\)-almost every \(x\), \(r_u(x)>0\) for all \(u\in S\);
+
+\item (pointwise differentiability) for \(\nu\)-almost every \(x\) and every \(u\in S\), the function \(v\mapsto r_v(x)\) is differentiable at \(u\) with derivative \(\dot r_u(x)\).
+
+\end{enumerate}
+
+
+
+Then \(\dot r_t(\log r_t+1)\in L^1(\nu)\), and the function \(u\mapsto\int r_u\log r_u\,d\nu\) is differentiable at \(t\) with
+
+
+\[\frac{d}{du}\Big|_{u=t}\int_Xr_u\log r_u\,d\nu=\int_X\dot r_t\bigl(\log r_t+1\bigr)\,d\nu.\]
+
+
+\textbf{Proof.} Write \(F(u,x)=r_u(x)\log r_u(x)\) and \(F'(u,x)=\dot r_u(x)(\log r_u(x)+1)\). Let \(N\) be the \(\nu\)-null set outside of which hypotheses 3–5 hold.
+
+
+
+
+\emph{Pointwise derivative.} For \(x\notin N\) and \(u\in S\), the previous step, applied to \(v\mapsto r_v(x)\), which is differentiable at \(u\) with derivative \(\dot r_u(x)\) and positive at \(u\), shows that \(v\mapsto F(v,x)\) has derivative \(F'(u,x)\) at \(u\).
+
+
+
+
+\emph{Lipschitz bound.} Choose \(\varepsilon>0\) with \((t-\varepsilon,t+\varepsilon)\subseteq S\). For \(x\notin N\), the function \(v\mapsto F(v,x)\) is differentiable on this interval with derivative bounded in absolute value by \(M(x)\), so by the mean value theorem
+
+
+\[|F(u,x)-F(t,x)|\le M(x)\,|u-t|\qquad(|u-t|<\varepsilon).\qquad(1)\]
+
+
+\emph{Integrability.} By hypothesis 3 at \(u=t\in S\), \(|F'(t,x)|\le M(x)\) for \(x\notin N\), so \(F'(t,\cdot)\) is measurable by hypothesis 2 and dominated by an integrable function, hence integrable. For \(|u-t|<\varepsilon\) close enough to \(t\) that hypothesis 1 applies, (1) gives \(|F(u,x)|\le|F(t,x)|+\varepsilon M(x)\), so \(F(u,\cdot)\in L^1(\nu)\).
+
+
+
+
+\emph{Difference quotients.} Let \(u_k\to t\) with \(u_k\neq t\). For \(x\notin N\), the quotients \(q_k(x)=\bigl(F(u_k,x)-F(t,x)\bigr)/(u_k-t)\) converge to \(F'(t,x)\), and by (1) \(|q_k(x)|\le M(x)\) once \(|u_k-t|<\varepsilon\). By the dominated convergence theorem with dominating function \(M\),
+
+
+\[\frac{\int F(u_k,x)\,\nu(dx)-\int F(t,x)\,\nu(dx)}{u_k-t}=\int q_k\,d\nu\longrightarrow\int F'(t,x)\,\nu(dx).\]
+
+
+Since the sequence \((u_k)\) was arbitrary, \(u\mapsto\int F(u,x)\,\nu(dx)\) is differentiable at \(t\) with the stated derivative. \(\square\)
+
+
+
+
+The bound must hold for all \(u\) in a fixed neighbourhood \(S\), with an \(x\)-dependent but \(u\)-independent integrable majorant; a bound at the single time \(t\) does not suffice, since the mean value inequality (1) uses the derivative at intermediate times. No hypothesis on the derivative of the integral itself is made.
+
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}integral\_\allowbreak{}mul\_\allowbreak{}log\_\allowbreak{}of\_\allowbreak{}dominated}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}integral\_\allowbreak{}mul\_\allowbreak{}log\_\allowbreak{}of\_\allowbreak{}dominated} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyDerivative.lean, lines 39–61}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_integral\_mul\_log\_of\_dominated}
+\leanline{4}{\{X\ :\ Type*\}\ [MeasurableSpace\ X]\ (ν\ :\ Measure\ X)}
+\leanline{4}{\{r\ rdot\ :\ ℝ\ →\ X\ →\ ℝ\}\ \{t\ :\ ℝ\}\ \{s\ :\ Set\ ℝ\}\ \{bound\ :\ X\ →\ ℝ\}}
+\leanline{4}{(hs\ :\ s\ ∈\ {\leanfallback 𝓝}\ t)}
+\leanline{4}{(hmeas\ :\ ∀ᶠ\ u\ in\ {\leanfallback 𝓝}\ t,}
+\leanline{6}{AEStronglyMeasurable\ (fun\ x\ ↦\ r\ u\ x\ *\ Real.log\ (r\ u\ x))\ ν)}
+\leanline{4}{(hint\ :\ Integrable\ (fun\ x\ ↦\ r\ t\ x\ *\ Real.log\ (r\ t\ x))\ ν)}
+\leanline{4}{(hderiv\_meas\ :\ AEStronglyMeasurable}
+\leanline{6}{(fun\ x\ ↦\ rdot\ t\ x\ *\ (Real.log\ (r\ t\ x)\ +\ 1))\ ν)}
+\leanline{4}{(hbound\ :\ ∀ᵐ\ x\ ∂ν,\ ∀\ u\ ∈\ s,}
+\leanline{6}{‖rdot\ u\ x\ *\ (Real.log\ (r\ u\ x)\ +\ 1)‖\ ≤\ bound\ x)}
+\leanline{4}{(hbound\_int\ :\ Integrable\ bound\ ν)}
+\leanline{4}{(hpos\ :\ ∀ᵐ\ x\ ∂ν,\ ∀\ u\ ∈\ s,\ 0\ <\ r\ u\ x)}
+\leanline{4}{(hdiff\ :\ ∀ᵐ\ x\ ∂ν,\ ∀\ u\ ∈\ s,}
+\leanline{6}{HasDerivAt\ (fun\ v\ ↦\ r\ v\ x)\ (rdot\ u\ x)\ u)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ rdot\ t\ x\ *\ (Real.log\ (r\ t\ x)\ +\ 1))\ ν\ ∧}
+\leanline{6}{HasDerivAt\ (fun\ u\ ↦\ ∫\ x,\ r\ u\ x\ *\ Real.log\ (r\ u\ x)\ ∂ν)}
+\leanline{8}{(∫\ x,\ rdot\ t\ x\ *\ (Real.log\ (r\ t\ x)\ +\ 1)\ ∂ν)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}integral\_\allowbreak{}mul\_\allowbreak{}log\_\allowbreak{}of\_\allowbreak{}dominated} has the hypotheses \texttt{hs : s \ensuremath{\in} {\leanfallback 𝓝} t} (\(S\) is a neighbourhood of \(t\); \texttt{{\leanfallback 𝓝} t} is the filter of neighbourhoods), \texttt{hmeas : \ensuremath{\forall}ᶠ u in {\leanfallback 𝓝} t, AEStrongly\allowbreak{}Measurable .\allowbreak{}.\allowbreak{}.\allowbreak{}} and \texttt{hint} (hypothesis 1; \texttt{\ensuremath{\forall}ᶠ u in {\leanfallback 𝓝} t, P u} means that \(P(u)\) holds for all \(u\) in some neighbourhood of \(t\), and \texttt{AEStrongly\allowbreak{}Measurable f \ensuremath{\nu}} is almost-everywhere measurability), \texttt{hderiv\_\allowbreak{}meas} (hypothesis 2), \texttt{hbound} and \texttt{hbound\_\allowbreak{}int} (hypothesis 3; \texttt{\ensuremath{\forall}ᵐ x \ensuremath{\partial}\ensuremath{\nu}, P x} means that \(P(x)\) holds for \(\nu\)-almost every \(x\)), \texttt{hpos} (hypothesis 4) and \texttt{hdiff} (hypothesis 5). The conclusion is the conjunction of integrability and \texttt{Has\allowbreak{}Deriv\allowbreak{}At (fun u \ensuremath{\mapsto} \ensuremath{\int} x, r u x * Real.\allowbreak{}log (r u x) \ensuremath{\partial}\ensuremath{\nu}) (\ensuremath{\int} x, rdot t x * (Real.\allowbreak{}log (r t x) + 1) \ensuremath{\partial}\ensuremath{\nu}) t}.
+
+
+
+
+The proof applies Mathlib's \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}dominated\_\allowbreak{}loc\_\allowbreak{}of\_\allowbreak{}deriv\_\allowbreak{}le}, the theorem on differentiation under the integral sign, with \(F\) and \(F'\) as in the proof. Its proof in Mathlib is the argument above: it extracts a ball of radius \(\varepsilon\) inside \(S\), derives the Lipschitz bound (1) from the derivative bound by the mean value inequality on the convex ball, and passes to the limit in the difference quotients by dominated convergence. The only remaining obligation is the pointwise derivative: \texttt{filter\_\allowbreak{}upwards [hpos, hdiff] with x hxpos hxdiff} restricts to points where hypotheses 4 and 5 hold, and \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}mul\_\allowbreak{}log (hxdiff u hu) (hxpos u hu)} is the previous step at each \(u\in S\).
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,73 +32,219 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Energy estimates for averaged pairwise proximal outputs}{Energy estimates for averaged pairwise proximal outputs}}
+\title{\texorpdfstring{The energy inequality for averaged pairwise proximal outputs}{The energy inequality for averaged pairwise proximal outputs}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The pairwise algorithm averages the proposed parameter outputs and rescales the proposed latent outputs. It generally differs from a proximal minimizer of one objective on the shared state. Nevertheless Jensen’s inequality bounds its squared parameter error, and the latent squared errors satisfy exact scaling identities. Summing the single-pair proximal inequalities therefore gives the required full-state energy estimate for the stated algorithm.
+Fix \(N\ge1\) particles and dimensions \(d_\theta,d_x\). The pair space is \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\), and the state space is \(\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N\) with points \(z=(\theta,z_1,\dots,z_N)\), Euclidean norm \(\|z\|^2=\|\theta\|^2+\sum_i\|z_i\|^2\), and physical particles \(x_i=\sqrt N z_i\). The \(i\)-th pair of a state is \(J_iz=(\theta,\sqrt Nz_i)\), and the lifted potential of a pair function \(g\) is \(F_g(z)=\sum_{i=1}^Ng(J_iz)\). Given any map \(P\) of the pair space, the \emph{pairwise map} \(\mathcal P\) applies \(P\) to each pair, averages the \(N\) parameter outputs and rescales the latent outputs:
+
+
+\[(\mathcal Pz)_\theta=\frac1N\sum_{i=1}^N\bigl[P(J_iz)\bigr]_\theta,\qquad(\mathcal Pz)_i=\frac{1}{\sqrt N}\bigl[P(J_iz)\bigr]_x .\]
+
+
+This section proves \(\|\mathcal Pz-a\|^2\le N^{-1}\sum_i\|P(J_iz)-J_ia\|^2\) for every \(P\) (Jensen's inequality for the averaged parameter, exact scaling for the latent blocks), and combines it with the single-pair energy inequality of the previous section. For \(P=P_\lambda\), the proximal map of a convex, bounded-below pair function \(g\) with bounded subgradients, the result is
+
+
+\[\|\mathcal Pz-a\|^2\le\|z-a\|^2-\frac{2\lambda}{N}\bigl(F_g(z)-F_g(a)\bigr)+\lambda^2C.\]
+
+
+The averaged output is in general not a proximal point of \(F_g\) on the state space, so this inequality is proved directly; it is the deterministic energy estimate used for the PIPGLA splitting scheme.
+
+
+\section{\texorpdfstring{Jensen's inequality for the averaged parameter}{Jensen's inequality for the averaged parameter}}
+
+
+\textbf{Claim.} Let \(N\ge1\).
 
 
 
-\section{\texorpdfstring{Averaging squares in the shared parameter}{Averaging squares in the shared parameter}}
+\begin{enumerate}
 
 
-For each parameter coordinate, Cauchy–Schwarz gives \(N(N^{-1}\sum_i b_i)^2\le\sum_i b_i^2\). Each latent coordinate instead has an exact squared scaling identity after multiplication by \(N\), using \((\sqrt N)^2=N\). Adding all coordinate inequalities gives
+\item For real numbers \(b_1,\dots,b_N\),
+\[N\Bigl(\frac1N\sum_{i=1}^Nb_i\Bigr)^2\le\sum_{i=1}^Nb_i^2.\qquad(1)\]
 
-\[\|\operatorname{Pair}_P(z)-a\|^2\le\frac1N\sum_i\|P(J_i z)-J_i a\|^2.\]\[N\left|\frac1N\sum_i p_{i,\theta,j}-a_{\theta,j}\right|^2\le\sum_i|p_{i,\theta,j}-a_{\theta,j}|^2.\]
+\item For every map \(P\) from the pair space to itself and all states \(z,a\),
+\[\|\mathcal Pz-a\|^2\le\frac1N\sum_{i=1}^N\bigl\|P(J_iz)-J_ia\bigr\|^2.\qquad(2)\]
 
-For latent coordinate \((i,j)\) the identity is
-
-\[N|N^{-1/2}p_{i,x,j}-a_{i,j}|^2=|p_{i,x,j}-\sqrt N a_{i,j}|^2.\]
-
-For vectors \(b_i\), the parameter estimate is Jensen’s inequality \(\|N^{-1}\sum_i b_i\|^2\le N^{-1}\sum_i\|b_i\|^2\). Here \(b_i\) denotes the parameter difference between the \(i\)-th pair output and the common comparator. Its latent contribution is exactly \(N^{-1}\|p_{i,x}-\sqrt N a_i\|^2\). Thus the bound holds for any pair map, independently of convexity or proximal optimality.
-
+\end{enumerate}
 
 
 
+\textbf{Proof.} (a) By the Cauchy–Schwarz inequality in \(\mathbb R^N\) applied to \((1,\dots,1)\) and \((b_1,\dots,b_N)\), \(\bigl(\sum_ib_i\bigr)^2\le N\sum_ib_i^2\). Dividing by \(N>0\) gives \(N\bigl(N^{-1}\sum_ib_i\bigr)^2=N^{-1}\bigl(\sum_ib_i\bigr)^2\le\sum_ib_i^2\).
 
+
+
+
+(b) Write \(p_i=P(J_iz)=(p_{i,\theta},p_{i,x})\) and \(a=(a_\theta,a_1,\dots,a_N)\), so that \(J_ia=(a_\theta,\sqrt Na_i)\). By the definition of the Euclidean norm on the state space,
+
+
+\[N\|\mathcal Pz-a\|^2=N\Bigl\|\frac1N\sum_ip_{i,\theta}-a_\theta\Bigr\|^2+\sum_{i=1}^NN\Bigl\|\frac{1}{\sqrt N}p_{i,x}-a_i\Bigr\|^2.\qquad(3)\]
+
+
+\emph{Parameter block.} For each parameter coordinate \(j\), the common comparison value can be moved inside the average: \(N^{-1}\sum_ip_{i,\theta,j}-a_{\theta,j}=N^{-1}\sum_i(p_{i,\theta,j}-a_{\theta,j})\). By (1) with \(b_i=p_{i,\theta,j}-a_{\theta,j}\),
+
+
+\[N\Bigl(\frac1N\sum_ip_{i,\theta,j}-a_{\theta,j}\Bigr)^2\le\sum_i\bigl(p_{i,\theta,j}-a_{\theta,j}\bigr)^2 .\]
+
+
+Summing over \(j\) gives \(N\|N^{-1}\sum_ip_{i,\theta}-a_\theta\|^2\le\sum_i\|p_{i,\theta}-a_\theta\|^2\).
+
+
+
+
+\emph{Latent blocks.} For each \(i\) and each latent coordinate \(j\), \(\sqrt N\bigl(N^{-1/2}p_{i,x,j}-a_{i,j}\bigr)=p_{i,x,j}-\sqrt Na_{i,j}\); squaring and using \((\sqrt N)^2=N\),
+
+
+\[N\bigl(N^{-1/2}p_{i,x,j}-a_{i,j}\bigr)^2=\bigl(p_{i,x,j}-\sqrt Na_{i,j}\bigr)^2 .\]
+
+
+Summing over \(j\) gives \(N\|N^{-1/2}p_{i,x}-a_i\|^2=\|p_{i,x}-\sqrt Na_i\|^2\), an equality.
+
+
+
+
+Inserting both into (3),
+
+
+\[N\|\mathcal Pz-a\|^2\le\sum_{i=1}^N\Bigl(\|p_{i,\theta}-a_\theta\|^2+\|p_{i,x}-\sqrt Na_i\|^2\Bigr)=\sum_{i=1}^N\|p_i-J_ia\|^2,\]
+
+
+and dividing by \(N>0\) gives (2). \(\square\)
+
+
+
+
+Only (1) is an inequality; the latent contributions are equalities. No property of \(P\) is used.
+
+\begin{leanbox}{Lean: \texttt{average\_\allowbreak{}sq\_\allowbreak{}le}, \texttt{pairwiseMap\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}le}}
+\leansource{\texttt{average\_\allowbreak{}sq\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}ParticleEnergy.lean, lines 22–29}
+\begin{leancode}
+\leanline{0}{theorem\ average\_sq\_le\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (b\ :\ Fin\ N\ →\ ℝ)\ :}
+\leanline{4}{(N\ :\ ℝ)\ *\ ((N\ :\ ℝ)⁻¹\ *\ ∑\ i,\ b\ i)\ \textasciicircum{}\ 2\ ≤\ ∑\ i,\ (b\ i)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}ParticleEnergy.lean, lines 33–77}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_sq\_dist\_le\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)}
+\leanline{4}{(z\ a\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pairwiseMap\ P\ z\ -\ a‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(∑\ i\ :\ Fin\ N,\ ‖P\ (IPLA.joint\ i\ z)\ -\ IPLA.joint\ i\ a‖\ \textasciicircum{}\ 2)\ /\ N}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The state space is \texttt{IPLA.\allowbreak{}State N d\ensuremath{\theta} dx}, the Euclidean space \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d\ensuremath{\theta} ⊕ (Fin N \ensuremath{\times} Fin dx))} whose coordinates are indexed by parameter indices \texttt{Sum.\allowbreak{}inl j} and latent indices \texttt{Sum.\allowbreak{}inr (i, j)}; the pair space is \texttt{IPLA.\allowbreak{}Joint d\ensuremath{\theta} dx}, with indices \texttt{Sum.\allowbreak{}inl j} and \texttt{Sum.\allowbreak{}inr j}. \texttt{IPLA.\allowbreak{}joint i z} is \(J_iz\) (its latent coordinates are \texttt{Real.\allowbreak{}sqrt N * z (Sum.\allowbreak{}inr (i, j))}), and \texttt{pairwise\allowbreak{}Map P z} is \(\mathcal Pz\); its coordinates are given by the definitional lemmas \texttt{pairwise\allowbreak{}Map\_\allowbreak{}parameter} and \texttt{pairwise\allowbreak{}Map\_\allowbreak{}particle} of the previous section. The hypothesis \texttt{h\allowbreak{}N : 0 < N} is \(N\ge1\).
+
+
+
+
+\texttt{average\_\allowbreak{}sq\_\allowbreak{}le} is (1). It applies the Mathlib inequality \texttt{sum\_\allowbreak{}div\_\allowbreak{}card\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}sum\_\allowbreak{}sq\_\allowbreak{}div\_\allowbreak{}card}, \(\bigl(\sum_ib_i/N\bigr)^2\le\sum_ib_i^2/N\) over \texttt{Finset.\allowbreak{}univ} (a form of the Cauchy–Schwarz or Jensen inequality), multiplies it by \(N>0\) and simplifies.
+
+
+
+
+\texttt{pairwise\allowbreak{}Map\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}le} is (2), for an arbitrary map \texttt{P}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{h\ensuremath{\theta} j} is the parameter inequality for coordinate \(j\); its \texttt{hid} moves the common comparison value inside the average (\texttt{Finset.\allowbreak{}sum\_\allowbreak{}sub\_\allowbreak{}distrib}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}const}), and \texttt{average\_\allowbreak{}sq\_\allowbreak{}le} finishes.
+
+\item \texttt{hx i j} is the latent equality; \texttt{hid} is \(\sqrt N(N^{-1/2}p-a)=p-\sqrt Na\), squared with \texttt{congr\allowbreak{}Arg} and simplified with \texttt{mul\_\allowbreak{}pow} and \texttt{hs2} \((\sqrt N)^2=N\).
+
+\item The goal is multiplied by \(N\) (\texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}}); \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq} writes the squared norms as coordinate sums, \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type} and \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}prod\_\allowbreak{}type} split them into the parameter block and the double sum over particles and latent coordinates, which is (3). After \texttt{simp\_\allowbreak{}rw [hx]} the latent parts coincide, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}comm} exchanges the order of summation in the parameter part, and \texttt{add\_\allowbreak{}le\_\allowbreak{}add} with \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum} applies \texttt{h\ensuremath{\theta}} coordinatewise.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{Summation of the pairwise proximal energy inequalities}{Summation of the pairwise proximal energy inequalities}}
+\section{\texorpdfstring{Summing the pairwise proximal energy inequalities}{Summing the pairwise proximal energy inequalities}}
 
 
-The averaged pairwise output need not minimize the shared-state proximal objective. The valid comparison is instead
-
-\[
-\|\operatorname{Pair}_P(z)-a\|^2
-\le\frac1N\sum_{i=1}^N\|P(J_i z)-J_i a\|^2.
-\]
-
-Apply the single-pair energy inequality to each term. The identities \(\sum_i\|J_i(z-a)\|^2=N\|z-a\|^2\) and \(G_2=N^{-1}\sum_i g_2\circ J_i\) give
-
-\[
-\|\operatorname{Pair}_{P_\lambda}(z)-a\|^2
-\le\|z-a\|^2-2\lambda\bigl(G_2(z)-G_2(a)\bigr)+\lambda^2C.
-\]
-
-This estimate uses the minimizing property only for each individual pair. It is the deterministic energy statement required in the splitting analysis; it is not by itself a stochastic convergence theorem.
+\textbf{Claim.} Let \(N\ge1\), let \(g\) be a convex function on the pair space that is bounded below, let \(\lambda>0\), let \(z,a\) be states and \(C\in\mathbb R\). Assume that for every \(i\) there is a subgradient \(s_i\) of \(g\) at \(J_iz\) with \(\|s_i\|^2\le C\). Let \(\mathcal P\) be the pairwise map built from the proximal map \(P_\lambda\) of \(g\). Then
 
 
-
-A counterexample to shared-state proximal optimality has \(N=2\), \(g_2(\theta,x)=|\theta-x|\), proximal scale one, common parameter \(1\), and physical latent values \((0,4)\). The pair minimizers are \((1/2,1/2)\) and \((2,3)\), so averaging their parameter components gives \((5/4,1/2,3)\). The feasible shared-state competitor \((1,1,3)\) has objective \(3/2\), strictly below the pairwise output value \(51/32\).
-
+\[\|\mathcal Pz-a\|^2\le\|z-a\|^2-\frac{2\lambda}{N}\bigl(F_g(z)-F_g(a)\bigr)+\lambda^2C .\]
 
 
-To derive the valid estimate, apply the pair inequality at \(A_i z\) against \(A_i y\) and sum its \(N\) instances. The identity \(\sum_i\|A_i(z-y)\|^2=N\|z-y\|^2\) controls the initial squared distances. Divide by positive \(N\); the potential term becomes \(N^{-1}\sum_i[f(A_i z)-f(A_i y)]\). Equivalently the initial sum is \(N\|z-a\|^2\) and the potential sum is \(N[G_2(z)-G_2(a)]\), whose division by \(N>0\) gives the displayed full-state expression. Jensen supplies the parameter inequality, exact latent scaling supplies the other coordinates, and the averaged subgradient bounds supply the remainder.
+\textbf{Proof.} \emph{Pairwise inequalities.} For each \(i\), the energy inequality of the previous section (convexity and lower bound of \(g\), \(\lambda>0\), subgradient \(s_i\) at the input \(J_iz\) with \(\|s_i\|^2\le C\), comparison point \(J_ia\)) gives
 
 
+\[\|P_\lambda(J_iz)-J_ia\|^2\le\|J_iz-J_ia\|^2-2\lambda\bigl(g(J_iz)-g(J_ia)\bigr)+\lambda^2C.\qquad(1)\]
+
+
+\emph{The norm identity.} Each \(J_i\) is linear, so \(J_iz-J_ia=J_i(z-a)\). For any state \(w=(w_\theta,w_1,\dots,w_N)\),
+
+
+\[\sum_{i=1}^N\|J_iw\|^2=\sum_{i=1}^N\bigl(\|w_\theta\|^2+N\|w_i\|^2\bigr)=N\|w_\theta\|^2+N\sum_{i=1}^N\|w_i\|^2=N\|w\|^2,\qquad(2)\]
+
+
+because the parameter block occurs in each of the \(N\) pairs and each latent block occurs in one pair, multiplied by \(\sqrt N\).
+
+
+
+
+\emph{Summation.} Summing (1) over \(i\) and using (2) with \(w=z-a\) and \(\sum_ig(J_iz)=F_g(z)\),
+
+
+\[\sum_{i=1}^N\|P_\lambda(J_iz)-J_ia\|^2\le N\|z-a\|^2-2\lambda\bigl(F_g(z)-F_g(a)\bigr)+N\lambda^2C .\]
+
+
+By (2) of the previous step applied to \(P=P_\lambda\), the left-hand side divided by \(N\) bounds \(\|\mathcal Pz-a\|^2\). Dividing the display by \(N>0\) proves the claim. \(\square\)
+
+
+
+
+The minimizing property of \(P_\lambda\) is used only pair by pair, in (1). The averaged output \(\mathcal Pz\) is not, in general, a minimizer of \(w\mapsto F_g(w)+N\|w-z\|^2/(2\lambda)\) on the state space; an explicit two-particle example is given in \cite[Section~3.50.4]{LangevinLean2026Proximal}. The inequality of this step is therefore proved for the averaged map itself. A subgradient of minimal norm, when available, is one admissible choice of \(s_i\).
+
+\begin{leanbox}{Lean: \texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}energy\_\allowbreak{}le}}
+\leansource{\texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}energy\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}ParticleEnergy.lean, lines 86–115}
+\begin{leancode}
+\leanline{0}{theorem\ pairwise\_prox\_energy\_le\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg\ :\ ConvexOn\ ℝ\ Set.univ\ g)}
+\leanline{4}{(hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ x,\ b\ ≤\ g\ x)\ \{lam\ :\ ℝ\}\ (hlam\ :\ 0\ <\ lam)}
+\leanline{4}{(z\ a\ :\ IPLA.State\ N\ dθ\ dx)\ (C\ :\ ℝ)}
+\leanline{4}{(hsub\ :\ ∀\ i\ :\ Fin\ N,\ ∃\ s\ :\ IPLA.Joint\ dθ\ dx,}
+\leanline{6}{IsSubgradient\ g\ (IPLA.joint\ i\ z)\ s\ ∧\ ‖s‖\ \textasciicircum{}\ 2\ ≤\ C)\ :}
+\leanline{4}{‖pairwiseMap\ (prox\ g\ lam)\ z\ -\ a‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{‖z\ -\ a‖\ \textasciicircum{}\ 2\ -\ (2\ *\ lam\ /\ N)\ *}
+\leanline{8}{(IPLA.potential\ g\ z\ -\ IPLA.potential\ g\ a)\ +\ lam\ \textasciicircum{}\ 2\ *\ C}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}energy\_\allowbreak{}le} takes \texttt{h\allowbreak{}N : 0 < N}, \texttt{hg : Convex\allowbreak{}On \ensuremath{\mathbb R} Set.\allowbreak{}univ g}, the lower bound \texttt{hb}, \texttt{hlam : 0 < lam}, states \texttt{z a}, a real \texttt{C} and \texttt{hsub : \ensuremath{\forall} i : Fin N, \ensuremath{\exists} s, Is\allowbreak{}Subgradient g (IPLA.\allowbreak{}joint i z) s ∧ \ensuremath{\Vert}s\ensuremath{\Vert} \textasciicircum{} 2 \ensuremath{\le} C}, which provides one bounded subgradient at each pair input. The lifted potential is \texttt{IPLA.\allowbreak{}potential g z}, defined as \texttt{∑ i : Fin N, g (IPLA.\allowbreak{}joint i z)}, which is \(F_g(z)\); the map is \texttt{pairwise\allowbreak{}Map (prox g lam) z}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{heach i} is (1): after \texttt{obtain \ensuremath{\langle}s, hs, h\allowbreak{}C\ensuremath{\rangle} := hsub i} it is \texttt{prox\_\allowbreak{}energy\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}subgradient\_\allowbreak{}bound} with comparison point \texttt{IPLA.\allowbreak{}joint i a}.
+
+\item \texttt{hsum} sums these inequalities with \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum}; the simplification with \texttt{← IPLA.\allowbreak{}joint\_\allowbreak{}sub} (linearity, \(J_iz-J_ia=J_i(z-a)\)) and \texttt{IPLA.\allowbreak{}joint\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sum} (identity (2), \(\sum_i\|J_iw\|^2=N\|w\|^2\)) and the distribution of sums over constants produces the summed inequality.
+
+\item The final \texttt{calc} has three lines: \texttt{pairwise\allowbreak{}Map\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}le} (inequality (2) of the previous step), division of \texttt{hsum} by \(N\) with \texttt{div\_\allowbreak{}le\_\allowbreak{}div\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, and the algebraic simplification of the quotient by \texttt{field\_\allowbreak{}simp}.
+
+\end{enumerate}
+
+
+
+The source comment records that this is the bridge needed in Corollary A.13 of arXiv:2406.14292v3, proved without identifying the averaged map with the proximal map of a sum.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+\bibitem[Proximal]{LangevinLean2026Proximal}
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

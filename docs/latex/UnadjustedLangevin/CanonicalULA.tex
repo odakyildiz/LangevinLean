@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,25 @@ The Brownian source provides jointly independent standard Gaussian innovations; 
 
 The Brownian-generated innovations have the full iid standard vector Gaussian law. Their product construction makes the initial coordinate independent of the complete path. Thus the measurable recursion has law \(P_h^k\mu\). The product output definition removes the auxiliary reference coordinate, showing this identity is common to every finite initial coupling and depends only on the prescribed initial marginal.
 
+\begin{leanbox}{Lean: \texttt{productBrownianOutput\_\allowbreak{}eq\_\allowbreak{}ulaLawStep}}
+\leansource{\texttt{productBrownianOutput\_\allowbreak{}eq\_\allowbreak{}ulaLawStep} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 27–52}
+\begin{leancode}
+\leanline{0}{theorem\ productBrownianOutput\_eq\_ulaLawStep}
+\leanline{4}{\{μ\ π\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(c\ :\ Coupling\ μ\ π)\ (hc\ :\ couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (fun\ x\ :\ EuclideanSpace\ ℝ\ ι\ ↦\ x)\ 2\ π)}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)}
+\leanline{4}{(hh\ :\ 0\ <\ h)}
+\leanline{4}{(hpaths\ :\ iIndepFun\ (fun\ i\ ω\ (n\ :\ ℕ)\ ↦\ B\ i\ ((n\ :\ ℝ≥0)\ *\ h.toNNReal)\ ω)\ Q)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{productOutputLaw\ Q\ U\ h\ μ\ (sourceEulerNoise\ Q\ B\ hB\ h)\ k\ =}
+\leanline{6}{(ulaLawStep\ U\ h)\textasciicircum{}[k]\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Brownian\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} puts the finite-cost coupling on the independent extension. \texttt{W} is the lifted Euler innovation and \texttt{h\allowbreak{}W} its measurability. \texttt{hcoord} and \texttt{hind} provide its scalar Gaussian laws and independence. \texttt{product\_\allowbreak{}chain\_\allowbreak{}output\allowbreak{}Law} identifies the product construction with its square-integrable recursion; \texttt{hilbert\_\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} identifies that recursion with the Gaussian transition iterate. The final rewrite \texttt{initial\allowbreak{}Extension\_\allowbreak{}lp\allowbreak{}Initial\_\allowbreak{}law} restores the prescribed initial marginal. The resulting law no longer contains the chosen auxiliary coupling.
+\end{leanbox}
 
 \section{\texorpdfstring{A product reference from independent Brownian coordinates}{A product reference from independent Brownian coordinates}}
 
@@ -46,6 +88,59 @@ The proved MALA/\allowbreak{}Euler stationarity theorem gives Gibbs law for that
 
 For each finite coupling, solve the global Langevin integral equation from the target-distributed reference coordinate with independent Brownian forcing. The invariant-approximation argument proves its Gibbs law at every fixed time. Uniqueness then identifies the recursively chosen local segments with this global solution on their intervals. Hence all segment target-law premises are proved for the references used in the coupling family.
 
+\begin{leanbox}{Lean: \texttt{productReference\_\allowbreak{}of\_\allowbreak{}independent\_\allowbreak{}brownian}}
+\leansource{\texttt{productReference\_\allowbreak{}of\_\allowbreak{}independent\_\allowbreak{}brownian} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 56–101}
+\begin{leancode}
+\leanline{0}{def\ productReference\_of\_independent\_brownian}
+\leanline{4}{\{μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(B\ :\ ι\ →\ ℝ≥0\ →\ S\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ Q)}
+\leanline{4}{(hpaths\ :\ ∀\ r\ :\ ℝ,\ 0\ <\ r\ →\ iIndepFun}
+\leanline{6}{(fun\ i\ ω\ (n\ :\ ℕ)\ ↦\ B\ i\ ((n\ :\ ℝ≥0)\ *\ r.toNNReal)\ ω)\ Q)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ :}
+\leanline{4}{ProductReference\ Q\ (Fintype.card\ ι)\ U\ h\ L\ hLip\ μ\ (gibbsMeasure\ U)}
+\leanline{6}{(productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc)}
+\leanline{6}{(sourceEulerNoise\ Q\ B\ hB\ h)\ (sourceEulerNoise\_memLp\ Q\ B\ hB\ h)\ :=\ by}
+\leanline{2}{apply\ productReference\_of\_constructed\_brownian\ Q\ U\ m\ L\ hm\ hdiff\ hsc\ hLip\ B\ hB\ h\ hh}
+\leanline{2}{intro\ c\ \_hc\ n\ t\ ht}
+\leanline{2}{have\ :=\ initialExtension\_isProbabilityMeasure\ c\ Q}
+\leanline{2}{let\ P\ :=\ initialExtension\ c\ Q}
+\leanline{2}{let\ X\ :=\ initialExtension\_lpReference\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc)}
+\leanline{2}{let\ W\ :=\ fun\ i\ t\ (p\ :\ (EuclideanSpace\ ℝ\ ι\ ×\ EuclideanSpace\ ℝ\ ι)\ ×\ S)\ ↦\ B\ i\ t\ p.2}
+\leanline{2}{have\ hW\ :\ ∀\ i,\ IsPreBrownianReal\ (W\ i)\ P\ :=\ productPreBrownian\ Q\ c\ B\ hB}
+\leanline{2}{let\ T\ :=\ ((n\ :\ ℝ)\ +\ 1)\ *\ h}
+\leanline{2}{have\ hT\ :\ 0\ ≤\ T\ :=\ mul\_nonneg\ (by\ positivity)\ hh.le}
+\leanline{2}{obtain\ ⟨Y,\ hY,\ \_hY0,\ hYe,\ \_⟩\ :=\ exists\_lp\_langevin\_integral\_of\_brownian}
+\leanline{4}{P\ U\ L\ hLip\ X\ W\ hW\ 0\ T\ le\_rfl\ hT}
+\leanline{2}{have\ heq\ :=\ brownianSegments\_eq\_global\ P\ U\ L\ hLip\ X\ W\ hW\ Y\ hY\ T\ hT\ hYe}
+\leanline{4}{h\ hh.le\ n\ le\_rfl}
+\leanline{2}{change\ P.map\ (brownianSegments\ P\ U\ L\ hLip\ W\ hW\ h\ hh.le\ X\ n\ t)\ =\ \_}
+\leanline{2}{rw\ [heq\ ht]}
+\leanline{2}{have\ hscalar\ :\ ∀\ r\ :\ ℝ,\ 0\ <\ r\ →\ iIndepFun}
+\leanline{6}{(fun\ p\ :\ ℕ\ ×\ ι\ ↦\ fun\ ω\ ↦\ brownianEulerNoise\ P\ W\ hW\ r\ p.1\ ω\ p.2)\ P\ :=\ by}
+\leanline{4}{intro\ r\ hr}
+\leanline{4}{have\ hs\ :=\ productEulerNoise\_independent\ Q\ c\ B\ hB\ r\ hr\ (hpaths\ r\ hr)}
+\leanline{4}{simpa\ only\ [productNoise\_eq\_brownianEulerNoise]\ using\ hs}
+\leanline{2}{have\ hind\ :\ ∀\ r\ :\ ℝ,\ 0\ <\ r\ →\ IndepFun\ X}
+\leanline{6}{(fun\ ω\ k\ ↦\ brownianEulerNoise\ P\ W\ hW\ r\ k\ ω)\ P\ :=\ by}
+\leanline{4}{intro\ r\ \_hr}
+\leanline{4}{have\ hs\ :=\ productEulerNoise\_independentReference\ Q\ c}
+\leanline{6}{(productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc)\ B\ hB\ r}
+\leanline{4}{simpa\ only\ [productNoise\_eq\_brownianEulerNoise]\ using\ hs}
+\leanline{2}{have\ hinitial\ :\ P.map\ X\ =\ gibbsMeasure\ U\ :=}
+\leanline{4}{initialExtension\_lpReference\_law\ c\ Q\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc)}
+\leanline{2}{have\ hs\ :\ 0\ ≤\ (n\ :\ ℝ)\ *\ h\ +\ t\ :=}
+\leanline{4}{add\_nonneg\ (mul\_nonneg\ (Nat.cast\_nonneg\ \_)\ hh.le)\ ht.1}
+\leanline{2}{have\ hsT\ :\ (n\ :\ ℝ)\ *\ h\ +\ t\ ≤\ T\ :=\ by\ dsimp\ [T];\ nlinarith\ [ht.2]}
+\leanline{2}{exact\ lp\_langevin\_gibbs\_stationary\ P\ U\ m\ L\ hm\ hdiff\ hsc\ hLip\ X\ hinitial}
+\leanline{4}{W\ hW\ hscalar\ hind\ Y\ hY\ ((n\ :\ ℝ)\ *\ h\ +\ t)\ hs}
+\leanline{4}{(fun\ s\ hs\ ↦\ hYe\ s\ ⟨hs.1,\ hs.2.trans\ hsT⟩)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{product\allowbreak{}Reference\_\allowbreak{}of\_\allowbreak{}independent\_\allowbreak{}brownian} starts with \texttt{product\allowbreak{}Reference\_\allowbreak{}of\_\allowbreak{}constructed\_\allowbreak{}brownian} and proves its remaining segment-law obligation. For an arbitrary initial coupling, \texttt{W} pulls Brownian coordinates to the product extension and \texttt{X} is its target-distributed initial reference. The global integral solution comes from \texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}of\_\allowbreak{}brownian}; \texttt{brownian\allowbreak{}Segments\_\allowbreak{}eq\_\allowbreak{}global} identifies each segment with that solution. The claims \texttt{hscalar}, \texttt{hind} and \texttt{hinitial} provide exactly the independence and initial-law inputs of \texttt{lp\_\allowbreak{}langevin\_\allowbreak{}gibbs\_\allowbreak{}stationary}, which proves the required stationary segment law.
+\end{leanbox}
 
 \section{\texorpdfstring{The innovations of the fixed Brownian construction}{The innovations of the fixed Brownian construction}}
 
@@ -56,6 +151,17 @@ Specialize the source Euler noise to the explicitly constructed independent coor
 
 Fix the explicitly constructed independent Brownian coordinate source once and normalize its grid increments. For any \(h>0\), the resulting coordinates are standard Gaussian and independent over step and coordinate. The innovation sequence is thus fixed independently of the input law and initial coupling.
 
+\begin{leanbox}{Lean: \texttt{canonicalEulerNoise}}
+\leansource{\texttt{canonicalEulerNoise} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 104–107}
+\begin{leancode}
+\leanline{0}{abbrev\ canonicalEulerNoise\ (h\ :\ ℝ)\ :\ ℕ\ →\ CanonicalBrownian.VectorSample\ ι\ →}
+\leanline{4}{EuclideanSpace\ ℝ\ ι\ :=}
+\leanline{2}{sourceEulerNoise\ (CanonicalBrownian.vectorProbability\ ι)}
+\leanline{4}{CanonicalBrownian.coordinate\ CanonicalBrownian.coordinate\_isPreBrownian\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{canonical\allowbreak{}Euler\allowbreak{}Noise} specializes \texttt{source\allowbreak{}Euler\allowbreak{}Noise} to \texttt{Canonical\allowbreak{}Brownian.\allowbreak{}vector\allowbreak{}Probability} and the proved coordinate Brownian processes. It is an abbreviation, so its value is the previously defined normalized grid-increment function. The positive-step Gaussian laws are supplied by the corresponding source-noise theorems; they are not extra fields hidden in this definition.
+\end{leanbox}
 
 \section{\texorpdfstring{The reference on the independent product space}{The reference on the independent product space}}
 
@@ -66,6 +172,28 @@ The independent Brownian construction supplies the coordinate Brownian laws and 
 
 The independent Brownian source supplies its Brownian finite-dimensional laws and full-path coordinate independence. Product extension supplies independence from the initial coupling. The stationary integral solution and segment uniqueness then provide all reference target laws. Thus the analytic reference family is obtained entirely from the potential and initial transport assumptions, because existence and invariance have been proved.
 
+\begin{leanbox}{Lean: \texttt{canonicalProductReference}}
+\leansource{\texttt{canonicalProductReference} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 111–125}
+\begin{leancode}
+\leanline{0}{def\ canonicalProductReference}
+\leanline{4}{\{μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ :}
+\leanline{4}{ProductReference\ (CanonicalBrownian.vectorProbability\ ι)\ (Fintype.card\ ι)}
+\leanline{6}{U\ h\ L\ hLip\ μ\ (gibbsMeasure\ U)\ (productGibbsMemLp\ U\ m\ hm\ hdiff\ hsc)}
+\leanline{6}{(canonicalEulerNoise\ h)\ (sourceEulerNoise\_memLp}
+\leanline{8}{(CanonicalBrownian.vectorProbability\ ι)\ CanonicalBrownian.coordinate}
+\leanline{8}{CanonicalBrownian.coordinate\_isPreBrownian\ h)\ :=}
+\leanline{2}{productReference\_of\_independent\_brownian\ (CanonicalBrownian.vectorProbability\ ι)}
+\leanline{4}{U\ m\ L\ hm\ hdiff\ hsc\ hLip\ CanonicalBrownian.coordinate}
+\leanline{4}{CanonicalBrownian.coordinate\_isPreBrownian}
+\leanline{4}{(fun\ r\ \_\ ↦\ CanonicalBrownian.coordinate\_grid\_paths\_independent\ ι\ r.toNNReal)\ h\ hh}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{canonical\allowbreak{}Product\allowbreak{}Reference} applies \texttt{product\allowbreak{}Reference\_\allowbreak{}of\_\allowbreak{}independent\_\allowbreak{}brownian} to the explicit Brownian coordinate family. \texttt{Canonical\allowbreak{}Brownian.\allowbreak{}coordinate\_\allowbreak{}is\allowbreak{}Pre\allowbreak{}Brownian} supplies each coordinate law and \texttt{Canonical\allowbreak{}Brownian.\allowbreak{}coordinate\_\allowbreak{}grid\_\allowbreak{}paths\_\allowbreak{}independent} supplies independence on every positive grid. \texttt{product\allowbreak{}Gibbs\allowbreak{}Mem\allowbreak{}Lp} provides the target second moment from the potential assumptions. The returned reference therefore includes its proved stationarity and moment fields.
+\end{leanbox}
 
 \section{\texorpdfstring{The output law equals the Gaussian transition iterate}{The output law equals the Gaussian transition iterate}}
 
@@ -76,6 +204,21 @@ Finite initial transport provides a finite-cost coupling, and Gibbs has a finite
 
 Finite initial transport supplies a finite-cost coupling, and target Gaussian tails supply the reference second moment needed on its extension. The innovation law theorem identifies the numerical output with \(P_h^k\mu\). Since the output is common to all such coupling extensions, this identity does not retain any chosen coupling or auxiliary sample-space information.
 
+\begin{leanbox}{Lean: \texttt{canonicalOutput\_\allowbreak{}eq\_\allowbreak{}ulaLawStep}}
+\leansource{\texttt{canonicalOutput\_\allowbreak{}eq\_\allowbreak{}ulaLawStep} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 129–141}
+\begin{leancode}
+\leanline{0}{theorem\ canonicalOutput\_eq\_ulaLawStep}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{productOutputLaw\ (CanonicalBrownian.vectorProbability\ ι)\ U\ h\ μ}
+\leanline{6}{(canonicalEulerNoise\ h)\ k\ =\ (ulaLawStep\ U\ h)\textasciicircum{}[k]\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{canonical\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} uses \texttt{exists\_\allowbreak{}finite\allowbreak{}Cost\_\allowbreak{}coupling} to choose an arbitrary finite-cost initial coupling. It then applies \texttt{product\allowbreak{}Brownian\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} to the canonical Brownian coordinates, using their grid-path independence and the proved Gibbs second moment. This is an existence-based law identification; optimality of the chosen coupling is unnecessary.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of the output transport distance}{Finiteness of the output transport distance}}
 
@@ -86,6 +229,20 @@ The constructed product reference supplies a finite-cost output coupling for eve
 
 The constructed numerical and stationary reference states lie in \(L^2\) on any one finite-cost extension. Their joint law is therefore a finite-cost coupling at every iteration. The numerical marginal is \(P_h^k\mu\) and the reference marginal is \(\pi_U\). This proves output transport finiteness before passing to real-valued distances in the quantitative convergence bounds.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}output\_\allowbreak{}finite}}
+\leansource{\texttt{dalalyan\_\allowbreak{}output\_\allowbreak{}finite} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 145–154}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_output\_finite}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2\ ((ulaLawStep\ U\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}output\_\allowbreak{}finite} invokes the \texttt{output\_\allowbreak{}finite} field of \texttt{canonical\allowbreak{}Product\allowbreak{}Reference} with the finite initial transport premise. \texttt{canonical\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} then rewrites that finite output as the ordinary Gaussian transition iterate. This proves finiteness before the real-valued distance is used in quantitative estimates.
+\end{leanbox}
 
 \section{\texorpdfstring{The small-step Wasserstein bound}{The small-step Wasserstein bound}}
 
@@ -100,6 +257,23 @@ Replace the product output by \(P_h^k\mu\) using the identification of the produ
 
 Apply the synchronous finite-coupling estimate to the fully constructed reference family, then take the initial cost infimum. The small-step factor is \(q=1-mh\), with gap \(mh>0\). The local forcing \((33/20)Lh\sqrt{hd}\) divided by that gap gives \((33/20)(L/m)\sqrt{hd}\). Rewriting the common output as the Gaussian transition iterate proves the stated bound for these probability laws.
 
+\begin{leanbox}{Lean: \texttt{dalalyan}}
+\leansource{\texttt{dalalyan} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 158–175}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\ [Nonempty\ ι]}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ ((ulaLawStep\ U\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ U)\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ k\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ U)\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *\ Real.sqrt\ (h\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan} obtains \texttt{hb} from \texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}product\_\allowbreak{}reference}. \texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}lipschitz} supplies the order of curvature and smoothness in the nonempty coordinate space. The target moment, canonical innovations and reference are all constructed arguments of that theorem. The last rewrite \texttt{canonical\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} changes the auxiliary output law into the stated Gaussian iterate. Thus the theorem retains only the potential, initial-law, finite-transport and positive stable-step assumptions.
+\end{leanbox}
 
 \section{\texorpdfstring{The large-step Wasserstein bound}{The large-step Wasserstein bound}}
 
@@ -110,5 +284,23 @@ Use the same constructed reference in the large-step product theorem. The step a
 
 The same stationary reference and local defect estimate also apply in the second stable step regime. Here the deterministic factor is \(q=Lh-1\), so the positive gap is \(2-Lh\). Geometric summation gives bias \((33/20)Lh\sqrt{hd}/(2-Lh)\). The output-law identity transfers this inequality to the Gaussian transition iterates without changing either the target or initial Wasserstein distance.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step}}
+\leansource{\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step} \quad UnadjustedLangevin/\allowbreak{}CanonicalULA.lean, lines 179–197}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_large\_step\ [Nonempty\ ι]}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ (L\ :\ ℝ))\ ≤\ h)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ <\ 2)}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ ((ulaLawStep\ U\ h)\textasciicircum{}[k]\ μ)\ (gibbsMeasure\ U)\ ≤}
+\leanline{6}{((L\ :\ ℝ)\ *\ h\ -\ 1)\ \textasciicircum{}\ k\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ U)\ +}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ /\ (2\ -\ (L\ :\ ℝ)\ *\ h))\ *}
+\leanline{10}{Real.sqrt\ (h\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step} uses the same constructed target moment, innovation sequence and stationary reference as the small-step result. It applies \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}product\_\allowbreak{}reference} with the lower threshold \texttt{hlarge} and strict upper stability premise \texttt{hstep}. The latter makes the denominator in the bias positive. Rewriting with \texttt{canonical\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} identifies its output with the Gaussian transition iterate.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,7 +58,31 @@ Put \(p=p_\theta\) and define \(\Pi_N^\theta=p_\#\Pi_N\). The continuous linear 
 
 Thus it preserves probability, both for the current state law and for the reference whenever \(\Pi_N\) is normalized. In the conditional entropy result this normalization is part of the logarithmic Sobolev assumption. The definition \(\Pi_N^\theta=(p_\theta)_\#\Pi_N\) fixes the parameter reference as a measure even when no marginal-potential representation has been established.
 
+\begin{leanbox}{Lean: \texttt{parameterTarget}, \texttt{parameterLaw\_\allowbreak{}isProbability}, \texttt{parameterTarget\_\allowbreak{}isProbability}}
+\leansource{\texttt{parameterTarget} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 31–32}
+\begin{leancode}
+\leanline{0}{def\ parameterTarget\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dθ))\ :=}
+\leanline{2}{(@gibbsTarget\ N\ dθ\ dx\ U).map\ parameterCLM}
+\end{leancode}
+\leansource{\texttt{parameterLaw\_\allowbreak{}isProbability} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 35–40}
+\begin{leancode}
+\leanline{0}{theorem\ parameterLaw\_isProbability\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ :}
+\leanline{4}{IsProbabilityMeasure\ (μ.map\ parameterCLM)}
+\end{leancode}
+\leansource{\texttt{parameterTarget\_\allowbreak{}isProbability} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 44–47}
+\begin{leancode}
+\leanline{0}{theorem\ parameterTarget\_isProbability\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]\ :}
+\leanline{4}{IsProbabilityMeasure\ (@parameterTarget\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\allowbreak{}Target} is defined as the pushforward of \texttt{gibbs\allowbreak{}Target} through \texttt{parameter\allowbreak{}CLM}. \texttt{parameter\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Probability} computes the pushforward measure of the whole space using continuity of the projection and \texttt{measure\_\allowbreak{}univ}. \texttt{parameter\allowbreak{}Target\_\allowbreak{}is\allowbreak{}Probability} is its direct specialization to the Gibbs probability. Neither definition constructs a marginal-density formula or asserts concentration about a mode.
 
+
+
+Formal correspondence: parameterTarget : The parameter target is the actual lifted Gibbs law projected to its parameter coordinates. Probability normalization remains an explicit premise. parameterLaw\_isProbability : Projecting a probability-valued state law preserves probability mass. parameterTarget\_isProbability : The Gibbs parameter target is normalized whenever the actual joint target is normalized. No concentration or convexity hypothesis is introduced.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -49,8 +96,40 @@ For a measurable projection the data-processing inequality states
 
 Convexity of \(u\log u\) implies that averaging over the discarded coordinates cannot increase divergence. The measure-theoretic theorem expresses this without requiring an explicit conditional density. Its inequality is meaningful in the extended nonnegative reals. If the joint divergence is finite, the inequality also makes the projected divergence finite; conversion of both finite quantities to real numbers then preserves order. This is the finite form used in the numerical bounds.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}klReal\_\allowbreak{}le\_\allowbreak{}joint}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 50–54}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_le\_joint\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)\ ≤}
+\leanline{6}{InformationTheory.klDiv\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 57–61}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_ne\_top\_of\_joint\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}klReal\_\allowbreak{}le\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 65–71}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_klReal\_le\_joint\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)).toReal\ ≤}
+\leanline{6}{(InformationTheory.klDiv\ μ\ ν).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}joint} is \texttt{Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div\_\allowbreak{}map\_\allowbreak{}le} for the measurable parameter projection. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}joint} applies \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top} to obtain marginal finiteness from joint finiteness. \texttt{parameter\_\allowbreak{}kl\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}joint} uses \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}to\allowbreak{}Real} only after both finiteness proofs are available. This ordering ensures the ordinary numerical comparison represents the actual divergences.
 
 
+
+The parameter projection is a continuous linear map and hence measurable. Data processing gives the extended inequality \(\operatorname{KL}(p_\#\mu\Vert p_\#\nu)\le\operatorname{KL}(\mu\Vert\nu)\) before any real conversion. A finite joint KL therefore proves finite marginal KL, and only then can \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}to\allowbreak{}Real} transfer the order. This is a divergence statement about the actual pushed-forward target, with no density formula or optimizer concentration assumed.
+
+
+
+Formal correspondence: parameter\_kl\_le\_joint : Extended-valued data processing for the common parameter projection. parameter\_kl\_ne\_top\_of\_joint : Finite joint KL implies finite parameter KL. parameter\_klReal\_le\_joint : The real data-processing inequality, with finiteness of both divergences established before taking their toReal values.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}.
@@ -68,7 +147,32 @@ In particular the estimate \(H/N\le B\), multiplied by positive \(N\), becomes \
 
 The initial quantity in the resulting parameter estimate is still the full initial joint entropy. Data processing makes the projected initial entropy smaller; it does not justify substituting that smaller number into an upper bound derived for the joint evolution. Both the normalization factor and the initial term must therefore be retained.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}joint\_\allowbreak{}bound}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}joint\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 74–79}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_joint\_bound\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ (B\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ (InformationTheory.klDiv\ μ\ ν).toReal\ ≤\ B)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)).toReal\ ≤\ B}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 83–92}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_per\_particle\_bound\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ (B\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ (InformationTheory.klDiv\ μ\ ν).toReal\ /\ (N\ :\ ℝ)\ ≤\ B)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)).toReal\ ≤}
+\leanline{6}{(N\ :\ ℝ)\ *\ B}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}joint\_\allowbreak{}bound} composes the finite real data-processing inequality with \texttt{hbound}. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound} first converts a per-particle bound back to a full joint bound with \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} h\allowbreak{}Nreal}, then invokes the former theorem. This is the exact reason a factor of particle count appears on the upper bound for the ordinary parameter divergence.
 
+
+
+Formal correspondence: parameter\_kl\_bound\_of\_joint\_bound : Any finite real bound on full joint KL is also a parameter-marginal bound. parameter\_kl\_bound\_of\_per\_particle\_bound : A per-particle joint entropy bound controls unscaled parameter KL after multiplication by the particle count.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}.
@@ -82,14 +186,46 @@ Set \(\nu=\Pi_N\) in the generic projection theorem. The definition of \(\Pi_N^\
 
 Both laws are projected by the same map. Their normalization and the finite-joint condition are inherited from the joint theorem. This specialization requires no density regularity, particle independence, concentration estimate, or optimizer assumption beyond those used to establish that theorem.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}gibbs\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}gibbs\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 95–100}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_le\_gibbs\_joint\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (@parameterTarget\ N\ dθ\ dx\ U)\ ≤}
+\leanline{6}{InformationTheory.klDiv\ μ\ (gibbsTarget\ U)}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 103–108}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_ne\_top\_of\_gibbs\_joint\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (@parameterTarget\ N\ dθ\ dx\ U)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 112–118}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_gibbs\_joint\_bound\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (B\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ (InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ ≤\ B)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤\ B}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}gibbs\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} and \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} specialize the preceding generic projection lemmas to \texttt{gibbs\allowbreak{}Target U}. Unfolding \texttt{parameter\allowbreak{}Target} gives the correct reference marginal automatically. The only target assumption at this stage is probability normalization; convexity, a marginal maximizer and a marginal-density representation are not needed for data processing.
 
+
+
+Formal correspondence: parameter\_kl\_le\_gibbs\_joint : Extended KL data processing with the actual Gibbs parameter target. parameter\_kl\_ne\_top\_of\_gibbs\_joint : Finite actual Gibbs-relative joint KL gives finite parameter KL. parameter\_kl\_bound\_of\_gibbs\_joint\_bound : A joint KL estimate transfers to the actual Gibbs parameter marginal, without constructing a formula for its marginal density.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

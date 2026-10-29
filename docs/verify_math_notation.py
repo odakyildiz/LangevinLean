@@ -47,7 +47,7 @@ def markdown_notation_issues(value):
 
 
 def markdown_paths():
-    excluded = {".git", ".lake", ".venv", "node_modules", "papers", "vendor"}
+    excluded = {".git", ".lake", ".venv", "node_modules", "papers", "vendor", "notes_staging", ".local-archive"}
     for directory, children, files in os.walk(ROOT):
         children[:] = sorted(child for child in children if child not in excluded)
         for name in sorted(files):

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -40,6 +63,18 @@ Each successor uses the Euler update using the given gradient.
 
 The drift lift evaluates the original gradient almost everywhere, so this recursion represents the ordinary ULA method on random inputs. The reference equation and defect integral are Bochner equations in this same Hilbert space. Each step stays square-integrable by the Lipschitz growth estimate for the gradient.
 
+\begin{leanbox}{Lean: \texttt{lpChain}}
+\leansource{\texttt{lpChain} \quad UnadjustedLangevin/\allowbreak{}HilbertDalalyan.lean, lines 34–38}
+\begin{leancode}
+\leanline{0}{def\ lpChain\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (initial\ :\ Lp\ H\ 2\ P)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ H\ 2\ P)\ :\ ℕ\ →\ Lp\ H\ 2\ P}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n\ +\ 1\ =>\ lpUlaUpdate\ P\ U\ h\ hLip\ (lpChain\ U\ h\ hLip\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Chain} is a recursion in the Hilbert space \texttt{Lp H 2 P}. The zero branch returns \texttt{initial}; the successor applies \texttt{lp\allowbreak{}Ula\allowbreak{}Update} to the preceding state and \texttt{noise n}. The proof \texttt{h\allowbreak{}Lip} is passed to that update so composition with the drift remains square integrable. Gaussianity is not required to define this recursion.
+\end{leanbox}
 
 \section{\texorpdfstring{The successor update}{The successor update}}
 
@@ -54,6 +89,18 @@ Evaluate the successor clause of the definition.
 
 The successor step uses the innovation at the same index as the reference endpoint. Subtracting a reference equation using that same innovation removes the stochastic increment exactly. The resulting error equation therefore contains only the deterministic Euler difference and the local defect.
 
+\begin{leanbox}{Lean: \texttt{lpChain\_\allowbreak{}succ}}
+\leansource{\texttt{lpChain\_\allowbreak{}succ} \quad UnadjustedLangevin/\allowbreak{}HilbertDalalyan.lean, lines 41–45}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ lpChain\_succ\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (initial\ :\ Lp\ H\ 2\ P)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ H\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{lpChain\ P\ U\ h\ hLip\ initial\ noise\ (n\ +\ 1)\ =}
+\leanline{6}{lpUlaUpdate\ P\ U\ h\ hLip\ (lpChain\ P\ U\ h\ hLip\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Chain\_\allowbreak{}succ} exposes the successor branch of \texttt{lp\allowbreak{}Chain}. Its proof is \texttt{rfl}, because both sides reduce to exactly the same expression after evaluating the recursive definition.
+\end{leanbox}
 
 \section{\texorpdfstring{The continuous reference assumptions}{The continuous reference assumptions}}
 
@@ -88,6 +135,29 @@ Require the increment moment bound \(\|B_{k,t}\|_2\le\sqrt{2d}\sqrt t\) on the s
 
 The segment-joining condition makes the local initial point of segment \(k+1\) equal to the endpoint of segment \(k\). The stationary grid-law condition identifies each comparison marginal with \(\pi\), while the endpoint-noise condition identifies the reference's final increment with the algorithm innovation. The two moment assumptions have different roles: drift controls the deterministic segment increment, and noise controls its square-root growth.
 
+\begin{leanbox}{Lean: \texttt{L2Reference}}
+\leansource{\texttt{L2Reference} \quad UnadjustedLangevin/\allowbreak{}HilbertDalalyan.lean, lines 50–65}
+\begin{leancode}
+\leanline{0}{structure\ L2Reference\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (noise\ :\ ℕ\ →\ Lp\ (H)\ 2\ P)}
+\leanline{4}{(π\ :\ Measure\ (H))\ where}
+\leanline{2}{segment\ :\ ℕ\ →\ ℝ\ →\ Lp\ (H)\ 2\ P}
+\leanline{2}{increment\ :\ ℕ\ →\ ℝ\ →\ Lp\ (H)\ 2\ P}
+\leanline{2}{continuous\ :\ ∀\ n,\ Continuous\ (segment\ n)}
+\leanline{2}{join\ :\ ∀\ n,\ segment\ n\ h\ =\ segment\ (n\ +\ 1)\ 0}
+\leanline{2}{noiseEndpoint\ :\ ∀\ n,\ increment\ n\ h\ =\ Real.sqrt\ (2\ *\ h)\ •\ noise\ n}
+\leanline{2}{stationary\ :\ ∀\ n,\ P.map\ (segment\ n\ 0)\ =\ π}
+\leanline{2}{integralEquation\ :\ ∀\ n\ t,\ t\ ∈\ Set.Icc\ 0\ h\ →}
+\leanline{4}{segment\ n\ t\ -\ segment\ n\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ lpDrift\ P\ (gradient\ U)\ hLip\ (segment\ n\ s))\ +\ increment\ n\ t}
+\leanline{2}{scoreBound\ :\ ∀\ n\ t,\ t\ ∈\ Set.Icc\ 0\ h\ →}
+\leanline{4}{‖lpDrift\ P\ (gradient\ U)\ hLip\ (segment\ n\ t)‖\ ≤\ Real.sqrt\ ((L\ :\ ℝ)\ *\ d)}
+\leanline{2}{noiseBound\ :\ ∀\ n\ t,\ t\ ∈\ Set.Icc\ 0\ h\ →}
+\leanline{4}{‖increment\ n\ t‖\ ≤\ Real.sqrt\ (2\ *\ (d\ :\ ℝ))\ *\ Real.sqrt\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{L2\allowbreak{}Reference} collects continuous segments and their additive increments. \texttt{join} identifies adjacent endpoints; \texttt{noise\allowbreak{}Endpoint} matches the increment to the numerical innovation; \texttt{stationary} specifies the law at each segment start. \texttt{integral\allowbreak{}Equation} is the continuous drift equation. The fields \texttt{score\allowbreak{}Bound} and \texttt{noise\allowbreak{}Bound} are bounds in the Hilbert-space norm at exponent two, hence root second-moment bounds. No Gaussian law is asserted by the structure itself.
+\end{leanbox}
 
 \section{\texorpdfstring{Convergence from the supplied integral reference}{Convergence from the supplied integral reference}}
 
@@ -146,6 +216,24 @@ Apply the scalar recurrence bound to the derived inequality and compose it with 
 
 The defect has size \(b=(33/20)Lh\sqrt{hd}\), and this size is uniform in \(k\) because the supplied moment bounds hold on every segment. The recurrence is consequently homogeneous in its constants. Its initial value remains the norm of the supplied pair, so this bound retains the cost of the supplied initial coupling until the subsequent infimum argument.
 
+\begin{leanbox}{Lean: \texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound}}
+\leansource{\texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}HilbertDalalyan.lean, lines 69–114}
+\begin{leancode}
+\leanline{0}{theorem\ l2\_reference\_bound}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ (H)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (H)\ 2\ P)\ (π\ :\ Measure\ (H))}
+\leanline{4}{(ref\ :\ L2Reference\ P\ d\ U\ h\ L\ hLip\ noise\ π)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ ≤\ 2)\ (q\ :\ ℝ)\ (hq\ :\ 0\ ≤\ q)\ (hq1\ :\ q\ <\ 1)}
+\leanline{4}{(hcontract\ :\ ∀\ X\ Y\ :\ Lp\ (H)\ 2\ P,}
+\leanline{6}{‖(X\ -\ h\ •\ lpDrift\ P\ (gradient\ U)\ hLip\ X)\ -}
+\leanline{8}{(Y\ -\ h\ •\ lpDrift\ P\ (gradient\ U)\ hLip\ Y)‖\ ≤\ q\ *\ ‖X\ -\ Y‖)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpChain\ P\ U\ h\ hLip\ initial\ noise\ n))\ π\ ≤}
+\leanline{6}{q\ \textasciicircum{}\ n\ *\ ‖initial\ -\ ref.segment\ 0\ 0‖\ +}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ *\ Real.sqrt\ (h\ *\ d))\ /\ (1\ -\ q)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound}, \texttt{g} is the lifted drift, \texttt{X} the numerical chain, \texttt{b} the uniform local-error bound and \texttt{D} the segment defect. \texttt{h\allowbreak{}D} applies the integrated local estimate. \texttt{hreference} rewrites the continuous endpoint as an Euler update minus its defect using segment joining and the shared noise endpoint. In \texttt{hrec}, the identity \texttt{hid} cancels the common noise, and the norm triangle inequality gives the scalar recurrence. \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}Lp\_\allowbreak{}cost\_\allowbreak{}real} bounds transport by the joint realization, \texttt{ref.\allowbreak{}stationary} identifies the target marginal, and \texttt{affine\_\allowbreak{}recurrence\_\allowbreak{}bound} sums the recurrence.
+\end{leanbox}
 
 \section{\texorpdfstring{The small-step bound}{The small-step bound}}
 
@@ -184,6 +272,23 @@ Substitute the bias identity into the integral-reference bound.
 
 The factor \(q=1-mh\) lies in \([0,1)\) under the positive-curvature small-step assumptions. Its gap is exactly \(mh\), so dividing the local \(h^{3/2}\) error by that gap produces the global \(\sqrt h\) bias. The remaining factor \(L/m\) is the condition-number dependence of this estimate.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}}
+\leansource{\texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference} \quad UnadjustedLangevin/\allowbreak{}HilbertDalalyan.lean, lines 118–143}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_small\_step\_of\_integral\_reference}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(initial\ :\ Lp\ (H)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (H)\ 2\ P)\ (π\ :\ Measure\ (H))}
+\leanline{4}{(ref\ :\ L2Reference\ P\ d\ U\ h\ L\ hLip\ noise\ π)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpChain\ P\ U\ h\ hLip\ initial\ noise\ n))\ π\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ n\ *\ ‖initial\ -\ ref.segment\ 0\ 0‖\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *\ Real.sqrt\ (h\ *\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}small\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference} receives \texttt{ref}, an \texttt{L2\allowbreak{}Reference} whose fields contain the segment equations, target laws and moment bounds. \texttt{hproduct}, \texttt{hmh} and \texttt{hstep} derive the scalar step consequences. These give the nonnegative contraction factor \texttt{hq} and its strict upper bound \texttt{hq1}. The invocation of \texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound} combines the integral local defect with \texttt{lp\allowbreak{}Drift\_\allowbreak{}gradient\_\allowbreak{}contract}. \texttt{hid} cancels the positive step from the forcing divided by the contraction gap, producing the displayed constant. This theorem is conditional on its reference; the preceding stationarity and product-construction results supply that reference for the final Gaussian algorithm.
+\end{leanbox}
 
 \section{\texorpdfstring{The large-step bound}{The large-step bound}}
 
@@ -222,5 +327,22 @@ Substitute this identity into the integral-reference bound to obtain the large-s
 
 Here \(q=Lh-1\) and the gap is \(1-q=2-Lh>0\). Dividing the same local-defect estimate by that gap gives the displayed additive large-step bound. As the denominator decreases to zero, this geometric-sum upper bound increases. The strict condition on the step keeps the denominator positive.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference}}
+\leansource{\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference} \quad UnadjustedLangevin/\allowbreak{}HilbertDalalyan.lean, lines 146–168}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_large\_step\_of\_integral\_reference}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ (L\ :\ ℝ))\ ≤\ h)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ <\ 2)}
+\leanline{4}{(initial\ :\ Lp\ (H)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (H)\ 2\ P)\ (π\ :\ Measure\ (H))}
+\leanline{4}{(ref\ :\ L2Reference\ P\ d\ U\ h\ L\ hLip\ noise\ π)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpChain\ P\ U\ h\ hLip\ initial\ noise\ n))\ π\ ≤}
+\leanline{6}{((L\ :\ ℝ)\ *\ h\ -\ 1)\ \textasciicircum{}\ n\ *\ ‖initial\ -\ ref.segment\ 0\ 0‖\ +}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ /\ (2\ -\ (L\ :\ ℝ)\ *\ h))\ *\ Real.sqrt\ (h\ *\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}reference} derives \texttt{hproduct} from the lower step threshold. Together with the order of curvature and smoothness, this proves \texttt{hq}, nonnegativity of the large-step factor; \texttt{hstep} gives \texttt{hq1}, its strict upper bound. The proof invokes \texttt{l2\_\allowbreak{}reference\_\allowbreak{}bound} with \texttt{lp\allowbreak{}Drift\_\allowbreak{}gradient\_\allowbreak{}contract\_\allowbreak{}large}. The identity \texttt{hid} rewrites the contraction gap as the positive large-step denominator and moves the square-root factor outside the quotient.
+\end{leanbox}
 
 \end{document}

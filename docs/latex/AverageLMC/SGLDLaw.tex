@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,57 +32,389 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{The actual independent Gaussian and finite-index SGLD law}{The actual independent Gaussian and finite-index SGLD law}}
+\title{\texorpdfstring{The SGLD transition and its variance decomposition}{The SGLD transition and its variance decomposition}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The transition is the manuscript's fixed-point control-variate update. Its input measure is the independent product of initialization, a standard Gaussian innovation, and the uniform component index.
+This section defines the stochastic-gradient Langevin dynamics with fixed-point control variates and proves the variance decomposition on which its analysis rests. The potential is a finite sum \(f=\sum_{i=1}^nf_i\) of functions \(f_i:\mathbb R^p\to\mathbb R\), and \(\theta_*\in\mathbb R^p\) is a point with \(\nabla f(\theta_*)=0\) (the minimizer of \(f\) in the application). The control-variate estimator of \(\nabla f(x)\) and its error are
 
-\[X^+=X-hn\big(\nabla f_I(X)-\nabla f_I(\theta_*)\big)+\sqrt{2h}\,Z,\qquad I\sim{\rm Unif}\{1,\ldots,n\},\quad Z\sim N(0,I_p).\]
+
+\[g_i(x)=n\bigl(\nabla f_i(x)-\nabla f_i(\theta_*)\bigr),\qquad e_i(x)=g_i(x)-\nabla f(x)\qquad(i=1,\dots,n).\]
+
+
+One SGLD step from \(\vartheta\sim\nu\) is \(\vartheta^+=\vartheta-h\,g_I(\vartheta)+\sqrt{2h}\,\xi\), where \(\xi\sim\mathcal N(0,I_p)\) and the index \(I\), uniform on \(\{1,\dots,n\}\), are independent of each other and of \(\vartheta\); \(\nu^+\) denotes the law of \(\vartheta^+\), and \(\nu_k\) the law after \(k\) steps with fresh innovations. Writing \(\nu^+_{\rm LMC}\) for the law of the full-gradient step \(\vartheta-h\nabla f(\vartheta)+\sqrt{2h}\,\xi\), the main result is
+
+
+\[\mathsf W_2^2(\nu^+,\pi)\le\mathsf W_2^2(\nu^+_{\rm LMC},\pi)+h^2\,\mathbb E\|e_I(\vartheta)\|^2,\qquad\mathbb E\|e_I(\vartheta)\|^2=\mathbb E\|g_I(\vartheta)\|^2-\mathbb E\|\nabla f(\vartheta)\|^2,\]
+
+
+for every probability measure \(\pi\) with finite second moment, together with \(\mathbb E\|g_I(\vartheta)\|^2=n\sum_{i=1}^n\mathbb E\|\nabla f_i(\vartheta)-\nabla f_i(\theta_*)\|^2\). The SGLD step is thus the LMC step plus a perturbation that is centred given \((\vartheta,\xi)\), and the variance-addition inequality of the previous sections applies. The section also checks that all laws involved are probability measures with finite second moments.
+
+
 
 Earlier results used here: \cite[Section~3.10]{LangevinLean2026ULALSI}.
 
-\section{\texorpdfstring{Define the update and propagate probability laws}{Define the update and propagate probability laws}}
+\section{\texorpdfstring{The update, the transition and the chain of laws}{The update, the transition and the chain of laws}}
 
 
-The proposal subtracts \(h\) times \(n\) times the difference between the selected component gradients at the current state and the anchor, then adds the Gaussian innovation. Mapping the product measure defines one transition; iteration defines all marginal laws. Algebra separates the full-gradient proposal and the centered estimator error. Lipschitz gradients give measurability, and the positive finite index count gives normalization of all these laws.
+\textbf{Definitions.} Let \(n,p\in\mathbb N\), \(f_1,\dots,f_n:\mathbb R^p\to\mathbb R\), \(f=\sum_if_i\), \(\theta_*\in\mathbb R^p\) and \(h\in\mathbb R\) (with \(\sqrt{2h}\) read as \(0\) if \(h<0\); only \(h\ge0\) is of interest). The SGLD update map is
 
+
+\[\Phi(x,z,i)=x-h\,g_i(x)+\sqrt{2h}\,z\qquad(x,z\in\mathbb R^p,\ i\in\{1,\dots,n\}).\]
+
+
+For a measure \(\nu\) on \(\mathbb R^p\), the SGLD transition gives the image measure \(\nu^+=(\nu\otimes\gamma_p\otimes U_n)\circ\Phi^{-1}\), where \(\gamma_p=\mathcal N(0,I_p)\) is the standard Gaussian measure and \(U_n\) the uniform probability on \(\{1,\dots,n\}\), \(U_n(\{i\})=1/n\). The chain of laws is \(\nu_0=\nu\), \(\nu_{k+1}=(\nu_k)^+\); each step uses a new independent pair \((\xi,I)\).
+
+
+
+
+\textbf{Claim.} (1) For all \(x,z,i\),
+
+
+\[\Phi(x,z,i)=\bigl(x-h\nabla f(x)+\sqrt{2h}\,z\bigr)+(-h)\,e_i(x).\qquad(1)\]
+
+
+(2) If every \(f_i\) is differentiable with Lipschitz gradient and \(\nabla f\) is Lipschitz, then \(\Phi\) is measurable on \(\mathbb R^p\times\mathbb R^p\times\{1,\dots,n\}\).
+
+
+
+
+(3) If \(n\ge1\) and \(\nu\) is a probability measure, then \(\nu^+\) and every \(\nu_k\) are probability measures.
+
+
+
+
+\textbf{Proof.} (1) By definition \(g_i(x)=e_i(x)+\nabla f(x)\), so \(-h\,g_i(x)=-h\nabla f(x)+(-h)e_i(x)\); insert this in \(\Phi\).
+
+
+
+
+(2) By (1), \(\Phi\) is the sum of \((x,z)\mapsto x-h\nabla f(x)+\sqrt{2h}z\), which is continuous because \(\nabla f\) is Lipschitz, and \((x,i)\mapsto-h\,e_i(x)\). For each fixed \(i\) the map \(x\mapsto e_i(x)=n(\nabla f_i(x)-\nabla f_i(\theta_*))-\nabla f(x)\) is continuous, and a function on \(\mathbb R^p\times\{1,\dots,n\}\) whose sections are measurable is measurable, since \(\{1,\dots,n\}\) is finite with all subsets measurable. Sums of measurable functions are measurable.
+
+
+
+
+(3) For \(n\ge1\), \(U_n\) is a probability measure (it gives mass \(1/n\) to each of the \(n\) points). The product \(\nu\otimes\gamma_p\otimes U_n\) of probability measures is a probability measure, and so is its image under \(\Phi\). Induction on \(k\) gives the statement for \(\nu_k\): \(\nu_0=\nu\), and if \(\nu_k\) is a probability measure, so is \(\nu_{k+1}=(\nu_k)^+\). \(\square\)
+
+
+
+
+Identity (1) displays the SGLD step as the LMC step of Theorem 1 plus the perturbation \(-h\,e_I(\vartheta)\); everything that follows is built on it.
+
+\begin{leanbox}{Lean: \texttt{sgldProposal}, \texttt{sgldLawStep}, \texttt{sgldLaws} and 5 more}
+\leansource{\texttt{sgldProposal} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 14–16}
+\begin{leancode}
+\leanline{0}{def\ sgldProposal\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (anchor\ :\ State\ p)}
+\leanline{4}{(h\ :\ ℝ)\ (x\ z\ :\ State\ p)\ (i\ :\ Fin\ n)\ :\ State\ p\ :=}
+\leanline{2}{x\ -\ h\ •\ controlVariateEstimator\ f\ anchor\ x\ i\ +\ Real.sqrt\ (2\ *\ h)\ •\ z}
+\end{leancode}
+\leansource{\texttt{sgldLawStep} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 20–23}
+\begin{leancode}
+\leanline{0}{def\ sgldLawStep\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (anchor\ :\ State\ p)}
+\leanline{4}{(h\ :\ ℝ)\ (μ\ :\ Measure\ (State\ p))\ :\ Measure\ (State\ p)\ :=}
+\leanline{2}{((μ.prod\ (stdGaussian\ (State\ p))).prod\ (uniformIndexLaw\ n)).map}
+\leanline{4}{(fun\ q\ ↦\ sgldProposal\ f\ anchor\ h\ q.1.1\ q.1.2\ q.2)}
+\end{leancode}
+\leansource{\texttt{sgldLaws} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 27–30}
+\begin{leancode}
+\leanline{0}{def\ sgldLaws\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (anchor\ :\ State\ p)}
+\leanline{4}{(h\ :\ ℝ)\ (μ\ :\ Measure\ (State\ p))\ :\ ℕ\ →\ Measure\ (State\ p)}
+\leanline{2}{|\ 0\ =>\ μ}
+\leanline{2}{|\ k\ +\ 1\ =>\ sgldLawStep\ f\ anchor\ h\ (sgldLaws\ f\ anchor\ h\ μ\ k)}
+\end{leancode}
+\leansource{\texttt{sgldProposal\_\allowbreak{}eq\_\allowbreak{}full\_\allowbreak{}gradient} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 32–37}
+\begin{leancode}
+\leanline{0}{theorem\ sgldProposal\_eq\_full\_gradient\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(anchor\ x\ z\ :\ State\ p)\ (h\ :\ ℝ)\ (i\ :\ Fin\ n)\ :}
+\leanline{4}{sgldProposal\ f\ anchor\ h\ x\ z\ i\ =\ ULA.malaProposal\ (componentPotential\ f)\ h\ x\ z\ +}
+\leanline{6}{(-h)\ •\ controlVariateError\ f\ anchor\ x\ i}
+\end{leancode}
+\leansource{\texttt{sgldProposal\_\allowbreak{}measurable} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 39–48}
+\begin{leancode}
+\leanline{0}{theorem\ sgldProposal\_measurable\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)}
+\leanline{4}{(hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))\ (L\ :\ Fin\ n\ →\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (h\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (fun\ q\ :\ (State\ p\ ×\ State\ p)\ ×\ Fin\ n\ ↦}
+\leanline{6}{sgldProposal\ f\ anchor\ h\ q.1.1\ q.1.2\ q.2)}
+\end{leancode}
+\leansource{\texttt{sgldLawStep\_\allowbreak{}isProbability} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 50–58}
+\begin{leancode}
+\leanline{0}{theorem\ sgldLawStep\_isProbability\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (\_hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (\_hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(M\ :\ ℝ≥0)\ (\_hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ :}
+\leanline{4}{IsProbabilityMeasure\ (sgldLawStep\ f\ anchor\ h\ μ)}
+\end{leancode}
+\leansource{\texttt{sgldLawStep\_\allowbreak{}probability} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 60–66}
+\begin{leancode}
+\leanline{0}{instance\ sgldLawStep\_probability\ \{p\ n\ :\ ℕ\}\ [NeZero\ n]}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (anchor\ :\ State\ p)\ (h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ :}
+\leanline{4}{IsProbabilityMeasure\ (sgldLawStep\ f\ anchor\ h\ μ)\ :=\ by}
+\leanline{2}{have\ :=\ uniformIndexLaw\_probability\ n\ (Nat.pos\_of\_ne\_zero\ (NeZero.ne\ n))}
+\leanline{2}{unfold\ sgldLawStep}
+\leanline{2}{infer\_instance}
+\end{leancode}
+\leansource{\texttt{sgldLaws\_\allowbreak{}probability} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 68–74}
+\begin{leancode}
+\leanline{0}{instance\ sgldLaws\_probability\ \{p\ n\ :\ ℕ\}\ [NeZero\ n]}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (anchor\ :\ State\ p)\ (h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ (k\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (sgldLaws\ f\ anchor\ h\ μ\ k)\ :=\ by}
+\leanline{2}{induction\ k\ with}
+\leanline{2}{|\ zero\ =>\ exact\ inferInstanceAs\ (IsProbabilityMeasure\ μ)}
+\leanline{2}{|\ succ\ k\ ih\ =>\ exact\ sgldLawStep\_probability\ f\ anchor\ h\ \_}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The components are a family \texttt{f : Fin n \ensuremath{\to} State p \ensuremath{\to} \ensuremath{\mathbb R}}; their sum \(f\) is \texttt{component\allowbreak{}Potential f}, the anchor \(\theta_*\) is \texttt{anchor}, \(g_i\) is \texttt{control\allowbreak{}Variate\allowbreak{}Estimator f anchor x i} and \(e_i\) is \texttt{control\allowbreak{}Variate\allowbreak{}Error f anchor x i} (all defined in the estimator section). The uniform law \(U_n\) is \texttt{uniform\allowbreak{}Index\allowbreak{}Law n}, the measure \texttt{(n : \ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty})\ensuremath{{}^{-1}} \ensuremath{\bullet} Measure.\allowbreak{}count} on \texttt{Fin n}, and \(\gamma_p\) is Mathlib's \texttt{std\allowbreak{}Gaussian (State p)}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{sgld\allowbreak{}Proposal f anchor h x z i} is \(\Phi(x,z,i)\), with \texttt{Real.\allowbreak{}sqrt} (which returns \(0\) on negative numbers). \texttt{sgld\allowbreak{}Law\allowbreak{}Step f anchor h \ensuremath{\mu}} is the image \texttt{((\ensuremath{\mu}.\allowbreak{}prod (std\allowbreak{}Gaussian (State p))).\allowbreak{}prod (uniform\allowbreak{}Index\allowbreak{}Law n)).\allowbreak{}map …} of the product measure under \(\Phi\), and \texttt{sgld\allowbreak{}Laws} is defined by recursion on \texttt{k}, with \texttt{0 => \ensuremath{\mu}} and \texttt{k + 1 => sgld\allowbreak{}Law\allowbreak{}Step …}.
+
+\item \texttt{sgld\allowbreak{}Proposal\_\allowbreak{}eq\_\allowbreak{}full\_\allowbreak{}gradient} is (1): the full-gradient part is \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal (component\allowbreak{}Potential f) h x z}, the map \(x-h\nabla f(x)+\sqrt{2h}z\) of the unadjusted Langevin library. After unfolding, \texttt{module} proves the vector identity.
+
+\item \texttt{sgld\allowbreak{}Proposal\_\allowbreak{}measurable} rewrites with (1) and adds the measurability of \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal\_\allowbreak{}measurable} (composed with the projection) to that of the error, \texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}product\_\allowbreak{}measurable}, multiplied by \(-h\).
+
+\item \texttt{sgld\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}is\allowbreak{}Probability} (with \texttt{hn : 0 < n}) and the instance \texttt{sgld\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}probability} (with \texttt{[Ne\allowbreak{}Zero n]}, the same condition in typeclass form) use \texttt{uniform\allowbreak{}Index\allowbreak{}Law\_\allowbreak{}probability} and \texttt{infer\_\allowbreak{}instance}: products and images of probability measures are probability measures. In the Mathlib version used, the image of a probability measure under any map is a probability measure, so the unused hypotheses \texttt{\_\allowbreak{}hf}, \texttt{\_\allowbreak{}h\allowbreak{}Lip}, \texttt{\_\allowbreak{}hfull} of the first theorem are not needed. \texttt{sgld\allowbreak{}Laws\_\allowbreak{}probability} is the induction on \texttt{k}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Derive the required second moments}{Derive the required second moments}}
+\section{\texorpdfstring{Second moments are preserved}{Second moments are preserved}}
 
 
-A Lipschitz score acts on every \(L^{2}\) input, including its nonzero value at the origin. The Gaussian proposal is a sum of the input, its scaled score and independent Gaussian noise, so it lies in \(L^{2}\). Adding the finite-index estimator error proves a second moment for the actual SGLD output law.
+\textbf{Claim.} Let \(\nu\) be a probability measure on \(\mathbb R^p\) with finite second moment, \(\int\|x\|^2\nu(dx)<\infty\).
 
+
+
+\begin{enumerate}
+
+
+\item If \(F:\mathbb R^p\to\mathbb R\) has an \(M\)-Lipschitz gradient for some \(M\ge0\), then \(\nabla F\) is square integrable for \(\nu\).
+
+\item Under the same hypothesis on \(F\) and for every \(h\in\mathbb R\), the map \((x,z)\mapsto x-h\nabla F(x)+\sqrt{2h}\,z\) is square integrable for \(\nu\otimes\gamma_p\).
+
+\item If every \(f_i\) is differentiable with Lipschitz gradient and \(\nabla f\) is Lipschitz, then \(\nu^+\) has finite second moment.
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (1) The Lipschitz bound and the triangle inequality give \(\|\nabla F(x)\|\le\|\nabla F(0)\|+M\|x\|\), hence \(\|\nabla F(x)\|^2\le2\|\nabla F(0)\|^2+2M^2\|x\|^2\) by \((u+v)^2\le2u^2+2v^2\). The right-hand side is \(\nu\)-integrable because \(\nu\) is a probability measure with finite second moment. (Measurability holds because \(\nabla F\) is continuous.)
+
+
+
+
+(2) Under \(\nu\otimes\gamma_p\), the coordinate \(x\) is square integrable by assumption, \(\nabla F(x)\) is square integrable by (1), and \(z\) is square integrable because \(\int\|z\|^2\gamma_p(dz)=p<\infty\). Square-integrable functions form a vector space, so the linear combination \(x-h\nabla F(x)+\sqrt{2h}z\) is square integrable.
+
+
+
+
+(3) By the change-of-variables formula, \(\int\|y\|^2\nu^+(dy)=\int\|\Phi\|^2\,d(\nu\otimes\gamma_p\otimes U_n)\), so it suffices that \(\Phi\) is square integrable. By (1) of Step 1, \(\Phi\) is the full-gradient map, square integrable by (2) applied to \(F=f\), plus \(-h\,e_i(x)\). For each \(i\), \(e_i(x)=n(\nabla f_i(x)-\nabla f_i(\theta_*))-\sum_k\nabla f_k(x)\) is square integrable in \(x\) by (1) applied to the \(f_k\) (constants are square integrable for a probability measure), and since there are finitely many indices, \(\|e_i(x)\|^2\le\sum_{k=1}^n\|e_k(x)\|^2\) shows that \((x,z,i)\mapsto e_i(x)\) is square integrable for \(\nu\otimes\gamma_p\otimes U_n\). \(\square\)
+
+
+
+
+These facts are what make the transport distances in the next step finite; no moment assumption beyond that of \(\nu\) is needed.
+
+\begin{leanbox}{Lean: \texttt{full\_\allowbreak{}gradient\_\allowbreak{}proposal\_\allowbreak{}memLp}, \texttt{gradient\_\allowbreak{}memLp}, \texttt{sgldLawStep\_\allowbreak{}memLp}}
+\leansource{\texttt{full\_\allowbreak{}gradient\_\allowbreak{}proposal\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 78–93}
+\begin{leancode}
+\leanline{0}{theorem\ full\_gradient\_proposal\_memLp\ \{p\ :\ ℕ\}\ (F\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ F))\ (h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ μ)\ :}
+\leanline{4}{MemLp\ (fun\ q\ :\ State\ p\ ×\ State\ p\ ↦\ ULA.malaProposal\ F\ h\ q.1\ q.2)}
+\leanline{6}{2\ (μ.prod\ (stdGaussian\ (State\ p)))}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 144–151}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_memLp\ \{p\ :\ ℕ\}\ (F\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ F))}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ μ)\ :\ MemLp\ (gradient\ F)\ 2\ μ}
+\end{leancode}
+\leansource{\texttt{sgldLawStep\_\allowbreak{}memLp} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 154–168}
+\begin{leancode}
+\leanline{0}{theorem\ sgldLawStep\_memLp\ \{p\ n\ :\ ℕ\}}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ μ)\ :}
+\leanline{4}{MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ (sgldLawStep\ f\ anchor\ h\ μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Square integrability is \texttt{Mem\allowbreak{}Lp g 2 \ensuremath{\mu}}, and the finite second moment of a law \texttt{\ensuremath{\mu}} is \texttt{Mem\allowbreak{}Lp (fun x : State p \ensuremath{\mapsto} x) 2 \ensuremath{\mu}}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{gradient\_\allowbreak{}mem\allowbreak{}Lp} is claim (1). It applies \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift\_\allowbreak{}mem\allowbreak{}Lp}, which states that a Lipschitz vector field maps an \(L^2\) random variable to an \(L^2\) random variable, to the class \texttt{h\ensuremath{\mu}.\allowbreak{}to\allowbreak{}Lp \_\allowbreak{}} of the identity, and passes back to the function itself with \texttt{ae\_\allowbreak{}eq} and \texttt{coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp}.
+
+\item \texttt{full\_\allowbreak{}gradient\_\allowbreak{}proposal\_\allowbreak{}mem\allowbreak{}Lp} is claim (2): \texttt{h\allowbreak{}X} is the square integrability of the first coordinate under the product (\texttt{comp\_\allowbreak{}fst}), \texttt{hg} and \texttt{hg'} that of \(\nabla F(x)\) by the same argument, and \texttt{h\allowbreak{}Z} that of the Gaussian coordinate, from \texttt{Is\allowbreak{}Gaussian.\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}id} composed with the second projection (\texttt{comp\_\allowbreak{}snd}). The conclusion combines them with \texttt{sub}, \texttt{add} and \texttt{const\_\allowbreak{}smul}.
+
+\item \texttt{sgld\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp} is claim (3). \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}, which needs the measurability \texttt{sgld\allowbreak{}Proposal\_\allowbreak{}measurable}, transfers the question to the update map; \texttt{hd} is the square integrability of the error (\texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}product\_\allowbreak{}mem\allowbreak{}Lp}, scaled by \(-h\)) and \texttt{hg} that of the full-gradient map, and the final \texttt{simpa} uses identity (1).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.4]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Apply the constructed centered-perturbation coupling}{Apply the constructed centered-perturbation coupling}}
+\section{\texorpdfstring{Variance addition for one SGLD step}{Variance addition for one SGLD step}}
 
 
-Instantiate the general variance-addition theorem on initialization times Gaussian innovation. The perturbation is minus \(h\) times the estimator error, whose index mean is zero by the proved unbiasedness identity. Pulling \(h^2\) through its norm integral gives the actual SGLD transport bound. Fubini removes the unused Gaussian variable and identifies the remaining variance as estimator energy minus full-gradient energy.
+\textbf{Claim.} Let \(n\ge1\), let every \(f_i\) be differentiable with Lipschitz gradient, let \(\nabla f\) be \(M\)-Lipschitz, and let \(\nabla f(\theta_*)=0\). Let \(h\in\mathbb R\), and let \(\nu\) and \(\pi\) be probability measures on \(\mathbb R^p\) with finite second moments. Let \(\nu^+_{\rm LMC}\) be the law of \(x-h\nabla f(x)+\sqrt{2h}\,z\) under \(\nu\otimes\gamma_p\). Then
 
+
+\[\mathsf W_2(\nu^+,\pi)^2\le\mathsf W_2(\nu^+_{\rm LMC},\pi)^2+h^2\int\|e_i(x)\|^2\,(\nu\otimes\gamma_p\otimes U_n)(dx,dz,di),\qquad(2)\]
+
+
+and
+
+
+\[\int\|e_i(x)\|^2\,d(\nu\otimes\gamma_p\otimes U_n)=\int\|g_i(x)\|^2\,(\nu\otimes U_n)(dx,di)-\int\|\nabla f(x)\|^2\,\nu(dx).\qquad(3)\]
+
+
+\textbf{Proof.} \emph{Pointwise facts for fixed \(x\).} Since each \(f_i\) is differentiable, \(\nabla f=\sum_i\nabla f_i\). Averaging over the index and using \(\nabla f(\theta_*)=0\),
+
+
+\[\frac1n\sum_{i=1}^ng_i(x)=\sum_{i=1}^n\bigl(\nabla f_i(x)-\nabla f_i(\theta_*)\bigr)=\nabla f(x)-\nabla f(\theta_*)=\nabla f(x),\]
+
+
+so the estimator is unbiased and \(\frac1n\sum_ie_i(x)=0\). Expanding \(\|g_i(x)-\nabla f(x)\|^2\) and averaging,
+
+
+\[\begin{aligned}
+\frac1n\sum_i\|e_i(x)\|^2
+&=\frac1n\sum_i\|g_i(x)\|^2\\
+&\quad-2\Bigl\langle\frac1n\sum_ig_i(x),\nabla f(x)\Bigr\rangle
+  +\|\nabla f(x)\|^2\\
+&=\frac1n\sum_i\|g_i(x)\|^2-\|\nabla f(x)\|^2.
+\qquad(4)
+\end{aligned}\]
+
+
+\emph{Proof of (2).} Apply the centred-perturbation inequality of the earlier section with \(S=\mathbb R^p\times\mathbb R^p\), \(P=\nu\otimes\gamma_p\), index space \(\{1,\dots,n\}\) with \(Q=U_n\), \(F(x,z)=x-h\nabla f(x)+\sqrt{2h}z\) and \(D((x,z),i)=-h\,e_i(x)\). Its hypotheses hold: \(F\) is continuous, hence measurable, and square integrable by Step 2; \(D\) is jointly measurable and square integrable by Steps 1 and 2; for fixed \((x,z)\), \(D((x,z),\cdot)\) is integrable (the index set is finite) and its mean \(-h\cdot\frac1n\sum_ie_i(x)\) is \(0\); and \(\pi\) is a probability measure with finite second moment. By (1) of Step 1, the law of \(F+D\) under \(P\otimes Q\) is \(\nu^+\), and the law of \(F\) under \(P\) is \(\nu^+_{\rm LMC}\). Finally \(\|D\|^2=h^2\|e_i(x)\|^2\), and the constant \(h^2\) comes out of the integral. This gives (2).
+
+
+
+
+\emph{Proof of (3).} The integrand \(\|e_i(x)\|^2\) is integrable by Step 2. By Fubini's theorem we may integrate first over the index; by (4) this gives the function \(x\mapsto\int\|g_i(x)\|^2U_n(di)-\|\nabla f(x)\|^2\), which does not depend on \(z\). Integrating it against the probability measure \(\gamma_p\) leaves it unchanged, and integrating over \(\nu\), splitting the difference (both terms are integrable by Step 2) and using Fubini's theorem once more for \(\int\!\int\|g_i(x)\|^2U_n(di)\,\nu(dx)\) gives (3). \(\square\)
+
+
+
+
+The hypothesis \(\nabla f(\theta_*)=0\) is used only for the unbiasedness of the estimator, and hence for the vanishing of the cross term. The inequality is between real numbers; Step 2 guarantees that all distances are finite.
+
+\begin{leanbox}{Lean: \texttt{sgld\_\allowbreak{}variance\_\allowbreak{}addition}, \texttt{sgld\_\allowbreak{}error\_\allowbreak{}variance\_\allowbreak{}identity}}
+\leansource{\texttt{sgld\_\allowbreak{}variance\_\allowbreak{}addition} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 98–141}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_variance\_addition\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ anchor\ =\ 0)}
+\leanline{4}{(h\ :\ ℝ)\ (μ\ π\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ μ)\ (hπ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ π)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (sgldLawStep\ f\ anchor\ h\ μ)\ π\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{ULA.wasserstein2Real\ (ULA.ulaLawStep\ (componentPotential\ f)\ h\ μ)\ π\ \textasciicircum{}\ 2\ +}
+\leanline{8}{h\ \textasciicircum{}\ 2\ *\ ∫\ q\ :\ (State\ p\ ×\ State\ p)\ ×\ Fin\ n,}
+\leanline{10}{‖controlVariateError\ f\ anchor\ q.1.1\ q.2‖\ \textasciicircum{}\ 2}
+\leanline{12}{∂(μ.prod\ (stdGaussian\ (State\ p))).prod\ (uniformIndexLaw\ n)}
+\end{leancode}
+\leansource{\texttt{sgld\_\allowbreak{}error\_\allowbreak{}variance\_\allowbreak{}identity} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 172–200}
+\begin{leancode}
+\leanline{0}{theorem\ sgld\_error\_variance\_identity\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (hf\ :\ ∀\ i,\ Differentiable\ ℝ\ (f\ i))}
+\leanline{4}{(L\ :\ Fin\ n\ →\ ℝ≥0)\ (hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hfull\ :\ LipschitzWith\ M\ (gradient\ (componentPotential\ f)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (hstar\ :\ gradient\ (componentPotential\ f)\ anchor\ =\ 0)}
+\leanline{4}{(μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ μ)\ :}
+\leanline{4}{(∫\ q\ :\ (State\ p\ ×\ State\ p)\ ×\ Fin\ n,}
+\leanline{6}{‖controlVariateError\ f\ anchor\ q.1.1\ q.2‖\ \textasciicircum{}\ 2}
+\leanline{8}{∂(μ.prod\ (stdGaussian\ (State\ p))).prod\ (uniformIndexLaw\ n))\ =}
+\leanline{4}{(∫\ q\ :\ State\ p\ ×\ Fin\ n,\ ‖controlVariateEstimator\ f\ anchor\ q.1\ q.2‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂μ.prod\ (uniformIndexLaw\ n))\ -\ ∫\ x,\ ‖gradient\ (componentPotential\ f)\ x‖\ \textasciicircum{}\ 2\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Both theorems take \texttt{hn : 0 < n}, \texttt{hf : \ensuremath{\forall} i, Differentiable \ensuremath{\mathbb R} (f i)}, Lipschitz constants \texttt{L : Fin n \ensuremath{\to} \ensuremath{\mathbb R}\ensuremath{\ge}0} with \texttt{h\allowbreak{}Lip : \ensuremath{\forall} i, Lipschitz\allowbreak{}With (L i) (gradient (f i))}, \texttt{hfull : Lipschitz\allowbreak{}With M (gradient (component\allowbreak{}Potential f))} and \texttt{hstar : gradient (component\allowbreak{}Potential f) anchor = 0}.
+
+
+
+\begin{enumerate}
+
+
+\item In \texttt{sgld\_\allowbreak{}variance\_\allowbreak{}addition}, \texttt{P} is the product \(\nu\otimes\gamma_p\), \texttt{D} the perturbation, \texttt{h\allowbreak{}D} and \texttt{h\allowbreak{}D2} its measurability and square integrability, and \texttt{hmean} the vanishing mean: \texttt{integral\_\allowbreak{}smul} extracts \(-h\) and \texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}centered} (the identity \(\frac1n\sum_ie_i(x)=0\), proved in the estimator section) gives \(0\). \texttt{hw} is \texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}perturbation} with the full-gradient map, its measurability \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal\_\allowbreak{}measurable} and square integrability \texttt{full\_\allowbreak{}gradient\_\allowbreak{}proposal\_\allowbreak{}mem\allowbreak{}Lp}; the integrability over the finite index set is \texttt{Integrable.\allowbreak{}of\_\allowbreak{}finite}. \texttt{hmap} identifies the law of \(F+D\) with \texttt{sgld\allowbreak{}Law\allowbreak{}Step f anchor h \ensuremath{\mu}} through \texttt{sgld\allowbreak{}Proposal\_\allowbreak{}eq\_\allowbreak{}full\_\allowbreak{}gradient}, and \texttt{hvariance} pulls out \(h^2\) with \texttt{norm\_\allowbreak{}smul}, \texttt{mul\_\allowbreak{}pow}, \texttt{sq\_\allowbreak{}abs}, \texttt{neg\_\allowbreak{}sq} and \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}. The law \(\nu^+_{\rm LMC}\) is \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step (component\allowbreak{}Potential f) h \ensuremath{\mu}}.
+
+\item In \texttt{sgld\_\allowbreak{}error\_\allowbreak{}variance\_\allowbreak{}identity}, \texttt{he}, \texttt{hs} and \texttt{hg} are the integrability of \(\|e_i(x)\|^2\), \(\|g_i(x)\|^2\) and \(\|\nabla f(x)\|^2\). \texttt{rw [integral\_\allowbreak{}prod \_\allowbreak{} he]} is Fubini's theorem; \texttt{control\allowbreak{}Variate\allowbreak{}Error\_\allowbreak{}second\_\allowbreak{}moment} is the pointwise identity (4); \texttt{hi} is the integrability of the resulting function of \(x\); a second \texttt{integral\_\allowbreak{}prod} and \texttt{integral\_\allowbreak{}const} with \texttt{prob\allowbreak{}Real\_\allowbreak{}univ} integrate out the Gaussian coordinate; and \texttt{integral\_\allowbreak{}sub} with a last \texttt{integral\_\allowbreak{}prod} gives (3).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Recover the manuscript's component-energy term}{Recover the manuscript's component-energy term}}
+\section{\texorpdfstring{The second moment of the estimator}{The second moment of the estimator}}
 
 
-The exact uniform-index identity makes estimator energy equal to \(n\) times the sum of squared component-gradient increments. Each increment is square integrable by its Lipschitz score bound, justifying interchange of the finite sum and the initial-law integral.
+\textbf{Claim.} Let \(n\ge1\), let every \(\nabla f_i\) be Lipschitz, let \(\theta_*\in\mathbb R^p\), and let \(\nu\) be a probability measure on \(\mathbb R^p\) with finite second moment. Then
 
+
+\[\int\|g_i(x)\|^2\,(\nu\otimes U_n)(dx,di)=n\sum_{i=1}^n\int\|\nabla f_i(x)-\nabla f_i(\theta_*)\|^2\,\nu(dx).\]
+
+
+\textbf{Proof.} For fixed \(x\),
+
+
+\[\int\|g_i(x)\|^2\,U_n(di)=\frac1n\sum_{i=1}^n n^2\|\nabla f_i(x)-\nabla f_i(\theta_*)\|^2=n\sum_{i=1}^n\|\nabla f_i(x)-\nabla f_i(\theta_*)\|^2.\]
+
+
+The function \((x,i)\mapsto\|g_i(x)\|^2\) is integrable for \(\nu\otimes U_n\) (Step 2), so by Fubini's theorem its integral equals the \(\nu\)-integral of the last display. Each \(x\mapsto\|\nabla f_i(x)-\nabla f_i(\theta_*)\|^2\) is \(\nu\)-integrable by (1) of Step 2, so the integral of the finite sum is the sum of the integrals, and the constant \(n\) comes out of the integral. \(\square\)
+
+
+
+
+With (3) of Step 3, \(h^2\mathbb E\|e_I(\vartheta)\|^2=nh^2\sum_i\|\nabla f_i(\vartheta)-\nabla f_i(\theta_*)\|_{L_2}^2-h^2\|\nabla f(\vartheta)\|_{L_2}^2\); this is the last term of the first claim of Proposition 3 of the paper, together with the extra \(-h^2\|\nabla f(\vartheta)\|_{L_2}^2\) that changes the coefficient \(h^2(hM_\infty-1)\) of Theorem 1 into \(h^2(hM_\infty-2)\).
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}controlVariateEstimator\_\allowbreak{}sq}}
+\leansource{\texttt{integral\_\allowbreak{}controlVariateEstimator\_\allowbreak{}sq} \quad AverageLMC/\allowbreak{}SGLDLaw.lean, lines 204–220}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_controlVariateEstimator\_sq\ \{p\ n\ :\ ℕ\}\ (hn\ :\ 0\ <\ n)}
+\leanline{4}{(f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ (L\ :\ Fin\ n\ →\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ (L\ i)\ (gradient\ (f\ i)))}
+\leanline{4}{(anchor\ :\ State\ p)\ (μ\ :\ Measure\ (State\ p))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ :\ State\ p\ ↦\ x)\ 2\ μ)\ :}
+\leanline{4}{(∫\ q\ :\ State\ p\ ×\ Fin\ n,\ ‖controlVariateEstimator\ f\ anchor\ q.1\ q.2‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂μ.prod\ (uniformIndexLaw\ n))\ =}
+\leanline{6}{(n\ :\ ℝ)\ *\ ∑\ i,\ ∫\ x,\ ‖gradient\ (f\ i)\ x\ -\ gradient\ (f\ i)\ anchor‖\ \textasciicircum{}\ 2\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}sq} takes \texttt{hn : 0 < n}, the Lipschitz hypotheses \texttt{h\allowbreak{}Lip} and the second moment \texttt{h\ensuremath{\mu}}; no differentiability is needed. \texttt{he} is the integrability of \(\|g_i(x)\|^2\) (from \texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}product\_\allowbreak{}mem\allowbreak{}Lp} applied to the identity), and \texttt{hi i} the integrability of each \(\|\nabla f_i(x)-\nabla f_i(\theta_*)\|^2\) (from \texttt{gradient\_\allowbreak{}mem\allowbreak{}Lp} and \texttt{mem\allowbreak{}Lp\_\allowbreak{}const}). \texttt{integral\_\allowbreak{}prod} is Fubini's theorem, \texttt{control\allowbreak{}Variate\allowbreak{}Estimator\_\allowbreak{}second\_\allowbreak{}moment} is the pointwise identity, and \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul} with \texttt{integral\_\allowbreak{}finset\allowbreak{}Sum} exchanges the integral with the constant and the finite sum.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[ULA-LSI]{LangevinLean2026ULALSI}
-LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision d01d1d7b45e1. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision 7046bc2a17e4. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

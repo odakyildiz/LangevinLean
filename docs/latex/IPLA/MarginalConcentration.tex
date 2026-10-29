@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,179 +32,866 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{The marginal likelihood and the parameter Gibbs distribution}{The marginal likelihood and the parameter Gibbs distribution}}
+\title{\texorpdfstring{The marginal density, its maximizer and the parameter marginal of the target}{The marginal density, its maximizer and the parameter marginal of the target}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The joint strong-convexity assumptions imply that the latent-integrated likelihood is finite, positive, continuous, and tends to zero at parameter infinity. It therefore attains a maximum. Product integration and the particle-coordinate Jacobian identify the parameter marginal of the normalized particle Gibbs law with the normalized \(N\)-th power of that likelihood. The changes of variables contribute finite positive constants independent of the parameter, and these cancel upon normalization.
+Throughout, \(U\) is the joint potential on \(\mathcal J=\mathbb R^{d_\theta}\times\mathbb R^{d_x}\), assumed differentiable and \(m\)-strongly convex with \(m>0\), and \(\ell(\theta)=\int e^{-U(\theta,x)}\,dx\in[0,\infty]\) is its marginal density. This section proves, from these two hypotheses only:
 
+
+
+\begin{itemize}
+
+
+\item a Gaussian bound \(e^{-U(\theta,x)}\le C_Ue^{-\frac m4\|\theta\|^2}e^{-\frac m4\|x\|^2}\), with \(C_U=\exp(\|\nabla U(0)\|^2/m-U(0))\);
+
+\item \(0<\ell(\theta)<\infty\) for every \(\theta\), \(\ell\) is continuous, and \(\ell(\theta)\to0\) as \(\|\theta\|\to\infty\); consequently a marginal maximizer \(\theta_\star\) exists;
+
+\item for \(N\ge1\), the image of the Gibbs target \(\Pi_N\) under the parameter projection \(P_\theta\) is the probability measure
+
+\end{itemize}
+
+\[\pi_N^\theta(d\theta)=\frac{\ell(\theta)^N\,d\theta}{\int_{\mathbb R^{d_\theta}}\ell(u)^N\,du},\qquad0<\int\ell^N<\infty,\qquad\int\|\theta\|^2\,d\pi_N^\theta<\infty .\]
+
+
+The last identity is the reason why the interacting particle algorithm estimates a marginal maximizer: under the target, the parameter has density proportional to the \(N\)-th power of the marginal likelihood. Its proof integrates out the \(N\) latent blocks: with \(x^i=\sqrt Nz_i\), the latent integral of \(e^{-V_N}\) at fixed \(\theta\) factorizes into \(N\) copies of \(\ell(\theta)\), multiplied by the Jacobian \(N^{-Nd_x/2}\) of the dilation; this constant and the constant from the regrouping of coordinates do not depend on \(\theta\) and cancel after normalization. All integrals are taken in \([0,\infty]\) until finiteness has been proved. Strong convexity of \(-\log\ell\) and the concentration of \(\pi_N^\theta\) are proved in the following sections.
 
 
 
 Earlier results used here: \cite[Section~3.26]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Orthogonal decomposition of the pair norm}{Orthogonal decomposition of the pair norm}}
+\section{\texorpdfstring{The norm of a parameter–latent pair}{The norm of a parameter–latent pair}}
 
 
-The joint vector has parameter coordinates \(\theta_j\) and latent coordinates \(x_j\). Their orthogonal decomposition gives
-
-\[\|\operatorname{pair}(\theta,x)\|^2=\|\theta\|^2+\|x\|^2.\]
-
-The map \((\theta,x)\mapsto\operatorname{pair}(\theta,x)\) is continuous because each of its finitely many output coordinates is a continuous coordinate projection. It follows that continuous joint potentials have continuous parameter and latent slices. The norm identity also factors a Gaussian in the joint norm into a parameter Gaussian and a latent Gaussian. These facts justify the domination and continuity arguments for the latent integral.
+\textbf{Claim.} For \(\theta\in\mathbb R^{d_\theta}\) and \(x\in\mathbb R^{d_x}\), the pair \((\theta,x)\in\mathcal J\) has parameter coordinates \(\theta_j\) and latent coordinates \(x_j\), and
 
 
+\[\|(\theta,x)\|^2=\|\theta\|^2+\|x\|^2 .\qquad(1)\]
 
-\section{\texorpdfstring{A uniform Gaussian majorant for the latent integral}{A uniform Gaussian majorant for the latent integral}}
 
-
-Assume positive strong convexity and differentiability. Bounding the affine term in the supporting quadratic at zero gives
-
-\[U(v)\ge U(0)-\frac{\|\nabla U(0)\|^2}{m}+\frac m4\|v\|^2.\]
-
-Set \(C=\exp(\|\nabla U(0)\|^2/m-U(0))\) and \(a=m/4>0\). Orthogonality of the pair coordinates and exponentiation imply
-
-\[e^{-U(\theta,x)}\le Ce^{-a\|\theta\|^2}e^{-a\|x\|^2}\le Ce^{-a\|x\|^2}.\]
-
-The last function is integrable in the latent variable and independent of \(\theta\). Indeed the norm decomposition is \(\|\operatorname{pair}(\theta,x)\|^2=\|\theta\|^2+\|x\|^2\); discarding the nonnegative parameter term leaves a Gaussian in \(x\) uniform over \(\theta\). Continuity gives measurability, and Gaussian domination gives integrability of each slice. Strict positivity of the exponential then implies positivity of its integral.
+Moreover the map \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\to\mathcal J\), \((\theta,x)\mapsto(\theta,x)\), is continuous (for the product topology on the left).
 
 
 
-The lower bound follows directly from \(U(v)\ge U(0)+\langle\nabla U(0),v\rangle+(m/2)\|v\|^2\) and Young’s inequality \(\langle\nabla U(0),v\rangle\ge-\|\nabla U(0)\|^2/m-(m/4)\|v\|^2\). Subtracting the latter quadratic loss from the strong-convexity term leaves a strictly positive quadratic coefficient. The finite Gaussian integral is valid also in dimension zero. No restriction to a bounded parameter neighborhood is required.
+
+\textbf{Proof.} The coordinate formulas hold by definition of the pair. The squared Euclidean norm of \((\theta,x)\) is the sum of the squares of its coordinates; splitting this sum over the parameter indices and the latent indices gives \(\sum_j\theta_j^2+\sum_jx_j^2=\|\theta\|^2+\|x\|^2\). A map into the Euclidean space \(\mathcal J\) is continuous if each of its finitely many coordinates is continuous, and each coordinate of the pair is a coordinate projection of \(\theta\) or of \(x\), which is continuous. \(\square\)
 
 
+
+
+By (1), a Gaussian factor in the joint norm splits into a parameter factor and a latent factor, and continuity of \(U\) gives continuity of \((\theta,x)\mapsto U(\theta,x)\) and of its slices.
+
+\begin{leanbox}{Lean: \texttt{pair\_\allowbreak{}parameter}, \texttt{pair\_\allowbreak{}particle}, \texttt{norm\_\allowbreak{}pair\_\allowbreak{}sq} and 1 more}
+\leansource{\texttt{pair\_\allowbreak{}parameter} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 29–31}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ pair\_parameter\ \{dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{pair\ θ\ x\ (Sum.inl\ j)\ =\ θ\ j}
+\end{leancode}
+\leansource{\texttt{pair\_\allowbreak{}particle} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 33–35}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ pair\_particle\ \{dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{pair\ θ\ x\ (Sum.inr\ j)\ =\ x\ j}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}pair\_\allowbreak{}sq} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 39–41}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_pair\_sq\ \{dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{‖pair\ θ\ x‖\ \textasciicircum{}\ 2\ =\ ‖θ‖\ \textasciicircum{}\ 2\ +\ ‖x‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}pair} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 44–50}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_pair\ \{dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{Continuous\ (fun\ p\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ ×\ EuclideanSpace\ ℝ\ (Fin\ dx)\ ↦}
+\leanline{6}{pair\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pair\_\allowbreak{}parameter} and \texttt{pair\_\allowbreak{}particle} are the coordinate formulas, proved by \texttt{simp [pair]}; as simplification lemmas they are used automatically later. \texttt{norm\_\allowbreak{}pair\_\allowbreak{}sq} is (1), proved by \texttt{simp only [Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq, Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type, pair\_\allowbreak{}parameter, pair\_\allowbreak{}particle]}: squared norm as a sum of squares, splitting of the sum over the disjoint union, and the coordinate formulas. \texttt{continuous\_\allowbreak{}pair} states continuity of \texttt{fun p \ensuremath{\mapsto} pair p.\allowbreak{}1 p.\allowbreak{}2} on the product type; the proof composes the continuity of the identification \texttt{Pi\allowbreak{}Lp.\allowbreak{}continuous\_\allowbreak{}to\allowbreak{}Lp} with \texttt{continuous\_\allowbreak{}pi} (coordinatewise continuity), splits the coordinate with \texttt{cases j}, and closes each case with \texttt{fun\_\allowbreak{}prop}.
+\end{leanbox}
+
+\section{\texorpdfstring{A Gaussian bound on the joint density}{A Gaussian bound on the joint density}}
+
+
+Put \(a=m/4\) and \(C_U=\exp\bigl(\|\nabla U(0)\|^2/m-U(0)\bigr)\).
+
+
+
+
+\textbf{Claim.} Let \(m>0\) and let \(U\) be differentiable and \(m\)-strongly convex. Then for all \(\theta\in\mathbb R^{d_\theta}\) and \(x\in\mathbb R^{d_x}\),
+
+
+\[e^{-U(\theta,x)}\le C_U\,e^{-a\|\theta\|^2}\,e^{-a\|x\|^2}\qquad\text{and}\qquad\bigl|e^{-U(\theta,x)}\bigr|\le C_U\,e^{-a\|x\|^2},\qquad(2)\]
+
+
+and for every \(\theta\) the function \(x\mapsto e^{-U(\theta,x)}\) is Lebesgue integrable on \(\mathbb R^{d_x}\).
+
+
+
+
+\textbf{Proof.} We use the quadratic lower bound \cite[Section~3.26.5]{LangevinLean2026ULASC}: for every \(v\in\mathcal J\),
+
+
+\[U(v)\ge U(0)-\frac{\|\nabla U(0)\|^2}m+\frac m4\|v\|^2 .\]
+
+
+It follows from the first-order inequality \(U(v)\ge U(0)+\langle\nabla U(0),v\rangle+\frac m2\|v\|^2\) of a differentiable \(m\)-strongly convex function and from Young's inequality \(\|\nabla U(0)\|\,\|v\|\le\frac m4\|v\|^2+\frac1m\|\nabla U(0)\|^2\), which bounds the linear term from below by \(-\frac m4\|v\|^2-\frac1m\|\nabla U(0)\|^2\). Take \(v=(\theta,x)\) and use (1):
+
+
+\[-U(\theta,x)\le\Bigl(\frac{\|\nabla U(0)\|^2}m-U(0)\Bigr)-a\|\theta\|^2-a\|x\|^2 .\]
+
+
+The exponential function is increasing and \(e^{s+t+u}=e^se^te^u\), which gives the first inequality in (2). Since \(-a\|\theta\|^2\le0\), \(e^{-a\|\theta\|^2}\le1\), and since \(e^{-U}>0\) its absolute value is itself; this gives the second inequality. Finally, \(x\mapsto e^{-a\|x\|^2}\) is integrable on \(\mathbb R^{d_x}\) (a Gaussian function; for \(d_x=0\) the space is a point of measure one), \(x\mapsto e^{-U(\theta,x)}\) is continuous and hence measurable, and it is dominated by the integrable function \(C_Ue^{-a\|x\|^2}\); a measurable function dominated by an integrable one is integrable. \(\square\)
+
+
+
+
+The second bound in (2) does not depend on \(\theta\); it is the dominating function used for continuity, and the first bound, which keeps the parameter factor, gives the decay of \(\ell\) at infinity.
+
+\begin{leanbox}{Lean: \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}gaussian\_\allowbreak{}bound}, \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}uniform\_\allowbreak{}bound}, \texttt{integrable\_\allowbreak{}marginal\_\allowbreak{}weight}}
+\leansource{\texttt{marginal\_\allowbreak{}weight\_\allowbreak{}gaussian\_\allowbreak{}bound} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 53–64}
+\begin{leancode}
+\leanline{0}{theorem\ marginal\_weight\_gaussian\_bound\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{Real.exp\ (-U\ (pair\ θ\ x))\ ≤}
+\leanline{6}{Real.exp\ (‖gradient\ U\ 0‖\ \textasciicircum{}\ 2\ /\ m\ -\ U\ 0)\ *}
+\leanline{8}{Real.exp\ (-(m\ /\ 4)\ *\ ‖θ‖\ \textasciicircum{}\ 2)\ *\ Real.exp\ (-(m\ /\ 4)\ *\ ‖x‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leansource{\texttt{marginal\_\allowbreak{}weight\_\allowbreak{}uniform\_\allowbreak{}bound} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 68–82}
+\begin{leancode}
+\leanline{0}{theorem\ marginal\_weight\_uniform\_bound\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{‖Real.exp\ (-U\ (pair\ θ\ x))‖\ ≤}
+\leanline{6}{Real.exp\ (‖gradient\ U\ 0‖\ \textasciicircum{}\ 2\ /\ m\ -\ U\ 0)\ *\ Real.exp\ (-(m\ /\ 4)\ *\ ‖x‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leansource{\texttt{integrable\_\allowbreak{}marginal\_\allowbreak{}weight} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 85–96}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_marginal\_weight\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ Real.exp\ (-U\ (pair\ θ\ x)))\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+All three theorems take \texttt{hm : 0 < m}, \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U} and \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m U}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}gaussian\_\allowbreak{}bound} is the first inequality of (2). After \texttt{rw [← Real.\allowbreak{}exp\_\allowbreak{}add, ← Real.\allowbreak{}exp\_\allowbreak{}add]} merges the three exponentials, \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp.\allowbreak{}mpr} reduces it to the inequality of exponents; \texttt{hb} is the library's quadratic lower bound \texttt{ULA.\allowbreak{}strong\allowbreak{}Convex\_\allowbreak{}quadratic\_\allowbreak{}lower\_\allowbreak{}bound} at \texttt{pair \ensuremath{\theta} x}, rewritten with \texttt{norm\_\allowbreak{}pair\_\allowbreak{}sq}, and \texttt{linarith} concludes.
+
+\item \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}uniform\_\allowbreak{}bound} is the second inequality, stated for the norm (absolute value) \texttt{\ensuremath{\Vert}Real.\allowbreak{}exp (-\allowbreak{}U (pair \ensuremath{\theta} x))\ensuremath{\Vert}}. \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}pos} remove the absolute value; \texttt{he} is \(e^{-a\|\theta\|^2}\le1\), from \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff} and \texttt{nlinarith}; the \texttt{calc} block replaces that factor by \(1\) using \texttt{gcongr}.
+
+\item \texttt{integrable\_\allowbreak{}marginal\_\allowbreak{}weight} applies \texttt{hi.\allowbreak{}mono'}: \texttt{hi} is the integrability of \(C_Ue^{-a\|x\|^2}\), from the library lemma \texttt{ULA.\allowbreak{}integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}sq} multiplied by a constant (\texttt{const\_\allowbreak{}mul}); the measurability argument is continuity of the integrand (\texttt{aestrongly\allowbreak{}Measurable} of a continuous function built from \texttt{continuous\_\allowbreak{}pair}); and the domination is \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}uniform\_\allowbreak{}bound} at every point (\texttt{ae\_\allowbreak{}of\_\allowbreak{}all}).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.4]{LangevinLean2026ULASC}; \cite[Section~3.26.5]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Positivity, finiteness, and continuity of the marginal}{Positivity, finiteness, and continuity of the marginal}}
+\section{\texorpdfstring{Finiteness, positivity and continuity of the marginal density}{Finiteness, positivity and continuity of the marginal density}}
 
 
-Define \(M(\theta)=\int e^{-U(\theta,x)}dx\). The nonnegative slice integrand is integrable, so its extended integral equals the ordinary real integral \(M(\theta)\) and is finite. Strict positivity of the integrand under nonzero Euclidean volume gives \(M(\theta)>0\). For a sequence \(\theta_n\to\theta\), continuity of \(U\) gives pointwise convergence of the latent integrands. Their common integrable Gaussian majorant permits dominated convergence, proving continuity of \(M\).
+For each \(\theta\), let \(\lambda(\theta)=\int_{\mathbb R^{d_x}}e^{-U(\theta,x)}\,dx\in\mathbb R\) be the Lebesgue integral of the integrable function of the previous step.
 
 
 
-In particular \(M(\theta)\) is positive without requiring a lower Gaussian bound: a positive continuous integrand has positive integral on a sufficiently small ball, with the dimension-zero case given by the one-point volume measure. The upper majorant proves finiteness. These positive finite values justify the real logarithm in the marginal potential.
+
+\textbf{Claim.} Let \(m>0\) and let \(U\) be differentiable and \(m\)-strongly convex. Then for every \(\theta\),
 
 
+\[\ell(\theta)=\lambda(\theta),\qquad0<\ell(\theta)<\infty,\]
+
+
+and both \(\lambda:\mathbb R^{d_\theta}\to\mathbb R\) and \(\ell:\mathbb R^{d_\theta}\to[0,\infty]\) are continuous.
+
+
+
+
+\textbf{Proof.} \emph{Equality and finiteness.} For a nonnegative integrable function, the integral computed in \([0,\infty]\) equals its Lebesgue integral, which is a finite real number. Applied to \(x\mapsto e^{-U(\theta,x)}\), this gives \(\ell(\theta)=\lambda(\theta)<\infty\).
+
+
+
+
+\emph{Positivity.} The integrand is strictly positive everywhere. If its integral were \(0\), the nonnegative integrand would vanish almost everywhere, which is impossible because Lebesgue measure of \(\mathbb R^{d_x}\) is positive. Hence \(\lambda(\theta)>0\).
+
+
+
+
+\emph{Continuity.} Let \(\theta_n\to\theta\). For each \(x\), \(e^{-U(\theta_n,x)}\to e^{-U(\theta,x)}\) because \(U\) and the pairing are continuous. By (2) all integrands are bounded by \(C_Ue^{-a\|x\|^2}\), which is integrable and independent of \(n\). The dominated convergence theorem gives \(\lambda(\theta_n)\to\lambda(\theta)\); since \(\mathbb R^{d_\theta}\) is a metric space, sequential continuity is continuity. Finally \(\ell\) is the composition of \(\lambda\) with the continuous inclusion \([0,\infty)\to[0,\infty]\). \(\square\)
+
+
+
+
+Thus the marginal density of the definition is a continuous, finite and positive function, and \(-\log\ell\) is a real-valued function; a maximizer of \(\ell\) cannot have infinite marginal likelihood.
+
+\begin{leanbox}{Lean: \texttt{marginalDensity\_\allowbreak{}eq\_\allowbreak{}ofReal\_\allowbreak{}integral}, \texttt{marginalDensity\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{marginalDensity\_\allowbreak{}pos} and 2 more}
+\leansource{\texttt{marginalDensity\_\allowbreak{}eq\_\allowbreak{}ofReal\_\allowbreak{}integral} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 99–105}
+\begin{leancode}
+\leanline{0}{theorem\ marginalDensity\_eq\_ofReal\_integral\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{marginalDensity\ U\ θ\ =\ ENNReal.ofReal\ (∫\ x,\ Real.exp\ (-U\ (pair\ θ\ x))\ ∂volume)}
+\end{leancode}
+\leansource{\texttt{marginalDensity\_\allowbreak{}ne\_\allowbreak{}top} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 108–113}
+\begin{leancode}
+\leanline{0}{theorem\ marginalDensity\_ne\_top\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{marginalDensity\ U\ θ\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{marginalDensity\_\allowbreak{}pos} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 116–122}
+\begin{leancode}
+\leanline{0}{theorem\ marginalDensity\_pos\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{0\ <\ marginalDensity\ U\ θ}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}marginal\_\allowbreak{}integral} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 125–140}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_marginal\_integral\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Continuous\ (fun\ θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ ↦}
+\leanline{6}{∫\ x,\ Real.exp\ (-U\ (pair\ θ\ x))\ ∂volume)}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}marginalDensity} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 143–151}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_marginalDensity\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :\ Continuous\ (marginalDensity\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{marginal\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}of\allowbreak{}Real\_\allowbreak{}integral} states \texttt{marginal\allowbreak{}Density U \ensuremath{\theta} = ENNReal.\allowbreak{}of\allowbreak{}Real (\ensuremath{\int} x, Real.\allowbreak{}exp (-\allowbreak{}U (pair \ensuremath{\theta} x)) \ensuremath{\partial}volume)}, i.e. \(\ell=\lambda\) with \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} the inclusion of \([0,\infty)\) into \([0,\infty]\). It is the Mathlib lemma \texttt{of\allowbreak{}Real\_\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}of\allowbreak{}Real} (for an integrable, almost everywhere nonnegative function the two integrals agree), used backwards with \texttt{integrable\_\allowbreak{}marginal\_\allowbreak{}weight}.
+
+\item \texttt{marginal\allowbreak{}Density\_\allowbreak{}ne\_\allowbreak{}top} (\(\ell(\theta)\ne\infty\)) rewrites with the previous equality and uses \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}ne\_\allowbreak{}top}.
+
+\item \texttt{marginal\allowbreak{}Density\_\allowbreak{}pos} uses \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}pos} and the Mathlib lemma \texttt{integral\_\allowbreak{}exp\_\allowbreak{}pos}: the integral of an integrable function of the form \(e^{f}\) against a nonzero measure is positive.
+
+\item \texttt{continuous\_\allowbreak{}marginal\_\allowbreak{}integral} is continuity of \(\lambda\), by Mathlib's dominated-convergence continuity theorem \texttt{continuous\_\allowbreak{}of\_\allowbreak{}dominated} with \texttt{bound} the function \(C_Ue^{-a\|x\|^2}\). Its four obligations are measurability of each slice, the bound \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}uniform\_\allowbreak{}bound}, integrability of the bound, and continuity in \(\theta\) of the integrand at each fixed \(x\).
+
+\item \texttt{continuous\_\allowbreak{}marginal\allowbreak{}Density} rewrites \texttt{marginal\allowbreak{}Density U} as the composition (\texttt{heq}) and applies \texttt{ENNReal.\allowbreak{}continuous\_\allowbreak{}of\allowbreak{}Real.\allowbreak{}comp}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.4]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Existence of a marginal maximizer from Gaussian decay}{Existence of a marginal maximizer from Gaussian decay}}
+\section{\texorpdfstring{Decay at infinity and existence of a marginal maximizer}{Decay at infinity and existence of a marginal maximizer}}
 
 
-Integrating the Gaussian majorant without discarding its parameter factor gives
-
-\[0<M(\theta)\le C\left(\int e^{-a\|x\|^2}dx\right)e^{-a\|\theta\|^2}.\]
-
-The multiplicative constant is independent of \(\theta\), and the bound tends to zero as \(\theta\) tends to infinity. Thus \(M(\theta)\to0\). Since \(M(0)>0\), values outside a sufficiently large ball are smaller than \(M(0)\). Continuity and compactness then give a global maximum inside the ball.
+Put \(G=\int_{\mathbb R^{d_x}}e^{-a\|x\|^2}\,dx<\infty\).
 
 
 
-In abbreviated form the bound is \(M(\theta)\le C e^{-c\|\theta\|^2}\) with finite \(C\) and \(c>0\). Continuity of \(M\) and the tail limit \(M(\theta)\to0\) as \(\|\theta\|\to\infty\) imply attainment because \(M\) is positive at a fixed parameter. Quantitatively, choose \(R\) so that the upper bound is less than \(M(0)/2\) whenever \(\|\theta\|>R\). The maximum on the closed ball of radius \(R\) is at least \(M(0)\) and exceeds all values outside. This proves existence without differentiating the marginal. Uniqueness follows later from strong convexity of its negative logarithm.
+
+\textbf{Claim.} Let \(m>0\) and let \(U\) be differentiable and \(m\)-strongly convex. Then
 
 
+
+
+(a) \(\lambda(\theta)\le C_U\,G\,e^{-a\|\theta\|^2}\) for every \(\theta\);
+
+
+
+
+(b) \(\lambda(\theta)\to0\) as \(\theta\) leaves every compact set, i.e. for every \(\varepsilon>0\) there is a compact \(K\subseteq\mathbb R^{d_\theta}\) with \(\lambda(\theta)<\varepsilon\) for \(\theta\notin K\);
+
+
+
+
+(c) there exists a marginal maximizer: some \(\theta_\star\) satisfies \(\ell(\theta)\le\ell(\theta_\star)\) for all \(\theta\).
+
+
+
+
+\textbf{Proof.} (a) Integrate the first inequality of (2) in \(x\): both sides are integrable, the integral is monotone, and the factor \(C_Ue^{-a\|\theta\|^2}\) does not depend on \(x\).
+
+
+
+
+(b) Let \(\varepsilon>0\). Since \(C_UGe^{-ar^2}\to0\) as \(r\to\infty\), there is \(R\) with \(C_UGe^{-a\|\theta\|^2}<\varepsilon\) whenever \(\|\theta\|>R\). The closed ball \(K=\{\|\theta\|\le R\}\) is compact in finite dimension, and by (a) and \(\lambda\ge0\), \(0\le\lambda(\theta)<\varepsilon\) for \(\theta\notin K\).
+
+
+
+
+(c) By the previous step \(\lambda(0)>0\). By (b) with \(\varepsilon=\lambda(0)\) there is a compact \(K\) with \(\lambda(\theta)<\lambda(0)\) for \(\theta\notin K\). The set \(K'=K\cup\{0\}\) is compact and nonempty and \(\lambda\) is continuous, so by the extreme value theorem \(\lambda\) attains its maximum over \(K'\) at some \(\theta_\star\in K'\). For \(\theta\in K'\), \(\lambda(\theta)\le\lambda(\theta_\star)\); for \(\theta\notin K'\), \(\lambda(\theta)<\lambda(0)\le\lambda(\theta_\star)\). Thus \(\theta_\star\) maximizes \(\lambda\) on \(\mathbb R^{d_\theta}\). Since \(\ell=\lambda\) and the inclusion \([0,\infty)\to[0,\infty]\) is monotone, \(\ell(\theta)\le\ell(\theta_\star)\) for all \(\theta\). \(\square\)
+
+
+
+
+No differentiability of \(\ell\) is used. If \(d_\theta=0\) the parameter space is a point and (c) is trivial. Uniqueness of the maximizer is proved in the section on strong log-concavity.
+
+\begin{leanbox}{Lean: \texttt{marginal\_\allowbreak{}integral\_\allowbreak{}gaussian\_\allowbreak{}bound}, \texttt{tendsto\_\allowbreak{}marginal\_\allowbreak{}integral\_\allowbreak{}cocompact}, \texttt{exists\_\allowbreak{}marginalMaximizer}}
+\leansource{\texttt{marginal\_\allowbreak{}integral\_\allowbreak{}gaussian\_\allowbreak{}bound} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 155–169}
+\begin{leancode}
+\leanline{0}{theorem\ marginal\_integral\_gaussian\_bound\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{(∫\ x,\ Real.exp\ (-U\ (pair\ θ\ x))\ ∂volume)\ ≤}
+\leanline{6}{(Real.exp\ (‖gradient\ U\ 0‖\ \textasciicircum{}\ 2\ /\ m\ -\ U\ 0)\ *}
+\leanline{8}{(∫\ x\ :\ EuclideanSpace\ ℝ\ (Fin\ dx),\ Real.exp\ (-(m\ /\ 4)\ *\ ‖x‖\ \textasciicircum{}\ 2)\ ∂volume))\ *}
+\leanline{10}{Real.exp\ (-(m\ /\ 4)\ *\ ‖θ‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leansource{\texttt{tendsto\_\allowbreak{}marginal\_\allowbreak{}integral\_\allowbreak{}cocompact} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 172–189}
+\begin{leancode}
+\leanline{0}{theorem\ tendsto\_marginal\_integral\_cocompact\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{Tendsto\ (fun\ θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ ↦}
+\leanline{6}{∫\ x,\ Real.exp\ (-U\ (pair\ θ\ x))\ ∂volume)\ (cocompact\ \_)\ ({\leanfallback 𝓝}\ 0)}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}marginalMaximizer} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 193–206}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_marginalMaximizer\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{∃\ θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ),\ IsMarginalMaximizer\ U\ θ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{marginal\_\allowbreak{}integral\_\allowbreak{}gaussian\_\allowbreak{}bound} is (a). \texttt{hi} is integrability of the right side of (2) as a function of \(x\); \texttt{hb} is \texttt{integral\_\allowbreak{}mono} (monotonicity of the integral of integrable functions) applied to the pointwise bound \texttt{marginal\_\allowbreak{}weight\_\allowbreak{}gaussian\_\allowbreak{}bound}; \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul} pulls out the constant and \texttt{ring} reorders the product.
+
+\item \texttt{tendsto\_\allowbreak{}marginal\_\allowbreak{}integral\_\allowbreak{}cocompact} is (b) in filter notation: \texttt{Tendsto f (cocompact \_\allowbreak{}) ({\leanfallback 𝓝} 0)} means \(f(\theta)\to0\) as \(\theta\) leaves every compact set. \texttt{hn} states \(\|\theta\|^2\to\infty\), from \texttt{tendsto\_\allowbreak{}norm\_\allowbreak{}cocompact\_\allowbreak{}at\allowbreak{}Top} (\(\|\theta\|\to\infty\) along the cocompact filter) and \texttt{at\allowbreak{}Top\_\allowbreak{}mul\_\allowbreak{}at\allowbreak{}Top\ensuremath{{}_{0}}}; \texttt{he} states \(e^{-a\|\theta\|^2}\to0\), from \texttt{tendsto\_\allowbreak{}const\_\allowbreak{}mul\_\allowbreak{}at\allowbreak{}Bot\_\allowbreak{}of\_\allowbreak{}neg} and \texttt{Real.\allowbreak{}tendsto\_\allowbreak{}exp\_\allowbreak{}at\allowbreak{}Bot}; \texttt{squeeze\_\allowbreak{}zero} concludes from \(0\le\lambda\le C_UGe^{-a\|\theta\|^2}\).
+
+\item \texttt{exists\_\allowbreak{}marginal\allowbreak{}Maximizer} concludes \texttt{\ensuremath{\exists} \ensuremath{\theta}, Is\allowbreak{}Marginal\allowbreak{}Maximizer U \ensuremath{\theta}}. \texttt{hpos} is \(\lambda(0)>0\); \texttt{he} is the eventual inequality \(\lambda(\theta)<\lambda(0)\) along the cocompact filter (\texttt{eventually\_\allowbreak{}lt\_\allowbreak{}const}); Mathlib's \texttt{Continuous.\allowbreak{}exists\_\allowbreak{}forall\_\allowbreak{}ge'}, invoked as \texttt{exists\_\allowbreak{}forall\_\allowbreak{}ge'}, is the extreme-value argument of (c): a continuous function that is eventually at most its value at a point attains a global maximum. The last lines translate \(\lambda(\theta')\le\lambda(\theta_\star)\) to the extended values with \texttt{marginal\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}of\allowbreak{}Real\_\allowbreak{}integral} and \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.4]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Product integration and the dilation determinant}{Product integration and the dilation determinant}}
+\section{\texorpdfstring{Product integrals and the dilation of the latent blocks}{Product integrals and the dilation of the latent blocks}}
 
 
-For nonnegative measurable functions, induction over \(n\) using Tonelli’s theorem gives
-
-\[\int\prod_{i=1}^nf(x_i)\,d\mu^{\otimes n}=\left(\int f\,d\mu\right)^n.\]
-
-The empty product has integral one; separating the last coordinate proves the induction step. The formula holds as an extended integral even before finiteness is known. For a nonzero dilation \(r\) in dimension \(d\), change of variables gives \(\int f(rx)dx=|r^d|^{-1}\int f(x)dx\). Applying this with \(r=\sqrt N\) under \(N>0\) yields
-
-\[\int\prod_i e^{-U(\theta,\sqrt N z_i)}\,dz_1\cdots dz_N=\left(N^{-d_x/2}M(\theta)\right)^N.\]
-
-For fixed \(\theta\), the exponential of the summed potential is \(\prod_i e^{-U(\theta,\sqrt N z_i)}\). In each block the substitution \(x_i=\sqrt N z_i\) contributes the inverse determinant \(N^{-d_x/2}\). The full latent integral is therefore \(N^{-Nd_x/2}M(\theta)^N\). This factor is finite and positive under \(N>0\) and independent of \(\theta\).
+\textbf{Claim.} (a) Let \(\mu\) be a \(\sigma\)-finite measure on a measurable space \(E\), \(f:E\to[0,\infty]\) measurable and \(n\in\mathbb N\). Then
 
 
+\[\int_{E^n}\prod_{i=1}^nf(x_i)\,d\mu^{\otimes n}(x)=\Bigl(\int_Ef\,d\mu\Bigr)^n\quad\text{in }[0,\infty].\]
 
-The determinant of dilation by \(\sqrt N\) in one block is \(N^{d_x/2}\); the integral uses its reciprocal. Repeating the change in \(N\) blocks gives the displayed common factor. Since every slice integral has already been shown positive and finite, the extended product identity can then be read as an ordinary finite identity.
+
+(b) Let \(E\) be a finite-dimensional real normed space of dimension \(d\) with an additive Haar measure \(\mu\) (for instance Lebesgue measure), \(f:E\to[0,\infty]\) measurable and \(r\ne0\). Then \(\int f(rx)\,d\mu(x)=|r^d|^{-1}\int f\,d\mu\).
 
 
 
-\section{\texorpdfstring{A linear equivalence with parameter–particle product coordinates}{A linear equivalence with parameter–particle product coordinates}}
+
+(c) Let \(N\ge1\), let \(U\) be differentiable and \(\theta\in\mathbb R^{d_\theta}\). Then
 
 
-Define \(C(\theta,(z_i)_i)\) by inserting the parameter coordinates followed by all latent blocks. Its inverse is \(z\mapsto(p_\theta z,(\operatorname{block}_iz)_i)\). Coordinatewise evaluation proves the inverse identities and linearity, so both directions are continuous in finite dimension. In particular \(p_\theta C(\theta,z)=\theta\) and \(A_iC(\theta,z)=\operatorname{pair}(\theta,\sqrt N z_i)\).
+\[\int_{(\mathbb R^{d_x})^N}\prod_{i=1}^Ne^{-U(\theta,\sqrt Nz_i)}\,dz_1\cdots dz_N=\Bigl(\bigl|(\sqrt N)^{d_x}\bigr|^{-1}\,\ell(\theta)\Bigr)^N=N^{-Nd_x/2}\,\ell(\theta)^N\quad\text{in }[0,\infty].\]
 
 
-
-Thus grouping the coordinates gives a linear bijection of the full state spaces. The potential in product coordinates is evaluated at the same parameter and physical particles. Product integration and density projection may consequently be performed in these coordinates, with the associated volume factor accounted for separately.
-
-
-
-\section{\texorpdfstring{The density of the projected unnormalized measure}{The density of the projected unnormalized measure}}
-
-
-The finite sum defining \(V_N\) gives the exponential factorization
-
-\[e^{-V_N(C(\theta,z))}=\prod_i e^{-U(\theta,\sqrt N z_i)}.\]
-
-Two measure identities justify integration in the grouped coordinates. For a measurable equivalence \(e\), the pushforward of \(\mu\) with density \(w\circ e\) under \(e\) is \((e_\#\mu)\) with density \(w\). This follows by integration over an arbitrary measurable set. Moreover the first-coordinate projection of \(w(\theta,z)d\mu(\theta)d\nu(z)\) has density \(\int w(\theta,z)d\nu(z)\) with respect to \(\mu\), by Tonelli’s theorem.
+\textbf{Proof.} (a) Induction on \(n\). For \(n=0\), \(E^0\) is a single point, \(\mu^{\otimes0}\) is the unit point mass and the empty product equals \(1\), so both sides equal \(1\). For the inductive step, the map \(x\mapsto(x_1,(x_2,\dots,x_{n+1}))\) carries \(\mu^{\otimes(n+1)}\) to \(\mu\otimes\mu^{\otimes n}\), so the integral over \(E^{n+1}\) equals the integral over \(E\times E^n\) of \(f(x_1)\cdot\prod_{i=2}^{n+1}f(x_i)\). By Tonelli's theorem, the integral of a product of a nonnegative function of the first variable and one of the second is the product of the integrals; by the induction hypothesis this is \(\bigl(\int f\bigr)\bigl(\int f\bigr)^n=\bigl(\int f\bigr)^{n+1}\). No finiteness is needed, since Tonelli's theorem holds in \([0,\infty]\).
 
 
 
-For a measurable parameter set \(A\), this projection identity integrates \(\mathbf 1_A(\theta)e^{-V_N(\theta,z)}\) over both coordinate groups. Integrating the latent coordinates first gives a function of \(\theta\), and integrating that function over \(A\) gives the projected measure of the set. Equality for every measurable \(A\) identifies the measures. Substitution of the exponential factorization then gives the explicit fiber density.
+
+(b) The image of \(\mu\) under \(x\mapsto rx\) is \(|r^d|^{-1}\mu\): it is again translation invariant, and it gives the unit-scaled sets the mass \(\mu(r^{-1}A)=|r|^{-d}\mu(A)\). By the change-of-variables formula for image measures, \(\int f(rx)\,d\mu(x)=\int f\,d(r\cdot)_\#\mu=|r^d|^{-1}\int f\,d\mu\).
 
 
+
+
+(c) Lebesgue measure on \((\mathbb R^{d_x})^N\) is the \(N\)-fold product of Lebesgue measure on \(\mathbb R^{d_x}\). The function \(f(z)=e^{-U(\theta,\sqrt Nz)}\) is continuous, hence measurable, and (a) gives \(\bigl(\int f\bigr)^N\). By (b) with \(r=\sqrt N\ne0\) (as \(N\ge1\)) and \(d=d_x\), \(\int f=|(\sqrt N)^{d_x}|^{-1}\int e^{-U(\theta,x)}dx=|(\sqrt N)^{d_x}|^{-1}\ell(\theta)\). \(\square\)
+
+
+
+
+With \(x^i=\sqrt Nz_i\), (c) is the latent integral of the Gibbs weight at a fixed parameter: the substitution in each of the \(N\) blocks produces the factor \(N^{-d_x/2}\), and the blocks contribute independent copies of \(\ell(\theta)\). The constant \(N^{-Nd_x/2}\in(0,\infty)\) does not depend on \(\theta\). No convexity is used in this step.
+
+\begin{leanbox}{Lean: \texttt{lintegral\_\allowbreak{}fin\_\allowbreak{}prod\_\allowbreak{}eq\_\allowbreak{}pow}, \texttt{lintegral\_\allowbreak{}comp\_\allowbreak{}smul\_\allowbreak{}eq}, \texttt{scaled\_\allowbreak{}particle\_\allowbreak{}partition}}
+\leansource{\texttt{lintegral\_\allowbreak{}fin\_\allowbreak{}prod\_\allowbreak{}eq\_\allowbreak{}pow} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 211–227}
+\begin{leancode}
+\leanline{0}{theorem\ lintegral\_fin\_prod\_eq\_pow\ \{E\ :\ Type*\}\ [MeasurableSpace\ E]}
+\leanline{4}{(μ\ :\ Measure\ E)\ [SigmaFinite\ μ]\ (f\ :\ E\ →\ ℝ≥0∞)\ (hf\ :\ Measurable\ f)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(∫⁻\ x\ :\ Fin\ n\ →\ E,\ ∏\ i,\ f\ (x\ i)\ ∂Measure.pi\ (fun\ \_\ ↦\ μ))\ =}
+\leanline{6}{(∫⁻\ x,\ f\ x\ ∂μ)\ \textasciicircum{}\ n}
+\end{leancode}
+\leansource{\texttt{lintegral\_\allowbreak{}comp\_\allowbreak{}smul\_\allowbreak{}eq} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 230–238}
+\begin{leancode}
+\leanline{0}{theorem\ lintegral\_comp\_smul\_eq\ \{E\ :\ Type*\}\ [NormedAddCommGroup\ E]}
+\leanline{4}{[NormedSpace\ ℝ\ E]\ [FiniteDimensional\ ℝ\ E]\ [MeasurableSpace\ E]\ [BorelSpace\ E]}
+\leanline{4}{(μ\ :\ Measure\ E)\ [μ.IsAddHaarMeasure]}
+\leanline{4}{(f\ :\ E\ →\ ℝ≥0∞)\ (hf\ :\ Measurable\ f)\ (r\ :\ ℝ)\ (hr\ :\ r\ ≠\ 0)\ :}
+\leanline{4}{(∫⁻\ x,\ f\ (r\ •\ x)\ ∂μ)\ =}
+\leanline{6}{ENNReal.ofReal\ |(r\ \textasciicircum{}\ Module.finrank\ ℝ\ E)⁻¹|\ *\ ∫⁻\ x,\ f\ x\ ∂μ}
+\end{leancode}
+\leansource{\texttt{scaled\_\allowbreak{}particle\_\allowbreak{}partition} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 243–259}
+\begin{leancode}
+\leanline{0}{theorem\ scaled\_particle\_partition\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{(∫⁻\ x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx),}
+\leanline{6}{∏\ i,\ ENNReal.ofReal\ (Real.exp\ (-U\ (pair\ θ\ (Real.sqrt\ N\ •\ x\ i))))\ ∂volume)\ =}
+\leanline{6}{(ENNReal.ofReal\ |((Real.sqrt\ N)\ \textasciicircum{}\ dx)⁻¹|\ *\ marginalDensity\ U\ θ)\ \textasciicircum{}\ N}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{lintegral\_\allowbreak{}fin\_\allowbreak{}prod\_\allowbreak{}eq\_\allowbreak{}pow} is (a), with \texttt{[Sigma\allowbreak{}Finite \ensuremath{\mu}]}, \texttt{hf : Measurable f} and the product measure \texttt{Measure.\allowbreak{}pi (fun \_\allowbreak{} \ensuremath{\mapsto} \ensuremath{\mu})} on \texttt{Fin n \ensuremath{\to} E}; \texttt{\ensuremath{\int}\ensuremath{{}^{-}}} is the integral in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}. The proof is \texttt{induction n with}: the \texttt{zero} case is \texttt{simp [Measure.\allowbreak{}pi\_\allowbreak{}empty\_\allowbreak{}univ]} (the product measure on the one-point space has mass one); in the \texttt{succ} case, \texttt{hpres} is \texttt{measure\allowbreak{}Preserving\_\allowbreak{}pi\allowbreak{}Fin\allowbreak{}Succ\allowbreak{}Above (fun \_\allowbreak{} \ensuremath{\mapsto} \ensuremath{\mu}) 0}, the measure-preserving splitting of the first coordinate, used through \texttt{lintegral\_\allowbreak{}comp}; \texttt{simp only [.\allowbreak{}.\allowbreak{}.\allowbreak{}]} rewrites the product as \(f(x_0)\prod f(x_{i+1})\) (\texttt{Fin.\allowbreak{}prod\_\allowbreak{}univ\_\allowbreak{}succ}, \texttt{Fin.\allowbreak{}cons\_\allowbreak{}zero}, \texttt{Fin.\allowbreak{}cons\_\allowbreak{}succ}); \texttt{lintegral\_\allowbreak{}prod\_\allowbreak{}mul} is Tonelli's theorem for a product of functions of the two variables; \texttt{ih} and \texttt{pow\_\allowbreak{}succ} finish.
+
+\item \texttt{lintegral\_\allowbreak{}comp\_\allowbreak{}smul\_\allowbreak{}eq} is (b), stated for an additive Haar measure (\texttt{[\ensuremath{\mu}.\allowbreak{}Is\allowbreak{}Add\allowbreak{}Haar\allowbreak{}Measure]}) and with the factor \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real |(r \textasciicircum{} Module.\allowbreak{}finrank \ensuremath{\mathbb R} E)\ensuremath{{}^{-1}}|}. Its proof rewrites with \texttt{lintegral\_\allowbreak{}map} (change of variables for an image measure), the Mathlib scaling law \texttt{Measure.\allowbreak{}map\_\allowbreak{}add\allowbreak{}Haar\_\allowbreak{}smul} of Haar measure under dilation, and \texttt{lintegral\_\allowbreak{}smul\_\allowbreak{}measure}.
+
+\item \texttt{scaled\_\allowbreak{}particle\_\allowbreak{}partition} is (c) under \texttt{h\allowbreak{}N : 0 < N} and \texttt{hdiff}. \texttt{hf} and \texttt{hs} are measurability of the unscaled and scaled integrands, from continuity. \texttt{volume\_\allowbreak{}pi} identifies Lebesgue measure on \texttt{Fin N \ensuremath{\to} Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin dx)} with the product measure, then (a) and (b) are applied with \(r=\sqrt N\ne0\) (\texttt{Real.\allowbreak{}sqrt\_\allowbreak{}ne\_\allowbreak{}zero'}), and \texttt{finrank\_\allowbreak{}euclidean\allowbreak{}Space}, \texttt{Fintype.\allowbreak{}card\_\allowbreak{}fin} evaluate the dimension \(d_x\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Regrouping the state into parameter and particle blocks}{Regrouping the state into parameter and particle blocks}}
+
+
+\textbf{Definition.} Let \(\Theta=\mathbb R^{d_\theta}\) and \(\mathcal X=(\mathbb R^{d_x})^N\), with elements \((z_i)_{i=1}^N\). Define \(C:\Theta\times\mathcal X\to\mathcal Z\) by letting \(C(\theta,(z_i)_i)\) be the state with parameter block \(\theta\) and latent blocks \(z_1,\dots,z_N\), that is, \(C(\theta,z)_{(\theta,j)}=\theta_j\) and \(C(\theta,z)_{(i,j)}=z_{i,j}\).
+
+
+
+
+\textbf{Claim.} \(C\) is a linear bijection, with inverse \(w\mapsto(P_\theta w,(w_i)_{i=1}^N)\), and both \(C\) and its inverse are continuous. Moreover, for all \(\theta\), \(z\) and \(i\),
+
+
+\[P_\theta\,C(\theta,z)=\theta,\qquad J_i\,C(\theta,z)=\bigl(\theta,\sqrt N\,z_i\bigr).\]
+
+
+\textbf{Proof.} All statements are checked coordinatewise. The coordinates of \(C(\theta,z)\) are coordinates of \(\theta\) or of \(z\), so \(C\) is linear. Applying \(C\) after \(w\mapsto(P_\theta w,(w_i)_i)\) returns each coordinate of \(w\), and applying the inverse map after \(C\) returns \(\theta\) and each block \(z_i\); hence the two maps are mutually inverse. Linear maps between finite-dimensional spaces are continuous. The parameter coordinates of \(C(\theta,z)\) are those of \(\theta\), which gives \(P_\theta C(\theta,z)=\theta\); and the pair extraction \(J_i\) takes the parameter block and \(\sqrt N\) times block \(i\), which gives the last identity. \(\square\)
+
+
+
+
+The map \(C\) is the change of variables that lets the parameter and the latent blocks be integrated separately, as in the product integrals of the previous step.
+
+\begin{leanbox}{Lean: \texttt{configuration}, \texttt{configuration\_\allowbreak{}parameter}, \texttt{configuration\_\allowbreak{}particle} and 4 more}
+\leansource{\texttt{configuration} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 262–264}
+\begin{leancode}
+\leanline{0}{def\ configuration\ \{N\ dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :\ State\ N\ dθ\ dx\ :=}
+\leanline{2}{WithLp.toLp\ 2\ (Sum.elim\ θ\ (fun\ p\ ↦\ x\ p.1\ p.2))}
+\end{leancode}
+\leansource{\texttt{configuration\_\allowbreak{}parameter} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 266–268}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ configuration\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx))\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{configuration\ θ\ x\ (Sum.inl\ j)\ =\ θ\ j}
+\end{leancode}
+\leansource{\texttt{configuration\_\allowbreak{}particle} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 270–272}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ configuration\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx))\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{configuration\ θ\ x\ (Sum.inr\ (i,\ j))\ =\ x\ i\ j}
+\end{leancode}
+\leansource{\texttt{configurationCLE} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 275–299}
+\begin{leancode}
+\leanline{0}{def\ configurationCLE\ \{N\ dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{(EuclideanSpace\ ℝ\ (Fin\ dθ)\ ×\ (Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx)))\ ≃L[ℝ]\ State\ N\ dθ\ dx\ :=}
+\leanline{2}{LinearEquiv.toContinuousLinearEquiv}
+\leanline{4}{\{\ toFun\ :=\ fun\ p\ ↦\ configuration\ p.1\ p.2}
+\leanline{6}{invFun\ :=\ fun\ z\ ↦\ (parameterCLM\ z,\ fun\ i\ ↦\ block\ z\ i)}
+\leanline{6}{left\_inv\ :=\ by}
+\leanline{8}{intro\ p}
+\leanline{8}{apply\ Prod.ext}
+\leanline{8}{·\ ext\ j}
+\leanline{10}{rfl}
+\leanline{8}{·\ funext\ i}
+\leanline{10}{ext\ j}
+\leanline{10}{rfl}
+\leanline{6}{right\_inv\ :=\ by}
+\leanline{8}{intro\ z}
+\leanline{8}{ext\ j}
+\leanline{8}{cases\ j\ <;>\ rfl}
+\leanline{6}{map\_add'\ :=\ by}
+\leanline{8}{intro\ p\ q}
+\leanline{8}{ext\ j}
+\leanline{8}{cases\ j\ <;>\ rfl}
+\leanline{6}{map\_smul'\ :=\ by}
+\leanline{8}{intro\ a\ p}
+\leanline{8}{ext\ j}
+\leanline{8}{cases\ j\ <;>\ rfl\ \}}
+\end{leancode}
+\leansource{\texttt{configurationCLE\_\allowbreak{}apply} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 301–303}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ configurationCLE\_apply\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(p\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ ×\ (Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx)))\ :}
+\leanline{4}{configurationCLE\ p\ =\ configuration\ p.1\ p.2}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}configuration} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 305–308}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ parameter\_configuration\ \{N\ dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :\ parameterCLM\ (configuration\ θ\ x)\ =\ θ}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}configuration} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 310–314}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_configuration\ \{N\ dθ\ dx\ :\ ℕ\}\ (θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx))\ (i\ :\ Fin\ N)\ :}
+\leanline{4}{joint\ i\ (configuration\ θ\ x)\ =\ pair\ θ\ (Real.sqrt\ N\ •\ x\ i)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{configuration \ensuremath{\theta} x} is \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (Sum.\allowbreak{}elim \ensuremath{\theta} (fun p \ensuremath{\mapsto} x p.\allowbreak{}1 p.\allowbreak{}2))}, with \texttt{x : Fin N \ensuremath{\to} Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin dx)}; its coordinate formulas \texttt{configuration\_\allowbreak{}parameter} and \texttt{configuration\_\allowbreak{}particle} hold by \texttt{rfl}.
+
+\item \texttt{configuration\allowbreak{}CLE} is \(C\) as a continuous linear equivalence (\texttt{≃L[\ensuremath{\mathbb R}]}) from the product type to \texttt{State N d\ensuremath{\theta} dx}. It is built with \texttt{Linear\allowbreak{}Equiv.\allowbreak{}to\allowbreak{}Continuous\allowbreak{}Linear\allowbreak{}Equiv} (finite dimension gives continuity of both directions) from a linear equivalence whose fields are the forward map, \texttt{inv\allowbreak{}Fun := fun z \ensuremath{\mapsto} (parameter\allowbreak{}CLM z, fun i \ensuremath{\mapsto} block z i)}, the two inverse identities \texttt{left\_\allowbreak{}inv} and \texttt{right\_\allowbreak{}inv}, and linearity \texttt{map\_\allowbreak{}add'}, \texttt{map\_\allowbreak{}smul'}; each field is proved coordinatewise by \texttt{ext}, \texttt{cases j} and \texttt{rfl}. \texttt{configuration\allowbreak{}CLE\_\allowbreak{}apply} records its value by \texttt{rfl}.
+
+\item \texttt{parameter\_\allowbreak{}configuration} (\(P_\theta C(\theta,z)=\theta\)) is proved by \texttt{ext j; rfl}, and \texttt{joint\_\allowbreak{}configuration} (\(J_iC(\theta,z)=(\theta,\sqrt Nz_i)\)) by \texttt{ext j}, \texttt{cases j} and \texttt{simp [joint, pair, configuration]}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The Gibbs weight in grouped coordinates and two measure identities}{The Gibbs weight in grouped coordinates and two measure identities}}
+
+
+For a measure \(\mu\) and a measurable \(w\ge0\), \(w\cdot\mu\) denotes the measure \(A\mapsto\int_Aw\,d\mu\).
+
+
+
+
+\textbf{Claim.} (a) For all \(\theta\) and \(z=(z_i)_i\), \(e^{-V_N(C(\theta,z))}=\prod_{i=1}^Ne^{-U(\theta,\sqrt Nz_i)}\).
+
+
+
+
+(b) Let \(e:A\to B\) be a measurable bijection with measurable inverse, \(\mu\) a measure on \(A\) and \(w:B\to[0,\infty]\) measurable. Then \(e_\#\bigl((w\circ e)\cdot\mu\bigr)=w\cdot(e_\#\mu)\).
+
+
+
+
+(c) Let \(\mu\) be a measure on \(A\), \(\nu\) an s-finite measure on \(B\) (a countable sum of finite measures; every \(\sigma\)-finite measure is s-finite) and \(w:A\times B\to[0,\infty]\) measurable. Then the image of \(w\cdot(\mu\otimes\nu)\) under the first projection is \(\bigl(\theta\mapsto\int_Bw(\theta,x)\,d\nu(x)\bigr)\cdot\mu\).
+
+
+
+
+\textbf{Proof.} (a) By the previous step \(J_iC(\theta,z)=(\theta,\sqrt Nz_i)\), so \(V_N(C(\theta,z))=\sum_iU(\theta,\sqrt Nz_i)\), and \(e^{-\sum_it_i}=\prod_ie^{-t_i}\). The values are positive reals, and the product in \([0,\infty]\) of nonnegative reals is their ordinary product.
+
+
+
+
+(b) Let \(S\subseteq B\) be measurable. By definition of the image measure and of the density, and by the change-of-variables formula \(\int g\circ e\,d\mu=\int g\,d(e_\#\mu)\) for measurable \(g\ge0\),
+
+
+\[e_\#\bigl((w\circ e)\cdot\mu\bigr)(S)=\int_A\mathbf 1_S(e(a))\,w(e(a))\,d\mu(a)=\int_B\mathbf 1_S\,w\,d(e_\#\mu)=\bigl(w\cdot e_\#\mu\bigr)(S).\]
+
+
+(c) Let \(S\subseteq A\) be measurable. The preimage of \(S\) under the first projection is \(S\times B\), and by Tonelli's theorem
+
+
+\[\int_{S\times B}w\,d(\mu\otimes\nu)=\int_A\mathbf 1_S(\theta)\Bigl(\int_Bw(\theta,x)\,d\nu(x)\Bigr)d\mu(\theta).\]
+
+
+The left side is the image measure of \(S\) and the right side is the measure of \(S\) with density \(\theta\mapsto\int w(\theta,x)\,d\nu(x)\). Two measures that agree on all measurable sets are equal. \(\square\)
+
+
+
+
+Together, (b) and (c) say: to compute the parameter marginal of a measure with a density on \(\mathcal Z\), change to grouped coordinates and integrate the density over the latent blocks; (a) shows that the latent integrand factorizes over the particles.
+
+\begin{leanbox}{Lean: \texttt{weight\_\allowbreak{}configuration}, \texttt{map\_\allowbreak{}withDensity\_\allowbreak{}comp\_\allowbreak{}equiv}, \texttt{map\_\allowbreak{}fst\_\allowbreak{}withDensity}}
+\leansource{\texttt{weight\_\allowbreak{}configuration} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 317–323}
+\begin{leancode}
+\leanline{0}{theorem\ weight\_configuration\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx))\ :}
+\leanline{4}{ULA.gibbsWeight\ (@potential\ N\ dθ\ dx\ U)\ (configuration\ θ\ x)\ =}
+\leanline{6}{∏\ i,\ ENNReal.ofReal\ (Real.exp\ (-U\ (pair\ θ\ (Real.sqrt\ N\ •\ x\ i))))}
+\end{leancode}
+\leansource{\texttt{map\_\allowbreak{}withDensity\_\allowbreak{}comp\_\allowbreak{}equiv} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 326–335}
+\begin{leancode}
+\leanline{0}{theorem\ map\_withDensity\_comp\_equiv\ \{A\ B\ :\ Type*\}\ [MeasurableSpace\ A]\ [MeasurableSpace\ B]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (e\ :\ A\ ≃ᵐ\ B)\ (w\ :\ B\ →\ ℝ≥0∞)\ (hw\ :\ Measurable\ w)\ :}
+\leanline{4}{(μ.withDensity\ (w\ ∘\ e)).map\ e\ =\ (μ.map\ e).withDensity\ w}
+\end{leancode}
+\leansource{\texttt{map\_\allowbreak{}fst\_\allowbreak{}withDensity} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 339–351}
+\begin{leancode}
+\leanline{0}{theorem\ map\_fst\_withDensity\ \{A\ B\ :\ Type*\}\ [MeasurableSpace\ A]\ [MeasurableSpace\ B]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (ν\ :\ Measure\ B)\ [SFinite\ ν]}
+\leanline{4}{(w\ :\ A\ ×\ B\ →\ ℝ≥0∞)\ (hw\ :\ Measurable\ w)\ :}
+\leanline{4}{((μ.prod\ ν).withDensity\ w).map\ Prod.fst\ =}
+\leanline{6}{μ.withDensity\ (fun\ θ\ ↦\ ∫⁻\ x,\ w\ (θ,\ x)\ ∂ν)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{weight\_\allowbreak{}configuration} is (a) for the library's weight \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Weight}, \(z\mapsto e^{-V_N(z)}\) in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}. After unfolding, \texttt{simp only [joint\_\allowbreak{}configuration, ← Finset.\allowbreak{}sum\_\allowbreak{}neg\_\allowbreak{}distrib, Real.\allowbreak{}exp\_\allowbreak{}sum]} turns the exponential of the negative sum into a product, and \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}prod\_\allowbreak{}of\_\allowbreak{}nonneg} moves the inclusion \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} inside a product of nonnegative reals.
+
+\item \texttt{map\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}comp\_\allowbreak{}equiv} is (b) for a measurable equivalence \texttt{e : A ≃ᵐ B} (measurable with measurable inverse): \texttt{(\ensuremath{\mu}.\allowbreak{}with\allowbreak{}Density (w \ensuremath{\circ} e)).\allowbreak{}map e = (\ensuremath{\mu}.\allowbreak{}map e).\allowbreak{}with\allowbreak{}Density w}. The proof \texttt{ext s hs} compares the measures on a measurable set and rewrites with \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply}, \texttt{with\allowbreak{}Density\_\allowbreak{}apply}, \texttt{lintegral\_\allowbreak{}indicator} (an integral over a set as the integral of an indicator) and \texttt{lintegral\_\allowbreak{}map} (change of variables).
+
+\item \texttt{map\_\allowbreak{}fst\_\allowbreak{}with\allowbreak{}Density} is (c) with \texttt{[SFinite \ensuremath{\nu}]}: \texttt{((\ensuremath{\mu}.\allowbreak{}prod \ensuremath{\nu}).\allowbreak{}with\allowbreak{}Density w).\allowbreak{}map Prod.\allowbreak{}fst = \ensuremath{\mu}.\allowbreak{}with\allowbreak{}Density (fun \ensuremath{\theta} \ensuremath{\mapsto} \ensuremath{\int}\ensuremath{{}^{-}} x, w (\ensuremath{\theta}, x) \ensuremath{\partial}\ensuremath{\nu})}. Its proof is the same set computation with Tonelli's theorem \texttt{lintegral\_\allowbreak{}prod} and a case distinction on \(\theta\in s\).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Cancellation of positive finite normalization constants}{Cancellation of positive finite normalization constants}}
+\section{\texorpdfstring{Positive finite constants cancel after normalization}{Positive finite constants cancel after normalization}}
 
 
-A continuous linear equivalence takes Euclidean volume to a Haar measure. The resulting measure is \(c\) times the target volume, where \(c\) is finite and positive. For a measure \(\mu\) satisfying \(0<\mu(E)<\infty\) and a scalar satisfying \(0<c<\infty\), probability normalization obeys
-
-\[\frac{c\mu}{(c\mu)(E)}=\frac{\mu}{\mu(E)}.\]
-
-The identity follows because scalar multiplication also multiplies the total mass. The positive finite mass of \(\mu\) makes both normalized measures probability measures. Both the grouping factor and the latent dilation factor are independent of \(\theta\). Replacing the measure by \(c\mu\) changes its mass to \(c\mu(E)\), and positivity and finiteness of \(c\) permit cancellation. Therefore neither change of variables changes the normalized parameter distribution.
+For a measure \(\mu\) on a space \(A\), its normalization is \(\mu(A)^{-1}\mu\), computed in \([0,\infty]\) (so it is \(0\) if \(\mu(A)=\infty\)).
 
 
 
-\section{\texorpdfstring{The parameter marginal of the normalized Gibbs distribution}{The parameter marginal of the normalized Gibbs distribution}}
+
+\textbf{Claim.} (a) For every measure \(\mu\) on \(A\) and every \(c\in(0,\infty)\), \(\bigl((c\mu)(A)\bigr)^{-1}(c\mu)=\mu(A)^{-1}\mu\).
 
 
-Define \(\pi_N^\theta(d\theta)=Z_\theta^{-1}M(\theta)^N d\theta\). For the unnormalized measures \(\mu=e^{-V_N}dz\) and \(\rho=M(\theta)^Nd\theta\), grouping the coordinates introduces the volume scalar \(c\), while latent integration introduces \(J^N\) with \(J=N^{-d_x/2}\). The density pushforward calculation gives \(c\,p_{\theta\#}\mu=J^N\rho\). These constants are finite and positive, so normalization and preservation of total mass under projection imply
-
-\[p_{\theta\#}\Pi_N=\pi_N^\theta.\]
-
-After integration, the parameter density is proportional to \(M(\theta)^N\); all other factors are independent of \(\theta\). Consequently the normalized identity is
-
-\[(p_\theta)_\#\Pi_N(d\theta)=\frac{M(\theta)^N\,d\theta}{\int M(u)^Ndu}.\]
-
-In terms of the total latent factor \(J=N^{-Nd_x/2}\), the unnormalized density is a fixed coordinate-volume multiple of \(J M(\theta)^N\). The same multiple appears in its partition and cancels. Since \(M\) is positive, raising it to the positive integer \(N\) preserves comparisons. Hence the parameter mode is a maximizer of the original marginal likelihood. The probability and finite-moment properties also follow from the projection identity.
 
 
+(b) There is \(c\in(0,\infty)\) such that the image of Lebesgue measure on \(\Theta\times\mathcal X\) under the regrouping map \(C\) is \(c\) times Lebesgue measure on \(\mathcal Z\).
+
+
+
+
+\textbf{Proof.} (a) \((c\mu)(A)=c\,\mu(A)\). In \([0,\infty]\), \((c\,t)^{-1}=c^{-1}t^{-1}\) for all \(t\in[0,\infty]\) provided \(0<c<\infty\). Hence \(((c\mu)(A))^{-1}(c\mu)=c^{-1}\mu(A)^{-1}c\,\mu=\mu(A)^{-1}(c^{-1}c)\mu=\mu(A)^{-1}\mu\). No condition on \(\mu(A)\) is needed.
+
+
+
+
+(b) Lebesgue measure on \(\Theta\times\mathcal X\) is a product of Lebesgue measures, hence an additive Haar measure: translation invariant, finite on compact sets and positive on nonempty open sets. Its image under the continuous linear bijection \(C\) has the same three properties on \(\mathcal Z\), because \(C\) maps translates to translates, compact sets to compact sets and open sets to open sets. By the uniqueness of Haar measure, two additive Haar measures on \(\mathcal Z\) differ by a factor \(c\in(0,\infty)\). \(\square\)
+
+
+
+
+The value of \(c\) is not needed. By (a), multiplying a measure by \(c\), or by the dilation factor \(N^{-Nd_x/2}\) of the product-integral step, does not change its normalization.
+
+\begin{leanbox}{Lean: \texttt{normalize\_\allowbreak{}smul\_\allowbreak{}eq}, \texttt{configuration\_\allowbreak{}map\_\allowbreak{}volume}}
+\leansource{\texttt{normalize\_\allowbreak{}smul\_\allowbreak{}eq} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 355–361}
+\begin{leancode}
+\leanline{0}{theorem\ normalize\_smul\_eq\ \{A\ :\ Type*\}\ [MeasurableSpace\ A]\ (μ\ :\ Measure\ A)}
+\leanline{4}{(c\ :\ ℝ≥0∞)\ (hc0\ :\ c\ ≠\ 0)\ (hctop\ :\ c\ ≠\ ⊤)\ :}
+\leanline{4}{((c\ •\ μ)\ Set.univ)⁻¹\ •\ (c\ •\ μ)\ =\ (μ\ Set.univ)⁻¹\ •\ μ}
+\end{leancode}
+\leansource{\texttt{configuration\_\allowbreak{}map\_\allowbreak{}volume} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 365–379}
+\begin{leancode}
+\leanline{0}{theorem\ configuration\_map\_volume\ \{N\ dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{∃\ c\ :\ ℝ≥0∞,\ c\ ≠\ 0\ ∧\ c\ ≠\ ⊤\ ∧}
+\leanline{6}{(volume\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dθ)\ ×}
+\leanline{8}{(Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx)))).map\ configurationCLE\ =}
+\leanline{10}{c\ •\ (volume\ :\ Measure\ (State\ N\ dθ\ dx))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{normalize\_\allowbreak{}smul\_\allowbreak{}eq} is (a) with \texttt{hc0 : c ≠ 0} and \texttt{hctop : c ≠ \ensuremath{\top}}, and with no hypothesis on \texttt{\ensuremath{\mu}}. The proof rewrites with \texttt{Measure.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{ENNReal.\allowbreak{}mul\_\allowbreak{}inv} (the rule \((ct)^{-1}=c^{-1}t^{-1}\), valid under these side conditions) and \texttt{smul\_\allowbreak{}smul}, and cancels with \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel hc0 hctop}.
+
+\item \texttt{configuration\_\allowbreak{}map\_\allowbreak{}volume} is (b): \texttt{\ensuremath{\exists} c : \ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}, c ≠ 0 ∧ c ≠ \ensuremath{\top} ∧ (volume .\allowbreak{}.\allowbreak{}.\allowbreak{}).\allowbreak{}map configuration\allowbreak{}CLE = c \ensuremath{\bullet} volume}. It registers that Lebesgue measure on the product is an additive Haar measure (\texttt{Measure.\allowbreak{}prod.\allowbreak{}inst\allowbreak{}Is\allowbreak{}Add\allowbreak{}Haar\allowbreak{}Measure}) and that its image under \texttt{configuration\allowbreak{}CLE} is one (\texttt{is\allowbreak{}Add\allowbreak{}Haar\allowbreak{}Measure\_\allowbreak{}map}). The constant is \texttt{Measure.\allowbreak{}add\allowbreak{}Haar\allowbreak{}Scalar\allowbreak{}Factor \ensuremath{\mu} volume}, Mathlib's scalar relating two Haar measures; it is positive by \texttt{Measure.\allowbreak{}add\allowbreak{}Haar\allowbreak{}Scalar\allowbreak{}Factor\_\allowbreak{}pos\_\allowbreak{}of\_\allowbreak{}is\allowbreak{}Add\allowbreak{}Haar\allowbreak{}Measure}, finite because it comes from \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0} (\texttt{ENNReal.\allowbreak{}coe\_\allowbreak{}ne\_\allowbreak{}top}), and the equality is \texttt{Measure.\allowbreak{}is\allowbreak{}Add\allowbreak{}Left\allowbreak{}Invariant\_\allowbreak{}eq\_\allowbreak{}smul}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The parameter marginal of the Gibbs target}{The parameter marginal of the Gibbs target}}
+
+
+\textbf{Definition.} For \(N\in\mathbb N\), the \emph{marginal target} is the measure on \(\Theta=\mathbb R^{d_\theta}\)
+
+
+\[\pi_N^\theta=\Bigl(\int_\Theta\ell(u)^N\,du\Bigr)^{-1}\,\ell^N\cdot\mathrm{Leb}_\Theta,\]
+
+
+computed in \([0,\infty]\).
+
+
+
+
+\textbf{Claim.} Let \(N\ge1\), \(m>0\), and let \(U\) be differentiable and \(m\)-strongly convex. Then \((P_\theta)_\#\Pi_N=\pi_N^\theta\).
+
+
+
+
+\textbf{Proof.} Let \(w=e^{-V_N}\), \(\mu=w\cdot\mathrm{Leb}_{\mathcal Z}\) (so that \(\Pi_N=\mu(\mathcal Z)^{-1}\mu\)), \(\rho=\ell^N\cdot\mathrm{Leb}_\Theta\) and \(\kappa=|(\sqrt N)^{d_x}|^{-1}\in(0,\infty)\). The functions \(w\) and \(\ell^N\) are measurable, being continuous (for \(\ell\) by the continuity step, which uses strong convexity), and \(C\), \(P_\theta\) are continuous, hence measurable.
+
+
+
+
+\emph{Step 1.} By the regrouping-volume identity, \(C_\#\mathrm{Leb}_{\Theta\times\mathcal X}=c\,\mathrm{Leb}_{\mathcal Z}\) with \(0<c<\infty\). By identity (b) of the previous step but one, applied to \(e=C\),
+
+
+\[C_\#\bigl((w\circ C)\cdot\mathrm{Leb}_{\Theta\times\mathcal X}\bigr)=w\cdot C_\#\mathrm{Leb}_{\Theta\times\mathcal X}=c\,\mu .\]
+
+
+\emph{Step 2.} Since \(P_\theta\circ C\) is the first projection and images compose,
+
+
+\[c\,(P_\theta)_\#\mu=(P_\theta)_\#(c\mu)=(P_\theta\circ C)_\#\bigl((w\circ C)\cdot\mathrm{Leb}_{\Theta\times\mathcal X}\bigr)=\Bigl(\theta\mapsto\int_{\mathcal X}w(C(\theta,z))\,dz\Bigr)\cdot\mathrm{Leb}_\Theta\]
+
+
+by identity (c) of that step (Lebesgue measure on \(\Theta\times\mathcal X\) is the product measure).
+
+
+
+
+\emph{Step 3.} By the factorization (a) and the product-integral formula, \(\int_{\mathcal X}w(C(\theta,z))\,dz=\int\prod_ie^{-U(\theta,\sqrt Nz_i)}\,dz=\kappa^N\ell(\theta)^N\). Hence \(c\,(P_\theta)_\#\mu=\kappa^N\rho\).
+
+
+
+
+\emph{Step 4.} Normalize both sides. Since \(c\) and \(\kappa^N\) lie in \((0,\infty)\), the cancellation identity gives
+
+
+\[\bigl((P_\theta)_\#\mu(\Theta)\bigr)^{-1}(P_\theta)_\#\mu=\rho(\Theta)^{-1}\rho=\pi_N^\theta .\]
+
+
+Finally \((P_\theta)_\#\mu(\Theta)=\mu(P_\theta^{-1}(\Theta))=\mu(\mathcal Z)\), and the image of a scalar multiple is the scalar multiple of the image, so the left side is \((P_\theta)_\#\bigl(\mu(\mathcal Z)^{-1}\mu\bigr)=(P_\theta)_\#\Pi_N\). \(\square\)
+
+
+
+
+The identity is an equality of measures in \([0,\infty]\)-valued arithmetic and does not use the finiteness of any normalizing constant. In words: under the target \(\Pi_N\), the parameter has density proportional to \(\ell(\theta)^N\). Since \(\ell>0\) and \(t\mapsto t^N\) is increasing, the maximizers of this density are exactly the marginal maximizers, and the density concentrates around them as \(N\) grows.
+
+\begin{leanbox}{Lean: \texttt{marginalTarget}, \texttt{gibbsTarget\_\allowbreak{}parameter\_\allowbreak{}marginal}}
+\leansource{\texttt{marginalTarget} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 384–387}
+\begin{leancode}
+\leanline{0}{def\ marginalTarget\ \{dθ\ dx\ :\ ℕ\}\ (N\ :\ ℕ)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ :}
+\leanline{4}{Measure\ (EuclideanSpace\ ℝ\ (Fin\ dθ))\ :=}
+\leanline{2}{(∫⁻\ θ,\ marginalDensity\ U\ θ\ \textasciicircum{}\ N\ ∂volume)⁻¹\ •}
+\leanline{4}{volume.withDensity\ (fun\ θ\ ↦\ marginalDensity\ U\ θ\ \textasciicircum{}\ N)}
+\end{leancode}
+\leansource{\texttt{gibbsTarget\_\allowbreak{}parameter\_\allowbreak{}marginal} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 395–467}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsTarget\_parameter\_marginal\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{(@gibbsTarget\ N\ dθ\ dx\ U).map\ parameterCLM\ =\ marginalTarget\ N\ U}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{marginal\allowbreak{}Target N U} is defined as \texttt{(\ensuremath{\int}\ensuremath{{}^{-}} \ensuremath{\theta}, marginal\allowbreak{}Density U \ensuremath{\theta} \textasciicircum{} N \ensuremath{\partial}volume)\ensuremath{{}^{-1}} \ensuremath{\bullet} volume.\allowbreak{}with\allowbreak{}Density (fun \ensuremath{\theta} \ensuremath{\mapsto} marginal\allowbreak{}Density U \ensuremath{\theta} \textasciicircum{} N)}, which is \(\pi_N^\theta\).
+
+
+
+
+\texttt{gibbs\allowbreak{}Target\_\allowbreak{}parameter\_\allowbreak{}marginal} states \texttt{(@gibbs\allowbreak{}Target N d\ensuremath{\theta} dx U).\allowbreak{}map parameter\allowbreak{}CLM = marginal\allowbreak{}Target N U} under \texttt{h\allowbreak{}N}, \texttt{hm}, \texttt{hdiff}, \texttt{hsc}. In the proof, the local names \texttt{w}, \texttt{\ensuremath{\mu}}, \texttt{\ensuremath{\rho}} and \texttt{D} are \(w\), \(\mu\), \(\rho\) and \(\kappa\); \texttt{hw}, \texttt{h\ensuremath{\rho}}, \texttt{he}, \texttt{hp} are the measurability facts (\texttt{h\ensuremath{\rho}} uses \texttt{continuous\_\allowbreak{}marginal\allowbreak{}Density}, the only use of \texttt{hm} and \texttt{hsc} besides the probability instance); \texttt{obtain \ensuremath{\langle}c, hc0, hctop, hc\ensuremath{\rangle} := configuration\_\allowbreak{}map\_\allowbreak{}volume} supplies \(c\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hew} is Step 1: \texttt{map\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}comp\_\allowbreak{}equiv} for the measurable equivalence obtained from \texttt{configuration\allowbreak{}CLE}, rewritten with \texttt{hc} and \texttt{with\allowbreak{}Density\_\allowbreak{}smul\_\allowbreak{}measure}.
+
+\item \texttt{hcomp} is \(P_\theta\circ C=\) \texttt{Prod.\allowbreak{}fst}, from \texttt{parameter\_\allowbreak{}configuration}; \texttt{hfiber} is Step 3, by \texttt{weight\_\allowbreak{}configuration}, \texttt{scaled\_\allowbreak{}particle\_\allowbreak{}partition h\allowbreak{}N U hdiff \ensuremath{\theta}} and \texttt{mul\_\allowbreak{}pow}.
+
+\item \texttt{hproj} is the \texttt{calc} chain of Steps 2–3, ending in \texttt{D \textasciicircum{} N \ensuremath{\bullet} \ensuremath{\rho}}; it uses \texttt{Measure.\allowbreak{}map\_\allowbreak{}smul}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}map} (composition of images), \texttt{map\_\allowbreak{}fst\_\allowbreak{}with\allowbreak{}Density} and \texttt{with\allowbreak{}Density\_\allowbreak{}smul}.
+
+\item \texttt{h\allowbreak{}D0} and \texttt{h\allowbreak{}Dtop} show \(0<\kappa<\infty\). \texttt{hnorm} applies normalization to both sides of \texttt{hproj}, and two uses of \texttt{normalize\_\allowbreak{}smul\_\allowbreak{}eq} cancel \(c\) and \(\kappa^N\) (Step 4).
+
+\item \texttt{h\ensuremath{\mu}mass} and \texttt{h\ensuremath{\rho}mass} identify the total masses with \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Partition} and with \texttt{\ensuremath{\int}\ensuremath{{}^{-}} \ensuremath{\theta}, marginal\allowbreak{}Density U \ensuremath{\theta} \textasciicircum{} N \ensuremath{\partial}volume}; after \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply} and \texttt{Set.\allowbreak{}preimage\_\allowbreak{}univ}, the last lines rewrite the goal with \texttt{Measure.\allowbreak{}map\_\allowbreak{}smul} and conclude with \texttt{hnorm}.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The marginal partition and second moment}{The marginal partition and second moment}}
+\section{\texorpdfstring{The marginal target is a probability measure with finite second moment}{The marginal target is a probability measure with finite second moment}}
 
 
-The projection of the probability \(\Pi_N\) is \(\pi_N^\theta\), so the latter has mass one. Its unnormalized density \(M^N\) is positive, hence its partition is positive. An infinite partition would make the defined normalized density zero and contradict mass one; the partition is therefore finite.
+\textbf{Claim.} Let \(m>0\) and let \(U\) be differentiable and \(m\)-strongly convex.
 
 
 
-The projection \(p_\theta\) is bounded and linear. Applying the pushforward integral formula to the finite lifted second moment gives \(\theta\mapsto\theta\in L^2(\pi_N^\theta)\). More explicitly, \(\|p_\theta z\|^2\le\|z\|^2\) bounds the projected squared norm by the full squared norm. This establishes a finite marginal second moment before a numerical concentration estimate is applied.
+
+(a) If \(N\ge1\), then \(\pi_N^\theta\) is a probability measure.
 
 
+
+
+(b) For every \(N\in\mathbb N\), \(\int_\Theta\ell(\theta)^N\,d\theta>0\).
+
+
+
+
+(c) If \(N\ge1\), then \(\int_\Theta\ell(\theta)^N\,d\theta<\infty\).
+
+
+
+
+(d) If \(N\ge1\), then \(\int\|\theta\|^2\,d\pi_N^\theta(\theta)<\infty\).
+
+
+
+
+\textbf{Proof.} (a) \(\Pi_N\) is a probability measure by the section on foundations. By the previous step and the definition of the image measure, \(\pi_N^\theta(\Theta)=\Pi_N(P_\theta^{-1}(\Theta))=\Pi_N(\mathcal Z)=1\).
+
+
+
+
+(b) The function \(\ell^N\) is measurable (continuous) and nowhere zero, because \(\ell(\theta)>0\). For a measurable function \(f\ge0\), \(\int f\,d\mathrm{Leb}>0\) if and only if the set \(\{f\ne0\}\) has positive measure; here that set is \(\Theta\), whose Lebesgue measure is positive.
+
+
+
+
+(c) Suppose \(\int\ell^N=\infty\). Then its inverse is \(0\) and \(\pi_N^\theta=0\cdot(\ell^N\cdot\mathrm{Leb})=0\), so \(\pi_N^\theta(\Theta)=0\), contradicting (a).
+
+
+
+
+(d) By the previous step and the change-of-variables formula for image measures, \(\int\|\theta\|^2d\pi_N^\theta=\int\|P_\theta z\|^2d\Pi_N(z)\le\int\|z\|^2d\Pi_N(z)\), using \(\|P_\theta z\|\le\|z\|\). The right side is finite by the section on foundations. \(\square\)
+
+
+
+
+By (b) and (c) the normalizing constant of \(\pi_N^\theta\) is a positive real number, so \(\pi_N^\theta\) has the ordinary probability density \(\ell^N/\int\ell^N\). Finiteness in (c) is deduced from the projection identity, not from a separate estimate of \(\ell^N\).
+
+\begin{leanbox}{Lean: \texttt{marginalTarget\_\allowbreak{}isProbability}, \texttt{marginalPartition\_\allowbreak{}pos}, \texttt{marginalPartition\_\allowbreak{}ne\_\allowbreak{}top} and 1 more}
+\leansource{\texttt{marginalTarget\_\allowbreak{}isProbability} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 471–481}
+\begin{leancode}
+\leanline{0}{theorem\ marginalTarget\_isProbability\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :\ IsProbabilityMeasure\ (marginalTarget\ N\ U)}
+\end{leancode}
+\leansource{\texttt{marginalPartition\_\allowbreak{}pos} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 484–496}
+\begin{leancode}
+\leanline{0}{theorem\ marginalPartition\_pos\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{0\ <\ ∫⁻\ θ,\ marginalDensity\ U\ θ\ \textasciicircum{}\ N\ ∂volume}
+\end{leancode}
+\leansource{\texttt{marginalPartition\_\allowbreak{}ne\_\allowbreak{}top} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 501–510}
+\begin{leancode}
+\leanline{0}{theorem\ marginalPartition\_ne\_top\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{(∫⁻\ θ,\ marginalDensity\ U\ θ\ \textasciicircum{}\ N\ ∂volume)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{marginalTarget\_\allowbreak{}memLp} \quad IPLA/\allowbreak{}MarginalConcentration.lean, lines 514–524}
+\begin{leancode}
+\leanline{0}{theorem\ marginalTarget\_memLp\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{MemLp\ (fun\ θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ ↦\ θ)\ 2\ (marginalTarget\ N\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{marginal\allowbreak{}Target\_\allowbreak{}is\allowbreak{}Probability}: the probability instance for \texttt{gibbs\allowbreak{}Target} is built from \texttt{ULA.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}gibbs\allowbreak{}Measure} with constant \(Nm\); after \texttt{constructor}, the goal (total mass one) is rewritten with \texttt{← gibbs\allowbreak{}Target\_\allowbreak{}parameter\_\allowbreak{}marginal}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply} (an image measure evaluated on a measurable set is the measure of the preimage) and \texttt{Set.\allowbreak{}preimage\_\allowbreak{}univ}, and closed by \texttt{measure\_\allowbreak{}univ}.
+
+\item \texttt{marginal\allowbreak{}Partition\_\allowbreak{}pos} (no hypothesis on \texttt{N}) applies \texttt{lintegral\_\allowbreak{}pos\_\allowbreak{}iff\_\allowbreak{}support}; \texttt{hs} shows that the support is \texttt{Set.\allowbreak{}univ} using \texttt{ENNReal.\allowbreak{}pow\_\allowbreak{}ne\_\allowbreak{}zero} and \texttt{marginal\allowbreak{}Density\_\allowbreak{}pos}, and \texttt{Measure.\allowbreak{}measure\_\allowbreak{}univ\_\allowbreak{}pos.\allowbreak{}mpr (Ne\allowbreak{}Zero.\allowbreak{}ne \_\allowbreak{})} gives positive Lebesgue measure of the whole space.
+
+\item \texttt{marginal\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top} argues by contradiction: \texttt{intro h\allowbreak{}Z} assumes the integral is \texttt{\ensuremath{\top}}, \texttt{hzero} shows \texttt{marginal\allowbreak{}Target N U = 0} by \texttt{simp [marginal\allowbreak{}Target, h\allowbreak{}Z]} (since \(\infty^{-1}=0\)), and this contradicts \texttt{hmass}, total mass one.
+
+\item \texttt{marginal\allowbreak{}Target\_\allowbreak{}mem\allowbreak{}Lp} concludes \texttt{Mem\allowbreak{}Lp (fun \ensuremath{\theta} \ensuremath{\mapsto} \ensuremath{\theta}) 2 (marginal\allowbreak{}Target N U)}. After rewriting the measure as the image of \texttt{gibbs\allowbreak{}Target}, \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff} transfers the claim to \texttt{parameter\allowbreak{}CLM} in \(L^2(\Pi_N)\), which is the library's \texttt{ULA.\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure} composed with the continuous linear map \texttt{parameter\allowbreak{}CLM} (\texttt{continuous\allowbreak{}Linear\allowbreak{}Map\_\allowbreak{}comp}).
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

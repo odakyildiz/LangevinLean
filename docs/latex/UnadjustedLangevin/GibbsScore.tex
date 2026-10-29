@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,91 +39,390 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Suppose \(U\) is differentiable, its gradient is \(L\)-Lipschitz, and its Gibbs partition is positive and finite. The quadratic upper bound on \(U(x+v)\) implies an exponential bound on \(-\langle\nabla U(x),v\rangle\) after multiplication by the Gibbs weight. Translation invariance of Lebesgue measure cancels the partition and gives the directional sub-Gaussian bound with variance coefficient \(L\|v\|^2\).
+This section bounds the gradient \(\nabla U\) of the potential under the Gibbs measure \(\pi_U(dx)=Z_U^{-1}e^{-U(x)}\,dx\) on a real inner product space \(H\) of finite dimension \(d\) (the notation is that of the section on Gibbs normalization). The assumptions are first-order: \(U\) is differentiable, its gradient is \(L\)-Lipschitz for some \(L\ge0\), that is, \(\|\nabla U(x)-\nabla U(y)\|\le L\|x-y\|\) for all \(x,y\), and the partition function \(Z_U\) is finite. The main result is
 
 
+\[\int_H\|\nabla U(x)\|^2\,\pi_U(dx)\le Ld.\]
 
-The small-parameter exponential comparison gives mean zero and second moment at most \(L\) in every unit direction. Summing over an orthonormal basis yields \(\int\|\nabla U\|^2d\pi_U\le Ld\). These statements assume finite normalization. Positive strong convexity is used by the final specialization to prove that normalization, rather than as an assumption in the directional calculation.
+
+The proof has four steps. The descent inequality \(U(x+v)\le U(x)+\langle\nabla U(x),v\rangle+\frac L2\|v\|^2\) and the translation invariance of Lebesgue measure give, for every \(v\in H\),
+
+
+\[\int_He^{-\langle\nabla U(x),v\rangle}\,\pi_U(dx)\le e^{\frac L2\|v\|^2}.\]
+
+
+Replacing \(v\) by \(-tv\) shows that every directional derivative \(\langle\nabla U,v\rangle\) is a sub-Gaussian random variable under \(\pi_U\) with variance proxy \(L\|v\|^2\). A sub-Gaussian random variable with variance proxy \(c\) has second moment at most \(c\), by the inequality \(a^2\le e^a+e^{-a}-2\) and a limit. Summing over an orthonormal basis (Parseval's identity) gives the bound \(Ld\). No second derivative of \(U\) and no integration by parts is used. If \(U\) is \(m\)-strongly convex with \(m>0\), finiteness of \(Z_U\) holds automatically. The bound controls the size of the drift of the stationary Langevin process in the local error analysis of the unadjusted Langevin algorithm.
 
 
 \section{\texorpdfstring{The exponential score comparison}{The exponential score comparison}}
 
 
-The descent lemma gives \(U(x+v)\le U(x)+\langle\nabla U(x),v\rangle+(L/2)\|v\|^2\). Negate and exponentiate, then rearrange to \(e^{-U(x)}e^{-\langle\nabla U(x),v\rangle}\le e^{L\|v\|^2/2}e^{-U(x+v)}\). The inequality is pointwise and nonnegative, so it can then be integrated.
+\textbf{Claim.} Let \(L\ge0\) and let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient. Then for all \(x,v\in H\),
+
+
+\[e^{-U(x)}\,e^{-\langle\nabla U(x),v\rangle}\le e^{\frac L2\|v\|^2}\,e^{-U(x+v)}.\]
+
+
+\textbf{Proof.} A differentiable function with \(L\)-Lipschitz gradient satisfies the descent inequality \cite[Section~3.9.1]{LangevinLean2026ULASC}
+
+
+\[U(y)\le U(x)+\langle\nabla U(x),y-x\rangle+\frac L2\|y-x\|^2\qquad(x,y\in H),\]
+
+
+obtained by integrating the derivative of \(s\mapsto U(x+s(y-x))\) over \([0,1]\) and bounding the variation of the gradient by its Lipschitz constant. With \(y=x+v\), so that \(y-x=v\), it reads \(U(x+v)\le U(x)+\langle\nabla U(x),v\rangle+\frac L2\|v\|^2\), which rearranges to
+
+
+\[-U(x)-\langle\nabla U(x),v\rangle\le\frac L2\|v\|^2-U(x+v).\]
+
+
+The exponential function is increasing, so this inequality persists after exponentiation, and \(e^{a+b}=e^ae^b\) splits both sides into the stated products. \(\square\)
 
 
 
-Evaluate the smooth upper model at \(x+v\), move the linear gradient term to the other side, and exponentiate. The factor \(e^{-U(x)}\) then turns the translated potential into a translated Gibbs weight.
+
+The factor \(e^{-U(x)}\) on the left is the Gibbs weight at \(x\), and \(e^{-U(x+v)}\) on the right is the Gibbs weight at the translated point; this is what makes the inequality integrable against Lebesgue measure in the next step.
+
+\begin{leanbox}{Lean: \texttt{gibbsWeight\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}score\_\allowbreak{}le}}
+\leansource{\texttt{gibbsWeight\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}score\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 25–37}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsWeight\_mul\_exp\_score\_le}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ v\ :\ H)\ :}
+\leanline{4}{gibbsWeight\ U\ x\ *\ ENNReal.ofReal\ (Real.exp\ (-inner\ ℝ\ (gradient\ U\ x)\ v))\ ≤}
+\leanline{6}{ENNReal.ofReal\ (Real.exp\ ((L\ :\ ℝ)\ /\ 2\ *\ ‖v‖\ \textasciicircum{}\ 2))\ *\ gibbsWeight\ U\ (x\ +\ v)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{gibbs\allowbreak{}Weight\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}score\_\allowbreak{}le}, \texttt{L : \ensuremath{\mathbb R}\ensuremath{\ge}0} is a nonnegative real number and \texttt{(L : \ensuremath{\mathbb R})} its coercion to \(\mathbb R\). \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With L (gradient U)} is Mathlib's Lipschitz condition, which on normed spaces is \(\|\nabla U(x)-\nabla U(y)\|\le L\|x-y\|\). The two sides are stated in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}: the left side is \texttt{gibbs\allowbreak{}Weight U x * ENNReal.\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp (-\allowbreak{}inner \ensuremath{\mathbb R} (gradient U x) v))}, where \texttt{inner \ensuremath{\mathbb R} a b} is \(\langle a,b\rangle\); since all factors are finite positive reals, this is the real inequality of the claim. The prefix \texttt{omit [Measurable\allowbreak{}Space H] [Borel\allowbreak{}Space H] in} drops the unused measurability assumptions.
 
 
-\section{\texorpdfstring{The directional log moment-generating bound}{The directional log moment-generating bound}}
+
+\begin{enumerate}
 
 
-Integrate the pointwise exponential-score bound. Translation invariance gives \(\int e^{-U(x+v)}dx=Z_U\); normalization cancels this factor, leaving \(\mathbb E_{\pi_U}e^{-\langle\nabla U,v\rangle}\le e^{L\|v\|^2/2}\). The cancellation uses the assumed positivity and finiteness of the partition.
+\item \texttt{hs} is the descent inequality \texttt{Analysis.\allowbreak{}smooth\_\allowbreak{}upper\_\allowbreak{}bound} at \(x\) and \(y=x+v\); \texttt{simp only [add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left]} simplifies \((x+v)-x\) to \(v\).
+
+\item After \texttt{unfold gibbs\allowbreak{}Weight}, the rewrites \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}mul} (for nonnegative factors) and \texttt{Real.\allowbreak{}exp\_\allowbreak{}add} merge each side into a single \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp …)}; \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real} and \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp} reduce the goal to the inequality of exponents, which \texttt{linarith} derives from \texttt{hs}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The directional exponential moment bound}{The directional exponential moment bound}}
+
+
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, and assume \(Z_U<\infty\). Then for every \(v\in H\),
+
+
+\[\int_He^{-\langle\nabla U(x),v\rangle}\,\pi_U(dx)\le e^{\frac L2\|v\|^2}.\]
+
+
+The integral is that of a nonnegative function, taken in \([0,\infty]\); in particular it is finite.
 
 
 
-Translation invariance gives \(\int e^{-U(x+v)}dx=Z_U\). Dividing by the same positive partition cancels the unnormalized mass and leaves the directional exponential bound with variance proxy \(L\).
 
+\textbf{Proof.} Let \(w_U=e^{-U}\) and \(g(x)=e^{-\langle\nabla U(x),v\rangle}\). Both are continuous (\(U\) is differentiable, and \(\nabla U\) is Lipschitz, hence continuous), so both are Borel measurable. Recall \(\pi_U=Z_U^{-1}\nu_U\), where \(\nu_U\) has density \(w_U\) with respect to Lebesgue measure. For nonnegative measurable \(g\), the integral against a multiple of a measure is the multiple of the integral, and the integral against a measure with density is the integral of the product with the density. Hence
+
+
+\[\int g\,d\pi_U=Z_U^{-1}\int_Hw_U(x)\,g(x)\,dx.\]
+
+
+By the previous step, \(w_U(x)g(x)\le e^{\frac L2\|v\|^2}w_U(x+v)\) for every \(x\). Integrating (monotonicity of the integral) and taking out the constant,
+
+
+\[\int_Hw_U(x)g(x)\,dx\le e^{\frac L2\|v\|^2}\int_Hw_U(x+v)\,dx=e^{\frac L2\|v\|^2}Z_U,\]
+
+
+where \(\int_Hw_U(x+v)\,dx=\int_Hw_U(y)\,dy=Z_U\) by translation invariance of Lebesgue measure (substitute \(y=x+v\)). Multiplication by \(Z_U^{-1}\) preserves inequalities in \([0,\infty]\), so
+
+
+\[\int g\,d\pi_U\le Z_U^{-1}\,e^{\frac L2\|v\|^2}Z_U=e^{\frac L2\|v\|^2}\,\bigl(Z_U^{-1}Z_U\bigr)=e^{\frac L2\|v\|^2},\]
+
+
+because \(Z_U^{-1}Z_U=1\) when \(0<Z_U<\infty\). Here \(Z_U>0\) holds since \(U\) is differentiable \cite[Section~3.26.9]{LangevinLean2026ULASC}, and \(Z_U<\infty\) is the hypothesis. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le}}
+\leansource{\texttt{gibbs\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 41–66}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_score\_lmgf\_le}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)\ (v\ :\ H)\ :}
+\leanline{4}{(∫⁻\ x,\ ENNReal.ofReal\ (Real.exp\ (-inner\ ℝ\ (gradient\ U\ x)\ v))\ ∂gibbsMeasure\ U)\ ≤}
+\leanline{6}{ENNReal.ofReal\ (Real.exp\ ((L\ :\ ℝ)\ /\ 2\ *\ ‖v‖\ \textasciicircum{}\ 2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le} takes the hypothesis \texttt{h\allowbreak{}Z : gibbs\allowbreak{}Partition U ≠ \ensuremath{\top}}, that is \(Z_U<\infty\), and states the bound for the lower integral \texttt{\ensuremath{\int}\ensuremath{{}^{-}} x, ENNReal.\allowbreak{}of\allowbreak{}Real (Real.\allowbreak{}exp (-\allowbreak{}inner \ensuremath{\mathbb R} (gradient U x) v)) \ensuremath{\partial}gibbs\allowbreak{}Measure U}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hw} and \texttt{hg} are the measurability of \(w_U\) and \(g\), both from continuity (for \(g\), \texttt{h\allowbreak{}Lip.\allowbreak{}continuous} gives the continuity of the gradient). \texttt{htranslate} is the translation invariance \(\int w_U(x+v)\,dx=Z_U\), Mathlib's \texttt{lintegral\_\allowbreak{}add\_\allowbreak{}right\_\allowbreak{}eq\_\allowbreak{}self}.
+
+\item The rewrite with \texttt{gibbs\allowbreak{}Measure}, \texttt{lintegral\_\allowbreak{}smul\_\allowbreak{}measure} (integral against \(c\cdot\mu\) is \(c\) times the integral) and \texttt{lintegral\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}mul} (integral against \texttt{\ensuremath{\mu}.\allowbreak{}with\allowbreak{}Density f} is the integral of the product with \(f\), for measurable \(f,g\)) produces the formula \(\int g\,d\pi_U=Z_U^{-1}\int w_Ug\,dx\), displayed by \texttt{change}.
+
+\item In the \texttt{calc} block, the first line is the integrated pointwise bound: \texttt{lintegral\_\allowbreak{}mono} applied to \texttt{gibbs\allowbreak{}Weight\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}score\_\allowbreak{}le}, multiplied by \(Z_U^{-1}\) through \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}right}. The second line takes the constant out (\texttt{lintegral\_\allowbreak{}const\_\allowbreak{}mul}, with measurability by \texttt{fun\_\allowbreak{}prop}), uses \texttt{htranslate}, and cancels \(Z_U^{-1}Z_U=1\) with \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel}, whose hypotheses are \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}pos U hdiff} and \texttt{h\allowbreak{}Z}.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The sub-Gaussian directional score}{The sub-Gaussian directional score}}
 
 
-Apply the preceding bound with the vector \(-tv\), for every real \(t\). The exponent becomes \(t\langle\nabla U,v\rangle\) and the right side is \(e^{t^2L\|v\|^2/2}\). This is exactly the directional sub-Gaussian moment bound with variance proxy \(L\|v\|^2\); the displayed exponential bound is finite for every real parameter.
+\textbf{Definition.} Let \((\Omega,\mu)\) be a measure space and \(c\ge0\). A measurable function \(X:\Omega\to\mathbb R\) has a sub-Gaussian moment generating function with variance proxy \(c\) if for every \(t\in\mathbb R\) the function \(e^{tX}\) is \(\mu\)-integrable and
+
+
+\[\int_\Omega e^{tX}\,d\mu\le e^{ct^2/2}.\]
+
+
+\textbf{Claim.} Let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, assume \(Z_U<\infty\), and let \(v\in H\). Then the function \(X(x)=\langle\nabla U(x),v\rangle\) has a sub-Gaussian moment generating function under \(\pi_U\) with variance proxy \(L\|v\|^2\).
 
 
 
-Applying the exponential bound to positive and negative scalar multiples of a direction forces the first derivative at zero to vanish. The second-order comparison gives directional score variance at most \(L\|v\|^2\).
 
+\textbf{Proof.} Fix \(t\in\mathbb R\). Apply the previous step to the vector \(-tv\). Since \(\langle\nabla U(x),-tv\rangle=-tX(x)\) and \(\|-tv\|^2=t^2\|v\|^2\), it gives
+
+
+\[\int_He^{tX(x)}\,\pi_U(dx)\le e^{\frac L2t^2\|v\|^2}=e^{(L\|v\|^2)t^2/2},\qquad(1)\]
+
+
+with the left side taken in \([0,\infty]\). The function \(e^{tX}\) is continuous (the gradient is continuous), hence measurable, and nonnegative; by (1) its integral is finite, so \(e^{tX}\) is \(\pi_U\)-integrable. For an integrable nonnegative function the real integral equals the integral taken in \([0,\infty]\), so (1) is the required bound on the real integral. As \(t\) was arbitrary, both conditions of the definition hold. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}subgaussian}}
+\leansource{\texttt{gibbs\_\allowbreak{}score\_\allowbreak{}subgaussian} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 77–104}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_score\_subgaussian}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)\ (v\ :\ H)\ :}
+\leanline{4}{HasSubgaussianMGF\ (fun\ x\ ↦\ inner\ ℝ\ (gradient\ U\ x)\ v)\ (L\ *\ ‖v‖₊\ \textasciicircum{}\ 2)}
+\leanline{6}{(gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Has\allowbreak{}Subgaussian\allowbreak{}MGF X c \ensuremath{\mu}} is Mathlib's structure for the definition above. It has two fields: \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}mul}, the integrability of \(e^{tX}\) for every \(t\), and \texttt{mgf\_\allowbreak{}le}, the bound \texttt{mgf X \ensuremath{\mu} t \ensuremath{\le} exp (c * t \textasciicircum{} 2 /\allowbreak{} 2)}, where \texttt{mgf X \ensuremath{\mu} t} is \(\int e^{tX}\,d\mu\). The proxy is the nonnegative real \texttt{L * \ensuremath{\Vert}v\ensuremath{\Vert}\ensuremath{{}_{+}} \textasciicircum{} 2}, where \texttt{\ensuremath{\Vert}v\ensuremath{\Vert}\ensuremath{{}_{+}}} is the norm of \(v\) as an element of \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{he t} is (1). It is \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le} applied to \texttt{(-\allowbreak{}t) \ensuremath{\bullet} v}; the \texttt{simp only} list (\texttt{inner\_\allowbreak{}smul\_\allowbreak{}right}, \texttt{norm\_\allowbreak{}smul}, \texttt{mul\_\allowbreak{}pow}, \texttt{neg\_\allowbreak{}sq} and the coercion lemmas \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}mul}, \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}pow}, \texttt{coe\_\allowbreak{}nnnorm}) computes the inner product and the norm, and \texttt{convert … using 1} followed by \texttt{ring} matches the exponents.
+
+\item \texttt{hi t} is the integrability of \(e^{tX}\): measurability from continuity, and finiteness of \(\int|e^{tX}|\) from \texttt{has\allowbreak{}Finite\allowbreak{}Integral\_\allowbreak{}iff\_\allowbreak{}of\allowbreak{}Real}, \texttt{he t} and \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}lt\_\allowbreak{}top}.
+
+\item For the field \texttt{mgf\_\allowbreak{}le}, \texttt{integral\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}ae} rewrites the real integral of the nonnegative function \(e^{tX}\) as \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real} of its lower integral; \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} transfers \texttt{he t} through \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real} (the right side being finite), and \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real} simplifies.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{A square bounded by two exponentials}{A square bounded by two exponentials}}
 
 
-The series \(\cosh a=\sum_{n\ge0}a^{2n}/(2n)!\) has nonnegative terms, so retaining its first two terms gives \(\cosh a\ge1+a^2/2\). Substitute \(2\cosh a=e^a+e^{-a}\) and rearrange to \(a^2\le e^a+e^{-a}-2\). The construction uses the power series for the hyperbolic cosine with the lower bound obtained by discarding nonnegative series terms, explicitly proving nonnegativity of every discarded even-power term.
+\textbf{Claim.} For every \(a\in\mathbb R\),
+
+
+\[a^2\le e^a+e^{-a}-2.\]
+
+
+\textbf{Proof.} The hyperbolic cosine has the everywhere convergent power series
+
+
+\[\cosh a=\frac{e^a+e^{-a}}2=\sum_{n=0}^\infty\frac{a^{2n}}{(2n)!}.\]
+
+
+Every term is nonnegative, because \(a^{2n}=(a^2)^n\ge0\) and \((2n)!>0\). For a convergent series with nonnegative terms, every partial sum is at most the sum; keeping the terms \(n=0\) and \(n=1\) gives
+
+
+\[1+\frac{a^2}2\le\cosh a=\frac{e^a+e^{-a}}2.\]
+
+
+Multiplying by \(2\) and subtracting \(2\) gives the claim. \(\square\)
 
 
 
-The even combination \(e^s+e^{-s}-2\) has leading term \(s^2\) and nonnegative higher even powers. This supplies a pointwise domination of the square by exponential terms whose Gibbs integrals are controlled.
 
+The right-hand side is an even function of \(a\) whose Taylor expansion starts with \(a^2\); the inequality says that the remaining terms are nonnegative.
+
+\begin{leanbox}{Lean: \texttt{sq\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}add\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}sub\_\allowbreak{}two}}
+\leansource{\texttt{sq\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}add\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}sub\_\allowbreak{}two} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 111–118}
+\begin{leancode}
+\leanline{0}{lemma\ sq\_le\_exp\_add\_exp\_neg\_sub\_two\ (a\ :\ ℝ)\ :}
+\leanline{4}{a\ \textasciicircum{}\ 2\ ≤\ Real.exp\ a\ +\ Real.exp\ (-a)\ -\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{sq\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}add\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}sub\_\allowbreak{}two}, \texttt{hp n} is the nonnegativity of the \(n\)-th term \(a^{2n}/(2n)!\), proved from \texttt{pow\_\allowbreak{}mul}, \texttt{sq\_\allowbreak{}nonneg} and \texttt{div\_\allowbreak{}nonneg}. \texttt{Real.\allowbreak{}has\allowbreak{}Sum\_\allowbreak{}cosh a} is the power series of \(\cosh a\), stated with Mathlib's \texttt{Has\allowbreak{}Sum} (convergence of the series to the given sum), and \texttt{sum\_\allowbreak{}le\_\allowbreak{}has\allowbreak{}Sum (Finset.\allowbreak{}range 2) …} bounds the partial sum over \(\{0,1\}\) by the sum of the series, using the nonnegativity of the omitted terms. \texttt{norm\_\allowbreak{}num [Finset.\allowbreak{}sum\_\allowbreak{}range\_\allowbreak{}succ, Real.\allowbreak{}cosh\_\allowbreak{}eq]} evaluates the partial sum to \(1+a^2/2\) and writes \(\cosh a=(e^a+e^{-a})/2\), and \texttt{linarith} rearranges.
+\end{leanbox}
 
 \section{\texorpdfstring{A second moment from exponential control}{A second moment from exponential control}}
 
 
-Integrate \(t^2X^2\le e^{tX}+e^{-tX}-2\), giving \(t^2\mathbb EX^2\le2(e^{ct^2/2}-1)\). Subgaussianity provides the exponential integrability and hence the square integrability needed here. Divide by \(t^2\) for \(t\ne0\), and let \(t\to0\) to obtain \(\mathbb EX^2\le c\). The limit preserves the inequality because both sides converge.
+\textbf{Claim.} Let \((\Omega,\mu)\) be a probability space, let \(c\ge0\), and let \(X:\Omega\to\mathbb R\) have a sub-Gaussian moment generating function with variance proxy \(c\). Then \(X^2\) is integrable and
+
+
+\[\int_\Omega X^2\,d\mu\le c.\]
+
+
+No assumption \(\int X\,d\mu=0\) is made; the bound is for the uncentred second moment.
 
 
 
-Apply the scalar inequality to a small multiple of the score, integrate using the two exponential bounds, divide by the squared multiplier, and send it to zero. The limit yields the variance proxy as a true second-moment bound.
 
+\textbf{Proof.} \emph{Integrability.} By the previous step with \(a=X(\omega)\), \(0\le X^2\le e^{X}+e^{-X}\), and the right side is integrable (take \(t=\pm1\) in the definition); hence \(X^2\) is integrable. (More generally, a random variable with \(\int e^{tX}d\mu<\infty\) for all \(t\) in a neighbourhood of \(0\) has moments of all orders.)
+
+
+
+
+\emph{A bound for each \(s>0\).} Fix \(s>0\) and put \(t=\sqrt{2s}\), so \(t^2=2s\). The previous step with \(a=tX(\omega)\) gives, for every \(\omega\),
+
+
+\[2s\,X(\omega)^2=t^2X(\omega)^2\le e^{tX(\omega)}+e^{-tX(\omega)}-2.\]
+
+
+All terms are integrable, so integrating and using \(\mu(\Omega)=1\) (so that \(\int2\,d\mu=2\)),
+
+
+\[2s\int X^2\,d\mu\le\int e^{tX}\,d\mu+\int e^{-tX}\,d\mu-2\le2e^{ct^2/2}-2=2e^{cs}-2,\]
+
+
+where the moment generating function bound is used at \(t\) and at \(-t\), and \((-t)^2=t^2=2s\). Dividing by \(2s>0\),
+
+
+\[\int X^2\,d\mu\le\frac{e^{cs}-1}{s}\qquad(s>0).\qquad(1)\]
+
+
+\emph{Limit.} The function \(s\mapsto e^{cs}\) is differentiable at \(0\) with derivative \(c\), so \(\frac{e^{cs}-1}{s}\to c\) as \(s\to0\) with \(s>0\). The left side of (1) does not depend on \(s\), and non-strict inequalities are preserved under limits; hence \(\int X^2\,d\mu\le c\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}subgaussian}}
+\leansource{\texttt{integral\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}subgaussian} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 125–161}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_sq\_le\_of\_subgaussian\ (μ\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(X\ :\ Ω\ →\ ℝ)\ (c\ :\ ℝ≥0)\ (hX\ :\ HasSubgaussianMGF\ X\ c\ μ)\ :}
+\leanline{4}{(∫\ ω,\ X\ ω\ \textasciicircum{}\ 2\ ∂μ)\ ≤\ (c\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}subgaussian} is stated for any measurable space \texttt{\ensuremath{\Omega}} with a measure \texttt{\ensuremath{\mu}} satisfying \texttt{[Is\allowbreak{}Probability\allowbreak{}Measure \ensuremath{\mu}]}, a function \texttt{X} and a proxy \texttt{c : \ensuremath{\mathbb R}\ensuremath{\ge}0} with \texttt{h\allowbreak{}X : Has\allowbreak{}Subgaussian\allowbreak{}MGF X c \ensuremath{\mu}}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hsq} is the integrability of \(X^2\). It is obtained from the general Mathlib fact \texttt{h\allowbreak{}X.\allowbreak{}mem\allowbreak{}Lp 2} (a sub-Gaussian variable lies in every \(L^p\)) and \texttt{mem\allowbreak{}Lp\_\allowbreak{}two\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}sq}, rather than from the elementary bound in the proof above.
+
+\item \texttt{hbound s hs} is (1). With \texttt{t := Real.\allowbreak{}sqrt (2 * s)} and \texttt{ht} the identity \(t^2=2s\) (\texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt}), \texttt{hp \ensuremath{\omega}} is the pointwise inequality, from \texttt{sq\_\allowbreak{}le\_\allowbreak{}exp\_\allowbreak{}add\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}sub\_\allowbreak{}two (t * X \ensuremath{\omega})}. \texttt{hi} integrates it with \texttt{integral\_\allowbreak{}mono}, using the integrability fields \texttt{h\allowbreak{}X.\allowbreak{}integrable\_\allowbreak{}exp\_\allowbreak{}mul t} and \texttt{h\allowbreak{}X.\allowbreak{}integrable\_\allowbreak{}exp\_\allowbreak{}mul (-\allowbreak{}t)} and \texttt{integrable\_\allowbreak{}const 2}; the rewrites \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{integral\_\allowbreak{}sub}, \texttt{integral\_\allowbreak{}add}, \texttt{integral\_\allowbreak{}const} and \texttt{prob\allowbreak{}Real\_\allowbreak{}univ} (\(\mu(\Omega)=1\)) split the integral. \texttt{hplus} and \texttt{hminus} are the bounds \texttt{h\allowbreak{}X.\allowbreak{}mgf\_\allowbreak{}le t} and \texttt{h\allowbreak{}X.\allowbreak{}mgf\_\allowbreak{}le (-\allowbreak{}t)}, rewritten with \(c(2s)/2=cs\); \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}} hs} and \texttt{linarith} finish.
+
+\item \texttt{hd} is the derivative of \(s\mapsto e^{cs}\) at \(0\), and \texttt{hlim := hd.\allowbreak{}tendsto\_\allowbreak{}slope\_\allowbreak{}zero\_\allowbreak{}right} is the convergence of \(s^{-1}(e^{cs}-1)\) to \(c\) as \(s\to0\) from the right (filter \texttt{{\leanfallback 𝓝}[>] 0}), simplified to \((e^{cs}-1)/s\). \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto tendsto\_\allowbreak{}const\_\allowbreak{}nhds hlim} passes to the limit in (1), whose eventual validity on \(s>0\) is provided by \texttt{filter\_\allowbreak{}upwards [self\_\allowbreak{}mem\_\allowbreak{}nhds\allowbreak{}Within]} and \texttt{hbound}.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The full Gibbs gradient-energy bound}{The full Gibbs gradient-energy bound}}
 
 
-Choose an orthonormal basis \((e_i)_{i=1}^d\) and use Parseval: \(\|\nabla U(x)\|^2=\sum_i\langle\nabla U(x),e_i\rangle^2\). Each coordinate is subgaussian with proxy \(L\), hence has second moment at most \(L\). Finite-sum integrability permits integration term by term, yielding \(\mathbb E_{\pi_U}\|\nabla U\|^2\le Ld\).
+\textbf{Claim.} Let \(H\) have finite dimension \(d\), let \(L\ge0\), let \(U:H\to\mathbb R\) be differentiable with \(L\)-Lipschitz gradient, and assume \(Z_U<\infty\). Then
+
+
+\[\int_H\|\nabla U(x)\|^2\,\pi_U(dx)\le Ld.\]
+
+
+\textbf{Proof.} First, \(\pi_U\) is a probability measure: \(\pi_U(H)=Z_U^{-1}Z_U=1\), since \(Z_U>0\) (differentiability of \(U\)) and \(Z_U<\infty\) (hypothesis), exactly as in the normalization step of the section on Gibbs normalization.
 
 
 
-For an orthonormal basis, the squared gradient norm is the sum of the squared directional scores. Each integral is at most \(L\), so summing the \(d\) finite terms gives \(Ld\).
 
+Choose an orthonormal basis \(e_1,\dots,e_d\) of \(H\). For every \(y\in H\), Parseval's identity gives \(\|y\|^2=\sum_{i=1}^d\langle y,e_i\rangle^2\). Put \(X_i(x)=\langle\nabla U(x),e_i\rangle\). By the sub-Gaussian step, \(X_i\) has a sub-Gaussian moment generating function under \(\pi_U\) with variance proxy \(L\|e_i\|^2=L\). By the previous step, applied to the probability space \((H,\pi_U)\), \(X_i^2\) is integrable and \(\int X_i^2\,d\pi_U\le L\). Therefore, by Parseval's identity and linearity of the integral over the finite sum of integrable functions,
+
+
+\[\int_H\|\nabla U\|^2\,d\pi_U=\int_H\sum_{i=1}^dX_i^2\,d\pi_U=\sum_{i=1}^d\int_HX_i^2\,d\pi_U\le\sum_{i=1}^dL=Ld.\qquad\square\]
+
+
+For \(d=0\) the bound is \(0\), as \(H=\{0\}\) and \(\nabla U=0\).
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le}}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 173–204}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_norm\_sq\_gradient\_gibbs\_le}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂gibbsMeasure\ U)\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ (Module.finrank\ ℝ\ H\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le}, the first \texttt{have} proves the instance \texttt{Is\allowbreak{}Probability\allowbreak{}Measure (gibbs\allowbreak{}Measure U)} by the computation of \texttt{is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}gibbs\allowbreak{}Measure} (\texttt{Measure.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{with\allowbreak{}Density\_\allowbreak{}apply}, \texttt{set\allowbreak{}LIntegral\_\allowbreak{}univ}, \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel}), with the hypothesis \texttt{h\allowbreak{}Z} in place of strong convexity.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{e := std\allowbreak{}Orthonormal\allowbreak{}Basis \ensuremath{\mathbb R} H} is Mathlib's chosen orthonormal basis of \(H\), indexed by \texttt{Fin (Module.\allowbreak{}finrank \ensuremath{\mathbb R} H)}, the set \(\{0,\dots,d-1\}\).
+
+\item \texttt{hi i} is the integrability of \(X_i^2\): \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}subgaussian} for the direction \texttt{e i}, then \texttt{hs.\allowbreak{}mem\allowbreak{}Lp 2} and \texttt{mem\allowbreak{}Lp\_\allowbreak{}two\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}sq}. \texttt{hb i} is \(\int X_i^2\,d\pi_U\le L\): \texttt{integral\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}subgaussian} with proxy \texttt{L * \ensuremath{\Vert}e i\ensuremath{\Vert}\ensuremath{{}_{+}} \textasciicircum{} 2}, simplified with \texttt{e.\allowbreak{}orthonormal.\allowbreak{}nnnorm\_\allowbreak{}eq\_\allowbreak{}one} (\(\|e_i\|=1\)).
+
+\item The \texttt{calc} block is the displayed chain: Parseval's identity \texttt{e.\allowbreak{}sum\_\allowbreak{}sq\_\allowbreak{}inner\_\allowbreak{}left} (\(\sum_i\langle y,e_i\rangle^2=\|y\|^2\)) inside \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}; \texttt{integral\_\allowbreak{}finset\allowbreak{}Sum}, the integral of a finite sum of integrable functions; \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum} with \texttt{hb}; and \texttt{simp [mul\_\allowbreak{}comm]}, which evaluates the sum of \(d\) copies of \(L\).
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Square-integrability of the Gibbs gradient}{Square-integrability of the Gibbs gradient}}
 
 
-The coordinate subgaussian bounds prove integrability of every squared gradient coordinate. Summing over the finite orthonormal basis proves integrability of \(\|\nabla U\|^2\). Lipschitz continuity provides strong measurability, and the square-integrability criterion gives \(\nabla U\in L^2(\pi_U)\).
+\textbf{Claim.} Under the hypotheses of the previous step (\(L\ge0\), \(U\) differentiable with \(L\)-Lipschitz gradient, \(Z_U<\infty\)), the gradient \(\nabla U:H\to H\) belongs to \(L^2(\pi_U;H)\).
 
 
 
-Continuity of the gradient supplies measurability and the preceding energy bound supplies the finite square integral. Together they establish the full \(L^2\) membership needed for the lifted reference drift.
 
+\textbf{Proof.} The gradient is Lipschitz, hence continuous and Borel measurable. With an orthonormal basis \(e_1,\dots,e_d\) and \(X_i=\langle\nabla U,e_i\rangle\) as in the previous step, each \(X_i^2\) is \(\pi_U\)-integrable, because \(X_i\) is sub-Gaussian under \(\pi_U\) and therefore has moments of all orders. By Parseval's identity \(\|\nabla U\|^2=\sum_{i=1}^dX_i^2\), a finite sum of integrable functions, which is integrable. A measurable map whose squared norm is integrable belongs to \(L^2\). \(\square\)
+
+
+
+
+Only integrability is needed here, not the quantitative bound \(Ld\) of the previous step.
+
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}gradient\_\allowbreak{}gibbsMeasure}}
+\leansource{\texttt{memLp\_\allowbreak{}gradient\_\allowbreak{}gibbsMeasure} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 207–220}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_gradient\_gibbsMeasure}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)\ :}
+\leanline{4}{MemLp\ (gradient\ U)\ 2\ (gibbsMeasure\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{mem\allowbreak{}Lp\_\allowbreak{}gradient\_\allowbreak{}gibbs\allowbreak{}Measure}, \texttt{hi} is the integrability of the squared coordinates \(X_i^2\), proved as in the previous step from \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}subgaussian} and \texttt{hs.\allowbreak{}mem\allowbreak{}Lp 2}. \texttt{mem\allowbreak{}Lp\_\allowbreak{}two\_\allowbreak{}iff\_\allowbreak{}integrable\_\allowbreak{}sq\_\allowbreak{}norm}, with measurability from \texttt{h\allowbreak{}Lip.\allowbreak{}continuous}, reduces the goal to the integrability of \(\|\nabla U\|^2\). \texttt{integrable\_\allowbreak{}finset\allowbreak{}Sum} gives the integrability of \(\sum_iX_i^2\), and \texttt{convert} with Parseval's identity \texttt{e.\allowbreak{}sum\_\allowbreak{}sq\_\allowbreak{}inner\_\allowbreak{}left} identifies the two functions.
+\end{leanbox}
 
 \section{\texorpdfstring{The gradient-energy bound under strong convexity}{The gradient-energy bound under strong convexity}}
 
 
-Strong convexity with \(m>0\) supplies the finite-partition premise of the score theorem. Substitute that proof into the first-order smoothness result to obtain \(\mathbb E_{\pi_U}\|\nabla U\|^2\le Ld\). The strong convexity constant is used for normalization here; it does not appear in the resulting gradient-moment bound.
+\textbf{Claim.} Let \(H\) have finite dimension \(d\), let \(m>0\) and \(L\ge0\), and let \(U:H\to\mathbb R\) be differentiable, \(m\)-strongly convex, with \(L\)-Lipschitz gradient. Then
+
+
+\[\int_H\|\nabla U(x)\|^2\,\pi_U(dx)\le Ld.\]
+
+
+\textbf{Proof.} Strong convexity with \(m>0\) and differentiability give \(Z_U<\infty\) \cite[Section~3.26.10]{LangevinLean2026ULASC}. The claim is then the full gradient-energy bound proved above. \(\square\)
 
 
 
-Strong convexity is used here to guarantee a normalized Gibbs probability and finite partition. The score-energy calculation itself comes from the smooth upper model and the translation comparison.
 
+The strong convexity constant \(m\) is used only to guarantee a finite partition function; it does not appear in the bound.
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}strongConvex}}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}strongConvex} \quad UnadjustedLangevin/\allowbreak{}GibbsScore.lean, lines 226–233}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_norm\_sq\_gradient\_gibbs\_le\_of\_strongConvex}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂gibbsMeasure\ U)\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ (Module.finrank\ ℝ\ H\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex} is the term \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le U L hdiff h\allowbreak{}Lip (gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top U m hm hdiff hsc)}: the finiteness hypothesis \texttt{h\allowbreak{}Z} of the general bound is discharged by \texttt{gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top}, which uses \texttt{hm}, \texttt{hdiff} and \texttt{hsc}.
+\end{leanbox}
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
 
 \end{document}

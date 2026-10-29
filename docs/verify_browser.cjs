@@ -45,6 +45,8 @@ const LIBRARIES = [
     modules: ['PotentialContraction', 'Gaussian'] },
   { key: 'KIPLMC', label: 'kiplmc', search: 'Exponential.lean',
     modules: ['Exponential', 'Splitting'] },
+  { key: 'AverageLMC', label: 'average', search: 'GradientStep.lean',
+    modules: ['GradientStep', 'Theorem'] },
 ];
 const VIEWPORTS = [
   { label: 'desktop', width: 1440, height: 1000 },
@@ -220,8 +222,9 @@ async function mathematicalPage(page, item) {
   check(await page.locator('.katex-error').count() === 0, 'KaTeX reports a rendering error');
   check(await page.locator('.pair .math-pane').count() > 0, 'Expected a parallel mathematical panel');
   check(await page.locator('.pair .lean-pane .lean-code').count() > 0, 'Expected exact Lean beside mathematics');
-  check(await page.locator('.site-nav .brand').evaluate(element => new URL(element.href).pathname === '/index.html'),
-    'Project-home navigation points to the repository home');
+  check(await page.locator('.site-nav').count() === 0, 'Pages have no site menu');
+  check(await page.locator('.breadcrumb a').first().evaluate(element => new URL(element.href).pathname === '/index.html'),
+    'The home breadcrumb points to the repository home');
   if (item.kind === 'module') {
     check(await page.locator('.proof-step').count() > 0, 'Expected substantive module proof steps');
     check(await page.locator('.lean-code[data-role="declaration"]').count() > 0,
@@ -463,6 +466,11 @@ async function projectLinks(page, viewport) {
   await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
   screenshots.push(destination);
   check(await page.locator('.landing-card').count() === 9, 'Project home has nine contribution cards');
+  check(await page.locator('nav.top-nav, .site-nav, .global-nav').count() === 0, 'Project home has no global top menu');
+  const shapes = await page.locator('.landing-card').evaluateAll(cards => cards.map(card =>
+    [...card.querySelectorAll('*')].map(node => node.tagName + '.' + node.className).join('|')));
+  check(new Set(shapes).size === 1, 'Every homepage entry uses exactly the same structure');
+  check(await page.locator('.landing-card a[href$="FullProof.pdf"]').count() === 9, 'Every homepage entry offers a complete proof PDF');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Unadjusted Langevin under Strong Convexity'),
     'ULA card states the strong convexity assumption');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Interacting Particle Langevin under Strong Convexity'),
@@ -475,14 +483,14 @@ async function projectLinks(page, viewport) {
   check(await averageCard.locator('h2 a[href="AverageLMC/exposition/index.html"]').count() === 1 &&
     (await averageCard.locator('.entry-index').textContent()).trim() === '09',
     'Average-smoothness LMC follows latent diffusion as contribution 09');
-  for (const library of LIBRARIES) {
+  for (const library of LIBRARIES.filter(library => library.key !== 'IPLA/LSI')) {
     const relative = library.key + '/exposition/index.html';
     await page.locator('.landing-card a[href="' + relative + '"]').click();
     await page.waitForURL(url => url.pathname === '/' + relative);
     await page.waitForLoadState('load');
     await page.evaluate(async () => { if (document.fonts) await document.fonts.ready; });
     check(await page.locator('#main-results').count() === 1, 'Project card opens ' + library.label + ' overview');
-    await page.locator('.site-nav .brand').click();
+    await page.locator('.breadcrumb a').first().click();
     await page.waitForURL(url => url.pathname === '/index.html');
     await page.waitForLoadState('load');
   }
@@ -499,7 +507,7 @@ async function projectLinks(page, viewport) {
     await page.locator('#proof-roadmap').count() === 1,
     'PBGSO provides runnable standalone verification and its mathematical proof roadmap');
   check(await page.locator('.module-card').count() === 0 &&
-    await page.locator('a[href="technical.html"]').count() > 0,
+    await page.locator('a[href^="technical.html"]').count() > 0,
     'The exhaustive PBGSO module catalog is separate from the primary theorem page');
   const assumptionColors = await page.evaluate(() => {
     const base = getComputedStyle(document.body).color;
@@ -513,8 +521,24 @@ async function projectLinks(page, viewport) {
     assumptionColors.added[0] !== assumptionColors.interpreted[0],
     'Added assumptions and semantic interpretations have distinct visible colors');
   await noPageOverflow(page);
-  await page.locator('.site-nav .brand').click();
-  await page.waitForURL(url => url.pathname === '/index.html');
+  for (const key of ['PBGSO', 'LatentDiffusion']) {
+    await goto(page, origin + '/' + key + '/exposition/index.html');
+    check(await page.locator('#mathematical-proof .proof-step .lean-logic').count() > 0, key + ' has a sequential argument with Lean correspondence');
+    check(await page.locator('#verification .commands').count() > 0, key + ' offers runnable verification');
+    await proofDownloads(page, {kind: 'home', label: key}, viewport);
+    const targets = await page.locator('#proof-roadmap a.box').evaluateAll(nodes => [...new Set(nodes.map(node => node.href))]);
+    check(targets.length > 0, key + ' has navigable roadmap boxes');
+    for (const target of targets) {
+      await goto(page, target);
+      const anchor = new URL(target).hash;
+      const step = page.locator(anchor);
+      check(await step.locator('.math-pane').count() === 1 && await step.locator('.lean-logic').count() === 1, key + ' roadmap target opens detailed mathematics and Lean correspondence', target);
+      await noPageOverflow(page);
+    }
+    await goto(page, origin + '/' + key + '/exposition/index.html');
+    await noPageOverflow(page);
+  }
+  await goto(page, origin + '/index.html');
   await noPageOverflow(page);
 }
 

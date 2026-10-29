@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,16 @@ The smooth Taylor upper bound gives \(f(y)-f(x)-\langle\nabla f(x),y-x\rangle\le
 
 The fundamental theorem along the segment gives \(f(y)-f(x)-\langle\nabla f(x),y-x\rangle\). Gradient Lipschitzness bounds its absolute value by \(M\|y-x\|^2/2\). The two-sided form is needed because numerical energy can increase or decrease.
 
+\begin{leanbox}{Lean: \texttt{smooth\_\allowbreak{}taylor\_\allowbreak{}abs}}
+\leansource{\texttt{smooth\_\allowbreak{}taylor\_\allowbreak{}abs} \quad KineticLangevin/\allowbreak{}HamiltonianError.lean, lines 20–32}
+\begin{leancode}
+\leanline{0}{theorem\ smooth\_taylor\_abs\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (x\ y\ :\ E)\ :}
+\leanline{4}{|f\ y\ -\ f\ x\ -\ {\leanfallback ⟪}gradient\ f\ x,y-x{\leanfallback ⟫}|\ ≤\ (M\ :\ ℝ)/2\ *\ ‖y-x‖\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{smooth\_\allowbreak{}taylor\_\allowbreak{}abs} gives the formal counterpart of this step. The main intermediate facts are \texttt{hneg}, \texttt{hu}, \texttt{hn} in that order. Named proof applications include \texttt{abs\_\allowbreak{}le.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.9.1]{LangevinLean2026ULASC}.
@@ -48,6 +81,17 @@ Write \(d=y-x\), \(r_x=f(y)-f(x)-\langle\nabla f(x),d\rangle\), and \(r_y=f(x)-f
 
 Writing the potential difference once from each endpoint and averaging produces a trapezoidal force term. Its remainder is controlled by the same segment displacement. This symmetric arrangement matches the two force evaluations of velocity Verlet.
 
+\begin{leanbox}{Lean: \texttt{smooth\_\allowbreak{}trapezoid\_\allowbreak{}abs}}
+\leansource{\texttt{smooth\_\allowbreak{}trapezoid\_\allowbreak{}abs} \quad KineticLangevin/\allowbreak{}HamiltonianError.lean, lines 36–56}
+\begin{leancode}
+\leanline{0}{theorem\ smooth\_trapezoid\_abs\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (x\ y\ :\ E)\ :}
+\leanline{4}{|f\ y-f\ x\ -\ (1/2:ℝ)*{\leanfallback ⟪}gradient\ f\ x+gradient\ f\ y,y-x{\leanfallback ⟫}|\ ≤}
+\leanline{6}{(M\ :\ ℝ)/2\ *\ ‖y-x‖\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{smooth\_\allowbreak{}trapezoid\_\allowbreak{}abs} gives the formal counterpart of this step. The main intermediate facts are \texttt{hx}, \texttt{hy}, \texttt{hsub}, \texttt{htri}, \texttt{he}, \texttt{hh} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Control the squared-force correction}{Control the squared-force correction}}
 
@@ -58,6 +102,17 @@ Factor \(\|g(y)\|^2-\|g(x)\|^2=(\|g(y)\|-\|g(x)\|)(\|g(y)\|+\|g(x)\|)\). The rev
 
 The kinetic-square expansion contains differences of squared force norms. Factor each difference as an inner product of the force difference and force sum. Lipschitz continuity controls the first factor; the second is bounded by the endpoint force magnitudes.
 
+\begin{leanbox}{Lean: \texttt{force\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sub\_\allowbreak{}abs}}
+\leansource{\texttt{force\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sub\_\allowbreak{}abs} \quad KineticLangevin/\allowbreak{}HamiltonianError.lean, lines 59–71}
+\begin{leancode}
+\leanline{0}{theorem\ force\_norm\_sq\_sub\_abs\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ g)\ (x\ y\ :\ E)\ :}
+\leanline{4}{|‖g\ y‖\textasciicircum{}2-‖g\ x‖\textasciicircum{}2|\ ≤}
+\leanline{6}{(M\ :\ ℝ)*‖y-x‖*(2*‖g\ x‖+(M\ :\ ℝ)*‖y-x‖)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{force\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sub\_\allowbreak{}abs} gives the formal counterpart of this step. The main intermediate facts are \texttt{hd}, \texttt{hr}, \texttt{hy}, \texttt{hid} in that order. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Bound the complete Verlet energy defect}{Bound the complete Verlet energy defect}}
 
@@ -68,10 +123,23 @@ Set \(w=v-h\nabla f(x)/2\), \(y=x+hw\). The exact identity from the Hamiltonian 
 
 Combine the potential and kinetic expansions before estimating their absolute values. Their leading terms cancel because the Verlet stages use matching half kicks. The remaining estimate is expressed in terms of velocity and force magnitudes so it can later be integrated under a Gibbs moment bound.
 
+\begin{leanbox}{Lean: \texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}abs}}
+\leansource{\texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}abs} \quad KineticLangevin/\allowbreak{}HamiltonianError.lean, lines 75–103}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_energy\_defect\_abs\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ)\ (z\ :\ E×E)\ :}
+\leanline{4}{let\ w\ :=\ z.1-(h/2)\ •\ gradient\ f\ z.2}
+\leanline{4}{|hamiltonianEnergy\ f\ (verletStep\ (gradient\ f)\ h\ z)-hamiltonianEnergy\ f\ z|\ ≤}
+\leanline{6}{(M\ :\ ℝ)/2*h\textasciicircum{}2*‖w‖\textasciicircum{}2\ +\ h\textasciicircum{}2/8*((M\ :\ ℝ)*\ (|h|\ *\ ‖w‖)*}
+\leanline{8}{(2*‖gradient\ f\ z.2‖+(M\ :\ ℝ)*(|h|\ *\ ‖w‖)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}abs} gives the formal counterpart of this step. The main intermediate facts are \texttt{w}, \texttt{y}, \texttt{hwork}, \texttt{hforce}, \texttt{hy}, \texttt{hid} in that order. Named proof applications include \texttt{add\_\allowbreak{}le\_\allowbreak{}add}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

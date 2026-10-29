@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -40,6 +63,20 @@ The chosen fixed point gives a continuous \(Z\) with its integral identity. Add 
 
 The shifted unknown has an ordinary time integral even if the additive input has no derivative. The short-time radius and drift bounds ensure that the Picard map preserves its closed ball, while the Lipschitz estimate controls contraction there.
 
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small}}
+\leansource{\texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small} \quad UnadjustedLangevin/\allowbreak{}LangevinIntegral.lean, lines 25–92}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_langevin\_integral\_small}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ :\ ℝ\ →\ H)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ (L\ :\ ℝ)\ *\ h\ ≤\ 1\ /\ 2)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ H,\ Continuous\ Y\ ∧\ Y\ 0\ =\ x\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{8}{Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small} first bounds the continuous forcing on the compact time interval by \texttt{C'}. It transforms the unknown by subtracting that forcing, defining \texttt{f} as a time-dependent ordinary differential equation. \texttt{G}, \texttt{a} and \texttt{M} bound its size and the radius of the invariant function ball. The four fields of \texttt{hpicard} verify spatial Lipschitzness, time continuity, the vector-field bound and the radius condition; the last uses \texttt{hsmall}. \texttt{ODE.\allowbreak{}Fun\allowbreak{}Space.\allowbreak{}exists\_\allowbreak{}is\allowbreak{}Fixed\allowbreak{}Pt\_\allowbreak{}next} then gives the integral fixed point. \texttt{Z} and \texttt{h\allowbreak{}Zeq} expose that equation, and adding back \texttt{B} yields the claimed solution with initial value supplied by \texttt{h\allowbreak{}B0}.
+\end{leanbox}
 
 \section{\texorpdfstring{Splicing two integral-equation segments}{Splicing two integral-equation segments}}
 
@@ -50,6 +87,23 @@ Use \(Y(t)\) up to time \(a\), and \(Z(t-a)\) afterward. The equality \(Z(0)=Y(a
 
 At the join, the two path values coincide by the restart condition. For later times split the drift integral at the joining time and translate the second part; the two input increments then add to the original input difference.
 
+\begin{leanbox}{Lean: \texttt{splice\_\allowbreak{}langevin\_\allowbreak{}integral}}
+\leansource{\texttt{splice\_\allowbreak{}langevin\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}LangevinIntegral.lean, lines 98–164}
+\begin{leancode}
+\leanline{0}{lemma\ splice\_langevin\_integral}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ Y\ Z\ :\ ℝ\ →\ H)\ (hY\ :\ Continuous\ Y)\ (hZ\ :\ Continuous\ Z)}
+\leanline{4}{(a\ b\ :\ ℝ)\ (ha\ :\ 0\ ≤\ a)\ (\_hb\ :\ 0\ ≤\ b)}
+\leanline{4}{(hY0\ :\ Y\ 0\ =\ x)\ (hZ0\ :\ Z\ 0\ =\ Y\ a)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ a,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(hZe\ :\ ∀\ t\ ∈\ Icc\ 0\ b,\ Z\ t\ -\ Y\ a\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ g\ (Z\ s))\ +\ (B\ (a\ +\ t)\ -\ B\ a))\ :}
+\leanline{4}{∃\ S\ :\ ℝ\ →\ H,\ Continuous\ S\ ∧\ S\ 0\ =\ x\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ (a\ +\ b),\ S\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (S\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{splice\_\allowbreak{}langevin\_\allowbreak{}integral} defines \texttt{S} by a time cutoff. The endpoint equality \texttt{h\allowbreak{}Z0} proves continuity at the join. \texttt{h\allowbreak{}Slint} identifies integrals before the join. For a later time, \texttt{hright} translates the second integral back to a zero-based interval; \texttt{hint} combines the two adjacent integrals. Substituting \texttt{hyval} and \texttt{hzval} cancels the forcing value at the join and produces the full-interval equation. This step requires Lipschitzness only to ensure continuity and integrability of the composed drift.
+\end{leanbox}
 
 \section{\texorpdfstring{Existence on every finite horizon}{Existence on every finite horizon}}
 
@@ -60,6 +114,19 @@ Choose a positive segment length small enough that \(L\delta\le1/2\). Construct 
 
 A finite horizon can be covered by finitely many equal short intervals. At each restart the shifted input is continuous and starts at zero, so the same local theorem applies repeatedly with a new initial point.
 
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral}}
+\leansource{\texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}LangevinIntegral.lean, lines 169–206}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_langevin\_integral}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ :\ ℝ\ →\ H)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)}
+\leanline{4}{(h\ :\ ℝ)\ (\_hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ H,\ Continuous\ Y\ ∧\ Y\ 0\ =\ x\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral} chooses the positive interval length \texttt{\ensuremath{\delta}}; \texttt{h\ensuremath{\delta}small} verifies the short-interval condition. The induction \texttt{hex} constructs a solution on each integer multiple of this length. Its zero case is the constant initial state on the zero interval. The successor solves from \texttt{Y a} with shifted forcing and invokes \texttt{splice\_\allowbreak{}langevin\_\allowbreak{}integral}. Finally \texttt{exists\_\allowbreak{}nat\_\allowbreak{}ge} chooses an interval long enough to contain the requested finite horizon, and the proof restricts the resulting equation to that horizon. There is no smallness assumption on the final horizon.
+\end{leanbox}
 
 \section{\texorpdfstring{A short-interval solution in square mean}{A short-interval solution in square mean}}
 
@@ -70,6 +137,21 @@ Apply the Banach-space Picard theorem to \(H=L^2(P;K)\), \(g(X)=\mathcal G(\nabl
 
 The lifted gradient's global Lipschitz constant is unchanged, and the space of square-integrable vectors is complete. These facts verify the short-interval fixed-point assumptions in the random-vector Hilbert space.
 
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small}}
+\leansource{\texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small} \quad UnadjustedLangevin/\allowbreak{}LangevinIntegral.lean, lines 214–223}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_lp\_langevin\_integral\_small}
+\leanline{4}{(U\ :\ K\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ K\ 2\ P)\ (B\ :\ ℝ\ →\ Lp\ K\ 2\ P)}
+\leanline{4}{(hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ (L\ :\ ℝ)\ *\ h\ ≤\ 1\ /\ 2)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ Lp\ K\ 2\ P,\ Continuous\ Y\ ∧\ Y\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpDrift\ P\ (gradient\ U)\ hLip\ (Y\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small} applies \texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}small} in the complete Hilbert space \texttt{Lp K 2 P}. Its drift is \texttt{lp\allowbreak{}Drift}, and \texttt{lp\allowbreak{}Drift\_\allowbreak{}lipschitz} supplies the same Lipschitz constant. Thus the existence theorem applies directly to a continuous forcing in the root second-moment norm; no samplewise path regularity or stationary law is asserted here.
+\end{leanbox}
 
 \section{\texorpdfstring{A finite-horizon solution in square mean}{A finite-horizon solution in square mean}}
 
@@ -80,5 +162,19 @@ Use the finite-horizon Banach-space existence theorem with the lifted gradient d
 
 The finite-horizon construction produces one continuous \(L^2\)-valued curve. Its Bochner drift integral is well defined by continuity, and the integral identity is asserted at each time in the prescribed horizon.
 
+\begin{leanbox}{Lean: \texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral}}
+\leansource{\texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}LangevinIntegral.lean, lines 227–235}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_lp\_langevin\_integral}
+\leanline{4}{(U\ :\ K\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ K\ 2\ P)\ (B\ :\ ℝ\ →\ Lp\ K\ 2\ P)}
+\leanline{4}{(hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{∃\ Y\ :\ ℝ\ →\ Lp\ K\ 2\ P,\ Continuous\ Y\ ∧\ Y\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpDrift\ P\ (gradient\ U)\ hLip\ (Y\ s))\ +\ B\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exists\_\allowbreak{}lp\_\allowbreak{}langevin\_\allowbreak{}integral} similarly specializes \texttt{exists\_\allowbreak{}langevin\_\allowbreak{}integral} to \texttt{Lp K 2 P}. The only additional ingredient is \texttt{lp\allowbreak{}Drift\_\allowbreak{}lipschitz}, obtained from \texttt{h\allowbreak{}Lip}. The conclusion is a continuous square-integrable integral solution on the entire finite horizon. Its law and stationarity are established later, rather than included in this existence result.
+\end{leanbox}
 
 \end{document}

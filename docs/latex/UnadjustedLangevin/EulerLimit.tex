@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,17 @@ Define \(X_0=x\) and \(X_{k+1}=X_k-hg(X_k)+B((k+1)h)-B(kh)\). The additive input
 
 Using increments of one fixed input makes the discrete and continuous equations directly comparable. The numerical error is caused by drift freezing, rather than by approximating the noise itself.
 
+\begin{leanbox}{Lean: \texttt{additiveEulerChain}}
+\leansource{\texttt{additiveEulerChain} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 28–31}
+\begin{leancode}
+\leanline{0}{def\ additiveEulerChain\ (g\ :\ H\ →\ H)\ (h\ :\ ℝ)\ (x\ :\ H)\ (B\ :\ ℝ\ →\ H)\ :\ ℕ\ →\ H}
+\leanline{2}{|\ 0\ =>\ x}
+\leanline{2}{|\ k\ +\ 1\ =>\ additiveEulerChain\ g\ h\ x\ B\ k\ -\ h\ •\ g\ (additiveEulerChain\ g\ h\ x\ B\ k)\ +}
+\leanline{6}{(B\ (((k\ +\ 1\ :\ ℕ)\ :\ ℝ)\ *\ h)\ -\ B\ ((k\ :\ ℝ)\ *\ h))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\allowbreak{}Euler\allowbreak{}Chain} is a definition with defining expression \texttt{def additive\allowbreak{}Euler\allowbreak{}Chain (g : H \ensuremath{\to} H) (h : \ensuremath{\mathbb R}) (x : H) (B : \ensuremath{\mathbb R} \ensuremath{\to} H) : \ensuremath{\mathbb N} \ensuremath{\to} H}. Its pattern-matching branches specify the initial value and the successor update.
+\end{leanbox}
 
 \section{\texorpdfstring{Its initial value}{Its initial value}}
 
@@ -42,6 +76,15 @@ Evaluating the recursive definition at index zero gives \(X_0=x\). The proof est
 
 The zero index uses no input increment, so the chain starts exactly at its prescribed point. This supplies the zero initial error when the exact solution is initialized at the same point.
 
+\begin{leanbox}{Lean: \texttt{additiveEulerChain\_\allowbreak{}zero}}
+\leansource{\texttt{additiveEulerChain\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 34–35}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ additiveEulerChain\_zero\ (g\ :\ H\ →\ H)\ (h\ :\ ℝ)\ (x\ :\ H)\ (B\ :\ ℝ\ →\ H)\ :}
+\leanline{4}{additiveEulerChain\ g\ h\ x\ B\ 0\ =\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}zero} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+\end{leanbox}
 
 \section{\texorpdfstring{Its successor update}{Its successor update}}
 
@@ -52,6 +95,17 @@ The successor definition gives \(X_{k+1}=X_k-hg(X_k)+\Delta B_k\). This defining
 
 Writing \(\Delta B_k=B((k+1)h)-B(kh)\) isolates the common additive increment. It cancels when this equation is subtracted from the exact integral increment over the same mesh interval.
 
+\begin{leanbox}{Lean: \texttt{additiveEulerChain\_\allowbreak{}succ}}
+\leansource{\texttt{additiveEulerChain\_\allowbreak{}succ} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 38–41}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ additiveEulerChain\_succ\ (g\ :\ H\ →\ H)\ (h\ :\ ℝ)\ (x\ :\ H)\ (B\ :\ ℝ\ →\ H)}
+\leanline{4}{(k\ :\ ℕ)\ :\ additiveEulerChain\ g\ h\ x\ B\ (k\ +\ 1)\ =}
+\leanline{6}{additiveEulerChain\ g\ h\ x\ B\ k\ -\ h\ •\ g\ (additiveEulerChain\ g\ h\ x\ B\ k)\ +}
+\leanline{8}{(B\ (((k\ +\ 1\ :\ ℕ)\ :\ ℝ)\ *\ h)\ -\ B\ ((k\ :\ ℝ)\ *\ h))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}succ} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+\end{leanbox}
 
 \section{\texorpdfstring{The exact integral increment}{The exact integral increment}}
 
@@ -62,6 +116,19 @@ Subtract the integral equations at \(b\) and \(a\). Continuity of \(g\circ Y\) m
 
 The drift integral over \([a,b]\) is the difference of the two integrals starting at zero. This is the exact increment equation on each numerical mesh interval.
 
+\begin{leanbox}{Lean: \texttt{langevin\_\allowbreak{}integral\_\allowbreak{}increment}}
+\leansource{\texttt{langevin\_\allowbreak{}integral\_\allowbreak{}increment} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 46–60}
+\begin{leancode}
+\leanline{0}{theorem\ langevin\_integral\_increment}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ Y\ :\ ℝ\ →\ H)\ (hY\ :\ Continuous\ Y)\ (T\ :\ ℝ)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(a\ b\ :\ ℝ)\ (ha\ :\ a\ ∈\ Icc\ 0\ T)\ (hb\ :\ b\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{Y\ b\ -\ Y\ a\ =\ -(∫\ s\ in\ a..b,\ g\ (Y\ s))\ +\ (B\ b\ -\ B\ a)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{langevin\_\allowbreak{}integral\_\allowbreak{}increment}: the intermediate facts include \texttt{hc}, \texttt{hi}, \texttt{hea}, \texttt{heb}, in source order; the source steps apply or rewrite \texttt{sub\_\allowbreak{}eq\_\allowbreak{}iff\_\allowbreak{}eq\_\allowbreak{}add}.
+\end{leanbox}
 
 \section{\texorpdfstring{A finite-horizon recurrence estimate}{A finite-horizon recurrence estimate}}
 
@@ -72,6 +139,17 @@ From \(e_{k+1}\le qe_k+b\), \(e_0=0\), \(q\ge1\), and \(b\ge0\), induction prove
 
 The bound \(nbq^n\) remains valid at \(q=1\). It avoids a division by \(q-1\), making the Euler convergence estimate uniform as the mesh tends to zero.
 
+\begin{leanbox}{Lean: \texttt{finite\_\allowbreak{}euler\_\allowbreak{}recurrence\_\allowbreak{}bound}}
+\leansource{\texttt{finite\_\allowbreak{}euler\_\allowbreak{}recurrence\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 64–80}
+\begin{leancode}
+\leanline{0}{theorem\ finite\_euler\_recurrence\_bound\ (e\ :\ ℕ\ →\ ℝ)\ (q\ b\ :\ ℝ)}
+\leanline{4}{(hq\ :\ 1\ ≤\ q)\ (hb\ :\ 0\ ≤\ b)\ (he0\ :\ e\ 0\ =\ 0)\ (n\ :\ ℕ)}
+\leanline{4}{(hstep\ :\ ∀\ k\ <\ n,\ e\ (k\ +\ 1)\ ≤\ q\ *\ e\ k\ +\ b)\ :}
+\leanline{4}{e\ n\ ≤\ (n\ :\ ℝ)\ *\ b\ *\ q\ \textasciicircum{}\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{finite\_\allowbreak{}euler\_\allowbreak{}recurrence\_\allowbreak{}bound}: the argument uses \texttt{induction n with}; the intermediate facts include \texttt{hn}, \texttt{hp}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}one}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{one\_\allowbreak{}le\_\allowbreak{}pow\ensuremath{{}_{0}}}, \texttt{pow\_\allowbreak{}succ}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Stability of the explicit Euler map}{Stability of the explicit Euler map}}
 
@@ -82,6 +160,16 @@ Write the difference as \((x-y)-h(g(x)-g(y))\). The triangle inequality and Lips
 
 This estimate uses only Lipschitzness and a triangle inequality, so its factor is \(1+Lh\). It controls finite-time stability of the approximation without requiring strong convexity or a contractive Euler step.
 
+\begin{leanbox}{Lean: \texttt{explicitEuler\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}}
+\leansource{\texttt{explicitEuler\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 84–95}
+\begin{leancode}
+\leanline{0}{theorem\ explicitEuler\_norm\_sub\_le\ (g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (x\ y\ :\ H)\ :}
+\leanline{4}{‖(x\ -\ h\ •\ g\ x)\ -\ (y\ -\ h\ •\ g\ y)‖\ ≤\ (1\ +\ (L\ :\ ℝ)\ *\ h)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{explicit\allowbreak{}Euler\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}: the intermediate fact is \texttt{hid}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{The error from a drift continuity modulus}{The error from a drift continuity modulus}}
 
@@ -92,6 +180,22 @@ At one step the common noise cancels. The Euler map contributes \((1+Lh)e_k\), a
 
 Within each mesh cell, a drift variation at most \(\varepsilon\) contributes at most \(h\varepsilon\) to the local remainder. Multiplying by the finite-time stability factor and using \(nh=T\) gives the stated uniform horizon bound.
 
+\begin{leanbox}{Lean: \texttt{additiveEulerChain\_\allowbreak{}error\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}drift\_\allowbreak{}modulus}}
+\leansource{\texttt{additiveEulerChain\_\allowbreak{}error\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}drift\_\allowbreak{}modulus} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 99–175}
+\begin{leancode}
+\leanline{0}{theorem\ additiveEulerChain\_error\_le\_of\_drift\_modulus}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ Y\ :\ ℝ\ →\ H)\ (hB0\ :\ B\ 0\ =\ 0)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ h\ ε\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (hh\ :\ 0\ ≤\ h)\ (hε\ :\ 0\ ≤\ ε)\ (n\ :\ ℕ)}
+\leanline{4}{(hpartition\ :\ (n\ :\ ℝ)\ *\ h\ =\ T)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(hmod\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ∀\ t\ ∈\ Icc\ 0\ T,\ dist\ s\ t\ ≤\ h\ →}
+\leanline{6}{‖g\ (Y\ s)\ -\ g\ (Y\ t)‖\ ≤\ ε)\ :}
+\leanline{4}{‖additiveEulerChain\ g\ h\ x\ B\ n\ -\ Y\ T‖\ ≤\ T\ *\ ε\ *\ Real.exp\ ((L\ :\ ℝ)\ *\ T)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}error\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}drift\_\allowbreak{}modulus}: the intermediate facts include \texttt{X}, \texttt{e}, \texttt{h\allowbreak{}Y0}, \texttt{htime}, \texttt{hpow}, in source order; the source steps apply or rewrite \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}same}, \texttt{neg\_\allowbreak{}zero}, \texttt{push\_\allowbreak{}cast}, \texttt{norm\_\allowbreak{}add\_\allowbreak{}le}, \texttt{Real.\allowbreak{}exp}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Euler convergence with the same additive input}{Euler convergence with the same additive input}}
 
@@ -102,6 +206,20 @@ The continuous drift path \(g\circ Y\) is uniformly continuous on \([0,T]\). Giv
 
 Uniform continuity of the exact drift curve supplies a single mesh size that controls every cell of the horizon. Sending that mesh size to zero makes the remainder tolerance arbitrarily small, and hence the endpoint error tends to zero.
 
+\begin{leanbox}{Lean: \texttt{additiveEulerChain\_\allowbreak{}tendsto}}
+\leansource{\texttt{additiveEulerChain\_\allowbreak{}tendsto} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 180–213}
+\begin{leancode}
+\leanline{0}{theorem\ additiveEulerChain\_tendsto}
+\leanline{4}{(g\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(x\ :\ H)\ (B\ Y\ :\ ℝ\ →\ H)\ (hB0\ :\ B\ 0\ =\ 0)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)\ :}
+\leanline{4}{Tendsto\ (fun\ n\ :\ ℕ\ ↦\ additiveEulerChain\ g\ (T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))\ x\ B\ (n\ +\ 1))}
+\leanline{6}{atTop\ ({\leanfallback 𝓝}\ (Y\ T))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}tendsto}: the intermediate facts include \texttt{C}, \texttt{h\allowbreak{}C}, \texttt{\ensuremath{\eta}}, \texttt{hpartition}, \texttt{hbound}, in source order; the source steps apply or rewrite \texttt{Metric.\allowbreak{}tendsto\_\allowbreak{}at\allowbreak{}Top.\allowbreak{}mpr}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{hst.\allowbreak{}trans}, \texttt{lt\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lt}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Euler convergence in square mean}{Euler convergence in square mean}}
 
@@ -112,5 +230,20 @@ Apply the deterministic matching-input Euler convergence theorem in \(L^2(P;H)\)
 
 Convergence is in the norm of the random-vector Hilbert space. It therefore controls expectations of bounded Lipschitz tests by Cauchy–Schwarz, which is the form later used to identify the limiting marginal law.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}euler\_\allowbreak{}tendsto}}
+\leansource{\texttt{lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}euler\_\allowbreak{}tendsto} \quad UnadjustedLangevin/\allowbreak{}EulerLimit.lean, lines 223–232}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_langevin\_integral\_euler\_tendsto}
+\leanline{4}{(U\ :\ H\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ H\ 2\ P)\ (B\ Y\ :\ ℝ\ →\ Lp\ H\ 2\ P)}
+\leanline{4}{(hB0\ :\ B\ 0\ =\ 0)\ (hY\ :\ Continuous\ Y)\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ lpDrift\ P\ (gradient\ U)\ hLip\ (Y\ s))\ +\ B\ t)\ :}
+\leanline{4}{Tendsto\ (fun\ n\ :\ ℕ\ ↦\ additiveEulerChain\ (lpDrift\ P\ (gradient\ U)\ hLip)}
+\leanline{6}{(T\ /\ ((n\ +\ 1\ :\ ℕ)\ :\ ℝ))\ initial\ B\ (n\ +\ 1))\ atTop\ ({\leanfallback 𝓝}\ (Y\ T))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}langevin\_\allowbreak{}integral\_\allowbreak{}euler\_\allowbreak{}tendsto}: the proof is the application \texttt{additive\allowbreak{}Euler\allowbreak{}Chain\_\allowbreak{}tendsto (lp\allowbreak{}Drift P (gradient U) h\allowbreak{}Lip) L}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \end{document}

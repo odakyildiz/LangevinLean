@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,69 @@ Replace the innovation \(\xi\) in MYIPLA by \(P_x\xi\). This defines MYPGD. The 
 
 The deterministic terms are identical at every step; only the supplied innovation is projected. Induction therefore proves equality of the pointwise chains before any distributional assumptions are made. Their laws are subsequently the measurable pushforwards of this same recursion.
 
+\begin{leanbox}{Lean: \texttt{mypgdUpdate}, \texttt{mypgdChain}, \texttt{mypgdChain\_\allowbreak{}eq\_\allowbreak{}myiplaChain} and 2 more}
+\leansource{\texttt{mypgdUpdate} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 21–24}
+\begin{leancode}
+\leanline{0}{def\ mypgdUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{myiplaUpdate\ g₁\ P\ η\ γ\ z\ (latentNoiseCLM\ ξ)}
+\end{leancode}
+\leansource{\texttt{mypgdChain} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 27–30}
+\begin{leancode}
+\leanline{0}{def\ mypgdChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{ℕ\ →\ IPLA.State\ N\ dθ\ dx\ :=\ algorithmChain\ (mypgdUpdate\ g₁\ P\ η\ γ)\ initial\ noise}
+\end{leancode}
+\leansource{\texttt{mypgdChain\_\allowbreak{}eq\_\allowbreak{}myiplaChain} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 33–44}
+\begin{leancode}
+\leanline{0}{theorem\ mypgdChain\_eq\_myiplaChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{mypgdChain\ g₁\ P\ η\ γ\ initial\ noise\ n\ =}
+\leanline{6}{myiplaChain\ g₁\ P\ η\ γ\ initial\ (fun\ k\ =>\ latentNoiseCLM\ (noise\ k))\ n}
+\end{leancode}
+\leansource{\texttt{mypgdChain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 46–56}
+\begin{leancode}
+\leanline{0}{theorem\ mypgdChain\_eq\_noiseDrivenChain\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{mypgdChain\ g₁\ P\ η\ γ\ initial\ noise\ n\ =}
+\leanline{6}{ULA.noiseDrivenChain\ (mypgdUpdate\ g₁\ P\ η\ γ)\ initial\ noise\ n}
+\end{leancode}
+\leansource{\texttt{mypgdLaws} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 59–64}
+\begin{leancode}
+\leanline{0}{def\ mypgdLaws\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ Ω\ →\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ Ω\ →\ IPLA.State\ N\ dθ\ dx)}
+\leanline{4}{(n\ :\ ℕ)\ :\ Measure\ (IPLA.State\ N\ dθ\ dx)\ :=}
+\leanline{2}{Q.map\ (fun\ ω\ =>\ mypgdChain\ g₁\ P\ η\ γ\ (initial\ ω)\ (fun\ k\ =>\ noise\ k\ ω)\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: mypgdUpdate : MYPGD removes precisely the parameter noise from the displayed MYIPLA step. mypgdChain : The actual MYPGD chain driven by supplied full innovations. mypgdChain\_eq\_myiplaChain : MYPGD is exactly MYIPLA applied to the latent-only innovations. mypgdLaws : The output law of the actual MYPGD recursion.
 
+
+
+\texttt{mypgd\allowbreak{}Update} is a definition with defining expression \texttt{myipla\allowbreak{}Update g\ensuremath{{}_{1}} P \ensuremath{\eta} \ensuremath{\gamma} z (latent\allowbreak{}Noise\allowbreak{}CLM \ensuremath{\xi})}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{mypgd\allowbreak{}Chain} is a definition with defining expression \texttt{algorithm\allowbreak{}Chain (mypgd\allowbreak{}Update g\ensuremath{{}_{1}} P \ensuremath{\eta} \ensuremath{\gamma}) initial noise}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{mypgd\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Chain}: the argument uses \texttt{induction n with}.
+
+
+
+\texttt{mypgd\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain}: the argument uses \texttt{induction n with}.
+
+
+
+\texttt{mypgd\allowbreak{}Laws} is a definition with defining expression \texttt{Q.\allowbreak{}map (fun \ensuremath{\omega} => mypgd\allowbreak{}Chain g\ensuremath{{}_{1}} P \ensuremath{\eta} \ensuremath{\gamma} (initial \ensuremath{\omega}) (fun k => noise k \ensuremath{\omega}) n)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -51,7 +136,51 @@ The parameter coordinate has no additive Gaussian term, while each physical late
 
 The bound \(\operatorname{Lip}(I-(\gamma/N)\nabla F_\eta)\le1+|\gamma/N|\,NL_\eta\) ensures continuity and measurable finite-moment updates without imposing contraction. In particular the deterministic map is \(D(z)=z-(\gamma/N)\nabla F_\eta(z)\), and the physical latent noise coefficient is \(\sqrt{2\gamma}\). The stricter step restriction is required only for the quantitative contractive comparison.
 
+\begin{leanbox}{Lean: \texttt{mypgdUpdate\_\allowbreak{}eq\_\allowbreak{}latentGaussianUpdate}, \texttt{myiplaUpdate\_\allowbreak{}eq\_\allowbreak{}fullGaussianUpdate}, \texttt{smoothed\_\allowbreak{}forward\_\allowbreak{}lipschitz}}
+\leansource{\texttt{mypgdUpdate\_\allowbreak{}eq\_\allowbreak{}latentGaussianUpdate} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 67–77}
+\begin{leancode}
+\leanline{0}{theorem\ mypgdUpdate\_eq\_latentGaussianUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₁\ :\ Differentiable\ ℝ\ g₁)}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ x,\ b\ ≤\ g₂\ x)}
+\leanline{4}{\{η\ :\ ℝ\}\ (hη\ :\ 0\ <\ η)\ (γ\ :\ ℝ)\ :}
+\leanline{4}{mypgdUpdate\ (N\ :=\ N)\ g₁\ (prox\ g₂\ η)\ η\ γ\ =}
+\leanline{6}{latentGaussianUpdate}
+\leanline{8}{(fun\ z\ =>\ z\ -\ (γ\ /\ N)\ •\ gradient\ (IPLA.potential\ (smoothedPotential\ g₁\ g₂\ η))\ z)}
+\leanline{8}{(Real.sqrt\ (2\ *\ γ\ /\ N))}
+\end{leancode}
+\leansource{\texttt{myiplaUpdate\_\allowbreak{}eq\_\allowbreak{}fullGaussianUpdate} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 80–92}
+\begin{leancode}
+\leanline{0}{theorem\ myiplaUpdate\_eq\_fullGaussianUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₁\ :\ Differentiable\ ℝ\ g₁)}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ x,\ b\ ≤\ g₂\ x)}
+\leanline{4}{\{η\ :\ ℝ\}\ (hη\ :\ 0\ <\ η)\ (γ\ :\ ℝ)\ :}
+\leanline{4}{myiplaUpdate\ (N\ :=\ N)\ g₁\ (prox\ g₂\ η)\ η\ γ\ =}
+\leanline{6}{fullGaussianUpdate}
+\leanline{8}{(fun\ z\ =>\ z\ -\ (γ\ /\ N)\ •\ gradient\ (IPLA.potential\ (smoothedPotential\ g₁\ g₂\ η))\ z)}
+\leanline{8}{(Real.sqrt\ (2\ *\ γ\ /\ N))}
+\end{leancode}
+\leansource{\texttt{smoothed\_\allowbreak{}forward\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 103–115}
+\begin{leancode}
+\leanline{0}{private\ theorem\ smoothed\_forward\_lipschitz\ :}
+\leanline{4}{LipschitzWith\ (1\ +\ Real.nnabs\ (γ\ /\ N)\ *\ ((N\ :\ ℝ≥0)\ *\ smoothingLipschitz\ L₁\ η))}
+\leanline{6}{(fun\ z\ :\ IPLA.State\ N\ dθ\ dx\ =>}
+\leanline{8}{z\ -\ (γ\ /\ N)\ •\ gradient\ (IPLA.potential\ (smoothedPotential\ g₁\ g₂\ η))\ z)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: mypgdUpdate\_eq\_latentGaussianUpdate : The drift/\allowbreak{}noise formula for the actual Moreau proximal construction. myiplaUpdate\_eq\_fullGaussianUpdate : The full-noise update used for comparison is the actual MYIPLA update.
 
+
+
+\texttt{mypgd\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}latent\allowbreak{}Gaussian\allowbreak{}Update}: the source steps apply or rewrite \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Update}, \texttt{moreau\_\allowbreak{}differentiable}.
+
+
+
+\texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}full\allowbreak{}Gaussian\allowbreak{}Update}: the source steps apply or rewrite \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Update}, \texttt{moreau\_\allowbreak{}differentiable}.
+
+
+
+\texttt{smoothed\_\allowbreak{}forward\_\allowbreak{}lipschitz}: the intermediate facts include \texttt{hres}, \texttt{h\allowbreak{}Le}, \texttt{h\allowbreak{}LV}, \texttt{hgrad}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}to\allowbreak{}NNReal\_\allowbreak{}inv}, \texttt{residual\_\allowbreak{}lipschitz}, \texttt{Lipschitz\allowbreak{}With.\allowbreak{}id.\allowbreak{}sub}, \texttt{lipschitz\allowbreak{}With\_\allowbreak{}smul}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}.
@@ -65,16 +194,49 @@ Mutual independence of all scalar Gaussian innovations gives independent standar
 
 The common deterministic map is \(D(z)=z-(\gamma/N)\nabla V_{N,\eta}(z)\). MYPGD adds \(\sqrt{2\gamma/N}P_x\xi\) and MYIPLA adds \(\sqrt{2\gamma/N}\xi\). At time \(k\) the current state is a measurable function of initialization and preceding innovations, so the next Gaussian vector is independent of it. Projection gives the latent-only kernel; retention of the full vector gives the MYIPLA kernel. Induction identifies their supplied laws with the iterated transition laws used in the comparison theorem.
 
+\begin{leanbox}{Lean: \texttt{mypgdLaws\_\allowbreak{}eq\_\allowbreak{}markovLaws}, \texttt{myiplaLaws\_\allowbreak{}eq\_\allowbreak{}markovLaws}}
+\leansource{\texttt{mypgdLaws\_\allowbreak{}eq\_\allowbreak{}markovLaws} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 118–143}
+\begin{leancode}
+\leanline{0}{theorem\ mypgdLaws\_eq\_markovLaws}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{mypgdLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n\ =}
+\leanline{6}{ULA.markovLaws\ (latentGaussianUpdate}
+\leanline{8}{(fun\ z\ =>\ z\ -\ (γ\ /\ N)\ •\ gradient\ (IPLA.potential\ (smoothedPotential\ g₁\ g₂\ η))\ z)}
+\leanline{8}{(Real.sqrt\ (2\ *\ γ\ /\ N)))\ (stdGaussian\ (IPLA.State\ N\ dθ\ dx))\ (Q.map\ initial)\ n}
+\end{leancode}
+\leansource{\texttt{myiplaLaws\_\allowbreak{}eq\_\allowbreak{}markovLaws} \quad ProximalLangevin/\allowbreak{}MYPGDAlgorithm.lean, lines 146–180}
+\begin{leancode}
+\leanline{0}{theorem\ myiplaLaws\_eq\_markovLaws}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{myiplaLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n\ =}
+\leanline{6}{ULA.markovLaws\ (fullGaussianUpdate}
+\leanline{8}{(fun\ z\ =>\ z\ -\ (γ\ /\ N)\ •\ gradient\ (IPLA.potential\ (smoothedPotential\ g₁\ g₂\ η))\ z)}
+\leanline{8}{(Real.sqrt\ (2\ *\ γ\ /\ N)))\ (stdGaussian\ (IPLA.State\ N\ dθ\ dx))\ (Q.map\ initial)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: mypgdLaws\_eq\_markovLaws : The actual Gaussian realization has the proved latent-noise Markov law. myiplaLaws\_eq\_markovLaws : The same full innovations give the ordinary full-noise MYIPLA Markov law.
 
+
+
+\texttt{mypgd\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws}: the intermediate facts include \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}F}, in source order; the source steps apply or rewrite \texttt{mypgd\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}latent\allowbreak{}Gaussian\allowbreak{}Update}, \texttt{latent\allowbreak{}Gaussian\allowbreak{}Update\_\allowbreak{}measurable}, \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws}.
+
+
+
+\texttt{myipla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws}: the argument uses \texttt{induction k with}; the intermediate facts include \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}F}, \texttt{hchain}, in source order; the source steps apply or rewrite \texttt{myipla\allowbreak{}Update\_\allowbreak{}eq\_\allowbreak{}full\allowbreak{}Gaussian\allowbreak{}Update}, \texttt{full\allowbreak{}Gaussian\allowbreak{}Update\_\allowbreak{}measurable}, \texttt{ULA.\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.33.12]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.41.2]{LangevinLean2026ULASC}; \cite[Section~3.41.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

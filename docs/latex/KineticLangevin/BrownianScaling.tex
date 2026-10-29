@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,9 +58,29 @@ The rescaled Brownian process applies the clock directly to each coordinate of t
 
 For a positive clock factor, scale time and Brownian amplitude together so that increment variance remains equal to elapsed new time. Centering, covariance, Gaussianity, and independent increments then identify the rescaled coordinate process as standard Brownian motion.
 
+\begin{leanbox}{Lean: \texttt{clockBrownian}, \texttt{clockBrownian\_\allowbreak{}isPreBrownian}}
+\leansource{\texttt{clockBrownian} \quad KineticLangevin/\allowbreak{}BrownianScaling.lean, lines 10–12}
+\begin{leancode}
+\leanline{0}{def\ clockBrownian\ \{ι\ :\ Type*\}\ (c\ :\ ℝ≥0)\ (i\ :\ ι)\ (t\ :\ ℝ≥0)}
+\leanline{4}{(ω\ :\ ULA.CanonicalBrownian.VectorSample\ ι)\ :\ ℝ\ :=}
+\leanline{2}{(Real.sqrt\ (c:ℝ))\ *\ ULA.CanonicalBrownian.coordinate\ i\ (c⁻¹*t)\ ω}
+\end{leancode}
+\leansource{\texttt{clockBrownian\_\allowbreak{}isPreBrownian} \quad KineticLangevin/\allowbreak{}BrownianScaling.lean, lines 15–19}
+\begin{leancode}
+\leanline{0}{theorem\ clockBrownian\_isPreBrownian\ \{ι\ :\ Type*\}\ (c\ :\ ℝ≥0)\ (hc\ :\ c≠0)\ (i\ :\ ι)\ :}
+\leanline{4}{IsPreBrownianReal\ (clockBrownian\ c\ i)\ (ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{clock\allowbreak{}Brownian} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
 
 
-Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.18]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}.
+
+
+\texttt{clock\allowbreak{}Brownian\_\allowbreak{}is\allowbreak{}Pre\allowbreak{}Brownian} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb} in that order. Named proof applications include \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}.
 
 \section{\texorpdfstring{Preserve independence and recover the kinetic temperature}{Preserve independence and recover the kinetic temperature}}
 
@@ -48,13 +91,33 @@ Each entire changed-clock coordinate path is a measurable function of its own or
 
 The rescaled Brownian path is a measurable function of the original source, so independence from initialization is preserved. Applying the same clock change to the kinetic noise amplitude restores the normalized thermal coefficient, provided velocity and friction are transformed consistently.
 
+\begin{leanbox}{Lean: \texttt{clockBrownian\_\allowbreak{}paths\_\allowbreak{}independent}, \texttt{kinetic\_\allowbreak{}clock\_\allowbreak{}noise\_\allowbreak{}amplitude}}
+\leansource{\texttt{clockBrownian\_\allowbreak{}paths\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}BrownianScaling.lean, lines 22–27}
+\begin{leancode}
+\leanline{0}{theorem\ clockBrownian\_paths\_independent\ (ι\ :\ Type*)\ (c\ :\ ℝ≥0)\ :}
+\leanline{4}{iIndepFun\ (fun\ i\ (ω\ :\ ULA.CanonicalBrownian.VectorSample\ ι)\ t\ =>\ clockBrownian\ c\ i\ t\ ω)}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}clock\_\allowbreak{}noise\_\allowbreak{}amplitude} \quad KineticLangevin/\allowbreak{}BrownianScaling.lean, lines 30–34}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_clock\_noise\_amplitude\ (c\ γ\ :\ ℝ)\ (hc\ :\ 0<c)\ (hγ\ :\ 0≤γ)\ :}
+\leanline{4}{c⁻¹*Real.sqrt\ (2*(c*γ))=Real.sqrt\ (2*γ/c\textasciicircum{}2)*Real.sqrt\ c}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{clock\allowbreak{}Brownian\_\allowbreak{}paths\_\allowbreak{}independent} gives the formal counterpart of this step.
 
 
-Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}.
+
+
+\texttt{kinetic\_\allowbreak{}clock\_\allowbreak{}noise\_\allowbreak{}amplitude} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.21]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -140,6 +140,15 @@ CONFIG = {
 
 
 
+SEPARATE_TITLES = {'PBGSO': 'Particle-based Generalised Stochastic Optimisation',
+                   'LatentDiffusion': 'Training Latent Diffusion Models with Interacting Particle Algorithms'}
+
+
+def development_title(key):
+    """Titles of the CONFIG overviews and of the two separately generated ones."""
+    return CONFIG[key]['title'] if key in CONFIG else SEPARATE_TITLES[key]
+
+
 def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     from math_notation import render_prose_math
     page = lib + '/exposition/index.html'
@@ -158,9 +167,10 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     proof_library=lib
     body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
-    body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorems</a><a href="#proof-map">Proof roadmap</a>'
+    body+=('<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorems</a>'
+           '<a href="#verification">Check the proofs</a><a href="#proof-map">Proof roadmap</a>')
     if config.get('proof'):body+='<a href="#mathematical-proof">Mathematical argument</a>'
-    body+='<a href="#modules">Supporting proofs</a><a href="#verification">Compile and verify</a></nav>'+toolbar()
+    body+='<a href="#modules">Supporting proofs</a></nav>'+toolbar()
     body+='<section class="section" id="main-results"><h2>Theorems</h2>'
     for i,result in enumerate(config['results'],1):
         target=module_page(result['file'])
@@ -179,13 +189,16 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
                +'<details class="statement-context"><summary>Imports and notation</summary>'+commands(context,f'statement-context-{i}','Copy Lean')+'</details>'
                +declaration_header(result['file'],result['name'],sources,parsed,page)
                +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
-    body+='</section><section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
+    body+='</section>'+verification_section(lib,page)
+    body+='<section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
     body+=proof_diagram(config['diagram'],page,math,config['title']+' proof roadmap')+'</section>'
     if config.get('proof'):
         body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and explain their role in the proof.</p>'
         for i,part in enumerate(config['proof'],1):
             body+=(f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair"><div class="math-pane">'+math(part['body'])+'</div><div class="lean-pane">')
-            if part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
+            if part.get('lean'):
+                body+='<div class="lean-logic"><div class="pane-label">How the Lean proof follows this argument</div>'+math(part['lean'])+'</div>'
+            elif part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
             for j,reference in enumerate(part.get('references',[]),1):
                 path,name=reference['file'],reference['name'];decl=parsed[path][name]
                 body+=code(path,decl['start'],decl['end'],sources,page,'proof-fragment',name,f'argument-{i}-{j}')
@@ -206,11 +219,7 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
             body+=(f'<article class="module-card"><a href="{relative(module_page(path),page)}">{E(note["title"])}</a>'
                    f'<code>{E(path)}</code></article>')
         body+='</div></div>'
-    body+='</div></section><section class="section" id="verification"><h2>Compile and verify</h2><div class="workflow"><div>'
-    audit=lib+'/Check.lean'
-    command=f'git clone https://github.com/odakyildiz/LangevinLean.git\ncd LangevinLean\nlake exe cache get\nlake build {parent_library}\nlake env lean {audit}\nbash scripts/check-local.sh'
-    body+=commands(command,'verification-commands')+'</div><div><h3>Reproduce the formal proof</h3><p>Install Git and elan, Lean’s toolchain manager, before cloning. The repository pins the Lean and Mathlib versions. The first cache download requires an internet connection.</p><p><code>lake build</code> checks the Lean proofs. The audit file prints the logical axioms used by the results. The local check script also verifies that every displayed source excerpt matches the repository and that the mathematical pages regenerate correctly. Documentation generation requires Python 3 and Node.js.</p>'
-    body+=f'<p><a href="{relative("README.md",page)}">Complete installation and update instructions</a> · <a href="{relative("docs/README.md",page)}">Regenerate the exposition</a></p></div></div></section>'
+    body+='</div></section>'
     if lib=='IPLA':
         body+='<aside class="footnote" id="entropy-note"><p><sup>1</sup> The entropy analogue is developed separately in <a href="'+relative('IPLA/LSI/exposition/index.html',page)+'">Interacting Particle Langevin under LSI</a>. It uses an LSI for the actual lifted target, tracks per-particle normalization, and proves the parameter-marginal consequence. <a href="#entropy-note-ref" aria-label="Back to reference">↩</a></p></aside>'
     body+='<section class="section" id="further-reading"><h2>References and further reading</h2><div class="dependencies">'
@@ -220,7 +229,27 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
         from report_citations import citation_panel
         plan = catalog.plans[lib]
         body += citation_panel(lib, plan['title'], plan['revision'], page)
-    return shell(page,config['title'],render_prose_math(body,math),lib)
+    return shell(page,config['title'],render_prose_math(body,math))
+
+
+def verification_section(lib, page, extra='', note=''):
+    """How to check the proofs; the same section appears on every overview."""
+    parent_library = lib.split('/')[0]
+    command = ('git clone https://github.com/odakyildiz/LangevinLean.git\ncd LangevinLean\n'
+               f'lake exe cache get\nlake build {parent_library}\nlake env lean {lib}/Check.lean\n'
+               + extra + 'bash scripts/check-local.sh')
+    return ('<section class="section" id="verification"><h2>Check the proofs</h2><div class="workflow"><div>'
+            + commands(command, 'verification-commands') + '</div><div><h3>What the commands check</h3>'
+            '<p>Install Git and elan, Lean’s toolchain manager, before cloning. The repository pins the Lean and '
+            'Mathlib versions; the first cache download requires an internet connection.</p>'
+            f'<p><code>lake build {parent_library}</code> checks every proof in the library: when it succeeds, each '
+            'theorem on this page is proved from the hypotheses displayed in its Lean statement. '
+            f'<code>lake env lean {lib}/Check.lean</code> prints the axioms on which the main theorems depend; only '
+            '<code>propext</code>, <code>Classical.choice</code> and <code>Quot.sound</code> appear. '
+            + note + 'The local check script also verifies that every displayed Lean excerpt matches the source and '
+            'that these pages and the PDF regenerate exactly; regenerating them requires Python 3 and Node.js.</p>'
+            f'<p><a href="{relative("README.md",page)}">Complete installation and update instructions</a> · '
+            f'<a href="{relative("docs/README.md",page)}">Regenerate the exposition</a></p></div></div></section>')
 
 
 def project_document(notes, catalog=None):
@@ -231,6 +260,7 @@ def project_document(notes, catalog=None):
           'These pages are prepared by <a href="https://odakyildiz.com/">Omer Deniz Akyildiz</a> with AI assistance as part of an ongoing effort to formalize Langevin algorithms comprehensively. '
           'This is draft work, and the pages may contain mistakes.</p></header>'
           '<section class="cards" id="developments" aria-label="Formalized developments">')
+    # One record per development; every entry is rendered with the same fields.
     cards=[('UnadjustedLangevin','Wasserstein distance',
             'Wasserstein error bounds for Gaussian ULA in both stable step-size regimes.',
             'Published bounds; Gibbs stationarity proved.',
@@ -241,7 +271,7 @@ def project_document(notes, catalog=None):
             'Vempala and Wibisono (2019)'),
            ('IPLA','Interacting particles',
             'Finite-time parameter error from lifted ULA convergence and marginal concentration.',
-            'The extension to unequal parameter and latent dimensions is unpublished.',
+            'The extension to unequal parameter and latent dimensions and the entropy analogue are unpublished.',
             'Glyn-Davies et al. (2025)'),
            ('ProximalLangevin','Nonsmooth models',
             'Corrected MYIPLA, PIPGLA and MYPGD bounds, with proximal-map calculus and mean-field limits.',
@@ -254,47 +284,31 @@ def project_document(notes, catalog=None):
            ('KIPLMC','Kinetic interacting particles',
             'Parameter error for the kinetic particle diffusion, KIPLMC1 and KIPLMC2, with sharp marginal concentration.',
             'Includes Gaussian sampler bounds and explicit accuracy guarantees.',
-            'Valsecchi Oliva and Akyildiz (2026)')]
+            'Valsecchi Oliva and Akyildiz (2026)'),
+           ('PBGSO','General stochastic optimisation',
+            'General optimiser and sampler models, contraction and particle bounds, and time-uniform discretisation bounds for two new methods.',
+            'Four main theorems under explicit assumptions; the two discretisation bounds are new and unpublished.',
+            'Zhang and Akyildiz (2026)'),
+           ('LatentDiffusion','Latent diffusion and inference',
+            'Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.',
+            'All 19 source results proved in corrected form under explicit added regularity; corrections and new bounds are unpublished.',
+            'Wang, Kuntz and Akyildiz (2026)'),
+           ('AverageLMC','Average-smoothness sampling',
+            'LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.',
+            'Main sampling theorems with the source hypotheses and constants.',
+            'Dalalyan and Karagulyan (2026)')]
     for number,(key,label,description,scope,source_label) in enumerate(cards,1):
-        config=CONFIG[key]
         paper=PAPERS[DEVELOPMENTS[key]['papers'][0]]
         body+=(f'<article class="landing-card"><span class="entry-index" aria-hidden="true">{number:02}</span>'
                f'<div class="entry-main"><div class="eyebrow">{E(label)}</div>'
-               f'<h2><a href="{key}/exposition/index.html">{E(config["title"])}</a></h2>'
+               f'<h2><a href="{key}/exposition/index.html">{E(development_title(key))}</a></h2>'
                f'<p>{E(description)}</p></div><div class="entry-meta">'
                f'<p class="entry-source">Source: <a href="{E(paper["url"])}">{E(source_label)}</a>.</p>'
-               f'<p class="card-scope">{E(scope)}</p>')
-        if key=='IPLA':
-            body+='<p class="entry-extension">Entropy extension: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a> (unpublished).</p>'
-        body+=f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
-        body+='</div></article>'
-    # PBGSO is a source-based development, separate from the published
-    # published-report/PDF entries maintained by CONFIG and ReportCatalog.
-    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">07</span>'
-           '<div class="entry-main"><div class="eyebrow">General stochastic optimisation</div>'
-           '<h2><a href="PBGSO/exposition/index.html">Particle-based Generalised Stochastic Optimisation</a></h2>'
-           '<p>General optimiser and sampler models, explicit analytic assumptions, comparison proofs and new concrete method bounds.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Zhang and Akyildiz (manuscript).</p>'
-           '<p class="card-scope">Eight source results and two new actual method bounds verified with explicit assumptions, '
-           'including the finite signed-work convention for constant-diffusion contraction.</p>'
-           '<p><a href="PBGSO/exposition/index.html#assumptions">Assumptions and formal scope</a></p></div></article>')
-    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">08</span>'
-           '<div class="entry-main"><div class="eyebrow">Latent diffusion and inference</div>'
-           '<h2><a href="LatentDiffusion/exposition/index.html">Training Latent Diffusion Models with Interacting Particle Algorithms</a></h2>'
-           '<p>Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Wang, Kuntz and Akyildiz (manuscript).</p>'
-           '<p class="card-scope">All 19 corrected source results proved under explicit added regularity; corrected minibatch scaling and a time-zero regularity obstruction are recorded.</p>'
-           '<p><a href="LatentDiffusion/exposition/source_audit.md">Source audit and formal scope</a></p></div></article>')
-    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">09</span>'
-           '<div class="entry-main"><div class="eyebrow">Average-smoothness sampling</div>'
-           '<h2><a href="AverageLMC/exposition/index.html">Langevin Monte Carlo with Average Smoothness</a></h2>'
-           '<p>LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Dalalyan and Karagulyan (manuscript).</p>'
-           '<p class="card-scope">Main sampling proofs with exact source hypotheses and constants; broader auxiliary coverage remains explicit.</p>'
-           '<p><a href="docs/pdf/AverageLMC/FullProof.pdf">Full proof (PDF)</a> · '
-           '<a href="AverageLMC/exposition/reference_audit.json">Source audit and formal scope</a></p></div></article>')
+               f'<p class="card-scope">{E(scope)}</p>'
+               f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
+               '</div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
-           '<div class="reading-note"><h2>Read the proofs</h2><p>The established reports have one PDF containing theorem statements, mathematical arguments and supporting proofs. The PBGSO and latent-diffusion developments have web overviews with their current scope and exact Lean statements. The web pages pair the arguments with Lean.</p></div>'
+           '<div class="reading-note"><h2>Read the proofs</h2><p>Each development has one PDF with its theorem statements, the mathematical argument and the supporting proofs. After every step, the PDF gives the exact Lean statement and explains how the Lean proof follows the mathematics. On the web pages, each step of the proof roadmap opens the same mathematics beside the complete Lean code.</p></div>'
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'

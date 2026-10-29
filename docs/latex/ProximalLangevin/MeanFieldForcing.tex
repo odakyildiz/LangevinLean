@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,8 +62,31 @@ The continuous inputs \(B,A\) may be Brownian inputs in \(L^2\). Defining \(D_t=
 
 Continuity of the integrand makes this remainder differentiable with derivative \(-F(X_t)+G_t\). Equivalently, for \(D=X-Y-A\), the remainder \(D\) is differentiable although \(A\) need not be. Since \(X-Y=D+A\), its derivative is bounded by \(L\|D\|+La+C\). Grönwall bounds \(D\), and restoring \(A\) adds \(a\). This proves the estimate using only continuous integral equations.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}forcing\_\allowbreak{}perturbation}}
+\leansource{\texttt{integral\_\allowbreak{}forcing\_\allowbreak{}perturbation} \quad ProximalLangevin/\allowbreak{}MeanFieldForcing.lean, lines 22–81}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_forcing\_perturbation}
+\leanline{4}{(F\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hF\ :\ LipschitzWith\ L\ F)}
+\leanline{4}{(x\ :\ H)\ (B\ A\ G\ X\ Y\ :\ ℝ\ →\ H)}
+\leanline{4}{(hA\ :\ Continuous\ A)\ (hG\ :\ Continuous\ G)\ (hX\ :\ Continuous\ X)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (C\ a\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)\ (ha\ :\ 0\ ≤\ a)}
+\leanline{4}{(hAbound\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ ‖A\ t‖\ ≤\ a)}
+\leanline{4}{(hdefect\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ ‖F\ (Y\ t)\ -\ G\ t‖\ ≤\ C)}
+\leanline{4}{(hXe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ X\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ F\ (X\ s))\ +\ B\ t\ +\ A\ t)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ G\ s)\ +\ B\ t)\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,\ ‖X\ t\ -\ Y\ t‖\ ≤\ gronwallBound\ 0\ (L\ :\ ℝ)\ (C\ +\ (L\ :\ ℝ)\ *\ a)\ T\ +\ a}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+If \(F\) is \(L\)-Lipschitz, \(\|A_t\|\le a\) and \(\|F(Y_t)-G_t\|\le C\), then \[\|D'_t\|\le L\|D_t\|+C+La.\] The right-derivative Grönwall theorem gives \(\|D_t\|\le\operatorname{gronwallBound}(0,L,C+La,T)\) uniformly on \([0,T]\). Adding back \(A_t\) produces the final \(+a\). In Lean, \texttt{h\allowbreak{}DI} identifies the differentiable integral remainder, \texttt{hderiv} proves its derivative, and \texttt{hb} establishes this exact scalar forcing.
 
 
+
+Formal correspondence: integral\_forcing\_perturbation : Actual integral equations with common input, an additional continuous input, and a uniformly controlled reference-force defect satisfy this finite-horizon bound. Neither a derivative of the input nor an error recurrence is assumed.
+
+
+
+\texttt{integral\_\allowbreak{}forcing\_\allowbreak{}perturbation}: the intermediate facts include \texttt{D}, \texttt{I}, \texttt{h\allowbreak{}DI}, \texttt{ht\allowbreak{}A}, \texttt{htri}, in source order; the source steps apply or rewrite \texttt{sub\_\allowbreak{}eq\_\allowbreak{}iff\_\allowbreak{}eq\_\allowbreak{}add}, \texttt{ht.\allowbreak{}1.\allowbreak{}trans}, \texttt{norm\_\allowbreak{}neg}, \texttt{h\allowbreak{}X.\allowbreak{}sub}, \texttt{sub\_\allowbreak{}zero}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The comparison with a common inverse sampling factor}{The comparison with a common inverse sampling factor}}
 
@@ -51,11 +97,41 @@ The zero-initial-error Grönwall bound is \(C\Psi(L,T)\), where \(\Psi\) is defi
 
 Indeed, the differential inequality for the remainder has forcing \(C/r+La/r=(C+La)/r\). Grönwall multiplies this forcing by \(\Psi(L,T)\), and restoring the additional input contributes \(a/r\). For \(r=\sqrt N\), with \(N>0\), the resulting coefficient is independent of \(N\) whenever \(C,L,a,T\) are independent of \(N\).
 
+\begin{leanbox}{Lean: \texttt{gronwallBound\_\allowbreak{}zero\_\allowbreak{}div}, \texttt{integral\_\allowbreak{}forcing\_\allowbreak{}perturbation\_\allowbreak{}scaled}}
+\leansource{\texttt{gronwallBound\_\allowbreak{}zero\_\allowbreak{}div} \quad ProximalLangevin/\allowbreak{}MeanFieldForcing.lean, lines 84–87}
+\begin{leancode}
+\leanline{0}{theorem\ gronwallBound\_zero\_div\ (L\ C\ T\ r\ :\ ℝ)\ :}
+\leanline{4}{gronwallBound\ 0\ L\ (C\ /\ r)\ T\ =\ gronwallBound\ 0\ L\ C\ T\ /\ r}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}forcing\_\allowbreak{}perturbation\_\allowbreak{}scaled} \quad ProximalLangevin/\allowbreak{}MeanFieldForcing.lean, lines 91–108}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_forcing\_perturbation\_scaled}
+\leanline{4}{(F\ :\ H\ →\ H)\ (L\ :\ ℝ≥0)\ (hF\ :\ LipschitzWith\ L\ F)}
+\leanline{4}{(x\ :\ H)\ (B\ A\ G\ X\ Y\ :\ ℝ\ →\ H)}
+\leanline{4}{(hA\ :\ Continuous\ A)\ (hG\ :\ Continuous\ G)\ (hX\ :\ Continuous\ X)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (C\ a\ r\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)\ (ha\ :\ 0\ ≤\ a)\ (hr\ :\ 0\ <\ r)}
+\leanline{4}{(hAbound\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ ‖A\ t‖\ ≤\ a\ /\ r)}
+\leanline{4}{(hdefect\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ ‖F\ (Y\ t)\ -\ G\ t‖\ ≤\ C\ /\ r)}
+\leanline{4}{(hXe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ X\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ F\ (X\ s))\ +\ B\ t\ +\ A\ t)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ G\ s)\ +\ B\ t)\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{6}{‖X\ t\ -\ Y\ t‖\ ≤\ (gronwallBound\ 0\ (L\ :\ ℝ)\ (C\ +\ (L\ :\ ℝ)\ *\ a)\ T\ +\ a)\ /\ r}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: gronwallBound\_zero\_div : The zero-initial-error Grönwall response is homogeneous in its forcing. integral\_forcing\_perturbation\_scaled : The uniform forcing and input bounds of order \(1/r\) give the same scale for the actual solution error, with an explicit coefficient independent of \(r\).
 
+
+
+\texttt{gronwall\allowbreak{}Bound\_\allowbreak{}zero\_\allowbreak{}div}: the proof is the application \texttt{unfold gronwall\allowbreak{}Bound}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{integral\_\allowbreak{}forcing\_\allowbreak{}perturbation\_\allowbreak{}scaled}: the intermediate facts include \texttt{h}, \texttt{heq}, \texttt{hh}, in source order; the source steps apply or rewrite \texttt{gronwall\allowbreak{}Bound\_\allowbreak{}zero\_\allowbreak{}div}, \texttt{add\_\allowbreak{}div}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,7 +55,25 @@ Equivalently, for solution \(Y_t-Y_0=-\int_0^t g(Y_s)ds+B_t\) with \(\|g(Y_s)\|\
 
 The estimate replaces both time factors by their endpoint maxima on \(0\le t\le h\), using monotonicity of \(t\) and \(\sqrt t\), and multiplies by interval length. Thus from \(\|Y_t-Y_0\|\le Gt+\sigma\sqrt t\), multiplication by \(L\) controls the smooth force difference; for \(t\in[0,h]\) the factors \(t\) and \(\sqrt t\) are bounded by their endpoint values. Regularity may require Lipschitz continuity of the full drift, but only the smooth component’s constant enters this numerical bound.
 
+\begin{leanbox}{Lean: \texttt{splitting\_\allowbreak{}localDefect\_\allowbreak{}bound}}
+\leansource{\texttt{splitting\_\allowbreak{}localDefect\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}SplittingProcess.lean, lines 23–47}
+\begin{leancode}
+\leanline{0}{theorem\ splitting\_localDefect\_bound\ (a\ g\ :\ H\ →\ H)\ \{L\ Lg\ :\ ℝ≥0\}}
+\leanline{4}{(ha\ :\ LipschitzWith\ L\ a)\ (\_hg\ :\ LipschitzWith\ Lg\ g)}
+\leanline{4}{(Y\ B\ :\ ℝ\ →\ H)\ (\_hY\ :\ Continuous\ Y)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(G\ N\ :\ ℝ)\ (hG\ :\ 0\ ≤\ G)\ (hN\ :\ 0\ ≤\ N)}
+\leanline{4}{(hbound\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖g\ (Y\ t)‖\ ≤\ G)}
+\leanline{4}{(hnoise\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖B\ t‖\ ≤\ N\ *\ Real.sqrt\ t)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)\ :}
+\leanline{4}{‖ULA.localDefect\ a\ Y\ h‖\ ≤\ (L\ :\ ℝ)\ *\ h\ *\ (G\ *\ h\ +\ N\ *\ Real.sqrt\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: splitting\_localDefect\_bound : A coarse local smooth-drift defect bound uses only the smooth part's own Lipschitz constant and the total reference drift moment.
 
+
+
+\texttt{splitting\_\allowbreak{}local\allowbreak{}Defect\_\allowbreak{}bound}: the intermediate facts include \texttt{hb}, \texttt{hi}, \texttt{ha}, \texttt{hs}, \texttt{hhbound}, in source order; the source steps apply or rewrite \texttt{u\allowbreak{}Ioc\_\allowbreak{}of\_\allowbreak{}le}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{L.\allowbreak{}coe\_\allowbreak{}nonneg}, \texttt{sub\_\allowbreak{}zero}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026ULASC}; \cite[Section~3.11.6]{LangevinLean2026ULASC}.
@@ -58,11 +99,29 @@ Pairing with \(b\) and applying orthogonality gives
 
 In the application the inner product is in \(L^2\), so this cancellation is of the expected pairing. Subtraction at \(t\) and \(h\) leaves future drift integral of norm at most \((h-t)G\), hence remainder \((h-t)GK\). Brownian sample increments themselves do not vanish.
 
+\begin{leanbox}{Lean: \texttt{reference\_\allowbreak{}future\_\allowbreak{}inner\_\allowbreak{}le}}
+\leansource{\texttt{reference\_\allowbreak{}future\_\allowbreak{}inner\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingProcess.lean, lines 52–83}
+\begin{leancode}
+\leanline{0}{theorem\ reference\_future\_inner\_le\ (g\ :\ H\ →\ H)\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hg\ :\ LipschitzWith\ L\ g)\ (Y\ B\ :\ ℝ\ →\ H)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(h\ t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (hth\ :\ t\ ≤\ h)}
+\leanline{4}{(G\ K\ :\ ℝ)\ (hG\ :\ 0\ ≤\ G)\ (\_hK\ :\ 0\ ≤\ K)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖g\ (Y\ s)‖\ ≤\ G)}
+\leanline{4}{(heq\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ Y\ s\ -\ Y\ 0\ =\ -(∫\ r\ in\ 0..s,\ g\ (Y\ r))\ +\ B\ s)}
+\leanline{4}{(b\ :\ H)\ (hb\ :\ ‖b‖\ ≤\ K)\ (horth\ :\ {\leanfallback ⟪}b,\ B\ h\ -\ B\ t{\leanfallback ⟫}\ =\ 0)\ :}
+\leanline{4}{{\leanfallback ⟪}Y\ t\ -\ Y\ h,\ b{\leanfallback ⟫}\ ≤\ (h\ -\ t)\ *\ G\ *\ K}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: reference\_future\_inner\_le : Future-noise orthogonality turns the reference increment cross term into a drift integral of order \(h-t\), rather than a Brownian norm of order \(\sqrt{h-t}\).
 
+
+
+\texttt{reference\_\allowbreak{}future\_\allowbreak{}inner\_\allowbreak{}le}: the intermediate facts include \texttt{hh}, \texttt{hint}, \texttt{hsplit}, \texttt{hnorm}, \texttt{hi}, in source order; the source steps apply or rewrite \texttt{eq\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}sub\_\allowbreak{}eq}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}, \texttt{ht.\allowbreak{}trans}, \texttt{hs.\allowbreak{}1.\allowbreak{}le}, \texttt{hs.\allowbreak{}2}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ The projection sends the full sample to \(((V,X_\mathrm{ref}),\omega_\mathrm{Bro
 
 Project the coupling source onto the reference initial phase and the Brownian coordinate. Product associativity and the reference marginal identify its law as the product of the Gibbs phase and the entire Brownian source. This proves the required independence jointly, rather than interval by interval.
 
+\begin{leanbox}{Lean: \texttt{initialPhase\_\allowbreak{}brownian\_\allowbreak{}jointLaw}}
+\leansource{\texttt{initialPhase\_\allowbreak{}brownian\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}CanonicalReferenceNoise.lean, lines 14–36}
+\begin{leancode}
+\leanline{0}{theorem\ initialPhase\_brownian\_jointLaw\ (c\ :\ ULA.Coupling\ μ\ π)\ :}
+\leanline{4}{HasLaw\ (fun\ p\ :\ Sample\ d\ =>\ ((p.2.1,p.1.2),p.2.2))}
+\leanline{6}{(((stdGaussian\ (H\ d)).prod\ π).prod\ (ULA.CanonicalBrownian.vectorProbability\ (Fin\ d)))\ (probability\ c)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{initial\allowbreak{}Phase\_\allowbreak{}brownian\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{hproj}, \texttt{hassoc}, \texttt{hswap} in that order. Named proof applications include \texttt{hl.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}iff.\allowbreak{}mp}, \texttt{hswap.\allowbreak{}comp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}.
@@ -45,6 +78,29 @@ The deterministic integration-by-parts input used in the kinetic splitting proof
 
 The filtered increment expressed through the full Brownian input equals the local constructed velocity response. This identity follows from the increment formula and bounded linearity of source pullback. Consequently the global-flow stationarity argument uses the same innovations as the local construction.
 
+\begin{leanbox}{Lean: \texttt{ouInputIncrement\_\allowbreak{}globalInput}, \texttt{ouInputIncrement\_\allowbreak{}globalInput\_\allowbreak{}coe}}
+\leansource{\texttt{ouInputIncrement\_\allowbreak{}globalInput} \quad KineticLangevin/\allowbreak{}CanonicalReferenceNoise.lean, lines 39–64}
+\begin{leancode}
+\leanline{0}{theorem\ ouInputIncrement\_globalInput\ (c\ :\ ULA.Coupling\ μ\ π)\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ouInputIncrement\ γ\ (globalInput\ c\ γ)\ ((n\ :\ ℝ)*(h\ :\ ℝ))\ h\ =\ filtered\ c\ γ\ h\ n\ h}
+\end{leancode}
+\leansource{\texttt{ouInputIncrement\_\allowbreak{}globalInput\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}CanonicalReferenceNoise.lean, lines 67–78}
+\begin{leancode}
+\leanline{0}{theorem\ ouInputIncrement\_globalInput\_coe\ (c\ :\ ULA.Coupling\ μ\ π)\ (γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ouInputIncrement\ γ\ (globalInput\ c\ γ)\ ((n\ :\ ℝ)*(h\ :\ ℝ))\ h\ =ᵐ[probability\ c]}
+\leanline{6}{fun\ p\ :\ Sample\ d\ =>\ (Real.sqrt\ (2*γ)\ •\ vectorSegmentLp\ (Fin\ d)\ (psi\ γ\ 0)}
+\leanline{8}{(continuous\_psi\ γ\ 0)\ ((n\ :\ ℝ≥0)*h)\ h)\ p.2.2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ou\allowbreak{}Input\allowbreak{}Increment\_\allowbreak{}global\allowbreak{}Input} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hend} in that order. Named proof applications include \texttt{congr\allowbreak{}Arg}, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{ou\allowbreak{}Input\allowbreak{}Increment\_\allowbreak{}global\allowbreak{}Input\_\allowbreak{}coe} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Named proof applications include \texttt{brownian\allowbreak{}Lift\_\allowbreak{}coe}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}.
@@ -58,13 +114,26 @@ The vector OU stream already has the exact iid Gaussian law with scale \(\sqrt{1
 
 The vector response stream has the independent thermal Gaussian law. Combining it with the phase/\allowbreak{}source projection gives the joint product law of reference initialization and all thermostat innovations. This supplies the precise source hypothesis of the splitting-limit stationarity theorem.
 
+\begin{leanbox}{Lean: \texttt{initial\_\allowbreak{}ouInput\_\allowbreak{}jointLaw}}
+\leansource{\texttt{initial\_\allowbreak{}ouInput\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}CanonicalReferenceNoise.lean, lines 81–102}
+\begin{leancode}
+\leanline{0}{theorem\ initial\_ouInput\_jointLaw\ (c\ :\ ULA.Coupling\ μ\ π)\ (hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)}
+\leanline{4}{(γ\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (fun\ p\ :\ Sample\ d\ =>\ (lpPhaseCoe\ (probability\ c)\ (referenceInitial\ c\ hπ)\ p,}
+\leanline{6}{fun\ k\ :\ ℕ\ =>\ ouInputIncrement\ γ\ (globalInput\ c\ γ)\ ((k\ :\ ℝ)*(h\ :\ ℝ))\ h\ p))}
+\leanline{6}{(((stdGaussian\ (H\ d)).prod\ π).prod\ (Measure.infinitePi\ (fun\ \_\ :\ ℕ\ =>}
+\leanline{8}{(stdGaussian\ (H\ d)).map\ (fun\ x\ =>\ Real.sqrt\ (1-(psi\ γ\ 0\ h)\textasciicircum{}2)\ •\ x))))\ (probability\ c)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{initial\_\allowbreak{}ou\allowbreak{}Input\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\eta}}, \texttt{W}, \texttt{h\allowbreak{}W}, \texttt{hj}, \texttt{hp} in that order. Named proof applications include \texttt{hl.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}iff.\allowbreak{}mp}, \texttt{hp.\allowbreak{}congr}, \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.6]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

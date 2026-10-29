@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ The representative of the \(L^2\) initialization is measurable. Its pushforward 
 
 Replacing the representative on a null set does not change this distribution. Thus it is well defined for the square-integrable equivalence class. Gaussian assumptions on the subsequent innovations are used to identify the transition kernel, whereas probability normalization here follows only from the initial probability space.
 
+\begin{leanbox}{Lean: \texttt{initialLaw\_\allowbreak{}probability}}
+\leansource{\texttt{initialLaw\_\allowbreak{}probability} \quad UnadjustedLangevin/\allowbreak{}GaussianULA.lean, lines 24–28}
+\begin{leancode}
+\leanline{0}{private\ theorem\ initialLaw\_probability\ (initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{IsProbabilityMeasure\ (P.map\ initial)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{initial\allowbreak{}Law\_\allowbreak{}probability} proves normalization of the pushforward of \texttt{initial}. \texttt{Lp.\allowbreak{}aestrongly\allowbreak{}Measurable} supplies almost-everywhere measurability; \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply\_\allowbreak{}of\_\allowbreak{}aemeasurable} evaluates the pushforward on the whole space. Its preimage is the whole probability space, whose measure is one.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of the initial transport distance}{Finiteness of the initial transport distance}}
 
@@ -42,6 +74,18 @@ The initialization is in \(L^2\), so its law has a finite second moment. Strong 
 
 Changing variables shows that the initial law has the same finite second moment as its random-variable realization. The Gibbs target has a finite second moment by positive strong convexity. Their independent product coupling has finite mean squared separation, bounded by twice the sum of those moments. Thus the initial Wasserstein distance is finite and need not be supplied as an additional assumption.
 
+\begin{leanbox}{Lean: \texttt{gaussianULA\_\allowbreak{}initial\_\allowbreak{}transport\_\allowbreak{}finite}}
+\leansource{\texttt{gaussianULA\_\allowbreak{}initial\_\allowbreak{}transport\_\allowbreak{}finite} \quad UnadjustedLangevin/\allowbreak{}GaussianULA.lean, lines 32–43}
+\begin{leancode}
+\leanline{0}{theorem\ gaussianULA\_initial\_transport\_finite}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{wasserstein2\ (P.map\ initial)\ (gibbsMeasure\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\allowbreak{}ULA\_\allowbreak{}initial\_\allowbreak{}transport\_\allowbreak{}finite} installs the initial and Gibbs probability instances. Its \texttt{h\ensuremath{\mu}} is square integrability of the identity under the initial law, obtained from \texttt{Lp.\allowbreak{}mem\allowbreak{}Lp initial} by \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}. \texttt{wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp} combines that moment with \texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}gibbs\allowbreak{}Measure}, which follows from positive strong convexity. The finite transport premise of the law-based theorem is therefore derived from the actual square-integrable initialization.
+\end{leanbox}
 
 \section{\texorpdfstring{The small-step bound for independent Gaussian innovations}{The small-step bound for independent Gaussian innovations}}
 
@@ -52,6 +96,26 @@ Assemble the jointly independent standard scalar Gaussian coordinates into iid m
 
 Coordinate Gaussian laws together with full time-coordinate independence determine iid standard vector innovations. Initialization independence then identifies the supplied chain law with the Gaussian transition iterate. Its initial transport is finite by the moment argument. Substituting this law equality into the constructed small-step theorem gives the realization's finite-time bound, with normalization and output finiteness already justified.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}of\_\allowbreak{}gaussian\_\allowbreak{}innovations}}
+\leansource{\texttt{dalalyan\_\allowbreak{}of\_\allowbreak{}gaussian\_\allowbreak{}innovations} \quad UnadjustedLangevin/\allowbreak{}GaussianULA.lean, lines 48–68}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_of\_gaussian\_innovations}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hcoord\ :\ ∀\ n\ i,\ HasLaw\ (fun\ ω\ ↦\ noise\ n\ ω\ i)\ (gaussianReal\ 0\ 1)\ P)}
+\leanline{4}{(hind\ :\ iIndepFun\ (fun\ p\ :\ ℕ\ ×\ ι\ ↦\ fun\ ω\ ↦\ noise\ p.1\ ω\ p.2)\ P)}
+\leanline{4}{(hindinitial\ :\ IndepFun\ initial\ (fun\ ω\ n\ ↦\ noise\ n\ ω)\ P)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpChain\ P\ U\ h\ hLip\ initial\ noise\ k))\ (gibbsMeasure\ U)\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ k\ *\ wasserstein2Real\ (P.map\ initial)\ (gibbsMeasure\ U)\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *\ Real.sqrt\ (h\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}of\_\allowbreak{}gaussian\_\allowbreak{}innovations} gets noise measurability from the supplied \texttt{Lp} vectors. \texttt{gaussian\allowbreak{}Innovations\_\allowbreak{}vector\allowbreak{}Independent} and \texttt{gaussian\allowbreak{}Innovations\_\allowbreak{}vector\allowbreak{}Law} turn the scalar coordinate hypotheses \texttt{hcoord} and \texttt{hind} into independent vector innovations. With \texttt{hindinitial}, \texttt{hilbert\_\allowbreak{}lp\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} rewrites the actual chain law as Gaussian transition iterates. \texttt{dalalyan} then supplies the small-step estimate, with initial finiteness discharged by \texttt{gaussian\allowbreak{}ULA\_\allowbreak{}initial\_\allowbreak{}transport\_\allowbreak{}finite}.
+\end{leanbox}
 
 \section{\texorpdfstring{The large-step bound for independent Gaussian innovations}{The large-step bound for independent Gaussian innovations}}
 
@@ -62,5 +126,26 @@ Use the same construction/\allowbreak{}Markov-law identification and derived fin
 
 The law-identification argument is unchanged in the large-step regime; only the deterministic contraction factor and geometric gap change. Apply the transition bound with \(q=Lh-1\) and \(1-q=2-Lh>0\), then replace the transition iterate by the supplied realization law. The result retains the exact initial Wasserstein term and the explicit bias throughout the stated stable interval.
 
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}gaussian\_\allowbreak{}innovations}}
+\leansource{\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}gaussian\_\allowbreak{}innovations} \quad UnadjustedLangevin/\allowbreak{}GaussianULA.lean, lines 72–93}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_large\_step\_of\_gaussian\_innovations}
+\leanline{4}{(U\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ (L\ :\ ℝ))\ ≤\ h)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ <\ 2)}
+\leanline{4}{(initial\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hcoord\ :\ ∀\ n\ i,\ HasLaw\ (fun\ ω\ ↦\ noise\ n\ ω\ i)\ (gaussianReal\ 0\ 1)\ P)}
+\leanline{4}{(hind\ :\ iIndepFun\ (fun\ p\ :\ ℕ\ ×\ ι\ ↦\ fun\ ω\ ↦\ noise\ p.1\ ω\ p.2)\ P)}
+\leanline{4}{(hindinitial\ :\ IndepFun\ initial\ (fun\ ω\ n\ ↦\ noise\ n\ ω)\ P)\ (k\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2Real\ (P.map\ (lpChain\ P\ U\ h\ hLip\ initial\ noise\ k))\ (gibbsMeasure\ U)\ ≤}
+\leanline{6}{((L\ :\ ℝ)\ *\ h\ -\ 1)\ \textasciicircum{}\ k\ *\ wasserstein2Real\ (P.map\ initial)\ (gibbsMeasure\ U)\ +}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ /\ (2\ -\ (L\ :\ ℝ)\ *\ h))\ *}
+\leanline{10}{Real.sqrt\ (h\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}gaussian\_\allowbreak{}innovations} makes the same scalar-to-vector Gaussian law conversion and chain-law rewrite. It then invokes \texttt{dalalyan\_\allowbreak{}large\_\allowbreak{}step}, passing \texttt{hlarge} and \texttt{hstep} for the second stable-step regime. \texttt{gaussian\allowbreak{}ULA\_\allowbreak{}initial\_\allowbreak{}transport\_\allowbreak{}finite} again supplies the required initial finiteness. The numerical law is the actual recursion driven by the supplied innovations, rather than a newly assumed reference process.
+\end{leanbox}
 
 \end{document}

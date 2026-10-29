@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,110 +32,692 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Scaled coordinates for the parameter and particles}{Scaled coordinates for the parameter and particles}}
+\title{\texorpdfstring{Scaled coordinates for the parameter and the particles}{Scaled coordinates for the parameter and the particles}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Use orthogonal coordinates for the common parameter and the scaled latent particles. Their norm satisfies \(\|z\|^2=\|\theta\|^2+N^{-1}\sum_i\|x_i\|^2\). The average over physical particle energies is therefore the squared Euclidean norm of the latent blocks. This relation determines the particle factors in the convexity, gradient, and Euler-update formulas.
+Fix a particle number \(N\in\mathbb N\) and dimensions \(d_\theta,d_x\in\mathbb N\) (either may be zero, and they need not be equal). The interacting particle Langevin algorithm moves one parameter \(\theta\in\mathbb R^{d_\theta}\) and \(N\) latent vectors \(x^1,\dots,x^N\in\mathbb R^{d_x}\). This section works in the \emph{scaled} coordinates \(z=(\theta,z_1,\dots,z_N)\) with \(z_i=x^i/\sqrt N\), that is, in the Euclidean space
 
+
+\[\mathcal Z=\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N,\qquad \|z\|^2=\|\theta\|^2+\sum_{i=1}^N\|z_i\|^2=\|\theta\|^2+\frac1N\sum_{i=1}^N\|x^i\|^2 .\]
+
+
+A parameter–latent pair lies in \(\mathcal J=\mathbb R^{d_\theta}\times\mathbb R^{d_x}\). Given a pair potential \(U:\mathcal J\to\mathbb R\) (in the application \(U=U_y\), the negative log joint density for fixed data \(y\)), the pair extraction maps \(J_i:\mathcal Z\to\mathcal J\), \(J_iz=(\theta,\sqrt N z_i)\), and the lifted potential \(V_N(z)=\sum_{i=1}^NU(J_iz)\) are defined. The central identity is \(\sum_i\|J_iz\|^2=N\|z\|^2\).
+
+
+
+
+From it we prove: \(\dim\mathcal Z=d_\theta+Nd_x\); if \(U\) is \(m\)-strongly convex then \(V_N\) is \(Nm\)-strongly convex; if \(U\) is differentiable with \(L\)-Lipschitz gradient then \(\nabla V_N\) is \(NL\)-Lipschitz; the parameter block of \(\nabla V_N\) is the sum of the pair parameter gradients and the \(i\)-th latent block is \(\sqrt N\) times the \(i\)-th pair latent gradient; the projection \(z\mapsto\theta\) does not increase norms; and the Euler step for \(V_N\) with step \(h/N\), rewritten in the physical coordinates \(x^i=\sqrt Nz_i\), is exactly the interacting particle update with step \(h\). These facts are the inputs of the convergence theorem for the unadjusted Langevin algorithm applied to \(V_N\), of the identification of that algorithm with the particle recursion, and of the passage from the full state to the parameter.
 
 
 \section{\texorpdfstring{The coordinate spaces and their dimensions}{The coordinate spaces and their dimensions}}
 
 
-A scaled particle state belongs to \(\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N\); a parameter–particle pair belongs to \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\). The parameter block and the latent blocks are mutually orthogonal, so their dimensions add:
-
-\[\dim(\mathrm{State})=d_\theta+Nd_x,\qquad \dim(\mathrm{Joint})=d_\theta+d_x.\]
-
-The block map returns \(z_i\), and its corresponding physical pair is \(A_i z=\operatorname{joint}_i(z)=(\theta,\sqrt N z_i)\). The potential \(V_N\) is the sum of the pair potentials at these physical coordinates. Thus \(\mathbb R^{d_\theta}\times(\mathbb R^{d_x})^N\) contains one common parameter and one scaled block for each particle. Changing the parameter changes every pair, whereas changing a single latent block changes only that pair. This distinction determines which gradient coordinates are summed and which acquire a factor of \(N\).
+\textbf{Definitions.} Let \(I=\{1,\dots,d_\theta\}\sqcup(\{1,\dots,N\}\times\{1,\dots,d_x\})\) be the disjoint union of the parameter indices and the pairs (particle, latent index). The state space \(\mathcal Z\) is the space of real functions on \(I\) with the Euclidean inner product \(\langle z,w\rangle=\sum_{a\in I}z_aw_a\). We write \(\theta_j=z_{(\theta,j)}\) for the parameter coordinates and \(z_{i,j}\) for coordinate \(j\) of the \(i\)-th scaled latent block \(z_i\in\mathbb R^{d_x}\), so that \(z=(\theta,z_1,\dots,z_N)\) and
 
 
+\[\|z\|^2=\sum_{j=1}^{d_\theta}\theta_j^2+\sum_{i=1}^N\sum_{j=1}^{d_x}z_{i,j}^2 .\qquad(1)\]
 
-\section{\texorpdfstring{A sum of squared pair norms}{A sum of squared pair norms}}
 
-
-The extraction map \(A_i\) is linear because its parameter and latent coordinates are linear functions of the state. In the sum of the extracted squared norms, each parameter coordinate occurs \(N\) times and each latent coordinate is multiplied once by \(\sqrt N\). Expanding the norms therefore gives
-
-\[\sum_i\|A_i z\|^2=N\|\theta\|^2+N\sum_i\|z_i\|^2=N\|z\|^2.\]
-
-The equality uses \((\sqrt N)^2=N\) and remains valid when \(N=0\), since both finite sums then have the required zero contributions. Linearity gives the corresponding identity for two states, \(\sum_i\|A_i(z-w)\|^2=N\|z-w\|^2\). Applying this sum of squares in the convexity and gradient estimates retains the precise particle factor; estimating the extraction maps separately would give a less precise bound.
+Similarly the pair space \(\mathcal J\) is the Euclidean space of real functions on \(\{1,\dots,d_\theta\}\sqcup\{1,\dots,d_x\}\); a pair is written \((\theta,x)\). For \(i\in\{1,\dots,N\}\) define
 
 
 
-\section{\texorpdfstring{Strong convexity of the summed pair potential}{Strong convexity of the summed pair potential}}
+\begin{itemize}
 
 
-Assume that \(U\) is \(m\)-strongly convex. For weights \(a,b\ge0\) satisfying \(a+b=1\), its defining inequality at each pair is
+\item the \emph{block map} \(z\mapsto z_i\in\mathbb R^{d_x}\), \((z_i)_j=z_{i,j}\);
 
-\[U(aA_ix+bA_iy)\le aU(A_ix)+bU(A_iy)-\frac{mab}{2}\|A_i(x-y)\|^2.\]
+\item the \emph{pair extraction} \(J_i:\mathcal Z\to\mathcal J\) by \((J_iz)_{(\theta,j)}=\theta_j\) and \((J_iz)_{(x,j)}=\sqrt N\,z_{i,j}\), i.e. \(J_iz=(\theta,\sqrt Nz_i)\);
 
-Sum over \(i\). Linearity identifies the left-hand arguments with \(A_i(ax+by)\), and the squared-norm identity applied to \(x-y\) identifies the sum of quadratic terms. Consequently \(V_N\) is strongly convex with constant \(Nm\). The map \(A_i\) is continuous because it is linear between finite-dimensional spaces. If \(U\) is differentiable, the chain rule and the finite sum imply differentiability of the sum of \(U\circ A_i\).
+\item for a function \(U:\mathcal J\to\mathbb R\), the \emph{lifted potential} \(V_N:\mathcal Z\to\mathbb R\), \(V_N(z)=\sum_{i=1}^NU(J_iz)\).
 
-
-
-More explicitly, the summed quadratic correction is \((mab/2)\sum_i\|A_i(x-y)\|^2\), which equals \((Nmab/2)\|x-y\|^2\). The curvature factor is therefore exactly \(N\) times the pair curvature. The argument includes weights zero and one, for which the correction vanishes, and requires no differentiability for the convexity conclusion.
+\end{itemize}
 
 
+
+Thus \(J_iz\) is the pair formed by the common parameter and the physical latent vector \(x^i=\sqrt Nz_i\) of particle \(i\). The parameter enters every summand of \(V_N\), whereas the block \(z_i\) enters only the \(i\)-th summand.
+
+
+
+
+\textbf{Claim.} For all \(N,d_\theta,d_x\in\mathbb N\), \(\dim\mathcal Z=d_\theta+Nd_x\) and \(\dim\mathcal J=d_\theta+d_x\).
+
+
+
+
+\textbf{Proof.} The space of real functions on a finite set \(I\) has the basis of indicator functions \(e_a\), \(a\in I\), so its dimension is the cardinality \(|I|\). The cardinality of a disjoint union is the sum of the cardinalities and that of a product is the product. Hence \(|I|=d_\theta+N\,d_x\) for \(\mathcal Z\) and \(d_\theta+d_x\) for \(\mathcal J\). \(\square\)
+
+
+
+
+The coordinate formulas \((J_iz)_{(\theta,j)}=\theta_j\) and \((J_iz)_{(x,j)}=\sqrt N z_{i,j}\) hold by definition. When \(N=0\) the space \(\mathcal Z\) is \(\mathbb R^{d_\theta}\) and \(V_N\) is the empty sum \(0\); when \(d_\theta=0\) or \(d_x=0\) the corresponding blocks are the zero space. None of these cases is excluded.
+
+\begin{leanbox}{Lean: \texttt{State}, \texttt{Joint}, \texttt{finrank\_\allowbreak{}state} and 6 more}
+\leansource{\texttt{State} \quad IPLA/\allowbreak{}Geometry.lean, lines 23–23}
+\begin{leancode}
+\leanline{0}{abbrev\ State\ (N\ dθ\ dx\ :\ ℕ)\ :=\ EuclideanSpace\ ℝ\ (Fin\ dθ\ ⊕\ (Fin\ N\ ×\ Fin\ dx))}
+\end{leancode}
+\leansource{\texttt{Joint} \quad IPLA/\allowbreak{}Geometry.lean, lines 25–25}
+\begin{leancode}
+\leanline{0}{abbrev\ Joint\ (dθ\ dx\ :\ ℕ)\ :=\ EuclideanSpace\ ℝ\ (Fin\ dθ\ ⊕\ Fin\ dx)}
+\end{leancode}
+\leansource{\texttt{finrank\_\allowbreak{}state} \quad IPLA/\allowbreak{}Geometry.lean, lines 29–31}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ finrank\_state\ (N\ dθ\ dx\ :\ ℕ)\ :}
+\leanline{4}{Module.finrank\ ℝ\ (State\ N\ dθ\ dx)\ =\ dθ\ +\ N\ *\ dx}
+\end{leancode}
+\leansource{\texttt{finrank\_\allowbreak{}joint} \quad IPLA/\allowbreak{}Geometry.lean, lines 34–36}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ finrank\_joint\ (dθ\ dx\ :\ ℕ)\ :}
+\leanline{4}{Module.finrank\ ℝ\ (Joint\ dθ\ dx)\ =\ dθ\ +\ dx}
+\end{leancode}
+\leansource{\texttt{block} \quad IPLA/\allowbreak{}Geometry.lean, lines 39–40}
+\begin{leancode}
+\leanline{0}{def\ block\ \{N\ dθ\ dx\ :\ ℕ\}\ (z\ :\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ :\ EuclideanSpace\ ℝ\ (Fin\ dx)\ :=}
+\leanline{2}{WithLp.toLp\ 2\ (fun\ j\ ↦\ z\ (Sum.inr\ (i,\ j)))}
+\end{leancode}
+\leansource{\texttt{joint} \quad IPLA/\allowbreak{}Geometry.lean, lines 43–45}
+\begin{leancode}
+\leanline{0}{def\ joint\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (z\ :\ State\ N\ dθ\ dx)\ :\ Joint\ dθ\ dx\ :=}
+\leanline{2}{WithLp.toLp\ 2\ (Sum.elim\ (fun\ j\ ↦\ z\ (Sum.inl\ j))}
+\leanline{4}{(fun\ j\ ↦\ Real.sqrt\ N\ *\ z\ (Sum.inr\ (i,\ j))))}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}parameter} \quad IPLA/\allowbreak{}Geometry.lean, lines 47–48}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (z\ :\ State\ N\ dθ\ dx)}
+\leanline{4}{(j\ :\ Fin\ dθ)\ :\ joint\ i\ z\ (Sum.inl\ j)\ =\ z\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}particle} \quad IPLA/\allowbreak{}Geometry.lean, lines 50–51}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (z\ :\ State\ N\ dθ\ dx)}
+\leanline{4}{(j\ :\ Fin\ dx)\ :\ joint\ i\ z\ (Sum.inr\ j)\ =\ Real.sqrt\ N\ *\ z\ (Sum.inr\ (i,\ j))}
+\end{leancode}
+\leansource{\texttt{potential} \quad IPLA/\allowbreak{}Geometry.lean, lines 54–55}
+\begin{leancode}
+\leanline{0}{def\ potential\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (z\ :\ State\ N\ dθ\ dx)\ :\ ℝ\ :=}
+\leanline{2}{∑\ i\ :\ Fin\ N,\ U\ (joint\ i\ z)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The two spaces are abbreviations for Mathlib's Euclidean spaces: \texttt{State N d\ensuremath{\theta} dx} is \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d\ensuremath{\theta} ⊕ (Fin N \ensuremath{\times} Fin dx))} and \texttt{Joint d\ensuremath{\theta} dx} is \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d\ensuremath{\theta} ⊕ Fin dx)}. Here \texttt{Fin n} is the index set \(\{0,\dots,n-1\}\), \texttt{⊕} is the disjoint union and \texttt{\ensuremath{\times}} the product, and \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota}} is the space of functions \(\iota\to\mathbb R\) with the \(\ell^2\) norm (1). A coordinate of a state is addressed as \texttt{z (Sum.\allowbreak{}inl j)} (parameter coordinate \(j\)) or \texttt{z (Sum.\allowbreak{}inr (i, j))} (coordinate \(j\) of particle \(i\)).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{finrank\_\allowbreak{}state} and \texttt{finrank\_\allowbreak{}joint} state \texttt{Module.\allowbreak{}finrank \ensuremath{\mathbb R} (State N d\ensuremath{\theta} dx) = d\ensuremath{\theta} + N * dx} and \texttt{Module.\allowbreak{}finrank \ensuremath{\mathbb R} (Joint d\ensuremath{\theta} dx) = d\ensuremath{\theta} + dx}, where \texttt{Module.\allowbreak{}finrank \ensuremath{\mathbb R}} is the dimension of a finite-dimensional real vector space. Both are proved by \texttt{simp [State]} and \texttt{simp [Joint]}: the simplifier uses that the dimension of a Euclidean space is the cardinality of its index type and evaluates the cardinalities of the sum and product of the \texttt{Fin} types, which is the counting argument above.
+
+\item \texttt{block z i} is \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (fun j \ensuremath{\mapsto} z (Sum.\allowbreak{}inr (i, j)))}; \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2} regards a coordinate function as an element of the Euclidean space.
+
+\item \texttt{joint i z} is \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (Sum.\allowbreak{}elim (fun j \ensuremath{\mapsto} z (Sum.\allowbreak{}inl j)) (fun j \ensuremath{\mapsto} Real.\allowbreak{}sqrt N * z (Sum.\allowbreak{}inr (i, j))))}; \texttt{Sum.\allowbreak{}elim f g} is the function on the disjoint union equal to \texttt{f} on parameter indices and to \texttt{g} on latent indices. This is \(J_iz=(\theta,\sqrt Nz_i)\). The coordinate formulas are \texttt{joint\_\allowbreak{}parameter} and \texttt{joint\_\allowbreak{}particle}, both proved by \texttt{rfl} (they hold by unfolding the definition).
+
+\item \texttt{potential U z} is \texttt{∑ i : Fin N, U (joint i z)}, the lifted potential \(V_N\). The particle number is an implicit argument and is written explicitly as \texttt{@potential N d\ensuremath{\theta} dx U} where needed.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Linearity of the pair extraction and the sum of squared pair norms}{Linearity of the pair extraction and the sum of squared pair norms}}
+
+
+\textbf{Claim.} For every \(i\), every \(x,y\in\mathcal Z\) and every \(a\in\mathbb R\),
+
+
+\[J_i(x+y)=J_ix+J_iy,\qquad J_i(ax)=a\,J_ix,\qquad J_i(x-y)=J_ix-J_iy .\]
+
+
+Moreover, for every \(z\in\mathcal Z\),
+
+
+\[\sum_{i=1}^N\|J_iz\|^2=N\,\|z\|^2 .\qquad(2)\]
+
+
+\textbf{Proof.} Two vectors of \(\mathcal J\) are equal when all their coordinates are equal, so it suffices to compare coordinates. A parameter coordinate of \(J_i(x+y)\) is \(\theta_j(x)+\theta_j(y)\), the sum of the parameter coordinates of \(J_ix\) and \(J_iy\). A latent coordinate is \(\sqrt N(x_{i,j}+y_{i,j})=\sqrt Nx_{i,j}+\sqrt Ny_{i,j}\) by distributivity. The scalar identity follows in the same way from \(\sqrt N(ax_{i,j})=a(\sqrt Nx_{i,j})\), and the difference identity from \(\sqrt N(x_{i,j}-y_{i,j})=\sqrt Nx_{i,j}-\sqrt Ny_{i,j}\). Hence \(J_i\) is linear.
+
+
+
+
+For (2), expand the squared Euclidean norm of \(J_iz\) in coordinates and use \((\sqrt N)^2=N\), which holds because \(N\ge0\):
+
+
+\[\|J_iz\|^2=\sum_{j=1}^{d_\theta}\theta_j^2+\sum_{j=1}^{d_x}\bigl(\sqrt N z_{i,j}\bigr)^2=\|\theta\|^2+N\sum_{j=1}^{d_x}z_{i,j}^2 .\]
+
+
+Summing over \(i=1,\dots,N\), the first term does not depend on \(i\) and contributes \(N\|\theta\|^2\), so
+
+
+\[\sum_{i=1}^N\|J_iz\|^2=N\|\theta\|^2+N\sum_{i=1}^N\sum_{j=1}^{d_x}z_{i,j}^2=N\|z\|^2\]
+
+
+by (1). For \(N=0\) both sides are \(0\). \(\square\)
+
+
+
+
+Applied to a difference, linearity and (2) give \(\sum_i\|J_ix-J_iy\|^2=N\|x-y\|^2\). In this identity each parameter coordinate is counted once per particle, while the factor \(N\) produced by \(\sqrt N\) in each latent block compensates the single occurrence of that block. This is the reason why the convexity and smoothness constants of \(V_N\) below are exactly \(N\) times those of \(U\).
+
+\begin{leanbox}{Lean: \texttt{joint\_\allowbreak{}add}, \texttt{joint\_\allowbreak{}smul}, \texttt{joint\_\allowbreak{}sub} and 1 more}
+\leansource{\texttt{joint\_\allowbreak{}add} \quad IPLA/\allowbreak{}Geometry.lean, lines 57–60}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_add\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (x\ y\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{joint\ i\ (x\ +\ y)\ =\ joint\ i\ x\ +\ joint\ i\ y}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}smul} \quad IPLA/\allowbreak{}Geometry.lean, lines 62–65}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_smul\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (a\ :\ ℝ)\ (x\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{joint\ i\ (a\ •\ x)\ =\ a\ •\ joint\ i\ x}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}sub} \quad IPLA/\allowbreak{}Geometry.lean, lines 67–70}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_sub\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (x\ y\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{joint\ i\ (x\ -\ y)\ =\ joint\ i\ x\ -\ joint\ i\ y}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sum} \quad IPLA/\allowbreak{}Geometry.lean, lines 74–81}
+\begin{leancode}
+\leanline{0}{theorem\ joint\_norm\_sq\_sum\ \{N\ dθ\ dx\ :\ ℕ\}\ (z\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{∑\ i\ :\ Fin\ N,\ ‖joint\ i\ z‖\ \textasciicircum{}\ 2\ =\ (N\ :\ ℝ)\ *\ ‖z‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The three linearity lemmas \texttt{joint\_\allowbreak{}add}, \texttt{joint\_\allowbreak{}smul} and \texttt{joint\_\allowbreak{}sub} are proved by the same two lines: \texttt{ext j} reduces the equality to an arbitrary coordinate \(j\) of \texttt{Joint d\ensuremath{\theta} dx}, \texttt{cases j} separates a parameter coordinate from a latent coordinate, and \texttt{simp} unfolds \texttt{joint} and applies \texttt{mul\_\allowbreak{}add}, \texttt{mul\_\allowbreak{}left\_\allowbreak{}comm} or \texttt{mul\_\allowbreak{}sub} to the latent coordinate \(\sqrt N\cdot(\cdot)\).
+
+
+
+
+\texttt{joint\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sum} states \texttt{∑ i : Fin N, \ensuremath{\Vert}joint i z\ensuremath{\Vert} \textasciicircum{} 2 = (N : \ensuremath{\mathbb R}) * \ensuremath{\Vert}z\ensuremath{\Vert} \textasciicircum{} 2}, which is (2); \texttt{(N : \ensuremath{\mathbb R})} is the natural number \(N\) regarded as a real number. The proof is one \texttt{simp only} call followed by \texttt{ring}. The rewriting lemmas perform the computation of the proof in order:
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq} writes each squared norm as the sum of squared coordinates;
+
+\item \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type} splits a sum over the disjoint union into the parameter sum plus the latent sum, and \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}prod\_\allowbreak{}type} writes the sum over pairs \((i,j)\) as an iterated sum;
+
+\item \texttt{joint\_\allowbreak{}parameter} and \texttt{joint\_\allowbreak{}particle} insert the coordinates of \(J_iz\), \texttt{mul\_\allowbreak{}pow} gives \((\sqrt Nz_{i,j})^2=(\sqrt N)^2z_{i,j}^2\), and \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt (Nat.\allowbreak{}cast\_\allowbreak{}nonneg N)} gives \((\sqrt N)^2=N\) using \(N\ge0\);
+
+\item \texttt{Finset.\allowbreak{}sum\_\allowbreak{}add\_\allowbreak{}distrib} and \texttt{← Finset.\allowbreak{}mul\_\allowbreak{}sum} distribute and factor the sums, while \texttt{Finset.\allowbreak{}sum\_\allowbreak{}const}, \texttt{Finset.\allowbreak{}card\_\allowbreak{}univ}, \texttt{Fintype.\allowbreak{}card\_\allowbreak{}fin} and \texttt{nsmul\_\allowbreak{}eq\_\allowbreak{}mul} evaluate the sum over \(i\) of the constant \(\|\theta\|^2\) as \(N\|\theta\|^2\).
+
+\end{enumerate}
+
+
+
+\texttt{ring} then checks the remaining polynomial identity.
+\end{leanbox}
+
+\section{\texorpdfstring{Strong convexity and differentiability of the lifted potential}{Strong convexity and differentiability of the lifted potential}}
+
+
+\textbf{Definition.} Let \(E\) be a real normed space and \(\kappa\in\mathbb R\). A function \(f:E\to\mathbb R\) is \emph{\(\kappa\)-strongly convex} if for all \(x,y\in E\) and all \(a,b\ge0\) with \(a+b=1\),
+
+
+\[f(ax+by)\le af(x)+bf(y)-ab\,\frac\kappa2\,\|x-y\|^2 .\]
+
+
+No sign condition on \(\kappa\) is part of the definition; for \(\kappa>0\) this is the usual notion.
+
+
+
+
+\textbf{Claim.} (a) Let \(m\in\mathbb R\). If \(U:\mathcal J\to\mathbb R\) is \(m\)-strongly convex, then \(V_N\) is \(Nm\)-strongly convex on \(\mathcal Z\). (b) Each \(J_i\) is a continuous linear map. (c) If \(U\) is differentiable, then \(V_N\) is differentiable.
+
+
+
+
+\textbf{Proof.} (a) Fix \(x,y\in\mathcal Z\) and \(a,b\ge0\) with \(a+b=1\). For each \(i\), apply the strong convexity of \(U\) to the points \(J_ix,J_iy\in\mathcal J\):
+
+
+\[U(aJ_ix+bJ_iy)\le aU(J_ix)+bU(J_iy)-ab\,\frac m2\,\|J_ix-J_iy\|^2 .\qquad(3)\]
+
+
+By linearity of \(J_i\) (previous step), \(aJ_ix+bJ_iy=J_i(ax+by)\) and \(J_ix-J_iy=J_i(x-y)\). Summing (3) over \(i=1,\dots,N\) (a finite sum of inequalities) gives
+
+
+\[V_N(ax+by)\le aV_N(x)+bV_N(y)-ab\,\frac m2\sum_{i=1}^N\|J_i(x-y)\|^2 .\]
+
+
+By (2) applied to \(x-y\), the last sum is \(N\|x-y\|^2\), so
+
+
+\[V_N(ax+by)\le aV_N(x)+bV_N(y)-ab\,\frac{Nm}2\,\|x-y\|^2,\]
+
+
+which is \(Nm\)-strong convexity. No differentiability is used in (a), and no sign of \(m\) is required; the case \(N=0\) reads \(0\le0\).
+
+
+
+
+(b) \(J_i\) is linear by the previous step, and every linear map between finite-dimensional normed spaces is continuous.
+
+
+
+
+(c) A continuous linear map is differentiable, with derivative equal to itself at every point. By the chain rule each \(U\circ J_i\) is differentiable, and a finite sum of differentiable functions is differentiable. \(\square\)
+
+
+
+
+In the application \(m>0\), so (a) gives the curvature \(Nm\) of the lifted potential that appears in the contraction factor of the Euler scheme for \(V_N\).
+
+\begin{leanbox}{Lean: \texttt{potential\_\allowbreak{}strongConvex}, \texttt{jointCLM}, \texttt{jointCLM\_\allowbreak{}apply} and 1 more}
+\leansource{\texttt{potential\_\allowbreak{}strongConvex} \quad IPLA/\allowbreak{}Geometry.lean, lines 85–94}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_strongConvex\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}\ \{m\ :\ ℝ\}}
+\leanline{4}{(hU\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{StrongConvexOn\ Set.univ\ ((N\ :\ ℝ)\ *\ m)\ (@potential\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leansource{\texttt{jointCLM} \quad IPLA/\allowbreak{}Geometry.lean, lines 97–101}
+\begin{leancode}
+\leanline{0}{def\ jointCLM\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ :\ State\ N\ dθ\ dx\ →L[ℝ]\ Joint\ dθ\ dx\ :=}
+\leanline{2}{LinearMap.toContinuousLinearMap}
+\leanline{4}{\{\ toFun\ :=\ joint\ i}
+\leanline{6}{map\_add'\ :=\ joint\_add\ i}
+\leanline{6}{map\_smul'\ :=\ joint\_smul\ i\ \}}
+\end{leancode}
+\leansource{\texttt{jointCLM\_\allowbreak{}apply} \quad IPLA/\allowbreak{}Geometry.lean, lines 103–104}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ jointCLM\_apply\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (z\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{jointCLM\ i\ z\ =\ joint\ i\ z}
+\end{leancode}
+\leansource{\texttt{potential\_\allowbreak{}differentiable} \quad IPLA/\allowbreak{}Geometry.lean, lines 107–109}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_differentiable\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ :\ Differentiable\ ℝ\ (@potential\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m U} is Mathlib's definition above, restricted to the whole space \texttt{Set.\allowbreak{}univ}: it is the pair consisting of convexity of the domain and the displayed inequality with modulus \(r\mapsto\frac m2r^2\), with the weights written as \texttt{a \ensuremath{\bullet} x + b \ensuremath{\bullet} y} (\texttt{\ensuremath{\bullet}} is scalar multiplication). \texttt{potential\_\allowbreak{}strong\allowbreak{}Convex} takes this hypothesis \texttt{h\allowbreak{}U} for an arbitrary real \texttt{m} and concludes \texttt{Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ ((N : \ensuremath{\mathbb R}) * m) (@potential N d\ensuremath{\theta} dx U)}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{refine \ensuremath{\langle}convex\_\allowbreak{}univ, ?\_\allowbreak{}\ensuremath{\rangle}} supplies convexity of the whole space and leaves the inequality; \texttt{intro x hx y hy a b ha hb hab} fixes the points and the weights.
+
+\item \texttt{hsum} is the sum over \texttt{Finset.\allowbreak{}univ} of the \(N\) inequalities (3), obtained with \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum} from \texttt{h\allowbreak{}U.\allowbreak{}2} applied at \texttt{joint i x} and \texttt{joint i y}.
+
+\item \texttt{simpa only [.\allowbreak{}.\allowbreak{}.\allowbreak{}] using hsum} rewrites \texttt{hsum} into the goal: \texttt{← joint\_\allowbreak{}smul}, \texttt{← joint\_\allowbreak{}add} and \texttt{← joint\_\allowbreak{}sub} fold the arguments into \(J_i(ax+by)\) and \(J_i(x-y)\); \texttt{Finset.\allowbreak{}sum\_\allowbreak{}sub\_\allowbreak{}distrib}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}add\_\allowbreak{}distrib} and \texttt{← Finset.\allowbreak{}mul\_\allowbreak{}sum} distribute the sums and pull out the constants; \texttt{potential} is unfolded; \texttt{joint\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sum} replaces the summed quadratic terms by \(N\|x-y\|^2\), which is the use of (2); the remaining lemmas only reorder products.
+
+\end{enumerate}
+
+
+
+\texttt{joint\allowbreak{}CLM i} is \(J_i\) as an element of \texttt{State N d\ensuremath{\theta} dx \ensuremath{\to}L[\ensuremath{\mathbb R}] Joint d\ensuremath{\theta} dx}, the type of continuous linear maps. It is built from the linear map with fields \texttt{map\_\allowbreak{}add'} and \texttt{map\_\allowbreak{}smul'} given by \texttt{joint\_\allowbreak{}add} and \texttt{joint\_\allowbreak{}smul}, and \texttt{Linear\allowbreak{}Map.\allowbreak{}to\allowbreak{}Continuous\allowbreak{}Linear\allowbreak{}Map} provides continuity from finite-dimensionality, as in (b). \texttt{joint\allowbreak{}CLM\_\allowbreak{}apply} records \texttt{joint\allowbreak{}CLM i z = joint i z} by \texttt{rfl}.
+
+
+
+
+\texttt{potential\_\allowbreak{}differentiable} concludes \texttt{Differentiable \ensuremath{\mathbb R} (@potential N d\ensuremath{\theta} dx U)} from \texttt{h\allowbreak{}U : Differentiable \ensuremath{\mathbb R} U}. Its proof \texttt{Differentiable.\allowbreak{}fun\_\allowbreak{}sum fun i \_\allowbreak{} \ensuremath{\mapsto} h\allowbreak{}U.\allowbreak{}comp (joint\allowbreak{}CLM i).\allowbreak{}differentiable} is (c): the chain rule \texttt{h\allowbreak{}U.\allowbreak{}comp} applied to the differentiable map \texttt{joint\allowbreak{}CLM i}, then the sum rule.
+\end{leanbox}
 
 \section{\texorpdfstring{The gradient chain rule and the lifted Lipschitz constant}{The gradient chain rule and the lifted Lipschitz constant}}
 
 
-Assume that the pair potential is differentiable. In a direction \(w\), the chain rule gives
-
-\[\langle\nabla V_N(z),w\rangle=\sum_i\langle\nabla U(A_i z),A_iw\rangle.\]
-
-Cauchy–Schwarz in the particle index and the squared-norm identity give \(\sum_i\|A_iv\|\|A_iw\|\le N\|v\|\|w\|\). If \(\nabla U\) is \(L\)-Lipschitz, subtraction of the directional formulas at two states yields
-
-\[\langle\nabla V_N(x)-\nabla V_N(y),w\rangle\le NL\|x-y\|\|w\|.\]
-
-Set \(w=\nabla V_N(x)-\nabla V_N(y)\). A zero gradient difference already satisfies the desired estimate; otherwise division by its positive norm shows that \(\nabla V_N\) is \(NL\)-Lipschitz. Applying the same argument to the absolute value gives \(|\langle\nabla V_N(x)-\nabla V_N(y),w\rangle|\le NL\|x-y\|\|w\|\), which is also the dual-norm form of the estimate. Both curvature and gradient regularity are multiplied by \(N\), so the condition number is \(L/m\) whenever the curvature is positive.
+\textbf{Definitions.} If \(f:E\to\mathbb R\) is differentiable at \(z\) on a finite-dimensional inner-product space \(E\), its derivative \(Df(z)\) is a linear functional and its \emph{gradient} \(\nabla f(z)\in E\) is the unique vector with \(\langle\nabla f(z),w\rangle=Df(z)w\) for all \(w\in E\) (Riesz representation). For \(K\ge0\), a map \(g\) between normed spaces is \emph{\(K\)-Lipschitz} if \(\|g(x)-g(y)\|\le K\|x-y\|\) for all \(x,y\).
 
 
 
+
+\textbf{Claim.} (a) If \(U\) is differentiable, then for all \(z,w\in\mathcal Z\)
+
+
+\[\langle\nabla V_N(z),w\rangle=\sum_{i=1}^N\langle\nabla U(J_iz),J_iw\rangle .\qquad(4)\]
+
+
+(b) For all \(v,w\in\mathcal Z\), \(\sum_{i=1}^N\|J_iv\|\,\|J_iw\|\le N\|v\|\,\|w\|\).
+
+
+
+
+(c) Let \(L\ge0\). If \(U\) is differentiable and \(\nabla U\) is \(L\)-Lipschitz, then \(\nabla V_N\) is \(NL\)-Lipschitz.
+
+
+
+
+\textbf{Proof.} (a) By the chain rule, the derivative of \(U\circ J_i\) at \(z\) is \(DU(J_iz)\circ J_i\), because the linear map \(J_i\) is its own derivative. By the sum rule, \(DV_N(z)=\sum_iDU(J_iz)\circ J_i\). Applying both sides to \(w\) and using the definition of the gradient twice,
+
+
+\[\langle\nabla V_N(z),w\rangle=DV_N(z)w=\sum_iDU(J_iz)(J_iw)=\sum_i\langle\nabla U(J_iz),J_iw\rangle .\]
+
+
+(b) Put \(a_i=\|J_iv\|\) and \(b_i=\|J_iw\|\). The Cauchy–Schwarz inequality for finite sums and (2) give
+
+
+\[\Bigl(\sum_ia_ib_i\Bigr)^2\le\Bigl(\sum_ia_i^2\Bigr)\Bigl(\sum_ib_i^2\Bigr)=\bigl(N\|v\|^2\bigr)\bigl(N\|w\|^2\bigr)=\bigl(N\|v\|\|w\|\bigr)^2 .\]
+
+
+Since \(T=N\|v\|\|w\|\ge0\), the inequality \(S^2\le T^2\) for \(S=\sum_ia_ib_i\) implies \(S\le|S|\le T\).
+
+
+
+
+(c) Fix \(x,y\in\mathcal Z\) and put \(g=\nabla V_N(x)-\nabla V_N(y)\). For every \(w\in\mathcal Z\), (4) at \(x\) and at \(y\), subtracted, and linearity of the inner product in its first argument give
+
+
+\[\begin{aligned}\langle g,w\rangle&=\sum_i\bigl\langle\nabla U(J_ix)-\nabla U(J_iy),J_iw\bigr\rangle\\&\le\sum_i\bigl\|\nabla U(J_ix)-\nabla U(J_iy)\bigr\|\,\|J_iw\|\\&\le\sum_iL\,\|J_i(x-y)\|\,\|J_iw\|\\&\le L\,N\,\|x-y\|\,\|w\| .\end{aligned}\qquad(5)\]
+
+
+The second line is the Cauchy–Schwarz inequality \(\langle u,v\rangle\le\|u\|\|v\|\) in \(\mathcal J\); the third is the Lipschitz bound \(\|\nabla U(J_ix)-\nabla U(J_iy)\|\le L\|J_ix-J_iy\|\), multiplied by \(\|J_iw\|\ge0\), together with \(J_ix-J_iy=J_i(x-y)\); the fourth is (b) with \(v=x-y\), multiplied by \(L\ge0\). Now take \(w=g\) in (5): \(\|g\|^2=\langle g,g\rangle\le NL\|x-y\|\,\|g\|\). If \(\|g\|=0\), then \(\|g\|\le NL\|x-y\|\) because the right side is nonnegative. Otherwise \(\|g\|>0\) and dividing by \(\|g\|\) gives \(\|g\|\le NL\|x-y\|\). In both cases \(\|\nabla V_N(x)-\nabla V_N(y)\|\le NL\|x-y\|\). \(\square\)
+
+
+
+
+Testing the gradient difference against an arbitrary direction \(w\), rather than estimating each block of \(\nabla V_N\) separately, is what keeps the constant equal to \(NL\): a blockwise estimate would bound the parameter block, which collects \(N\) pair gradients, and the latent blocks separately and lose a further factor. Since strong convexity also scales by \(N\), the ratio of the smoothness and convexity constants of \(V_N\) is \(L/m\), independent of \(N\).
+
+\begin{leanbox}{Lean: \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}potential}, \texttt{sum\_\allowbreak{}joint\_\allowbreak{}norm\_\allowbreak{}mul}, \texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}}
+\leansource{\texttt{inner\_\allowbreak{}gradient\_\allowbreak{}potential} \quad IPLA/\allowbreak{}Geometry.lean, lines 116–126}
+\begin{leancode}
+\leanline{0}{theorem\ inner\_gradient\_potential\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (z\ w\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{inner\ ℝ\ (gradient\ (@potential\ N\ dθ\ dx\ U)\ z)\ w\ =}
+\leanline{6}{∑\ i\ :\ Fin\ N,\ inner\ ℝ\ (gradient\ U\ (joint\ i\ z))\ (joint\ i\ w)}
+\end{leancode}
+\leansource{\texttt{sum\_\allowbreak{}joint\_\allowbreak{}norm\_\allowbreak{}mul} \quad IPLA/\allowbreak{}Geometry.lean, lines 129–136}
+\begin{leancode}
+\leanline{0}{theorem\ sum\_joint\_norm\_mul\ \{N\ dθ\ dx\ :\ ℕ\}\ (v\ w\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{(∑\ i\ :\ Fin\ N,\ ‖joint\ i\ v‖\ *\ ‖joint\ i\ w‖)\ ≤}
+\leanline{6}{(N\ :\ ℝ)\ *\ ‖v‖\ *\ ‖w‖}
+\end{leancode}
+\leansource{\texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad IPLA/\allowbreak{}Geometry.lean, lines 139–173}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_gradient\_lipschitz\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{LipschitzWith\ ((N\ :\ ℝ≥0)\ *\ L)\ (gradient\ (@potential\ N\ dθ\ dx\ U))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient f z} is Mathlib's gradient, defined from the Fréchet derivative \texttt{fderiv \ensuremath{\mathbb R} f z} by the Riesz representation; \texttt{inner \ensuremath{\mathbb R} u v} is the inner product \(\langle u,v\rangle\). \texttt{Lipschitz\allowbreak{}With L f} is the Lipschitz property with a constant \texttt{L : \ensuremath{\mathbb R}\ensuremath{\ge}0}, a nonnegative real number, so \(L\ge0\) is built into the type; \texttt{((N : \ensuremath{\mathbb R}\ensuremath{\ge}0) * L)} is the constant \(NL\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}potential} is (4). \texttt{rw [inner\_\allowbreak{}gradient\_\allowbreak{}left]} turns the left side into \texttt{fderiv \ensuremath{\mathbb R} (potential U) z w}. \texttt{hd} states that \texttt{potential U} has derivative \texttt{∑ i : Fin N, (fderiv \ensuremath{\mathbb R} U (joint i z)).\allowbreak{}comp (joint\allowbreak{}CLM i)} at \(z\) (\texttt{Has\allowbreak{}FDeriv\allowbreak{}At}); it combines the chain rule \texttt{Has\allowbreak{}FDeriv\allowbreak{}At.\allowbreak{}comp} for \texttt{(joint\allowbreak{}CLM i).\allowbreak{}has\allowbreak{}FDeriv\allowbreak{}At} with the sum rule \texttt{Has\allowbreak{}FDeriv\allowbreak{}At.\allowbreak{}fun\_\allowbreak{}sum}. \texttt{rw [hd.\allowbreak{}fderiv]} substitutes this derivative, and \texttt{simp [inner\_\allowbreak{}gradient\_\allowbreak{}left]} evaluates the sum of compositions at \(w\) and converts each term back into an inner product with a gradient.
+
+\item \texttt{sum\_\allowbreak{}joint\_\allowbreak{}norm\_\allowbreak{}mul} is (b). \texttt{hs} is the Cauchy–Schwarz inequality for finite sums, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}sq\_\allowbreak{}mul\_\allowbreak{}sq}, with \(f_i=\|J_iv\|\) and \(g_i=\|J_iw\|\); \texttt{rw [joint\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sum, joint\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}sum] at hs} applies (2) twice. \texttt{hn} is \(T\ge0\) by \texttt{positivity}, and \texttt{nlinarith} derives \(S\le T\) from \(S^2\le T^2\) and \(T\ge0\).
+
+\item \texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} is (c). \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul} reduces the goal to \(\operatorname{dist}(\nabla V_N(x),\nabla V_N(y))\le NL\operatorname{dist}(x,y)\), and \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm} writes distances as norms of differences.
+
+\begin{itemize}
+
+
+\item \texttt{hi w} is inequality (5). After \texttt{inner\_\allowbreak{}sub\_\allowbreak{}left}, two applications of \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}potential h\allowbreak{}U} and \texttt{← Finset.\allowbreak{}sum\_\allowbreak{}sub\_\allowbreak{}distrib}, the \texttt{calc} block has four lines matching (5): recombination by \texttt{inner\_\allowbreak{}sub\_\allowbreak{}left}; the termwise bound via \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}le\_\allowbreak{}norm} (Cauchy–Schwarz) and \texttt{h\allowbreak{}Lip.\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} (the Lipschitz bound) rewritten with \texttt{joint\_\allowbreak{}sub}; factoring out \(L\); and \texttt{sum\_\allowbreak{}joint\_\allowbreak{}norm\_\allowbreak{}mul (x -\allowbreak{} y) w} multiplied by \(L\ge0\) (\texttt{L.\allowbreak{}coe\_\allowbreak{}nonneg}).
+
+\item \texttt{h} is \texttt{hi} at \(w=g\); \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq} rewrites \(\langle g,g\rangle\) as \(\|g\|^2\).
+
+\item \texttt{by\_\allowbreak{}cases hz} distinguishes \(\|g\|=0\), closed by \texttt{positivity}, from \(\|g\|\neq0\), where \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}right\ensuremath{{}_{0}}} (for \(c>0\), \(c\,a\le c\,b\iff a\le b\)) cancels the positive factor \(\|g\|\).
+
+\end{itemize}
+
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The two gradient blocks}{The two gradient blocks}}
 
 
-Let \(e_j\) be a parameter basis vector. Each \(A_i e_j\) is the corresponding parameter basis vector in the pair space. For the latent basis vector of particle \(i\), one has \(A_qe_{i,j}=0\) whenever \(q\ne i\), while \(A_i e_{i,j}=\sqrt N e_j\). Substitution in the directional derivative formula gives
-
-\[\nabla_\theta V_N(z)=\sum_i\nabla_\theta U(\theta,\sqrt Nz_i),\qquad (\nabla V_N(z))_i=\sqrt N\nabla_xU(\theta,\sqrt Nz_i).\]
-
-These are the two coordinate derivatives before multiplication by the step divided by \(N\). The parameter derivative of \(V_N\) contains every summand because the parameter is common to all pairs. For a latent block, the substitution \(x_i=\sqrt N z_i\) contributes a derivative factor \(\sqrt N\) to its single summand. Multiplication by \(\gamma/N\) then produces the parameter average and the physical-particle drift.
+Write \(e_{(\theta,j)}\) and \(e_{(i,j)}\) for the standard basis vectors of \(\mathcal Z\) (parameter coordinate \(j\); coordinate \(j\) of particle \(i\)), and \(f_{(\theta,j)}\), \(f_{(x,j)}\) for those of \(\mathcal J\). For \(v\in\mathcal J\) we write \(v_{(\theta,j)}=\langle v,f_{(\theta,j)}\rangle\) and \(v_{(x,j)}=\langle v,f_{(x,j)}\rangle\) for its coordinates, and \(\nabla_\theta U\), \(\nabla_xU\) for the two blocks of \(\nabla U\).
 
 
 
-\section{\texorpdfstring{The parameter projection is a contraction}{The parameter projection is a contraction}}
+
+\textbf{Claim.} (a) For all particles \(q,i\) and indices \(j\),
 
 
-The parameter projection \(p_\theta z=\theta\) is linear and continuous. Orthogonality of the blocks gives \(\|p_\theta z\|^2\le\|z\|^2\) because every omitted squared coordinate is nonnegative. Taking square roots gives \(\|p_\theta z\|\le\|z\|\), and the definition of the operator norm gives \(\|p_\theta\|\le1\).
+\[J_qe_{(\theta,j)}=f_{(\theta,j)},\qquad J_qe_{(i,j)}=\begin{cases}\sqrt N\,f_{(x,j)}&\text{if }q=i,\\0&\text{if }q\neq i.\end{cases}\]
 
 
-
-For two states, linearity also gives \(\|p_\theta z-p_\theta w\|\le\|z-w\|\). Applying this inequality to the two coordinates of a coupling shows that parameter projection cannot increase its quadratic cost. The inequality remains valid after taking an \(L^2\) norm. It therefore converts a full-state transport estimate into an estimate for the parameter, to which the equilibrium error about a deterministic center can then be added.
-
+(b) If \(U\) is differentiable, then for every \(z\in\mathcal Z\), every parameter index \(j\), every particle \(i\) and every latent index \(j'\),
 
 
-\section{\texorpdfstring{Equivalence of the scaled and physical updates}{Equivalence of the scaled and physical updates}}
+\[\bigl(\nabla V_N(z)\bigr)_{(\theta,j)}=\sum_{q=1}^N\bigl(\nabla U(J_qz)\bigr)_{(\theta,j)},\qquad\bigl(\nabla V_N(z)\bigr)_{(i,j')}=\sqrt N\,\bigl(\nabla U(J_iz)\bigr)_{(x,j')} .\]
 
 
-For physical step \(h\), define the scaled Euler update by
-
-\[z'=z-\frac hN\nabla V_N(z)+\sqrt{2h/N}\,\xi.\]
-
-The parameter coordinate is \(\theta'=\theta-(h/N)\sum_i\nabla_\theta U(\theta,x_i)+\sqrt{2h/N}\,\xi_\theta\). Suppose \(N>0\). Multiplication of the \(i\)-th latent coordinate by \(\sqrt N\) gives drift coefficient \((\sqrt N)^2h/N=h\) and noise coefficient \(\sqrt N\sqrt{2h/N}=\sqrt{2h}\). Thus the physical latent update is
-
-\[x_i'=x_i-h\nabla_xU(\theta,x_i)+\sqrt{2h}\,\xi_i.\]
-
-The factors arise from the pair derivatives: the latent derivative contains \(\sqrt N\), and conversion back to physical coordinates contributes another \(\sqrt N\). For step notation used in the probabilistic algorithm, \((\gamma/N)\sqrt N\sqrt N\) is therefore \(\gamma\) and the latent noise coefficient is \(\sqrt{2\gamma}\). The parameter noise coefficient remains \(\sqrt{2\gamma/N}\). Positivity of \(N\) justifies the divisions.
+\textbf{Proof.} (a) The vector \(e_{(\theta,j)}\) has parameter coordinates \(\delta_{jj''}\) and all latent coordinates zero, so \(J_qe_{(\theta,j)}\) has the same parameter coordinates and latent coordinates \(\sqrt N\cdot0=0\); this is \(f_{(\theta,j)}\). The vector \(e_{(i,j)}\) has zero parameter coordinates and a single nonzero coordinate, equal to \(1\), in block \(i\). If \(q\ne i\), block \(q\) of \(e_{(i,j)}\) is zero, so \(J_qe_{(i,j)}=0\). If \(q=i\), the latent coordinates of \(J_ie_{(i,j)}\) are \(\sqrt N\delta_{jj''}\), i.e. \(J_ie_{(i,j)}=\sqrt Nf_{(x,j)}\).
 
 
 
-For \(\gamma>0\), the Gaussian parameter variance in each coordinate is \(2\gamma/N\), while each physical latent variance is \(2\gamma\). These are precisely the variances of the interacting particle updates. The coordinate equivalence is an equality of updates and does not involve a discretization approximation.
+
+(b) A coordinate of a vector is its inner product with the corresponding basis vector. By (4) with \(w=e_{(\theta,j)}\) and by (a),
+
+
+\[\bigl(\nabla V_N(z)\bigr)_{(\theta,j)}=\sum_q\bigl\langle\nabla U(J_qz),f_{(\theta,j)}\bigr\rangle=\sum_q\bigl(\nabla U(J_qz)\bigr)_{(\theta,j)} .\]
+
+
+With \(w=e_{(i,j')}\), all terms with \(q\ne i\) vanish by (a) and the term \(q=i\) is \(\langle\nabla U(J_iz),\sqrt Nf_{(x,j')}\rangle=\sqrt N(\nabla U(J_iz))_{(x,j')}\). \(\square\)
 
 
 
+
+In the physical coordinates \(J_qz=(\theta,x^q)\) the two formulas read
+
+
+\[\nabla_\theta V_N(z)=\sum_{q=1}^N\nabla_\theta U(\theta,x^q),\qquad\nabla_{z_i}V_N(z)=\sqrt N\,\nabla_xU(\theta,x^i):\]
+
+
+the common parameter receives the force of every pair, and a latent block receives the force of its own pair, multiplied by the factor \(\sqrt N\) from the substitution \(x^i=\sqrt Nz_i\).
+
+\begin{leanbox}{Lean: \texttt{joint\_\allowbreak{}single\_\allowbreak{}parameter}, \texttt{joint\_\allowbreak{}single\_\allowbreak{}particle}, \texttt{gradient\_\allowbreak{}potential\_\allowbreak{}parameter} and 1 more}
+\leansource{\texttt{joint\_\allowbreak{}single\_\allowbreak{}parameter} \quad IPLA/\allowbreak{}Geometry.lean, lines 179–183}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_single\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{joint\ i\ (EuclideanSpace.single\ (Sum.inl\ j)\ 1\ :\ State\ N\ dθ\ dx)\ =}
+\leanline{6}{EuclideanSpace.single\ (Sum.inl\ j)\ 1}
+\end{leancode}
+\leansource{\texttt{joint\_\allowbreak{}single\_\allowbreak{}particle} \quad IPLA/\allowbreak{}Geometry.lean, lines 185–189}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ joint\_single\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ (i\ q\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{joint\ q\ (EuclideanSpace.single\ (Sum.inr\ (i,\ j))\ 1\ :\ State\ N\ dθ\ dx)\ =}
+\leanline{6}{if\ q\ =\ i\ then\ EuclideanSpace.single\ (Sum.inr\ j)\ (Real.sqrt\ N)\ else\ 0}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}potential\_\allowbreak{}parameter} \quad IPLA/\allowbreak{}Geometry.lean, lines 192–198}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_potential\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (z\ :\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{gradient\ (@potential\ N\ dθ\ dx\ U)\ z\ (Sum.inl\ j)\ =}
+\leanline{6}{∑\ i\ :\ Fin\ N,\ gradient\ U\ (joint\ i\ z)\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}potential\_\allowbreak{}particle} \quad IPLA/\allowbreak{}Geometry.lean, lines 201–209}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_potential\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (z\ :\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{gradient\ (@potential\ N\ dθ\ dx\ U)\ z\ (Sum.inr\ (i,\ j))\ =}
+\leanline{6}{Real.sqrt\ N\ *\ gradient\ U\ (joint\ i\ z)\ (Sum.inr\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Euclidean\allowbreak{}Space.\allowbreak{}single a c} is the vector whose coordinate \(a\) equals \(c\) and whose other coordinates are \(0\); with \(c=1\) it is the basis vector \(e_a\). \texttt{gradient U v (Sum.\allowbreak{}inl j)} is the parameter coordinate \(j\) of \(\nabla U(v)\), and \texttt{gradient U v (Sum.\allowbreak{}inr j)} its latent coordinate \(j\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{joint\_\allowbreak{}single\_\allowbreak{}parameter} and \texttt{joint\_\allowbreak{}single\_\allowbreak{}particle} are (a); the second has the case distinction \texttt{if q = i then Euclidean\allowbreak{}Space.\allowbreak{}single (Sum.\allowbreak{}inr j) (Real.\allowbreak{}sqrt N) else 0}. Both are proved by comparing coordinates (\texttt{ext a}, \texttt{cases a}, with \texttt{by\_\allowbreak{}cases h : q = i} in the second) and \texttt{simp [joint]}.
+
+\item \texttt{gradient\_\allowbreak{}potential\_\allowbreak{}parameter} is the first formula of (b). \texttt{h} is \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}potential h\allowbreak{}U z (Euclidean\allowbreak{}Space.\allowbreak{}single (Sum.\allowbreak{}inl j) 1)}, i.e. (4) at \(w=e_{(\theta,j)}\). \texttt{simpa only} rewrites it with \texttt{joint\_\allowbreak{}single\_\allowbreak{}parameter} and with \texttt{Euclidean\allowbreak{}Space.\allowbreak{}inner\_\allowbreak{}single\_\allowbreak{}right}, which states \(\langle v,c\,e_a\rangle=c\,\overline{v_a}\); \texttt{conj\_\allowbreak{}trivial} removes the complex conjugation, trivial over \(\mathbb R\), and \texttt{map\_\allowbreak{}one}, \texttt{one\_\allowbreak{}mul} remove the factor \(c=1\).
+
+\item \texttt{gradient\_\allowbreak{}potential\_\allowbreak{}particle} is the second formula. \texttt{h} is (4) at \(w=e_{(i,j)}\); after \texttt{joint\_\allowbreak{}single\_\allowbreak{}particle} each summand is an \texttt{if}-expression, and \texttt{apply\_\allowbreak{}ite}, \texttt{inner\_\allowbreak{}zero\_\allowbreak{}right} (inner product with \(0\) is \(0\)) and \texttt{Finset.\allowbreak{}sum\_\allowbreak{}ite\_\allowbreak{}eq'} (a sum over \(q\) of terms that vanish unless \(q=i\) equals its \(i\)-th term) reduce the sum to the single term \(\sqrt N(\nabla U(J_iz))_{(x,j)}\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The parameter projection does not increase norms}{The parameter projection does not increase norms}}
+
+
+\textbf{Definition.} The parameter projection is \(P_\theta:\mathcal Z\to\mathbb R^{d_\theta}\), \(P_\theta z=\theta\), i.e. \((P_\theta z)_j=\theta_j\). It is linear (each coordinate is a coordinate of \(z\)), hence continuous. The operator norm of a continuous linear map \(A\) is \(\|A\|=\inf\{M\ge0:\|Az\|\le M\|z\|\text{ for all }z\}\).
+
+
+
+
+\textbf{Claim.} For every \(z\in\mathcal Z\), \(\|P_\theta z\|\le\|z\|\). Consequently \(\|P_\theta\|\le1\).
+
+
+
+
+\textbf{Proof.} By (1),
+
+
+\[\|z\|^2=\sum_{j=1}^{d_\theta}\theta_j^2+\sum_{i=1}^N\sum_{j=1}^{d_x}z_{i,j}^2\ \ge\ \sum_{j=1}^{d_\theta}\theta_j^2=\|P_\theta z\|^2,\]
+
+
+because the omitted latent sum is a sum of squares and hence nonnegative. For nonnegative reals \(s,t\), \(s^2\le t^2\) implies \(s\le t\); with \(s=\|P_\theta z\|\) and \(t=\|z\|\) this gives the first assertion. It says that \(M=1\) is an admissible constant in the definition of the operator norm, so \(\|P_\theta\|\le1\). \(\square\)
+
+
+
+
+By linearity, \(\|P_\theta z-P_\theta w\|=\|P_\theta(z-w)\|\le\|z-w\|\) for all \(z,w\). Applied to the two components of a coupling of two laws on \(\mathcal Z\), this shows that projecting to the parameter does not increase the quadratic transport cost; it is used to pass from a Wasserstein bound for the full state to a bound on the parameter error.
+
+\begin{leanbox}{Lean: \texttt{parameterCLM}, \texttt{parameterCLM\_\allowbreak{}apply}, \texttt{norm\_\allowbreak{}parameterCLM\_\allowbreak{}apply\_\allowbreak{}le} and 1 more}
+\leansource{\texttt{parameterCLM} \quad IPLA/\allowbreak{}Geometry.lean, lines 216–220}
+\begin{leancode}
+\leanline{0}{def\ parameterCLM\ \{N\ dθ\ dx\ :\ ℕ\}\ :\ State\ N\ dθ\ dx\ →L[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ dθ)\ :=}
+\leanline{2}{LinearMap.toContinuousLinearMap}
+\leanline{4}{\{\ toFun\ :=\ fun\ z\ ↦\ WithLp.toLp\ 2\ (fun\ j\ ↦\ z\ (Sum.inl\ j))}
+\leanline{6}{map\_add'\ :=\ by\ intro\ x\ y;\ ext\ j;\ rfl}
+\leanline{6}{map\_smul'\ :=\ by\ intro\ a\ x;\ ext\ j;\ rfl\ \}}
+\end{leancode}
+\leansource{\texttt{parameterCLM\_\allowbreak{}apply} \quad IPLA/\allowbreak{}Geometry.lean, lines 222–223}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ parameterCLM\_apply\ \{N\ dθ\ dx\ :\ ℕ\}\ (z\ :\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{parameterCLM\ z\ j\ =\ z\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}parameterCLM\_\allowbreak{}apply\_\allowbreak{}le} \quad IPLA/\allowbreak{}Geometry.lean, lines 226–232}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_parameterCLM\_apply\_le\ \{N\ dθ\ dx\ :\ ℕ\}\ (z\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖parameterCLM\ z‖\ ≤\ ‖z‖}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}parameterCLM\_\allowbreak{}le\_\allowbreak{}one} \quad IPLA/\allowbreak{}Geometry.lean, lines 235–238}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_parameterCLM\_le\_one\ \{N\ dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{‖(@parameterCLM\ N\ dθ\ dx)‖\ ≤\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\allowbreak{}CLM} is \(P_\theta\) as a continuous linear map \texttt{State N d\ensuremath{\theta} dx \ensuremath{\to}L[\ensuremath{\mathbb R}] Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d\ensuremath{\theta})}, built with \texttt{Linear\allowbreak{}Map.\allowbreak{}to\allowbreak{}Continuous\allowbreak{}Linear\allowbreak{}Map} from the coordinate map \texttt{fun z \ensuremath{\mapsto} With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (fun j \ensuremath{\mapsto} z (Sum.\allowbreak{}inl j))}; additivity and homogeneity are checked coordinatewise (\texttt{ext j; rfl}). \texttt{parameter\allowbreak{}CLM\_\allowbreak{}apply} is the coordinate formula \((P_\theta z)_j=\theta_j\), proved by \texttt{rfl}.
+
+
+
+
+In \texttt{norm\_\allowbreak{}parameter\allowbreak{}CLM\_\allowbreak{}apply\_\allowbreak{}le}, \texttt{hs} is the squared inequality: \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq} and \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type} expand both squared norms as in the display, and \texttt{le\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right} together with \texttt{Finset.\allowbreak{}sum\_\allowbreak{}nonneg} and \texttt{sq\_\allowbreak{}nonneg} discards the nonnegative latent sum. \texttt{nlinarith}, given \texttt{norm\_\allowbreak{}nonneg} of both norms, then derives \(\|P_\theta z\|\le\|z\|\). \texttt{norm\_\allowbreak{}parameter\allowbreak{}CLM\_\allowbreak{}le\_\allowbreak{}one} applies \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}op\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}bound} with the constant \(1\): its two arguments are \(0\le1\) (\texttt{by norm\_\allowbreak{}num}) and the pointwise bound \(\|P_\theta z\|\le1\cdot\|z\|\).
+\end{leanbox}
+
+\section{\texorpdfstring{The scaled Euler step in physical coordinates}{The scaled Euler step in physical coordinates}}
+
+
+\textbf{Definition.} For a real number \(h\) (the physical step) and \(z,\xi\in\mathcal Z\) (current state and innovation), the scaled update is
+
+
+\[T_h(z,\xi)=z-\frac hN\,\nabla V_N(z)+\sqrt{\frac{2h}N}\;\xi .\]
+
+
+Here the conventions \(h/0=0\) and \(\sqrt a=0\) for \(a<0\) are used, so that the formula is defined for all \(N\in\mathbb N\) and \(h\in\mathbb R\); they only affect the degenerate cases \(N=0\) or \(h<0\). This is the Euler–Maruyama step for the Langevin dynamics with potential \(V_N\) and step \(h/N\), whose noise coefficient is \(\sqrt{2(h/N)}=\sqrt{2h/N}\).
+
+
+
+
+\textbf{Claim.} Assume \(U\) is differentiable. Let \(h\in\mathbb R\), \(z,\xi\in\mathcal Z\) and \(z'=T_h(z,\xi)\).
+
+
+
+
+(a) For every parameter index \(j\),
+
+
+\[\theta'_j=\theta_j-\frac hN\sum_{i=1}^N\bigl(\nabla U(J_iz)\bigr)_{(\theta,j)}+\sqrt{\frac{2h}N}\;\xi_{(\theta,j)} .\]
+
+
+(b) If \(N>0\), then for every particle \(i\) and latent index \(j\),
+
+
+\[\sqrt N\,z'_{i,j}=\sqrt N\,z_{i,j}-h\,\bigl(\nabla U(J_iz)\bigr)_{(x,j)}+\sqrt{2h}\;\xi_{(i,j)} .\]
+
+
+\textbf{Proof.} (a) Take the parameter coordinate \(j\) of the definition of \(T_h\) and insert the first formula of the previous step for \((\nabla V_N(z))_{(\theta,j)}\).
+
+
+
+
+(b) By the second formula of the previous step, with \(g=(\nabla U(J_iz))_{(x,j)}\),
+
+
+\[z'_{i,j}=z_{i,j}-\frac hN\sqrt N\,g+\sqrt{\frac{2h}N}\;\xi_{(i,j)} .\]
+
+
+Multiply by \(\sqrt N\) and distribute. The drift term becomes \(\sqrt N\cdot\frac hN\sqrt N\,g=(\sqrt N)^2\frac hN\,g=N\cdot\frac hN\,g=h\,g\), using \((\sqrt N)^2=N\) and \(N\ne0\). For the noise term, the rule \(\sqrt a\sqrt b=\sqrt{ab}\), valid for \(a\ge0\) and every real \(b\) (with the above convention for negative \(b\)), gives
+
+
+\[\sqrt N\,\sqrt{\frac{2h}N}=\sqrt{N\cdot\frac{2h}N}=\sqrt{2h},\]
+
+
+since \(N\cdot\frac{2h}N=2h\) for \(N\ne0\). Substituting both identities gives (b). \(\square\)
+
+
+
+
+Write \(x^i=\sqrt Nz_i\) and \(x'^i=\sqrt Nz'_i\), so that \(J_iz=(\theta,x^i)\). Then (a) and (b) are the interacting particle Langevin updates
+
+
+\[\theta'=\theta-\frac hN\sum_{i=1}^N\nabla_\theta U(\theta,x^i)+\sqrt{\frac{2h}N}\;\xi_\theta,\qquad x'^i=x^i-h\,\nabla_xU(\theta,x^i)+\sqrt{2h}\;\xi_i,\]
+
+
+where \(\xi_\theta\) and \(\xi_i\) are the parameter block and the \(i\)-th latent block of \(\xi\). These are identities, not approximations: one Euler step for \(V_N\) at step \(h/N\) in scaled coordinates is exactly one particle step at step \(h\). For a standard Gaussian \(\xi\) and \(h>0\), the parameter noise has variance \(2h/N\) per coordinate and each physical latent noise has variance \(2h\).
+
+\begin{leanbox}{Lean: \texttt{scaledUpdate}, \texttt{scaledUpdate\_\allowbreak{}parameter}, \texttt{scaledUpdate\_\allowbreak{}particle}}
+\leansource{\texttt{scaledUpdate} \quad IPLA/\allowbreak{}Geometry.lean, lines 241–243}
+\begin{leancode}
+\leanline{0}{def\ scaledUpdate\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (h\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ State\ N\ dθ\ dx)\ :\ State\ N\ dθ\ dx\ :=}
+\leanline{2}{z\ -\ (h\ /\ N)\ •\ gradient\ (@potential\ N\ dθ\ dx\ U)\ z\ +\ Real.sqrt\ (2\ *\ h\ /\ N)\ •\ ξ}
+\end{leancode}
+\leansource{\texttt{scaledUpdate\_\allowbreak{}parameter} \quad IPLA/\allowbreak{}Geometry.lean, lines 246–251}
+\begin{leancode}
+\leanline{0}{theorem\ scaledUpdate\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (h\ :\ ℝ)\ (z\ ξ\ :\ State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{scaledUpdate\ U\ h\ z\ ξ\ (Sum.inl\ j)\ =\ z\ (Sum.inl\ j)\ -}
+\leanline{6}{(h\ /\ N)\ *\ (∑\ i\ :\ Fin\ N,\ gradient\ U\ (joint\ i\ z)\ (Sum.inl\ j))\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ h\ /\ N)\ *\ ξ\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{scaledUpdate\_\allowbreak{}particle} \quad IPLA/\allowbreak{}Geometry.lean, lines 255–275}
+\begin{leancode}
+\leanline{0}{theorem\ scaledUpdate\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hN\ :\ 0\ <\ N)\ (hU\ :\ Differentiable\ ℝ\ U)\ (h\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ scaledUpdate\ U\ h\ z\ ξ\ (Sum.inr\ (i,\ j))\ =}
+\leanline{6}{Real.sqrt\ N\ *\ z\ (Sum.inr\ (i,\ j))\ -}
+\leanline{8}{h\ *\ gradient\ U\ (joint\ i\ z)\ (Sum.inr\ j)\ +}
+\leanline{8}{Real.sqrt\ (2\ *\ h)\ *\ ξ\ (Sum.inr\ (i,\ j))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{scaled\allowbreak{}Update U h z \ensuremath{\xi}} is defined as \texttt{z -\allowbreak{} (h /\allowbreak{} N) \ensuremath{\bullet} gradient (@potential N d\ensuremath{\theta} dx U) z + Real.\allowbreak{}sqrt (2 * h /\allowbreak{} N) \ensuremath{\bullet} \ensuremath{\xi}}, which is \(T_h(z,\xi)\). In Lean, division by \(0\) returns \(0\) and \texttt{Real.\allowbreak{}sqrt} returns \(0\) on negative numbers; these are the conventions of the definition, so neither theorem needs a sign condition on \(h\).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{scaled\allowbreak{}Update\_\allowbreak{}parameter} is (a) for an arbitrary \texttt{N}. It is proved by \texttt{simp [scaled\allowbreak{}Update, gradient\_\allowbreak{}potential\_\allowbreak{}parameter h\allowbreak{}U]}, which evaluates the parameter coordinate and inserts the parameter gradient formula.
+
+\item \texttt{scaled\allowbreak{}Update\_\allowbreak{}particle} is (b), with hypothesis \texttt{h\allowbreak{}N : 0 < N}; the left side \texttt{Real.\allowbreak{}sqrt N * scaled\allowbreak{}Update U h z \ensuremath{\xi} (Sum.\allowbreak{}inr (i, j))} is the physical coordinate \(\sqrt Nz'_{i,j}\).
+
+\begin{itemize}
+
+
+\item \texttt{h\allowbreak{}N'} is \(N\ne0\) as a real number, obtained from \texttt{h\allowbreak{}N}.
+
+\item \texttt{hn} is the noise identity \(\sqrt N\sqrt{2h/N}=\sqrt{2h}\): \texttt{← Real.\allowbreak{}sqrt\_\allowbreak{}mul (Nat.\allowbreak{}cast\_\allowbreak{}nonneg N)} merges the two roots (the lemma needs only the first factor \(N\) to be nonnegative), \texttt{congr 1} reduces to the radicands, and \texttt{field\_\allowbreak{}simp} verifies \(N\cdot(2h/N)=2h\) using \(N\ne0\).
+
+\item \texttt{simp only [scaled\allowbreak{}Update, Pi\allowbreak{}Lp.\allowbreak{}add\_\allowbreak{}apply, Pi\allowbreak{}Lp.\allowbreak{}sub\_\allowbreak{}apply, Pi\allowbreak{}Lp.\allowbreak{}smul\_\allowbreak{}apply, smul\_\allowbreak{}eq\_\allowbreak{}mul, gradient\_\allowbreak{}potential\_\allowbreak{}particle h\allowbreak{}U]} computes the coordinate of the update and inserts the latent gradient formula; \texttt{rw [mul\_\allowbreak{}add, mul\_\allowbreak{}sub]} distributes the factor \(\sqrt N\).
+
+\item \texttt{hd} is the drift identity \(\sqrt N\,(h/N)\,\sqrt N\,g=h\,g\), proved by a \texttt{calc} that regroups to \((\sqrt N)^2(h/N)g\) by \texttt{ring} and concludes with \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt} and \texttt{field\_\allowbreak{}simp}.
+
+\item \texttt{rw [hd, ← mul\_\allowbreak{}assoc, hn]} substitutes both identities and closes the goal.
+
+\end{itemize}
+
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

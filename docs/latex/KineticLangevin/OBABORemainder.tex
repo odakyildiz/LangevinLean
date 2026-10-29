@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,65 +39,557 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-This section proves the remainder bounds required for the OBABO synchronous contraction. Starting from the explicit two-kick map, it bounds the averaged-force sector error, the Euler drift, and both components of the discrete remainder. These estimates combine to give the source factor \(1-mh/(3\gamma)\) under \(33\gamma^3h\le m\). The gradient and exponential damping are instantiated in the next module.
+Let \(H\) be a real inner product space and write phase points velocity first, \(s=(v,x)\in H\times H\). For real parameters \(a,b\) the weighted phase energy and its polarisation are
+
+
+\[\mathcal E_{a,b}(v,x)=\|x\|^2+2b\langle x,v\rangle+a\|v\|^2,\qquad \mathcal B_{a,b}(s,s')=\langle x,x'\rangle+b\bigl(\langle x,v'\rangle+\langle v,x'\rangle\bigr)+a\langle v,v'\rangle\]
+
+
+for \(s=(v,x)\), \(s'=(v',x')\). The OBABO analysis uses \(a=1/L\), \(b=1/\gamma\) with friction \(\gamma>0\) and a constant \(L>0\) (the Lipschitz constant of the gradient in the application) satisfying \(4L\le\gamma^2\); we then write \(\mathcal E=\mathcal E_{1/L,1/\gamma}\) and \(\mathcal B=\mathcal B_{1/L,1/\gamma}\). Recall from the module on the OBABO energy that if \(b\ge0\) and \(4b^2\le a\), then
+
+
+\[\tfrac12\bigl(\|x\|^2+a\|v\|^2\bigr)\le\mathcal E_{a,b}(v,x)\le\tfrac32\bigl(\|x\|^2+a\|v\|^2\bigr),\]
+
+
+and that for \(a=1/L,b=1/\gamma\) the condition \(4b^2\le a\) is \(4L\le\gamma^2\). Multiplying by \(2L\), respectively \(L\), this gives the two forms used repeatedly below:
+
+
+\[L\|x\|^2+\|v\|^2\le2L\,\mathcal E(v,x),\qquad L\,\mathcal E(r)\le\tfrac32\bigl(L\|r_2\|^2+\|r_1\|^2\bigr)\quad\text{for }r=(r_1,r_2).\qquad(\ast)\]
+
+
+This module proves the purely algebraic part of the one-step contraction of the OBABO scheme. It realises \(\mathcal E_{a,b}\) as the square of a Hilbert norm, expands the energy of a state of the form \(s+hA+r\) (Euler increment along the kinetic drift \(A=(-\gamma v-F,v)\) plus a remainder \(r\)), bounds each term, and concludes that the difference of two synchronously coupled OBABO steps contracts the energy by the factor \(1-mh/(3\gamma)\) whenever the step satisfies \(33\gamma^3h\le m\), \(\gamma h\le1\) and \(12\gamma^2h^2\le1\). The force, the damping factor \(\delta=e^{-\gamma h/2}\) and the dissipativity inequality are inputs here; they are supplied from the potential in the module on OBABO contraction.
+
+
+\section{\texorpdfstring{The weighted energy as the square of a Hilbert norm}{The weighted energy as the square of a Hilbert norm}}
+
+
+\textbf{Definitions.} Let \(H\oplus_2H\) denote \(H\times H\) with the inner product \(\langle(p,q),(p',q')\rangle=\langle p,p'\rangle+\langle q,q'\rangle\) and the Euclidean norm \(\|(p,q)\|_2=(\|p\|^2+\|q\|^2)^{1/2}\). For \(a,b\in\mathbb R\) define
+
+
+\[T_{a,b}(v,x)=\bigl(x+bv,\ \sqrt{a-b^2}\,v\bigr)\in H\oplus_2H,\qquad N_{a,b}(s)=\|T_{a,b}s\|_2,\]
+
+
+where \(\sqrt{\cdot}\) is the nonnegative square root (and \(\sqrt y=0\) for \(y<0\)), and let \(\mathcal B_{a,b}\) be the pairing defined above.
 
 
 
-All positive terms in the discrete energy expansion are bounded explicitly. The admissible step size guarantees that these remainders are bounded by a fixed fraction of the underlying curvature dissipation.
 
-
-\section{\texorpdfstring{Realize the modified energy as an ordinary Hilbert norm}{Realize the modified energy as an ordinary Hilbert norm}}
-
-
-Complete the square: \(E_{a,b}(v,x)=\|x+bv\|^2+(a-b^2)\|v\|^2\). The map \((v,x)\mapsto(x+bv,\sqrt{a-b^2}v)\) lands in the Euclidean product space. This explicit choice matters: the ordinary phase-product norm is a maximum norm. The squared weighted phase-norm identity expands the two component norms, uses the square-root identity for nonnegative \(a-b^2\), and normalizes the scalar algebra. The associated bilinear pairing is exactly the Euclidean inner product of these transforms, so its upper bound follows from Cauchy–Schwarz without an extra geometric assumption.
+\textbf{Claim.} Assume \(b^2\le a\). Then for all \(s,s'\in H\times H\):
 
 
 
-A sum of squared transformed coordinates defines an inner product and hence a norm. In these coordinates Cauchy–Schwarz and the triangle inequality are available without estimating each mixed term separately. The inverse transform relates this norm to the physical phase variables.
+\begin{enumerate}
 
 
-\section{\texorpdfstring{Expand the exact energy of an Euler step plus a residual}{Expand the exact energy of an Euler step plus a residual}}
+\item \(N_{a,b}(s)^2=\mathcal E_{a,b}(s)\);
 
+\item \(\mathcal B_{a,b}(s,s')=\langle T_{a,b}s,T_{a,b}s'\rangle\);
 
-Expand \(E(s+t)=E(s)+2B(s,t)+E(t)\) and \(E(ct)=c^2E(t)\) directly from norms and inner products. Cauchy–Schwarz and \((\|s\|_E-\|t\|_E)^2\ge0\) give \(E(s+t)\le2E(s)+2E(t)\). For \(s_{+}=s+hA+r\), retain the first-order pairing \(2hB(s,A)\), bound the initial-residual pairing by \(2\|s\|_E\|r\|_E\), and apply the two-term estimate only to \(hA+r\). The resulting explicit bound is \(E(s_+)\le E(s)+2hB(s,A)+2\|s\|_E\|r\|_E+2h^2E(A)+2E(r)\). For the kinetic drift \(A=(-\gamma v-F,v)\), the identity shows that \(2B(s,A)\) is precisely the continuous derivative formula in the preceding module.
+\item \(\mathcal B_{a,b}(s,s')\le N_{a,b}(s)\,N_{a,b}(s')\).
 
-
-
-If an update is written as the old state plus a drift increment and a remainder, its energy expands into the old energy, twice a mixed pairing, and the squared increment. Dissipativity controls the leading pairing; all remaining terms must be included in the remainder bound.
-
-
-\section{\texorpdfstring{Bound the drift and residual using their components}{Bound the drift and residual using their components}}
-
-
-The averaged force obeys the explicit upper bound \(\|F\|\le17L\|x\|/16+\gamma\|v\|/8\). Expanding the drift energy and using the nonnegative square \((\gamma\|x\|-2\|v\|)^2\) bounds its mixed term. The friction condition \(4L\le\gamma^2\) and metric equivalence then give \(E(A)\le13\gamma^2E(s)/4\). For the residual, assume only the directly verifiable component bounds \(\|r_x\|\le h^2(\gamma\|v\|+L\|x\|)/2\) and \(\|r_v\|\le h^2(9\gamma L\|x\|/16+5\gamma^2\|v\|/8)\). Squaring each component bound uses \((a-b)^2\ge0\); multiplying by positive coefficients preserves the inequalities. Metric equivalence and \(4L\le\gamma^2\) yield \(E(r)\le3h^4\gamma^4E(s)\). No norm error estimate is supplied as a convergence hypothesis.
+\end{enumerate}
 
 
 
-The two force evaluations and thermostat damping determine the remainder. Smoothness bounds force changes by the position displacement. Coordinate bounds in the weighted norm then express the whole residual in terms of the original phase discrepancy.
+\textbf{Proof.} Put \(c=\sqrt{a-b^2}\); since \(a-b^2\ge0\), \(c^2=a-b^2\). (1) By the definition of the Euclidean norm, the expansion \(\|x+bv\|^2=\|x\|^2+2b\langle x,v\rangle+b^2\|v\|^2\) and \(\|cv\|^2=c^2\|v\|^2\),
 
 
-\section{\texorpdfstring{The error in the centered sector inequality}{The error in the centered sector inequality}}
+\[N_{a,b}(v,x)^2=\|x\|^2+2b\langle x,v\rangle+b^2\|v\|^2+(a-b^2)\|v\|^2=\mathcal E_{a,b}(v,x).\]
 
 
-The change in position gives \(e\le hL(\|v\|/2+\gamma\|x\|/16)\). The continuous dissipativity therefore contributes the positive correction \(h(2e\|x\|/\gamma+e^2/(\gamma L))\). The proof bounds \(e^2\) with the square of the difference of its two summands, and bounds the position-velocity term using \((\gamma\|x\|-2\|v\|)^2\). The restrictions \(\gamma h\le1\), \(4L\le\gamma^2\), together with the lower metric equivalence, give the explicit bound \(\gamma^2h^2E(s)/2\). Denominators are cleared only with positive factors; the remaining scalar inequalities are by elementary real inequalities.
+(2) By bilinearity of the inner product,
 
 
-
-The averaged nonlinear force only approximately satisfies the desired centered sector relation. Its error contributes a positive term in the energy balance. Bounding that contribution explicitly prevents an unjustified use of the exact continuous-time sector identity for the discrete update.
-
-
-\section{\texorpdfstring{The source step-size constant from the sum of remainder bounds}{The source step-size constant from the sum of remainder bounds}}
+\[\langle T_{a,b}s,T_{a,b}s'\rangle=\langle x+bv,x'+bv'\rangle+c^2\langle v,v'\rangle=\langle x,x'\rangle+b\langle x,v'\rangle+b\langle v,x'\rangle+(b^2+a-b^2)\langle v,v'\rangle,\]
 
 
-The residual energy bound implies \(\|r\|_E\le7h^2\gamma^2\|s\|_E/4\), since \(\sqrt3\le7/4\). Thus the initial-residual cross term is at most \(7\gamma^2h^2E(s)/2\). The drift term is bounded by \(13\gamma^2h^2E(s)/2\), the sector correction is bounded by \(\gamma^2h^2E(s)/2\), and \(12\gamma^2h^2\le1\) makes twice the residual energy at most another \(\gamma^2h^2E(s)/2\). Their sum is exactly \(11\gamma^2h^2E(s)\). Consequently the map contracts by \(1-2mh/(3\gamma)+11\gamma^2h^2\), which is at most \(1-mh/(3\gamma)\) when \(33\gamma^3h\le m\).
+which is \(\mathcal B_{a,b}(s,s')\). (3) follows from (2) and the Cauchy–Schwarz inequality in \(H\oplus_2H\). \(\square\)
 
 
 
-The final algebra theorem constructs the residual explicitly: \(r_x=h(\delta-1)v-h^2F_0/2\), \(r_v=(\delta^2-1+\gamma h)v+h(1-\delta)F\). Norm triangle inequalities and the exponential damping bounds prove the two component bounds internally. The identity between \(s+hA+r\) and the difference update is by vector-space algebra, so no update-error estimate is assumed.
+
+Thus, when \(b^2\le a\), \(N_{a,b}\) is a seminorm on \(H\times H\) whose square is the energy, and \(\mathcal B_{a,b}\) is the associated symmetric bilinear form. The Euclidean product norm is needed here: with the maximum norm on \(H\times H\) the square of the norm of \(T_{a,b}s\) would not be \(\mathcal E_{a,b}(s)\).
+
+\begin{leanbox}{Lean: \texttt{weightedPhaseTransform}, \texttt{weightedPhaseNorm}, \texttt{weightedPhasePairing} and 3 more}
+\leansource{\texttt{weightedPhaseTransform} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 17–18}
+\begin{leancode}
+\leanline{0}{def\ weightedPhaseTransform\ (a\ b\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ WithLp\ 2\ (E\ ×\ E)\ :=}
+\leanline{2}{WithLp.toLp\ 2\ (s.2\ +\ b\ •\ s.1,\ Real.sqrt\ (a\ -\ b\ \textasciicircum{}\ 2)\ •\ s.1)}
+\end{leancode}
+\leansource{\texttt{weightedPhaseNorm} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 20–20}
+\begin{leancode}
+\leanline{0}{def\ weightedPhaseNorm\ (a\ b\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ ℝ\ :=\ ‖weightedPhaseTransform\ a\ b\ s‖}
+\end{leancode}
+\leansource{\texttt{weightedPhasePairing} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 22–23}
+\begin{leancode}
+\leanline{0}{def\ weightedPhasePairing\ (a\ b\ :\ ℝ)\ (s\ t\ :\ E\ ×\ E)\ :\ ℝ\ :=}
+\leanline{2}{{\leanfallback ⟪}s.2,\ t.2{\leanfallback ⟫}\ +\ b\ *\ ({\leanfallback ⟪}s.2,\ t.1{\leanfallback ⟫}\ +\ {\leanfallback ⟪}s.1,\ t.2{\leanfallback ⟫})\ +\ a\ *\ {\leanfallback ⟪}s.1,\ t.1{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{weightedPhaseNorm\_\allowbreak{}sq} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 25–33}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseNorm\_sq\ (a\ b\ :\ ℝ)\ (hab\ :\ b\ \textasciicircum{}\ 2\ ≤\ a)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhaseNorm\ a\ b\ s\ \textasciicircum{}\ 2\ =\ weightedPhaseEnergy\ a\ b\ s}
+\end{leancode}
+\leansource{\texttt{weightedPhasePairing\_\allowbreak{}eq\_\allowbreak{}inner} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 35–43}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhasePairing\_eq\_inner\ (a\ b\ :\ ℝ)\ (hab\ :\ b\ \textasciicircum{}\ 2\ ≤\ a)\ (s\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhasePairing\ a\ b\ s\ t\ =}
+\leanline{6}{{\leanfallback ⟪}weightedPhaseTransform\ a\ b\ s,\ weightedPhaseTransform\ a\ b\ t{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{weightedPhasePairing\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 45–48}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhasePairing\_le\ (a\ b\ :\ ℝ)\ (hab\ :\ b\ \textasciicircum{}\ 2\ ≤\ a)\ (s\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhasePairing\ a\ b\ s\ t\ ≤\ weightedPhaseNorm\ a\ b\ s\ *\ weightedPhaseNorm\ a\ b\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Transform a b s} is \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (s.\allowbreak{}2 + b \ensuremath{\bullet} s.\allowbreak{}1, Real.\allowbreak{}sqrt (a -\allowbreak{} b \textasciicircum{} 2) \ensuremath{\bullet} s.\allowbreak{}1)}. The type \texttt{With\allowbreak{}Lp 2 (E \ensuremath{\times} E)} is the product with the \(\ell^2\) (Euclidean) norm and inner product, \(H\oplus_2H\); \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2} places a pair into it. On the plain product \texttt{E \ensuremath{\times} E} Mathlib uses the maximum norm, which is why this type is used. \texttt{weighted\allowbreak{}Phase\allowbreak{}Norm a b s} is the norm of the transform, and \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing a b s t} is \(\mathcal B_{a,b}(s,t)\), written with Mathlib's real inner product notation \texttt{{\leanfallback ⟪}·, ·{\leanfallback ⟫}}; the energy \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy a b s = \ensuremath{\Vert}s.\allowbreak{}2\ensuremath{\Vert} \textasciicircum{} 2 + 2 * b * {\leanfallback ⟪}s.\allowbreak{}2, s.\allowbreak{}1{\leanfallback ⟫} + a * \ensuremath{\Vert}s.\allowbreak{}1\ensuremath{\Vert} \textasciicircum{} 2} comes from the module on the OBABO energy.
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Norm\_\allowbreak{}sq} (hypothesis \texttt{hab : b \textasciicircum{} 2 \ensuremath{\le} a}) rewrites the norm square by \texttt{With\allowbreak{}Lp.\allowbreak{}prod\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}L2} (\(\|(p,q)\|_2^2=\|p\|^2+\|q\|^2\)), expands \(\|x+bv\|^2\) with \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, uses \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt (sub\_\allowbreak{}nonneg.\allowbreak{}mpr hab)} for \(c^2=a-b^2\), and finishes with \texttt{ring}.
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing\_\allowbreak{}eq\_\allowbreak{}inner} expands the inner product of the transforms by \texttt{With\allowbreak{}Lp.\allowbreak{}prod\_\allowbreak{}inner\_\allowbreak{}apply} and bilinearity (\texttt{inner\_\allowbreak{}add\_\allowbreak{}left}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}smul\_\allowbreak{}right}, …); the coefficient identity \(c^2\langle v,v'\rangle=(a-b^2)\langle v,v'\rangle\) is \texttt{hs'}, and \texttt{nlinarith} closes the resulting linear identity.
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing\_\allowbreak{}le} rewrites with the previous lemma and applies Cauchy–Schwarz, \texttt{real\_\allowbreak{}inner\_\allowbreak{}le\_\allowbreak{}norm}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Expansion of the energy of an Euler step plus a remainder}{Expansion of the energy of an Euler step plus a remainder}}
+
+
+\textbf{Claim.} Let \(a,b,h,c\in\mathbb R\) and \(s,t,A,r\in H\times H\).
 
 
 
-The step restriction ensures that the sum of every positive remainder contribution is smaller than a fixed portion of the dissipative term. After that scalar comparison the weighted energy decreases by a factor below one. Taking square roots gives the one-step norm contraction.
+\begin{enumerate}
 
+
+\item \(\mathcal E_{a,b}(s+t)=\mathcal E_{a,b}(s)+2\mathcal B_{a,b}(s,t)+\mathcal E_{a,b}(t)\) and \(\mathcal E_{a,b}(cs)=c^2\mathcal E_{a,b}(s)\).
+
+\item If \(b^2\le a\), then \(\mathcal E_{a,b}(s+t)\le2\mathcal E_{a,b}(s)+2\mathcal E_{a,b}(t)\).
+
+\item If \(b^2\le a\), then
+\[\mathcal E_{a,b}(s+hA+r)\le\mathcal E_{a,b}(s)+2h\,\mathcal B_{a,b}(s,A)+2N_{a,b}(s)N_{a,b}(r)+2h^2\mathcal E_{a,b}(A)+2\mathcal E_{a,b}(r).\]
+
+\item If \(\gamma\ne0\) and \(L\ne0\), then for all \(v,x,F\in H\)
+\[2\,\mathcal B_{1/L,1/\gamma}\bigl((v,x),(-\gamma v-F,v)\bigr)=\mathcal D(v,x,F):=\frac{-2L\langle x,F\rangle+(2L-2\gamma^2)\|v\|^2-2\gamma\langle v,F\rangle}{\gamma L}.\]
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (1) Write \(s=(v,x)\), \(t=(v',x')\). Expanding each square and the mixed term by bilinearity,
+
+
+\[\begin{aligned}\mathcal E_{a,b}(s+t)&=\|x\|^2+2\langle x,x'\rangle+\|x'\|^2+2b\bigl(\langle x,v\rangle+\langle x,v'\rangle+\langle x',v\rangle+\langle x',v'\rangle\bigr)\\&\quad+a\bigl(\|v\|^2+2\langle v,v'\rangle+\|v'\|^2\bigr),\end{aligned}\]
+
+
+and collecting the terms that involve both \(s\) and \(t\) gives \(2\langle x,x'\rangle+2b(\langle x,v'\rangle+\langle v,x'\rangle)+2a\langle v,v'\rangle=2\mathcal B_{a,b}(s,t)\), using symmetry \(\langle x',v\rangle=\langle v,x'\rangle\). The scaling identity holds because every term of \(\mathcal E_{a,b}\) is quadratic in \(s\).
+
+
+
+
+(2) By (1) and part 3 of the previous step, \(\mathcal E_{a,b}(s+t)\le\mathcal E_{a,b}(s)+2N(s)N(t)+\mathcal E_{a,b}(t)\), with \(N=N_{a,b}\). From \((N(s)-N(t))^2\ge0\) we get \(2N(s)N(t)\le N(s)^2+N(t)^2=\mathcal E_{a,b}(s)+\mathcal E_{a,b}(t)\), by part 1 of the previous step. Adding gives the claim.
+
+
+
+
+(3) Group \(s+hA+r=s+(hA+r)\) and apply (1): \(\mathcal E(s+hA+r)=\mathcal E(s)+2\mathcal B(s,hA+r)+\mathcal E(hA+r)\). By bilinearity \(\mathcal B(s,hA+r)=h\mathcal B(s,A)+\mathcal B(s,r)\), and \(\mathcal B(s,r)\le N(s)N(r)\) by the previous step. By (2) and the scaling identity, \(\mathcal E(hA+r)\le2\mathcal E(hA)+2\mathcal E(r)=2h^2\mathcal E(A)+2\mathcal E(r)\). Adding these three bounds gives (3).
+
+
+
+
+(4) With \(s=(v,x)\) and \(s'=(-\gamma v-F,v)\), so that \(v'=-\gamma v-F\) and \(x'=v\),
+
+
+\[\begin{aligned}
+\mathcal B_{1/L,1/\gamma}(s,s')&=\langle x,v\rangle
+ +\frac1\gamma\bigl(\langle x,-\gamma v-F\rangle+\|v\|^2\bigr)\\
+&\quad+\frac1L\langle v,-\gamma v-F\rangle\\
+&=-\frac{\langle x,F\rangle}{\gamma}+\frac{\|v\|^2}{\gamma}
+ -\frac{\gamma\|v\|^2}{L}-\frac{\langle v,F\rangle}{L}.
+\end{aligned}\]
+
+
+since the terms \(\langle x,v\rangle\) cancel. Multiplying by \(2\) and writing everything over the common denominator \(\gamma L\) gives \(\mathcal D(v,x,F)\). \(\square\)
+
+
+
+
+Along the kinetic drift \(\dot v=-\gamma v-F\), \(\dot x=v\), the derivative of \(\mathcal E(v,x)\) equals \(2\mathcal B(s,\dot s)=\mathcal D(v,x,F)\); inequality (3) is the discrete counterpart of this derivative for one Euler step \(s+hA\) perturbed by \(r\).
+
+\begin{leanbox}{Lean: \texttt{weightedPhaseEnergy\_\allowbreak{}add}, \texttt{weightedPhaseEnergy\_\allowbreak{}smul}, \texttt{weightedPhaseEnergy\_\allowbreak{}add\_\allowbreak{}le} and 2 more}
+\leansource{\texttt{weightedPhaseEnergy\_\allowbreak{}add} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 50–55}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseEnergy\_add\ (a\ b\ :\ ℝ)\ (s\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhaseEnergy\ a\ b\ (s\ +\ t)\ =\ weightedPhaseEnergy\ a\ b\ s\ +}
+\leanline{6}{2\ *\ weightedPhasePairing\ a\ b\ s\ t\ +\ weightedPhaseEnergy\ a\ b\ t}
+\end{leancode}
+\leansource{\texttt{weightedPhaseEnergy\_\allowbreak{}smul} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 57–61}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseEnergy\_smul\ (a\ b\ c\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhaseEnergy\ a\ b\ (c\ •\ s)\ =\ c\ \textasciicircum{}\ 2\ *\ weightedPhaseEnergy\ a\ b\ s}
+\end{leancode}
+\leansource{\texttt{weightedPhaseEnergy\_\allowbreak{}add\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 63–70}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseEnergy\_add\_le\ (a\ b\ :\ ℝ)\ (hab\ :\ b\ \textasciicircum{}\ 2\ ≤\ a)\ (s\ t\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhaseEnergy\ a\ b\ (s\ +\ t)\ ≤}
+\leanline{6}{2\ *\ weightedPhaseEnergy\ a\ b\ s\ +\ 2\ *\ weightedPhaseEnergy\ a\ b\ t}
+\end{leancode}
+\leansource{\texttt{weightedPhaseEnergy\_\allowbreak{}euler\_\allowbreak{}remainder} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 72–89}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseEnergy\_euler\_remainder\ (a\ b\ h\ :\ ℝ)\ (hab\ :\ b\ \textasciicircum{}\ 2\ ≤\ a)}
+\leanline{4}{(s\ drift\ remainder\ :\ E\ ×\ E)\ :}
+\leanline{4}{weightedPhaseEnergy\ a\ b\ (s\ +\ h\ •\ drift\ +\ remainder)\ ≤}
+\leanline{6}{weightedPhaseEnergy\ a\ b\ s\ +\ 2\ *\ h\ *\ weightedPhasePairing\ a\ b\ s\ drift\ +}
+\leanline{6}{2\ *\ weightedPhaseNorm\ a\ b\ s\ *\ weightedPhaseNorm\ a\ b\ remainder\ +}
+\leanline{6}{2\ *\ h\ \textasciicircum{}\ 2\ *\ weightedPhaseEnergy\ a\ b\ drift\ +\ 2\ *\ weightedPhaseEnergy\ a\ b\ remainder}
+\end{leancode}
+\leansource{\texttt{weightedPhasePairing\_\allowbreak{}kinetic} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 91–98}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhasePairing\_kinetic\ (γ\ L\ :\ ℝ)\ (hγ\ :\ γ\ ≠\ 0)\ (hL\ :\ L\ ≠\ 0)\ (v\ x\ force\ :\ E)\ :}
+\leanline{4}{2\ *\ weightedPhasePairing\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)\ (-γ\ •\ v\ -\ force,\ v)\ =}
+\leanline{6}{obaboEnergyDerivative\ γ\ L\ v\ x\ force}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}add} and \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}smul} unfold the definitions with \texttt{simp only} (component rules \texttt{Prod.\allowbreak{}fst\_\allowbreak{}add}, \texttt{Prod.\allowbreak{}smul\_\allowbreak{}fst}, expansions \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, \texttt{inner\_\allowbreak{}add\_\allowbreak{}left}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}smul\_\allowbreak{}left}, symmetry \texttt{real\_\allowbreak{}inner\_\allowbreak{}comm}) and conclude with \texttt{ring}.
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}add\_\allowbreak{}le} uses \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing\_\allowbreak{}le} (\texttt{hp}) and the square \texttt{hs} \((N(s)-N(t))^2\ge0\), rewritten by \texttt{weighted\allowbreak{}Phase\allowbreak{}Norm\_\allowbreak{}sq}; \texttt{nlinarith} adds them.
+
+\item In \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}euler\_\allowbreak{}remainder} (variables \texttt{drift} \(=A\), \texttt{remainder} \(=r\)), \texttt{he} regroups \(s+hA+r\), \texttt{hp} is the bilinear splitting of \(\mathcal B(s,hA+r)\), \texttt{hpair} is the Cauchy–Schwarz bound for \(\mathcal B(s,r)\), and \texttt{henergy} is (2) for \(hA+r\) with the scaling identity substituted; \texttt{nlinarith} sums them.
+
+\item \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing\_\allowbreak{}kinetic} (hypotheses \texttt{h\ensuremath{\gamma} : \ensuremath{\gamma} ≠ 0}, \texttt{h\allowbreak{}L : L ≠ 0}) unfolds \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing} and \texttt{obabo\allowbreak{}Energy\allowbreak{}Derivative} (the expression \(\mathcal D\)), expands the inner products, clears the denominators with \texttt{field\_\allowbreak{}simp [h\ensuremath{\gamma}, h\allowbreak{}L]} and closes with \texttt{ring}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Bounds for the drift and for the remainder}{Bounds for the drift and for the remainder}}
+
+
+\textbf{Claim.} Let \(\gamma>0\), \(L>0\) with \(4L\le\gamma^2\), \(h\in\mathbb R\), and \(v,x,F\in H\).
+
+
+
+\begin{enumerate}
+
+
+\item If \(\|F\|\le\frac{17}{16}L\|x\|+\frac\gamma8\|v\|\), then \(\mathcal E(-\gamma v-F,v)\le\frac{13}{4}\gamma^2\,\mathcal E(v,x)\).
+
+\item If \(r=(r_1,r_2)\in H\times H\) satisfies
+\[\|r_2\|\le h^2\Bigl(\frac\gamma2\|v\|+\frac L2\|x\|\Bigr),\qquad \|r_1\|\le h^2\Bigl(\frac9{16}\gamma L\|x\|+\frac58\gamma^2\|v\|\Bigr),\]
+then \(\mathcal E(r)\le3h^4\gamma^4\,\mathcal E(v,x)\).
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (1) Write \(A=(-\gamma v-F,v)\): its velocity component is \(-\gamma v-F\) and its position component is \(v\). By definition and expansion of \(\|\gamma v+F\|^2\),
+
+
+\[\begin{aligned}
+L\,\mathcal E(A)&=L\|v\|^2-2L\|v\|^2-\frac{2L}{\gamma}\langle v,F\rangle\\
+&\quad+\gamma^2\|v\|^2+2\gamma\langle v,F\rangle+\|F\|^2\\
+&=(\gamma^2-L)\|v\|^2+\|F\|^2
+  +2\Bigl(\gamma-\frac L\gamma\Bigr)\langle v,F\rangle.
+\end{aligned}\]
+
+
+Since \(L\le\gamma^2/4\), we have \(0\le\gamma-L/\gamma\le\gamma\), so by Cauchy–Schwarz \(2(\gamma-L/\gamma)\langle v,F\rangle\le2\gamma\|v\|\|F\|\). Write \(\phi=\frac{17}{16}L\|x\|+\frac\gamma8\|v\|\ge\|F\|\). Then
+
+
+\[\|F\|^2+2\gamma\|v\|\|F\|\le\phi^2+2\gamma\|v\|\phi=\frac{289}{256}L^2\|x\|^2+\frac{153}{64}\gamma L\|x\|\|v\|+\frac{17}{64}\gamma^2\|v\|^2 .\]
+
+
+We bound the three terms. Young's inequality in the form \(\gamma\|x\|\|v\|\le\frac{\gamma^2}4\|x\|^2+\|v\|^2\) (equivalent to \((\gamma\|x\|-2\|v\|)^2\ge0\)) gives \(\frac{153}{64}\gamma L\|x\|\|v\|\le\frac{153}{256}\gamma^2L\|x\|^2+\frac{153}{64}L\|v\|^2\). From \(L\le\gamma^2/4\): \(\frac{289}{256}L^2\le\frac{289}{1024}\gamma^2L\), and \(-L+\frac{153}{64}L=\frac{89}{64}L\le\frac{89}{256}\gamma^2\). Collecting,
+
+
+\[L\,\mathcal E(A)\le\frac{901}{1024}\gamma^2L\|x\|^2+\frac{413}{256}\gamma^2\|v\|^2\le\frac{13}{8}\gamma^2\bigl(L\|x\|^2+\|v\|^2\bigr),\]
+
+
+because \(901/1024\le13/8\) and \(413/256\le13/8\). By \((\ast)\) the right-hand side is at most \(\frac{13}8\gamma^2\cdot2L\,\mathcal E(v,x)\). Dividing by \(L>0\) gives (1).
+
+
+
+
+(2) By \((\ast)\), \(L\,\mathcal E(r)\le\frac32(L\|r_2\|^2+\|r_1\|^2)\). Squaring the hypotheses (both sides are nonnegative) and using \((p+q)^2\le2p^2+2q^2\), which is \((p-q)^2\ge0\),
+
+
+\[\|r_2\|^2\le h^4\Bigl(\frac{\gamma^2}2\|v\|^2+\frac{L^2}2\|x\|^2\Bigr),\qquad\|r_1\|^2\le h^4\Bigl(\frac{81}{128}\gamma^2L^2\|x\|^2+\frac{25}{32}\gamma^4\|v\|^2\Bigr).\]
+
+
+Hence
+
+
+\[L\,\mathcal E(r)\le\frac32h^4\Bigl[L\|x\|^2\Bigl(\frac{L^2}2+\frac{81}{128}\gamma^2L\Bigr)+\|v\|^2\Bigl(\frac{L\gamma^2}2+\frac{25}{32}\gamma^4\Bigr)\Bigr].\]
+
+
+Using \(L\le\gamma^2/4\): \(\frac{L^2}2+\frac{81}{128}\gamma^2L\le\frac{\gamma^4}{32}+\frac{81}{512}\gamma^4\le\gamma^4\) and \(\frac{L\gamma^2}2+\frac{25}{32}\gamma^4\le\frac{\gamma^4}8+\frac{25}{32}\gamma^4\le\gamma^4\). Therefore \(L\,\mathcal E(r)\le\frac32h^4\gamma^4(L\|x\|^2+\|v\|^2)\le3h^4\gamma^4L\,\mathcal E(v,x)\) by \((\ast)\), and dividing by \(L\) gives (2). \(\square\)
+
+
+
+
+The hypotheses of (1) and (2) are explicit norm bounds on the force and on the components of the remainder; they are verified for the OBABO step in the last step of this module.
+
+\begin{leanbox}{Lean: \texttt{obabo\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}bound}, \texttt{obabo\_\allowbreak{}remainder\_\allowbreak{}energy\_\allowbreak{}bound}}
+\leansource{\texttt{obabo\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 100–147}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_drift\_energy\_bound\ (γ\ L\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hfriction\ :\ 4\ *\ L\ ≤\ γ\ \textasciicircum{}\ 2)\ (v\ x\ force\ :\ E)}
+\leanline{4}{(hforce\ :\ ‖force‖\ ≤\ (17\ /\ 16\ :\ ℝ)\ *\ L\ *\ ‖x‖\ +\ γ\ /\ 8\ *\ ‖v‖)\ :}
+\leanline{4}{weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (-γ\ •\ v\ -\ force,\ v)\ ≤}
+\leanline{6}{(13\ /\ 4\ :\ ℝ)\ *\ γ\ \textasciicircum{}\ 2\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)}
+\end{leancode}
+\leansource{\texttt{obabo\_\allowbreak{}remainder\_\allowbreak{}energy\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 149–198}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_remainder\_energy\_bound\ (γ\ L\ h\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hfriction\ :\ 4\ *\ L\ ≤\ γ\ \textasciicircum{}\ 2)\ (v\ x\ :\ E)\ (r\ :\ E\ ×\ E)}
+\leanline{4}{(hposition\ :\ ‖r.2‖\ ≤\ h\ \textasciicircum{}\ 2\ *\ (γ\ /\ 2\ *\ ‖v‖\ +\ L\ /\ 2\ *\ ‖x‖))}
+\leanline{4}{(hvelocity\ :\ ‖r.1‖\ ≤\ h\ \textasciicircum{}\ 2\ *\ ((9\ /\ 16\ :\ ℝ)\ *\ γ\ *\ L\ *\ ‖x‖\ +}
+\leanline{6}{(5\ /\ 8\ :\ ℝ)\ *\ γ\ \textasciicircum{}\ 2\ *\ ‖v‖))\ :}
+\leanline{4}{weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ r\ ≤}
+\leanline{6}{3\ *\ h\ \textasciicircum{}\ 4\ *\ γ\ \textasciicircum{}\ 4\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item In \texttt{obabo\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}bound}, \texttt{hequiv} is the metric equivalence \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}equiv} with the coefficient condition \texttt{obabo\_\allowbreak{}metric\_\allowbreak{}condition \ensuremath{\gamma} L h\ensuremath{\gamma} h\allowbreak{}L hfriction}; \texttt{hbase} is the first inequality of \((\ast)\). \texttt{hid} is the identity for \(L\,\mathcal E(A)\), proved by expanding and \texttt{field\_\allowbreak{}simp}/\allowbreak{}\texttt{ring}. \texttt{hc} is \(\gamma-L/\gamma\ge0\), \texttt{hi} the Cauchy–Schwarz bound, \texttt{hn} replaces \(\gamma-L/\gamma\) by \(\gamma\), and \texttt{hsq}, \texttt{hlinear} are the bounds on \(\|F\|^2\) and \(2\gamma\|v\|\|F\|\) from \texttt{hforce}. The hint terms \texttt{hyoung\allowbreak{}Scaled} (\(\frac{153}{256}L(\gamma\|x\|-2\|v\|)^2\ge0\)), \texttt{h\allowbreak{}LX} and \texttt{h\allowbreak{}LV} (multiples of \(\gamma^2-4L\ge0\)) are exactly the three estimates of the proof, and \texttt{nlinarith} combines them into \texttt{hraw}. \texttt{hfinal} multiplies by \((\ast)\), and \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}right\ensuremath{{}_{0}} h\allowbreak{}L} cancels the factor \(L>0\).
+
+\item In \texttt{obabo\_\allowbreak{}remainder\_\allowbreak{}energy\_\allowbreak{}bound} the remainder is a pair \texttt{r : E \ensuremath{\times} E} with \texttt{r.\allowbreak{}1} the velocity and \texttt{r.\allowbreak{}2} the position component; \texttt{hposition} and \texttt{hvelocity} are the two hypotheses. \texttt{h\allowbreak{}Rupper} is the second inequality of \((\ast)\); \texttt{hp\allowbreak{}Sq}, \texttt{hv\allowbreak{}Sq} square the hypotheses with \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}}, and \texttt{hp\allowbreak{}Bound}, \texttt{hv\allowbreak{}Bound} apply \((p+q)^2\le2p^2+2q^2\) through the squares \texttt{hp\allowbreak{}Sum}, \texttt{hv\allowbreak{}Sum}. \texttt{hc\allowbreak{}X} and \texttt{hc\allowbreak{}V} are the two coefficient inequalities, derived from \(4L\le\gamma^2\) (\texttt{h\allowbreak{}LG}, \texttt{h\allowbreak{}Lsq}). \texttt{hraw} collects everything by \texttt{nlinarith only […]}, and the final division by \(L\) is as in the first lemma.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The error in the centred sector inequality}{The error in the centred sector inequality}}
+
+
+\textbf{Claim.} Let \(\gamma>0\), \(L>0\), \(h\ge0\), with \(4L\le\gamma^2\) and \(\gamma h\le1\). Let \(e\ge0\) and \(v,x\in H\) satisfy
+
+
+\[e\le hL\Bigl(\frac{\|v\|}2+\frac{\gamma\|x\|}{16}\Bigr).\]
+
+
+Then
+
+
+\[h\Bigl(\frac{2e\|x\|}{\gamma}+\frac{e^2}{\gamma L}\Bigr)\le\frac12\gamma^2h^2\,\mathcal E(v,x).\]
+
+
+\textbf{Proof.} Multiply the left-hand side by \(\gamma^2L>0\); it becomes \(\gamma\bigl(2Lhe\|x\|+he^2\bigr)\), and we bound the two terms.
+
+
+
+
+\emph{The term \(he^2\).} Squaring the hypothesis (both sides nonnegative) and using \((p+q)^2\le2p^2+2q^2\),
+
+
+\[e^2\le h^2L^2\Bigl(\frac{\|v\|}2+\frac{\gamma\|x\|}{16}\Bigr)^2\le h^2\Bigl(\frac{L^2}2\|v\|^2+\frac{\gamma^2L^2}{128}\|x\|^2\Bigr).\]
+
+
+Multiplying by \(\gamma h\ge0\) and using \(\gamma h\le1\), \(\gamma he^2\le h^2\bigl(\frac{L^2}2\|v\|^2+\frac{\gamma^2L^2}{128}\|x\|^2\bigr)\).
+
+
+
+
+\emph{The term \(2Lhe\|x\|\).} Multiplying the hypothesis by \(2Lh\|x\|\ge0\) gives \(2Lhe\|x\|\le h^2L^2(\|x\|\|v\|+\frac\gamma8\|x\|^2)\). Multiplying by \(\gamma\) and using Young's inequality \(\gamma\|x\|\|v\|\le\frac{\gamma^2}4\|x\|^2+\|v\|^2\),
+
+
+\[\gamma\cdot2Lhe\|x\|\le h^2L^2\Bigl(\frac{\gamma^2}4\|x\|^2+\|v\|^2+\frac{\gamma^2}8\|x\|^2\Bigr)=h^2\Bigl(\frac38\gamma^2L^2\|x\|^2+L^2\|v\|^2\Bigr).\]
+
+
+\emph{Sum.} Adding, \(\gamma(2Lhe\|x\|+he^2)\le h^2\bigl(\frac{49}{128}\gamma^2L^2\|x\|^2+\frac32L^2\|v\|^2\bigr)\). Since \(\frac{49}{128}\le\frac12\), and \(\frac32L^2\le2L^2\le\frac12\gamma^2L\) by \(4L\le\gamma^2\),
+
+
+\[\gamma(2Lhe\|x\|+he^2)\le\frac12\gamma^2Lh^2\bigl(L\|x\|^2+\|v\|^2\bigr)\le\gamma^2L^2h^2\,\mathcal E(v,x)\le\frac12\gamma^4Lh^2\,\mathcal E(v,x),\]
+
+
+where the second inequality is \((\ast)\) and the third uses \(L\le\gamma^2/4\le\gamma^2/2\) and \(\mathcal E(v,x)\ge0\). Dividing by \(\gamma^2L\) gives \(\frac{2he\|x\|}{\gamma}+\frac{he^2}{\gamma L}\le\frac12\gamma^2h^2\mathcal E(v,x)\), which is the claim. \(\square\)
+
+
+
+
+In the OBABO step the averaged force difference satisfies a centred sector inequality only up to an error \(e\), proportional to the position displacement during the step; the dissipativity estimate then contains the extra terms \(2e\|x\|/\gamma+e^2/(\gamma L)\), and the claim shows that after multiplication by \(h\) they are of second order in \(h\).
+
+\begin{leanbox}{Lean: \texttt{obabo\_\allowbreak{}sector\_\allowbreak{}correction\_\allowbreak{}bound}}
+\leansource{\texttt{obabo\_\allowbreak{}sector\_\allowbreak{}correction\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 200–250}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_sector\_correction\_bound\ (γ\ L\ h\ err\ :\ ℝ)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hL\ :\ 0\ <\ L)\ (hh\ :\ 0\ ≤\ h)\ (hfriction\ :\ 4\ *\ L\ ≤\ γ\ \textasciicircum{}\ 2)}
+\leanline{4}{(hsmall\ :\ γ\ *\ h\ ≤\ 1)\ (herr\ :\ 0\ ≤\ err)\ (v\ x\ :\ E)}
+\leanline{4}{(herrBound\ :\ err\ ≤\ h\ *\ L\ *\ (‖v‖\ /\ 2\ +\ γ\ *\ ‖x‖\ /\ 16))\ :}
+\leanline{4}{h\ *\ (2\ *\ err\ *\ ‖x‖\ /\ γ\ +\ err\ \textasciicircum{}\ 2\ /\ (γ\ *\ L))\ ≤}
+\leanline{6}{(1\ /\ 2\ :\ ℝ)\ *\ γ\ \textasciicircum{}\ 2\ *\ h\ \textasciicircum{}\ 2\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{obabo\_\allowbreak{}sector\_\allowbreak{}correction\_\allowbreak{}bound} has hypotheses \texttt{h\ensuremath{\gamma}}, \texttt{h\allowbreak{}L}, \texttt{hh}, \texttt{hfriction}, \texttt{hsmall : \ensuremath{\gamma} * h \ensuremath{\le} 1}, \texttt{herr : 0 \ensuremath{\le} err} and \texttt{herr\allowbreak{}Bound} (the bound on \(e\)). \texttt{hbase} is \((\ast)\); \texttt{herr\allowbreak{}Sq} is the bound on \(e^2\) (from \texttt{hsq} and the square \texttt{hyoung}); \texttt{he\allowbreak{}XBound} is the bound on \(\gamma\cdot2Lhe\|x\|\), obtained from \texttt{he\allowbreak{}X} and the Young square \texttt{hvx}; \texttt{herr\allowbreak{}Sq\allowbreak{}Bound} uses \texttt{hsmall} through \texttt{hs\allowbreak{}X}, \texttt{hs\allowbreak{}V}. \texttt{hraw} is the summed inequality, where \texttt{hc\allowbreak{}V} is \(4L\le\gamma^2\) multiplied by \(h^2L\|v\|^2/2\) and \texttt{hxpos}, \texttt{hvpos} are the nonnegative slacks. \texttt{hclear} is the chain ending in \(\frac12\gamma^4Lh^2\mathcal E\), with nonnegativity of \(\mathcal E\) from \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}nonneg}; the final \texttt{div\_\allowbreak{}le\_\allowbreak{}div\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right} divides by \(\gamma^2L\), and \texttt{field\_\allowbreak{}simp}, \texttt{ring} identify the two sides.
+\end{leanbox}
+
+\section{\texorpdfstring{The step-size condition from the sum of the remainder bounds}{The step-size condition from the sum of the remainder bounds}}
+
+
+\textbf{Claim A.} Let \(\gamma>0\), \(L>0\), \(h\ge0\), \(m\in\mathbb R\), with
+
+
+\[4L\le\gamma^2,\qquad\gamma h\le1,\qquad12\gamma^2h^2\le1,\qquad33\gamma^3h\le m .\]
+
+
+Let \(e\ge0\), \(v,x,F\in H\) and \(r=(r_1,r_2)\in H\times H\) satisfy the hypothesis of the previous step on \(e\), the force bound \(\|F\|\le\frac{17}{16}L\|x\|+\frac\gamma8\|v\|\), the two remainder bounds of the third step, and the perturbed dissipativity inequality
+
+
+\[\mathcal D(v,x,F)\le-\frac{2m}{3\gamma}\,\mathcal E(v,x)+\frac{2e\|x\|}{\gamma}+\frac{e^2}{\gamma L}.\qquad(1)\]
+
+
+Then, with \(s=(v,x)\) and \(A=(-\gamma v-F,v)\),
+
+
+\[\mathcal E(s+hA+r)\le\Bigl(1-\frac{mh}{3\gamma}\Bigr)\mathcal E(s).\]
+
+
+\textbf{Proof.} Since \(4L\le\gamma^2\) we have \((1/\gamma)^2\le1/(4L)\le1/L\), so the results of the first two steps apply with \(a=1/L\), \(b=1/\gamma\). Write \(\mathcal E=\mathcal E(s)\ge0\). By part 3 of the second step,
+
+
+\[\mathcal E(s+hA+r)\le\mathcal E+2h\mathcal B(s,A)+2N(s)N(r)+2h^2\mathcal E(A)+2\mathcal E(r).\qquad(2)\]
+
+
+We bound the four terms after \(\mathcal E\).
+
+
+
+\begin{itemize}
+
+
+\item By part 4 of the second step, \(2h\mathcal B(s,A)=h\mathcal D(v,x,F)\). Multiplying (1) by \(h\ge0\) and applying the previous step, \(2h\mathcal B(s,A)\le-\frac{2mh}{3\gamma}\mathcal E+\frac12\gamma^2h^2\mathcal E\).
+
+\item By the third step, \(N(r)^2=\mathcal E(r)\le3h^4\gamma^4\mathcal E\le\frac{49}{16}h^4\gamma^4N(s)^2\). Both \(N(r)\) and \(\frac74h^2\gamma^2N(s)\) are nonnegative, so \(N(r)\le\frac74h^2\gamma^2N(s)\), and \(2N(s)N(r)\le\frac72\gamma^2h^2\mathcal E\).
+
+\item By the third step, \(2h^2\mathcal E(A)\le\frac{13}2\gamma^2h^2\mathcal E\).
+
+\item By the third step and \(12\gamma^2h^2\le1\), \(2\mathcal E(r)\le6h^4\gamma^4\mathcal E=(12\gamma^2h^2)\cdot\frac12\gamma^2h^2\mathcal E\le\frac12\gamma^2h^2\mathcal E\).
+
+\end{itemize}
+
+
+
+Inserting these four bounds into (2), and using \(\frac12+\frac72+\frac{13}2+\frac12=11\),
+
+
+\[\mathcal E(s+hA+r)\le\Bigl(1-\frac{2mh}{3\gamma}+11\gamma^2h^2\Bigr)\mathcal E .\]
+
+
+Finally, multiplying \(33\gamma^3h\le m\) by \(h\ge0\) and dividing by \(3\gamma>0\) gives \(11\gamma^2h^2\le\frac{mh}{3\gamma}\); hence \(1-\frac{2mh}{3\gamma}+11\gamma^2h^2\le1-\frac{mh}{3\gamma}\), and multiplying by \(\mathcal E\ge0\) proves the claim. \(\square\)
+
+
+
+
+\textbf{Claim B.} Let \(\gamma,L,h,m\) satisfy the hypotheses of Claim A, let \(e\ge0\), and let \(\delta\in[0,1]\) satisfy
+
+
+\[1-\delta\le\frac{\gamma h}2,\qquad0\le\delta^2-1+\gamma h\le\frac{\gamma^2h^2}2 .\qquad(3)\]
+
+
+Let \(v,x,F_0,F\in H\) with \(\|F_0\|\le L\|x\|\), \(\|F\|\le L\|x\|+e\), \(e\le\frac L2\bigl(h\|v\|+\frac{h^2L}2\|x\|\bigr)\), and the dissipativity inequality (1). Then
+
+
+\[\mathcal E\Bigl(\delta^2v-h\delta F,\ x+h\delta v-\frac{h^2}2F_0\Bigr)\le\Bigl(1-\frac{mh}{3\gamma}\Bigr)\mathcal E(v,x).\]
+
+
+\textbf{Proof.} We verify the hypotheses of Claim A for a suitable remainder. First, \(4Lh\le\gamma^2h=\gamma(\gamma h)\le\gamma\), so \(Lh\le\gamma/4\).
+
+
+
+
+\emph{Bound on \(e\).} \(e\le\frac{hL}2\|v\|+\frac{h^2L^2}4\|x\|\), and \(\frac{h^2L^2}4\|x\|=\frac{hL\|x\|}4\,(Lh)\le\frac{hL\gamma}{16}\|x\|\); hence \(e\le hL(\frac{\|v\|}2+\frac{\gamma\|x\|}{16})\).
+
+
+
+
+\emph{Bound on \(F\).} \(\|F\|\le L\|x\|+e\le L\|x\|+\frac{hL}2\|v\|+\frac{\gamma hL}{16}\|x\|\le\frac{17}{16}L\|x\|+\frac\gamma8\|v\|\), using \(\gamma h\le1\) and \(Lh\le\gamma/4\).
+
+
+
+
+\emph{The remainder.} Define \(r=(r_1,r_2)\) by
+
+
+\[r_1=(\delta^2-1+\gamma h)v+h(1-\delta)F,\qquad r_2=h(\delta-1)v-\frac{h^2}2F_0 .\]
+
+
+By the triangle inequality, \(0\le1-\delta\le\gamma h/2\) and \(\|F_0\|\le L\|x\|\),
+
+
+\[\|r_2\|\le h(1-\delta)\|v\|+\frac{h^2}2\|F_0\|\le h^2\Bigl(\frac\gamma2\|v\|+\frac L2\|x\|\Bigr).\]
+
+
+By the triangle inequality, (3) and the bound on \(F\),
+
+
+\[\|r_1\|\le\frac{\gamma^2h^2}2\|v\|+\frac{\gamma h^2}2\Bigl(\frac{17}{16}L\|x\|+\frac\gamma8\|v\|\Bigr)=h^2\Bigl(\frac{17}{32}\gamma L\|x\|+\frac9{16}\gamma^2\|v\|\Bigr)\le h^2\Bigl(\frac9{16}\gamma L\|x\|+\frac58\gamma^2\|v\|\Bigr).\]
+
+
+Thus all hypotheses of Claim A hold. Finally, componentwise,
+
+
+\[(v,x)+h(-\gamma v-F,v)+r=\Bigl(\delta^2v-h\delta F,\ x+h\delta v-\frac{h^2}2F_0\Bigr),\]
+
+
+because \(v-\gamma hv-hF+(\delta^2-1+\gamma h)v+h(1-\delta)F=\delta^2v-h\delta F\) and \(x+hv+h(\delta-1)v-\frac{h^2}2F_0=x+h\delta v-\frac{h^2}2F_0\). Claim A gives the result. \(\square\)
+
+
+
+
+In the application \(\delta=e^{-\gamma h/2}\) is the velocity damping of one Ornstein–Uhlenbeck half step, \(F_0\) is the difference of the two gradients at the initial positions and \(F\) the average of the two gradient differences of the two kicks; the left-hand side of Claim B is then the energy of the difference of two OBABO steps driven by the same Gaussian noise. The inequalities (3) hold for \(\delta=e^{-\gamma h/2}\) because \(1-u\le e^{-u}\) and \(0\le e^{-u}-1+u\le u^2/2\) for \(u\ge0\).
+
+\begin{leanbox}{Lean: \texttt{obabo\_\allowbreak{}euler\_\allowbreak{}remainder\_\allowbreak{}contraction}, \texttt{obabo\_\allowbreak{}algebra\_\allowbreak{}contraction}}
+\leansource{\texttt{obabo\_\allowbreak{}euler\_\allowbreak{}remainder\_\allowbreak{}contraction} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 252–310}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_euler\_remainder\_contraction\ (γ\ L\ m\ h\ err\ :\ ℝ)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hL\ :\ 0\ <\ L)\ (hh\ :\ 0\ ≤\ h)\ (hfriction\ :\ 4\ *\ L\ ≤\ γ\ \textasciicircum{}\ 2)}
+\leanline{4}{(hsmall\ :\ γ\ *\ h\ ≤\ 1)\ (hsmallSq\ :\ 12\ *\ γ\ \textasciicircum{}\ 2\ *\ h\ \textasciicircum{}\ 2\ ≤\ 1)}
+\leanline{4}{(hstep\ :\ 33\ *\ γ\ \textasciicircum{}\ 3\ *\ h\ ≤\ m)\ (herr\ :\ 0\ ≤\ err)\ (v\ x\ force\ :\ E)\ (r\ :\ E\ ×\ E)}
+\leanline{4}{(herrBound\ :\ err\ ≤\ h\ *\ L\ *\ (‖v‖\ /\ 2\ +\ γ\ *\ ‖x‖\ /\ 16))}
+\leanline{4}{(hforce\ :\ ‖force‖\ ≤\ (17\ /\ 16\ :\ ℝ)\ *\ L\ *\ ‖x‖\ +\ γ\ /\ 8\ *\ ‖v‖)}
+\leanline{4}{(hposition\ :\ ‖r.2‖\ ≤\ h\ \textasciicircum{}\ 2\ *\ (γ\ /\ 2\ *\ ‖v‖\ +\ L\ /\ 2\ *\ ‖x‖))}
+\leanline{4}{(hvelocity\ :\ ‖r.1‖\ ≤\ h\ \textasciicircum{}\ 2\ *\ ((9\ /\ 16\ :\ ℝ)\ *\ γ\ *\ L\ *\ ‖x‖\ +}
+\leanline{6}{(5\ /\ 8\ :\ ℝ)\ *\ γ\ \textasciicircum{}\ 2\ *\ ‖v‖))}
+\leanline{4}{(hdrift\ :\ obaboEnergyDerivative\ γ\ L\ v\ x\ force\ ≤}
+\leanline{6}{(-2\ *\ m\ /\ (3\ *\ γ))\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)\ +}
+\leanline{8}{2\ *\ err\ *\ ‖x‖\ /\ γ\ +\ err\ \textasciicircum{}\ 2\ /\ (γ\ *\ L))\ :}
+\leanline{4}{weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ ((v,\ x)\ +\ h\ •\ (-γ\ •\ v\ -\ force,\ v)\ +\ r)\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h\ /\ (3\ *\ γ))\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)}
+\end{leancode}
+\leansource{\texttt{obabo\_\allowbreak{}algebra\_\allowbreak{}contraction} \quad KineticLangevin/\allowbreak{}OBABORemainder.lean, lines 312–366}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_algebra\_contraction\ (γ\ L\ m\ h\ δ\ err\ :\ ℝ)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hL\ :\ 0\ <\ L)\ (hh\ :\ 0\ ≤\ h)\ (hfriction\ :\ 4\ *\ L\ ≤\ γ\ \textasciicircum{}\ 2)}
+\leanline{4}{(hsmall\ :\ γ\ *\ h\ ≤\ 1)\ (hsmallSq\ :\ 12\ *\ γ\ \textasciicircum{}\ 2\ *\ h\ \textasciicircum{}\ 2\ ≤\ 1)}
+\leanline{4}{(hstep\ :\ 33\ *\ γ\ \textasciicircum{}\ 3\ *\ h\ ≤\ m)\ (herr\ :\ 0\ ≤\ err)}
+\leanline{4}{(hδ\ :\ 0\ ≤\ δ)\ (hδ1\ :\ δ\ ≤\ 1)\ (hδgap\ :\ 1\ -\ δ\ ≤\ γ\ *\ h\ /\ 2)}
+\leanline{4}{(hδsq0\ :\ 0\ ≤\ δ\ \textasciicircum{}\ 2\ -\ 1\ +\ γ\ *\ h)}
+\leanline{4}{(hδsq\ :\ δ\ \textasciicircum{}\ 2\ -\ 1\ +\ γ\ *\ h\ ≤\ γ\ \textasciicircum{}\ 2\ *\ h\ \textasciicircum{}\ 2\ /\ 2)}
+\leanline{4}{(v\ x\ F0\ force\ :\ E)\ (hF0\ :\ ‖F0‖\ ≤\ L\ *\ ‖x‖)}
+\leanline{4}{(herrBound\ :\ err\ ≤\ L\ /\ 2\ *\ (h\ *\ ‖v‖\ +\ h\ \textasciicircum{}\ 2\ *\ L\ /\ 2\ *\ ‖x‖))}
+\leanline{4}{(hforce0\ :\ ‖force‖\ ≤\ L\ *\ ‖x‖\ +\ err)}
+\leanline{4}{(hdrift\ :\ obaboEnergyDerivative\ γ\ L\ v\ x\ force\ ≤}
+\leanline{6}{(-2\ *\ m\ /\ (3\ *\ γ))\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)\ +}
+\leanline{8}{2\ *\ err\ *\ ‖x‖\ /\ γ\ +\ err\ \textasciicircum{}\ 2\ /\ (γ\ *\ L))\ :}
+\leanline{4}{weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)}
+\leanline{6}{(δ\ \textasciicircum{}\ 2\ •\ v\ -\ (h\ *\ δ)\ •\ force,\ x\ +\ (h\ *\ δ)\ •\ v\ -\ (h\ \textasciicircum{}\ 2\ /\ 2)\ •\ F0)\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h\ /\ (3\ *\ γ))\ *\ weightedPhaseEnergy\ (1\ /\ L)\ (1\ /\ γ)\ (v,\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{obabo\_\allowbreak{}euler\_\allowbreak{}remainder\_\allowbreak{}contraction} lists the hypotheses of Claim A: \texttt{hsmall}, \texttt{hsmall\allowbreak{}Sq}, \texttt{hstep : 33 * \ensuremath{\gamma} \textasciicircum{} 3 * h \ensuremath{\le} m}, \texttt{herr\allowbreak{}Bound}, \texttt{hforce}, \texttt{hposition}, \texttt{hvelocity} and \texttt{hdrift} (inequality (1), with \texttt{obabo\allowbreak{}Energy\allowbreak{}Derivative \ensuremath{\gamma} L v x force} for \(\mathcal D\)). In the proof, \texttt{hab} is \((1/\gamma)^2\le1/L\); \texttt{he} is (2), from \texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}euler\_\allowbreak{}remainder}; \texttt{h\allowbreak{}A}, \texttt{h\allowbreak{}R} and \texttt{hcorrection} are the drift, remainder and sector-correction bounds of the previous steps. \texttt{h\allowbreak{}NRbound} is \(N(r)\le\frac74h^2\gamma^2N(s)\), proved by comparing squares with \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}} and the slack \texttt{hgap} (\(\frac1{16}h^4\gamma^4\mathcal E\ge0\)); \texttt{hcross} turns it into the bound on \(2N(s)N(r)\). \texttt{hdrift\allowbreak{}Scaled} multiplies (1) by \(h\) and is rewritten backwards with \texttt{weighted\allowbreak{}Phase\allowbreak{}Pairing\_\allowbreak{}kinetic} so that it bounds \(2h\mathcal B(s,A)\). \texttt{hpre} is the inequality with factor \(1-\frac{2mh}{3\gamma}+11\gamma^2h^2\), obtained by \texttt{nlinarith only […]} from the listed facts; \texttt{hsdiv} is \(11\gamma^2h^2\le mh/(3\gamma)\) (via \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}}), and the final \texttt{nlinarith} combines it with \texttt{hpre}.
+
+\item \texttt{obabo\_\allowbreak{}algebra\_\allowbreak{}contraction} lists the hypotheses of Claim B: \texttt{h\ensuremath{\delta}}, \texttt{h\ensuremath{\delta}1}, \texttt{h\ensuremath{\delta}gap}, \texttt{h\ensuremath{\delta}sq0}, \texttt{h\ensuremath{\delta}sq} are (3), \texttt{h\allowbreak{}F0} is \(\|F_0\|\le L\|x\|\), \texttt{hforce0} and \texttt{herr\allowbreak{}Bound} the bounds on \(F\) and \(e\). The proof derives \texttt{h\allowbreak{}Lh} (\(Lh\le\gamma/4\)), \texttt{he\allowbreak{}B} and \texttt{hforce}; defines the remainder \texttt{r} with a \texttt{let}; proves \texttt{hposition} and \texttt{hvelocity} from \texttt{norm\_\allowbreak{}sub\_\allowbreak{}le}, \texttt{norm\_\allowbreak{}add\_\allowbreak{}le} and the bounds above; applies \texttt{obabo\_\allowbreak{}euler\_\allowbreak{}remainder\_\allowbreak{}contraction} to obtain \texttt{he}; and rewrites with the componentwise identity \texttt{hid}, which is checked by \texttt{ext <;> module} (one linear identity per component).
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

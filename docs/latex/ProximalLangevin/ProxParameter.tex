@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,21 @@ Suppose a subgradient \(s_x\) is chosen at every point with \(\|s_x\|\le K\). It
 
 Thus a subgradient section bounded by \(K\) gives value Lipschitz constant \(K\). Every selected vector must satisfy the supporting inequality; the norm bound alone is insufficient. No derivative of the potential is required.
 
+\begin{leanbox}{Lean: \texttt{lipschitz\_\allowbreak{}of\_\allowbreak{}bounded\_\allowbreak{}subgradients}}
+\leansource{\texttt{lipschitz\_\allowbreak{}of\_\allowbreak{}bounded\_\allowbreak{}subgradients} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 22–42}
+\begin{leancode}
+\leanline{0}{theorem\ lipschitz\_of\_bounded\_subgradients\ \{E\ :\ Type*\}\ [NormedAddCommGroup\ E]}
+\leanline{4}{[InnerProductSpace\ ℝ\ E]\ \{f\ :\ E\ →\ ℝ\}\ \{K\ :\ ℝ≥0\}}
+\leanline{4}{(hsub\ :\ ∀\ x,\ ∃\ s,\ IsSubgradient\ f\ x\ s\ ∧\ ‖s‖\ ≤\ (K\ :\ ℝ))\ :}
+\leanline{4}{LipschitzWith\ K\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: lipschitz\_of\_bounded\_subgradients : A bounded genuine subgradient at every input implies global Lipschitzness. In particular, the paper's uniformly bounded minimal section supplies this hypothesis, without adding a separate Lipschitz assumption to Assumption C1.
 
+
+
+\texttt{lipschitz\_\allowbreak{}of\_\allowbreak{}bounded\_\allowbreak{}subgradients}: the intermediate facts include \texttt{hupper}, \texttt{hsupport}, \texttt{hinner}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{inner\_\allowbreak{}neg\_\allowbreak{}right}, \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{abs\_\allowbreak{}le.\allowbreak{}mpr}, \texttt{norm\_\allowbreak{}sub\_\allowbreak{}rev}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Comparison of proximal minimizers at two positive scales}{Comparison of proximal minimizers at two positive scales}}
 
@@ -42,8 +79,27 @@ Write \(q=P_\eta(x)\) and \(s=(x-q)/\eta\). The residual characterization gives 
 
 In residual notation \(s=(x-P_\eta x)/\eta\), the second minimizer is also the \(\lambda\)-proximal point at \(P_\eta x+\lambda s\). Its comparison input is \(x=P_\eta x+\eta s\), so their separation is the scale difference times \(\|s\|\). The uniform residual bound gives \(K|\lambda-\eta|\) for every pair of positive scales.
 
+\begin{leanbox}{Lean: \texttt{prox\_\allowbreak{}parameter\_\allowbreak{}sensitivity}}
+\leansource{\texttt{prox\_\allowbreak{}parameter\_\allowbreak{}sensitivity} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 46–69}
+\begin{leancode}
+\leanline{0}{theorem\ prox\_parameter\_sensitivity\ \{E\ :\ Type*\}\ [NormedAddCommGroup\ E]}
+\leanline{4}{[InnerProductSpace\ ℝ\ E]\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{\{f\ :\ E\ →\ ℝ\}\ (hf\ :\ ConvexOn\ ℝ\ univ\ f)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ x,\ b\ ≤\ f\ x)}
+\leanline{4}{\{K\ :\ ℝ≥0\}\ (hK\ :\ LipschitzWith\ K\ f)\ \{lam\ eta\ :\ ℝ\}}
+\leanline{4}{(hlam\ :\ 0\ <\ lam)\ (heta\ :\ 0\ <\ eta)\ (x\ :\ E)\ :}
+\leanline{4}{‖prox\ f\ lam\ x\ -\ prox\ f\ eta\ x‖\ ≤\ (K\ :\ ℝ)\ *\ |lam\ -\ eta|}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Let \(q=P_\eta(x)\) and \(s=(x-q)/\eta\). The optimality theorem gives \(s\in\partial f(q)\), and global value Lipschitzness gives \(\|s\|\le K\). Reversing the optimality characterization shows that the same \(q\) is \(P_\lambda(q+\lambda s)\). Nonexpansiveness at parameter \(\lambda\) therefore gives \[\|P_\lambda(x)-P_\eta(x)\|\le\|x-(q+\lambda s)\|=|\eta-\lambda|\|s\|\le K|\lambda-\eta|.\] The local identities \texttt{hq}, \texttt{hxs} and \texttt{hid} implement exactly these substitutions; both parameters must be positive to cancel their residual denominators.
 
 
+
+Formal correspondence: prox\_parameter\_sensitivity : The actual proximal point changes by at most \(K|\lambda-\eta|\) when the positive smoothing parameter changes.
+
+
+
+\texttt{prox\_\allowbreak{}parameter\_\allowbreak{}sensitivity}: the intermediate facts include \texttt{q}, \texttt{s}, \texttt{hs}, \texttt{hxs}, \texttt{hid}, in source order; the source steps apply or rewrite \texttt{is\allowbreak{}Prox\allowbreak{}Point\_\allowbreak{}of\_\allowbreak{}subgradient}, \texttt{add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left}, \texttt{abs\_\allowbreak{}sub\_\allowbreak{}comm}, \texttt{hnonexp.\allowbreak{}trans}, \texttt{mul\_\allowbreak{}comm}.
+\end{leanbox}
 
 \section{\texorpdfstring{Uniform comparison of the averaged pair maps}{Uniform comparison of the averaged pair maps}}
 
@@ -54,7 +110,44 @@ Linearity in the supplied pair map gives \(\operatorname{Pair}_{P-Q}=\operatorna
 
 Explicitly \(\operatorname{Pair}(P-Q)=\operatorname{Pair}(P)-\operatorname{Pair}(Q)\). Under \(\|P(x)-Q(x)\|\le c\), Jensen and latent scaling give squared state difference at most \(N^{-1}\sum_i c^2=c^2\). Taking nonnegative square roots gives \(c\); substitute \(c=K|\lambda-\eta|\). Every pair difference is bounded by \(c\), and the state square is bounded by \(N^{-1}\sum_i c^2=c^2\), so the same constant \(c\) applies despite the common-parameter average.
 
+\begin{leanbox}{Lean: \texttt{pairwiseMap\_\allowbreak{}sub}, \texttt{pairwiseMap\_\allowbreak{}uniform\_\allowbreak{}difference\_\allowbreak{}le}, \texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}parameter\_\allowbreak{}sensitivity}}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}sub} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 72–78}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_sub\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(P\ Q\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (z\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{pairwiseMap\ (fun\ x\ =>\ P\ x\ -\ Q\ x)\ z\ =\ pairwiseMap\ P\ z\ -\ pairwiseMap\ Q\ z}
+\end{leancode}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}uniform\_\allowbreak{}difference\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 82–105}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_uniform\_difference\_le\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(P\ Q\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (c\ :\ ℝ)\ (hc\ :\ 0\ ≤\ c)}
+\leanline{4}{(hPQ\ :\ ∀\ x,\ ‖P\ x\ -\ Q\ x‖\ ≤\ c)\ (z\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pairwiseMap\ P\ z\ -\ pairwiseMap\ Q\ z‖\ ≤\ c}
+\end{leancode}
+\leansource{\texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}parameter\_\allowbreak{}sensitivity} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 108–115}
+\begin{leancode}
+\leanline{0}{theorem\ pairwise\_prox\_parameter\_sensitivity\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)}
+\leanline{4}{(hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)\ \{K\ :\ ℝ≥0\}\ (hK\ :\ LipschitzWith\ K\ g₂)}
+\leanline{4}{\{lam\ eta\ :\ ℝ\}\ (hlam\ :\ 0\ <\ lam)\ (heta\ :\ 0\ <\ eta)\ (z\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pairwiseMap\ (prox\ g₂\ lam)\ z\ -\ pairwiseMap\ (prox\ g₂\ eta)\ z‖\ ≤}
+\leanline{6}{(K\ :\ ℝ)\ *\ |lam\ -\ eta|}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pairwiseMap\_sub : Pairwise averaging is linear in the supplied joint map. pairwiseMap\_uniform\_difference\_le : A uniform difference of joint maps stays uniformly bounded after the common-parameter averaging and latent-coordinate scaling. pairwise\_prox\_parameter\_sensitivity : The proximal-parameter sensitivity has no particle-number loss.
 
+
+
+\texttt{pairwise\allowbreak{}Map\_\allowbreak{}sub}: the source steps apply or rewrite \texttt{pairwise\allowbreak{}Map\_\allowbreak{}parameter}, \texttt{Pi\allowbreak{}Lp.\allowbreak{}sub\_\allowbreak{}apply}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}sub\_\allowbreak{}distrib}, \texttt{mul\_\allowbreak{}sub}, \texttt{pairwise\allowbreak{}Map\_\allowbreak{}particle}.
+
+
+
+\texttt{pairwise\allowbreak{}Map\_\allowbreak{}uniform\_\allowbreak{}difference\_\allowbreak{}le}: the intermediate facts include \texttt{hn}, \texttt{hgeom}, \texttt{hzero}, \texttt{h}, \texttt{hsq}, in source order; the source steps apply or rewrite \texttt{pairwise\allowbreak{}Map\_\allowbreak{}sub}, \texttt{IPLA.\allowbreak{}joint}, \texttt{sub\_\allowbreak{}zero}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{nlinarith}.
+
+
+
+\texttt{pairwise\_\allowbreak{}prox\_\allowbreak{}parameter\_\allowbreak{}sensitivity}: the proof is the application \texttt{pairwise\allowbreak{}Map\_\allowbreak{}uniform\_\allowbreak{}difference\_\allowbreak{}le h\allowbreak{}N \_\allowbreak{} \_\allowbreak{} \_\allowbreak{} (by positivity)}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -76,7 +169,66 @@ With intermediate input \(w\) and scale \(\lambda\) the same triangle inequality
 
 Under \(\gamma>0\), factor \(1-m\gamma<1\) gives floor \(K|\lambda-\eta|/(m\gamma)\). More precisely the two update changes are bounded by \(q e_k\) and \(K|\lambda-\eta|\). Summing under \(q=1-m\gamma<1\) yields \(K|\lambda-\eta|/(m\gamma)\). A common initialization removes the transient term. Since the innovations only need to agree, no distribution or independence assumption enters this pathwise estimate.
 
+\begin{leanbox}{Lean: \texttt{pipglaUpdate\_\allowbreak{}parameter\_\allowbreak{}comparison}, \texttt{pipglaChain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}sum}, \texttt{pipglaChain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}bound}}
+\leansource{\texttt{pipglaUpdate\_\allowbreak{}parameter\_\allowbreak{}comparison} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 119–141}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaUpdate\_parameter\_comparison\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ γ\ lam\ eta\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ ≤\ γ)\ (hlam\ :\ 0\ <\ lam)\ (heta\ :\ 0\ <\ eta)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))\ (z\ w\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ\ z\ ξ\ -\ pipglaUpdate\ g₁\ (prox\ g₂\ eta)\ γ\ w\ ξ‖\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ *\ ‖z\ -\ w‖\ +\ (K\ :\ ℝ)\ *\ |lam\ -\ eta|}
+\end{leancode}
+\leansource{\texttt{pipglaChain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}sum} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 144–166}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaChain\_parameter\_comparison\_sum\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ γ\ lam\ eta\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ ≤\ γ)\ (hlam\ :\ 0\ <\ lam)\ (heta\ :\ 0\ <\ eta)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(z\ w\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖pipglaChain\ g₁\ (prox\ g₂\ lam)\ γ\ z\ noise\ n\ -}
+\leanline{6}{pipglaChain\ g₁\ (prox\ g₂\ eta)\ γ\ w\ noise\ n‖\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ n\ *\ ‖z\ -\ w‖\ +}
+\leanline{8}{((K\ :\ ℝ)\ *\ |lam\ -\ eta|)\ *\ ∑\ j\ ∈\ Finset.range\ n,\ (1\ -\ m\ *\ γ)\ \textasciicircum{}\ j}
+\end{leancode}
+\leansource{\texttt{pipglaChain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 170–193}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaChain\_parameter\_comparison\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ γ\ lam\ eta\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hlam\ :\ 0\ <\ lam)\ (heta\ :\ 0\ <\ eta)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(z\ w\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖pipglaChain\ g₁\ (prox\ g₂\ lam)\ γ\ z\ noise\ n\ -}
+\leanline{6}{pipglaChain\ g₁\ (prox\ g₂\ eta)\ γ\ w\ noise\ n‖\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ n\ *\ ‖z\ -\ w‖\ +\ (K\ :\ ℝ)\ *\ |lam\ -\ eta|\ /\ (m\ *\ γ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipglaUpdate\_parameter\_comparison : One step of two actual splitting schemes with different proximal parameters, the same time step, and the same supplied innovation. pipglaChain\_parameter\_comparison\_sum : Exact finite-horizon comparison of two actual splitting recursions. pipglaChain\_parameter\_comparison\_bound : The resulting pathwise difference floor is valid for any two positive proximal parameters; it is not assumed to be an algorithm error bound.
 
+
+
+\texttt{pipgla\allowbreak{}Update\_\allowbreak{}parameter\_\allowbreak{}comparison}: the source steps apply or rewrite \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{dist\_\allowbreak{}triangle}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+
+
+
+\texttt{pipgla\allowbreak{}Chain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}sum}: the intermediate facts include \texttt{e}, \texttt{hden}, \texttt{hmul}, \texttt{hstep}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}zero}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{pipgla\allowbreak{}Chain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}bound}: the intermediate facts include \texttt{e}, \texttt{hden}, \texttt{hmul}, \texttt{hstep}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{algorithm\allowbreak{}Chain\_\allowbreak{}zero}. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.15.1]{LangevinLean2026ULASC}; \cite[Section~3.15.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -90,14 +242,31 @@ Suppose \(0<m\gamma<1\) and \(\gamma\le\lambda\le\gamma/(1-m\gamma)\). Subtracti
 
 The width of the allowed scale interval is \(\gamma/(1-m\gamma)-\gamma=m\gamma^2/(1-m\gamma)\). Its lower endpoint \(\gamma\) makes the absolute difference from the reference scale equal to the nonnegative difference. Division by \(m\gamma>0\) gives the bound. The strict condition \(m\gamma<1\) is required because the denominator vanishes at equality.
 
+\begin{leanbox}{Lean: \texttt{prox\_\allowbreak{}parameter\_\allowbreak{}corridor\_\allowbreak{}floor}}
+\leansource{\texttt{prox\_\allowbreak{}parameter\_\allowbreak{}corridor\_\allowbreak{}floor} \quad ProximalLangevin/\allowbreak{}ProxParameter.lean, lines 197–205}
+\begin{leancode}
+\leanline{0}{theorem\ prox\_parameter\_corridor\_floor\ (m\ γ\ lam\ :\ ℝ)\ (K\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)\ (hmg\ :\ m\ *\ γ\ <\ 1)}
+\leanline{4}{(hlo\ :\ γ\ ≤\ lam)\ (hhi\ :\ lam\ ≤\ γ\ /\ (1\ -\ m\ *\ γ))\ :}
+\leanline{4}{(K\ :\ ℝ)\ *\ |lam\ -\ γ|\ /\ (m\ *\ γ)\ ≤\ (K\ :\ ℝ)\ *\ γ\ /\ (1\ -\ m\ *\ γ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In the corridor \(\gamma\le\lambda\le\gamma/(1-m\gamma)\), positivity of \(1-m\gamma\) gives \[0\le\lambda-\gamma\le\frac{m\gamma^2}{1-m\gamma}.\] Therefore \(K|\lambda-\gamma|/(m\gamma)\le K\gamma/(1-m\gamma)\). The Lean proof first removes the absolute value using the lower corridor inequality, then clears the two positive denominators. This term measures the additional error incurred by changing the proximal parameter away from the equal-step algorithm.
 
 
+
+Formal correspondence: prox\_parameter\_corridor\_floor : In the paper's proximal-parameter corridor, the additional comparison floor against \(\eta=\gamma\) is of order \(\gamma\), with every denominator displayed.
+
+
+
+\texttt{prox\_\allowbreak{}parameter\_\allowbreak{}corridor\_\allowbreak{}floor}: the intermediate facts include \texttt{hd}, \texttt{hh}, \texttt{h\allowbreak{}K}, in source order; the source steps apply or rewrite \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr}, \texttt{div\_\allowbreak{}le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}}, \texttt{mul\_\allowbreak{}pos}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision c58ab5c70c3a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ce6396dff331. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}
