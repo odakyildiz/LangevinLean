@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,8 +59,28 @@ Using \(e^u\ge1+u\) after exponentiation gives
 
 Indeed the strong-convexity segment from the minimizer to \(x\) contributes radial deficit \(q(1-r^2)\|x-z\|^2/2\). Inequality \(e^u\ge1+u\) turns it into a density-plus-moment bound. The determinant is \(r^d\), so the integral of the dilated density is \(r^{-d}Z\). This proves the partition comparison with all terms finite.
 
+\begin{leanbox}{Lean: \texttt{sharp\_\allowbreak{}gibbs\_\allowbreak{}mode\_\allowbreak{}dilation\_\allowbreak{}inequality}}
+\leansource{\texttt{sharp\_\allowbreak{}gibbs\_\allowbreak{}mode\_\allowbreak{}dilation\_\allowbreak{}inequality} \quad ProximalLangevin/\allowbreak{}SharpConcentration.lean, lines 24–75}
+\begin{leancode}
+\leanline{0}{theorem\ sharp\_gibbs\_mode\_dilation\_inequality}
+\leanline{4}{(F\ :\ H\ →\ ℝ)\ (q\ :\ ℝ)\ (hq\ :\ 0\ <\ q)\ (hc\ :\ Continuous\ F)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ q\ F)\ (z\ :\ H)\ (hz\ :\ ∀\ x,\ F\ z\ ≤\ F\ x)}
+\leanline{4}{(r\ :\ ℝ)\ (hr\ :\ 0\ <\ r)\ (hr1\ :\ r\ <\ 1)\ :}
+\leanline{4}{(∫\ x,\ Real.exp\ (-F\ x)\ ∂volume)\ +\ q\ /\ 2\ *\ (1\ -\ r\ \textasciicircum{}\ 2)\ *}
+\leanline{6}{(∫\ x,\ ‖x\ -\ z‖\ \textasciicircum{}\ 2\ *\ Real.exp\ (-F\ x)\ ∂volume)\ ≤}
+\leanline{4}{(r\ \textasciicircum{}\ Module.finrank\ ℝ\ H)⁻¹\ *\ ∫\ x,\ Real.exp\ (-F\ x)\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The local fact \texttt{hpoint} is exactly this last inequality. \texttt{hip} separately proves that the dilated weight is integrable, using translation invariance and nonzero scalar dilation. \texttt{htrans} computes its integral as \(r^{-d}Z\). Integrating \texttt{hpoint} now proves \(Z+\frac q2(1-r^2)M\le r^{-d}Z\), with every integral finite before the comparison.
 
 
+
+Formal correspondence: sharp\_gibbs\_mode\_dilation\_inequality : The dilation inequality before taking the tangent limit.
+
+
+
+\texttt{sharp\_\allowbreak{}gibbs\_\allowbreak{}mode\_\allowbreak{}dilation\_\allowbreak{}inequality}: the intermediate facts include \texttt{w}, \texttt{C}, \texttt{hi}, \texttt{he}, \texttt{hp}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}add\_\allowbreak{}right\_\allowbreak{}eq\_\allowbreak{}self}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{integral\_\allowbreak{}add}, \texttt{hmi.\allowbreak{}const\_\allowbreak{}mul}, \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.49.2]{LangevinLean2026ULASC}; \cite[Section~3.49.3]{LangevinLean2026ULASC}.
@@ -51,8 +94,25 @@ Multiply the partition comparison by \(r^d\) and define \(\Phi(r)=r^d[Z+(q/2)(1-
 
 The argument does not differentiate \(F\). Equivalently, \(qM\le dZ\) may be divided by positive \(Z\). The normalized second moment is \(M/Z\) and is bounded by \(d/q\). This permits the estimate for continuous nonsmooth strongly convex potentials without an integration-by-parts assumption.
 
+\begin{leanbox}{Lean: \texttt{sharp\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}gibbs\_\allowbreak{}le}}
+\leansource{\texttt{sharp\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}gibbs\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SharpConcentration.lean, lines 132–158}
+\begin{leancode}
+\leanline{0}{theorem\ sharp\_integral\_sq\_dist\_gibbs\_le}
+\leanline{4}{(F\ :\ H\ →\ ℝ)\ (q\ :\ ℝ)\ (hq\ :\ 0\ <\ q)\ (hc\ :\ Continuous\ F)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ q\ F)\ (z\ :\ H)\ (hz\ :\ ∀\ x,\ F\ z\ ≤\ F\ x)\ :}
+\leanline{4}{(∫\ x,\ ‖x\ -\ z‖\ \textasciicircum{}\ 2\ ∂gibbsMeasure\ F)\ ≤\ (Module.finrank\ ℝ\ H\ :\ ℝ)\ /\ q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Here \texttt{h\allowbreak{}Z} proves \(Z>0\), and \texttt{hpart} identifies the extended partition function with \(\iota Z\). The density change in \texttt{heq} therefore gives \[\int\|x-z\|^2\,d\pi(x)=Z^{-1}M.\] Multiplication of the unnormalized inequality by the nonnegative \(Z^{-1}\), followed by \(Z^{-1}Z=1\), yields \(\int\|x-z\|^2d\pi\le d/q\). Positive normalization is proved from the potential assumptions, rather than supplied as a moment or probability premise.
 
 
+
+Formal correspondence: sharp\_integral\_sq\_dist\_gibbs\_le : A continuous \(q\)-strongly convex Gibbs potential concentrates around its minimizer with sharp second moment at most \(\operatorname{dim}/q\). Every normalization and integrability fact used in the conclusion is proved from the stated inputs.
+
+
+
+\texttt{sharp\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}gibbs\_\allowbreak{}le}: the intermediate facts include \texttt{Z}, \texttt{hi}, \texttt{h\allowbreak{}Z}, \texttt{heq}, \texttt{hb}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}smul\_\allowbreak{}measure}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}inv}, \texttt{inv\_\allowbreak{}mul\_\allowbreak{}cancel\ensuremath{{}_{0}}}, \texttt{h\allowbreak{}Z.\allowbreak{}ne'}, \texttt{mul\_\allowbreak{}one}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.49.2]{LangevinLean2026ULASC}.
@@ -70,17 +130,35 @@ For \(0<r<1\) one has \(\Phi(r)\le Z=\Phi(1)\). Thus when \(-1<u<0\), the differ
 
 For negative \(u\) tending to zero, \(\Phi(1+u)-\Phi(1)\) and \(u\) retain these signs. The quotient converges to \(dZ-qM\) by differentiation of the explicit scalar expression. Its limit is nonnegative, giving the desired moment bound. The comparison only needs contractions \(r<1\) because their left derivative already determines the derivative inequality at \(r=1\).
 
+\begin{leanbox}{Lean: \texttt{sharp\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}le}}
+\leansource{\texttt{sharp\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SharpConcentration.lean, lines 79–127}
+\begin{leancode}
+\leanline{0}{theorem\ sharp\_integral\_sq\_dist\_mul\_exp\_neg\_le}
+\leanline{4}{(F\ :\ H\ →\ ℝ)\ (q\ :\ ℝ)\ (hq\ :\ 0\ <\ q)\ (hc\ :\ Continuous\ F)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ q\ F)\ (z\ :\ H)\ (hz\ :\ ∀\ x,\ F\ z\ ≤\ F\ x)\ :}
+\leanline{4}{(∫\ x,\ ‖x\ -\ z‖\ \textasciicircum{}\ 2\ *\ Real.exp\ (-F\ x)\ ∂volume)\ ≤}
+\leanline{6}{((Module.finrank\ ℝ\ H\ :\ ℝ)\ /\ q)\ *\ ∫\ x,\ Real.exp\ (-F\ x)\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Differentiate this explicit scalar polynomial, rather than differentiating \(F\): \[\Phi'(1)=dZ-qM.\] In Lean, \texttt{hinner} differentiates the bracket, \texttt{hder} applies the product rule, and \texttt{hnonneg} records the sign of the left difference quotient. Its limit is \(\Phi'(1)\), so \texttt{hbound} gives \(dZ-qM\ge0\). Since \(q>0\), divide to obtain \(M\le(d/q)Z\).
 
 
+
+Formal correspondence: sharp\_integral\_sq\_dist\_mul\_exp\_neg\_le : Taking the tangent limit of the dilation inequality gives the exact dimension dependence, without differentiating the potential.
+
+
+
+\texttt{sharp\_\allowbreak{}integral\_\allowbreak{}sq\_\allowbreak{}dist\_\allowbreak{}mul\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}le}: the intermediate facts include \texttt{d}, \texttt{Z}, \texttt{M}, \texttt{hs}, \texttt{hb}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}assoc}, \texttt{mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}}}, \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto}, \texttt{tendsto\_\allowbreak{}const\_\allowbreak{}nhds}, \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}}. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

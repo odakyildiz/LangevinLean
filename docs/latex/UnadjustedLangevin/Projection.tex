@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Define the extended projected error \(R_{T,b}(\mu)=\|x\mapsto Tx-b\|_{L^2(\mu)}\
 
 This quantity is an error about the specified deterministic center \(b\), rather than a variance about the mean. It can therefore represent a parameter estimation error about a marginal mode. Keeping the extended integral initially allows the comparison to prove, rather than assume, its finiteness.
 
+\begin{leanbox}{Lean: \texttt{projectedRMS}}
+\leansource{\texttt{projectedRMS} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 32–33}
+\begin{leancode}
+\leanline{0}{def\ projectedRMS\ (μ\ :\ Measure\ H)\ (T\ :\ H\ →L[ℝ]\ K)\ (b\ :\ K)\ :\ ℝ≥0∞\ :=}
+\leanline{2}{eLpNorm\ (fun\ x\ ↦\ T\ x\ -\ b)\ 2\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMS} is defined as \texttt{e\allowbreak{}Lp\allowbreak{}Norm} at exponent two of the centered projected vector. Its codomain \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} retains a possibly infinite second moment. \texttt{T} is a continuous linear map and \texttt{b} the chosen center; no contraction or probability premise is needed merely to define the value.
+\end{leanbox}
 
 \section{\texorpdfstring{Its finite ordinary value}{Its finite ordinary value}}
 
@@ -42,6 +74,15 @@ Whenever the projected displacement has finite second moment, its projected root
 
 Once \(\int\|Tx-b\|^2d\mu<\infty\) is proved, its nonnegative square root is an ordinary real number. All later real-valued estimates use this finite case; a divergent second moment is never assigned a finite statistical-error interpretation.
 
+\begin{leanbox}{Lean: \texttt{projectedRMSReal}}
+\leansource{\texttt{projectedRMSReal} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 36–37}
+\begin{leancode}
+\leanline{0}{def\ projectedRMSReal\ (μ\ :\ Measure\ H)\ (T\ :\ H\ →L[ℝ]\ K)\ (b\ :\ K)\ :\ ℝ\ :=}
+\leanline{2}{(projectedRMS\ μ\ T\ b).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMSReal} applies \texttt{.\allowbreak{}to\allowbreak{}Real} to \texttt{projected\allowbreak{}RMS}. This conversion agrees with the finite value, while the extended infinite value is sent to zero by its total definition. Every later numerical interpretation therefore supplies a separate finiteness proof before using this real quantity.
+\end{leanbox}
 
 \section{\texorpdfstring{The pointwise projected difference bound}{The pointwise projected difference bound}}
 
@@ -52,6 +93,16 @@ If \(\|T\|\le1\), then \(\|T(x-y)\|\le\|x-y\|\) pointwise. Monotonicity of the e
 
 Squaring the pointwise contraction, integrating under an arbitrary coupling, and taking nonnegative square roots gives \(\|T(X-Y)\|_{L^2}\le\|X-Y\|_{L^2}\). No relation between the projected coordinates and the unobserved coordinates is required.
 
+\begin{leanbox}{Lean: \texttt{projectedDifference\_\allowbreak{}le}}
+\leansource{\texttt{projectedDifference\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 41–46}
+\begin{leancode}
+\leanline{0}{theorem\ projectedDifference\_le\ (γ\ :\ Measure\ (H\ ×\ H))}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (hT\ :\ ‖T‖\ ≤\ 1)\ :}
+\leanline{4}{eLpNorm\ (fun\ p\ :\ H\ ×\ H\ ↦\ T\ (p.1\ -\ p.2))\ 2\ γ\ ≤\ ULA.couplingCost\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}Difference\_\allowbreak{}le} applies \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}mono} to the pointwise operator-norm estimate \texttt{T.\allowbreak{}le\_\allowbreak{}op\allowbreak{}Norm}. The premise \texttt{h\allowbreak{}T} bounds that operator norm by one. Multiplication by the nonnegative input norm then bounds each projected difference by the original coupling displacement.
+\end{leanbox}
 
 \section{\texorpdfstring{Projected error bounded by a coupling}{Projected error bounded by a coupling}}
 
@@ -62,6 +113,16 @@ On a coupling write \(Tx-b=T(x-y)+(Ty-b)\). Minkowski bounds its \(L^2\) norm by
 
 The decomposition is valid because \(T\) is linear. The second term depends only on the reference marginal, so its value is the same for every coupling. This uniformity is precisely what lets the next step minimize only the full-state coupling cost.
 
+\begin{leanbox}{Lean: \texttt{projectedRMS\_\allowbreak{}le\_\allowbreak{}coupling}}
+\leansource{\texttt{projectedRMS\_\allowbreak{}le\_\allowbreak{}coupling} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 49–68}
+\begin{leancode}
+\leanline{0}{theorem\ projectedRMS\_le\_coupling\ \{μ\ π\ :\ Measure\ H\}}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (hT\ :\ ‖T‖\ ≤\ 1)\ (b\ :\ K)\ (c\ :\ ULA.Coupling\ μ\ π)\ :}
+\leanline{4}{projectedRMS\ μ\ T\ b\ ≤\ ULA.couplingCost\ c.joint\ +\ projectedRMS\ π\ T\ b}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMS\_\allowbreak{}le\_\allowbreak{}coupling} rewrites the two projected errors on the joint measure using \texttt{c.\allowbreak{}fst}, \texttt{c.\allowbreak{}snd} and \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}map\_\allowbreak{}measure}. The function identity \texttt{hid} decomposes the first centered projection into the projected difference and the second centered projection. \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}add\_\allowbreak{}le} is Minkowski at exponent two, and \texttt{projected\allowbreak{}Difference\_\allowbreak{}le} bounds its first term by the coupling cost. The argument is valid for extended moments as well.
+\end{leanbox}
 
 \section{\texorpdfstring{Projected error bounded by Wasserstein distance}{Projected error bounded by Wasserstein distance}}
 
@@ -72,6 +133,17 @@ The preceding bound holds for every coupling, with the same equilibrium radius. 
 
 For any \(\varepsilon>0\), choose a coupling whose cost is within \(\varepsilon\) of the finite transport infimum. The couplingwise inequality then bounds the projected error by \(W_2+\varepsilon\) plus the reference radius. Sending \(\varepsilon\downarrow0\) gives the claimed estimate without an optimizer.
 
+\begin{leanbox}{Lean: \texttt{projectedRMS\_\allowbreak{}le\_\allowbreak{}wasserstein2}}
+\leansource{\texttt{projectedRMS\_\allowbreak{}le\_\allowbreak{}wasserstein2} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 71–78}
+\begin{leancode}
+\leanline{0}{theorem\ projectedRMS\_le\_wasserstein2\ \{μ\ π\ :\ Measure\ H\}}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (hT\ :\ ‖T‖\ ≤\ 1)\ (b\ :\ K)}
+\leanline{4}{(hnonempty\ :\ Nonempty\ (ULA.Coupling\ μ\ π))\ :}
+\leanline{4}{projectedRMS\ μ\ T\ b\ ≤\ ULA.wasserstein2\ μ\ π\ +\ projectedRMS\ π\ T\ b}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMS\_\allowbreak{}le\_\allowbreak{}wasserstein2} assumes a nonempty coupling family. After unfolding \texttt{ULA.\allowbreak{}wasserstein2}, \texttt{ENNReal.\allowbreak{}i\allowbreak{}Inf\_\allowbreak{}add} moves the fixed target radius through the infimum. \texttt{le\_\allowbreak{}i\allowbreak{}Inf} then applies \texttt{projected\allowbreak{}RMS\_\allowbreak{}le\_\allowbreak{}coupling} to every coupling. An optimal coupling is not selected.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of projected error}{Finiteness of projected error}}
 
@@ -82,6 +154,18 @@ Finite transport guarantees a coupling exists and makes \(W_2(\mu,\pi)\) finite.
 
 The argument supplies the projected moment even if no full second-moment bound for the first law has been stated separately. It needs only finite quadratic transport and a finite reference projected radius. This is useful when the statistical quantity is lower-dimensional than the full sampling state.
 
+\begin{leanbox}{Lean: \texttt{projectedRMS\_\allowbreak{}ne\_\allowbreak{}top}}
+\leansource{\texttt{projectedRMS\_\allowbreak{}ne\_\allowbreak{}top} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 82–91}
+\begin{leancode}
+\leanline{0}{theorem\ projectedRMS\_ne\_top\ \{μ\ π\ :\ Measure\ H\}}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (hT\ :\ ‖T‖\ ≤\ 1)\ (b\ :\ K)\ (c\ :\ ℝ)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)}
+\leanline{4}{(hconcentration\ :\ projectedRMS\ π\ T\ b\ ≤\ ENNReal.ofReal\ c)\ :}
+\leanline{4}{projectedRMS\ μ\ T\ b\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMS\_\allowbreak{}ne\_\allowbreak{}top} obtains a finite-cost coupling from \texttt{hfinite}, making the family nonempty. The extended transport projection bound and \texttt{hconcentration} give \texttt{hb}. Its right side is finite by \texttt{ENNReal.\allowbreak{}add\_\allowbreak{}ne\_\allowbreak{}top}, so \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top} proves finiteness of the projected error itself.
+\end{leanbox}
 
 \section{\texorpdfstring{The ordinary squared-moment formula}{The ordinary squared-moment formula}}
 
@@ -92,6 +176,16 @@ The finite projected square norm and measurability give \(x\mapsto Tx-b\in L^2(\
 
 Absolute integrability of the squared norm is established before using the ordinary integral. The identity then follows from \(\|F\|_{L^2}^2=\int\|F\|^2\), with the nonnegative square root selecting the norm rather than its negative.
 
+\begin{leanbox}{Lean: \texttt{projectedRMSReal\_\allowbreak{}eq\_\allowbreak{}sqrt\_\allowbreak{}integral}}
+\leansource{\texttt{projectedRMSReal\_\allowbreak{}eq\_\allowbreak{}sqrt\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 97–109}
+\begin{leancode}
+\leanline{0}{theorem\ projectedRMSReal\_eq\_sqrt\_integral\ (μ\ :\ Measure\ H)}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (b\ :\ K)\ (hfinite\ :\ projectedRMS\ μ\ T\ b\ ≠\ ⊤)\ :}
+\leanline{4}{projectedRMSReal\ μ\ T\ b\ =\ Real.sqrt\ (∫\ x,\ ‖T\ x\ -\ b‖\ \textasciicircum{}\ 2\ ∂μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMSReal\_\allowbreak{}eq\_\allowbreak{}sqrt\_\allowbreak{}integral} turns \texttt{hfinite} into \texttt{hf}, square-integrability of the centered projection. \texttt{hf.\allowbreak{}e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}rpow\_\allowbreak{}norm} gives its integral norm formula; the powers at exponent two simplify to the square-root expression \texttt{heq'}. Unfolding \texttt{projected\allowbreak{}RMSReal} and using \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real} gives the real identity. The explicit finiteness premise prevents a divergent integral from being interpreted through a default value.
+\end{leanbox}
 
 \section{\texorpdfstring{Inserting a target second-moment bound}{Inserting a target second-moment bound}}
 
@@ -102,6 +196,18 @@ The supplied \(L^2\) membership makes the squared-norm integral finite. Its boun
 
 If the reference second moment is bounded by a radius squared, the radius must be nonnegative to conclude the desired norm bound after taking roots. The degenerate choice \(c=0\) forces the projection to equal the center almost everywhere.
 
+\begin{leanbox}{Lean: \texttt{projectedRMS\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}secondMoment}}
+\leansource{\texttt{projectedRMS\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}secondMoment} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 115–125}
+\begin{leancode}
+\leanline{0}{theorem\ projectedRMS\_le\_of\_secondMoment\ (μ\ :\ Measure\ H)}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (b\ :\ K)\ (c\ :\ ℝ)\ (hc\ :\ 0\ ≤\ c)}
+\leanline{4}{(hmem\ :\ MemLp\ (fun\ x\ ↦\ T\ x\ -\ b)\ 2\ μ)}
+\leanline{4}{(hsecond\ :\ (∫\ x,\ ‖T\ x\ -\ b‖\ \textasciicircum{}\ 2\ ∂μ)\ ≤\ c\ \textasciicircum{}\ 2)\ :}
+\leanline{4}{projectedRMS\ μ\ T\ b\ ≤\ ENNReal.ofReal\ c}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMS\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}second\allowbreak{}Moment} first extracts \texttt{hfinite} from \texttt{hmem}. The preceding integral identity reduces the claim to the square root of \texttt{hsecond}; monotonicity of square root and \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}sq hc} prove \texttt{hr}. \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real} transfers that finite real inequality back to the extended projected norm.
+\end{leanbox}
 
 \section{\texorpdfstring{The finite projected error estimate}{The finite projected error estimate}}
 
@@ -112,5 +218,17 @@ First prove current-radius finiteness using finite transport and the finite equi
 
 The final bound separates two sources of error: transport measures how far the numerical full-state law is from the target, while \(c\) measures target fluctuations around the chosen center. Only the first term can decay through additional sampling iterations at a fixed target.
 
+\begin{leanbox}{Lean: \texttt{projectedRMSReal\_\allowbreak{}le\_\allowbreak{}wasserstein2Real\_\allowbreak{}add}}
+\leansource{\texttt{projectedRMSReal\_\allowbreak{}le\_\allowbreak{}wasserstein2Real\_\allowbreak{}add} \quad UnadjustedLangevin/\allowbreak{}Projection.lean, lines 130–142}
+\begin{leancode}
+\leanline{0}{theorem\ projectedRMSReal\_le\_wasserstein2Real\_add\ \{μ\ π\ :\ Measure\ H\}}
+\leanline{4}{(T\ :\ H\ →L[ℝ]\ K)\ (hT\ :\ ‖T‖\ ≤\ 1)\ (b\ :\ K)\ (c\ :\ ℝ)}
+\leanline{4}{(hc\ :\ 0\ ≤\ c)\ (hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)}
+\leanline{4}{(hconcentration\ :\ projectedRMS\ π\ T\ b\ ≤\ ENNReal.ofReal\ c)\ :}
+\leanline{4}{projectedRMSReal\ μ\ T\ b\ ≤\ ULA.wasserstein2Real\ μ\ π\ +\ c}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{projected\allowbreak{}RMSReal\_\allowbreak{}le\_\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}add} uses finite initial transport to obtain a nonempty coupling family, then applies the extended projection estimate and the concentration bound. \texttt{hsum} proves finiteness of the entire upper bound before \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} transfers the inequality to real values. The final simplification uses finiteness of transport and nonnegativity \texttt{hc} of the radius, yielding exactly the stated sum.
+\end{leanbox}
 
 \end{document}

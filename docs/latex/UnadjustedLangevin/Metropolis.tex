@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Weight the current/\allowbreak{}proposal joint measure \(\nu(dx,dy)\) by accepta
 
 For a measurable test \(f\), the accepted contribution is \(\int f(y)a(x,y)\,d\nu(x,y)\). Thus the auxiliary pair measure specifies the accepted contribution to the output and to the forward-reverse symmetry calculation.
 
+\begin{leanbox}{Lean: \texttt{acceptedFlow}}
+\leansource{\texttt{acceptedFlow} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 22–23}
+\begin{leancode}
+\leanline{0}{def\ acceptedFlow\ (ν\ :\ Measure\ (H\ ×\ H))\ (a\ :\ H\ ×\ H\ →\ ℝ)\ :\ Measure\ (H\ ×\ H)\ :=}
+\leanline{2}{ν.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (a\ p))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{accepted\allowbreak{}Flow} is a definition with defining expression \texttt{\ensuremath{\nu}.\allowbreak{}with\allowbreak{}Density (fun p \ensuremath{\mapsto} ENNReal.\allowbreak{}of\allowbreak{}Real (a p))}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The rejected proposal flow}{The rejected proposal flow}}
 
@@ -42,6 +74,15 @@ The rejected pair measure is \(R(dx,dy)=(1-a(x,y))\nu(dx,dy)\). It retains the p
 
 On rejection, the proposed \(y\) is discarded, but its acceptance weight still determines how much mass stays at \(x\). Integrating \(f(x)(1-a(x,y))\) over the pair measure implements this dependence without conditioning or dividing by a rejection probability.
 
+\begin{leanbox}{Lean: \texttt{rejectedFlow}}
+\leansource{\texttt{rejectedFlow} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 25–26}
+\begin{leancode}
+\leanline{0}{def\ rejectedFlow\ (ν\ :\ Measure\ (H\ ×\ H))\ (a\ :\ H\ ×\ H\ →\ ℝ)\ :\ Measure\ (H\ ×\ H)\ :=}
+\leanline{2}{ν.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (1\ -\ a\ p))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{rejected\allowbreak{}Flow} is a definition with defining expression \texttt{\ensuremath{\nu}.\allowbreak{}with\allowbreak{}Density (fun p \ensuremath{\mapsto} ENNReal.\allowbreak{}of\allowbreak{}Real (1 -\allowbreak{} a p))}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The output law of the Metropolis step}{The output law of the Metropolis step}}
 
@@ -52,6 +93,15 @@ Define the output as \(\operatorname{snd}_*A+\operatorname{fst}_*R\). Accepted m
 
 For every bounded measurable \(f\), the transition expectation is \(\int[a(x,y)f(y)+(1-a(x,y))f(x)]d\nu\). Setting \(f=1\) proves preservation of total mass. This is a convex mixture at each pair, rather than normalization of the accepted part alone.
 
+\begin{leanbox}{Lean: \texttt{metropolisOutput}}
+\leansource{\texttt{metropolisOutput} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ metropolisOutput\ (ν\ :\ Measure\ (H\ ×\ H))\ (a\ :\ H\ ×\ H\ →\ ℝ)\ :\ Measure\ H\ :=}
+\leanline{2}{(acceptedFlow\ ν\ a).map\ Prod.snd\ +\ (rejectedFlow\ ν\ a).map\ Prod.fst}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\allowbreak{}Output} is a definition with defining expression \texttt{(accepted\allowbreak{}Flow \ensuremath{\nu} a).\allowbreak{}map Prod.\allowbreak{}snd + (rejected\allowbreak{}Flow \ensuremath{\nu} a).\allowbreak{}map Prod.\allowbreak{}fst}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Acceptance and rejection recover total mass}{Acceptance and rejection recover total mass}}
 
@@ -62,6 +112,16 @@ Since \(0\le a\le1\), the two nonnegative weights add to one after embedding in 
 
 The identity holds as an equality of measures: integrating any nonnegative test gives \(\int f a\,d\nu+\int f(1-a)\,d\nu=\int f\,d\nu\). Nonnegativity permits this argument even before integrability of signed tests is available.
 
+\begin{leanbox}{Lean: \texttt{acceptedFlow\_\allowbreak{}add\_\allowbreak{}rejectedFlow}}
+\leansource{\texttt{acceptedFlow\_\allowbreak{}add\_\allowbreak{}rejectedFlow} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 31–41}
+\begin{leancode}
+\leanline{0}{theorem\ acceptedFlow\_add\_rejectedFlow\ (ν\ :\ Measure\ (H\ ×\ H))\ (a\ :\ H\ ×\ H\ →\ ℝ)}
+\leanline{4}{(ha\ :\ Measurable\ a)\ (ha0\ :\ ∀\ p,\ 0\ ≤\ a\ p)\ (ha1\ :\ ∀\ p,\ a\ p\ ≤\ 1)\ :}
+\leanline{4}{acceptedFlow\ ν\ a\ +\ rejectedFlow\ ν\ a\ =\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{accepted\allowbreak{}Flow\_\allowbreak{}add\_\allowbreak{}rejected\allowbreak{}Flow}: the intermediate fact is \texttt{hw}, in source order; the source steps apply or rewrite \texttt{with\allowbreak{}Density\_\allowbreak{}add\_\allowbreak{}left}, \texttt{ha.\allowbreak{}ennreal\_\allowbreak{}of\allowbreak{}Real}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}add}, \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr}, \texttt{with\allowbreak{}Density\_\allowbreak{}one}.
+\end{leanbox}
 
 \section{\texorpdfstring{Equal marginals for a symmetric pair measure}{Equal marginals for a symmetric pair measure}}
 
@@ -72,6 +132,15 @@ The identity \(\operatorname{fst}\circ\operatorname{swap}=\operatorname{snd}\) a
 
 Equivalently, swap invariance gives \(\int f(y)d\nu=\int f(x)d\nu\) for every bounded measurable \(f\). The statement concerns the entire marginal distributions, so it can be applied to accepted flow even though that flow is generally a subprobability measure.
 
+\begin{leanbox}{Lean: \texttt{marginals\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}swap\_\allowbreak{}invariant}}
+\leansource{\texttt{marginals\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}swap\_\allowbreak{}invariant} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 43–49}
+\begin{leancode}
+\leanline{0}{theorem\ marginals\_eq\_of\_swap\_invariant\ (ν\ :\ Measure\ (H\ ×\ H))}
+\leanline{4}{(hsym\ :\ ν.map\ Prod.swap\ =\ ν)\ :\ ν.map\ Prod.snd\ =\ ν.map\ Prod.fst}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{marginals\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}swap\_\allowbreak{}invariant}: the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}fst}, \texttt{measurable\_\allowbreak{}swap}, \texttt{Prod.\allowbreak{}fst}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 \section{\texorpdfstring{Preservation of the initial marginal}{Preservation of the initial marginal}}
 
@@ -82,6 +151,17 @@ Detailed balance makes the two marginals of the accepted flow equal. Replace its
 
 For a test \(f\), detailed balance replaces the accepted expectation \(\int f(y)dA\) by \(\int f(x)dA\). Adding the rejected expectation now gives \(\int f(x)d(A+R)=\int f(x)d\nu\). This proves stationarity at the level of all test expectations.
 
+\begin{leanbox}{Lean: \texttt{metropolisOutput\_\allowbreak{}eq\_\allowbreak{}initial}}
+\leansource{\texttt{metropolisOutput\_\allowbreak{}eq\_\allowbreak{}initial} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 53–59}
+\begin{leancode}
+\leanline{0}{theorem\ metropolisOutput\_eq\_initial\ (ν\ :\ Measure\ (H\ ×\ H))\ (a\ :\ H\ ×\ H\ →\ ℝ)}
+\leanline{4}{(ha\ :\ Measurable\ a)\ (ha0\ :\ ∀\ p,\ 0\ ≤\ a\ p)\ (ha1\ :\ ∀\ p,\ a\ p\ ≤\ 1)}
+\leanline{4}{(hbalance\ :\ (acceptedFlow\ ν\ a).map\ Prod.swap\ =\ acceptedFlow\ ν\ a)\ :}
+\leanline{4}{metropolisOutput\ ν\ a\ =\ ν.map\ Prod.fst}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}initial}: the source steps apply or rewrite \texttt{marginals\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}swap\_\allowbreak{}invariant}.
+\end{leanbox}
 
 \section{\texorpdfstring{Mapping a density-weighted measure}{Mapping a density-weighted measure}}
 
@@ -92,6 +172,17 @@ For a measurable \(f\) and weight \(w\), prove \(f_*((w\circ f)\mu)=w(f_*\mu)\).
 
 This formula is the weighted version of change of variables. No injectivity is needed because the weight depends on the image. It applies first to nonnegative tests and then, when absolutely integrable, to ordinary real or vector tests by the corresponding norm bound.
 
+\begin{leanbox}{Lean: \texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp}}
+\leansource{\texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 62–72}
+\begin{leancode}
+\leanline{0}{theorem\ map\_weighted\_comp\ \{A\ B\ :\ Type*\}\ [MeasurableSpace\ A]\ [MeasurableSpace\ B]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (f\ :\ A\ →\ B)\ (hf\ :\ Measurable\ f)}
+\leanline{4}{(w\ :\ B\ →\ ℝ≥0∞)\ (hw\ :\ Measurable\ w)\ :}
+\leanline{4}{(μ.withDensity\ (w\ ∘\ f)).map\ f\ =\ (μ.map\ f).withDensity\ w}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp}: the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply}, \texttt{with\allowbreak{}Density\_\allowbreak{}apply}, \texttt{lintegral\_\allowbreak{}congr}.
+\end{leanbox}
 
 \section{\texorpdfstring{Mapping through an invertible change of coordinates}{Mapping through an invertible change of coordinates}}
 
@@ -102,6 +193,16 @@ Specialize the preceding pushforward/\allowbreak{}weight identity to a measurabl
 
 For coordinate swapping, the inverse map is the swap itself. Therefore transporting a weight through the equivalence simply replaces \(w(x,y)\) by \(w(y,x)\). This makes the forward/\allowbreak{}reverse symmetry calculation an exact measure identity.
 
+\begin{leanbox}{Lean: \texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp\_\allowbreak{}equiv}}
+\leansource{\texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp\_\allowbreak{}equiv} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 75–78}
+\begin{leancode}
+\leanline{0}{theorem\ map\_weighted\_comp\_equiv\ \{A\ B\ :\ Type*\}\ [MeasurableSpace\ A]\ [MeasurableSpace\ B]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (e\ :\ A\ ≃ᵐ\ B)\ (w\ :\ B\ →\ ℝ≥0∞)\ (hw\ :\ Measurable\ w)\ :}
+\leanline{4}{(μ.withDensity\ (w\ ∘\ e)).map\ e\ =\ (μ.map\ e).withDensity\ w}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp\_\allowbreak{}equiv}: the proof is the application \texttt{map\_\allowbreak{}weighted\_\allowbreak{}comp \ensuremath{\mu} e e.\allowbreak{}measurable w hw}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The Metropolis acceptance probability}{The Metropolis acceptance probability}}
 
@@ -112,6 +213,15 @@ For positive joint density \(w(x,y)\), define \(a(x,y)=\min(1,w(y,x)/w(x,y))\). 
 
 If reverse flow exceeds forward flow, acceptance is one. If reverse flow is smaller, multiplication by its ratio reduces the accepted forward mass to exactly the reverse mass. In either case the accepted mass is the smaller of the forward and reverse masses for that ordered pair.
 
+\begin{leanbox}{Lean: \texttt{metropolisAcceptance}}
+\leansource{\texttt{metropolisAcceptance} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 80–81}
+\begin{leancode}
+\leanline{0}{def\ metropolisAcceptance\ (w\ :\ H\ ×\ H\ →\ ℝ)\ (p\ :\ H\ ×\ H)\ :\ ℝ\ :=}
+\leanline{2}{min\ 1\ (w\ p.swap\ /\ w\ p)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\allowbreak{}Acceptance} is a definition with defining expression \texttt{min 1 (w p.\allowbreak{}swap /\allowbreak{} w p)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The symmetric accepted weight}{The symmetric accepted weight}}
 
@@ -122,6 +232,15 @@ Distribute the positive factor \(w(x,y)\) through the minimum. Cancellation of t
 
 The right side is unchanged on exchanging \(x\) and \(y\). Strict positivity is used only to cancel the forward density in the ratio; it is not an assumption that either direction is more likely than the other.
 
+\begin{leanbox}{Lean: \texttt{weight\_\allowbreak{}mul\_\allowbreak{}metropolisAcceptance}}
+\leansource{\texttt{weight\_\allowbreak{}mul\_\allowbreak{}metropolisAcceptance} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 83–87}
+\begin{leancode}
+\leanline{0}{theorem\ weight\_mul\_metropolisAcceptance\ (w\ :\ H\ ×\ H\ →\ ℝ)\ (hw\ :\ ∀\ p,\ 0\ <\ w\ p)}
+\leanline{4}{(p\ :\ H\ ×\ H)\ :\ w\ p\ *\ metropolisAcceptance\ w\ p\ =\ min\ (w\ p)\ (w\ p.swap)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{weight\_\allowbreak{}mul\_\allowbreak{}metropolis\allowbreak{}Acceptance}: the source steps apply or rewrite \texttt{mul\_\allowbreak{}min\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{p.\allowbreak{}swap}, \texttt{mul\_\allowbreak{}one}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}.
+\end{leanbox}
 
 \section{\texorpdfstring{The density of accepted flow}{The density of accepted flow}}
 
@@ -132,6 +251,18 @@ Two successive changes of density multiply their weights. Combine the original p
 
 The accepted measure has density \(\min(w(x,y),w(y,x))\) relative to the swap-invariant base measure. Symmetry of the density and of that base jointly imply symmetry of the accepted measure; symmetry of the density alone would not suffice with an asymmetric base.
 
+\begin{leanbox}{Lean: \texttt{acceptedFlow\_\allowbreak{}density}}
+\leansource{\texttt{acceptedFlow\_\allowbreak{}density} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 90–102}
+\begin{leancode}
+\leanline{0}{theorem\ acceptedFlow\_density\ (base\ :\ Measure\ (H\ ×\ H))\ (w\ :\ H\ ×\ H\ →\ ℝ)}
+\leanline{4}{(hw\ :\ Measurable\ w)\ (hw0\ :\ ∀\ p,\ 0\ <\ w\ p)\ :}
+\leanline{4}{acceptedFlow\ (base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (w\ p)))}
+\leanline{8}{(metropolisAcceptance\ w)\ =}
+\leanline{6}{base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (min\ (w\ p)\ (w\ p.swap)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{accepted\allowbreak{}Flow\_\allowbreak{}density}: the intermediate fact is \texttt{ha}, in source order; the source steps apply or rewrite \texttt{measurable\_\allowbreak{}const.\allowbreak{}min}, \texttt{hw.\allowbreak{}comp}, \texttt{ha.\allowbreak{}ennreal\_\allowbreak{}of\allowbreak{}Real}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}mul}, \texttt{weight\_\allowbreak{}mul\_\allowbreak{}metropolis\allowbreak{}Acceptance}.
+\end{leanbox}
 
 \section{\texorpdfstring{Invariance from the symmetric accepted density}{Invariance from the symmetric accepted density}}
 
@@ -142,5 +273,18 @@ The base measure is swap invariant, and the accepted minimum density is unchange
 
 This proves invariance for one discrete transition. The later diffusion proof will use this exact discrete invariance for every mesh and pass the unchanged marginal to the continuous limit after controlling the rejection error.
 
+\begin{leanbox}{Lean: \texttt{metropolisOutput\_\allowbreak{}density\_\allowbreak{}eq\_\allowbreak{}initial}}
+\leansource{\texttt{metropolisOutput\_\allowbreak{}density\_\allowbreak{}eq\_\allowbreak{}initial} \quad UnadjustedLangevin/\allowbreak{}Metropolis.lean, lines 106–130}
+\begin{leancode}
+\leanline{0}{theorem\ metropolisOutput\_density\_eq\_initial}
+\leanline{4}{(base\ :\ Measure\ (H\ ×\ H))\ (hbase\ :\ base.map\ Prod.swap\ =\ base)}
+\leanline{4}{(w\ :\ H\ ×\ H\ →\ ℝ)\ (hw\ :\ Measurable\ w)\ (hw0\ :\ ∀\ p,\ 0\ <\ w\ p)\ :}
+\leanline{4}{metropolisOutput\ (base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (w\ p)))}
+\leanline{6}{(metropolisAcceptance\ w)\ =}
+\leanline{8}{(base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (w\ p))).map\ Prod.fst}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\allowbreak{}Output\_\allowbreak{}density\_\allowbreak{}eq\_\allowbreak{}initial}: the intermediate facts include \texttt{ha}, \texttt{v}, \texttt{hv}, \texttt{hs}, \texttt{hm}, in source order; the source steps apply or rewrite \texttt{metropolis\allowbreak{}Output\_\allowbreak{}eq\_\allowbreak{}initial}, \texttt{accepted\allowbreak{}Flow\_\allowbreak{}density}, \texttt{Prod.\allowbreak{}swap\_\allowbreak{}swap}, \texttt{min\_\allowbreak{}comm}.
+\end{leanbox}
 
 \end{document}

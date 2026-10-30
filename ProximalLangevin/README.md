@@ -17,8 +17,8 @@ records the distinction for each result.
 
 ## Proved MYIPLA theorem
 
-Let $g_1$ be differentiable and $\mu$-strongly convex with an
-$L_1$-Lipschitz gradient, with $\mu>0$. Let $g_2$ be a finite real-valued,
+Let $g_1$ be differentiable and $m$-strongly convex with an
+$L_1$-Lipschitz gradient, with $m>0$. Let $g_2$ be a finite real-valued,
 convex, lower-bounded, $K$-Lipschitz function. Define the Moreau envelope
 and smoothed potential by
 
@@ -27,16 +27,16 @@ g_2^\lambda(v)=\min_w\left\{g_2(w)+\frac{\|w-v\|^2}{2\lambda}\right\},
 \qquad U_\lambda=g_1+g_2^\lambda,\qquad L_\lambda=L_1+\lambda^{-1}.
 $$
 
-For $N>0$, $\lambda>0$ and $0<\gamma\le 2/(\mu+L_\lambda)$, the
+For $N>0$, $\lambda>0$ and $0<\gamma\le 2/(m+L_\lambda)$, the
 Gaussian MYIPLA recursion satisfies
 
 $$
 \begin{aligned}
 \left(\mathbb E\|\theta_k-\bar\theta_\star\|^2\right)^{1/2}
-\le{}&\sqrt{\frac{\lambda K^2}{\mu}}
- +\sqrt{\frac{d_\theta}{N\mu}}
- +(1-\mu\gamma)^k W_2(\rho_0,\Pi_{N,\lambda})\\
- &+\frac{33}{20}\frac{L_\lambda}{\mu}
+\le{}&\sqrt{\frac{\lambda K^2}{m}}
+ +\sqrt{\frac{d_\theta}{Nm}}
+ +(1-m\gamma)^k W_2(\rho_0,\Pi_{N,\lambda})\\
+ &+\frac{33}{20}\frac{L_\lambda}{m}
        \sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma .
 \end{aligned}
 $$
@@ -45,7 +45,7 @@ Here $\bar\theta_\star$ maximizes the **original latent marginal integral**,
 $\Pi_{N,\lambda}$ is the defined lifted smoothed Gibbs target, and $\rho_0$
 is the initial law in scaled particle coordinates. Initialization has finite
 second moment; the innovations are independent standard Gaussians, independent
-of initialization. The source states these distributional premises explicitly.
+of initialization. The Lean theorem states these distributional premises explicitly.
 Output moments, target normalization, stationarity and concentration are
 derived. No LSI or entropy-interpolation data are assumed.
 

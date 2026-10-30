@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,19 @@ If \(Y_t-Y_0=-\int_0^tg(Y_s)ds+W_t\), then \(Y_{a+t}-Y_a=-\int_0^tg(Y_{a+s})ds+(
 
 Subtract the global integral equation at a restart time from its value later in the interval. The new initial phase is the global phase at the restart, and the new forcing is the corresponding input increment. Thus the shifted path solves the same kinetic equation locally.
 
+\begin{leanbox}{Lean: \texttt{additive\_\allowbreak{}integral\_\allowbreak{}segment}}
+\leansource{\texttt{additive\_\allowbreak{}integral\_\allowbreak{}segment} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 12–29}
+\begin{leancode}
+\leanline{0}{theorem\ additive\_integral\_segment\ (g\ :\ E\ →\ E)\ (hg\ :\ Continuous\ g)}
+\leanline{4}{(Y\ W\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (T\ a\ h\ :\ ℝ)}
+\leanline{4}{(ha\ :\ 0\ ≤\ a)\ (hh\ :\ 0\ ≤\ h)\ (hah\ :\ a+h\ ≤\ T)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ W\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{Y\ (a+t)\ -\ Y\ a\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ (a+s)))\ +\ (W\ (a+t)-W\ a)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{additive\_\allowbreak{}integral\_\allowbreak{}segment} gives the formal counterpart of this step. The main intermediate facts are \texttt{hat}, \texttt{ha\allowbreak{}T}, \texttt{hc}, \texttt{hi}, \texttt{hs}, \texttt{hya} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}add\_\allowbreak{}left}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Use a raw continuous input with the selected kinetic flow}{Use a raw continuous input with the selected kinetic flow}}
 
@@ -42,6 +78,54 @@ A continuous input \(W\) is restricted to the compact solution horizon, giving a
 
 The selected flow only needs a continuous additive velocity input starting at zero. Subtracting the input’s initial value supplies that normalization for a raw continuous path. This permits local segments to be defined uniformly without choosing a new stochastic solution for each interval.
 
+\begin{leanbox}{Lean: \texttt{compactVelocityInput}, \texttt{normalizedForcing\_\allowbreak{}compactVelocityInput}, \texttt{kineticSegmentFlow} and 1 more}
+\leansource{\texttt{compactVelocityInput} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 32–33}
+\begin{leancode}
+\leanline{0}{def\ compactVelocityInput\ (T\ :\ ℝ)\ (W\ :\ ℝ\ →\ E)\ (hW\ :\ Continuous\ W)\ :\ VelocityForcing\ (E\ :=\ E)\ T\ :=}
+\leanline{2}{⟨fun\ t\ =>\ W\ t,hW.comp\ continuous\_subtype\_val⟩}
+\end{leancode}
+\leansource{\texttt{normalizedForcing\_\allowbreak{}compactVelocityInput} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 36–40}
+\begin{leancode}
+\leanline{0}{theorem\ normalizedForcing\_compactVelocityInput\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(W\ :\ ℝ\ →\ E)\ (hW\ :\ Continuous\ W)\ (hW0\ :\ W\ 0\ =\ 0)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{normalizedForcing\ T\ hT\ (compactVelocityInput\ T\ W\ hW)\ t\ =\ W\ t}
+\end{leancode}
+\leansource{\texttt{kineticSegmentFlow} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 43–45}
+\begin{leancode}
+\leanline{0}{def\ kineticSegmentFlow\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℝ\ →\ E)\ (hW\ :\ Continuous\ W)\ :\ ℝ\ →\ E\ ×\ E\ :=}
+\leanline{2}{kineticFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ (compactVelocityInput\ T\ W\ hW)}
+\end{leancode}
+\leansource{\texttt{kineticSegmentFlow\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 48–60}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSegmentFlow\_spec\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℝ\ →\ E)\ (hW\ :\ Continuous\ W)}
+\leanline{4}{(hW0\ :\ W\ 0\ =\ 0)\ :}
+\leanline{4}{Continuous\ (kineticSegmentFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ W\ hW)\ ∧}
+\leanline{6}{kineticSegmentFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ W\ hW\ 0\ =\ initial\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{8}{kineticSegmentFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ W\ hW\ t\ -\ initial\ =}
+\leanline{10}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u}
+\leanline{12}{(kineticSegmentFlow\ g\ L\ γ\ u\ hg\ T\ hT\ initial\ W\ hW\ s))\ +\ (W\ t,0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{compact\allowbreak{}Velocity\allowbreak{}Input} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{normalized\allowbreak{}Forcing\_\allowbreak{}compact\allowbreak{}Velocity\allowbreak{}Input} gives the formal counterpart of this step.
+
+
+
+
+\texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Derive velocity, kinematic and mild equations by projection}{Derive velocity, kinematic and mild equations by projection}}
 
@@ -52,6 +136,49 @@ Applying the velocity continuous linear projection to the kinetic integral equat
 
 Projection of the phase equation gives the velocity and position integral identities. The integrating-factor argument then gives the mild velocity formula, while the position equation is already the kinematic primitive. These are the exact analytic identities required by the local-error estimate.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}velocity}, \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}kinematic}, \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}mild}}
+\leansource{\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 63–74}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_integral\_velocity\ (g\ :\ E\ →\ E)\ (γ\ u\ T\ :\ ℝ)\ (Y\ :\ ℝ\ →\ E\ ×\ E)}
+\leanline{4}{(W\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (hg\ :\ Continuous\ g)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (W\ t,0))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{(Y\ t).1\ -\ (Y\ 0).1\ =\ -(∫\ s\ in\ 0..t,\ γ\ •\ (Y\ s).1\ +\ u\ •\ g\ (Y\ s).2)\ +\ W\ t}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}kinematic} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 77–89}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_integral\_kinematic\ (g\ :\ E\ →\ E)\ (γ\ u\ T\ :\ ℝ)\ (Y\ :\ ℝ\ →\ E\ ×\ E)}
+\leanline{4}{(W\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (hg\ :\ Continuous\ g)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (W\ t,0))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{(Y\ t).2\ -\ (Y\ 0).2\ =\ ∫\ s\ in\ 0..t,\ (Y\ s).1}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}mild} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 92–102}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_integral\_mild\ (g\ :\ E\ →\ E)\ (γ\ u\ T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(Y\ :\ ℝ\ →\ E\ ×\ E)\ (W\ B\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (hg\ :\ Continuous\ g)}
+\leanline{4}{(hB\ :\ Continuous\ B)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (W\ t,0))}
+\leanline{4}{(hnoise\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ B\ t\ =\ W\ t\ -\ γ\ •\ ∫\ s\ in\ 0..t,\ B\ s)\ :}
+\leanline{4}{(Y\ T).1\ =\ psi\ γ\ 0\ T\ •\ (Y\ 0).1\ -}
+\leanline{6}{(∫\ s\ in\ 0..T,\ Real.exp\ (-γ*(T-s))\ •\ (u\ •\ g\ (Y\ s).2))\ +\ B\ T}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}velocity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hp} in that order. Named proof applications include \texttt{hp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}kinematic} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hp} in that order. Named proof applications include \texttt{hp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}mild} gives the formal counterpart of this step. Named proof applications include \texttt{damped\_\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}mild}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Construct exact reference segments and the defined numerical chain}{Construct exact reference segments and the defined numerical chain}}
 
@@ -62,6 +189,57 @@ The reference chain starts from its supplied phase vector. At each iteration, it
 
 The reference uses exact selected segments; the numerical sequence uses the defined exponential update with the same interval responses. Their endpoint matching is built into the recursions. The comparison is therefore between trajectories rather than arbitrary sequences satisfying a desired bound.
 
+\begin{leanbox}{Lean: \texttt{kineticReferenceChain}, \texttt{kineticReferenceSegment}, \texttt{exponentialInputChain} and 1 more}
+\leansource{\texttt{kineticReferenceChain} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 105–110}
+\begin{leancode}
+\leanline{0}{def\ kineticReferenceChain\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ :\ ℕ\ →\ E\ ×\ E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n+1\ =>\ kineticSegmentFlow\ g\ L\ γ\ u\ hg\ h\ hh}
+\leanline{6}{(kineticReferenceChain\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n)\ (W\ n)\ (hW\ n)\ h}
+\end{leancode}
+\leansource{\texttt{kineticReferenceSegment} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 113–116}
+\begin{leancode}
+\leanline{0}{def\ kineticReferenceSegment\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (n\ :\ ℕ)\ :\ ℝ\ →\ E\ ×\ E\ :=}
+\leanline{2}{kineticSegmentFlow\ g\ L\ γ\ u\ hg\ h\ hh\ (kineticReferenceChain\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n)\ (W\ n)\ (hW\ n)}
+\end{leancode}
+\leansource{\texttt{exponentialInputChain} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 119–123}
+\begin{leancode}
+\leanline{0}{def\ exponentialInputChain\ (g\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)\ (initial\ :\ E\ ×\ E)}
+\leanline{4}{(B\ :\ ℕ\ →\ ℝ\ →\ E)\ :\ ℕ\ →\ E\ ×\ E}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n+1\ =>\ exponentialStep\ g\ γ\ h\ (exponentialInputChain\ g\ γ\ h\ initial\ B\ n)}
+\leanline{6}{(B\ n\ h,∫\ s\ in\ 0..h,\ B\ n\ s)}
+\end{leancode}
+\leansource{\texttt{exponentialInputChain\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 208–212}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialInputChain\_succ\ (g\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)\ (initial\ :\ E\ ×\ E)}
+\leanline{4}{(B\ :\ ℕ\ →\ ℝ\ →\ E)\ (n\ :\ ℕ)\ :}
+\leanline{4}{exponentialInputChain\ g\ γ\ h\ initial\ B\ (n+1)\ =}
+\leanline{6}{exponentialStep\ g\ γ\ h\ (exponentialInputChain\ g\ γ\ h\ initial\ B\ n)}
+\leanline{8}{(B\ n\ h,∫\ s\ in\ 0..h,\ B\ n\ s)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Reference\allowbreak{}Chain} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Reference\allowbreak{}Segment} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{exponential\allowbreak{}Input\allowbreak{}Chain} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{exponential\allowbreak{}Input\allowbreak{}Chain\_\allowbreak{}succ} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+\end{leanbox}
 
 \section{\texorpdfstring{The auxiliary exact path from the current numerical state}{The auxiliary exact path from the current numerical state}}
 
@@ -72,6 +250,57 @@ The auxiliary segment is a selected exact kinetic solution whose initial conditi
 
 At step \(n\), start an auxiliary exact segment at the numerical phase and drive it by the same input as the reference segment. It agrees initially with the numerical state, enabling the freezing-error estimate. Its discrepancy from the reference is controlled by exact-flow contraction.
 
+\begin{leanbox}{Lean: \texttt{kineticAuxiliarySegment}, \texttt{kineticReferenceSegment\_\allowbreak{}spec}, \texttt{kineticAuxiliarySegment\_\allowbreak{}spec}}
+\leansource{\texttt{kineticAuxiliarySegment} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 126–129}
+\begin{leancode}
+\leanline{0}{def\ kineticAuxiliarySegment\ (g\ :\ E\ →\ E)\ (L\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ B\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (n\ :\ ℕ)\ :\ ℝ\ →\ E\ ×\ E\ :=}
+\leanline{2}{kineticSegmentFlow\ g\ L\ γ\ 1\ hg\ h\ hh\ (exponentialInputChain\ g\ γ\ h\ initial\ B\ n)\ (W\ n)\ (hW\ n)}
+\end{leancode}
+\leansource{\texttt{kineticReferenceSegment\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 132–149}
+\begin{leancode}
+\leanline{0}{theorem\ kineticReferenceSegment\_spec\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (hW0\ :\ ∀\ n,\ W\ n\ 0\ =\ 0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Continuous\ (kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n)\ ∧}
+\leanline{6}{kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ 0\ =}
+\leanline{8}{kineticReferenceChain\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ ∧}
+\leanline{6}{kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ h\ =}
+\leanline{8}{kineticReferenceChain\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ (n+1)\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{8}{kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ t\ -}
+\leanline{10}{kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ 0\ =}
+\leanline{10}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u}
+\leanline{12}{(kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ s))\ +\ (W\ n\ t,0)}
+\end{leancode}
+\leansource{\texttt{kineticAuxiliarySegment\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 153–168}
+\begin{leancode}
+\leanline{0}{theorem\ kineticAuxiliarySegment\_spec\ (g\ :\ E\ →\ E)\ (L\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ B\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (hW0\ :\ ∀\ n,\ W\ n\ 0\ =\ 0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Continuous\ (kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n)\ ∧}
+\leanline{6}{kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ 0\ =}
+\leanline{8}{exponentialInputChain\ g\ γ\ h\ initial\ B\ n\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{8}{kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ t\ -}
+\leanline{10}{kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ 0\ =}
+\leanline{10}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ 1}
+\leanline{12}{(kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ s))\ +\ (W\ n\ t,0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Auxiliary\allowbreak{}Segment} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Reference\allowbreak{}Segment\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\allowbreak{}Auxiliary\allowbreak{}Segment\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Discharge the local-error proof's kinematic and mild requirements}{Discharge the local-error proof's kinematic and mild requirements}}
 
@@ -82,5 +311,37 @@ The constructed auxiliary path has its positional primitive identity by the gene
 
 The local-error argument needs continuity, the mild equation, and the integrated-velocity position equation. Each follows from the selected solution’s specification. These hypotheses are therefore verified when the constructed segments are inserted into the one-step coupling theorem.
 
+\begin{leanbox}{Lean: \texttt{kineticAuxiliarySegment\_\allowbreak{}kinematic}, \texttt{kineticAuxiliarySegment\_\allowbreak{}mild}}
+\leansource{\texttt{kineticAuxiliarySegment\_\allowbreak{}kinematic} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 171–179}
+\begin{leancode}
+\leanline{0}{theorem\ kineticAuxiliarySegment\_kinematic\ (g\ :\ E\ →\ E)\ (L\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ B\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (hW0\ :\ ∀\ n,\ W\ n\ 0\ =\ 0)\ (n\ :\ ℕ)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{(kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ t).2\ -}
+\leanline{6}{(kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ 0).2\ =}
+\leanline{6}{∫\ s\ in\ 0..t,\ (kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ s).1}
+\end{leancode}
+\leansource{\texttt{kineticAuxiliarySegment\_\allowbreak{}mild} \quad KineticLangevin/\allowbreak{}CoupledSegments.lean, lines 182–205}
+\begin{leancode}
+\leanline{0}{theorem\ kineticAuxiliarySegment\_mild\ (g\ :\ E\ →\ E)\ (L\ γ\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ B\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (hW0\ :\ ∀\ n,\ W\ n\ 0\ =\ 0)}
+\leanline{4}{(hB\ :\ ∀\ n,\ Continuous\ (B\ n))}
+\leanline{4}{(hnoise\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →\ B\ n\ t\ =\ W\ n\ t\ -\ (γ\ :\ ℝ)\ •\ ∫\ s\ in\ 0..t,\ B\ n\ s)}
+\leanline{4}{(n\ :\ ℕ)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{(kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ t).1\ =}
+\leanline{6}{psi\ γ\ 0\ t\ •\ (kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ 0).1\ -}
+\leanline{6}{(∫\ s\ in\ 0..t,\ Real.exp\ (-(γ\ :\ ℝ)*(t-s))\ •}
+\leanline{8}{g\ (kineticAuxiliarySegment\ g\ L\ γ\ hg\ h\ hh\ initial\ W\ B\ hW\ n\ s).2)\ +\ B\ n\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Auxiliary\allowbreak{}Segment\_\allowbreak{}kinematic} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. Named proof applications include \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}kinematic}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\allowbreak{}Auxiliary\allowbreak{}Segment\_\allowbreak{}mild} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{heq}, \texttt{hb} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}, \texttt{hnoise}, \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}mild}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

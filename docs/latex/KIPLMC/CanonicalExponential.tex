@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,9 +58,33 @@ The particle coordinate set is \(\mathrm{Fin}(d_\theta)\sqcup(\mathrm{Fin}(N)\ti
 
 The finite particle coordinate set has cardinality \(d_\theta+Nd_x\), even when the parameter and latent dimensions differ. The generic shared construction applies directly to that set. Its Brownian response law therefore matches the particle Gaussian transition without an artificial dimensional identification.
 
+\begin{leanbox}{Lean: \texttt{canonicalKLMC\_\allowbreak{}eq\_\allowbreak{}gaussianPositionLaw}, \texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}eq\_\allowbreak{}canonical}}
+\leansource{\texttt{canonicalKLMC\_\allowbreak{}eq\_\allowbreak{}gaussianPositionLaw} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 15–26}
+\begin{leancode}
+\leanline{0}{theorem\ canonicalKLMC\_eq\_gaussianPositionLaw\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ N\ dθ\ dx→ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (n\ :\ ℕ)\ :}
+\leanline{4}{GenericCanonicalCoupling.klmcLaw\ f\ γ\ h\ ν\ n\ =}
+\leanline{6}{(ULA.markovLaws\ (klmcStep\ (gradient\ f)\ γ\ h)\ (exponentialNoise\ N\ dθ\ dx\ γ\ h)}
+\leanline{8}{((stdGaussian\ (State\ N\ dθ\ dx)).prod\ ν)\ n).map\ Prod.snd}
+\end{leancode}
+\leansource{\texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}eq\_\allowbreak{}canonical} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 29–39}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1GaussianPositionLaws\_eq\_canonical\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx→ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (hγ\ :\ 0≤γ)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (n\ :\ ℕ)\ :}
+\leanline{4}{(kiplmc1GaussianLaws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd\ =}
+\leanline{6}{GenericCanonicalCoupling.klmcLaw\ (@IPLA.potential\ N\ dθ\ dx\ U)\ (Real.sqrt\ N*γ)}
+\leanline{8}{⟨(h:ℝ)/Real.sqrt\ N,div\_nonneg\ h.coe\_nonneg\ (Real.sqrt\_nonneg\ \_)⟩\ ν\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Step} is the deterministic particle step. \texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}parameter\_\allowbreak{}position} and \texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}particle\_\allowbreak{}velocity} identify its coordinate blocks with the displayed physical equations. \texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Position\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical} transfers the complete Gaussian Markov law, including initialization and correlated innovations, to the canonical kinetic sampler at the changed clock.
+\end{leanbox}
 
 
-Earlier results used here: \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.114.3]{LangevinLean2026Kinetic}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}; \cite[Section~3.36.1]{LangevinLean2026Kinetic}; \cite[Section~3.36.2]{LangevinLean2026Kinetic}; \cite[Section~3.57.14]{LangevinLean2026Kinetic}.
+Earlier results used here: \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.114.3]{LangevinLean2026Kinetic}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}; \cite[Section~3.36.1]{LangevinLean2026Kinetic}; \cite[Section~3.36.2]{LangevinLean2026Kinetic}; \cite[Section~3.57.14]{LangevinLean2026Kinetic}.
 
 \section{\texorpdfstring{The transformed assumptions and all particle-count cancellations}{The transformed assumptions and all particle-count cancellations}}
 
@@ -48,6 +95,33 @@ In scaled particle coordinates, the sum potential \(V_N\) has strong convexity \
 
 Both curvature constants scale by \(N\), while friction and step scale by reciprocal square-root particle factors. The transformed rate cancels these factors exactly. The bias retains only thermal radius \(\sqrt{d_x+d_\theta/N}\), which explains the dependence on particle count.
 
+\begin{leanbox}{Lean: \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}conditions}, \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}rate}, \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}bias}}
+\leansource{\texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}conditions} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 42–60}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_scaled\_conditions\ (N\ :\ ℕ)\ (hN\ :\ 0<N)\ (m\ :\ ℝ)\ (L\ γ\ h\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmL\ :\ m≤(L:ℝ))\ (hγ\ :\ 0<(γ:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)\ (hh\ :\ 0<(h:ℝ))}
+\leanline{4}{(hstep\ :\ 4*(γ:ℝ)*(L:ℝ)*(h:ℝ)≤m)\ :}
+\leanline{4}{0<(N:ℝ)*m\ ∧\ (N:ℝ)*m≤((N:ℝ≥0)*L:ℝ≥0)\ ∧}
+\leanline{4}{0<Real.sqrt\ N*(γ:ℝ)\ ∧}
+\leanline{4}{(N:ℝ)*m+((N:ℝ≥0)*L:ℝ≥0)≤(Real.sqrt\ N*(γ:ℝ))\textasciicircum{}2\ ∧}
+\leanline{4}{0<(h:ℝ)/Real.sqrt\ N\ ∧}
+\leanline{4}{4*(Real.sqrt\ N*(γ:ℝ))*((N:ℝ≥0)*L:ℝ≥0)*((h:ℝ)/Real.sqrt\ N)≤(N:ℝ)*m}
+\end{leancode}
+\leansource{\texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}rate} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 63–71}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_scaled\_rate\ (N\ :\ ℕ)\ (hN\ :\ 0<N)\ (m\ γ\ h\ :\ ℝ)\ :}
+\leanline{4}{1-3*((N:ℝ)*m)*(h/Real.sqrt\ N)/(4*(Real.sqrt\ N*γ))=1-3*m*h/(4*γ)}
+\end{leancode}
+\leansource{\texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}bias} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 74–82}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_scaled\_bias\ (N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0<N)\ (m\ L\ h\ :\ ℝ)\ :}
+\leanline{4}{((N:ℝ)*L)*(h/Real.sqrt\ N)*Real.sqrt\ (2*((dθ:ℝ)+(N:ℝ)*(dx:ℝ)))/((N:ℝ)*m)\ =}
+\leanline{6}{L*h*(Real.sqrt\ 2*Real.sqrt\ (((dθ:ℝ)+(N:ℝ)*(dx:ℝ))/(N:ℝ)))/m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}conditions} proves positivity of the real particle count and its square root as \texttt{hn} and \texttt{hc}; these allow multiplication of the original assumptions and cancellation in the transformed step. \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}rate} handles zero friction separately before clearing nonzero denominators. \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}bias} rewrites the square-root quotient, handles zero curvature separately, and then cancels the positive square-root particle factor. The last two scalar identities therefore have exactly the weak hypotheses stated in their own declarations, while the sampler application supplies positive curvature and friction.
+\end{leanbox}
 
 \section{\texorpdfstring{Derive finite transport moments for the output}{Derive finite transport moments for the output}}
 
@@ -58,6 +132,21 @@ The initial position law has the stated finite second moment. Strong convexity p
 
 Finite initialization and target moments construct a finite-cost coupling. The shared constructed chain and stationary reference then give finite output transport on the source. This validates every later real-valued transport and parameter-error integral.
 
+\begin{leanbox}{Lean: \texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top}}
+\leansource{\texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 86–108}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1GaussianPositionLaws\_wasserstein2\_ne\_top\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx→ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (h\ :\ ℝ≥0)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx→State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ ((kiplmc1GaussianLaws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd)}
+\leanline{6}{(IPLA.gibbsTarget\ U)≠⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Position\allowbreak{}Laws\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} gives the formal counterpart of this step. The main intermediate facts are \texttt{hn}, \texttt{h\ensuremath{\pi}}, \texttt{hfinite}, \texttt{hglobal}, \texttt{ho} in that order. Named proof applications include \texttt{ho}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.57.17]{LangevinLean2026Kinetic}; \cite[Section~3.57.18]{LangevinLean2026Kinetic}.
@@ -71,6 +160,25 @@ The shared theorem is applied to the sum potential, using its derived \(Nm\)-str
 
 The shared theorem is applied only after the exact noise law, whole-chain conjugacy, and transformed assumptions have been established. Rewriting its conclusion gives the physical-time particle sampling bound. Every term refers to the independent correlated-Gaussian algorithm.
 
+\begin{leanbox}{Lean: \texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}wasserstein\_\allowbreak{}bound}}
+\leansource{\texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 111–143}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1GaussianPositionLaws\_wasserstein\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx→ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))\ (hstep\ :\ 4*(γ:ℝ)*(L:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx→State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((kiplmc1GaussianLaws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd)}
+\leanline{6}{(IPLA.gibbsTarget\ U)\ ≤}
+\leanline{6}{Real.sqrt\ 2*(1-3*m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ ν\ (IPLA.gibbsTarget\ U)+}
+\leanline{6}{(L:ℝ)*(h:ℝ)*(Real.sqrt\ 2*Real.sqrt\ (((dθ:ℝ)+(N:ℝ)*(dx:ℝ))/(N:ℝ)))/m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hdiff'}, \texttt{hsc'} and \texttt{h\allowbreak{}Lip'} establish the lifted sum-potential assumptions. \texttt{h\ensuremath{\pi}} and \texttt{hfinite} provide finite target and initial transport moments. The changed friction and step are \texttt{\ensuremath{\gamma}'} and \texttt{h'}; \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}conditions} supplies all six transformed hypotheses. \texttt{hb} applies \texttt{Generic\allowbreak{}Canonical\allowbreak{}Coupling.\allowbreak{}klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound}. The remaining rewrites use \texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Position\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}canonical}, count the disjoint-union coordinates, and apply \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}rate} and \texttt{kiplmc1\_\allowbreak{}scaled\_\allowbreak{}bias} to obtain the physical-time formula.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.57.14]{LangevinLean2026Kinetic}; \cite[Section~3.57.19]{LangevinLean2026Kinetic}.
@@ -84,6 +192,26 @@ The parameter projection is a continuous linear map with norm at most one. The p
 
 The parameter projection is nonexpansive, so it cannot increase the transport discrepancy. Minkowski’s inequality adds the equilibrium parameter radius around the maximizer. This decomposes the parameter root-mean-square error into transient, discretization, and statistical contributions.
 
+\begin{leanbox}{Lean: \texttt{kiplmc1\_\allowbreak{}parameter\_\allowbreak{}bound}}
+\leansource{\texttt{kiplmc1\_\allowbreak{}parameter\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 146–169}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_parameter\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx→ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))\ (hstep\ :\ 4*(γ:ℝ)*(L:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx→State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ U\ θStar)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z-θStar‖\textasciicircum{}2}
+\leanline{6}{∂(kiplmc1GaussianLaws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd)\ ≤}
+\leanline{6}{Real.sqrt\ 2*(1-3*m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ ν\ (IPLA.gibbsTarget\ U)+}
+\leanline{6}{(L:ℝ)*(h:ℝ)*(Real.sqrt\ 2*Real.sqrt\ (((dθ:ℝ)+(N:ℝ)*(dx:ℝ))/(N:ℝ)))/m+}
+\leanline{6}{Real.sqrt\ ((dθ:ℝ)/((N:ℝ)*m))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\_\allowbreak{}parameter\_\allowbreak{}bound} first derives finite output transport and invokes the exact parameter concentration bound. The nonexpansive parameter projection is passed to the projected root-mean-square transport inequality. Finiteness justifies rewriting the projected moment as its square-root integral. Substituting \texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Position\allowbreak{}Laws\_\allowbreak{}wasserstein\_\allowbreak{}bound} then gives the transient, discretization and concentration terms in that order.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -97,17 +225,64 @@ The initial Wasserstein distance is bounded by every initial coupling cost. In p
 
 The independent initial product coupling is one admissible plan, so its root-mean-square cost bounds the infimum defining Wasserstein distance. A nonnegative transient coefficient preserves that comparison. The printed initialization constant is therefore a corollary of the stronger Wasserstein estimate.
 
+\begin{leanbox}{Lean: \texttt{independent\_\allowbreak{}initial\_\allowbreak{}wasserstein\_\allowbreak{}bound}, \texttt{kiplmc1\_\allowbreak{}rate\_\allowbreak{}nonneg}, \texttt{kiplmc1\_\allowbreak{}parameter\_\allowbreak{}bound\_\allowbreak{}independent}}
+\leansource{\texttt{independent\_\allowbreak{}initial\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 173–191}
+\begin{leancode}
+\leanline{0}{theorem\ independent\_initial\_wasserstein\_bound}
+\leanline{4}{\{E\ :\ Type*\}\ [NormedAddCommGroup\ E]\ [InnerProductSpace\ ℝ\ E]\ [CompleteSpace\ E]}
+\leanline{4}{[MeasurableSpace\ E]\ [BorelSpace\ E]\ [SecondCountableTopology\ E]}
+\leanline{4}{(ν\ π\ :\ Measure\ E)\ [IsProbabilityMeasure\ ν]\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(hν\ :\ MemLp\ (id\ :\ E→E)\ 2\ ν)\ (hπ\ :\ MemLp\ (id\ :\ E→E)\ 2\ π)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ν\ π\ ≤\ Real.sqrt\ (∫\ p\ :\ E×E,\ ‖p.1-p.2‖\textasciicircum{}2\ ∂ν.prod\ π)}
+\end{leancode}
+\leansource{\texttt{kiplmc1\_\allowbreak{}rate\_\allowbreak{}nonneg} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 194–205}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_rate\_nonneg\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hstep\ :\ 4*(γ:ℝ)*(L:ℝ)*(h:ℝ)≤m)\ :}
+\leanline{4}{0≤1-3*m*(h:ℝ)/(4*(γ:ℝ))}
+\end{leancode}
+\leansource{\texttt{kiplmc1\_\allowbreak{}parameter\_\allowbreak{}bound\_\allowbreak{}independent} \quad KIPLMC/\allowbreak{}CanonicalExponential.lean, lines 208–232}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_parameter\_bound\_independent\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx→ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m≤(L:ℝ))\ (hm\ :\ 0<m)}
+\leanline{4}{(hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(L:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))\ (hstep\ :\ 4*(γ:ℝ)*(L:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (hν\ :\ MemLp\ (id\ :\ State\ N\ dθ\ dx→State\ N\ dθ\ dx)\ 2\ ν)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ U\ θStar)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z-θStar‖\textasciicircum{}2}
+\leanline{6}{∂(kiplmc1GaussianLaws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd)\ ≤}
+\leanline{6}{Real.sqrt\ 2*(1-3*m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*}
+\leanline{8}{Real.sqrt\ (∫\ p\ :\ State\ N\ dθ\ dx×State\ N\ dθ\ dx,\ ‖p.1-p.2‖\textasciicircum{}2\ ∂ν.prod\ (IPLA.gibbsTarget\ U))+}
+\leanline{6}{(L:ℝ)*(h:ℝ)*(Real.sqrt\ 2*Real.sqrt\ (((dθ:ℝ)+(N:ℝ)*(dx:ℝ))/(N:ℝ)))/m+}
+\leanline{6}{Real.sqrt\ ((dθ:ℝ)/((N:ℝ)*m))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{independent\_\allowbreak{}initial\_\allowbreak{}wasserstein\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hmem}, \texttt{hb}, \texttt{heq} in that order. Named proof applications include \texttt{heq}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kiplmc1\_\allowbreak{}rate\_\allowbreak{}nonneg} gives the formal counterpart of this step. The main intermediate facts are \texttt{hcoeff}, \texttt{he}, \texttt{hp}, \texttt{hid} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{kiplmc1\_\allowbreak{}parameter\_\allowbreak{}bound\_\allowbreak{}independent} gives the formal counterpart of this step. The main intermediate facts are \texttt{hn}, \texttt{h\ensuremath{\pi}}, \texttt{hw}, \texttt{hq}, \texttt{hc}, \texttt{hb} in that order. Named proof applications include \texttt{hb.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.11]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.41.2]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b4b7242c6d4f. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

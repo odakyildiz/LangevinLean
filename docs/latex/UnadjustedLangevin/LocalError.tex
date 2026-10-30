@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,237 +39,388 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Let \(H\) be a real Banach space, \(g:H\to H\) a Lipschitz map, and \(Y,B\) curves satisfying the stated drift integral equation. All time integrals are Bochner integrals. Define \(D_h=\int_0^h(g(Y_t)-g(Y_0))dt\). Integral linearity gives \(Y_h=Y_0-hg(Y_0)+B_h-D_h\). The norm bound follows by integrating the Lipschitz estimate for \(g(Y_t)-g(Y_0)\).
+Let \(H\) be a real Banach space, let \(g:H\to H\) be a map (the drift), and let \(Y,B:\mathbb R\to H\) be curves. Integrals of \(H\)-valued functions of time are Bochner integrals with respect to Lebesgue measure, written as oriented integrals \(\int_a^b\) (for \(b<a\), \(\int_a^b=-\int_b^a\)); the integrands below are assumed integrable on the intervals in question, which holds in the application because they are continuous. We use linearity, the formula \(\int_a^bc\,dt=(b-a)c\) for a constant vector \(c\), and the norm estimate \(\|\int_a^b\phi(t)\,dt\|\le\int_a^b\psi(t)\,dt\) for \(a\le b\) whenever \(\|\phi(t)\|\le\psi(t)\) on \((a,b]\) and \(\psi\) is integrable.
 
 
 
-For the application \(H=L^2(P;\mathbb R^d)\), the norms are mean-square norms. The assumed drift and noise bounds give \(\|Y_t-Y_0\|\le t\sqrt{Ld}+\sqrt{2d}\sqrt t\). Their integrals have orders \(h^2\) and \(h^{3/2}\). Under \(Lh\le2\), the resulting defect is at most \((33/20)Lh\sqrt{hd}\). Stationarity and the score bound remain hypotheses of this calculation and are constructed separately.
+
+The \emph{local defect} of one Euler step of length \(h\) is
+
+
+\[D_h(g,Y)=\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt.\]
+
+
+If \(Y\) solves the integral equation \(Y_t-Y_0=-\int_0^tg(Y_s)\,ds+B_t\) on \([0,h]\), then \(Y_h=Y_0-hg(Y_0)+B_h-D_h(g,Y)\): the exact value after time \(h\) is one Euler step with the same additive input \(B_h\), minus the defect. If moreover \(g\) is \(L\)-Lipschitz, \(\|g(Y_t)\|\le G\) and \(\|B_t\|\le N\sqrt t\) for \(0\le t\le h\), then
+
+
+\[\|D_h(g,Y)\|\le L\Bigl(\frac{h^2G}2+\frac23h\sqrt h\,N\Bigr),\]
+
+
+and with \(G=\sqrt{Ld}\), \(N=\sqrt{2d}\) and \(Lh\le2\) this becomes \(\|D_h(g,Y)\|\le\frac{33}{20}Lh\sqrt{hd}\), where \(\frac{33}{20}\) is a rational upper bound for \(\frac76\sqrt2\). In the application, \(H\) is the space of square-integrable random vectors in \(\mathbb R^d\), so all norms are root-mean-square norms; \(Y\) is the stationary Langevin process, \(B_t\) is \(\sqrt2\) times a Brownian motion, and the two moment bounds come from the score moment of the Gibbs measure and from Gaussian moments. Those facts are hypotheses in this section and are proved elsewhere.
 
 
 \section{\texorpdfstring{Definition of the local defect}{Definition of the local defect}}
 
 
-For \(g:H\to H\), \(Y:\mathbb R\to H\), and \(h\in\mathbb R\), define the drift omitted when Euler freezes \(g\) at the initial point:
-
-\[D_h(g,Y):=\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt.\]
-
-Integrate the difference between the evolving drift and its frozen value. This defines the defect itself; the estimates below will be consequences of this definition.
+\textbf{Definition.} For \(g:H\to H\), \(Y:\mathbb R\to H\) and \(h\in\mathbb R\),
 
 
-
-The integrand vanishes at time zero, so this defect measures drift variation rather than the drift magnitude itself. In a space of random variables, the integral is a Bochner integral in that space and its norm is an \(L^2\) error. The definition integrates only drift variation; the additive input occurs separately in the integral equation.
-
-
-\section{\texorpdfstring{Separate the exact and frozen drift}{Separate the exact and frozen drift}}
+\[D_h(g,Y)=\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt\in H.\]
 
 
-If \(t\mapsto g(Y_t)\) is integrable on the interval between \(0\) and \(h\), then
+The integrand vanishes at \(t=0\); the defect measures how much the drift along the curve differs from its value at the initial point, which is the value used by one Euler step.
 
-\[D_h(g,Y)=\int_0^h g(Y_t)\,dt-h\,g(Y_0).\]
+\begin{leanbox}{Lean: \texttt{localDefect}}
+\leansource{\texttt{localDefect} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 26–27}
+\begin{leancode}
+\leanline{0}{def\ localDefect\ (g\ :\ H\ →\ H)\ (Y\ :\ ℝ\ →\ H)\ (h\ :\ ℝ)\ :\ H\ :=}
+\leanline{2}{∫\ t\ in\ 0..h,\ g\ (Y\ t)\ -\ g\ (Y\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{local\allowbreak{}Defect g Y h} is defined as \texttt{\ensuremath{\int} t in 0.\allowbreak{}.\allowbreak{}h, g (Y t) -\allowbreak{} g (Y 0)}. The notation \texttt{\ensuremath{\int} t in a.\allowbreak{}.\allowbreak{}b, f t} is Mathlib's oriented interval integral with respect to Lebesgue measure: the Bochner integral over \((a,b]\) if \(a\le b\), and minus the integral over \((b,a]\) otherwise. The variable declaration makes \(H\) a real Banach space (\texttt{[Normed\allowbreak{}Add\allowbreak{}Comm\allowbreak{}Group H] [Normed\allowbreak{}Space \ensuremath{\mathbb R} H] [Complete\allowbreak{}Space H]}). Mathlib assigns the value \(0\) to the integral of a function that is not integrable; the hypotheses of the following results make the relevant integrands integrable whenever this matters.
+\end{leanbox}
 
-Expand the definition. Both the time-dependent drift and the constant function \(g(Y_0)\) are integrable, so linearity separates their difference into two integrals.
-
-
-
-The integral of the constant vector is \((h-0)g(Y_0)=h\,g(Y_0)\), yielding the identity.
-
-
-
-Subtracting the constant inside the integral is legitimate because a constant vector is integrable on a finite interval. For negative \(h\), the oriented integral changes sign consistently on both terms. Later error estimates assume \(h\ge0\) so that time-dependent upper bounds can be integrated in their usual order.
-
-
-\section{\texorpdfstring{An exact step is Euler minus its defect}{An exact step is Euler minus its defect}}
+\section{\texorpdfstring{The defect as exact minus frozen drift}{The defect as exact minus frozen drift}}
 
 
-Assume the preceding drift integrability and the endpoint integral equation
+\textbf{Claim.} Let \(g:H\to H\), \(Y:\mathbb R\to H\) and \(h\in\mathbb R\), and assume that \(t\mapsto g(Y_t)\) is integrable on the interval between \(0\) and \(h\). Then
 
-\[Y_h-Y_0=-\int_0^h g(Y_t)\,dt+B_h.\]
 
-Then the exact reference step has the form
+\[D_h(g,Y)=\int_0^hg(Y_t)\,dt-h\,g(Y_0).\]
+
+
+\textbf{Proof.} A constant function is integrable on every bounded interval. By linearity of the integral of the two integrable functions \(t\mapsto g(Y_t)\) and \(t\mapsto g(Y_0)\),
+
+
+\[\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt=\int_0^hg(Y_t)\,dt-\int_0^hg(Y_0)\,dt,\]
+
+
+and \(\int_0^hg(Y_0)\,dt=(h-0)\,g(Y_0)=h\,g(Y_0)\), for either sign of \(h\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{localDefect\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}sub}}
+\leansource{\texttt{localDefect\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}sub} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 30–35}
+\begin{leancode}
+\leanline{0}{theorem\ localDefect\_eq\_integral\_sub\ (g\ :\ H\ →\ H)\ (Y\ :\ ℝ\ →\ H)\ (h\ :\ ℝ)}
+\leanline{4}{(hInt\ :\ IntervalIntegrable\ (fun\ t\ ↦\ g\ (Y\ t))\ volume\ 0\ h)\ :}
+\leanline{4}{localDefect\ g\ Y\ h\ =\ (∫\ t\ in\ 0..h,\ g\ (Y\ t))\ -\ h\ •\ g\ (Y\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The hypothesis \texttt{h\allowbreak{}Int : Interval\allowbreak{}Integrable (fun t \ensuremath{\mapsto} g (Y t)) volume 0 h} states that \(t\mapsto g(Y_t)\) is integrable for Lebesgue measure (\texttt{volume}) on the interval between \(0\) and \(h\). After unfolding \texttt{local\allowbreak{}Defect}, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}sub h\allowbreak{}Int interval\allowbreak{}Integrable\_\allowbreak{}const} splits the integral (the constant is interval integrable by \texttt{interval\allowbreak{}Integrable\_\allowbreak{}const}), and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const} evaluates the integral of the constant as \texttt{(h -\allowbreak{} 0) \ensuremath{\bullet} g (Y 0)}; \texttt{sub\_\allowbreak{}zero} simplifies.
+\end{leanbox}
+
+\section{\texorpdfstring{An exact step is an Euler step minus its defect}{An exact step is an Euler step minus its defect}}
+
+
+\textbf{Claim.} Let \(g:H\to H\), \(Y,B:\mathbb R\to H\) and \(h\in\mathbb R\). Assume that \(t\mapsto g(Y_t)\) is integrable on the interval between \(0\) and \(h\) and that
+
+
+\[Y_h-Y_0=-\int_0^hg(Y_t)\,dt+B_h.\]
+
+
+Then
+
 
 \[Y_h=Y_0-h\,g(Y_0)+B_h-D_h(g,Y).\]
 
-Solve the assumed integral equation for \(Y_h\), then replace the defect by the difference between the exact drift integral and its frozen approximation.
+
+\textbf{Proof.} The hypothesis gives \(Y_h=-\int_0^hg(Y_t)\,dt+B_h+Y_0\). By the previous step, \(\int_0^hg(Y_t)\,dt=D_h(g,Y)+h\,g(Y_0)\). Substituting,
+
+
+\[Y_h=-D_h(g,Y)-h\,g(Y_0)+B_h+Y_0=Y_0-h\,g(Y_0)+B_h-D_h(g,Y).\qquad\square\]
+
+
+If a numerical step \(X'=X-hg(X)+B_h\) uses the same input \(B_h\), the input cancels from the difference: \(X'-Y_h=(X-hg(X))-(Y_0-hg(Y_0))+D_h(g,Y)\). This is how the defect enters the coupling argument.
+
+\begin{leanbox}{Lean: \texttt{localDefect\_\allowbreak{}euler\_\allowbreak{}identity}}
+\leansource{\texttt{localDefect\_\allowbreak{}euler\_\allowbreak{}identity} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 39–45}
+\begin{leancode}
+\leanline{0}{theorem\ localDefect\_euler\_identity\ (g\ :\ H\ →\ H)\ (Y\ B\ :\ ℝ\ →\ H)\ (h\ :\ ℝ)}
+\leanline{4}{(hInt\ :\ IntervalIntegrable\ (fun\ t\ ↦\ g\ (Y\ t))\ volume\ 0\ h)}
+\leanline{4}{(heq\ :\ Y\ h\ -\ Y\ 0\ =\ -(∫\ t\ in\ 0..h,\ g\ (Y\ t))\ +\ B\ h)\ :}
+\leanline{4}{Y\ h\ =\ Y\ 0\ -\ h\ •\ g\ (Y\ 0)\ +\ B\ h\ -\ localDefect\ g\ Y\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{local\allowbreak{}Defect\_\allowbreak{}euler\_\allowbreak{}identity}, \texttt{heq} is the endpoint equation. \texttt{rw [sub\_\allowbreak{}eq\_\allowbreak{}iff\_\allowbreak{}eq\_\allowbreak{}add] at heq} turns it into \(Y_h=-\int_0^hg(Y_t)\,dt+B_h+Y_0\); the goal is rewritten with this equation and with \texttt{local\allowbreak{}Defect\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}sub g Y h h\allowbreak{}Int} (the previous step), and the remaining identity in the vector space \(H\) is proved by the \texttt{module} tactic.
+\end{leanbox}
+
+\section{\texorpdfstring{Continuity gives integrability of the drift}{Continuity gives integrability of the drift}}
+
+
+\textbf{Claim.} Let \(H\) be a normed space, \(L\ge0\), let \(g:H\to H\) be \(L\)-Lipschitz, i.e. \(\|g(a)-g(b)\|\le L\|a-b\|\), and let \(Y:\mathbb R\to H\) be continuous. Then for every \(h\in\mathbb R\) the function \(t\mapsto g(Y_t)\) is integrable on the interval between \(0\) and \(h\).
 
 
 
-Cancel the two frozen-drift terms. The resulting equality is precisely the Euler update with the signed remainder \(-D_h\).
+
+\textbf{Proof.} A Lipschitz map is continuous, so \(t\mapsto g(Y_t)\) is continuous. On the compact interval \(I\) with endpoints \(0\) and \(h\) it is therefore bounded, and it is strongly measurable: its image of \(I\) is compact, hence separable, and the function is a uniform limit on \(I\) of step functions by uniform continuity. A bounded strongly measurable function on a set of finite measure is Bochner integrable. \(\square\)
 
 
 
-Substitute \(\int_0^hg(Y_t)dt=hg(Y_0)+D_h\) into the endpoint equation. The minus sign in front of the original drift integral gives \(-hg(Y_0)-D_h\). This sign convention is retained when comparing the numerical and exact updates, where subtracting the reference changes \(-D_h\) into \(+D_h\).
 
+In the application \(H\) is a space of square-integrable random vectors and continuity of \(Y\) is continuity in the root-mean-square norm.
 
-\section{\texorpdfstring{Continuity supplies drift integrability}{Continuity supplies drift integrability}}
-
-
-Let \(H\) be a normed additive group, \(g:H\to H\) be \(L\)-Lipschitz with \(L\ge0\), and \(Y:\mathbb R\to H\) be continuous. For every real \(h\), the function \(t\mapsto g(Y_t)\) is interval integrable from \(0\) to \(h\).
-
-
-
-A Lipschitz map is continuous, so \(g\circ Y\) is continuous. A continuous function is integrable on every compact interval, proving the claim.
-
-
-
-The image of a compact time interval under a continuous path is compact. A continuous drift is bounded on that image, so the composition has finite integral norm there. In the lifted random-vector setting the same argument uses continuity in \(L^2\), not a pathwise boundedness claim about every sample trajectory.
-
+\begin{leanbox}{Lean: \texttt{localDefect\_\allowbreak{}integrable}}
+\leansource{\texttt{localDefect\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 50–53}
+\begin{leancode}
+\leanline{0}{theorem\ localDefect\_integrable\ \{L\ :\ ℝ≥0\}\ \{g\ :\ H\ →\ H\}\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(Y\ :\ ℝ\ →\ H)\ (hY\ :\ Continuous\ Y)\ (h\ :\ ℝ)\ :}
+\leanline{4}{IntervalIntegrable\ (fun\ t\ ↦\ g\ (Y\ t))\ volume\ 0\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{local\allowbreak{}Defect\_\allowbreak{}integrable} is the term \texttt{(h\allowbreak{}Lip.\allowbreak{}continuous.\allowbreak{}comp h\allowbreak{}Y).\allowbreak{}interval\allowbreak{}Integrable 0 h}: \texttt{Lipschitz\allowbreak{}With.\allowbreak{}continuous} gives continuity of \(g\), \texttt{comp h\allowbreak{}Y} continuity of \(t\mapsto g(Y_t)\), and Mathlib's \texttt{Continuous.\allowbreak{}interval\allowbreak{}Integrable} integrability on every bounded interval. The line \texttt{omit [Normed\allowbreak{}Space \ensuremath{\mathbb R} H] [Complete\allowbreak{}Space H] in} removes the scalar structure and completeness, which this statement does not need.
+\end{leanbox}
 
 \section{\texorpdfstring{The square-root integral}{The square-root integral}}
 
 
-For every \(h\ge0\),
-
-\[\int_0^h\sqrt t\,dt=\frac23h\sqrt h.\]
-
-Write \(\sqrt t=t^{1/2}\) and use the power-integral formula. The exponent satisfies \(1/2>-1\), so the formula applies at the zero endpoint.
+\textbf{Claim.} For every \(h\ge0\),
 
 
-
-The contribution at zero vanishes. Since \(h\ge0\), the other endpoint is \(h^{1/2+1}=h^{1/2}h=\sqrt h\,h\).
-
+\[\int_0^h\sqrt t\,dt=\frac23\,h\sqrt h.\]
 
 
-Divide by \(1/2+1=3/2\) and rearrange the factors to obtain \((2/3)h\sqrt h\).
+\textbf{Proof.} For \(t\ge0\), \(\sqrt t=t^{1/2}\). For \(r>-1\) and \(h\ge0\) the power rule gives \(\int_0^ht^r\,dt=\frac{h^{r+1}-0^{r+1}}{r+1}\); it follows from the fundamental theorem of calculus, since \(t\mapsto t^{r+1}/(r+1)\) is continuous on \([0,h]\) with derivative \(t^r\) on \((0,h)\), and \(t^r\) is integrable near \(0\) because \(r>-1\). With \(r=\frac12\), \(0^{3/2}=0\), and \(h^{3/2}=h^{1/2}\,h=h\sqrt h\) (valid because \(h\ge0\)),
 
 
+\[\int_0^h\sqrt t\,dt=\frac{h^{3/2}}{3/2}=\frac23\,h\sqrt h.\qquad\square\]\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}sqrt\_\allowbreak{}zero}}
+\leansource{\texttt{integral\_\allowbreak{}sqrt\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 56–62}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_sqrt\_zero\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{(∫\ t\ in\ 0..h,\ Real.sqrt\ t)\ =\ (2\ /\ 3\ :\ ℝ)\ *\ h\ *\ Real.sqrt\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}sqrt\_\allowbreak{}zero} rewrites \(\sqrt t\) as \texttt{t \textasciicircum{} (1 /\allowbreak{} 2)} (\texttt{Real.\allowbreak{}sqrt\_\allowbreak{}eq\_\allowbreak{}rpow}) and applies Mathlib's \texttt{integral\_\allowbreak{}rpow}, the formula \(\int_a^bx^r\,dx=(b^{r+1}-a^{r+1})/(r+1)\), under its hypothesis \texttt{-\allowbreak{}1 < r}. \texttt{Real.\allowbreak{}zero\_\allowbreak{}rpow} evaluates \(0^{3/2}=0\), \texttt{Real.\allowbreak{}rpow\_\allowbreak{}add\_\allowbreak{}one' hh} rewrites \(h^{1/2+1}=h^{1/2}\cdot h\) (using \(h\ge0\)), and \texttt{ring} collects the constants.
+\end{leanbox}
 
-The integrand has an integrable singularity in its derivative at zero, but the function \(\sqrt t\) itself is continuous there. The primitive \((2/3)t^{3/2}\) vanishes at zero. Consequently the Brownian contribution to an integrated Lipschitz increment is exactly proportional to \(h^{3/2}\), with the constant \(2/3\) retained for the final numerical estimate.
+\section{\texorpdfstring{The increment of a solution of the integral equation}{The increment of a solution of the integral equation}}
 
 
-\section{\texorpdfstring{Bound a reference increment}{Bound a reference increment}}
+\textbf{Claim.} Let \(g:H\to H\), \(Y,B:\mathbb R\to H\) and \(h,G,N\in\mathbb R\). Assume that for every \(s\in[0,h]\)
 
 
-Let \(h\ge0\) and suppose that, for every \(0\le s\le h\),
+\[\|g(Y_s)\|\le G,\qquad\|B_s\|\le N\sqrt s,\qquad Y_s-Y_0=-\int_0^sg(Y_r)\,dr+B_s.\]
 
-\[\|g(Y_s)\|\le G,\qquad \|B_s\|\le N\sqrt s,\qquad Y_s-Y_0=-\int_0^s g(Y_r)\,dr+B_s.\]
 
-Then, for each \(0\le t\le h\),
+Then for every \(t\in[0,h]\),
+
 
 \[\|Y_t-Y_0\|\le tG+N\sqrt t.\]
 
-First bound the drift integral on \([0,t]\) by its constant norm bound:
 
-\[\left\|\int_0^t g(Y_s)\,ds\right\|\le G\,|t-0|=Gt,\]
-
-where \(t\ge0\) removes the absolute value.
+\textbf{Proof.} Fix \(t\in[0,h]\), so \(t\ge0\). Every \(s\in(0,t]\) lies in \([0,h]\), hence \(\|g(Y_s)\|\le G\) there. The norm of an integral over \((0,t]\) is at most the bound of the integrand times the length of the interval:
 
 
-
-To justify the constant bound under that integral, note that \(s\in(0,t]\) implies \(0\le s\le t\le h\). Hence the assumed bound on \([0,h]\) applies to every such \(s\).
-
+\[\Bigl\|\int_0^tg(Y_s)\,ds\Bigr\|\le G\,|t-0|=Gt.\qquad(1)\]
 
 
-Insert the integral equation and apply the triangle inequality:
+By the integral equation at \(t\), the triangle inequality and \(\|-w\|=\|w\|\),
 
-\[\|Y_t-Y_0\|\le\left\|\int_0^t g(Y_s)\,ds\right\|+\|B_t\|.\]
 
-Negation leaves the norm of the drift integral unchanged.
+\[\|Y_t-Y_0\|=\Bigl\|-\int_0^tg(Y_s)\,ds+B_t\Bigr\|\le\Bigl\|\int_0^tg(Y_s)\,ds\Bigr\|+\|B_t\|\le Gt+N\sqrt t,\]
+
+
+using (1) and the bound on \(B_t\). \(\square\)
 
 
 
-Apply the two bounds to obtain \(Gt+N\sqrt t\), and commute the factors \(G\) and \(t\).
+
+This is a deterministic norm inequality; no independence between the drift and the input \(B\) is used.
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}equation\_\allowbreak{}increment\_\allowbreak{}bound}}
+\leansource{\texttt{integral\_\allowbreak{}equation\_\allowbreak{}increment\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 66–86}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_equation\_increment\_bound}
+\leanline{4}{(g\ :\ H\ →\ H)\ (Y\ B\ :\ ℝ\ →\ H)\ (h\ G\ N\ :\ ℝ)\ (\_hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hG\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,\ ‖g\ (Y\ t)‖\ ≤\ G)}
+\leanline{4}{(hB\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,\ ‖B\ t‖\ ≤\ N\ *\ Real.sqrt\ t)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,}
+\leanline{6}{Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t\ ∈\ Set.Icc\ 0\ h)\ :}
+\leanline{4}{‖Y\ t\ -\ Y\ 0‖\ ≤\ t\ *\ G\ +\ N\ *\ Real.sqrt\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{integral\_\allowbreak{}equation\_\allowbreak{}increment\_\allowbreak{}bound} the hypotheses \texttt{h\allowbreak{}G}, \texttt{h\allowbreak{}B} and \texttt{heq} hold for \texttt{t \ensuremath{\in} Set.\allowbreak{}Icc 0 h}, the closed interval \([0,h]\). The hypothesis \texttt{\_\allowbreak{}hh : 0 \ensuremath{\le} h} is not used (the leading underscore marks this). The line \texttt{omit [Complete\allowbreak{}Space H] in} removes completeness: the statement remains true in a normed space with Mathlib's convention for integrals, and only the norm estimate for integrals is used.
 
 
 
-For each \(t\), the drift integral runs only over \([0,t]\), which lies in the assumed control interval \([0,h]\). Its norm is at most \(\int_0^tGds=tG\). Adding the noise estimate gives the stated bound; no independence between drift and noise is used, because this is a norm inequality before taking any probabilistic expectation.
+\begin{enumerate}
 
 
-\section{\texorpdfstring{Integrate the Lipschitz increment bound}{Integrate the Lipschitz increment bound}}
+\item \texttt{hdrift} is (1): Mathlib's \texttt{interval\allowbreak{}Integral.\allowbreak{}norm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}const} bounds \(\|\int_0^tf\|\) by \(C|t-0|\) when \(\|f\|\le C\) on \texttt{Ι 0 t} (the interval \((\min,\max]\), equal to \((0,t]\) by \texttt{Set.\allowbreak{}u\allowbreak{}Ioc\_\allowbreak{}of\_\allowbreak{}le}); the pointwise bound is \texttt{h\allowbreak{}G} applied at \(s\in(0,t]\subseteq[0,h]\), and \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg} removes \(|t|\).
+
+\item \texttt{rw [heq t ht]} inserts the integral equation; the \texttt{calc} block applies the triangle inequality (\texttt{norm\_\allowbreak{}add\_\allowbreak{}le}, with \texttt{norm\_\allowbreak{}neg}), then \texttt{add\_\allowbreak{}le\_\allowbreak{}add hdrift (h\allowbreak{}B t ht)}, and finally reorders the product by \texttt{ring}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The two-term defect bound}{The two-term defect bound}}
 
 
-Assume \(h\ge0\), \(g\) is \(L\)-Lipschitz with \(L\ge0\), and for \(0\le t\le h\) the same integral equation and bounds \(\|g(Y_t)\|\le G\), \(\|B_t\|\le N\sqrt t\) hold. Then
-
-\[\|D_h(g,Y)\|\le L\left(\frac{h^2G}{2}+\frac23h\sqrt h\,N\right).\]
-
-For \(0<t\le h\), Lipschitz continuity gives
-
-\[\|g(Y_t)-g(Y_0)\|\le L\|Y_t-Y_0\|.\]
-
-Multiply the increment estimate by \(L\ge0\) to obtain the pointwise majorant
-
-\[\|g(Y_t)-g(Y_0)\|\le L(tG+N\sqrt t).\]
-
-The scalar majorant \(t\mapsto L(tG+N\sqrt t)\) is continuous, hence integrable on \([0,h]\).
+\textbf{Claim.} Let \(L\ge0\) and let \(g:H\to H\) be \(L\)-Lipschitz. Let \(Y,B:\mathbb R\to H\) and \(h,G,N\in\mathbb R\) with \(h\ge0\), and assume that for every \(t\in[0,h]\)
 
 
+\[\|g(Y_t)\|\le G,\qquad\|B_t\|\le N\sqrt t,\qquad Y_t-Y_0=-\int_0^tg(Y_s)\,ds+B_t.\]
 
-Expand \(D_h\). The norm estimate for a Bochner integral, together with the integrable majorant, gives
-
-\[\|D_h\|\le\int_0^h L(tG+N\sqrt t)\,dt.\]
-
-Pull out constants and split the two integrable summands. Evaluate
-
-\[\int_0^h t\,dt=\frac{h^2}{2},\qquad \int_0^h\sqrt t\,dt=\frac23h\sqrt h.\]
-
-This leaves the two drift and noise contributions in the claimed expression.
-
-
-
-Rearrange the scalar factors to place the drift term first and the noise term second.
-
-
-
-The two terms have distinct origins and scales: \(Lh^2G/2\) comes from the deterministic accumulation of drift, and \((2/3)LNh^{3/2}\) comes from the square-root growth of the additive input. Substitution of the stationary moment bounds can therefore be made separately in these two terms.
-
-
-\section{\texorpdfstring{The exact rational constant}{The exact rational constant}}
-
-
-The numerical factor in the corrected Dalalyan–Karagulyan estimate satisfies
-
-\[\frac76\sqrt2\le\frac{33}{20}=1.65.\]
-
-Use \((\sqrt2)^2=2\) and \(\sqrt2\ge0\). Comparing squares proves the bound, since \(49/18\le1089/400\).
-
-
-
-Both sides are nonnegative, so their squares may be compared without changing the order. After squaring, the difference is the rational positive number \(1089/400-49/18\). This proves the rational upper bound on \(\sqrt2\).
-
-
-\section{\texorpdfstring{The local error with stationary moment scales}{The local error with stationary moment scales}}
-
-
-Let \(h,d\in\mathbb R\) with \(h,d\ge0\), let \(g\) be \(L\)-Lipschitz with \(L\ge0\), and suppose \(Lh\le2\). Assume that, for every \(0\le t\le h\),
-
-\[Y_t-Y_0=-\int_0^t g(Y_s)\,ds+B_t,\quad \|g(Y_t)\|\le\sqrt{Ld},\quad \|B_t\|\le\sqrt{2d}\sqrt t.\]
 
 Then
 
-\[\boxed{\|D_h(g,Y)\|\le\frac{33}{20}Lh\sqrt{hd}.}\]
 
-In \(L^2\), the drift bound corresponds to a score second moment at most \(Ld\); here that bound remains a hypothesis.
-
+\[\|D_h(g,Y)\|\le L\Bigl(\frac{h^2G}2+\frac23h\sqrt h\,N\Bigr).\]
 
 
-Compare the nonnegative quantities \(h\sqrt{Ld}\) and \(\sqrt2\sqrt{hd}\) by squaring. It suffices to show \(h^2Ld\le2hd\).
+\textbf{Proof.} \emph{(a) Pointwise bound.} For \(t\in(0,h]\), the Lipschitz property and the previous step (multiplied by \(L\ge0\)) give
 
 
+\[\|g(Y_t)-g(Y_0)\|\le L\|Y_t-Y_0\|\le L\bigl(tG+N\sqrt t\bigr)=:\psi(t).\]
 
-Replace each squared square root by its nonnegative argument. Multiply \(Lh\le2\) by \(hd\ge0\), obtaining \(h^2Ld\le2hd\), and thus
 
-\[h\sqrt{Ld}\le\sqrt2\sqrt{hd}.\]
-
-Split products under the square roots and rearrange:
-
-\[h\sqrt h\sqrt{2d}=h\sqrt2\sqrt{hd}.\]
-
-The nonnegativity of \(h\) and \(2\) justifies the square-root product identities.
+\emph{(b) The majorant is integrable.} The function \(\psi\) is continuous on \(\mathbb R\) (the square root is continuous on \([0,\infty)\) and equal to \(0\) on \((-\infty,0)\)), hence integrable on \([0,h]\).
 
 
 
-Apply the two-term local-defect bound with \(G=\sqrt{Ld}\) and \(N=\sqrt{2d}\):
 
-\[\|D_h\|\le L\left(\frac{h^2\sqrt{Ld}}2+\frac23h\sqrt h\sqrt{2d}\right).\]
-
-Bound the first term using \(h\sqrt{Ld}\le\sqrt2\sqrt{hd}\), and rewrite the second with the preceding identity. Since \(1/2+2/3=7/6\),
-
-\[\|D_h\|\le L\frac76\sqrt2\,h\sqrt{hd}.\]
-
-Multiply \((7/6)\sqrt2\le33/20\) by the nonnegative factor \(Lh\sqrt{hd}\). This gives the claimed constant without numerical rounding.
+\emph{(c) Norm estimate.} Since \(h\ge0\), the norm estimate for integrals with an integrable majorant on \((0,h]\) gives
 
 
+\[\|D_h(g,Y)\|=\Bigl\|\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt\Bigr\|\le\int_0^h\psi(t)\,dt.\]
 
-The condition \(Lh\le2\) converts the drift contribution, initially of order \(h^2\sqrt{Ld}\), into the same \(Lh\sqrt{hd}\) scale as the Brownian contribution. The sum of coefficients is \(\sqrt2(1/2+2/3)=(7/6)\sqrt2\). Applying the proved upper bound \(33/20\) is the only numerical enlargement in this local-defect estimate.
 
+\emph{(d) Evaluation.} By linearity, \(\int_0^ht\,dt=\frac{h^2}2\) and the square-root integral of Step 5,
+
+
+\[\int_0^h\psi(t)\,dt=L\Bigl(G\int_0^ht\,dt+N\int_0^h\sqrt t\,dt\Bigr)=L\Bigl(\frac{h^2G}2+\frac23h\sqrt h\,N\Bigr).\qquad\square\]
+
+
+The first term comes from the drift accumulated over the step and is of order \(h^2\); the second comes from the square-root growth of the input and is of order \(h^{3/2}\).
+
+\begin{leanbox}{Lean: \texttt{localDefect\_\allowbreak{}bound}}
+\leansource{\texttt{localDefect\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 91–126}
+\begin{leancode}
+\leanline{0}{theorem\ localDefect\_bound}
+\leanline{4}{(g\ :\ H\ →\ H)\ (Y\ B\ :\ ℝ\ →\ H)\ (L\ :\ ℝ≥0)\ (h\ G\ N\ :\ ℝ)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(hG\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,\ ‖g\ (Y\ t)‖\ ≤\ G)}
+\leanline{4}{(hB\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,\ ‖B\ t‖\ ≤\ N\ *\ Real.sqrt\ t)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,}
+\leanline{6}{Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)\ :}
+\leanline{4}{‖localDefect\ g\ Y\ h‖\ ≤}
+\leanline{6}{(L\ :\ ℝ)\ *\ (h\ \textasciicircum{}\ 2\ *\ G\ /\ 2\ +\ (2\ /\ 3\ :\ ℝ)\ *\ h\ *\ Real.sqrt\ h\ *\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{local\allowbreak{}Defect\_\allowbreak{}bound}, \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With L g} with \texttt{L : \ensuremath{\mathbb R}\ensuremath{\ge}0}, and \texttt{hh : 0 \ensuremath{\le} h}. Completeness of \(H\) is again omitted.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hbound} is (a) on \texttt{Set.\allowbreak{}Ioc 0 h}: \texttt{h\allowbreak{}Lip.\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul} (with distances written as norms) followed by \texttt{integral\_\allowbreak{}equation\_\allowbreak{}increment\_\allowbreak{}bound} multiplied by \(L\ge0\) (\texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{L.\allowbreak{}coe\_\allowbreak{}nonneg}).
+
+\item \texttt{hbint} is (b): continuity of \(\psi\) is proved by \texttt{fun\_\allowbreak{}prop}, and continuity gives interval integrability.
+
+\item After \texttt{unfold local\allowbreak{}Defect}, the first \texttt{calc} step is (c): Mathlib's \texttt{interval\allowbreak{}Integral.\allowbreak{}norm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le}, which for \(a\le b\) bounds \(\|\int_a^bf\|\) by \(\int_a^b\psi\) when \(\|f(t)\|\le\psi(t)\) for almost every \(t\in(a,b]\) and \(\psi\) is interval integrable; \texttt{Filter.\allowbreak{}Eventually.\allowbreak{}of\_\allowbreak{}forall hbound} provides the almost-everywhere bound.
+
+\item The second \texttt{calc} step is (d): the rewrites pull out constants (\texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}mul\_\allowbreak{}const}), split the sum (\texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}add}, with both summands continuous), and evaluate \(\int_0^ht\,dt\) by Mathlib's \texttt{integral\_\allowbreak{}id} and \(\int_0^h\sqrt t\,dt\) by \texttt{integral\_\allowbreak{}sqrt\_\allowbreak{}zero}; \texttt{ring} rearranges.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The rational constant}{The rational constant}}
+
+
+\textbf{Claim.}
+
+
+\[\frac76\sqrt2\le\frac{33}{20}.\]
+
+
+\textbf{Proof.} Suppose instead that \(\frac76\sqrt2>\frac{33}{20}\). Both numbers are positive, so squaring preserves the strict inequality: \(\frac{49}{36}\cdot2>\frac{1089}{400}\), i.e. \(\frac{49}{18}>\frac{1089}{400}\). Multiplying by \(7200\) gives \(19600>19602\), which is false. \(\square\)
+
+
+
+
+The bound is close to optimal: \(\frac{1089}{400}-\frac{49}{18}=\frac1{3600}\), and \(\frac{33}{20}-\frac76\sqrt2<10^{-4}\). The constant \(\frac76\sqrt2\) arises in the next step as \(\sqrt2\,(\frac12+\frac23)\).
+
+\begin{leanbox}{Lean: \texttt{dalalyan\_\allowbreak{}constant\_\allowbreak{}bound}}
+\leansource{\texttt{dalalyan\_\allowbreak{}constant\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 129–132}
+\begin{leancode}
+\leanline{0}{theorem\ dalalyan\_constant\_bound\ :\ (7\ /\ 6\ :\ ℝ)\ *\ Real.sqrt\ 2\ ≤\ 33\ /\ 20}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{dalalyan\_\allowbreak{}constant\_\allowbreak{}bound} provides \texttt{hs}, the identity \((\sqrt2)^2=2\) (\texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt}), and \texttt{hp}, \(\sqrt2\ge0\) (\texttt{Real.\allowbreak{}sqrt\_\allowbreak{}nonneg}); \texttt{nlinarith} finds a certificate by multiplying hypotheses, which amounts to the squaring argument above.
+\end{leanbox}
+
+\section{\texorpdfstring{The defect bound with the stationary moment scales}{The defect bound with the stationary moment scales}}
+
+
+\textbf{Claim.} Let \(L\ge0\), let \(g:H\to H\) be \(L\)-Lipschitz, let \(Y,B:\mathbb R\to H\), and let \(h,d\in\mathbb R\) with \(h\ge0\), \(d\ge0\) and \(Lh\le2\). Assume that for every \(t\in[0,h]\)
+
+
+\[Y_t-Y_0=-\int_0^tg(Y_s)\,ds+B_t,\qquad\|g(Y_t)\|\le\sqrt{Ld},\qquad\|B_t\|\le\sqrt{2d}\,\sqrt t.\]
+
+
+Then
+
+
+\[\|D_h(g,Y)\|\le\frac{33}{20}\,Lh\sqrt{hd}.\]
+
+
+\textbf{Proof.} \emph{(a)} We show \(h\sqrt{Ld}\le\sqrt2\sqrt{hd}\). Both sides are nonnegative, so it suffices to compare squares. Since \(Ld\ge0\) and \(hd\ge0\), \((h\sqrt{Ld})^2=h^2Ld\) and \((\sqrt2\sqrt{hd})^2=2hd\). Multiplying \(Lh\le2\) by \(hd\ge0\) gives \(h^2Ld=(Lh)(hd)\le2hd\).
+
+
+
+
+\emph{(b)} Since \(h,d,2\ge0\), the product rule for square roots gives \(\sqrt{2d}=\sqrt2\sqrt d\) and \(\sqrt{hd}=\sqrt h\sqrt d\), hence \(h\sqrt h\sqrt{2d}=h\sqrt2\sqrt{hd}\).
+
+
+
+
+\emph{(c)} The previous two-term bound (Step 7) with \(G=\sqrt{Ld}\) and \(N=\sqrt{2d}\) gives
+
+
+\[\|D_h(g,Y)\|\le L\Bigl(\frac{h^2\sqrt{Ld}}2+\frac23h\sqrt h\sqrt{2d}\Bigr).\]
+
+
+\emph{(d)} By (a) multiplied by \(h/2\ge0\), the first term in the bracket is \(\frac h2\cdot h\sqrt{Ld}\le\frac12\sqrt2\,h\sqrt{hd}\); by (b), the second equals \(\frac23\sqrt2\,h\sqrt{hd}\). Since \(\frac12+\frac23=\frac76\) and \(L\ge0\),
+
+
+\[\|D_h(g,Y)\|\le L\cdot\frac76\sqrt2\;h\sqrt{hd}.\]
+
+
+\emph{(e)} Multiplying \(\frac76\sqrt2\le\frac{33}{20}\) (Step 8) by \(Lh\sqrt{hd}\ge0\) gives the claim. \(\square\)
+
+
+
+
+The step-size condition \(Lh\le2\) is used only in (a), where it brings the drift term, of order \(h^2\sqrt{Ld}\), to the order \(h^{3/2}\sqrt d\) of the noise term.
+
+\begin{leanbox}{Lean: \texttt{localDefect\_\allowbreak{}dalalyan\_\allowbreak{}bound}}
+\leansource{\texttt{localDefect\_\allowbreak{}dalalyan\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LocalError.lean, lines 136–170}
+\begin{leancode}
+\leanline{0}{theorem\ localDefect\_dalalyan\_bound}
+\leanline{4}{(g\ :\ H\ →\ H)\ (Y\ B\ :\ ℝ\ →\ H)\ (L\ :\ ℝ≥0)\ (h\ d\ :\ ℝ)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hd\ :\ 0\ ≤\ d)\ (hstep\ :\ (L\ :\ ℝ)\ *\ h\ ≤\ 2)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(hG\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,\ ‖g\ (Y\ t)‖\ ≤\ Real.sqrt\ ((L\ :\ ℝ)\ *\ d))}
+\leanline{4}{(hB\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,\ ‖B\ t‖\ ≤\ Real.sqrt\ (2\ *\ d)\ *\ Real.sqrt\ t)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Set.Icc\ 0\ h,}
+\leanline{6}{Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)\ :}
+\leanline{4}{‖localDefect\ g\ Y\ h‖\ ≤\ (33\ /\ 20\ :\ ℝ)\ *\ (L\ :\ ℝ)\ *\ h\ *\ Real.sqrt\ (h\ *\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{local\allowbreak{}Defect\_\allowbreak{}dalalyan\_\allowbreak{}bound} has the hypotheses \texttt{hh : 0 \ensuremath{\le} h}, \texttt{hd : 0 \ensuremath{\le} d}, \texttt{hstep : (L : \ensuremath{\mathbb R}) * h \ensuremath{\le} 2}, \texttt{h\allowbreak{}Lip}, and \texttt{h\allowbreak{}G}, \texttt{h\allowbreak{}B}, \texttt{heq} on \texttt{Set.\allowbreak{}Icc 0 h}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{hsmall} is (a): \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}} reduces to squares, \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt} removes the square roots of the nonnegative numbers \(Ld\), \(2\), \(hd\), and \texttt{hb} (from \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right hstep}) is \(Lh\cdot hd\le2\cdot hd\); \texttt{nlinarith} concludes.
+
+\item \texttt{hnoise} is (b), from two applications of \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}mul} and \texttt{ring}.
+
+\item The \texttt{calc} block has three steps: (c) is \texttt{local\allowbreak{}Defect\_\allowbreak{}bound} with \texttt{Real.\allowbreak{}sqrt ((L : \ensuremath{\mathbb R}) * d)} and \texttt{Real.\allowbreak{}sqrt (2 * d)} in place of \(G\) and \(N\); (d) multiplies \texttt{hsmall} by \(hL\ge0\), rewrites the noise term with \texttt{hnoise}, and closes with \texttt{nlinarith}; (e) multiplies \texttt{dalalyan\_\allowbreak{}constant\_\allowbreak{}bound} by \(Lh\sqrt{hd}\ge0\) (nonnegativity by \texttt{positivity}) and closes with \texttt{nlinarith}.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

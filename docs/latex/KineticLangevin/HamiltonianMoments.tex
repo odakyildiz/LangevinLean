@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,18 @@ Because \(H(v,x)=f(x)+\|v\|^2/2\), the positive exponential weight factors as \(
 
 The kinetic and potential parts of the Hamiltonian depend on different coordinates, so their exponential weights factor. Product integration separates velocity Gaussian integrals from position Gibbs integrals. This factorization is valid for the reference measure before normalization.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianGibbs\_\allowbreak{}factor}}
+\leansource{\texttt{hamiltonianGibbs\_\allowbreak{}factor} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 15–27}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianGibbs\_factor\ (μ\ :\ Measure\ E)\ [SFinite\ μ]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)\ :}
+\leanline{4}{hamiltonianGibbs\ μ\ f\ =}
+\leanline{6}{(μ.withDensity\ (fun\ v\ ↦\ ENNReal.ofReal\ (Real.exp\ (-‖v‖\textasciicircum{}2/2)))).prod}
+\leanline{8}{(μ.withDensity\ (fun\ x\ ↦\ ENNReal.ofReal\ (Real.exp\ (-f\ x))))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Gibbs\_\allowbreak{}factor} gives the formal counterpart of this step. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Derive finite mass of both factors and their product}{Derive finite mass of both factors and their product}}
 
@@ -45,6 +80,39 @@ The velocity weight is the radial Gaussian with precision \(1/2\), whose ordinar
 
 Strong convexity gives a quadratic lower bound for the potential. Its exponential is dominated by a shifted Gaussian density, yielding finite positive partition mass. The velocity factor is an ordinary Gaussian integral, so the phase measure also has finite positive mass.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianVelocity\_\allowbreak{}finite}, \texttt{hamiltonianPosition\_\allowbreak{}finite}, \texttt{hamiltonianGibbs\_\allowbreak{}finite}}
+\leansource{\texttt{hamiltonianVelocity\_\allowbreak{}finite} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 32–42}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianVelocity\_finite\ :}
+\leanline{4}{IsFiniteMeasure\ ((volume\ :\ Measure\ E).withDensity}
+\leanline{6}{(fun\ v\ ↦\ ENNReal.ofReal\ (Real.exp\ (-‖v‖\textasciicircum{}2/2))))}
+\end{leancode}
+\leansource{\texttt{hamiltonianPosition\_\allowbreak{}finite} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 46–50}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianPosition\_finite\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{IsFiniteMeasure\ ((volume\ :\ Measure\ E).withDensity}
+\leanline{6}{(fun\ x\ ↦\ ENNReal.ofReal\ (Real.exp\ (-f\ x))))}
+\end{leancode}
+\leansource{\texttt{hamiltonianGibbs\_\allowbreak{}finite} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 53–59}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianGibbs\_finite\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{IsFiniteMeasure\ (hamiltonianGibbs\ (volume\ :\ Measure\ E)\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Velocity\_\allowbreak{}finite} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi} in that order. Named proof applications include \texttt{is\allowbreak{}Finite\allowbreak{}Measure\_\allowbreak{}with\allowbreak{}Density}, \texttt{ne\_\allowbreak{}of\_\allowbreak{}lt}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{hamiltonian\allowbreak{}Position\_\allowbreak{}finite} gives the formal counterpart of this step.
+
+
+
+
+\texttt{hamiltonian\allowbreak{}Gibbs\_\allowbreak{}finite} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.10]{LangevinLean2026ULASC}; \cite[Section~3.26.4]{LangevinLean2026ULASC}.
@@ -58,6 +126,28 @@ A quadratic factor is absorbed by radial Gaussian decay, so \(\int\|v\|^2e^{-\|v
 
 Polynomial factors remain integrable under the Gaussian density upper bound. Thus both velocity and position second moments exist before taking ratios by the partition function. Establishing this first ensures that later normalized moment expressions represent finite expectations.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianVelocity\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}integrable}, \texttt{hamiltonianPosition\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}integrable}}
+\leansource{\texttt{hamiltonianVelocity\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}integrable} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 62–72}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianVelocity\_norm\_sq\_integrable\ :}
+\leanline{4}{Integrable\ (fun\ v\ :\ E\ ↦\ ‖v‖\textasciicircum{}2)\ ((volume\ :\ Measure\ E).withDensity}
+\leanline{6}{(fun\ v\ ↦\ ENNReal.ofReal\ (Real.exp\ (-‖v‖\textasciicircum{}2/2))))}
+\end{leancode}
+\leansource{\texttt{hamiltonianPosition\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}integrable} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 76–85}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianPosition\_norm\_sq\_integrable\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ E\ ↦\ ‖x‖\textasciicircum{}2)\ ((volume\ :\ Measure\ E).withDensity}
+\leanline{6}{(fun\ x\ ↦\ ENNReal.ofReal\ (Real.exp\ (-f\ x))))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Velocity\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}integrable} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{hamiltonian\allowbreak{}Position\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}integrable} gives the formal counterpart of this step. Named proof applications include \texttt{hf.\allowbreak{}continuous.\allowbreak{}measurable.\allowbreak{}neg.\allowbreak{}exp.\allowbreak{}ennreal\_\allowbreak{}of\allowbreak{}Real}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.7]{LangevinLean2026ULASC}; \cite[Section~3.26.8]{LangevinLean2026ULASC}.
@@ -71,6 +161,18 @@ Gradient Lipschitz continuity implies \(\|\nabla f(x)\|\le M\|x\|+\|\nabla f(0)\
 
 Force Lipschitzness gives \(\|\nabla f(x)\|\le\|\nabla f(x_0)\|+M\|x-x_0\|\). Squaring and using \((a+b)^2\le2a^2+2b^2\) reduces force moments to the finite position second moment. Choosing a minimizer removes the constant force term when available.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianPosition\_\allowbreak{}force\_\allowbreak{}sq\_\allowbreak{}integrable}}
+\leansource{\texttt{hamiltonianPosition\_\allowbreak{}force\_\allowbreak{}sq\_\allowbreak{}integrable} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 89–108}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianPosition\_force\_sq\_integrable\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{Integrable\ (fun\ x\ :\ E\ ↦\ ‖gradient\ f\ x‖\textasciicircum{}2)\ ((volume\ :\ Measure\ E).withDensity}
+\leanline{6}{(fun\ x\ ↦\ ENNReal.ofReal\ (Real.exp\ (-f\ x))))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Position\_\allowbreak{}force\_\allowbreak{}sq\_\allowbreak{}integrable} gives the formal counterpart of this step. The main intermediate facts are \texttt{henv}, \texttt{hg}, \texttt{hs} in that order. Named proof applications include \texttt{henv.\allowbreak{}mono'}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Assemble the precise phase bound needed by the weak limit}{Assemble the precise phase bound needed by the weak limit}}
 
@@ -81,10 +183,22 @@ On the factored finite phase measure, \(\|v\|^2\) is integrable by pulling the v
 
 The rejection upper bound is a fixed quadratic combination of velocity and force norms. The preceding moment bounds therefore make its target integral finite. This is the exact integrability required to make the accumulated rejection error vanish in the Hamiltonian-flow limit.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianGibbs\_\allowbreak{}phase\_\allowbreak{}moment}}
+\leansource{\texttt{hamiltonianGibbs\_\allowbreak{}phase\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}HamiltonianMoments.lean, lines 112–121}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianGibbs\_phase\_moment\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E×E\ ↦\ ‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2)}
+\leanline{6}{(hamiltonianGibbs\ (volume\ :\ Measure\ E)\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Gibbs\_\allowbreak{}phase\_\allowbreak{}moment} gives the formal counterpart of this step.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

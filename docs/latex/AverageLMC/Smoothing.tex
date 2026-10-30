@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -27,6 +50,39 @@ Earlier results used here: \cite[Section~3.13]{LangevinLean2026ULASC}; \cite[Sec
 
 For a finite set \(S\) of coordinate indices, define \(Z_S\) as the sum of \(\xi_j\) \(e_j\) over \(j\) in \(S\). Each scalar coordinate is square integrable, and the map \(a\) to \(ae_j\) is continuous linear, so every vector summand and every finite partial sum is square integrable. The actual gradient evaluated at an \(L^{2}\) state is also \(L^{2}\): apply the existing Lipschitz drift lift to the canonical \(L^{2}\) representative, then transfer back along its almost-everywhere equality. Adding the deterministic center and scaling preserve these moments.
 
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}gradient\_\allowbreak{}comp}, \texttt{coordinatePartial}, \texttt{memLp\_\allowbreak{}coordinatePartial}}
+\leansource{\texttt{memLp\_\allowbreak{}gradient\_\allowbreak{}comp} \quad AverageLMC/\allowbreak{}Smoothing.lean, lines 28–35}
+\begin{leancode}
+\leanline{0}{private\ theorem\ memLp\_gradient\_comp\ \{p\ :\ ℕ\}\ (μ\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(X\ :\ Ω\ →\ State\ p)\ (hX\ :\ MemLp\ X\ 2\ μ)\ :}
+\leanline{4}{MemLp\ (fun\ ω\ ↦\ gradient\ f\ (X\ ω))\ 2\ μ}
+\end{leancode}
+\leansource{\texttt{coordinatePartial} \quad AverageLMC/\allowbreak{}Smoothing.lean, lines 37–39}
+\begin{leancode}
+\leanline{0}{private\ def\ coordinatePartial\ \{p\ :\ ℕ\}\ (ξ\ :\ Fin\ p\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(s\ :\ Finset\ (Fin\ p))\ (ω\ :\ Ω)\ :\ State\ p\ :=}
+\leanline{2}{∑\ j\ ∈\ s,\ ξ\ j\ ω\ •\ coordinateVector\ j}
+\end{leancode}
+\leansource{\texttt{memLp\_\allowbreak{}coordinatePartial} \quad AverageLMC/\allowbreak{}Smoothing.lean, lines 41–46}
+\begin{leancode}
+\leanline{0}{private\ theorem\ memLp\_coordinatePartial\ \{p\ :\ ℕ\}\ (μ\ :\ Measure\ Ω)}
+\leanline{4}{(ξ\ :\ Fin\ p\ →\ Ω\ →\ ℝ)\ (hξ\ :\ ∀\ j,\ MemLp\ (ξ\ j)\ 2\ μ)\ (s\ :\ Finset\ (Fin\ p))\ :}
+\leanline{4}{MemLp\ (coordinatePartial\ ξ\ s)\ 2\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}gradient\_\allowbreak{}comp} gives the formal counterpart of this step. The main intermediate facts are \texttt{h} in that order. Named proof applications include \texttt{h.\allowbreak{}ae\_\allowbreak{}eq}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{coordinate\allowbreak{}Partial} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}coordinate\allowbreak{}Partial} gives the formal counterpart of this step. Named proof applications include \texttt{mem\allowbreak{}Lp\_\allowbreak{}finset\allowbreak{}Sum}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.4]{LangevinLean2026ULASC}.
@@ -41,6 +97,28 @@ Induct on the finite coordinate set. When inserting \(i\) outside \(S\), apply t
 Independence of the scalar coordinates survives the maps \(a\) to \(ae_j\). Consequently their partial vector sum is independent of the new coordinate. Composing with the actual gradient coordinate proves independence of \(\xi_i\) and the displayed derivative term. Their product is integrable by the \(L^{2}\) Holder inequality, and its integral factors; the zero first moment makes it vanish. The quadratic term integrates to \(M_i\) \(c^2/2\). Adding this to the inductive bound proves the finite-set estimate, with no assumed stochastic error inequality.
 
 
+
+
+\textbf{Induction in detail.} At the empty set the perturbation is zero and the expected potential is \(f(x)\). Suppose the bound holds for \(S\), and choose \(i\notin S\). Set \(G_i=\partial_i f(x+cZ_S)\). Global gradient Lipschitz continuity and the finite second moment of \(Z_S\) imply \(G_i\in L^2\); hence Cauchy–Schwarz makes \(\xi_iG_i\) integrable. The variable \(G_i\) is a measurable function of the coordinates in \(S\), so independence gives \(\mathbb E[\xi_iG_i]=(\mathbb E\xi_i)(\mathbb EG_i)=0\). The coordinate model then gives the previous expectation plus \(M_ic^2/2\), since \(\mathbb E\xi_i^2=1\). The induction hypothesis and \(\sum_{j\in S\cup\{i\}}M_j=\sum_{j\in S}M_j+M_i\) complete the step. This holds for every real \(c\), including \(c=0\), and for arbitrary independent centered unit-second-moment coordinates with measurable representatives. Gaussianity is used only in the later specialization. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}coordinatePartial\_\allowbreak{}le}}
+\leansource{\texttt{integral\_\allowbreak{}coordinatePartial\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}Smoothing.lean, lines 50–117}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_coordinatePartial\_le\ \{p\ :\ ℕ\}\ (μ\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(ξ\ :\ Fin\ p\ →\ Ω\ →\ ℝ)\ (hξm\ :\ ∀\ j,\ Measurable\ (ξ\ j))}
+\leanline{4}{(hξ\ :\ ∀\ j,\ MemLp\ (ξ\ j)\ 2\ μ)\ (hind\ :\ iIndepFun\ ξ\ μ)}
+\leanline{4}{(hmean\ :\ ∀\ j,\ ∫\ ω,\ ξ\ j\ ω\ ∂μ\ =\ 0)}
+\leanline{4}{(hvar\ :\ ∀\ j,\ ∫\ ω,\ ξ\ j\ ω\ \textasciicircum{}\ 2\ ∂μ\ =\ 1)}
+\leanline{4}{(x\ :\ State\ p)\ (c\ :\ ℝ)\ (s\ :\ Finset\ (Fin\ p))\ :}
+\leanline{4}{(∫\ ω,\ f\ (x\ +\ c\ •\ coordinatePartial\ ξ\ s\ ω)\ ∂μ)\ ≤}
+\leanline{6}{f\ x\ +\ c\ \textasciicircum{}\ 2\ /\ 2\ *\ ∑\ j\ ∈\ s,\ coordinateSmoothness\ f\ j}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}coordinate\allowbreak{}Partial\_\allowbreak{}le} derives the partial-state moments \texttt{h\allowbreak{}X} and potential integrability \texttt{h\allowbreak{}F} before the finite-set induction. In the insert branch \texttt{G} is the new score coordinate and \texttt{h\allowbreak{}G} proves its square integrability. \texttt{h\allowbreak{}IG} obtains its independence from the new coordinate by composing independence of the finite partial sum with the score function. \texttt{hprod} supplies product integrability, and \texttt{hzero} factors the integral and uses centering. The coordinate Taylor model is then integrated, its squared-coordinate integral is replaced by the unit-moment hypothesis, and the induction hypothesis supplies the sum over the old coordinates.
+\end{leanbox}
+
 \section{\texorpdfstring{Sum every coordinate and recover the exact average-smoothness coefficient}{Sum every coordinate and recover the exact average-smoothness coefficient}}
 
 
@@ -50,19 +128,49 @@ For the full index set, the coordinate sum is exactly the Euclidean vector with 
 
 The final equality uses the literal definition \(M_{\mathrm{av}}=p^{-1}\sum_jM_j\) and the positive dimension.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}smoothing}}
+\leansource{\texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}smoothing} \quad AverageLMC/\allowbreak{}Smoothing.lean, lines 121–151}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_coordinate\_smoothing\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(μ\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(ξ\ :\ Fin\ p\ →\ Ω\ →\ ℝ)\ (hξm\ :\ ∀\ j,\ Measurable\ (ξ\ j))}
+\leanline{4}{(hξ\ :\ ∀\ j,\ MemLp\ (ξ\ j)\ 2\ μ)\ (hind\ :\ iIndepFun\ ξ\ μ)}
+\leanline{4}{(hmean\ :\ ∀\ j,\ ∫\ ω,\ ξ\ j\ ω\ ∂μ\ =\ 0)}
+\leanline{4}{(hvar\ :\ ∀\ j,\ ∫\ ω,\ ξ\ j\ ω\ \textasciicircum{}\ 2\ ∂μ\ =\ 1)}
+\leanline{4}{(x\ :\ State\ p)\ (s\ :\ ℝ)\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{(∫\ ω,\ f\ (x\ +\ Real.sqrt\ (2\ *\ s)\ •\ WithLp.toLp\ 2\ (fun\ j\ ↦\ ξ\ j\ ω))\ -\ f\ x\ ∂μ)\ ≤}
+\leanline{6}{averageSmoothness\ f\ *\ (p\ :\ ℝ)\ *\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}smoothing} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{heq}, \texttt{h\allowbreak{}X}, \texttt{h\allowbreak{}F}, \texttt{hsum} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Specialize to the actual standard Gaussian measure}{Specialize to the actual standard Gaussian measure}}
 
 
 Take the product of \(n=p\) real Gaussian laws with mean zero and variance one. Each coordinate evaluation preserves its marginal Gaussian measure; the product coordinates are mutually independent, square integrable, centered, and have second moment one. Apply the arbitrary-coordinate theorem on this product. Its pushforward is identified by the Euclidean coordinate map with the actual standard Gaussian law, so the change-of-measure integral is precisely the Gaussian smoothing integral used by the LMC transition.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}stdGaussian\_\allowbreak{}smoothing}}
+\leansource{\texttt{integral\_\allowbreak{}stdGaussian\_\allowbreak{}smoothing} \quad AverageLMC/\allowbreak{}Smoothing.lean, lines 154–175}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_stdGaussian\_smoothing\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (x\ :\ State\ p)\ (s\ :\ ℝ)\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{(∫\ z,\ f\ (x\ +\ Real.sqrt\ (2\ *\ s)\ •\ z)\ -\ f\ x\ ∂stdGaussian\ (State\ p))\ ≤}
+\leanline{6}{averageSmoothness\ f\ *\ (p\ :\ ℝ)\ *\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}std\allowbreak{}Gaussian\_\allowbreak{}smoothing} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\mu}}, \texttt{hl}, \texttt{h\ensuremath{\xi}}, \texttt{hmean}, \texttt{hvar}, \texttt{h} in that order.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.4.1]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

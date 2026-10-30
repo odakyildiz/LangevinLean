@@ -9,6 +9,7 @@ import re
 from urllib.parse import unquote, urlsplit
 from build_site import ROOT, LIBRARIES, load, module_page, latex_path
 from references import DEVELOPMENTS, PAPERS
+from lean_latex import header_lines
 
 
 class Page(HTMLParser):
@@ -59,6 +60,22 @@ class Page(HTMLParser):
 
 def digest(path):
     return hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
+
+
+def verify_source_excerpt(block, sources, parsed, page=''):
+    """Check exact source rows and the complete range of a theorem statement."""
+    source = block['data-source']
+    start, end = int(block['data-start']), int(block['data-end'])
+    if block['data-role'] == 'statement':
+        name = block.get('data-declaration')
+        assert name in parsed.get(source, {}), f'Unknown statement {page}: {source}: {name}'
+        declaration = parsed[source][name]
+        assert (start, end) == (declaration['start'], declaration['marker']), \
+            f'Truncated statement {page}: {source}: {name}'
+        expected = header_lines(sources[source], declaration)
+    else:
+        expected = sources[source].splitlines()[start-1:end]
+    assert block['lines'] == expected, f'Altered source lines {page}: {source}:{start}-{end}'
 
 
 def verify():
@@ -135,9 +152,7 @@ def verify():
         for block in doc.blocks:
             blocks+=1
             source=block['data-source'];start=int(block['data-start']);end=int(block['data-end'])
-            expected=sources[source].splitlines()[start-1:end]
-            if block['data-role']=='statement': expected[-1]=expected[-1].split(':=',1)[0].rstrip()
-            assert block['lines']==expected,f'Altered source lines {path}: {source}:{start}-{end}'
+            verify_source_excerpt(block, sources, parsed, path)
             if block['data-role']=='declaration':
                 name=block['data-declaration'];decl=parsed[source][name]
                 assert (start,end)==(decl['start'],decl['end']),f'Truncated declaration {source}: {name}'

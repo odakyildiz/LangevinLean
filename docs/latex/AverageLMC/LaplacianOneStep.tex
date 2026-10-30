@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -23,7 +46,7 @@ The proof retains the cancellation in the defect cross term while bounding the c
 In the \(L^2\) integral equation write \(g=\nabla f\), \(q=1-mh\), and \(e=\|X-Y_0\|_{L^2}\). The local defect and deterministic Euler difference give the exact decomposition
 
 
-\[\Psi=(X-hg(X))-(Y_0-hg(Y_0)),\qquad D=\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt,\qquad X-hg(X)+B_h-Y_h=\Psi+D.\]
+\[\begin{aligned}\Psi&=(X-hg(X))-(Y_0-hg(Y_0)),\\D&=\int_0^h\bigl(g(Y_t)-g(Y_0)\bigr)\,dt,\\X-hg(X)+B_h-Y_h&=\Psi+D.\end{aligned}\]
 
 
 The proved pairing bound with constant \(R_{\rm gen}\), together with the score and Brownian moment bounds in dimension parameter \(d\), yields
@@ -38,13 +61,42 @@ Earlier results used here: \cite[Section~3.13]{LangevinLean2026ULASC}.
 
 Let \(\Psi\) be the difference between the deterministic gradient steps of \(X\) and \(Y(0)\), and let \(D\) be the exact drift integral omitted by Euler. The integral equation gives the exact output error \(\Psi +D\). On the admissible range \(hM\le1\) and \(m\le M\), the actual smooth strongly convex gradient step contracts by \(q=1-mh\ge 0\), so \(\|\Psi \|\le q\|X-Y(0)\|\). The first-order total-defect theorem gives \(\|D\|\le (3/2)Mh\sqrt h\sqrt d\). The separately proved weak-Dynkin pairing inequality bounds the pairing with the instantaneous gradient increment by \(t\|\Psi \|R_{\mathrm{gen}}\). Continuous linear integration then bounds \(\langle \Psi ,D\rangle\) by \(h^{2}\|\Psi \|R_{\mathrm{gen}}/2\). Expanding \(\|\Psi +D\|^{2}\) and substituting the three bounds yields \(q^{2}\) times the original error squared, the exact cross term \(h^{2}q\|X-Y(0)\|R_{\mathrm{gen}}\), and the squared total-defect bound. The pairing premise is an intermediate analytic consequence of the actual stationary diffusion, discharged by the Dynkin and cutoff construction.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}laplacian\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}bound}}
+\leansource{\texttt{lp\_\allowbreak{}laplacian\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}LaplacianOneStep.lean, lines 21–88}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_laplacian\_one\_step\_bound}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ h\ d\ Rgen\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hm\ :\ 0\ <\ m)\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hd\ :\ 0\ ≤\ d)\ (hsmall\ :\ h\ *\ (M\ :\ ℝ)\ ≤\ 1)\ (hRgen\ :\ 0\ ≤\ Rgen)}
+\leanline{4}{(X\ :\ Lp\ E\ 2\ P)\ (Y\ B\ :\ ℝ\ →\ Lp\ E\ 2\ P)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(hG\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ t)‖\ ≤}
+\leanline{6}{Real.sqrt\ ((M\ :\ ℝ)\ *\ d))}
+\leanline{4}{(hB\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖B\ t‖\ ≤\ Real.sqrt\ (2\ *\ d)\ *\ Real.sqrt\ t)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(hpair\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{{\leanfallback ⟪}(X\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X)\ -}
+\leanline{10}{(Y\ 0\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ 0)),}
+\leanline{8}{ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ t)\ -}
+\leanline{10}{ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ 0){\leanfallback ⟫}\ ≤}
+\leanline{8}{t\ *\ ‖(X\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X)\ -}
+\leanline{10}{(Y\ 0\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ 0))‖\ *\ Rgen)\ :}
+\leanline{4}{‖X\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X\ +\ B\ h\ -\ Y\ h‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ 2\ *\ ‖X\ -\ Y\ 0‖\ \textasciicircum{}\ 2\ +}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ (1\ -\ m\ *\ h)\ *\ ‖X\ -\ Y\ 0‖\ *\ Rgen\ +}
+\leanline{6}{((3\ /\ 2\ :\ ℝ)\ *\ (M\ :\ ℝ)\ *\ h\ *\ Real.sqrt\ h\ *\ Real.sqrt\ d)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}laplacian\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{g}, \texttt{\ensuremath{\Psi}}, \texttt{D}, \texttt{hg}, \texttt{hgc}, \texttt{he} in that order. Named proof applications include \texttt{hs}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026ULASC}; \cite[Section~3.11.3]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.13.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,7 +55,30 @@ If \(s\) is a supporting subgradient, then \(x\mapsto f(x)-\langle s,x\rangle\) 
 
 Equivalently, a support \(s\) at \(p\) minimizes \(f(x)-\langle s,x\rangle\) at \(p\), so \(s=\nabla f(p)\). The conclusion is an equality at the minimizing point, not an asymptotic approximation.
 
+\begin{leanbox}{Lean: \texttt{IsSubgradient.\allowbreak{}eq\_\allowbreak{}gradient}, \texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}prox}}
+\leansource{\texttt{IsSubgradient.\allowbreak{}eq\_\allowbreak{}gradient} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 29–43}
+\begin{leancode}
+\leanline{0}{theorem\ IsSubgradient.eq\_gradient\ \{f\ :\ E\ →\ ℝ\}\ \{p\ s\ :\ E\}}
+\leanline{4}{(hs\ :\ IsSubgradient\ f\ p\ s)\ (hf\ :\ DifferentiableAt\ ℝ\ f\ p)\ :\ s\ =\ gradient\ f\ p}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}prox} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 46–52}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_moreau\_eq\_gradient\_prox\ \{f\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hconv\ :\ ConvexOn\ ℝ\ univ\ f)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ f\ z)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ \{η\ :\ ℝ\}\ (hη\ :\ 0\ <\ η)\ (x\ :\ E)\ :}
+\leanline{4}{gradient\ (moreau\ f\ η)\ x\ =\ gradient\ f\ (prox\ f\ η\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: IsSubgradient.eq\_gradient : A supporting subgradient of a differentiable function is its actual gradient. gradient\_moreau\_eq\_gradient\_prox : The actual Moreau score is the original smooth score at the true proximal point.
 
+
+
+\texttt{Is\allowbreak{}Subgradient.\allowbreak{}eq\_\allowbreak{}gradient}: the intermediate facts include \texttt{F}, \texttt{hmin}, \texttt{h}, \texttt{hd}, \texttt{hg}, in source order; the source steps apply or rewrite \texttt{inner\_\allowbreak{}sub\_\allowbreak{}right}, \texttt{map\_\allowbreak{}sub}, \texttt{Pi.\allowbreak{}sub\_\allowbreak{}def}, \texttt{Inner\allowbreak{}Product\allowbreak{}Space.\allowbreak{}to\allowbreak{}Dual\_\allowbreak{}apply\_\allowbreak{}apply}, \texttt{sub\_\allowbreak{}eq\_\allowbreak{}zero.\allowbreak{}mp}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+
+
+
+\texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}prox}: the source steps apply or rewrite \texttt{gradient\_\allowbreak{}moreau}, \texttt{subgradient\_\allowbreak{}of\_\allowbreak{}is\allowbreak{}Prox\allowbreak{}Point}, \texttt{prox\_\allowbreak{}is\allowbreak{}Prox\allowbreak{}Point}, \texttt{eq\_\allowbreak{}gradient}.
+\end{leanbox}
 
 \section{\texorpdfstring{The finite gradient difference under smoothing}{The finite gradient difference under smoothing}}
 
@@ -47,7 +93,34 @@ Optimality and differentiability identify \(\nabla f^\eta(x)=\nabla f(P_\eta x)\
 
 The envelope gradient is \(\nabla f\circ P_\eta\). Its gradient constant is bounded by \(L_2\), which can be smaller than the generic \(1/\eta\) bound. Comparison with \(\nabla f(x)\) costs at most \(L_2\|P_\eta x-x\|\le\eta L_2K\). This finite uniform defect supplies the forcing in the integral-equation comparison.
 
+\begin{leanbox}{Lean: \texttt{smooth\_\allowbreak{}moreau\_\allowbreak{}gradient\_\allowbreak{}lipschitz}, \texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}defect\_\allowbreak{}le}}
+\leansource{\texttt{smooth\_\allowbreak{}moreau\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 55–63}
+\begin{leancode}
+\leanline{0}{theorem\ smooth\_moreau\_gradient\_lipschitz\ \{f\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hconv\ :\ ConvexOn\ ℝ\ univ\ f)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ f\ z)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ \{η\ :\ ℝ\}\ (hη\ :\ 0\ <\ η)}
+\leanline{4}{\{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ :}
+\leanline{4}{LipschitzWith\ L\ (gradient\ (moreau\ f\ η))}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}defect\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 67–77}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_moreau\_defect\_le\ \{f\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hconv\ :\ ConvexOn\ ℝ\ univ\ f)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ f\ z)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ \{η\ :\ ℝ\}\ (hη\ :\ 0\ <\ η)}
+\leanline{4}{\{L\ K\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hK\ :\ LipschitzWith\ K\ f)\ (x\ :\ E)\ :}
+\leanline{4}{‖gradient\ f\ x\ -\ gradient\ (moreau\ f\ η)\ x‖\ ≤\ η\ *\ (L\ :\ ℝ)\ *\ (K\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: smooth\_moreau\_gradient\_lipschitz : Smoothness of the original score is preserved by the actual Moreau envelope. gradient\_moreau\_defect\_le : The uniform score defect is derived from proximal optimality and displacement. Its coefficient is independent of the smoothing parameter.
 
+
+
+\texttt{smooth\_\allowbreak{}moreau\_\allowbreak{}gradient\_\allowbreak{}lipschitz}: the intermediate fact is \texttt{heq}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}one}, \texttt{h\allowbreak{}Lip.\allowbreak{}comp}, \texttt{prox\_\allowbreak{}lipschitz}.
+
+
+
+\texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}defect\_\allowbreak{}le}: the source steps apply or rewrite \texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}eq\_\allowbreak{}gradient\_\allowbreak{}prox}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Component regularity from the sum and the smooth term}{Component regularity from the sum and the smooth term}}
 
@@ -58,7 +131,32 @@ If \(U=f+g\) and \(f\) are differentiable, then \(g=U-f\) is differentiable. Gra
 
 Thus the constant \(L_2\) may be supplied from regularity of the original sum and the known smooth component. This gives a justified \(L_2\) without adding an unstated differentiability assumption on the remaining component.
 
+\begin{leanbox}{Lean: \texttt{component\_\allowbreak{}differentiable\_\allowbreak{}of\_\allowbreak{}sum}, \texttt{component\_\allowbreak{}gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}sum}}
+\leansource{\texttt{component\_\allowbreak{}differentiable\_\allowbreak{}of\_\allowbreak{}sum} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 82–88}
+\begin{leancode}
+\leanline{0}{theorem\ component\_differentiable\_of\_sum\ \{f\ g\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hfg\ :\ Differentiable\ ℝ\ (fun\ x\ =>\ f\ x\ +\ g\ x))\ (hf\ :\ Differentiable\ ℝ\ f)\ :}
+\leanline{4}{Differentiable\ ℝ\ g}
+\end{leancode}
+\leansource{\texttt{component\_\allowbreak{}gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}sum} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 92–103}
+\begin{leancode}
+\leanline{0}{theorem\ component\_gradient\_lipschitz\_of\_sum\ \{f\ g\ :\ E\ →\ ℝ\}}
+\leanline{4}{(hfg\ :\ Differentiable\ ℝ\ (fun\ x\ =>\ f\ x\ +\ g\ x))\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{\{LU\ Lf\ :\ ℝ≥0\}\ (hLU\ :\ LipschitzWith\ LU\ (gradient\ (fun\ x\ =>\ f\ x\ +\ g\ x)))}
+\leanline{4}{(hLf\ :\ LipschitzWith\ Lf\ (gradient\ f))\ :}
+\leanline{4}{LipschitzWith\ (LU\ +\ Lf)\ (gradient\ g)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: component\_differentiable\_of\_sum : Original-model differentiability and smoothness derive the missing component regularity, rather than requiring a separate inverse-scale estimate. component\_gradient\_lipschitz\_of\_sum : If the full original score and first component are Lipschitz, the second component's score has their summed Lipschitz constant.
 
+
+
+\texttt{component\_\allowbreak{}differentiable\_\allowbreak{}of\_\allowbreak{}sum}: the proof is the application \texttt{convert hfg.\allowbreak{}sub hf using 1}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{component\_\allowbreak{}gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}sum}: the intermediate facts include \texttt{hg}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}, \texttt{h\allowbreak{}LU.\allowbreak{}sub}.
+\end{leanbox}
 
 \section{\texorpdfstring{Comparison with common additive input}{Comparison with common additive input}}
 
@@ -69,7 +167,25 @@ Let integral solutions with drifts \(g,k\) share additive input \(B\) and have i
 
 No differentiation of \(B\) is needed. The bounded defect is integrated with factor \(\Psi\). The definition of \(\Psi\) includes zero Lipschitz constant, so the formula requires no division by zero.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}drift\_\allowbreak{}perturbation}}
+\leansource{\texttt{integral\_\allowbreak{}drift\_\allowbreak{}perturbation} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 113–162}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_drift\_perturbation}
+\leanline{4}{(g\ k\ :\ H\ →\ H)\ (L\ M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)\ (hk\ :\ LipschitzWith\ M\ k)}
+\leanline{4}{(ε\ :\ ℝ)\ (hdefect\ :\ ∀\ x,\ ‖g\ x\ -\ k\ x‖\ ≤\ ε)}
+\leanline{4}{(x\ y\ :\ H)\ (B\ Y\ Z\ :\ ℝ\ →\ H)\ (hY\ :\ Continuous\ Y)\ (hZ\ :\ Continuous\ Z)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ x\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(hZe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Z\ t\ -\ y\ =\ -(∫\ s\ in\ 0..t,\ k\ (Z\ s))\ +\ B\ t)\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,\ ‖Y\ t\ -\ Z\ t‖\ ≤\ gronwallBound\ ‖x\ -\ y‖\ (L\ :\ ℝ)\ ε\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: integral\_drift\_perturbation : Two actual integral equations driven by common additive input differ by the Grönwall response to a uniform drift defect. No derivative of the input is used, and no error recurrence is assumed.
 
+
+
+\texttt{integral\_\allowbreak{}drift\_\allowbreak{}perturbation}: the intermediate facts include \texttt{D}, \texttt{F}, \texttt{h\allowbreak{}D}, \texttt{hbound}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{sub\_\allowbreak{}eq\_\allowbreak{}iff\_\allowbreak{}eq\_\allowbreak{}add}, \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}const}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sub}, \texttt{dist\_\allowbreak{}triangle}, \texttt{h\allowbreak{}Y.\allowbreak{}sub}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 \section{\texorpdfstring{The finite smoothing estimate for the two integral systems}{The finite smoothing estimate for the two integral systems}}
 
@@ -101,17 +217,54 @@ Construct both Hilbert-space solutions with common initial state and continuous 
 
 For deterministic initial parameter and latent-only Brownian input these are the mean-field systems described above. The finite bound is linear in \(\eta\). More explicitly the averaged drift constant is \(2(L_1+L_2)\) and its uniform difference is \(2\eta L_2K\). The supremum is outside the \(L^2\) norm. Proposition C.3 instead bounds the expectation of the supremum of squared errors. The square root of that quantity bounds the supremum of the \(L^2\) error norms. A bound on the expectation of the supremum of squared errors is not established here.
 
+\begin{leanbox}{Lean: \texttt{meanFieldSmoothingConstant}, \texttt{exists\_\allowbreak{}meanField\_\allowbreak{}smoothing\_\allowbreak{}comparison}}
+\leansource{\texttt{meanFieldSmoothingConstant} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 169–172}
+\begin{leancode}
+\leanline{0}{def\ meanFieldSmoothingConstant\ (L₁\ L₂\ K\ :\ ℝ≥0)\ (T\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{2\ *\ (L₂\ :\ ℝ)\ *\ (K\ :\ ℝ)\ *\ gronwallBound\ 0\ (2\ *\ ((L₁\ :\ ℝ)\ +\ (L₂\ :\ ℝ)))\ 1\ T}
+\leanline{0}{\strut}
+\leanline{0}{section\ MeanField}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}meanField\_\allowbreak{}smoothing\_\allowbreak{}comparison} \quad ProximalLangevin/\allowbreak{}MeanFieldSmoothing.lean, lines 187–249}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_meanField\_smoothing\_comparison}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(B\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0\ =\ 0)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{∃\ (hU\ :\ LipschitzWith\ (L₁\ +\ L₂)\ (gradient\ (fun\ x\ =>\ g₁\ x\ +\ g₂\ x)))}
+\leanline{6}{(hV\ :\ LipschitzWith\ (L₁\ +\ L₂)\ (gradient\ (smoothedPotential\ g₁\ g₂\ η)))}
+\leanline{6}{(Y\ Z\ :\ ℝ\ →\ Lp\ (IPLA.Joint\ dθ\ dx)\ 2\ Q),}
+\leanline{6}{Continuous\ Y\ ∧\ Continuous\ Z\ ∧\ Y\ 0\ =\ initial\ ∧\ Z\ 0\ =\ initial\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ (fun\ x\ =>\ g₁\ x\ +\ g₂\ x)\ hU\ (Y\ s))\ +\ B\ t)\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ Z\ t\ -\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ lpMeanFieldDrift\ Q\ (smoothedPotential\ g₁\ g₂\ η)\ hV\ (Z\ s))\ +\ B\ t)\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,\ ‖Y\ t\ -\ Z\ t‖\ ≤\ η\ *\ meanFieldSmoothingConstant\ L₁\ L₂\ K\ T}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Both systems are constructed with the same continuous additive input. Subtracting their equations cancels that input and leaves a differentiable integral error. One drift contributes its global Lipschitz constant times the current difference; the other contributes the uniform Moreau score defect just proved. Grönwall then bounds the actual process difference by a coefficient times \(\eta\) on the finite horizon. The component-regularity declarations justify the smoothness constants of each summand from the stated assumptions on the regular sum before this perturbation argument is applied.
 
 
+
+Formal correspondence: meanFieldSmoothingConstant : Explicit finite-horizon coefficient for the mean-field \(L^2\) smoothing error. The Grönwall response is \(T\) at zero smoothness and otherwise \(\frac{\exp(2(L_1+L_2)T)-1}{2(L_1+L_2)}\). exists\_meanField\_smoothing\_comparison : Constructed original and smoothed mean-field processes share their actual initial variable and continuous additive input. Their \(L^2\) distance, uniformly over the finite horizon, is bounded by \(\eta\) times an explicit \(\eta\)-independent constant. This is \(\sup_t\|\operatorname{error}_t\|_{L^2}\), not a pathwise supremum inside an expectation.
+
+
+
+\texttt{mean\allowbreak{}Field\allowbreak{}Smoothing\allowbreak{}Constant} is a definition with defining expression \texttt{2 * (L\ensuremath{{}_{2}} : \ensuremath{\mathbb R}) * (K : \ensuremath{\mathbb R}) * gronwall\allowbreak{}Bound 0 (2 * ((L\ensuremath{{}_{1}} : \ensuremath{\mathbb R}) + (L\ensuremath{{}_{2}} : \ensuremath{\mathbb R}))) 1 T}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{exists\_\allowbreak{}mean\allowbreak{}Field\_\allowbreak{}smoothing\_\allowbreak{}comparison}: the intermediate facts include \texttt{h\allowbreak{}U}, \texttt{h\allowbreak{}V}, \texttt{U}, \texttt{heq}, \texttt{hpt}, in source order; the source steps apply or rewrite \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}, \texttt{gradient\_\allowbreak{}moreau\_\allowbreak{}defect\_\allowbreak{}le}, \texttt{norm\_\allowbreak{}zero}, \texttt{hpt.\allowbreak{}trans}, \texttt{htime.\allowbreak{}trans\_\allowbreak{}eq}. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

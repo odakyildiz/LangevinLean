@@ -34,6 +34,14 @@ REPORTS = {
     "KIPLMC": dict(key="LangevinLean2026KIPLMC", short="KIPLMC", number="LL-07"),
 }
 
+# Reports of the two separately generated developments. They take no part in
+# the cross-report section citations, but have the same BibTeX identities.
+SEPARATE_REPORTS = {
+    "LatentDiffusion": dict(key="LangevinLean2026LatentDiffusion", short="Latent diffusion", number="LL-08"),
+    "PBGSO": dict(key="LangevinLean2026PBGSO", short="PBGSO", number="LL-10"),
+}
+ALL_REPORTS = {**REPORTS, **SEPARATE_REPORTS}
+
 PROJECT_URL = "https://odakyildiz.github.io/LangevinLean/"
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,7 +67,7 @@ def _bibtext(value):
 
 def bibliography_entry(library, title, revision):
     """Return a corporate-author BibTeX entry for one versioned report."""
-    report = REPORTS[library]
+    report = ALL_REPORTS[library]
     url = PROJECT_URL + f"docs/pdf/{library}/FullProof.pdf"
     note = "Draft mathematical proof report; content revision " + str(revision)
     return "\n".join([
@@ -150,7 +158,7 @@ def citation_panel(library, title, revision, page, section=None):
 def bib_outputs(plans):
     """Return the individual, combined, and project-level BibTeX artifacts."""
     outputs, entries = {}, []
-    for library in REPORT_ORDER:
+    for library in list(REPORT_ORDER) + list(SEPARATE_REPORTS):
         if library not in plans:
             continue
         plan = plans[library]

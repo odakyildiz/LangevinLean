@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,26 @@ The additive innovation measure is the pushforward of the Euclidean standard Gau
 
 The innovation law is the exact Gaussian with thermostat’s thermal variance. It is independent of the initial phase. This independence and the fluctuation–dissipation relation are what preserve the Gaussian velocity factor, rather than a covariance calculation alone.
 
+\begin{leanbox}{Lean: \texttt{ouThermalLaw}, \texttt{ouThermalLaw\_\allowbreak{}probability}}
+\leansource{\texttt{ouThermalLaw} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 15–16}
+\begin{leancode}
+\leanline{0}{def\ ouThermalLaw\ (γ\ h\ :\ ℝ)\ :\ Measure\ E\ :=}
+\leanline{2}{(stdGaussian\ E).map\ (fun\ x\ ↦\ Real.sqrt\ (1-(psi\ γ\ 0\ h)\textasciicircum{}2)\ •\ x)}
+\end{leancode}
+\leansource{\texttt{ouThermalLaw\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 18–20}
+\begin{leancode}
+\leanline{0}{instance\ ouThermalLaw\_probability\ (γ\ h\ :\ ℝ)\ :\ IsProbabilityMeasure\ (ouThermalLaw\ (E\ :=\ E)\ γ\ h)\ :=\ by}
+\leanline{2}{unfold\ ouThermalLaw}
+\leanline{2}{infer\_instance}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ou\allowbreak{}Thermal\allowbreak{}Law} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{ou\allowbreak{}Thermal\allowbreak{}Law\_\allowbreak{}probability} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+\end{leanbox}
 
 \section{\texorpdfstring{Normalize the exact corrected Verlet identity}{Normalize the exact corrected Verlet identity}}
 
@@ -42,6 +85,19 @@ The normalized target is an explicitly proved finite scalar normalization of the
 
 The corrected Verlet identity initially concerns an unnormalized Hamiltonian density. Its finite positive partition mass permits division to obtain an identity for the probability target. Every subsequent weak-test comparison therefore uses normalized measures.
 
+\begin{leanbox}{Lean: \texttt{correctedVerlet\_\allowbreak{}preserves\_\allowbreak{}target}}
+\leansource{\texttt{correctedVerlet\_\allowbreak{}preserves\_\allowbreak{}target} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 24–33}
+\begin{leancode}
+\leanline{0}{theorem\ correctedVerlet\_preserves\_target\ (f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)}
+\leanline{4}{(hg\ :\ Measurable\ (gradient\ f))\ (h\ :\ ℝ)\ :}
+\leanline{4}{((kineticGibbsTarget\ f).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (verletAcceptance\ f\ h\ z))).map}
+\leanline{8}{(verletStep\ (gradient\ f)\ h)\ +}
+\leanline{6}{((kineticGibbsTarget\ f).withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (1-verletAcceptance\ f\ h\ z))).map}
+\leanline{8}{reverseVelocity\ =\ kineticGibbsTarget\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Verlet\_\allowbreak{}preserves\_\allowbreak{}target} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{The normalized target phase moment}{The normalized target phase moment}}
 
@@ -52,6 +108,17 @@ The unnormalized Hamiltonian measure already has integrable \(\|v\|^2+\|\nabla f
 
 The normalized quadratic moment is computed from the independent Gaussian velocity and Gibbs position factors. Smoothness transfers the position moment to a force moment. This yields a finite constant for integrating the numerical rejection upper bound.
 
+\begin{leanbox}{Lean: \texttt{kineticGibbsTarget\_\allowbreak{}phase\_\allowbreak{}moment}}
+\leansource{\texttt{kineticGibbsTarget\_\allowbreak{}phase\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 37–44}
+\begin{leancode}
+\leanline{0}{theorem\ kineticGibbsTarget\_phase\_moment\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E×E\ ↦\ ‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2)\ (kineticGibbsTarget\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Gibbs\allowbreak{}Target\_\allowbreak{}phase\_\allowbreak{}moment} gives the formal counterpart of this step. Named proof applications include \texttt{ENNReal.\allowbreak{}mul\_\allowbreak{}ne\_\allowbreak{}top}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.9]{LangevinLean2026ULASC}.
@@ -65,6 +132,18 @@ The damping \(\delta_h=e^{-\gamma h}\) and innovation scale satisfy \(\delta_h^2
 
 The thermostat acts only on velocity and adds the independent filtered Gaussian response. The exact variance identity preserves the velocity Gaussian, while position is unchanged. Hence the product target probability is preserved by this transition.
 
+\begin{leanbox}{Lean: \texttt{ouThermalStep\_\allowbreak{}preserves\_\allowbreak{}target}}
+\leansource{\texttt{ouThermalStep\_\allowbreak{}preserves\_\allowbreak{}target} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 47–70}
+\begin{leancode}
+\leanline{0}{theorem\ ouThermalStep\_preserves\_target\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ :}
+\leanline{4}{ULA.markovStep\ (fun\ z\ N\ ↦\ ornsteinStep\ (Real.exp\ (-γ*h))\ 1\ N\ z)}
+\leanline{6}{(ouThermalLaw\ (E\ :=\ E)\ γ\ h)\ (kineticGibbsTarget\ f)\ =\ kineticGibbsTarget\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ou\allowbreak{}Thermal\allowbreak{}Step\_\allowbreak{}preserves\_\allowbreak{}target} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\delta}}, \texttt{\ensuremath{\sigma}}, \texttt{hp}, \texttt{hab}, \texttt{ht}, \texttt{hmapping} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.5]{LangevinLean2026ULASC}.
@@ -78,6 +157,21 @@ For \(\|F\|\le C\), define \(G(z)=\mathbb E_N[F(O_h(z,N))]\). The noise integral
 
 Average a bounded test over thermostat noise before applying the corrected Hamiltonian identity. Probability averaging preserves its uniform bound. This permits the two invariant component transitions to be combined while retaining a controlled weak error for the uncorrected splitting.
 
+\begin{leanbox}{Lean: \texttt{kineticSplitStep\_\allowbreak{}stationary\_\allowbreak{}weak\_\allowbreak{}error}}
+\leansource{\texttt{kineticSplitStep\_\allowbreak{}stationary\_\allowbreak{}weak\_\allowbreak{}error} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 74–111}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitStep\_stationary\_weak\_error\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ (hh1\ :\ h≤1)}
+\leanline{4}{(F\ :\ E×E\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (C\ :\ ℝ)\ (hC\ :\ 0≤C)\ (hFb\ :\ ∀\ z,\ ‖F\ z‖≤C)\ :}
+\leanline{4}{‖(∫\ z,F\ z\ ∂ULA.markovStep\ (kineticSplitStep\ (gradient\ f)\ γ\ h)}
+\leanline{6}{(ouThermalLaw\ (E\ :=\ E)\ γ\ h)\ (kineticGibbsTarget\ f))-(∫\ z,F\ z\ ∂kineticGibbsTarget\ f)‖\ ≤}
+\leanline{6}{2*C*h\textasciicircum{}2*((M\ :\ ℝ)*(2*(M\ :\ ℝ)+11)/8)*}
+\leanline{8}{(∫\ z,‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2\ ∂kineticGibbsTarget\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Step\_\allowbreak{}stationary\_\allowbreak{}weak\_\allowbreak{}error} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\pi}}, \texttt{Q}, \texttt{O}, \texttt{h\allowbreak{}O}, \texttt{h\allowbreak{}V}, \texttt{G} in that order. Named proof applications include \texttt{he.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.5]{LangevinLean2026ULASC}.
@@ -91,13 +185,29 @@ The generic Markov test theorem applies the one-step estimate to each iterated d
 
 Over a fixed horizon the number of steps is proportional to the inverse step length. A local weak discrepancy with a higher step power therefore has a vanishing accumulated total. The telescoping argument keeps this accumulation linear and avoids a spurious growth of the test bound.
 
+\begin{leanbox}{Lean: \texttt{kineticSplitLaws\_\allowbreak{}stationary\_\allowbreak{}weak\_\allowbreak{}error}}
+\leansource{\texttt{kineticSplitLaws\_\allowbreak{}stationary\_\allowbreak{}weak\_\allowbreak{}error} \quad KineticLangevin/\allowbreak{}SplittingTarget.lean, lines 115–134}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitLaws\_stationary\_weak\_error\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ (hh1\ :\ h≤1)}
+\leanline{4}{(F\ :\ E×E\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (C\ :\ ℝ)\ (hC\ :\ 0≤C)\ (hFb\ :\ ∀\ z,\ ‖F\ z‖≤C)}
+\leanline{4}{(n\ :\ ℕ)\ :}
+\leanline{4}{‖(∫\ z,F\ z\ ∂ULA.markovLaws\ (kineticSplitStep\ (gradient\ f)\ γ\ h)}
+\leanline{6}{(ouThermalLaw\ (E\ :=\ E)\ γ\ h)\ (kineticGibbsTarget\ f)\ n)-(∫\ z,F\ z\ ∂kineticGibbsTarget\ f)‖\ ≤}
+\leanline{6}{(n\ :\ ℝ)*(2*C*h\textasciicircum{}2*((M\ :\ ℝ)*(2*(M\ :\ ℝ)+11)/8)*}
+\leanline{8}{(∫\ z,‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2\ ∂kineticGibbsTarget\ f))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Laws\_\allowbreak{}stationary\_\allowbreak{}weak\_\allowbreak{}error} gives the formal counterpart of this step. The main intermediate facts are \texttt{hgrad}, \texttt{hs}, \texttt{h\allowbreak{}B} in that order. Named proof applications include \texttt{markov\allowbreak{}Laws\_\allowbreak{}weak\_\allowbreak{}error}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

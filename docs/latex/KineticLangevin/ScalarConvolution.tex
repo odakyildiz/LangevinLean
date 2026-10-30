@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,26 @@ Differentiate \(\psi_{k+1}(s)\psi_{j+1}(t-s)\). Its derivative is \(\psi_k(s)\ps
 
 The boundary terms vanish because positive-index response primitives are zero at the origin. Integration by parts can therefore transfer one primitive from one convolution factor to the other without a remainder. Repeating this operation yields the full index-addition convolution identity.
 
+\begin{leanbox}{Lean: \texttt{psi\_\allowbreak{}convolution\_\allowbreak{}shift}, \texttt{phi\_\allowbreak{}eq\_\allowbreak{}psi\_\allowbreak{}convolution}}
+\leansource{\texttt{psi\_\allowbreak{}convolution\_\allowbreak{}shift} \quad KineticLangevin/\allowbreak{}ScalarConvolution.lean, lines 8–23}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_convolution\_shift\ (γ\ t\ :\ ℝ)\ (k\ j\ :\ ℕ)\ :}
+\leanline{4}{(∫\ s\ in\ 0..t,psi\ γ\ k\ s*psi\ γ\ (j+1)\ (t-s))=}
+\leanline{6}{∫\ s\ in\ 0..t,psi\ γ\ (k+1)\ s*psi\ γ\ j\ (t-s)}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}eq\_\allowbreak{}psi\_\allowbreak{}convolution} \quad KineticLangevin/\allowbreak{}ScalarConvolution.lean, lines 26–37}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_eq\_psi\_convolution\ (γ\ t\ :\ ℝ)\ (k\ j\ :\ ℕ)\ :}
+\leanline{4}{phi\ γ\ (k+j+1)\ t=∫\ s\ in\ 0..t,psi\ γ\ k\ s*psi\ γ\ j\ (t-s)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{psi\_\allowbreak{}convolution\_\allowbreak{}shift} gives the formal counterpart of this step. The main intermediate facts are \texttt{hd}, \texttt{hc1}, \texttt{hc2}, \texttt{hi} in that order. Named proof applications include \texttt{hi}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{phi\_\allowbreak{}eq\_\allowbreak{}psi\_\allowbreak{}convolution} proceeds by \texttt{induction j generalizing k with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The full friction recurrence}{The full friction recurrence}}
 
@@ -42,6 +85,15 @@ Use the just-proved identity with \(j=1\), multiply the integral by \(\gamma\), 
 
 The friction relation is derived by multiplying inside an integral and substituting the division-free balance for the first response. Since no friction denominator is introduced, the identity remains valid at zero friction. This matters for uniform scaling and correction formulas.
 
+\begin{leanbox}{Lean: \texttt{phi\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}phi\_\allowbreak{}succ}}
+\leansource{\texttt{phi\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}phi\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}ScalarConvolution.lean, lines 40–57}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_add\_friction\_phi\_succ\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{phi\ γ\ (k+1)\ t+γ*phi\ γ\ (k+2)\ t=psi\ γ\ (k+1)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{phi\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}phi\_\allowbreak{}succ} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{hidx}, \texttt{he}, \texttt{hc}, \texttt{h\allowbreak{}I} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Differentiate and integrate the correction coefficients}{Differentiate and integrate the correction coefficients}}
 
@@ -52,5 +104,24 @@ The factored definition \(\varphi_{k+1}(t)=e^{-\gamma t}\int_0^te^{\gamma s}\psi
 
 The derivative formula has a base-index exception. At positive indices the friction recurrence converts the forcing-minus-damping derivative into the preceding correction response. Checking that exception explicitly prevents an incorrect primitive identity at index zero.
 
+\begin{leanbox}{Lean: \texttt{hasDerivAt\_\allowbreak{}phi\_\allowbreak{}succ}, \texttt{phi\_\allowbreak{}succ\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}phi}}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}phi\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}ScalarConvolution.lean, lines 60–74}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_phi\_succ\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{HasDerivAt\ (phi\ γ\ (k+1))\ (psi\ γ\ k\ t-γ*phi\ γ\ (k+1)\ t)\ t}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}succ\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}phi} \quad KineticLangevin/\allowbreak{}ScalarConvolution.lean, lines 77–86}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_succ\_eq\_integral\_phi\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{phi\ γ\ (k+2)\ t=∫\ s\ in\ 0..t,phi\ γ\ (k+1)\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}phi\_\allowbreak{}succ} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hd}, \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{phi\_\allowbreak{}succ\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}phi} gives the formal counterpart of this step. The main intermediate facts are \texttt{hd}, \texttt{hi} in that order. Named proof applications include \texttt{hi.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,16 @@ If \(|f|\le B\), then \(tf\le |t|B\), so \(0<e^{tf}\le e^{|t|B}\). The right sid
 
 Boundedness of the test gives \(e^{sf}\le e^{|s|\|f\|_\infty}\). This constant is integrable under the target probability, uniformly for \(s\) in a compact interval, allowing derivatives of its moment generating function.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}mul\_\allowbreak{}bounded}}
+\leansource{\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}mul\_\allowbreak{}bounded} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 29–37}
+\begin{leancode}
+\leanline{0}{private\ theorem\ integrable\_exp\_mul\_bounded\ (ν\ :\ Measure\ E)\ [IsFiniteMeasure\ ν]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)\ (B\ :\ ℝ)\ (hb\ :\ ∀\ x,\ |f\ x|\ ≤\ B)\ (t\ :\ ℝ)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ Real.exp\ (t\ *\ f\ x))\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}mul\_\allowbreak{}bounded}: the source steps apply or rewrite \texttt{integrable\_\allowbreak{}const}, \texttt{Real.\allowbreak{}exp}, \texttt{abs\_\allowbreak{}mul}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{abs\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 \section{\texorpdfstring{Testing LSI with a normalized exponential tilt}{Testing LSI with a normalized exponential tilt}}
 
@@ -53,6 +86,19 @@ This entropy is finite because its integrand is bounded under the tilted probabi
 
 The finite entropy and Fisher bounds justify this ordinary real-valued inequality for every scalar tilt.
 
+\begin{leanbox}{Lean: \texttt{IsLogSobolev.\allowbreak{}exponential\_\allowbreak{}test}}
+\leansource{\texttt{IsLogSobolev.\allowbreak{}exponential\_\allowbreak{}test} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 42–122}
+\begin{leancode}
+\leanline{0}{theorem\ IsLogSobolev.exponential\_test}
+\leanline{4}{\{ν\ :\ Measure\ E\}\ \{α\ :\ ℝ\}\ (hLSI\ :\ IsLogSobolev\ ν\ α)\ (hα\ :\ 0\ ≤\ α)}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (hf\ :\ ContDiff\ ℝ\ 1\ f)\ (B\ D\ :\ ℝ)}
+\leanline{4}{(hb\ :\ ∀\ x,\ |f\ x|\ ≤\ B)\ (hD\ :\ 0\ ≤\ D)}
+\leanline{4}{(hg\ :\ ∀\ x,\ ‖gradient\ f\ x‖\ ≤\ D)\ (t\ :\ ℝ)\ :}
+\leanline{4}{2\ *\ α\ *\ (t\ *\ deriv\ (cgf\ f\ ν)\ t\ -\ cgf\ f\ ν\ t)\ ≤\ t\ \textasciicircum{}\ 2\ *\ D\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}exponential\_\allowbreak{}test} inserts the normalized exponential density of a bounded differentiable test into the functional inequality. The normalization and derivative identities in that module translate its KL and Fisher terms into the moment-generating expression. \texttt{log\allowbreak{}Sobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness} then combines the resulting variance estimate, the Gibbs score identities and bounded trigonometric tests. Its positive-dimensional hypothesis is what permits a unit direction. The proof takes the small-frequency limit under a bounded cosine majorant; it does not assume a position moment. The final unconditional theorem treats a singleton space separately before using this compatibility result.
+\end{leanbox}
 
 \section{\texorpdfstring{The small-tilt entropy quotient}{The small-tilt entropy quotient}}
 
@@ -63,6 +109,17 @@ For a \(C^3\) scalar function \(\psi\) with \(\psi(0)=0\), both numerator and de
 
 The constant and first-order terms cancel in \(s\Lambda'(s)-\Lambda(s)\). Its leading term is \(s^2\Lambda''(0)/2\), where \(\Lambda''(0)\) is the variance of the bounded test.
 
+\begin{leanbox}{Lean: \texttt{tendsto\_\allowbreak{}entropy\_\allowbreak{}quotient}}
+\leansource{\texttt{tendsto\_\allowbreak{}entropy\_\allowbreak{}quotient} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 125–158}
+\begin{leancode}
+\leanline{0}{private\ theorem\ tendsto\_entropy\_quotient\ (ψ\ :\ ℝ\ →\ ℝ)\ (hψ\ :\ ContDiff\ ℝ\ 3\ ψ)}
+\leanline{4}{(hzero\ :\ ψ\ 0\ =\ 0)\ :}
+\leanline{4}{Tendsto\ (fun\ t\ ↦\ (t\ *\ deriv\ ψ\ t\ -\ ψ\ t)\ /\ t\ \textasciicircum{}\ 2)\ ({\leanfallback 𝓝}[>]\ 0)}
+\leanline{6}{({\leanfallback 𝓝}\ (iteratedDeriv\ 2\ ψ\ 0\ /\ 2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{tendsto\_\allowbreak{}entropy\_\allowbreak{}quotient}: the intermediate facts include \texttt{hd\ensuremath{\psi}}, \texttt{hc\ensuremath{\psi}}, \texttt{h}, \texttt{hcont}, in source order; the source steps apply or rewrite \texttt{iterated\allowbreak{}Deriv\_\allowbreak{}one}, \texttt{h\ensuremath{\psi}.\allowbreak{}differentiable\_\allowbreak{}iterated\allowbreak{}Deriv}, \texttt{hc\ensuremath{\psi}''.\allowbreak{}continuous\allowbreak{}At.\allowbreak{}tendsto.\allowbreak{}mono\_\allowbreak{}left}, \texttt{nhds\allowbreak{}Within\_\allowbreak{}le\_\allowbreak{}nhds}, \texttt{div\_\allowbreak{}const}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{A variance bound for bounded differentiable tests}{A variance bound for bounded differentiable tests}}
 
@@ -77,6 +134,19 @@ Divide the exponential-test inequality by \(t^2>0\), for \(t>0\), and use the se
 
 Dividing the tilted LSI by \(s^2\) and taking the small-tilt limit gives \(\alpha\operatorname{Var}(f)\le D^2\). The bounded test class makes this step independent of unknown position moments.
 
+\begin{leanbox}{Lean: \texttt{IsLogSobolev.\allowbreak{}variance\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}bounded}}
+\leansource{\texttt{IsLogSobolev.\allowbreak{}variance\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}bounded} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 163–190}
+\begin{leancode}
+\leanline{0}{theorem\ IsLogSobolev.variance\_le\_of\_bounded}
+\leanline{4}{\{ν\ :\ Measure\ E\}\ \{α\ :\ ℝ\}\ (hLSI\ :\ IsLogSobolev\ ν\ α)\ (hα\ :\ 0\ ≤\ α)}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (hf\ :\ ContDiff\ ℝ\ 1\ f)\ (B\ D\ :\ ℝ)}
+\leanline{4}{(hb\ :\ ∀\ x,\ |f\ x|\ ≤\ B)\ (hD\ :\ 0\ ≤\ D)}
+\leanline{4}{(hg\ :\ ∀\ x,\ ‖gradient\ f\ x‖\ ≤\ D)\ :}
+\leanline{4}{α\ *\ ((∫\ x,\ f\ x\ \textasciicircum{}\ 2\ ∂ν)\ -\ (∫\ x,\ f\ x\ ∂ν)\ \textasciicircum{}\ 2)\ ≤\ D\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}variance\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}bounded}: the intermediate facts include \texttt{hset}, \texttt{hanalytic}, \texttt{hcgf}, \texttt{hbound}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{mem\_\allowbreak{}univ}, \texttt{analytic\allowbreak{}At\_\allowbreak{}cgf}, \texttt{sq\_\allowbreak{}pos\_\allowbreak{}of\_\allowbreak{}pos}, \texttt{mul\_\allowbreak{}comm}, \texttt{h\allowbreak{}LSI.\allowbreak{}exponential\_\allowbreak{}test}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Weighted Gibbs integration}{Weighted Gibbs integration}}
 
@@ -87,6 +157,17 @@ Unfold \(\nu=Z^{-1}(e^{-U}dx)\). Scalar multiplication of a measure multiplies i
 
 The Gibbs change of measure inserts its ordinary positive density into the Lebesgue integral. This is the form in which the weighted derivative identity can be integrated by parts.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}weighted}}
+\leansource{\texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}weighted} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 194–206}
+\begin{leancode}
+\leanline{0}{private\ theorem\ integral\_gibbs\_weighted\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (g\ :\ E\ →\ ℝ)\ :}
+\leanline{4}{(∫\ x,\ g\ x\ ∂gibbsMeasure\ U)\ =\ (gibbsPartition\ U)⁻¹.toReal\ *}
+\leanline{6}{∫\ x,\ Real.exp\ (-U\ x)\ *\ g\ x\ ∂volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}weighted}: the intermediate facts include \texttt{hw}, \texttt{h\allowbreak{}Uc}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}smul\_\allowbreak{}measure}, \texttt{integral\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}to\allowbreak{}Real\_\allowbreak{}smul}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}nonneg}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -100,6 +181,18 @@ Strict positivity of the Gibbs partition follows from differentiability of \(U\)
 
 The bounded test and gradient bounds, together with finite score energy, control the weighted test-score products. These integrability checks justify the Gibbs integration-by-parts identity on the noncompact state space.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}weighted}}
+\leansource{\texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}weighted} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 209–221}
+\begin{leancode}
+\leanline{0}{private\ theorem\ integrable\_gibbs\_weighted\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)}
+\leanline{4}{(g\ :\ E\ →\ ℝ)\ :}
+\leanline{4}{Integrable\ g\ (gibbsMeasure\ U)\ ↔}
+\leanline{6}{Integrable\ (fun\ x\ ↦\ Real.exp\ (-U\ x)\ *\ g\ x)\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}weighted}: the intermediate facts include \texttt{hw}, \texttt{h\allowbreak{}Uc}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}inv\_\allowbreak{}smul\_\allowbreak{}measure}, \texttt{ne\_\allowbreak{}of\_\allowbreak{}gt}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}nonneg}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}.
@@ -121,6 +214,21 @@ the global integration-by-parts identity gives \(\int(D_v\psi)e^{-U}dx=\int\psi 
 
 The weighted integrability conditions justify this identity on the whole state space. No position moment or separately imposed boundary value is used.
 
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}stein\_\allowbreak{}bounded}}
+\leansource{\texttt{gibbs\_\allowbreak{}stein\_\allowbreak{}bounded} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 226–281}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_stein\_bounded\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)}
+\leanline{4}{(ψ\ :\ E\ →\ ℝ)\ (hψ\ :\ ContDiff\ ℝ\ 1\ ψ)\ (B\ D\ :\ ℝ)}
+\leanline{4}{(hb\ :\ ∀\ x,\ |ψ\ x|\ ≤\ B)\ (\_hD\ :\ 0\ ≤\ D)}
+\leanline{4}{(hg\ :\ ∀\ x,\ ‖gradient\ ψ\ x‖\ ≤\ D)\ (v\ :\ E)\ :}
+\leanline{4}{(∫\ x,\ ψ\ x\ *\ inner\ ℝ\ (gradient\ U\ x)\ v\ ∂gibbsMeasure\ U)\ =}
+\leanline{6}{∫\ x,\ inner\ ℝ\ (gradient\ ψ\ x)\ v\ ∂gibbsMeasure\ U}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}stein\_\allowbreak{}bounded}: the intermediate facts include \texttt{hs}, \texttt{hi\ensuremath{\psi}}, \texttt{hprod}, \texttt{h\ensuremath{{}_{3}}}, \texttt{hip}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}smul\_\allowbreak{}apply}, \texttt{with\allowbreak{}Density\_\allowbreak{}apply}, \texttt{mul\_\allowbreak{}assoc}, \texttt{mul\_\allowbreak{}left\_\allowbreak{}comm}, \texttt{integral\_\allowbreak{}gibbs\_\allowbreak{}weighted}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}; \cite[Section~3.27.3]{LangevinLean2026ULASC}.
@@ -134,6 +242,17 @@ For real \(L^2\) functions \(f,g\), Holder's inequality proves \(fg\in L^1\); th
 
 Center the bounded sine test before applying Cauchy–Schwarz against the centered directional score. The score variance bound and the bounded-test variance estimate then control the square of their covariance.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}le}}
+\leansource{\texttt{integral\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 284–309}
+\begin{leancode}
+\leanline{0}{private\ theorem\ integral\_mul\_sq\_le\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(μ\ :\ Measure\ Ω)\ (f\ g\ :\ Ω\ →\ ℝ)\ (hf\ :\ MemLp\ f\ 2\ μ)\ (hg\ :\ MemLp\ g\ 2\ μ)\ :}
+\leanline{4}{(∫\ x,\ f\ x\ *\ g\ x\ ∂μ)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(∫\ x,\ f\ x\ \textasciicircum{}\ 2\ ∂μ)\ *\ (∫\ x,\ g\ x\ \textasciicircum{}\ 2\ ∂μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}mul\_\allowbreak{}sq\_\allowbreak{}le}: the intermediate facts include \texttt{hfs}, \texttt{hgs}, \texttt{hfg}, \texttt{hpoint}, \texttt{hsum}, in source order; the source steps apply or rewrite \texttt{Pi.\allowbreak{}mul\_\allowbreak{}def}, \texttt{hf.\allowbreak{}integrable\_\allowbreak{}mul}, \texttt{hfs.\allowbreak{}const\_\allowbreak{}mul}, \texttt{hfg.\allowbreak{}const\_\allowbreak{}mul}, \texttt{integral\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Compatibility of LSI and smoothness constants}{Compatibility of LSI and smoothness constants}}
 
@@ -152,6 +271,18 @@ Multiply by \(\alpha\ge0\), insert the variance bound, and cancel \(t^2>0\). Thi
 
 For the unit direction, the derivative of the sine test is \(t\cos(t\langle v,x\rangle)\). Cancelling the positive factor \(t^2\) gives the cosine inequality, and bounded convergence sends its expectation to one.
 
+\begin{leanbox}{Lean: \texttt{logSobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness}}
+\leansource{\texttt{logSobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 315–405}
+\begin{leancode}
+\leanline{0}{theorem\ logSobolev\_constant\_le\_smoothness\ [FiniteDimensional\ ℝ\ E]\ [Nontrivial\ E]}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (α\ :\ ℝ)\ (hα\ :\ 0\ ≤\ α)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)\ (hLSI\ :\ IsLogSobolev\ (gibbsMeasure\ U)\ α)\ :}
+\leanline{4}{α\ ≤\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}exponential\_\allowbreak{}test} inserts the normalized exponential density of a bounded differentiable test into the functional inequality. The normalization and derivative identities in that module translate its KL and Fisher terms into the moment-generating expression. \texttt{log\allowbreak{}Sobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness} then combines the resulting variance estimate, the Gibbs score identities and bounded trigonometric tests. Its positive-dimensional hypothesis is what permits a unit direction. The proof takes the small-frequency limit under a bounded cosine majorant; it does not assume a position moment. The final unconditional theorem treats a singleton space separately before using this compatibility result.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.27.3]{LangevinLean2026ULASC}; \cite[Section~3.27.5]{LangevinLean2026ULASC}.
@@ -165,13 +296,25 @@ This result removes two temporary restrictions from the previous proof. If \(\al
 
 In positive dimension a unit vector exists, so the preceding directional argument proves \(\alpha\le L\). In the singleton case no unit direction is available; the final entropy theorem handles that case directly with zero KL.
 
+\begin{leanbox}{Lean: \texttt{IsLogSobolev.\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness}}
+\leansource{\texttt{IsLogSobolev.\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 411–425}
+\begin{leancode}
+\leanline{0}{theorem\ IsLogSobolev.constant\_le\_smoothness\ [FiniteDimensional\ ℝ\ E]\ [Nontrivial\ E]}
+\leanline{4}{\{U\ :\ E\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}\ \{α\ :\ ℝ\}}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (gibbsMeasure\ U)\ α)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{α\ ≤\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness}: the cases are separated by \texttt{by\_\allowbreak{}cases h\ensuremath{\alpha} : 0 \ensuremath{\le} \ensuremath{\alpha}}; the intermediate facts include \texttt{h\allowbreak{}Z}, \texttt{hzero}, \texttt{hh}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}coe\_\allowbreak{}zero}, \texttt{Pi.\allowbreak{}zero\_\allowbreak{}apply}, \texttt{lt\_\allowbreak{}of\_\allowbreak{}not\_\allowbreak{}ge}, \texttt{le.\allowbreak{}trans}, \texttt{L.\allowbreak{}coe\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

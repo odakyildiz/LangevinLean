@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -41,25 +64,58 @@ Earlier results used here: \cite[Section~3.55]{LangevinLean2026ULASC}; \cite[Sec
 
 Apply the Gaussian covariance bilinear form to two linear observations. The standard Gaussian has mean zero and identity covariance, so the expectation of \ensuremath{\langle}\(u\),\(Z\)\ensuremath{\rangle}\ensuremath{\langle}\(v\),\(Z\)\ensuremath{\rangle} equals \ensuremath{\langle}\(u\),\(v\)\ensuremath{\rangle}. Square integrability justifies the product integral.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}inner\_\allowbreak{}mul}}
+\leansource{\texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}inner\_\allowbreak{}mul} \quad AverageLMC/\allowbreak{}LaplacianGaussianTaylor.lean, lines 27–34}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_gaussian\_inner\_mul\ (u\ v\ :\ H)\ :}
+\leanline{4}{(∫\ z\ :\ H,\ inner\ ℝ\ u\ z\ *\ inner\ ℝ\ v\ z\ ∂stdGaussian\ H)\ =\ inner\ ℝ\ u\ v}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}inner\_\allowbreak{}mul} gives the formal counterpart of this step. The main intermediate facts are \texttt{hz}, \texttt{hc} in that order. Named proof applications include \texttt{hc.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Turn a quadratic form into its trace}{Turn a quadratic form into its trace}}
 
 
 Expand both arguments of a continuous bilinear form in the standard orthonormal basis. Interchange finite sums and integrals using Gaussian second moments. The covariance identity kills off-diagonal terms, leaving the sum of the diagonal values.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}bilinear}}
+\leansource{\texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}bilinear} \quad AverageLMC/\allowbreak{}LaplacianGaussianTaylor.lean, lines 37–73}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_gaussian\_bilinear\ (B\ :\ H\ →L[ℝ]\ H\ →L[ℝ]\ ℝ)\ :}
+\leanline{4}{(∫\ z\ :\ H,\ B\ z\ z\ ∂stdGaussian\ H)\ =}
+\leanline{6}{∑\ i\ :\ Fin\ (Module.finrank\ ℝ\ H),}
+\leanline{8}{B\ (stdOrthonormalBasis\ ℝ\ H\ i)\ (stdOrthonormalBasis\ ℝ\ H\ i)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}bilinear} gives the formal counterpart of this step. The main intermediate facts are \texttt{b}, \texttt{hz}, \texttt{hi}, \texttt{he}, \texttt{hefun} in that order. Named proof applications include \texttt{Finset.\allowbreak{}sum\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Average the entire Euler Taylor polynomial}{Average the entire Euler Taylor polynomial}}
 
 
 Expand the increment \(hv+\sqrt{2h}Z\) in the linear and quadratic derivative terms. Gaussian centering removes its linear-noise and drift-noise terms; the trace is the actual Laplacian. The remaining deterministic quadratic drift is \(h^{2}D^{2}\varphi [v,v]/2\). This is an exact equality for the Taylor polynomial, prior to any remainder estimate.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}secondOrderExpansion}}
+\leansource{\texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}secondOrderExpansion} \quad AverageLMC/\allowbreak{}LaplacianGaussianTaylor.lean, lines 77–144}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_gaussian\_secondOrderExpansion}
+\leanline{4}{(φ\ :\ H\ →\ ℝ)\ (x\ v\ :\ H)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{(∫\ z\ :\ H,\ ULA.secondOrderExpansion\ φ\ x\ (h\ •\ v\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)}
+\leanline{6}{∂stdGaussian\ H)\ =}
+\leanline{6}{φ\ x\ +\ h\ *\ (fderiv\ ℝ\ φ\ x\ v\ +\ Laplacian.laplacian\ φ\ x)\ +}
+\leanline{8}{h\ \textasciicircum{}\ 2\ /\ 2\ *\ iteratedFDeriv\ ℝ\ 2\ φ\ x\ (fun\ \_\ ↦\ v)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}gaussian\_\allowbreak{}second\allowbreak{}Order\allowbreak{}Expansion} gives the formal counterpart of this step. The main intermediate facts are \texttt{D}, \texttt{B}, \texttt{s}, \texttt{hz}, \texttt{h\allowbreak{}D}, \texttt{h\allowbreak{}Bv} in that order. Named proof applications include \texttt{hquad.\allowbreak{}integrable}, \texttt{integral\_\allowbreak{}strong\allowbreak{}Dual\_\allowbreak{}std\allowbreak{}Gaussian}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.55.1]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

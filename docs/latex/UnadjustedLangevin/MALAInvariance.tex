@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Push \(\mu\otimes\gamma\) through \((x,\xi)\mapsto(x,T_h(x,\xi))\). Its first co
 
 The first marginal is the starting law because the Gaussian conditional proposal has mass one. Its second marginal is the unadjusted proposal law. Keeping both coordinates makes forward and reverse density comparisons available on the same product space.
 
+\begin{leanbox}{Lean: \texttt{malaProposalJoint}}
+\leansource{\texttt{malaProposalJoint} \quad UnadjustedLangevin/\allowbreak{}MALAInvariance.lean, lines 23–24}
+\begin{leancode}
+\leanline{0}{def\ malaProposalJoint\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ H)\ :\ Measure\ (H\ ×\ H)\ :=}
+\leanline{2}{(μ.prod\ (stdGaussian\ H)).map\ (fun\ p\ ↦\ (p.1,\ malaProposal\ U\ h\ p.1\ p.2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\allowbreak{}Joint} is a definition with defining expression \texttt{(\ensuremath{\mu}.\allowbreak{}prod (std\allowbreak{}Gaussian H)).\allowbreak{}map (fun p \ensuremath{\mapsto} (p.\allowbreak{}1, mala\allowbreak{}Proposal U h p.\allowbreak{}1 p.\allowbreak{}2))}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The Gibbs-weighted proposal density}{The Gibbs-weighted proposal density}}
 
@@ -42,6 +74,15 @@ Set \(w_h(x,y)=\exp(-U(x)-\|y-x+h\nabla U(x)\|^2/(4h))\). The Gibbs and Gaussian
 
 With respect to Lebesgue product measure, the pair density is the Gibbs density at \(x\) multiplied by the proposal density from \(x\) to \(y\). Both factors are positive, so reverse/\allowbreak{}forward ratios can be formed pointwise and canceled without exceptional zero-density cases.
 
+\begin{leanbox}{Lean: \texttt{malaJointWeight}}
+\leansource{\texttt{malaJointWeight} \quad UnadjustedLangevin/\allowbreak{}MALAInvariance.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ malaJointWeight\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (p\ :\ H\ ×\ H)\ :\ ℝ\ :=}
+\leanline{2}{Real.exp\ (-U\ p.1\ -\ ‖p.2\ -\ p.1\ +\ h\ •\ gradient\ U\ p.1‖\ \textasciicircum{}\ 2\ /\ (4\ *\ h))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Joint\allowbreak{}Weight} is a definition with defining expression \texttt{Real.\allowbreak{}exp (-\allowbreak{}U p.\allowbreak{}1 -\allowbreak{} \ensuremath{\Vert}p.\allowbreak{}2 -\allowbreak{} p.\allowbreak{}1 + h \ensuremath{\bullet} gradient U p.\allowbreak{}1\ensuremath{\Vert} \textasciicircum{} 2 /\allowbreak{} (4 * h))}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The forward-reverse density ratio}{The forward-reverse density ratio}}
 
@@ -52,6 +93,16 @@ Divide the two positive exponentials and use \(e^a/e^b=e^{a-b}\). Expanding the 
 
 Taking logarithms turns multiplication of target and proposal factors into the potential and quadratic terms defining the log ratio. Exponentiating recovers the exact reverse/\allowbreak{}forward joint-density ratio, so the acceptance used in the coupling is precisely the detailed-balance acceptance.
 
+\begin{leanbox}{Lean: \texttt{malaJointWeight\_\allowbreak{}ratio}}
+\leansource{\texttt{malaJointWeight\_\allowbreak{}ratio} \quad UnadjustedLangevin/\allowbreak{}MALAInvariance.lean, lines 32–39}
+\begin{leancode}
+\leanline{0}{theorem\ malaJointWeight\_ratio\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (p\ :\ H\ ×\ H)\ :}
+\leanline{4}{malaJointWeight\ U\ h\ p.swap\ /\ malaJointWeight\ U\ h\ p\ =}
+\leanline{6}{Real.exp\ (malaLogRatio\ U\ h\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Joint\allowbreak{}Weight\_\allowbreak{}ratio}: the source steps apply or rewrite \texttt{Real.\allowbreak{}exp\_\allowbreak{}sub}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Equality of the innovation and pair-density transitions}{Equality of the innovation and pair-density transitions}}
 
@@ -62,6 +113,17 @@ Transport acceptance and rejection weights through the measurable pair map using
 
 Changing variables from Gaussian innovations to proposed positions commutes with multiplication by the corresponding acceptance weight. Consequently the innovation-based transition and the pair-density Metropolis transition have identical accepted and rejected components, not merely the same total mass.
 
+\begin{leanbox}{Lean: \texttt{malaOneStep\_\allowbreak{}eq\_\allowbreak{}metropolisOutput}}
+\leansource{\texttt{malaOneStep\_\allowbreak{}eq\_\allowbreak{}metropolisOutput} \quad UnadjustedLangevin/\allowbreak{}MALAInvariance.lean, lines 43–65}
+\begin{leancode}
+\leanline{0}{theorem\ malaOneStep\_eq\_metropolisOutput\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (μ\ :\ Measure\ H)\ :}
+\leanline{4}{malaOneStep\ U\ h\ μ\ =\ metropolisOutput\ (malaProposalJoint\ U\ h\ μ)}
+\leanline{6}{(fun\ p\ ↦\ malaAcceptance\ U\ h\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}One\allowbreak{}Step\_\allowbreak{}eq\_\allowbreak{}metropolis\allowbreak{}Output}: the intermediate facts include \texttt{T}, \texttt{a}, \texttt{h\allowbreak{}T}, \texttt{hacc}, \texttt{hrej}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}snd}.
+\end{leanbox}
 
 \section{\texorpdfstring{The joint proposal density at Gibbs}{The joint proposal density at Gibbs}}
 
@@ -72,6 +134,19 @@ Apply the Gaussian joint-density theorem with center \(x-h\nabla U(x)\), then mu
 
 Disintegrating the state/\allowbreak{}proposal law gives the displayed density against Lebesgue product measure. Tonelli is available for nonnegative tests; the Gaussian density normalization verifies the conditional mass and the target normalization verifies the total mass.
 
+\begin{leanbox}{Lean: \texttt{malaProposalJoint\_\allowbreak{}gibbs\_\allowbreak{}density}}
+\leansource{\texttt{malaProposalJoint\_\allowbreak{}gibbs\_\allowbreak{}density} \quad UnadjustedLangevin/\allowbreak{}MALAInvariance.lean, lines 68–118}
+\begin{leancode}
+\leanline{0}{theorem\ malaProposalJoint\_gibbs\_density\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{malaProposalJoint\ U\ h\ (gibbsMeasure\ U)\ =}
+\leanline{6}{(((gibbsPartition\ U)⁻¹\ *\ ENNReal.ofReal\ (gaussianProposalNormalizer\ (H\ :=\ H)\ h))\ •}
+\leanline{8}{(volume.prod\ volume)).withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (malaJointWeight\ U\ h\ p))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\allowbreak{}Joint\_\allowbreak{}gibbs\_\allowbreak{}density}: the intermediate facts include \texttt{hg}, \texttt{h\allowbreak{}U}, \texttt{hc}, \texttt{hd}, \texttt{he}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}prod\_\allowbreak{}smul\_\allowbreak{}left}, \texttt{prod\_\allowbreak{}with\allowbreak{}Density\_\allowbreak{}left}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}nonneg}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}, \texttt{with\allowbreak{}Density\_\allowbreak{}smul}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \section{\texorpdfstring{Gibbs invariance of the adjusted transition}{Gibbs invariance of the adjusted transition}}
 
@@ -86,5 +161,16 @@ Apply preservation of the target marginal by the symmetric accepted density and 
 
 The accepted density is \(\min(\pi(x)q_h(x,y),\pi(y)q_h(y,x))\), symmetric in \((x,y)\). Its two marginals coincide. Rejected mass stays at \(x\), and accepted plus rejected input mass is Gibbs, proving exact invariance for each positive admissible step.
 
+\begin{leanbox}{Lean: \texttt{malaOneStep\_\allowbreak{}gibbs\_\allowbreak{}invariant}}
+\leansource{\texttt{malaOneStep\_\allowbreak{}gibbs\_\allowbreak{}invariant} \quad UnadjustedLangevin/\allowbreak{}MALAInvariance.lean, lines 122–152}
+\begin{leancode}
+\leanline{0}{theorem\ malaOneStep\_gibbs\_invariant\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{malaOneStep\ U\ h\ (gibbsMeasure\ U)\ =\ gibbsMeasure\ U}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}One\allowbreak{}Step\_\allowbreak{}gibbs\_\allowbreak{}invariant}: the intermediate facts include \texttt{base}, \texttt{hb}, \texttt{hw}, \texttt{ha}, \texttt{hd}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}smul}, \texttt{measurable\_\allowbreak{}swap.\allowbreak{}aemeasurable}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}fst}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}fst\_\allowbreak{}prod}.
+\end{leanbox}
 
 \end{document}

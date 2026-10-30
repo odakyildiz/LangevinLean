@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,8 +54,33 @@ For map \(D\), the bound \(\|D(x)-D(0)\|\le r\|x\|\) and addition of its constan
 
 A joint realization \((X,Y)\) is thus an admissible candidate in the infimum defining \(W_2\). The same finite squared separation proves transport finiteness and the numerical upper bound. The map need not vanish at zero because its constant part has finite second moment under a probability measure.
 
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}lipschitz\_\allowbreak{}comp}, \texttt{wasserstein\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}pair}}
+\leansource{\texttt{memLp\_\allowbreak{}lipschitz\_\allowbreak{}comp} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 29–34}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_lipschitz\_comp\ \{D\ :\ E\ →\ E\}\ \{r\ :\ ℝ≥0\}\ (hD\ :\ LipschitzWith\ r\ D)}
+\leanline{4}{\{X\ :\ A\ →\ E\}\ (hX\ :\ MemLp\ X\ 2\ P)\ :\ MemLp\ (fun\ x\ =>\ D\ (X\ x))\ 2\ P}
+\end{leancode}
+\leansource{\texttt{wasserstein\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}pair} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 41–61}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein\_sq\_le\_integral\_pair\ (X\ Y\ :\ A\ →\ E)\ (hX\ :\ MemLp\ X\ 2\ P)\ (hY\ :\ MemLp\ Y\ 2\ P)\ :}
+\leanline{4}{wasserstein2\ (P.map\ X)\ (P.map\ Y)\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real\ (P.map\ X)\ (P.map\ Y)\ \textasciicircum{}\ 2\ ≤\ ∫\ x,\ ‖X\ x\ -\ Y\ x‖\ \textasciicircum{}\ 2\ ∂P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+A globally Lipschitz map \(D\) need not vanish at zero. The first lemma writes \(D(X)=[D(X)-D(0)]+D(0)\): the centered map preserves \(L^2\), and the constant belongs to \(L^2\) because the measure is a probability. For the transport lemma, convert \(X,Y\) to their \(L^2\) classes. Their joint realization is an admissible coupling of their pushforwards, so \[W_2(X_\#P,Y_\#P)^2\le\|X-Y\|_{L^2(P)}^2=\int\|X-Y\|^2dP.\] The representative equalities \texttt{hx}, \texttt{hy} prove that these pushforwards are the original laws, and the finite norm bound proves finite Wasserstein distance before squaring its real value.
 
 
+
+Formal correspondence: memLp\_lipschitz\_comp : Globally Lipschitz maps preserve finite quadratic moments on a probability space. wasserstein\_sq\_le\_integral\_pair : Direct finite-cost transport estimate for an actual \(L^2\) pair.
+
+
+
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}lipschitz\_\allowbreak{}comp}: the intermediate fact is \texttt{hc}, in source order; the source steps apply or rewrite \texttt{centered\_\allowbreak{}lipschitz}, \texttt{comp\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{Function.\allowbreak{}comp\_\allowbreak{}apply}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{sub\_\allowbreak{}add\_\allowbreak{}cancel}.
+
+
+
+\texttt{wasserstein\_\allowbreak{}sq\_\allowbreak{}le\_\allowbreak{}integral\_\allowbreak{}pair}: the intermediate facts include \texttt{X}, \texttt{Y}, \texttt{hx}, \texttt{hr}, \texttt{hs}, in source order; the source steps apply or rewrite \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{lp\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{Pi.\allowbreak{}sub\_\allowbreak{}apply}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.1]{LangevinLean2026ULASC}; \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.13]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}.
@@ -46,8 +94,74 @@ The transition maps are \(T_x(u,\xi)=D(u)+aP_x\xi\) and \(T(u,\xi)=D(u)+a\xi\). 
 
 The squared norm of a sum is at most twice the sum of squared norms, so both output distributions have finite second moments. This integrability also justifies expansion and Fubini in the subsequent exact mixed-term calculation. The product distribution explicitly separates the input from the fresh noise.
 
+\begin{leanbox}{Lean: \texttt{latentGaussianUpdate}, \texttt{fullGaussianUpdate}, \texttt{latentGaussianUpdate\_\allowbreak{}measurable} and 3 more}
+\leansource{\texttt{latentGaussianUpdate} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 70–71}
+\begin{leancode}
+\leanline{0}{def\ latentGaussianUpdate\ (D\ :\ IPLA.State\ N\ dθ\ dx\ →\ IPLA.State\ N\ dθ\ dx)\ (a\ :\ ℝ)}
+\leanline{4}{(x\ z\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=\ D\ x\ +\ a\ •\ latentNoiseCLM\ z}
+\end{leancode}
+\leansource{\texttt{fullGaussianUpdate} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 74–77}
+\begin{leancode}
+\leanline{0}{def\ fullGaussianUpdate\ (D\ :\ IPLA.State\ N\ dθ\ dx\ →\ IPLA.State\ N\ dθ\ dx)\ (a\ :\ ℝ)}
+\leanline{4}{(x\ z\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=\ D\ x\ +\ a\ •\ z}
+\leanline{0}{\strut}
+\leanline{0}{include\ hD}
+\end{leancode}
+\leansource{\texttt{latentGaussianUpdate\_\allowbreak{}measurable} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 79–82}
+\begin{leancode}
+\leanline{0}{theorem\ latentGaussianUpdate\_measurable\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (latentGaussianUpdate\ D\ a))}
+\end{leancode}
+\leansource{\texttt{fullGaussianUpdate\_\allowbreak{}measurable} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 84–86}
+\begin{leancode}
+\leanline{0}{theorem\ fullGaussianUpdate\_measurable\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (fullGaussianUpdate\ D\ a))}
+\end{leancode}
+\leansource{\texttt{latentGaussianStep\_\allowbreak{}memLp} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 88–96}
+\begin{leancode}
+\leanline{0}{theorem\ latentGaussianStep\_memLp\ (μ\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ :}
+\leanline{4}{MemLp\ (fun\ x\ =>\ x)\ 2}
+\leanline{6}{(markovStep\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ (IPLA.State\ N\ dθ\ dx))\ μ)}
+\end{leancode}
+\leansource{\texttt{fullGaussianStep\_\allowbreak{}memLp} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 98–105}
+\begin{leancode}
+\leanline{0}{theorem\ fullGaussianStep\_memLp\ (μ\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ :}
+\leanline{4}{MemLp\ (fun\ x\ =>\ x)\ 2}
+\leanline{6}{(markovStep\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ (IPLA.State\ N\ dθ\ dx))\ μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Both updates use a fresh \(Z\sim\mathcal N(0,I)\), independent of the input: \(D(x)+aP_xZ\) and \(D(x)+aZ\). Their measurability follows by composing continuous \(D\), the coordinate projections, addition and scalar multiplication. For moment propagation, \texttt{comp\_\allowbreak{}fst} pulls the \(L^2\) drift onto the input–Gaussian product and \texttt{comp\_\allowbreak{}snd} pulls the Gaussian noise onto that same space. The sum is in \(L^2\); \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff} then transfers this fact to the output law. Thus the next coupling argument has actual finite-moment marginals.
 
 
+
+Formal correspondence: latentGaussianUpdate : The deterministic map followed by latent-only Gaussian noise. fullGaussianUpdate : The same map followed by full Gaussian noise.
+
+
+
+\texttt{latent\allowbreak{}Gaussian\allowbreak{}Update} is a definition with defining expression \texttt{D x + a \ensuremath{\bullet} latent\allowbreak{}Noise\allowbreak{}CLM z}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{full\allowbreak{}Gaussian\allowbreak{}Update} is a definition with defining expression \texttt{D x + a \ensuremath{\bullet} z}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{latent\allowbreak{}Gaussian\allowbreak{}Update\_\allowbreak{}measurable}: the proof is the application \texttt{(h\allowbreak{}D.\allowbreak{}continuous.\allowbreak{}measurable.\allowbreak{}comp measurable\_\allowbreak{}fst).\allowbreak{}add}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{full\allowbreak{}Gaussian\allowbreak{}Update\_\allowbreak{}measurable}: the proof is the application \texttt{(h\allowbreak{}D.\allowbreak{}continuous.\allowbreak{}measurable.\allowbreak{}comp measurable\_\allowbreak{}fst).\allowbreak{}add (measurable\_\allowbreak{}snd.\allowbreak{}const\_\allowbreak{}smul a)}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{latent\allowbreak{}Gaussian\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp}: the source steps apply or rewrite \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}, \texttt{fun\_\allowbreak{}prop}, \texttt{mem\allowbreak{}Lp\_\allowbreak{}lipschitz\_\allowbreak{}comp}, \texttt{comp\_\allowbreak{}fst}.
+
+
+
+\texttt{full\allowbreak{}Gaussian\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp}: the source steps apply or rewrite \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}, \texttt{fun\_\allowbreak{}prop}, \texttt{mem\allowbreak{}Lp\_\allowbreak{}lipschitz\_\allowbreak{}comp}, \texttt{comp\_\allowbreak{}fst}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -61,18 +175,45 @@ Given any finite-cost input coupling \(c\) of \(\mu,\nu\), extend it independent
 
 The first marginal uses law \(\mu\) and latent Gaussian noise, while the second uses \(\nu\) and full Gaussian noise. In random-vector notation the difference is \(D(X)-D(Y)-aP_\theta\xi\). Independence gives mean square at most \(r^2\mathbb E\|X-Y\|^2+a^2d_\theta\). Thus the same bound holds for every finite-cost input coupling, which permits the Wasserstein infimum without choosing an optimal coupling.
 
+\begin{leanbox}{Lean: \texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}coupling\_\allowbreak{}sq}}
+\leansource{\texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}coupling\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGDTransport.lean, lines 110–184}
+\begin{leancode}
+\leanline{0}{theorem\ latent\_full\_markov\_coupling\_sq}
+\leanline{4}{(μ\ ν\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ (hν\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ ν)}
+\leanline{4}{(c\ :\ Coupling\ μ\ ν)\ :}
+\leanline{4}{wasserstein2}
+\leanline{6}{(markovStep\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ)}
+\leanline{6}{(markovStep\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ ν)\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real}
+\leanline{6}{(markovStep\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ)}
+\leanline{6}{(markovStep\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ ν)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(r\ :\ ℝ)\textasciicircum{}2\ *\ (couplingCost\ c.joint).toReal\textasciicircum{}2\ +\ a\textasciicircum{}2*(dθ\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Start from any input coupling \(c\) of \(\mu,\nu\), and work on \(c\otimes\mathcal N(0,I)\). Define \(F=D(X)+aP_xZ\) and \(H=D(Y)+aZ\). The facts \texttt{h\allowbreak{}Flaw} and \texttt{h\allowbreak{}Hlaw} check separately that their marginals are the desired two Markov transitions; this ensures the constructed pair is a coupling of the actual algorithms.
 
 
 
+The cancellation in \texttt{hid} is \[F-H=D(X)-D(Y)-aP_\theta Z.\] By the product Gaussian identity, its mean square is \(\mathbb E_c\|D(X)-D(Y)\|^2+a^2d_\theta\). If \(D\) is \(r\)-Lipschitz, the first term is bounded by \(r^2\mathbb E_c\|X-Y\|^2\). Finally \texttt{hnorm} identifies the latter integral with the square of the coupling cost. All three random variables are proved square integrable before any of these integral identities is used.
+
+
+
+Formal correspondence: latent\_full\_markov\_coupling\_sq : Actual latent-noise and full-noise one-step laws admit the stated squared coupling bound. The independent centered parameter noise supplies exactly \(a^2d_\theta\), and has no mixed contribution.
+
+
+
+\texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}coupling\_\allowbreak{}sq}: the intermediate facts include \texttt{Q}, \texttt{P}, \texttt{h\allowbreak{}X}, \texttt{X}, \texttt{hn}, in source order; the source steps apply or rewrite \texttt{c.\allowbreak{}fst}, \texttt{h.\allowbreak{}comp\_\allowbreak{}of\_\allowbreak{}map}, \texttt{coe\allowbreak{}Fn\_\allowbreak{}to\allowbreak{}Lp.\allowbreak{}fun\_\allowbreak{}comp}, \texttt{add\_\allowbreak{}le\_\allowbreak{}add}, \texttt{le\_\allowbreak{}rfl}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.10]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.11.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

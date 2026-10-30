@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -34,6 +57,37 @@ Every initial plan produces the same numerical output law and a stationary refer
 
 
 
+
+The hypotheses are \(0<m\le M\), \(\gamma>0\), \(M_2>0\), a differentiable \(m\)-strongly convex potential with \(M\)-Lipschitz gradient, a Hessian field equal to the derivative of that gradient and \(M_2\)-Lipschitz in operator norm, finite initial quadratic transport, and
+
+\[m+M\le\gamma^2,\qquad h>0,\qquad5\gamma Mh\le m,\qquad4\sqrt{5p}\,M_2h\le m.\]
+
+The last restriction gives \(\alpha\ge5p\), which is the cutoff inequality used to control the stochastic Hessian comparison. For each finite-cost initial coupling the constructed numerical endpoint and stationary endpoint give a transport coupling. Taking initial costs tending to their infimum, as in the first-order argument, replaces that cost by \(W_2(\nu_0,\pi)\). Every bias term is independent of the chosen plan. No dimension simplification is made at this stage, so the fourth moment \(p^2+2p\) is retained also for \(p=0\) or \(p=1\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact}}
+\leansource{\texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2.lean, lines 13–62}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_wasserstein\_bound\_exact\ \{μ\ :\ Measure\ (H\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(f\ :\ H\ ι→ℝ)\ (Hess\ :\ H\ ι→H\ ι→L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M:ℝ))\ (hγ\ :\ 0<(γ:ℝ))\ (hM2\ :\ 0<(M2:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)\ (h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))}
+\leanline{4}{(hstep\ :\ 5*(γ:ℝ)*(M:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hdim\ :\ 4*Real.sqrt\ (5*(Fintype.card\ ι:ℝ))*(M2:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (law\ ι\ (gradient\ f)\ Hess\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤}
+\leanline{6}{Real.sqrt\ 2*(1-m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)+}
+\leanline{6}{Real.sqrt\ 2*(h:ℝ)\textasciicircum{}2*((M2:ℝ)*Real.sqrt\ ((Fintype.card\ ι:ℝ)\textasciicircum{}2+2*(Fintype.card\ ι:ℝ))+}
+\leanline{8}{(M:ℝ)*Real.sqrt\ ((M:ℝ)*(Fintype.card\ ι:ℝ)))/m+}
+\leanline{6}{8*((M:ℝ)-m)*(h:ℝ)/m*Real.exp\ (-(secondOrderCutoff\ m\ M2\ h-(Fintype.card\ ι:ℝ))/8)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact} constructs the Gibbs probability instance and second moment \texttt{h\ensuremath{\pi}}, then selects \texttt{\ensuremath{\alpha}} and verifies it through \texttt{hcut}. The blocks \texttt{hstep4}, \texttt{hfrac} and \texttt{hq} establish the nonnegative geometric coefficient. The nonnegative numbers \texttt{a} and \texttt{b} package the transient multiplier and total bias. \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}affine\_\allowbreak{}bound\_\allowbreak{}real\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} reduces the conclusion to every finite-cost initial coupling. In that branch \texttt{hb} is the analytic position discrepancy, \texttt{hglobal} is reference stationarity, \texttt{h\allowbreak{}R} identifies the reference marginal, and \texttt{h\allowbreak{}S} identifies the numerical marginal. Rewriting these in \texttt{hw}, the coupled-cost transport inequality, gives the desired affine bound.
+\end{leanbox}
+
+
 Earlier results used here: \cite[Section~3.17.13]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.4]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \section{\texorpdfstring{The source footnote’s sharper tail}{The source footnote’s sharper tail}}
@@ -45,6 +99,28 @@ The source dimension restriction implies \(\alpha\ge5p\). Hence \((\alpha-p)/8\g
 
 The cutoff restriction implies \(p\le\alpha/5\), which turns the exponent into an inverse-square-step bound. The coefficient multiplying the exponential is nonnegative, so replacing the exponential by this larger explicit upper bound preserves the sampling inequality.
 
+\begin{leanbox}{Lean: \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}sharp\_\allowbreak{}tail}}
+\leansource{\texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}sharp\_\allowbreak{}tail} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2.lean, lines 65–85}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_wasserstein\_bound\_sharp\_tail\ \{μ\ :\ Measure\ (H\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(f\ :\ H\ ι→ℝ)\ (Hess\ :\ H\ ι→H\ ι→L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M:ℝ))\ (hγ\ :\ 0<(γ:ℝ))\ (hM2\ :\ 0<(M2:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)\ (h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))}
+\leanline{4}{(hstep\ :\ 5*(γ:ℝ)*(M:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hdim\ :\ 4*Real.sqrt\ (5*(Fintype.card\ ι:ℝ))*(M2:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (law\ ι\ (gradient\ f)\ Hess\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤}
+\leanline{6}{Real.sqrt\ 2*(1-m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)+}
+\leanline{6}{Real.sqrt\ 2*(h:ℝ)\textasciicircum{}2*((M2:ℝ)*Real.sqrt\ ((Fintype.card\ ι:ℝ)\textasciicircum{}2+2*(Fintype.card\ ι:ℝ))+}
+\leanline{8}{(M:ℝ)*Real.sqrt\ ((M:ℝ)*(Fintype.card\ ι:ℝ)))/m+}
+\leanline{6}{8*((M:ℝ)-m)*(h:ℝ)/m*Real.exp\ (-m\textasciicircum{}2/(160*(M2:ℝ)\textasciicircum{}2*(h:ℝ)\textasciicircum{}2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hb} invokes \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact} with precisely the same hypotheses. \texttt{he} selects the inverse-step-square conclusion of \texttt{second\allowbreak{}Order\allowbreak{}Cutoff\_\allowbreak{}tail}. \texttt{h\allowbreak{}B} records \(M-m\ge0\), and \texttt{ht} multiplies the tail comparison by its nonnegative coefficient. \texttt{linarith} substitutes that comparison into \texttt{hb}; no new law or coupling is constructed.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -58,13 +134,36 @@ For \(p\ge2\), \(\sqrt2\sqrt{p^2+2p}\le2p\), and \(\sqrt2\sqrt{Mp}=\sqrt{2Mp}\).
 
 The printed dimension simplification is applied only where its square comparison is valid. The exact-moment theorem remains the general statement, while the coarser tail and curvature-width comparisons recover the manuscript’s displayed formula in the stated dimension range.
 
+\begin{leanbox}{Lean: \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound}}
+\leansource{\texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2.lean, lines 88–122}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_wasserstein\_bound\ \{μ\ :\ Measure\ (H\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hp\ :\ 2≤Fintype.card\ ι)}
+\leanline{4}{(f\ :\ H\ ι→ℝ)\ (Hess\ :\ H\ ι→H\ ι→L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M:ℝ))\ (hγ\ :\ 0<(γ:ℝ))\ (hM2\ :\ 0<(M2:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)\ (h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))}
+\leanline{4}{(hstep\ :\ 5*(γ:ℝ)*(M:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hdim\ :\ 4*Real.sqrt\ (5*(Fintype.card\ ι:ℝ))*(M2:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (law\ ι\ (gradient\ f)\ Hess\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤}
+\leanline{6}{Real.sqrt\ 2*(1-m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)+}
+\leanline{6}{2*(h:ℝ)\textasciicircum{}2*(M2:ℝ)*(Fintype.card\ ι:ℝ)/m+}
+\leanline{6}{(h:ℝ)\textasciicircum{}2*(M:ℝ)*Real.sqrt\ (2*(M:ℝ)*(Fintype.card\ ι:ℝ))/m+}
+\leanline{6}{(8*(M:ℝ)/m)*(h:ℝ)*Real.exp\ (-(Fintype.card\ ι:ℝ)/2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hb} is the exact-moment sampler bound. \texttt{hd} invokes \texttt{second\allowbreak{}Order\_\allowbreak{}source\_\allowbreak{}dimension\_\allowbreak{}bound} with the explicit hypothesis \texttt{hp}; \texttt{h\allowbreak{}D} multiplies it by the nonnegative step-squared factor. \texttt{ht} chooses the dimensional tail estimate. The block \texttt{htail} first enlarges the exponential and then uses \texttt{hbase} to replace \(M-m\) by \(M\). \texttt{h\allowbreak{}Dbound} normalizes the polynomial bias, and the final transitivity step adds the two independent upper bounds.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

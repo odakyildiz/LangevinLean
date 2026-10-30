@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,6 +62,15 @@ For fixed \(x\), this is the Gaussian density with mean \(c_t(x)\) and covarianc
 
 The subsequent peak bound will show that this same integral is finite at every \(y\), even for an initial law with no density or moments. The positive-time assumption is used in the Gaussian normalization and denominator.
 
+\begin{leanbox}{Lean: \texttt{interpolationDensity}}
+\leansource{\texttt{interpolationDensity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 27–28}
+\begin{leancode}
+\leanline{0}{def\ interpolationDensity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ (t\ :\ ℝ)\ (y\ :\ E)\ :\ ℝ≥0∞\ :=}
+\leanline{2}{∫⁻\ x,\ ULA.gaussianProposalDensity\ t\ (x\ -\ t\ •\ gradient\ U\ x)\ y\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Density} is a definition with defining expression \texttt{\ensuremath{\int}\ensuremath{{}^{-}} x, ULA.\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Density t (x -\allowbreak{} t \ensuremath{\bullet} gradient U x) y \ensuremath{\partial}\ensuremath{\mu}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.13]{LangevinLean2026ULASC}.
@@ -52,6 +84,16 @@ A Lipschitz gradient is continuous and measurable, so \(c_t\) is measurable in t
 
 Integration in \(x\) against \(\mu\) yields a measurable function of \(y\). The mixing measure is finite and hence sigma-finite, as required for measurable parameter integration. This measurability assertion concerns the defining formula and does not use a positive-time finiteness estimate.
 
+\begin{leanbox}{Lean: \texttt{interpolationDensity\_\allowbreak{}measurable}}
+\leansource{\texttt{interpolationDensity\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 31–37}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationDensity\_measurable\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (interpolationDensity\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Density\_\allowbreak{}measurable}: the intermediate fact is \texttt{hg}, in source order; the source steps apply or rewrite \texttt{Measurable.\allowbreak{}lintegral\_\allowbreak{}prod\_\allowbreak{}left}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.13]{LangevinLean2026ULASC}.
@@ -69,6 +111,17 @@ The inner probability is \(\int_AK_t(x,y)dy\), by the fixed-state affine Gaussia
 
 Thus the mixture is the density of the update law. Equivalently, the same computation applies to every nonnegative measurable test function. It does not assume that \(\mu\) itself has a density.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}eq\_\allowbreak{}withDensity}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}eq\_\allowbreak{}withDensity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 42–64}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_eq\_withDensity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{interpolationLaw\ U\ μ\ t\ =\ volume.withDensity\ (interpolationDensity\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}with\allowbreak{}Density}: the intermediate facts include \texttt{hmap}, \texttt{hd}, \texttt{hg}, \texttt{hinner}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}ext}, \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step}, \texttt{lintegral\_\allowbreak{}lintegral\_\allowbreak{}swap}, \texttt{volume.\allowbreak{}restrict}, \texttt{hd.\allowbreak{}aemeasurable}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.37.13]{LangevinLean2026ULASC}; \cite[Section~3.37.16]{LangevinLean2026ULASC}.
@@ -82,6 +135,16 @@ At positive time the normalizer \(C_t\) is strictly positive, and the exponentia
 
 Fix \(y\). The nonnegative measurable function \(x\mapsto K_t(x,y)\) is positive on the whole state space, which has \(\mu\)-mass one. A nonnegative integral can vanish only when its integrand is zero almost everywhere. Therefore \(q_t^{\mathrm{ext}}(y)>0\). This proves positivity at every observation, before any assertion about its finiteness.
 
+\begin{leanbox}{Lean: \texttt{interpolationDensity\_\allowbreak{}pos}}
+\leansource{\texttt{interpolationDensity\_\allowbreak{}pos} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 70–88}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationDensity\_pos\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :\ 0\ <\ interpolationDensity\ U\ μ\ t\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Density\_\allowbreak{}pos}: the intermediate facts include \texttt{hq}, \texttt{hg}, \texttt{hqpos}, \texttt{hsupp}, in source order; the source steps apply or rewrite \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}pos.\allowbreak{}mpr}, \texttt{mul\_\allowbreak{}pos}, \texttt{lintegral\_\allowbreak{}pos\_\allowbreak{}iff\_\allowbreak{}support}, \texttt{measure\_\allowbreak{}univ}, \texttt{zero\_\allowbreak{}lt\_\allowbreak{}one}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.13]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -103,6 +166,16 @@ Monotonicity of the nonnegative integral integrates this pointwise bound. The in
 
 The exponential factor is at most one, independently of the Gaussian center. Hence averaging over any starting probability retains the same peak bound, without requiring an initial moment.
 
+\begin{leanbox}{Lean: \texttt{interpolationDensity\_\allowbreak{}le\_\allowbreak{}normalizer}}
+\leansource{\texttt{interpolationDensity\_\allowbreak{}le\_\allowbreak{}normalizer} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 92–107}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationDensity\_le\_normalizer\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :}
+\leanline{4}{interpolationDensity\ U\ μ\ t\ y\ ≤\ ENNReal.ofReal\ (ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Density\_\allowbreak{}le\_\allowbreak{}normalizer}: the intermediate fact is \texttt{hexp}, in source order; the source steps apply or rewrite \texttt{lintegral\_\allowbreak{}mono}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real}, \texttt{sq\_\allowbreak{}nonneg}, \texttt{mul\_\allowbreak{}one}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.13]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -117,6 +190,16 @@ Fix \(t>0\) and let \(C_t=(4\pi t)^{-d/2}<\infty\). Every Gaussian component sat
 
 Thus the initially nonnegative-integral definition of the mixture is finite at every observation \(y\). It has an ordinary real value pointwise, with the same peak bound, even if \(\mu\) has no density or position moments. The positive-time condition is essential: at zero the Gaussian peak need not have a finite limiting bound.
 
+\begin{leanbox}{Lean: \texttt{interpolationDensity\_\allowbreak{}ne\_\allowbreak{}top}}
+\leansource{\texttt{interpolationDensity\_\allowbreak{}ne\_\allowbreak{}top} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 110–113}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationDensity\_ne\_top\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :}
+\leanline{4}{interpolationDensity\ U\ μ\ t\ y\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Density\_\allowbreak{}ne\_\allowbreak{}top}: the proof is the application \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}ne\_\allowbreak{}top (interpolation\allowbreak{}Density\_\allowbreak{}le\_\allowbreak{}normalizer U \ensuremath{\mu} t ht y)}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The finite real-valued mixture density}{The finite real-valued mixture density}}
 
@@ -127,6 +210,15 @@ For \(t>0\), the preceding peak bound makes the mixture finite at every observat
 
 This nonnegative integral is at most \((4\pi t)^{-d/2}\) and is strictly positive because every Gaussian component is positive and \(\mu\) is a probability. Its ordinary value and nonnegative extended value agree everywhere. The positive-time law identity, regularity statements, and logarithmic derivatives below all use this same finite representative.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensity}}
+\leansource{\texttt{interpolationLebesgueDensity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 116–117}
+\begin{leancode}
+\leanline{0}{def\ interpolationLebesgueDensity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ (t\ :\ ℝ)\ (y\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{(interpolationDensity\ U\ μ\ t\ y).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density} is a definition with defining expression \texttt{(interpolation\allowbreak{}Density U \ensuremath{\mu} t y).\allowbreak{}to\allowbreak{}Real}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The update law has the finite density}{The update law has the finite density}}
 
@@ -142,6 +234,18 @@ For \(t>0\), write \(q_t(y)=\int K_t(x,y)d\mu(x)\), which is finite everywhere b
 
 The first identity conditions on the initial point and uses the affine Gaussian proposal density. The second is Tonelli for the nonnegative kernel. Its finite pointwise mixture is precisely the ordinary density defined above, so no change of law accompanies passage to real-valued density notation. This identification remains valid for singular initial laws.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}eq\_\allowbreak{}real\_\allowbreak{}withDensity}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}eq\_\allowbreak{}real\_\allowbreak{}withDensity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 121–129}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_eq\_real\_withDensity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{interpolationLaw\ U\ μ\ t\ =\ volume.withDensity}
+\leanline{6}{(fun\ y\ ↦\ ENNReal.ofReal\ (interpolationLebesgueDensity\ U\ μ\ t\ y))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}real\_\allowbreak{}with\allowbreak{}Density}: the source steps apply or rewrite \texttt{interpolation\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}with\allowbreak{}Density}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}to\allowbreak{}Real}, \texttt{interpolation\allowbreak{}Density\_\allowbreak{}ne\_\allowbreak{}top}.
+\end{leanbox}
 
 \section{\texorpdfstring{Deduce absolute continuity for every positive time}{Deduce absolute continuity for every positive time}}
 
@@ -156,6 +260,16 @@ The interpolation law has density \(q_t\) with respect to Lebesgue measure. Henc
 
 The proposed law has a Lebesgue density, so every Lebesgue-null set has proposed mass zero. This absolute continuity holds for arbitrary initial laws once the elapsed Gaussian time is positive.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}absolutelyContinuous}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}absolutelyContinuous} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 133–137}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_absolutelyContinuous\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :\ interpolationLaw\ U\ μ\ t\ {\leanfallback ≪}\ volume}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}absolutely\allowbreak{}Continuous}: the source steps apply or rewrite \texttt{interpolation\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}with\allowbreak{}Density}, \texttt{with\allowbreak{}Density\_\allowbreak{}absolutely\allowbreak{}Continuous}.
+\end{leanbox}
 
 \section{\texorpdfstring{The ordinary integral formula for the mixture}{The ordinary integral formula for the mixture}}
 
@@ -170,6 +284,19 @@ For a nonnegative integrable function, its ordinary integral equals its nonnegat
 
 The equality identifies two forms of the same integral. It does not change the probability law or choose a different density.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensity\_\allowbreak{}eq\_\allowbreak{}integral}}
+\leansource{\texttt{interpolationLebesgueDensity\_\allowbreak{}eq\_\allowbreak{}integral} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 142–169}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgueDensity\_eq\_integral\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :}
+\leanline{4}{interpolationLebesgueDensity\ U\ μ\ t\ y\ =}
+\leanline{6}{∫\ x,\ ULA.gaussianProposalNormalizer\ (H\ :=\ E)\ t\ *}
+\leanline{8}{Real.exp\ (-‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t))\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}eq\_\allowbreak{}integral}: the intermediate facts include \texttt{hnonneg}, \texttt{hbound}, \texttt{he}, \texttt{hint}, \texttt{hg}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}nonneg}, \texttt{ULA.\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Normalizer\_\allowbreak{}pos}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{of\allowbreak{}Real\_\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}of\allowbreak{}Real}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.13]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -191,6 +318,16 @@ Dominated convergence therefore passes the pointwise kernel continuity through t
 
 At a fixed positive time the component kernel is continuous in the observation and bounded by one common peak. Dominated convergence passes that continuity through the mixture integral.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgueDensity\_\allowbreak{}continuous}}
+\leansource{\texttt{interpolationLebesgueDensity\_\allowbreak{}continuous} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 173–195}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgueDensity\_continuous\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :\ Continuous\ (interpolationLebesgueDensity\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}continuous}: the intermediate facts include \texttt{heq}, \texttt{hg}, \texttt{hp}, \texttt{he}, in source order; the source steps apply or rewrite \texttt{continuous\_\allowbreak{}of\_\allowbreak{}dominated}, \texttt{ULA.\allowbreak{}gaussian\allowbreak{}Proposal\allowbreak{}Normalizer}, \texttt{mul\_\allowbreak{}one}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{integrable\_\allowbreak{}const}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.37.14]{LangevinLean2026ULASC}.
@@ -204,6 +341,15 @@ Write the normalized Gibbs measure as \(\nu=Z^{-1}(e^{-U}dy)\), where initially 
 
 The separate positivity argument for the partition gives \(Z>0\) under the displayed assumptions. Together these facts make \(Z\) an ordinary positive finite denominator. This deduction uses target normalization and the partition's positivity, without a strong-convexity assumption. In particular it applies when probability normalization is part of the log-Sobolev hypothesis.
 
+\begin{leanbox}{Lean: \texttt{gibbsPartition\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}probability}}
+\leansource{\texttt{gibbsPartition\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}probability} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 200–206}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsPartition\_ne\_top\_of\_probability\ (U\ :\ E\ →\ ℝ)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]\ :\ ULA.gibbsPartition\ U\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Partition\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}probability}: the intermediate facts include \texttt{hzero}, \texttt{hmass}, in source order; the source steps apply or rewrite \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Measure}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -225,6 +371,15 @@ The definition makes the coordinate conversion explicit: the ratio to the target
 
 The Gibbs Lebesgue density is \(J(y)=Z^{-1}e^{-U(y)}\), so the relative density is \(r_t(y)=Z e^{U(y)}p_t(y)\). Multiplying by \(J\) recovers \(p_t\) pointwise.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeDensity}}
+\leansource{\texttt{interpolationRelativeDensity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 211–212}
+\begin{leancode}
+\leanline{0}{def\ interpolationRelativeDensity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ (t\ :\ ℝ)\ (y\ :\ E)\ :\ ℝ\ :=}
+\leanline{2}{(ULA.gibbsPartition\ U).toReal\ *\ Real.exp\ (U\ y)\ *\ interpolationLebesgueDensity\ U\ μ\ t\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Density} is a definition with defining expression \texttt{(ULA.\allowbreak{}gibbs\allowbreak{}Partition U).\allowbreak{}to\allowbreak{}Real * Real.\allowbreak{}exp (U y) * interpolation\allowbreak{}Lebesgue\allowbreak{}Density U \ensuremath{\mu} t y}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}.
@@ -234,6 +389,17 @@ Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}.
 
 Write the relative density as \(r_t(y)=Ze^{U(y)}p_t(y)\). The mixture \(p_t\) is measurable by parameter integration; differentiability of \(U\) gives measurability of \(e^U\); and the partition \(Z\) is a fixed finite scalar. Products of these measurable factors are measurable. Thus the explicit relative density is measurable, as required to define its weighted target measure. This statement is a measurability conclusion; spatial differentiation and finite entropy are established separately.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeDensity\_\allowbreak{}measurable}}
+\leansource{\texttt{interpolationRelativeDensity\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 215–220}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeDensity\_measurable\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (interpolationRelativeDensity\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}measurable}: the source steps apply or rewrite \texttt{measurable\_\allowbreak{}const.\allowbreak{}mul}, \texttt{Real.\allowbreak{}measurable\_\allowbreak{}exp.\allowbreak{}comp}, \texttt{h\allowbreak{}U.\allowbreak{}continuous.\allowbreak{}measurable}.
+\end{leanbox}
 
 \section{\texorpdfstring{Obtain relative-density continuity at positive time}{Obtain relative-density continuity at positive time}}
 
@@ -244,6 +410,17 @@ For \(t>0\), the mixture \(q_t\) is spatially continuous by the Gaussian peak do
 
 Multiplying these continuous factors proves continuity of \(r_t(y)=Ze^{U(y)}q_t(y)\). Equivalently, the Gibbs density \(J\) is continuous and everywhere positive, so \(r_t=q_t/J\) has no singular denominator. This proves continuity only; the differentiability required for the log-Sobolev application follows from the subsequent Gaussian derivative estimates.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeDensity\_\allowbreak{}continuous}}
+\leansource{\texttt{interpolationRelativeDensity\_\allowbreak{}continuous} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 225–230}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeDensity\_continuous\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Continuous\ (interpolationRelativeDensity\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}continuous}: the source steps apply or rewrite \texttt{continuous\_\allowbreak{}const.\allowbreak{}mul}, \texttt{Real.\allowbreak{}continuous\_\allowbreak{}exp.\allowbreak{}comp}, \texttt{h\allowbreak{}U.\allowbreak{}continuous}.
+\end{leanbox}
 
 \section{\texorpdfstring{Strict positivity of the relative density}{Strict positivity of the relative density}}
 
@@ -254,6 +431,17 @@ Assume the Gibbs target is a probability and \(t>0\). The partition positivity r
 
 Every factor in \(r_t(y)=Ze^{U(y)}q_t(y)\) is therefore a positive finite real number, proving \(r_t(y)>0\). Both positivity and finiteness are needed: neither an infinite mixture value nor a zero partition could be used as an ordinary positive relative density.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeDensity\_\allowbreak{}pos}}
+\leansource{\texttt{interpolationRelativeDensity\_\allowbreak{}pos} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 234–243}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeDensity\_pos\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :\ 0\ <\ interpolationRelativeDensity\ U\ μ\ t\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}pos}: the intermediate facts include \texttt{h\allowbreak{}Zpos}, \texttt{h\allowbreak{}Zfin}, \texttt{hqpos}, \texttt{hqfin}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}pos}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}pos}, \texttt{h\allowbreak{}Zpos.\allowbreak{}ne'}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}.
@@ -278,6 +466,19 @@ Integrating over any measurable set identifies the measures:
 
 The last equality is the Gaussian-mixture law identity already proved. Hence this relative density represents the specified interpolation law. Positivity, spatial regularity, time differentiation, and finite entropy remain separate properties established in the subsequent analysis.
 
+\begin{leanbox}{Lean: \texttt{tiltedMeasure\_\allowbreak{}interpolationRelativeDensity}}
+\leansource{\texttt{tiltedMeasure\_\allowbreak{}interpolationRelativeDensity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 249–282}
+\begin{leancode}
+\leanline{0}{theorem\ tiltedMeasure\_interpolationRelativeDensity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{tiltedMeasure\ (ULA.gibbsMeasure\ U)\ (interpolationRelativeDensity\ U\ μ\ t)\ =}
+\leanline{6}{interpolationLaw\ U\ μ\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{tilted\allowbreak{}Measure\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density}: the intermediate facts include \texttt{h\allowbreak{}Zzero}, \texttt{h\allowbreak{}Zfin}, \texttt{hw}, \texttt{hrel}, \texttt{hexp}, in source order; the source steps apply or rewrite \texttt{interpolation\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}with\allowbreak{}Density}, \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Measure}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}nonneg}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}add}, \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}.
@@ -299,13 +500,26 @@ Positivity, continuity, and normalization all concern this same density. Normali
 
 Integrating the law identity on the whole space gives \(\int r_t\,d\nu=1\). Normalization is therefore inherited from the Gaussian transition rather than proved by a separate algebraic manipulation of a possibly infinite density.
 
+\begin{leanbox}{Lean: \texttt{interpolationRelativeDensity\_\allowbreak{}isProbability}}
+\leansource{\texttt{interpolationRelativeDensity\_\allowbreak{}isProbability} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationDensity.lean, lines 286–293}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationRelativeDensity\_isProbability\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{IsProbabilityMeasure\ (tiltedMeasure\ (ULA.gibbsMeasure\ U)}
+\leanline{6}{(interpolationRelativeDensity\ U\ μ\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Relative\allowbreak{}Density\_\allowbreak{}is\allowbreak{}Probability}: the source steps apply or rewrite \texttt{tilted\allowbreak{}Measure\_\allowbreak{}interpolation\allowbreak{}Relative\allowbreak{}Density}, \texttt{interpolation\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Probability}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

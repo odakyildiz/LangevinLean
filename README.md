@@ -106,18 +106,6 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   likelihood estimator, and explicit iteration counts for a specified accuracy
   are proved. The [source coverage audit](KIPLMC/exposition/reference_audit.json)
   distinguishes the analytic statements from the empirical experiments.
-- **Latent diffusion:** [assumptions, mathematical results and exact Lean statements](LatentDiffusion/exposition/index.html),
-  with [source coverage, added regularity and corrections](LatentDiffusion/exposition/source_audit.md).
-  The development proves variational identities, marginal optimizer results,
-  interacting-particle error estimates and explicit accuracy choices. Continuous
-  decay retains explicit analytic bridges; the audit records corrected minibatch
-  scaling and the obstruction to universal density regularity at time zero.
-  Incomplete source-proof statuses and remaining analytic obligations are explicit.
-- **Average smoothness LMC (contribution 09):** [sampling proofs](AverageLMC/exposition/index.html),
-  following latent diffusion on the homepage. LMC, decreasing-step, Laplacian LMC
-  and control-variate SGLD bounds retain the source hypotheses and constants.
-  The [source audit](AverageLMC/exposition/reference_audit.json) distinguishes
-  this main sampling theorem scope from broader auxiliary coverage.
 - **PBGSO:** [general framework, assumptions and exact theorem statements](PBGSO/exposition/index.html),
   [scope and module guide](PBGSO/README.md), and
   [audit of all eight numbered source results](PBGSO/exposition/source_audit.md).
@@ -154,6 +142,19 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   `python3 scripts/check-pbgso-standalone.py --output /tmp/pbgso-standalone --check`
   exports each complete Mathlib-only proof closure with the readable contracts
   first, then compiles it with this project’s compiled modules excluded.
+- **Latent diffusion:** [assumptions, mathematical results and exact Lean statements](LatentDiffusion/exposition/index.html),
+  with [source coverage, added regularity and corrections](LatentDiffusion/exposition/source_audit.md).
+  The development proves variational identities, marginal optimizer results,
+  interacting-particle error estimates and explicit accuracy choices. All 19
+  corrected source statements are proved under the explicit added regularity
+  R1–R7; continuous decay holds for every classical solution in the R1–R4 class.
+  The printed originals are tracked separately, and the audit records corrected
+  minibatch scaling and the refutation of universal time-zero density regularity.
+- **Average smoothness LMC:** [sampling proofs](AverageLMC/exposition/index.html).
+  LMC, decreasing-step, Laplacian LMC
+  and control-variate SGLD bounds retain the source hypotheses and constants.
+  The [source audit](AverageLMC/exposition/reference_audit.json) distinguishes
+  this main sampling theorem scope from broader auxiliary coverage.
 
 The two kinetic developments prove convergence of the continuous processes
 and the Gaussian samplers under the displayed assumptions. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:
@@ -192,7 +193,7 @@ It checks the declarations proving the distributional conclusions.
 
 The [ULA proof under LSI](UnadjustedLangevin/LSI/exposition/index.html) follows
 [Vempala–Wibisono (2019), Theorem 2](https://proceedings.neurips.cc/paper_files/paper/2019/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf):
-for $0<h\le\alpha/(4L^2)$, the KL bound is
+for $0<h\le\alpha/(4L^2)$ in dimension $n$, the KL bound is
 $H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+8hnL^2/\alpha$.
 The theorem `ULA.LSI.ula_kl_bound` in
 [UnconditionalTheorem.lean](UnadjustedLangevin/LSI/UnconditionalTheorem.lean)
@@ -223,7 +224,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Kinetic convergence and Gibbs stationarity, Cholesky Gaussian sampling, KLMC/KLMC2 Wasserstein bounds, iteration counts for a specified accuracy, and comparison with the source paper. |
 | [`KIPLMC/`](KIPLMC/exposition/README.md) | KIPLD convergence, KIPLMC1/KIPLMC2 parameter root-mean-square error bounds, changes of variables for the diffusion and algorithms, target concentration, and the analytic logistic example. |
-| [`LatentDiffusion/`](LatentDiffusion/exposition/index.html) | All 19 corrected source results under explicit added regularity: actual density/KL identities, product transport and entropy calculus, classical-flow convergence, constructed mean-field and particle equations, and full-batch RMS error; separate new theory and accuracy choices. |
+| [`LatentDiffusion/`](LatentDiffusion/README.md) | All 19 corrected source results under explicit added regularity: actual density/KL identities, product transport and entropy calculus, classical-flow convergence, constructed mean-field and particle equations, and full-batch RMS error; separate new theory and accuracy choices. |
 | [`PBGSO/`](PBGSO/README.md) | General optimiser/sampler framework, actual predictable Brownian integration and continuous adapted modifications, stationary product laws and optimal law contraction, source appendix criteria and fully constructed additive particle numerical bounds; original raw stationarity via actual Wiener-path transfer and primitive linear-growth optimal law contraction across sources; constant-diffusion contraction uses the explicit ordinary finite signed-work A3 convention; actual independent reference clouds and physical particle/reference pairing are constructed. |
 | [`AverageLMC/`](AverageLMC/README.md) | Average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD proofs with exact source hypotheses and constants. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
@@ -252,8 +253,8 @@ bash scripts/check-local.sh
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
-This builds all six Lean libraries, runs the eight theorem dependency audits,
-checks all four proof documents and the complete module proof atlas, and compiles
+This builds all eight Lean libraries, runs the ten theorem dependency audits,
+checks the four archived proof documents and the complete module proof atlas, and compiles
 the IPLA standalone in isolation with only Mathlib available. The standalone verifier refreshes its committed
 diagnostic reports; review any changes before committing.
 

@@ -33,13 +33,13 @@ x_{k+1}^i&=x_k^i-\gamma\nabla_xU_y(\theta_k,x_k^i)+\sqrt{2\gamma}\,\xi_k^i.
 \le{}&\sqrt{\frac{2d_\theta}{Nm}}+(1-m\gamma)^kW_2(\mu_0,\Pi_N)\\
 &+\frac{33}{20}\frac Lm\sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma.
 \end{aligned}\]
-<p>The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal and the existence of its minimizer. Thus \(\theta_\star\) is a maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).</p>'''
+<p>The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal. Existence and uniqueness of its minimizer are proved separately from the same assumptions, so \(\theta_\star\) exists and is the unique maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).</p>'''
 
 PROX_SETUP = r'''<p>Write \(U=g_1+g_2\) on \(\mathbb R^{d_\theta+d_x}\). Assume \(g_1\) is differentiable, \(m\)-strongly convex for \(m>0\), and has \(L_1\)-Lipschitz gradient. Assume \(g_2\) is finite-valued, convex, bounded below, and \(K\)-Lipschitz. Define its proximal map and Moreau envelope by</p>
 \[P_\eta(x)=\operatorname*{argmin}_p\left\{g_2(p)+\frac{\|p-x\|^2}{2\eta}\right\},\quad
 g_2^\eta(x)=g_2(P_\eta(x))+\frac{\|P_\eta(x)-x\|^2}{2\eta},\]
 \[V_\eta=g_1+g_2^\eta,\qquad L_\eta=L_1+\eta^{-1},\qquad\eta>0.\]
-<p>Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are independent over coordinates and time and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.</p>'''
+<p>Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are standard, independent over coordinates and time, and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.</p>'''
 
 PROX_SETUP += r'''<p>Precisely, the scaled state, lifted potential, and normalized target are</p>
 \[z=(\theta,x^1/\sqrt N,\ldots,x^N/\sqrt N),\qquad
@@ -91,14 +91,14 @@ CONFIG = {
         archive='UnadjustedLangevin/exposition/dist/index.html',archive_label='Extended teaching document and Lean notes',
         extra=[('UnadjustedLangevin/LSI/exposition/index.html','Entropy under LSI · full proof and reference audit')],
         results=[dict(title='The small-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan',body=ULA_SETUP+r'''<p>If \(0&lt;h\le2/(m+L)\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(1-mh)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac Lm\sqrt{hd}.\]<p>The rational coefficient \(33/20\) is exactly \(1.65\). The initial distance is the infimum of root mean square costs over all couplings of the two initial measures.</p>'''),
-                 dict(title='The larger-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The assumption \(Lh<2\) makes the denominator positive. The two estimates follow from the same error recurrence with the contraction factor appropriate to each step interval.</p>''')],
+                 dict(title='The larger-step convergence bound',file='UnadjustedLangevin/CanonicalULA.lean',name='dalalyan_large_step',body=ULA_SETUP+r'''<p>If \(2/(m+L)\le h\) and \(Lh&lt;2\), then for every \(k\in\mathbb N\),</p>\[W_2(\mu_k,\pi)\le(Lh-1)^kW_2(\mu_0,\pi)+\frac{33}{20}\frac{Lh}{2-Lh}\sqrt{hd}.\]<p>The assumption \(Lh&lt;2\) makes the denominator positive. The two estimates follow from the same error recurrence with the contraction factor appropriate to each step interval.</p>''')],
         diagram=[node('geometry',0,0,'UnadjustedLangevin/SharpContraction.lean','Contraction of the gradient step',r'\(q=1-mh\) or \(Lh-1\)'),
                  node('gibbs',0,1,'UnadjustedLangevin/Gibbs.lean','Normalization of the Gibbs measure',r'Positive normalization and \(L^2\) moments'),
                  node('brownian',0,2,'UnadjustedLangevin/CanonicalBrownian.lean','Gaussian construction of Brownian motion','Independent Gaussian coordinates'),
-                 node('local',1,0,'UnadjustedLangevin/LocalError.lean','The local discretization error','Integrate the Lipschitz drift error',('geometry',)),
+                 node('local',1,0,'UnadjustedLangevin/LocalError.lean','The local discretization error','Integrate the Lipschitz drift error'),
                  node('stationary',1,1,'UnadjustedLangevin/GibbsStationarity.lean','Stationarity of the Gibbs measure','Metropolis invariance and Euler limit',('gibbs','brownian')),
                  node('integral',1,2,'UnadjustedLangevin/LangevinIntegral.lean','Existence of the integral solution',r'\(L^2\) Picard construction',('brownian',)),
-                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','The scalar error recurrence',r'\(a_{k+1}\le q a_k+b\)',('local',)),
+                 node('recurrence',2,0,'UnadjustedLangevin/Recurrence.lean','The scalar error recurrence',r'\(a_{k+1}\le q a_k+b\)',('geometry','local')),
                  node('coupling',2,1,'UnadjustedLangevin/HilbertDalalyan.lean','Coupling with the same Brownian motion','Cancellation of the common increment',('local','stationary','integral')),
                  node('law',2,2,'UnadjustedLangevin/ChainLaw.lean','Distributions of the Gaussian recursion','Independence determines each transition',('brownian',)),
                  node('final',3,1,'UnadjustedLangevin/CanonicalULA.lean','The ULA convergence theorem','Both stable step-size regimes',('recurrence','coupling','law'),True)]),
@@ -111,10 +111,10 @@ CONFIG = {
                  node('gibbs',0,1,'IPLA/Foundations.lean','Normalization of the particle target','Positive normalizing constant and finite moments'),
                  node('marginal',0,2,'IPLA/MarginalConcentration.lean','The parameter marginal density',r'Density proportional to \(\ell_y(\theta)^N\)'),
                  node('algorithm',1,0,'IPLA/ULAAdapter.lean','IPLA as a ULA recursion',r'The same distribution; step \(\gamma/N\)',('geometry',)),
-                 node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','The ULA convergence estimate','Application to the particle potential',('geometry','gibbs')),
+                 node('ula',1,1,'UnadjustedLangevin/GaussianULA.lean','The ULA convergence estimate',r'Gaussian innovations and \(L^2\) initialization',('geometry','gibbs')),
                  node('convex',1,2,'IPLA/StrongLogConcavity.lean','Strong convexity of the negative log marginal','Prékopa–Leindler and tensorization',('marginal',)),
                  node('scaling',2,0,'IPLA/Scaling.lean','Substitution of the scaled constants',r'Exact \(N\), step, and dimension factors',('algorithm',)),
-                 node('projection',2,1,'IPLA/Transport.lean','Projection to the parameter coordinates',r'Parameter projection: \(\|P_\theta\|\le1\)',('ula',)),
+                 node('projection',2,1,'UnadjustedLangevin/Projection.lean','Projection to the parameter coordinates',r'RMS \(\le W_2+r\) for \(\|P_\theta\|\le1\)',('ula',)),
                  node('concentration',2,2,'IPLA/Concentration.lean','The equilibrium parameter second moment',r'RMS \(\le\sqrt{2d_\theta/(Nm)}\)',('convex','marginal')),
                  node('theorem',3,1,'IPLA/Theorem.lean','The IPLA parameter bound','Possibly unequal parameter and latent dimensions',('scaling','projection','concentration'),True)]),
     'ProximalLangevin':dict(label='Proximal',title='Proximal particle Langevin',subtitle='Proximal maps, parameter error estimates and mean-field limits.',
@@ -129,7 +129,7 @@ CONFIG = {
                  node('bias',0,2,'ProximalLangevin/Perturbation.lean','Difference of the marginal maximizers','Pointwise potential bounds and strong convexity'),
                  node('myipla',1,0,'ProximalLangevin/MYIPLA.lean','IPLA for the smoothed potential',r'Reuse ULA with \(L_\eta=L_1+\eta^{-1}\)',('prox','moreau')),
                  node('splitting',1,1,'ProximalLangevin/SplittingOneStep.lean','A one-step coupling estimate for splitting','Expansion of the squared coupling error',('prox','moreau')),
-                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Existence of the mean-field solution',r'\(L^2\) integral equation and uniqueness',('moreau',)),
+                 node('meanfield',1,2,'ProximalLangevin/MeanFieldProcess.lean','Existence of the mean-field solution',r'\(L^2\) integral equation by Picard iteration',('moreau',)),
                  node('mytheorem',2,0,'ProximalLangevin/Theorem.lean','MYIPLA error relative to the original maximizer','Smoothing + concentration + ULA',('myipla','bias'),True),
                  node('endpoint',2,1,'ProximalLangevin/SplittingEndpoint.lean','The recurrence for the splitting distributions','Coupling comparison and Wasserstein infimum',('splitting',)),
                  node('particles',2,2,'ProximalLangevin/MeanFieldParticles.lean','Comparison with independent mean-field particles',r'Uniform \(L^2\) error \(O(N^{-1/2})\)',('meanfield',)),
@@ -138,6 +138,15 @@ CONFIG = {
                  node('particlelaw',3,2,'ProximalLangevin/MeanFieldParticleLaw.lean','Convergence of a tagged particle distribution','Wasserstein estimate at each fixed time',('particles',),True)])
 }
 
+
+
+SEPARATE_TITLES = {'PBGSO': 'Particle-based Generalised Stochastic Optimisation',
+                   'LatentDiffusion': 'Training Latent Diffusion Models with Interacting Particle Algorithms'}
+
+
+def development_title(key):
+    """Titles of the CONFIG overviews and of the two separately generated ones."""
+    return CONFIG[key]['title'] if key in CONFIG else SEPARATE_TITLES[key]
 
 
 def home_document(lib, config, notes, sources, parsed, math, catalog=None):
@@ -158,9 +167,10 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     proof_library=lib
     body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
-    body+='<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorem</a><a href="#proof-map">Proof roadmap</a>'
-    if config.get('proof'):body+='<a href="#mathematical-proof">Detailed proof</a>'
-    body+='<a href="#modules">Supporting proofs</a><a href="#verification">Compile and verify</a></nav>'+toolbar()
+    body+=('<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorems</a>'
+           '<a href="#verification">Check the proofs</a><a href="#proof-map">Proof roadmap</a>')
+    if config.get('proof'):body+='<a href="#mathematical-proof">Mathematical argument</a>'
+    body+='<a href="#modules">Supporting proofs</a></nav>'+toolbar()
     body+='<section class="section" id="main-results"><h2>Theorems</h2>'
     for i,result in enumerate(config['results'],1):
         target=module_page(result['file'])
@@ -179,13 +189,16 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
                +'<details class="statement-context"><summary>Imports and notation</summary>'+commands(context,f'statement-context-{i}','Copy Lean')+'</details>'
                +declaration_header(result['file'],result['name'],sources,parsed,page)
                +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
-    body+='</section><section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
+    body+='</section>'+verification_section(lib,page)
+    body+='<section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
     body+=proof_diagram(config['diagram'],page,math,config['title']+' proof roadmap')+'</section>'
     if config.get('proof'):
         body+='<section class="section" id="mathematical-proof"><h2>The mathematical argument</h2><p class="section-intro">The argument below gives the estimates in order, including their constants and analytic justification. The adjacent panels identify the corresponding checked Lean statements and explain their role in the proof.</p>'
         for i,part in enumerate(config['proof'],1):
             body+=(f'<article class="proof-step" id="argument-{part["id"]}"><h3><span class="step-number">{i:02}</span>{E(part["title"])} <a class="permalink" href="#argument-{part["id"]}">§</a></h3><div class="pair"><div class="math-pane">'+math(part['body'])+'</div><div class="lean-pane">')
-            if part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
+            if part.get('lean'):
+                body+='<div class="lean-logic"><div class="pane-label">How the Lean proof follows this argument</div>'+math(part['lean'])+'</div>'
+            elif part.get('note'):body+='<p class="correspondence-note">'+part['note']+'</p>'
             for j,reference in enumerate(part.get('references',[]),1):
                 path,name=reference['file'],reference['name'];decl=parsed[path][name]
                 body+=code(path,decl['start'],decl['end'],sources,page,'proof-fragment',name,f'argument-{i}-{j}')
@@ -206,11 +219,7 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
             body+=(f'<article class="module-card"><a href="{relative(module_page(path),page)}">{E(note["title"])}</a>'
                    f'<code>{E(path)}</code></article>')
         body+='</div></div>'
-    body+='</div></section><section class="section" id="verification"><h2>Compile and verify</h2><div class="workflow"><div>'
-    audit=lib+'/Check.lean'
-    command=f'git clone https://github.com/odakyildiz/LangevinLean.git\ncd LangevinLean\nlake exe cache get\nlake build {parent_library}\nlake env lean {audit}\nbash scripts/check-local.sh'
-    body+=commands(command,'verification-commands')+'</div><div><h3>Reproduce the formal proof</h3><p>Install Git and elan, Lean’s toolchain manager, before cloning. The repository pins the Lean and Mathlib versions. The first cache download requires an internet connection.</p><p><code>lake build</code> checks the Lean proofs. The audit file prints the logical axioms used by the results. The local check script also verifies that every displayed source excerpt matches the repository and that the mathematical pages regenerate correctly. Documentation generation requires Python 3 and Node.js.</p>'
-    body+=f'<p><a href="{relative("README.md",page)}">Complete installation and update instructions</a> · <a href="{relative("docs/README.md",page)}">Regenerate the exposition</a></p></div></div></section>'
+    body+='</div></section>'
     if lib=='IPLA':
         body+='<aside class="footnote" id="entropy-note"><p><sup>1</sup> The entropy analogue is developed separately in <a href="'+relative('IPLA/LSI/exposition/index.html',page)+'">Interacting Particle Langevin under LSI</a>. It uses an LSI for the actual lifted target, tracks per-particle normalization, and proves the parameter-marginal consequence. <a href="#entropy-note-ref" aria-label="Back to reference">↩</a></p></aside>'
     body+='<section class="section" id="further-reading"><h2>References and further reading</h2><div class="dependencies">'
@@ -220,7 +229,27 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
         from report_citations import citation_panel
         plan = catalog.plans[lib]
         body += citation_panel(lib, plan['title'], plan['revision'], page)
-    return shell(page,config['title'],render_prose_math(body,math),lib)
+    return shell(page,config['title'],render_prose_math(body,math))
+
+
+def verification_section(lib, page, extra='', note=''):
+    """How to check the proofs; the same section appears on every overview."""
+    parent_library = lib.split('/')[0]
+    command = ('git clone https://github.com/odakyildiz/LangevinLean.git\ncd LangevinLean\n'
+               f'lake exe cache get\nlake build {parent_library}\nlake env lean {lib}/Check.lean\n'
+               + extra + 'bash scripts/check-local.sh')
+    return ('<section class="section" id="verification"><h2>Check the proofs</h2><div class="workflow"><div>'
+            + commands(command, 'verification-commands') + '</div><div><h3>What the commands check</h3>'
+            '<p>Install Git and elan, Lean’s toolchain manager, before cloning. The repository pins the Lean and '
+            'Mathlib versions; the first cache download requires an internet connection.</p>'
+            f'<p><code>lake build {parent_library}</code> checks every proof in the library: when it succeeds, each '
+            'theorem on this page is proved from the hypotheses displayed in its Lean statement. '
+            f'<code>lake env lean {lib}/Check.lean</code> prints the axioms on which the main theorems depend; only '
+            '<code>propext</code>, <code>Classical.choice</code> and <code>Quot.sound</code> appear. '
+            + note + 'The local check script also verifies that every displayed Lean excerpt matches the source and '
+            'that these pages and the PDF regenerate exactly; regenerating them requires Python 3 and Node.js.</p>'
+            f'<p><a href="{relative("README.md",page)}">Complete installation and update instructions</a> · '
+            f'<a href="{relative("docs/README.md",page)}">Regenerate the exposition</a></p></div></div></section>')
 
 
 def project_document(notes, catalog=None):
@@ -231,6 +260,7 @@ def project_document(notes, catalog=None):
           'These pages are prepared by <a href="https://odakyildiz.com/">Omer Deniz Akyildiz</a> with AI assistance as part of an ongoing effort to formalize Langevin algorithms comprehensively. '
           'This is draft work, and the pages may contain mistakes.</p></header>'
           '<section class="cards" id="developments" aria-label="Formalized developments">')
+    # One record per development; every entry is rendered with the same fields.
     cards=[('UnadjustedLangevin','Wasserstein distance',
             'Wasserstein error bounds for Gaussian ULA in both stable step-size regimes.',
             'Published bounds; Gibbs stationarity proved.',
@@ -241,7 +271,7 @@ def project_document(notes, catalog=None):
             'Vempala and Wibisono (2019)'),
            ('IPLA','Interacting particles',
             'Finite-time parameter error from lifted ULA convergence and marginal concentration.',
-            'The extension to unequal parameter and latent dimensions is unpublished.',
+            'The extension to unequal parameter and latent dimensions and the entropy analogue are unpublished.',
             'Glyn-Davies et al. (2025)'),
            ('ProximalLangevin','Nonsmooth models',
             'Corrected MYIPLA, PIPGLA and MYPGD bounds, with proximal-map calculus and mean-field limits.',
@@ -254,47 +284,31 @@ def project_document(notes, catalog=None):
            ('KIPLMC','Kinetic interacting particles',
             'Parameter error for the kinetic particle diffusion, KIPLMC1 and KIPLMC2, with sharp marginal concentration.',
             'Includes Gaussian sampler bounds and explicit accuracy guarantees.',
-            'Valsecchi Oliva and Akyildiz (2026)')]
+            'Valsecchi Oliva and Akyildiz (2026)'),
+           ('PBGSO','General stochastic optimisation',
+            'General optimiser and sampler models, contraction and particle bounds, and time-uniform discretisation bounds for two new methods.',
+            'Four main theorems under explicit assumptions; the two discretisation bounds are new and unpublished.',
+            'Zhang and Akyildiz (2026)'),
+           ('LatentDiffusion','Latent diffusion and inference',
+            'Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.',
+            'All 19 source results proved in corrected form under explicit added regularity; corrections and new bounds are unpublished.',
+            'Wang, Kuntz and Akyildiz (2026)'),
+           ('AverageLMC','Average-smoothness sampling',
+            'LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.',
+            'Main sampling theorems with the source hypotheses and constants.',
+            'Dalalyan and Karagulyan (2026)')]
     for number,(key,label,description,scope,source_label) in enumerate(cards,1):
-        config=CONFIG[key]
         paper=PAPERS[DEVELOPMENTS[key]['papers'][0]]
         body+=(f'<article class="landing-card"><span class="entry-index" aria-hidden="true">{number:02}</span>'
                f'<div class="entry-main"><div class="eyebrow">{E(label)}</div>'
-               f'<h2><a href="{key}/exposition/index.html">{E(config["title"])}</a></h2>'
+               f'<h2><a href="{key}/exposition/index.html">{E(development_title(key))}</a></h2>'
                f'<p>{E(description)}</p></div><div class="entry-meta">'
                f'<p class="entry-source">Source: <a href="{E(paper["url"])}">{E(source_label)}</a>.</p>'
-               f'<p class="card-scope">{E(scope)}</p>')
-        if key=='IPLA':
-            body+='<p class="entry-extension">Entropy extension: <a href="IPLA/LSI/exposition/index.html">IPLA under LSI</a> (unpublished).</p>'
-        body+=f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
-        body+='</div></article>'
-    # PBGSO is a source-based development, separate from the published
-    # published-report/PDF entries maintained by CONFIG and ReportCatalog.
-    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">07</span>'
-           '<div class="entry-main"><div class="eyebrow">General stochastic optimisation</div>'
-           '<h2><a href="PBGSO/exposition/index.html">Particle-based Generalised Stochastic Optimisation</a></h2>'
-           '<p>General optimiser and sampler models, explicit analytic assumptions, comparison proofs and new concrete method bounds.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Zhang and Akyildiz, local PBGSO manuscript.</p>'
-           '<p class="card-scope">Eight source results and two new actual method bounds verified with explicit assumptions, '
-           'including the finite signed-work convention for constant-diffusion contraction.</p>'
-           '<p><a href="PBGSO/exposition/index.html#assumptions">Assumptions and formal scope</a></p></div></article>')
-    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">08</span>'
-           '<div class="entry-main"><div class="eyebrow">Latent diffusion and inference</div>'
-           '<h2><a href="LatentDiffusion/exposition/index.html">Latent Diffusion</a></h2>'
-           '<p>Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Wang, Kuntz and Akyildiz, local latent-diffusion manuscript.</p>'
-           '<p class="card-scope">Conditional analytic bridges, corrected minibatch scaling and a time-zero regularity obstruction are explicit; source coverage remains partial.</p>'
-           '<p><a href="LatentDiffusion/exposition/source_audit.md">Source audit and formal scope</a></p></div></article>')
-    body+=('<article class="landing-card"><span class="entry-index" aria-hidden="true">09</span>'
-           '<div class="entry-main"><div class="eyebrow">Average-smoothness sampling</div>'
-           '<h2><a href="AverageLMC/exposition/index.html">Langevin Monte Carlo with Average Smoothness</a></h2>'
-           '<p>LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.</p>'
-           '</div><div class="entry-meta"><p class="entry-source">Source: Dalalyan and Karagulyan, supplied average-smoothness manuscript.</p>'
-           '<p class="card-scope">Main sampling proofs with exact source hypotheses and constants; broader auxiliary coverage remains explicit.</p>'
-           '<p><a href="docs/pdf/AverageLMC/FullProof.pdf">Full proof (PDF)</a> · '
-           '<a href="AverageLMC/exposition/reference_audit.json">Source audit and formal scope</a></p></div></article>')
+               f'<p class="card-scope">{E(scope)}</p>'
+               f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
+               '</div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
-           '<div class="reading-note"><h2>Read the proofs</h2><p>The established reports have one PDF containing theorem statements, mathematical arguments and supporting proofs. The PBGSO and latent-diffusion developments have web overviews with their current scope and exact Lean statements. The web pages pair the arguments with Lean.</p></div>'
+           '<div class="reading-note"><h2>Read the proofs</h2><p>Each development has one PDF with its theorem statements, the mathematical argument and the supporting proofs. After every step, the PDF gives the exact Lean statement and explains how the Lean proof follows the mathematics. On the web pages, each step of the proof roadmap opens the same mathematics beside the complete Lean code.</p></div>'
            '<div class="verification-summary"><h2>Verify locally</h2><p>After installation and cloning:</p>')
     body+=commands('lake exe cache get\nbash scripts/check-local.sh','project-commands')
     body+='<p class="small"><a href="README.md">Installation and verification instructions</a></p></div></section>'

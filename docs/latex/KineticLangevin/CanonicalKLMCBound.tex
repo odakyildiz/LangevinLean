@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,28 @@ The definition uses the original pointwise KLMC method, the standard Gaussian in
 
 The numerical law is fixed by the initial position law, the independent standard Gaussian velocity, and the constructed innovation stream. It is defined without choosing a reference coupling. Every later coupling estimate therefore concerns one and the same sampler output.
 
+\begin{leanbox}{Lean: \texttt{klmcLaw}, \texttt{numericalChain\_\allowbreak{}outputLaw}}
+\leansource{\texttt{klmcLaw} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 13–15}
+\begin{leancode}
+\leanline{0}{def\ klmcLaw\ (f\ :\ H\ d\ →\ ℝ)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (μ\ :\ Measure\ (H\ d))\ (n\ :\ ℕ)\ :\ Measure\ (H\ d)\ :=}
+\leanline{2}{productKLMCLaw\ (canonicalSourceProbability\ d)\ f\ γ\ h\ μ\ Prod.fst}
+\leanline{4}{(fun\ k\ p\ =>\ canonicalKLMCInnovation\ d\ γ\ h\ k\ p.2)\ n}
+\end{leancode}
+\leansource{\texttt{numericalChain\_\allowbreak{}outputLaw} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 18–32}
+\begin{leancode}
+\leanline{0}{theorem\ numericalChain\_outputLaw\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)\ (f\ :\ H\ d\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(probability\ c).map\ (numericalChain\ c\ hc\ hπ\ f\ M\ hLip\ γ\ h\ n).2\ =\ klmcLaw\ f\ γ\ h\ μ\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Law} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{numerical\allowbreak{}Chain\_\allowbreak{}output\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{hn} in that order. Named proof applications include \texttt{product\_\allowbreak{}klmc\allowbreak{}Chain\_\allowbreak{}output\allowbreak{}Law}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}.
@@ -48,6 +93,45 @@ The stationarity hypothesis concerns the full constructed kinetic flow: at every
 
 Exact uniqueness identifies the stitched reference segments with the global kinetic solution. Its phase stationarity supplies the Gibbs position at grid endpoints and the standard Gaussian velocity at every local time. These are the distributional facts used in the local-error integral.
 
+\begin{leanbox}{Lean: \texttt{GlobalReferenceStationary}, \texttt{referenceChain\_\allowbreak{}position\_\allowbreak{}law}, \texttt{referenceSegment\_\allowbreak{}velocity\_\allowbreak{}law}}
+\leansource{\texttt{GlobalReferenceStationary} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 35–39}
+\begin{leancode}
+\leanline{0}{def\ GlobalReferenceStationary\ (c\ :\ ULA.Coupling\ μ\ π)\ (hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (M\ γ\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :\ Prop\ :=}
+\leanline{2}{∀\ T\ (hT\ :\ 0\ ≤\ T)\ t,\ t\ ∈\ Icc\ 0\ T\ →}
+\leanline{4}{HasLaw\ (fun\ p\ =>\ lpPhaseCoe\ (probability\ c)\ (globalReferenceFlow\ c\ hπ\ f\ M\ γ\ hLip\ T\ hT\ t)\ p)}
+\leanline{6}{((stdGaussian\ (H\ d)).prod\ π)\ (probability\ c)}
+\end{leancode}
+\leansource{\texttt{referenceChain\_\allowbreak{}position\_\allowbreak{}law} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 42–56}
+\begin{leancode}
+\leanline{0}{theorem\ referenceChain\_position\_law\ (c\ :\ ULA.Coupling\ μ\ π)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)\ (f\ :\ H\ d\ →\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ≥0)}
+\leanline{4}{(hglobal\ :\ GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(probability\ c).map\ (referenceChain\ c\ hπ\ f\ M\ γ\ hLip\ h\ n).2\ =\ π}
+\end{leancode}
+\leansource{\texttt{referenceSegment\_\allowbreak{}velocity\_\allowbreak{}law} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 59–78}
+\begin{leancode}
+\leanline{0}{theorem\ referenceSegment\_velocity\_law\ (c\ :\ ULA.Coupling\ μ\ π)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)\ (f\ :\ H\ d\ →\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ≥0)}
+\leanline{4}{(hglobal\ :\ GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip)}
+\leanline{4}{(n\ :\ ℕ)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ (h\ :\ ℝ))\ :}
+\leanline{4}{HasLaw\ ((referenceSegment\ c\ hπ\ f\ M\ γ\ hLip\ h\ n\ t).1)\ (stdGaussian\ (H\ d))\ (probability\ c)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Global\allowbreak{}Reference\allowbreak{}Stationary} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{reference\allowbreak{}Chain\_\allowbreak{}position\_\allowbreak{}law} gives the formal counterpart of this step. The main intermediate facts are \texttt{T}, \texttt{h\allowbreak{}T}, \texttt{hl}, \texttt{hp} in that order. Named proof applications include \texttt{hl.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}iff.\allowbreak{}mp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{reference\allowbreak{}Segment\_\allowbreak{}velocity\_\allowbreak{}law} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\ensuremath{\pi}prob}, \texttt{T}, \texttt{h\allowbreak{}T}, \texttt{htime}, \texttt{hp} in that order. Named proof applications include \texttt{hxl.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}iff.\allowbreak{}mp}, \texttt{hp.\allowbreak{}comp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.22.6]{LangevinLean2026ULASC}.
@@ -61,6 +145,37 @@ The initial position \(L^{2}\) discrepancy equals the quadratic cost of the supp
 
 For one finite-cost initial plan, the numerical and reference variables form an output coupling. The analytic recurrence bounds its cost, and endpoint projection gives a position-law transport estimate. The plan’s own root-mean-square cost remains visible at this stage.
 
+\begin{leanbox}{Lean: \texttt{initial\_\allowbreak{}position\_\allowbreak{}cost}, \texttt{klmc\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}globalStationarity}}
+\leansource{\texttt{initial\_\allowbreak{}position\_\allowbreak{}cost} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 81–86}
+\begin{leancode}
+\leanline{0}{theorem\ initial\_position\_cost\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)\ (f\ :\ H\ d\ →\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{‖(numericalChain\ c\ hc\ hπ\ f\ M\ hLip\ γ\ h\ 0).2-(referenceChain\ c\ hπ\ f\ M\ γ\ hLip\ h\ 0).2‖\ =}
+\leanline{6}{(ULA.couplingCost\ c.joint).toReal}
+\end{leancode}
+\leansource{\texttt{klmc\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}globalStationarity} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 89–110}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_bound\_of\_globalStationarity\ (c\ :\ ULA.Coupling\ μ\ π)}
+\leanline{4}{(hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)\ (hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m+(M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ (h\ :\ ℝ))\ (hstep\ :\ 4*(γ\ :\ ℝ)*(M\ :\ ℝ)*(h\ :\ ℝ)\ ≤\ m)}
+\leanline{4}{(hglobal\ :\ GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (klmcLaw\ f\ γ\ h\ μ\ n)\ π\ ≤}
+\leanline{6}{Real.sqrt\ 2\ *\ (1-3*m*(h\ :\ ℝ)/(4*(γ\ :\ ℝ)))\textasciicircum{}n\ *\ (ULA.couplingCost\ c.joint).toReal\ +}
+\leanline{8}{(M\ :\ ℝ)*(h\ :\ ℝ)*Real.sqrt\ (2*(d\ :\ ℝ))/m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{initial\_\allowbreak{}position\_\allowbreak{}cost} gives the formal counterpart of this step. Named proof applications include \texttt{ULA.\allowbreak{}initial\allowbreak{}Extension\_\allowbreak{}lp\_\allowbreak{}cost}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{klmc\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}global\allowbreak{}Stationarity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb} in that order. Named proof applications include \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}.
@@ -74,13 +189,44 @@ Finite initial Wasserstein distance supplies a finite-cost initial coupling. Its
 
 Finite initial transport provides at least one finite-cost plan, proving output finiteness. Since the same affine estimate holds for every such plan and its coefficient is nonnegative, infimizing replaces the plan cost by the initial Wasserstein distance.
 
+\begin{leanbox}{Lean: \texttt{klmcLaw\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}globalStationarity}}
+\leansource{\texttt{klmcLaw\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 113–124}
+\begin{leancode}
+\leanline{0}{theorem\ klmcLaw\_wasserstein2\_ne\_top\ (hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (M\ γ\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ≥0)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)}
+\leanline{4}{(hglobal\ :\ ∀\ c\ :\ ULA.Coupling\ μ\ π,\ GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ (klmcLaw\ f\ γ\ h\ μ\ n)\ π\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}globalStationarity} \quad KineticLangevin/\allowbreak{}CanonicalKLMCBound.lean, lines 127–152}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_wasserstein\_bound\_of\_globalStationarity}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ π)\ (f\ :\ H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m+(M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ (h\ :\ ℝ))\ (hstep\ :\ 4*(γ\ :\ ℝ)*(M\ :\ ℝ)*(h\ :\ ℝ)\ ≤\ m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)}
+\leanline{4}{(hglobal\ :\ ∀\ c\ :\ ULA.Coupling\ μ\ π,\ GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (klmcLaw\ f\ γ\ h\ μ\ n)\ π\ ≤}
+\leanline{6}{Real.sqrt\ 2\ *\ (1-3*m*(h\ :\ ℝ)/(4*(γ\ :\ ℝ)))\textasciicircum{}n\ *\ ULA.wasserstein2Real\ μ\ π\ +}
+\leanline{8}{(M\ :\ ℝ)*(h\ :\ ℝ)*Real.sqrt\ (2*(d\ :\ ℝ))/m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Law\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb} in that order. Named proof applications include \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}global\allowbreak{}Stationarity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hcoeff}, \texttt{hq}, \texttt{a}, \texttt{b} in that order. Named proof applications include \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}affine\_\allowbreak{}bound\_\allowbreak{}real\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings}, \texttt{klmc\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}global\allowbreak{}Stationarity}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.2]{LangevinLean2026ULASC}; \cite[Section~3.18.4]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

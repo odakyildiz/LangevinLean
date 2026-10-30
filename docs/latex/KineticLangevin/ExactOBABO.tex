@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,28 @@ Starting from \(z=(v,x)\), apply \(O_{\delta,\sigma,\xi}\), evolve the resulting
 
 The comparison replaces the central Verlet stage by exact Hamiltonian evolution while retaining the same thermostat half steps. Since all three exact stages preserve the Gibbs target, their composition is a natural target-preserving comparator for the numerical OBABO map.
 
+\begin{leanbox}{Lean: \texttt{exactObaboStep}, \texttt{exactObaboStep\_\allowbreak{}continuous}}
+\leansource{\texttt{exactObaboStep} \quad KineticLangevin/\allowbreak{}ExactOBABO.lean, lines 15–18}
+\begin{leancode}
+\leanline{0}{def\ exactObaboStep\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0≤h)\ (δ\ σ\ :\ ℝ)\ (z\ :\ E×E)\ (ξ\ :\ E×E)\ :\ E×E\ :=}
+\leanline{2}{ornsteinStep\ δ\ σ\ ξ.2}
+\leanline{4}{(hamiltonianFlow\ f\ M\ hLip\ h\ hh\ (ornsteinStep\ δ\ σ\ ξ.1\ z)\ h)}
+\end{leancode}
+\leansource{\texttt{exactObaboStep\_\allowbreak{}continuous} \quad KineticLangevin/\allowbreak{}ExactOBABO.lean, lines 20–25}
+\begin{leancode}
+\leanline{0}{theorem\ exactObaboStep\_continuous\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ)\ (hh\ :\ 0≤h)\ (δ\ σ\ :\ ℝ)\ :}
+\leanline{4}{Continuous\ (Function.uncurry\ (exactObaboStep\ f\ M\ hLip\ h\ hh\ δ\ σ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exact\allowbreak{}Obabo\allowbreak{}Step} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{exact\allowbreak{}Obabo\allowbreak{}Step\_\allowbreak{}continuous} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc} in that order.
+\end{leanbox}
 
 \section{\texorpdfstring{Preserve the first updated phase and its independence of fresh noise}{Preserve the first updated phase and its independence of fresh noise}}
 
@@ -42,6 +87,19 @@ The source law is explicitly \(\pi\otimes(\mathcal N(0,I)\otimes\mathcal N(0,I))
 
 After the first thermostat update the phase still has the Gibbs law. The second thermostat innovation remains independent because it was chosen independently of the initial phase and the first innovation. This justifies applying its invariance property after the Hamiltonian stage.
 
+\begin{leanbox}{Lean: \texttt{firstThermostat\_\allowbreak{}joint\_\allowbreak{}fresh}}
+\leansource{\texttt{firstThermostat\_\allowbreak{}joint\_\allowbreak{}fresh} \quad KineticLangevin/\allowbreak{}ExactOBABO.lean, lines 29–50}
+\begin{leancode}
+\leanline{0}{theorem\ firstThermostat\_joint\_fresh}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (δ\ σ\ :\ ℝ)\ (hvariance\ :\ δ\textasciicircum{}2+σ\textasciicircum{}2=1)\ :}
+\leanline{4}{((kineticGibbsTarget\ f).prod\ ((stdGaussian\ E).prod\ (stdGaussian\ E))).map}
+\leanline{6}{(fun\ p\ ↦\ (ornsteinStep\ δ\ σ\ p.2.1\ p.1,p.2.2))\ =}
+\leanline{8}{(kineticGibbsTarget\ f).prod\ (stdGaussian\ E)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Thermostat\_\allowbreak{}joint\_\allowbreak{}fresh} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\pi}}, \texttt{G}, \texttt{h\allowbreak{}OU}, \texttt{hfirst}, \texttt{h\allowbreak{}Assoc}, \texttt{hp} in that order. Named proof applications include \texttt{hp.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Compose the three proved invariant transitions}{Compose the three proved invariant transitions}}
 
@@ -52,6 +110,20 @@ After the first \(O\) step the joint law is \(\pi\otimes\mathcal N(0,I)\). The e
 
 Push the target successively through the first thermostat, Hamiltonian flow, and final thermostat. Each pushforward equals the target, so their composition does as well. This proves invariance for the comparison transition, including both noises.
 
+\begin{leanbox}{Lean: \texttt{exactObaboStep\_\allowbreak{}preserves\_\allowbreak{}target}}
+\leansource{\texttt{exactObaboStep\_\allowbreak{}preserves\_\allowbreak{}target} \quad KineticLangevin/\allowbreak{}ExactOBABO.lean, lines 54–85}
+\begin{leancode}
+\leanline{0}{theorem\ exactObaboStep\_preserves\_target}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (h\ :\ ℝ)\ (hh\ :\ 0≤h)}
+\leanline{4}{(δ\ σ\ :\ ℝ)\ (hvariance\ :\ δ\textasciicircum{}2+σ\textasciicircum{}2=1)\ :}
+\leanline{4}{((kineticGibbsTarget\ f).prod\ ((stdGaussian\ E).prod\ (stdGaussian\ E))).map}
+\leanline{6}{(Function.uncurry\ (exactObaboStep\ f\ M\ hLip\ h\ hh\ δ\ σ))\ =\ kineticGibbsTarget\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exact\allowbreak{}Obabo\allowbreak{}Step\_\allowbreak{}preserves\_\allowbreak{}target} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\pi}}, \texttt{G}, \texttt{A}, \texttt{B}, \texttt{C}, \texttt{h\allowbreak{}A} in that order. Named proof applications include \texttt{he.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The \(L^{2}\) variables used by the local comparison}{The L² variables used by the local comparison}}
 
@@ -62,5 +134,21 @@ Pull the initial velocity and position through the first product projection, and
 
 The initial phase and both innovations are represented jointly on their product space. The exact Hamiltonian comparator is square integrable under its stationary law. These variables provide the common-noise coupling needed to integrate the Verlet local state error.
 
+\begin{leanbox}{Lean: \texttt{exactObabo\_\allowbreak{}lp\_\allowbreak{}source}}
+\leansource{\texttt{exactObabo\_\allowbreak{}lp\_\allowbreak{}source} \quad KineticLangevin/\allowbreak{}ExactOBABO.lean, lines 89–127}
+\begin{leancode}
+\leanline{0}{theorem\ exactObabo\_lp\_source}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (δ\ σ\ :\ ℝ)\ (hvariance\ :\ δ\textasciicircum{}2+σ\textasciicircum{}2=1)\ :}
+\leanline{4}{let\ P\ :=\ (kineticGibbsTarget\ f).prod\ ((stdGaussian\ E).prod\ (stdGaussian\ E))}
+\leanline{4}{∃\ (Z\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (Ξ\ Ξ'\ :\ Lp\ E\ 2\ P),}
+\leanline{6}{lpPhaseCoe\ P\ Z\ =ᵐ[P]\ Prod.fst\ ∧}
+\leanline{6}{Ξ\ =ᵐ[P]\ (fun\ p\ :\ (E×E)×(E×E)\ ↦\ p.2.1)\ ∧}
+\leanline{6}{Ξ'\ =ᵐ[P]\ (fun\ p\ :\ (E×E)×(E×E)\ ↦\ p.2.2)\ ∧}
+\leanline{6}{P.map\ (lpPhaseCoe\ P\ (ornsteinStep\ δ\ σ\ Ξ\ Z))=kineticGibbsTarget\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exact\allowbreak{}Obabo\_\allowbreak{}lp\_\allowbreak{}source} gives the formal counterpart of this step. The main intermediate facts are \texttt{P}, \texttt{V}, \texttt{X}, \texttt{W}, \texttt{hv}, \texttt{hx} in that order. Named proof applications include \texttt{Prod.\allowbreak{}ext}, \texttt{hj}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

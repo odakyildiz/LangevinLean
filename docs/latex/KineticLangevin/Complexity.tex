@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ For \(\alpha\le1\), the base \(1-\alpha\) is nonnegative. The elementary exponen
 
 For \(0\le\alpha\le1\), \((1-\alpha)^n\le e^{-\alpha n}\). The exponential form can be solved explicitly for the required iteration number. Its use must retain the admissible range of \(\alpha\), which comes from the sampler’s step restrictions.
 
+\begin{leanbox}{Lean: \texttt{one\_\allowbreak{}sub\_\allowbreak{}pow\_\allowbreak{}le\_\allowbreak{}exp}}
+\leansource{\texttt{one\_\allowbreak{}sub\_\allowbreak{}pow\_\allowbreak{}le\_\allowbreak{}exp} \quad KineticLangevin/\allowbreak{}Complexity.lean, lines 17–24}
+\begin{leancode}
+\leanline{0}{theorem\ one\_sub\_pow\_le\_exp\ (α\ :\ ℝ)\ (hα\ :\ α\ ≤\ 1)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(1-α)\textasciicircum{}n\ ≤\ Real.exp\ (-α*(n\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{one\_\allowbreak{}sub\_\allowbreak{}pow\_\allowbreak{}le\_\allowbreak{}exp} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hp} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Round the logarithmic threshold and include small initial errors}{Round the logarithmic threshold and include small initial errors}}
 
@@ -46,6 +78,26 @@ This is a natural number even when the logarithm is negative. If \(\alpha>0\) an
 
 The count is a natural-number ceiling of a nonnegative threshold. Taking the maximum with zero ensures that an already small initial error requires no negative number of steps. The ceiling adds fewer than one extra iteration beyond the real-valued requirement.
 
+\begin{leanbox}{Lean: \texttt{firstOrderIterationCount}, \texttt{firstOrderIterationCount\_\allowbreak{}spec}}
+\leansource{\texttt{firstOrderIterationCount} \quad KineticLangevin/\allowbreak{}Complexity.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ firstOrderIterationCount\ (α\ D\ ε\ :\ ℝ)\ :\ ℕ\ :=}
+\leanline{2}{Nat.ceil\ (max\ 0\ (Real.log\ (24*D/ε)/α))}
+\end{leancode}
+\leansource{\texttt{firstOrderIterationCount\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}Complexity.lean, lines 33–41}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrderIterationCount\_spec\ (α\ D\ ε\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (n\ :\ ℕ)}
+\leanline{4}{(hn\ :\ firstOrderIterationCount\ α\ D\ ε\ ≤\ n)\ :}
+\leanline{4}{Real.log\ (24*D/ε)\ ≤\ α*(n\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\allowbreak{}Iteration\allowbreak{}Count} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{first\allowbreak{}Order\allowbreak{}Iteration\allowbreak{}Count\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{hceil}, \texttt{hnreal}, \texttt{hs} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Verify the transient-error bound only when logarithmic cancellation is valid}{Verify the transient-error bound only when logarithmic cancellation is valid}}
 
@@ -56,6 +108,17 @@ For \(D>0\) and \(\varepsilon>0\), exponentiating the iteration inequality gives
 
 When the logarithm is positive, multiplying the chosen threshold by the contraction rate cancels its denominator. Exponentiating then reduces the initial error to the allocated fraction of accuracy. When the logarithm is nonpositive, the initial error already satisfies that allocation.
 
+\begin{leanbox}{Lean: \texttt{firstOrder\_\allowbreak{}transient\_\allowbreak{}budget}}
+\leansource{\texttt{firstOrder\_\allowbreak{}transient\_\allowbreak{}budget} \quad KineticLangevin/\allowbreak{}Complexity.lean, lines 44–54}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrder\_transient\_budget\ (α\ D\ ε\ :\ ℝ)\ (hα\ :\ α\ ≤\ 1)}
+\leanline{4}{(hD\ :\ 0\ <\ D)\ (hε\ :\ 0\ <\ ε)\ (n\ :\ ℕ)}
+\leanline{4}{(hcount\ :\ Real.log\ (24*D/ε)\ ≤\ α*(n\ :\ ℝ))\ :}
+\leanline{4}{(1-α)\textasciicircum{}n*D\ ≤\ ε/24}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}transient\_\allowbreak{}budget} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hr}, \texttt{hm}, \texttt{hc} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Combine the manuscript's 0.94 bias allocation with the transient}{Combine the manuscript's 0.94 bias allocation with the transient}}
 
@@ -70,5 +133,17 @@ One proves the square-root comparison by squaring, splits on zero versus positiv
 
 The persistent bias and the decaying transient are bounded by separate fractions of the requested error tolerance. The specific numerical allocation leaves enough a strict allowance for the \(\sqrt2\) positional prefactor and the rounded count. Adding the two verified contributions gives the final \(\varepsilon\) guarantee.
 
+\begin{leanbox}{Lean: \texttt{firstOrder\_\allowbreak{}accuracy\_\allowbreak{}budget}}
+\leansource{\texttt{firstOrder\_\allowbreak{}accuracy\_\allowbreak{}budget} \quad KineticLangevin/\allowbreak{}Complexity.lean, lines 59–78}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrder\_accuracy\_budget\ (α\ D\ ε\ bias\ error\ :\ ℝ)}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hα1\ :\ α\ ≤\ 1)\ (hD\ :\ 0\ ≤\ D)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hbias\ :\ bias\ ≤\ (47/50\ :\ ℝ)*ε)\ (n\ :\ ℕ)}
+\leanline{4}{(hn\ :\ D\ =\ 0\ ∨\ firstOrderIterationCount\ α\ D\ ε\ ≤\ n)}
+\leanline{4}{(herror\ :\ error\ ≤\ Real.sqrt\ 2\ *\ (1-α)\textasciicircum{}n*D+bias)\ :\ error\ ≤\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}accuracy\_\allowbreak{}budget} gives the formal counterpart of this step. The main intermediate facts are \texttt{hsqrt} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \end{document}

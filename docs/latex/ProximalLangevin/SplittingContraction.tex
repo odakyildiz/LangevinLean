@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -39,7 +62,32 @@ Explicitly put \(A_i z=(\theta,\sqrt N z_i)\) and \(\Delta_i=P(A_i z)-P(A_i w)\)
 
 Nonexpansiveness of \(P\) and identity \(\sum_i\|A_i(z-w)\|^2=N\|z-w\|^2\) give the unit full-state Lipschitz bound. Positivity of \(N\) justifies division and rescaling. The argument compares two averaged outputs and does not assume that either minimizes a shared-state proximal objective.
 
+\begin{leanbox}{Lean: \texttt{pairwiseMap\_\allowbreak{}difference\_\allowbreak{}sq\_\allowbreak{}le}, \texttt{pairwiseMap\_\allowbreak{}nonexpansive}}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}difference\_\allowbreak{}sq\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingContraction.lean, lines 22–54}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_difference\_sq\_le\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (z\ w\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pairwiseMap\ P\ z\ -\ pairwiseMap\ P\ w‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(∑\ i\ :\ Fin\ N,\ ‖P\ (IPLA.joint\ i\ z)\ -\ P\ (IPLA.joint\ i\ w)‖\ \textasciicircum{}\ 2)\ /\ N}
+\end{leancode}
+\leansource{\texttt{pairwiseMap\_\allowbreak{}nonexpansive} \quad ProximalLangevin/\allowbreak{}SplittingContraction.lean, lines 58–75}
+\begin{leancode}
+\leanline{0}{theorem\ pairwiseMap\_nonexpansive\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(P\ :\ IPLA.Joint\ dθ\ dx\ →\ IPLA.Joint\ dθ\ dx)\ (hP\ :\ LipschitzWith\ 1\ P)}
+\leanline{4}{(z\ w\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pairwiseMap\ P\ z\ -\ pairwiseMap\ P\ w‖\ ≤\ ‖z\ -\ w‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pairwiseMap\_difference\_sq\_le : Averaging only the shared parameter contracts the squared difference relative to the average of all separate pairwise squared differences. pairwiseMap\_nonexpansive : A nonexpansive pair map remains nonexpansive after the actual shared parameter averaging and physical-particle scaling.
 
+
+
+\texttt{pairwise\allowbreak{}Map\_\allowbreak{}difference\_\allowbreak{}sq\_\allowbreak{}le}: the intermediate facts include \texttt{hn}, \texttt{hs}, \texttt{hs2}, \texttt{hx}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}sub}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}sub\_\allowbreak{}distrib}, \texttt{le\_\allowbreak{}rfl}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum}, \texttt{Finset.\allowbreak{}mul\_\allowbreak{}sum}.
+
+
+
+\texttt{pairwise\allowbreak{}Map\_\allowbreak{}nonexpansive}: the intermediate facts include \texttt{hn}, \texttt{h}, \texttt{hp}, \texttt{hh}, \texttt{hsq}, in source order; the source steps apply or rewrite \texttt{NNReal.\allowbreak{}coe\_\allowbreak{}one}, \texttt{one\_\allowbreak{}mul}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}iff\_\allowbreak{}of\_\allowbreak{}pos\_\allowbreak{}right}, \texttt{hh.\allowbreak{}trans}, \texttt{mul\_\allowbreak{}comm}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.2]{LangevinLean2026IPLA}.
@@ -57,16 +105,53 @@ Induction gives factor \((1-m\gamma)^n\). Writing \(q=1-m\gamma\), the step rest
 
 Only equality of the innovations is used, so this stability statement holds for deterministic sequences as well as Gaussian ones. Convergence to a Gibbs law additionally requires a stationary reference and a local-error estimate.
 
+\begin{leanbox}{Lean: \texttt{pipglaUpdate\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract}, \texttt{pipglaChain\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract}}
+\leansource{\texttt{pipglaUpdate\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract} \quad ProximalLangevin/\allowbreak{}SplittingContraction.lean, lines 79–101}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaUpdate\_shared\_noise\_contract\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ γ\ lam\ :\ ℝ)\ (L₁\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ Set.univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))\ (hγ\ :\ 0\ ≤\ γ)\ (hlam\ :\ 0\ <\ lam)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))\ (z\ w\ ξ\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ\ z\ ξ\ -\ pipglaUpdate\ g₁\ (prox\ g₂\ lam)\ γ\ w\ ξ‖\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ *\ ‖z\ -\ w‖}
+\end{leancode}
+\leansource{\texttt{pipglaChain\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract} \quad ProximalLangevin/\allowbreak{}SplittingContraction.lean, lines 105–133}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaChain\_shared\_noise\_contract\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ γ\ lam\ :\ ℝ)\ (L₁\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ Set.univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))\ (hγ\ :\ 0\ ≤\ γ)\ (hlam\ :\ 0\ <\ lam)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(z\ w\ :\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ IPLA.State\ N\ dθ\ dx)\ (k\ :\ ℕ)\ :}
+\leanline{4}{‖pipglaChain\ g₁\ (prox\ g₂\ lam)\ γ\ z\ noise\ k\ -}
+\leanline{8}{pipglaChain\ g₁\ (prox\ g₂\ lam)\ γ\ w\ noise\ k‖\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ‖z\ -\ w‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipglaUpdate\_shared\_noise\_contract : PIPGLA contracts synchronously driven initial states at the smooth forward-step rate. No stochastic or equilibrium hypothesis is needed. pipglaChain\_shared\_noise\_contract : Iterating the actual pathwise inequality controls two PIPGLA runs with the same innovations. It supplies stability, rather than a Gibbs bias bound.
 
+
+
+\texttt{pipgla\allowbreak{}Update\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract}: the intermediate facts include \texttt{hn}, \texttt{hstep}, \texttt{hc}, \texttt{hfactor}, \texttt{hp}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}, \texttt{hn.\allowbreak{}le}, \texttt{hp.\allowbreak{}trans}, \texttt{IPLA.\allowbreak{}scaled\allowbreak{}Update}, \texttt{add\_\allowbreak{}sub\_\allowbreak{}add\_\allowbreak{}right\_\allowbreak{}eq\_\allowbreak{}sub}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}.
+
+
+
+\texttt{pipgla\allowbreak{}Chain\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract}: the argument uses \texttt{induction k with}; the intermediate facts include \texttt{hden}, \texttt{hs}, \texttt{hq}, in source order; the source steps apply or rewrite \texttt{pow\_\allowbreak{}succ}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.10.7]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.1.7]{LangevinLean2026IPLA}; \cite[Section~3.7.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

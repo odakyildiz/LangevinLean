@@ -9,11 +9,23 @@ from html import escape
 
 PAPERS = {
     'average-lmc': dict(
-        authors="Arnak S. Dalalyan and Avetik Karagulyan", year="undated manuscript",
+        authors="Arnak S. Dalalyan and Avetik Karagulyan", year="2026",
         title="Improved Guarantees for Langevin Monte Carlo with Average Smoothness",
-        venue="Supplied Arxiv_version_May_26.tex; publication status not established",
-        url="https://github.com/odakyildiz/LangevinLean/blob/main/papers/Average_LMC/Arxiv_version_May_26.tex",
-        links=[]),
+        venue="arXiv preprint arXiv:2605.31413, version 1 (29 May 2026)",
+        url="https://arxiv.org/abs/2605.31413v1",
+        links=[("Full paper", "https://arxiv.org/pdf/2605.31413v1")]),
+    'pbgso': dict(
+        authors="Jiechen Jackie Zhang and O. Deniz Akyildiz", year="2026",
+        title="Particle-based Generalised Stochastic Optimisation",
+        venue="arXiv preprint arXiv:2608.02844, version 2 (9 October 2026)",
+        url="https://arxiv.org/abs/2608.02844v2",
+        links=[("Full paper", "https://arxiv.org/pdf/2608.02844v2")]),
+    'latent-diffusion': dict(
+        authors="Tim Y. J. Wang, Juan Kuntz, and O. Deniz Akyildiz", year="2026",
+        title="Training Latent Diffusion Models with Interacting Particle Algorithms",
+        venue="Proceedings of The 29th International Conference on Artificial Intelligence and Statistics, Proceedings of Machine Learning Research 300, 2791–2799",
+        url="https://proceedings.mlr.press/v300/wang26f.html",
+        links=[("Audited version: arXiv:2505.12412v3", "https://arxiv.org/abs/2505.12412v3")]),
     "monmarche-obabo": dict(
         authors="Pierre Monmarché", year="2021",
         title="High-dimensional MCMC with a standard splitting scheme for the underdamped Langevin diffusion",
@@ -67,10 +79,20 @@ PAPERS = {
 
 DEVELOPMENTS = {
     'AverageLMC': dict(
-        label="Supplied manuscript; checked main sampling proofs",
+        label="Preprint source; checked main sampling proofs",
         status="corrected", papers=["average-lmc"],
-        scope=r"The exact supplied manuscript is the correspondence authority. Its main average-smoothness LMC, decreasing-step, Laplacian-smooth LMC and fixed-point control-variate SGLD statements are proved for actual Gaussian sampling laws with the source constants. Extended transport endpoints cover arbitrary probability initializations. The Laplacian proof uses exactly \(C^3\) regularity and the gradient-of-Laplacian condition. The complete source inventory distinguishes this main-theorem review scope from broader auxiliary statements not reproduced in full standalone generality; literal full-paper proof coverage is not claimed.",
+        scope=r"The correspondence uses arXiv:2605.31413v1, identical to the manuscript audited here. Its main average-smoothness LMC, decreasing-step, Laplacian-smooth LMC and fixed-point control-variate SGLD statements are proved for actual Gaussian sampling laws with the source constants. Extended transport endpoints cover arbitrary probability initializations. The Laplacian proof uses exactly \(C^3\) regularity and the gradient-of-Laplacian condition. The source audit distinguishes this main-theorem scope from broader auxiliary statements not reproduced in full standalone generality; literal full-paper proof coverage is not claimed.",
         card="Actual average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact source hypotheses and constants."),
+    'PBGSO': dict(
+        label="Preprint source; checked theorems and new unpublished bounds",
+        status="extended", papers=["pbgso"],
+        scope=r"The correspondence uses arXiv:2608.02844v2, identical to the manuscript audited here. The four main theorems of the paper are proved under its assumptions A1–A5, the added regularity R1–R3 and explicit solution interpretations: A2 is read as stationary weak frozen invariance, and constant-diffusion contraction uses the finite signed-work convention. The time-uniform discretisation bounds New A and New B for M-MFPO and HOL-MYPGD, with explicit constants, are new and unpublished. The source audit records these interpretations and the printed HOL coefficient defect.",
+        card="The four main theorems under explicit assumptions, and new time-uniform discretisation bounds for M-MFPO and HOL-MYPGD."),
+    'LatentDiffusion': dict(
+        label="Published source; corrected checked proofs and new theory",
+        status="corrected", papers=["latent-diffusion"],
+        scope=r"The correspondence uses arXiv:2505.12412v3, the camera-ready version of the AISTATS 2026 paper, identical to the manuscript audited here. All 19 source results are proved in corrected form under the paper's assumptions A1–A4 and the added regularity R1–R7. The corrections and the new theory (explicit error budget, minibatch scaling, model bias and accuracy choices) are unpublished. The source audit records the corrected minibatch scaling and a counterexample to universal time-zero density regularity.",
+        card="All 19 source results in corrected form, with explicit error budgets and accuracy choices."),
     "KineticLangevin": dict(
         label="Published source; corrected checked proofs", status="corrected",
         papers=["dalalyan-riou-durand"],

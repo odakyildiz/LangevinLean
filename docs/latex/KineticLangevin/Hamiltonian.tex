@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,27 @@ Define \(H(v,x)=f(x)+\|v\|^2/2\). If \(x'=v\) and \(v'=-\nabla f(x)\), the chain
 
 For \(H(v,x)=\|v\|^2/2+f(x)\), the two derivative contributions are \(\langle v,-\nabla f(x)\rangle\) and \(\langle\nabla f(x),v\rangle\). They cancel exactly. This calculation concerns the true Hamiltonian differential equation, before any numerical discretization is introduced.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianEnergy}, \texttt{hasDerivWithinAt\_\allowbreak{}hamiltonianEnergy}}
+\leansource{\texttt{hamiltonianEnergy} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 23–23}
+\begin{leancode}
+\leanline{0}{def\ hamiltonianEnergy\ (f\ :\ E\ →\ ℝ)\ (z\ :\ E\ ×\ E)\ :\ ℝ\ :=\ f\ z.2\ +\ ‖z.1‖\textasciicircum{}2\ /\ 2}
+\end{leancode}
+\leansource{\texttt{hasDerivWithinAt\_\allowbreak{}hamiltonianEnergy} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 26–39}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivWithinAt\_hamiltonianEnergy\ (f\ :\ E\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(v\ x\ :\ ℝ\ →\ E)\ (t\ :\ ℝ)}
+\leanline{4}{(hv\ :\ HasDerivWithinAt\ v\ (-gradient\ f\ (x\ t))\ (Ici\ t)\ t)}
+\leanline{4}{(hx\ :\ HasDerivWithinAt\ x\ (v\ t)\ (Ici\ t)\ t)\ :}
+\leanline{4}{HasDerivWithinAt\ (fun\ r\ ↦\ hamiltonianEnergy\ f\ (v\ r,x\ r))\ 0\ (Ici\ t)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Energy} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At\_\allowbreak{}hamiltonian\allowbreak{}Energy} gives the formal counterpart of this step. The main intermediate facts are \texttt{hf}, \texttt{hk}, \texttt{he}, \texttt{hh} in that order. Named proof applications include \texttt{hh}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Turn vanishing right derivatives into exact conservation}{Turn vanishing right derivatives into exact conservation}}
 
@@ -42,6 +86,17 @@ A continuous scalar function with zero right derivative on \([0,T)\) is constant
 
 A continuous scalar function with zero right derivative on the interval is constant. Applying this to the composed Hamiltonian proves energy conservation up to the endpoints. The argument does not require differentiability of the flow at negative times.
 
+\begin{leanbox}{Lean: \texttt{eq\_\allowbreak{}initial\_\allowbreak{}of\_\allowbreak{}right\_\allowbreak{}derivative\_\allowbreak{}zero}}
+\leansource{\texttt{eq\_\allowbreak{}initial\_\allowbreak{}of\_\allowbreak{}right\_\allowbreak{}derivative\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 43–56}
+\begin{leancode}
+\leanline{0}{theorem\ eq\_initial\_of\_right\_derivative\_zero\ (F\ :\ ℝ\ →\ ℝ)\ (T\ :\ ℝ)}
+\leanline{4}{(hF\ :\ ContinuousOn\ F\ (Icc\ 0\ T))}
+\leanline{4}{(hd\ :\ ∀\ t\ ∈\ Ico\ 0\ T,\ HasDerivWithinAt\ F\ 0\ (Ici\ t)\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :\ F\ t\ =\ F\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{eq\_\allowbreak{}initial\_\allowbreak{}of\_\allowbreak{}right\_\allowbreak{}derivative\_\allowbreak{}zero} gives the formal counterpart of this step. The main intermediate facts are \texttt{hu}, \texttt{hl} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Conserve energy for the constructed Hamiltonian integral flow}{Conserve energy for the constructed Hamiltonian integral flow}}
 
@@ -52,6 +107,28 @@ The Hamiltonian flow is the kinetic solution map with friction zero, inverse mas
 
 The selected Hamiltonian solution satisfies the integral equations with zero friction and zero forcing. Differentiating those equations supplies the hypotheses of the conservation calculation. Consequently conservation belongs to the constructed flow, for every trajectory furnished by the integral-solution construction.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianFlow}, \texttt{hamiltonianFlow\_\allowbreak{}energy}}
+\leansource{\texttt{hamiltonianFlow} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 59–61}
+\begin{leancode}
+\leanline{0}{def\ hamiltonianFlow\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ E\ ×\ E)\ :\ ℝ\ →\ E\ ×\ E\ :=}
+\leanline{2}{kineticFlow\ (gradient\ f)\ M\ 0\ 1\ hLip\ T\ hT\ initial\ 0}
+\end{leancode}
+\leansource{\texttt{hamiltonianFlow\_\allowbreak{}energy} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 64–105}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianFlow\_energy\ (f\ :\ E\ →\ ℝ)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(initial\ :\ E\ ×\ E)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{hamiltonianEnergy\ f\ (hamiltonianFlow\ f\ M\ hLip\ T\ hT\ initial\ t)\ =\ hamiltonianEnergy\ f\ initial}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Flow} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{hamiltonian\allowbreak{}Flow\_\allowbreak{}energy} gives the formal counterpart of this step. The main intermediate facts are \texttt{Y}, \texttt{hs}, \texttt{he\allowbreak{}Y}, \texttt{hcont}, \texttt{hc\allowbreak{}Drift}, \texttt{hd\allowbreak{}Y} in that order. Named proof applications include \texttt{he}, \texttt{he\allowbreak{}Y}, \texttt{has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At\_\allowbreak{}hamiltonian\allowbreak{}Energy}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Build the reversible proposal and preserve the Hamiltonian under reversal}{Build the reversible proposal and preserve the Hamiltonian under reversal}}
 
@@ -62,6 +139,45 @@ Velocity reversal \(R(v,x)=(-v,x)\) conjugates every kick and drift to its negat
 
 Velocity reversal preserves the kinetic square and leaves position fixed. Composing it with a reversible Verlet map creates an involutive proposal. An involution is useful for Metropolis balance because its forward and backward proposal graphs are paired by the same transformation.
 
+\begin{leanbox}{Lean: \texttt{reverseVelocity\_\allowbreak{}verlet}, \texttt{verletProposal}, \texttt{verletProposal\_\allowbreak{}involutive} and 1 more}
+\leansource{\texttt{reverseVelocity\_\allowbreak{}verlet} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 110–119}
+\begin{leancode}
+\leanline{0}{theorem\ reverseVelocity\_verlet\ (g\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{reverseVelocity\ (verletStep\ g\ h\ (reverseVelocity\ z))\ =\ verletStep\ g\ (-h)\ z}
+\end{leancode}
+\leansource{\texttt{verletProposal} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 122–123}
+\begin{leancode}
+\leanline{0}{def\ verletProposal\ (g\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{reverseVelocity\ (verletStep\ g\ h\ z)}
+\end{leancode}
+\leansource{\texttt{verletProposal\_\allowbreak{}involutive} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 125–128}
+\begin{leancode}
+\leanline{0}{theorem\ verletProposal\_involutive\ (g\ :\ E\ →\ E)\ (h\ :\ ℝ)\ :}
+\leanline{4}{Function.Involutive\ (verletProposal\ g\ h)}
+\end{leancode}
+\leansource{\texttt{hamiltonianEnergy\_\allowbreak{}reverseVelocity} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 131–133}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ hamiltonianEnergy\_reverseVelocity\ (f\ :\ E\ →\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{hamiltonianEnergy\ f\ (reverseVelocity\ z)\ =\ hamiltonianEnergy\ f\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{reverse\allowbreak{}Velocity\_\allowbreak{}verlet} gives the formal counterpart of this step. The main intermediate facts are \texttt{hk}, \texttt{ha} in that order. Named proof applications include \texttt{reverse\allowbreak{}Velocity\_\allowbreak{}kick}, \texttt{reverse\allowbreak{}Velocity\_\allowbreak{}drift}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{verlet\allowbreak{}Proposal} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{verlet\allowbreak{}Proposal\_\allowbreak{}involutive} gives the formal counterpart of this step.
+
+
+
+
+\texttt{hamiltonian\allowbreak{}Energy\_\allowbreak{}reverse\allowbreak{}Velocity} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The exact numerical energy defect}{The exact numerical energy defect}}
 
@@ -77,6 +193,30 @@ The first part is a trapezoidal force-work remainder. The second is an explicit 
 
 The numerical energy change is obtained by evaluating the true Hamiltonian before and after one Verlet step. It generally does not vanish. Keeping it explicit permits both a Metropolis acceptance formula and quantitative rejection estimates derived from force smoothness.
 
+\begin{leanbox}{Lean: \texttt{kineticEnergy\_\allowbreak{}halfkicks}, \texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}identity}}
+\leansource{\texttt{kineticEnergy\_\allowbreak{}halfkicks} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 137–142}
+\begin{leancode}
+\leanline{0}{theorem\ kineticEnergy\_halfkicks\ (h\ :\ ℝ)\ (v\ gx\ gy\ :\ E)\ :}
+\leanline{4}{(‖v\ -\ (h/2)\ •\ gy‖\textasciicircum{}2\ -\ ‖v\ +\ (h/2)\ •\ gx‖\textasciicircum{}2)\ /\ 2\ =}
+\leanline{6}{-(h/2)\ *\ {\leanfallback ⟪}v,gx+gy{\leanfallback ⟫}\ +\ h\textasciicircum{}2/8\ *\ (‖gy‖\textasciicircum{}2-‖gx‖\textasciicircum{}2)}
+\end{leancode}
+\leansource{\texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 146–161}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_energy\_defect\_identity\ (f\ :\ E\ →\ ℝ)\ (g\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{let\ vhalf\ :=\ z.1\ -\ (h/2)\ •\ g\ z.2}
+\leanline{4}{let\ xnext\ :=\ z.2\ +\ h\ •\ vhalf}
+\leanline{4}{hamiltonianEnergy\ f\ (verletStep\ g\ h\ z)\ -\ hamiltonianEnergy\ f\ z\ =}
+\leanline{6}{f\ xnext\ -\ f\ z.2\ -\ (h/2)\ *\ {\leanfallback ⟪}vhalf,g\ z.2+g\ xnext{\leanfallback ⟫}\ +}
+\leanline{8}{h\textasciicircum{}2/8\ *\ (‖g\ xnext‖\textasciicircum{}2-‖g\ z.2‖\textasciicircum{}2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Energy\_\allowbreak{}halfkicks} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}identity} gives the formal counterpart of this step. The main intermediate facts are \texttt{vhalf}, \texttt{xnext}, \texttt{hv}, \texttt{hk} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The elementary subflows preserve Haar volume}{The elementary subflows preserve Haar volume}}
 
@@ -87,6 +227,35 @@ A drift \((v,x)\mapsto(v,x+hv)\) is a skew product whose second component is a t
 
 Each kick is a translation of velocity depending only on position; each drift is a translation of position depending only on velocity. Fubini and translation invariance show that these shears preserve product volume. Their compositions and velocity reversal preserve volume as well.
 
+\begin{leanbox}{Lean: \texttt{driftStep\_\allowbreak{}measurePreserving}, \texttt{kickStep\_\allowbreak{}measurePreserving}, \texttt{verletStep\_\allowbreak{}measurePreserving}}
+\leansource{\texttt{driftStep\_\allowbreak{}measurePreserving} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 166–173}
+\begin{leancode}
+\leanline{0}{theorem\ driftStep\_measurePreserving\ (h\ :\ ℝ)\ :}
+\leanline{4}{MeasurePreserving\ (driftStep\ (E\ :=\ E)\ h)\ (μ.prod\ μ)\ (μ.prod\ μ)}
+\end{leancode}
+\leansource{\texttt{kickStep\_\allowbreak{}measurePreserving} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 177–188}
+\begin{leancode}
+\leanline{0}{theorem\ kickStep\_measurePreserving\ (g\ :\ E\ →\ E)\ (hg\ :\ Measurable\ g)\ (h\ :\ ℝ)\ :}
+\leanline{4}{MeasurePreserving\ (kickStep\ g\ h)\ (μ.prod\ μ)\ (μ.prod\ μ)}
+\end{leancode}
+\leansource{\texttt{verletStep\_\allowbreak{}measurePreserving} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 191–197}
+\begin{leancode}
+\leanline{0}{theorem\ verletStep\_measurePreserving\ (g\ :\ E\ →\ E)\ (hg\ :\ Measurable\ g)\ (h\ :\ ℝ)\ :}
+\leanline{4}{MeasurePreserving\ (verletStep\ g\ h)\ (μ.prod\ μ)\ (μ.prod\ μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{drift\allowbreak{}Step\_\allowbreak{}measure\allowbreak{}Preserving} gives the formal counterpart of this step. The main intermediate facts are \texttt{hm}, \texttt{hp} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{kick\allowbreak{}Step\_\allowbreak{}measure\allowbreak{}Preserving} gives the formal counterpart of this step. The main intermediate facts are \texttt{hm}, \texttt{hp}, \texttt{hswap}, \texttt{hc} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{verlet\allowbreak{}Step\_\allowbreak{}measure\allowbreak{}Preserving} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc} in that order.
+\end{leanbox}
 
 \section{\texorpdfstring{The reversed Verlet proposal is a measure-preserving involution}{The reversed Verlet proposal is a measure-preserving involution}}
 
@@ -97,5 +266,25 @@ For a Haar factor also invariant under negation, velocity reversal preserves pro
 
 The reversed Verlet proposal combines volume preservation with involutivity. These are exactly the geometric ingredients needed for the accepted-flow symmetry argument. Approximate energy conservation is not needed to prove corrected invariance, although it controls how often proposals are rejected.
 
+\begin{leanbox}{Lean: \texttt{reverseVelocity\_\allowbreak{}measurePreserving}, \texttt{verletProposal\_\allowbreak{}measurePreserving}}
+\leansource{\texttt{reverseVelocity\_\allowbreak{}measurePreserving} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 200–204}
+\begin{leancode}
+\leanline{0}{theorem\ reverseVelocity\_measurePreserving\ [Measure.IsNegInvariant\ μ]\ :}
+\leanline{4}{MeasurePreserving\ (reverseVelocity\ (E\ :=\ E))\ (μ.prod\ μ)\ (μ.prod\ μ)}
+\end{leancode}
+\leansource{\texttt{verletProposal\_\allowbreak{}measurePreserving} \quad KineticLangevin/\allowbreak{}Hamiltonian.lean, lines 207–212}
+\begin{leancode}
+\leanline{0}{theorem\ verletProposal\_measurePreserving\ [Measure.IsNegInvariant\ μ]}
+\leanline{4}{(g\ :\ E\ →\ E)\ (hg\ :\ Measurable\ g)\ (h\ :\ ℝ)\ :}
+\leanline{4}{MeasurePreserving\ (verletProposal\ g\ h)\ (μ.prod\ μ)\ (μ.prod\ μ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{reverse\allowbreak{}Velocity\_\allowbreak{}measure\allowbreak{}Preserving} gives the formal counterpart of this step.
+
+
+
+
+\texttt{verlet\allowbreak{}Proposal\_\allowbreak{}measure\allowbreak{}Preserving} gives the formal counterpart of this step.
+\end{leanbox}
 
 \end{document}

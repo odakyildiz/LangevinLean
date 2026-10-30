@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -33,6 +56,27 @@ Earlier results used here: \cite[Section~3.15]{LangevinLean2026Proximal}.
 
 Apply the quadratic upper model both to \(f\) and to \(-f\) at zero. These two bounds control the absolute value of \(f(x)\) by the sum of \(|f(0)|\), the product of the initial gradient norm and \(\|x\|\), and \(L\|x\|^{2}/2\). A square-integrable random vector has integrable norm and squared norm, so comparison proves integrability of \(f\) evaluated at its \(L^{2}\) representative. The second theorem transfers the result from the quotient-space representative to any supplied random vector with finite second moment by its almost-everywhere equality with the canonical square-integrable representative.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}smooth\_\allowbreak{}compLp}, \texttt{integrable\_\allowbreak{}smooth\_\allowbreak{}comp}}
+\leansource{\texttt{integrable\_\allowbreak{}smooth\_\allowbreak{}compLp} \quad AverageLMC/\allowbreak{}PathwiseEnergy.lean, lines 18–44}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_smooth\_compLp\ (f\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(X\ :\ Lp\ E\ 2\ P)\ :\ Integrable\ (fun\ ω\ ↦\ f\ (X\ ω))\ P}
+\end{leancode}
+\leansource{\texttt{integrable\_\allowbreak{}smooth\_\allowbreak{}comp} \quad AverageLMC/\allowbreak{}PathwiseEnergy.lean, lines 47–52}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_smooth\_comp\ (f\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(X\ :\ Ω\ →\ E)\ (hX\ :\ MemLp\ X\ 2\ P)\ :\ Integrable\ (fun\ ω\ ↦\ f\ (X\ ω))\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}smooth\_\allowbreak{}comp\allowbreak{}Lp} gives the formal counterpart of this step. The main intermediate facts are \texttt{hu}, \texttt{hneg}, \texttt{h\allowbreak{}Ln}, \texttt{hl}, \texttt{hgrowth}, \texttt{hn} in that order. Named proof applications include \texttt{h\allowbreak{}Lip.\allowbreak{}neg}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{integrable\_\allowbreak{}smooth\_\allowbreak{}comp} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.9.1]{LangevinLean2026ULASC}; \cite[Section~3.11.1]{LangevinLean2026IPLA}.
@@ -42,26 +86,63 @@ Earlier results used here: \cite[Section~3.9.1]{LangevinLean2026ULASC}; \cite[Se
 
 At each outcome, strong convexity gives \(f(X)-f(Y)\) at least the inner product of \(\nabla f(Y)\) with \(X-Y\) plus \(m\|X-Y\|^{2}/2\). Every scalar term is integrable by quadratic growth, and the inner product of two \(L^{2}\) vectors is integrable by the \(L^{2}\) Cauchy–Schwarz inequality. Integration, the definition of the \(L^{2}\) inner product, and the exact squared-norm integral identity give the supporting-plane inequality on \(L^{2}\) itself. The lifted vector field is the actual gradient applied pointwise, rather than a supplied random drift.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}strong\_\allowbreak{}gradient\_\allowbreak{}support}}
+\leansource{\texttt{lp\_\allowbreak{}strong\_\allowbreak{}gradient\_\allowbreak{}support} \quad AverageLMC/\allowbreak{}PathwiseEnergy.lean, lines 55–85}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_strong\_gradient\_support\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (X\ Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{2\ *\ {\leanfallback ⟪}X\ -\ Y,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ Y{\leanfallback ⟫}\ ≤}
+\leanline{6}{2\ *\ ((∫\ ω,\ f\ (X\ ω)\ ∂P)\ -\ ∫\ ω,\ f\ (Y\ ω)\ ∂P)\ -\ m\ *\ ‖X\ -\ Y‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}strong\_\allowbreak{}gradient\_\allowbreak{}support} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi\allowbreak{}X}, \texttt{hi\allowbreak{}Y}, \texttt{hn}, \texttt{hright}, \texttt{hi}, \texttt{heq} in that order. Named proof applications include \texttt{hi}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
-Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.2.3]{LangevinLean2026ULASC}; \cite[Section~3.11.1]{LangevinLean2026IPLA}; \cite[Section~3.15.2]{LangevinLean2026Proximal}.
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.2.2]{LangevinLean2026ULASC}; \cite[Section~3.11.1]{LangevinLean2026IPLA}; \cite[Section~3.15.2]{LangevinLean2026Proximal}.
 
 \section{\texorpdfstring{Differentiate after the common noise cancels}{Differentiate after the common noise cancels}}
 
 
 For a continuous vector field \(g\), the primitive \(A+\int_0^t g(s)\,ds\) has derivative \(g(t)\). The derivative of its squared Hilbert norm is twice its inner product with \(g(t)\); the fundamental theorem of calculus proves the displayed exact energy identity. In the Langevin integral equation, \(X+B(t)-Y(t)\) equals \(X-Y(0)+\int_0^t\nabla f(Y(s))\,ds\) because the same \(B\) drives both processes. Substitute this expression into the Hilbert identity. No derivative of a Brownian path and no stochastic isometry is assumed.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}curve\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{langevin\_\allowbreak{}energy\_\allowbreak{}identity}}
+\leansource{\texttt{integral\_\allowbreak{}curve\_\allowbreak{}norm\_\allowbreak{}sq} \quad AverageLMC/\allowbreak{}PathwiseEnergy.lean, lines 89–103}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_curve\_norm\_sq\ (g\ :\ ℝ\ →\ E)\ (hg\ :\ Continuous\ g)\ (A\ :\ E)\ (h\ :\ ℝ)\ :}
+\leanline{4}{‖A\ +\ ∫\ s\ in\ 0..h,\ g\ s‖\ \textasciicircum{}\ 2\ =\ ‖A‖\ \textasciicircum{}\ 2\ +}
+\leanline{6}{∫\ t\ in\ 0..h,\ 2\ *\ {\leanfallback ⟪}A\ +\ ∫\ s\ in\ 0..t,\ g\ s,\ g\ t{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{langevin\_\allowbreak{}energy\_\allowbreak{}identity} \quad AverageLMC/\allowbreak{}PathwiseEnergy.lean, lines 106–127}
+\begin{leancode}
+\leanline{0}{theorem\ langevin\_energy\_identity\ (f\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (X\ :\ Lp\ E\ 2\ P)}
+\leanline{4}{(Y\ B\ :\ ℝ\ →\ Lp\ E\ 2\ P)\ (hY\ :\ Continuous\ Y)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ s))\ +\ B\ t)\ :}
+\leanline{4}{‖X\ +\ B\ h\ -\ Y\ h‖\ \textasciicircum{}\ 2\ =\ ‖X\ -\ Y\ 0‖\ \textasciicircum{}\ 2\ +}
+\leanline{6}{∫\ t\ in\ 0..h,\ 2\ *\ {\leanfallback ⟪}X\ +\ B\ t\ -\ Y\ t,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ t){\leanfallback ⟫}}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}curve\_\allowbreak{}norm\_\allowbreak{}sq} gives the formal counterpart of this step. The main intermediate facts are \texttt{G}, \texttt{hd}, \texttt{hn}, \texttt{h\allowbreak{}G}, \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{langevin\_\allowbreak{}energy\_\allowbreak{}identity} gives the formal counterpart of this step. The main intermediate facts are \texttt{g}, \texttt{hg}, \texttt{he} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Proximal]{LangevinLean2026Proximal}
-LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision 295051dd9fc1. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

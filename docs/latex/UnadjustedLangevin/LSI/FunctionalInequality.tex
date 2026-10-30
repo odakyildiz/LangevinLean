@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,43 +39,180 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Let \(\nu\) be a probability measure and let \(r\) be a positive normalized density relative to \(\nu\). Write \(\rho_r=r\nu\). Relative entropy and relative Fisher information are denoted by \(H_\nu(\rho_r)=\operatorname{KL}(\rho_r\mid\nu)\) and \(I_\nu(r)=\int\|\nabla\log r\|^2d\rho_r\). Both may initially equal infinity. The log-Sobolev convention used here is \(2\alpha H_\nu(\rho_r)\le I_\nu(r)\), tested on strictly positive \(C^1\) densities of probability measures. Finite-value versions of the inequality are used only after both quantities have been proved finite.
+Let \(E\) be a real inner product space with a \(\sigma\)-algebra (Borel where the log-Sobolev inequality is concerned), and let \(\nu\) be a measure on \(E\). This section fixes the three objects in which the entropy analysis of the unadjusted Langevin algorithm is written: the measure \(r\nu\) with a prescribed density \(r\) with respect to \(\nu\), the relative Fisher information \(J_\nu(r)\) of a prescribed density, and the log-Sobolev inequality with constant \(\alpha\). The relative entropy is the Kullback–Leibler divergence: for probability measures \(\rho,\nu\),
+
+
+\[H_\nu(\rho)=\begin{cases}\displaystyle\int_E\log\frac{d\rho}{d\nu}\,d\rho, & \text{if }\rho\ll\nu\text{ and }\log\frac{d\rho}{d\nu}\in L^1(\rho),\\ +\infty, & \text{otherwise},\end{cases}\]
+
+
+where \(d\rho/d\nu\) is the Radon–Nikodym derivative. It takes values in \([0,\infty]\) (nonnegativity is Gibbs' inequality). With these definitions, \(\nu\) satisfies the log-Sobolev inequality with constant \(\alpha\) if \(\nu\) is a probability measure and
+
+
+\[2\alpha\,H_\nu(r\nu)\le J_\nu(r)=\int_E\|\nabla\log r\|^2\,r\,d\nu\]
+
+
+for every strictly positive continuously differentiable \(r\) such that \(r\nu\) is a probability measure; this is the normalization of Vempala and Wibisono (2019), where it reads \(H_\nu(\rho)\le\frac1{2\alpha}J_\nu(\rho)\). Both sides may be infinite. The last result of the section converts the inequality into an inequality between real numbers when both quantities are known to be finite; every later use of the log-Sobolev inequality goes through it.
 
 
 \section{\texorpdfstring{The measure defined by a density}{The measure defined by a density}}
 
 
-For a measurable real function \(r\), let \(r_+(x)=\max\{r(x),0\}\) and define \(\rho_r(A)=\int_A r_+\,d\nu\). If \(r\ge0\), this is the usual measure \(r\nu\). If also \(\int r\,d\nu=1\), it is a probability measure. Thus the measure can be defined without imposing normalization; normalization is an additional hypothesis when probability identities are used. Strict positivity is required later to differentiate \(\log r\).
+\textbf{Definition.} For a measure \(\nu\) on \(E\) and a function \(r:E\to\mathbb R\), let \(r\nu\) be the measure
 
+
+\[(r\nu)(A)=\int_A r^+\,d\nu,\qquad r^+=\max\{r,0\},\]
+
+
+for measurable \(A\subseteq E\). If \(r\ge0\) this is the usual measure with density \(r\) with respect to \(\nu\), and \(\int f\,d(r\nu)=\int fr\,d\nu\) for measurable \(f\ge0\). If moreover \(r\) is measurable and \(\int r\,d\nu=1\), then \(r\nu\) is a probability measure.
+
+
+
+
+The definition is made for every real function, and normalization is not part of it: whether \(r\nu\) is a probability measure is a separate condition, imposed where it is needed (for instance in the test class of the log-Sobolev inequality). In all applications \(r\) is strictly positive and continuous; positivity is needed later to differentiate \(\log r\), and continuity makes \(r\) measurable.
+
+\begin{leanbox}{Lean: \texttt{tiltedMeasure}}
+\leansource{\texttt{tiltedMeasure} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}FunctionalInequality.lean, lines 34–35}
+\begin{leancode}
+\leanline{0}{def\ tiltedMeasure\ (ν\ :\ Measure\ E)\ (r\ :\ E\ →\ ℝ)\ :\ Measure\ E\ :=}
+\leanline{2}{ν.withDensity\ (fun\ x\ ↦\ ENNReal.ofReal\ (r\ x))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{tilted\allowbreak{}Measure \ensuremath{\nu} r} is defined as \texttt{\ensuremath{\nu}.\allowbreak{}with\allowbreak{}Density (fun x \ensuremath{\mapsto} ENNReal.\allowbreak{}of\allowbreak{}Real (r x))}. Mathlib's \texttt{with\allowbreak{}Density} takes a density with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} \(=[0,\infty]\) and returns the measure \(A\mapsto\int_A f\,d\nu\), where the integral of a \([0,\infty]\)-valued function is the Lebesgue integral \texttt{\ensuremath{\int}\ensuremath{{}^{-}}}. \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} converts a real number \(a\) into the extended nonnegative number \(\max\{a,0\}\); composing with it gives the density \(r^+\) of the definition. No measurability or normalization hypothesis is attached to \texttt{r}.
+\end{leanbox}
 
 \section{\texorpdfstring{Relative Fisher information}{Relative Fisher information}}
 
 
-For a specified positive differentiable density \(r\), define
-
-\[I_\nu(r)=\int\|\nabla\log r(x)\|^2\,d\rho_r(x).\]
-
-This is a nonnegative integral, with value in \([0,\infty]\). It does not require choosing a differentiable version of an unspecified almost-everywhere density: the function \(r\) itself is given. If \(\nu\) has Gibbs density \(J=Z^{-1}e^{-U}\) and \(\rho_r\) has Lebesgue density \(p\), then \(r=p/J\) and \(\nabla\log r=\nabla\log p+\nabla U\). Consequently the Fisher information measures the squared difference between the logarithmic derivatives of the two densities.
+\textbf{Definition.} For a measure \(\nu\) and a function \(r:E\to\mathbb R\), the relative Fisher information of \(r\) is
 
 
-\section{\texorpdfstring{The log-Sobolev convention}{The log-Sobolev convention}}
+\[J_\nu(r)=\int_E\|\nabla\log r(x)\|^2\,(r\nu)(dx)\in[0,\infty].\]
 
 
-The statement that \(\nu\) satisfies LSI with constant \(\alpha\) means that \(\nu\) is a probability measure and
-
-\[2\alpha\operatorname{KL}(r\nu\mid\nu)\le I_\nu(r)\]
-
-for every strictly positive \(C^1\) function \(r\) such that \(r\nu\) is a probability measure. The inequality is initially understood for nonnegative extended quantities. The test class is part of the hypothesis: no claim that an arbitrary probability measure has such a density is included. In the ULA proof, the Gaussian convolution is first shown to produce a density in this test class; LSI is then applied to that density.
+It is the integral of a nonnegative function with respect to the measure \(r\nu\) of the previous step, so it is always defined and may equal \(+\infty\). When \(r\) is strictly positive and differentiable, \(\nabla\log r=\nabla r/r\) and \(J_\nu(r)=\int\|\nabla r\|^2/r\,d\nu\).
 
 
-\section{\texorpdfstring{LSI when entropy and Fisher information are finite}{LSI when entropy and Fisher information are finite}}
 
 
-Suppose \(\alpha\ge0\), \(r>0\), \(r\in C^1\), and \(r\nu\) is a probability measure. Assume both \(\operatorname{KL}(r\nu\mid\nu)\) and \(I_\nu(r)\) are finite. The extended inequality supplied by LSI is then an inequality between finite nonnegative numbers. Its ordinary real form is
+The functional depends on the function \(r\), not only on the measure \(r\nu\): it is the given function that is differentiated, rather than an unspecified version of the Radon–Nikodym derivative \(d(r\nu)/d\nu\), which is determined only \(\nu\)-almost everywhere and need not be differentiable. If \(\nu(dx)=Z^{-1}e^{-U(x)}\,dx\) and \(\rho=r\nu\) has a positive differentiable Lebesgue density \(p\), then \(r=Zpe^{U}\), \(\log r=\log p+U+\log Z\), and
 
-\[2\alpha H_\nu(r\nu)\le I_\nu(r).\]
 
-The coefficient is unchanged because \(2\alpha\ge0\). Establishing the two finiteness conditions first permits subsequent subtraction and integration of ordinary real functions.
+\[\nabla\log r=\nabla\log p+\nabla U,\qquad J_\nu(r)=\int\|\nabla\log p+\nabla U\|^2\,d\rho.\]
 
+
+In particular \(J_\nu(r)=0\) for \(r\equiv1\), that is for \(\rho=\nu\).
+
+\begin{leanbox}{Lean: \texttt{relativeFisher}}
+\leansource{\texttt{relativeFisher} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}FunctionalInequality.lean, lines 40–42}
+\begin{leancode}
+\leanline{0}{def\ relativeFisher\ (ν\ :\ Measure\ E)\ (r\ :\ E\ →\ ℝ)\ :\ ℝ≥0∞\ :=}
+\leanline{2}{∫⁻\ x,\ ENNReal.ofReal\ (‖gradient\ (fun\ y\ ↦\ Real.log\ (r\ y))\ x‖\ \textasciicircum{}\ 2)}
+\leanline{4}{∂tiltedMeasure\ ν\ r}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{relative\allowbreak{}Fisher \ensuremath{\nu} r} is \texttt{\ensuremath{\int}\ensuremath{{}^{-}} x, ENNReal.\allowbreak{}of\allowbreak{}Real (\ensuremath{\Vert}gradient (fun y \ensuremath{\mapsto} Real.\allowbreak{}log (r y)) x\ensuremath{\Vert} \textasciicircum{} 2) \ensuremath{\partial}tilted\allowbreak{}Measure \ensuremath{\nu} r}: the lower Lebesgue integral \texttt{\ensuremath{\int}\ensuremath{{}^{-}}}, with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, of the squared norm of the gradient of \(\log r\) with respect to \texttt{tilted\allowbreak{}Measure \ensuremath{\nu} r}. The integrand is nonnegative, so \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real} only changes its type. Mathlib's \texttt{Real.\allowbreak{}log} is defined on all of \(\mathbb R\) (with \(\log0=0\) and \(\log x=\log|x|\)), and \texttt{gradient} is defined for every function (it is \(0\) at points of non-differentiability); for the strictly positive \(C^1\) densities to which the definition is applied, both agree with the classical notions. The value is extended, so finiteness must be proved separately before it is used as a real number.
+\end{leanbox}
+
+\section{\texorpdfstring{The log-Sobolev inequality}{The log-Sobolev inequality}}
+
+
+\textbf{Definition.} Let \(E\) carry its Borel \(\sigma\)-algebra, let \(\nu\) be a measure on \(E\) and \(\alpha\in\mathbb R\). We say that \(\nu\) satisfies the log-Sobolev inequality with constant \(\alpha\) if
+
+
+
+\begin{enumerate}
+
+
+\item \(\nu\) is a probability measure, and
+
+\item for every function \(r:E\to\mathbb R\) such that \(r(x)>0\) for all \(x\), \(r\) is continuously differentiable, and \(r\nu\) is a probability measure,
+
+\end{enumerate}
+
+\[\max\{2\alpha,0\}\cdot H_\nu(r\nu)\le J_\nu(r)\qquad\text{in }[0,\infty],\]
+
+
+with the convention \(0\cdot\infty=0\).
+
+
+
+
+For \(\alpha>0\), the case used throughout, the factor is \(2\alpha\), and the inequality reads \(H_\nu(\rho)\le\frac1{2\alpha}J_\nu(r)\) for \(\rho=r\nu\), which is the form in Vempala and Wibisono (2019). If \(H_\nu(r\nu)=\infty\), it forces \(J_\nu(r)=\infty\). For \(\alpha\le0\) the left side is \(0\) and the condition reduces to normalization of \(\nu\).
+
+
+
+
+The test class consists of strictly positive \(C^1\) probability densities. The definition makes no claim about measures outside this class, so to apply it to a law \(\rho\) one must first exhibit a strictly positive \(C^1\) function \(r\) with \(\rho=r\nu\). For the unadjusted Langevin algorithm this is done for the interpolating laws at positive times, whose Gaussian smoothing produces such densities. Strict positivity makes \(\log r\) finite and differentiable everywhere, and continuous differentiability makes \(\nabla\log r=\nabla r/r\) continuous.
+
+\begin{leanbox}{Lean: \texttt{IsLogSobolev}}
+\leansource{\texttt{IsLogSobolev} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}FunctionalInequality.lean, lines 46–51}
+\begin{leancode}
+\leanline{0}{def\ IsLogSobolev\ [BorelSpace\ E]\ (ν\ :\ Measure\ E)\ (α\ :\ ℝ)\ :\ Prop\ :=}
+\leanline{2}{IsProbabilityMeasure\ ν\ ∧}
+\leanline{2}{∀\ r\ :\ E\ →\ ℝ,\ (∀\ x,\ 0\ <\ r\ x)\ →\ ContDiff\ ℝ\ 1\ r\ →}
+\leanline{4}{IsProbabilityMeasure\ (tiltedMeasure\ ν\ r)\ →}
+\leanline{4}{ENNReal.ofReal\ (2\ *\ α)\ *\ InformationTheory.klDiv\ (tiltedMeasure\ ν\ r)\ ν\ ≤}
+\leanline{6}{relativeFisher\ ν\ r}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev \ensuremath{\nu} \ensuremath{\alpha}} is the conjunction of \texttt{Is\allowbreak{}Probability\allowbreak{}Measure \ensuremath{\nu}} (condition 1) and the universally quantified condition 2. The three assumptions on a test function are \texttt{\ensuremath{\forall} x, 0 < r x}, \texttt{Cont\allowbreak{}Diff \ensuremath{\mathbb R} 1 r} (continuously differentiable, the order of differentiability being \(1\)) and \texttt{Is\allowbreak{}Probability\allowbreak{}Measure (tilted\allowbreak{}Measure \ensuremath{\nu} r)}. The inequality \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (2 * \ensuremath{\alpha}) * Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div (tilted\allowbreak{}Measure \ensuremath{\nu} r) \ensuremath{\nu} \ensuremath{\le} relative\allowbreak{}Fisher \ensuremath{\nu} r} is stated in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}: \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (2 * \ensuremath{\alpha})} is \(\max\{2\alpha,0\}\), multiplication in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} follows the convention \(0\cdot\infty=0\), and \texttt{Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div} is Mathlib's Kullback–Leibler divergence. For probability measures \texttt{kl\allowbreak{}Div} equals the formula in the summary: Mathlib defines it as \(\infty\) unless \(\rho\ll\nu\) and the log-likelihood ratio is \(\rho\)-integrable, and otherwise as the nonnegative part of \(\int\log\frac{d\rho}{d\nu}\,d\rho+\nu(E)-\rho(E)\), whose correction term vanishes for probability measures. The Borel assumption \texttt{[Borel\allowbreak{}Space E]} is an argument of the definition.
+\end{leanbox}
+
+\section{\texorpdfstring{The log-Sobolev inequality for finite quantities}{The log-Sobolev inequality for finite quantities}}
+
+
+\textbf{Claim.} Let \(E\) carry its Borel \(\sigma\)-algebra and let \(\nu\) satisfy the log-Sobolev inequality with constant \(\alpha\ge0\). Let \(r:E\to\mathbb R\) be strictly positive and continuously differentiable, with \(r\nu\) a probability measure, and assume
+
+
+\[H_\nu(r\nu)<\infty\qquad\text{and}\qquad J_\nu(r)<\infty.\]
+
+
+Then the real numbers \(H_\nu(r\nu)\) and \(J_\nu(r)\) satisfy
+
+
+\[2\alpha\,H_\nu(r\nu)\le J_\nu(r).\]
+
+
+\textbf{Proof.} By the definition applied to the admissible density \(r\),
+
+
+\[a:=\max\{2\alpha,0\}\cdot H_\nu(r\nu)\le b:=J_\nu(r)\qquad\text{in }[0,\infty].\qquad(1)\]
+
+
+The number \(\max\{2\alpha,0\}\) is finite and \(H_\nu(r\nu)\) is finite by assumption, so their product \(a\) is finite; \(b\) is finite by assumption. On the finite elements of \([0,\infty]\) the order is the order of \(\mathbb R\), so (1) is an inequality between real numbers. The real value of a product of finite elements is the product of the real values, and since \(\alpha\ge0\) we have \(\max\{2\alpha,0\}=2\alpha\). Hence \(a=2\alpha H_\nu(r\nu)\), and (1) is the claim. \(\square\)
+
+
+
+
+Both finiteness hypotheses are needed. Without them one of the two extended values could be \(+\infty\); since an infinite value has no real counterpart, the comparison (1) would then not determine any inequality between real numbers. In the later sections both quantities are first proved finite, and only then is this real inequality combined with differential inequalities.
+
+\begin{leanbox}{Lean: \texttt{IsLogSobolev.\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}fisher}}
+\leansource{\texttt{IsLogSobolev.\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}fisher} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}FunctionalInequality.lean, lines 55–67}
+\begin{leancode}
+\leanline{0}{theorem\ IsLogSobolev.entropy\_le\_fisher\ [BorelSpace\ E]}
+\leanline{4}{\{ν\ :\ Measure\ E\}\ \{α\ :\ ℝ\}\ (hLSI\ :\ IsLogSobolev\ ν\ α)\ (hα\ :\ 0\ ≤\ α)}
+\leanline{4}{(r\ :\ E\ →\ ℝ)\ (hr\ :\ ∀\ x,\ 0\ <\ r\ x)\ (hdiff\ :\ ContDiff\ ℝ\ 1\ r)}
+\leanline{4}{(hprob\ :\ IsProbabilityMeasure\ (tiltedMeasure\ ν\ r))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ (tiltedMeasure\ ν\ r)\ ν\ ≠\ ⊤)}
+\leanline{4}{(hFI\ :\ relativeFisher\ ν\ r\ ≠\ ⊤)\ :}
+\leanline{4}{2\ *\ α\ *\ (InformationTheory.klDiv\ (tiltedMeasure\ ν\ r)\ ν).toReal\ ≤}
+\leanline{6}{(relativeFisher\ ν\ r).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}entropy\_\allowbreak{}le\_\allowbreak{}fisher} takes \texttt{h\allowbreak{}LSI : Is\allowbreak{}Log\allowbreak{}Sobolev \ensuremath{\nu} \ensuremath{\alpha}}, \texttt{h\ensuremath{\alpha} : 0 \ensuremath{\le} \ensuremath{\alpha}}, the test-class hypotheses \texttt{hr}, \texttt{hdiff}, \texttt{hprob}, and the finiteness hypotheses \texttt{h\allowbreak{}KL}, \texttt{h\allowbreak{}FI} (\texttt{≠ \ensuremath{\top}} means \(\neq\infty\)). Its conclusion \texttt{2 * \ensuremath{\alpha} * (Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div (tilted\allowbreak{}Measure \ensuremath{\nu} r) \ensuremath{\nu}).\allowbreak{}to\allowbreak{}Real \ensuremath{\le} (relative\allowbreak{}Fisher \ensuremath{\nu} r).\allowbreak{}to\allowbreak{}Real} is stated with \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real}, which maps a finite element of \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}} to the corresponding real number (and \(\infty\) to \(0\)).
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{h\allowbreak{}LSI.\allowbreak{}2 r hr hdiff hprob} is inequality (1): \texttt{h\allowbreak{}LSI.\allowbreak{}2} is the second component of the conjunction, applied to \texttt{r}.
+
+\item \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}to\allowbreak{}Real} states that for finite \(a,b\), \(a\le b\) if and only if their real values satisfy the same inequality. Its finiteness arguments are \texttt{ENNReal.\allowbreak{}mul\_\allowbreak{}ne\_\allowbreak{}top ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}ne\_\allowbreak{}top h\allowbreak{}KL} (a product of two finite elements is finite) and \texttt{h\allowbreak{}FI}; \texttt{.\allowbreak{}mpr} transfers (1) to real values.
+
+\item \texttt{simpa only [ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mul, ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}of\allowbreak{}Real (by positivity : 0 \ensuremath{\le} 2 * \ensuremath{\alpha})]} rewrites the real value of the product as the product of the real values and the real value of \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real (2 * \ensuremath{\alpha})} as \(2\alpha\), which is valid because \(2\alpha\ge0\).
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

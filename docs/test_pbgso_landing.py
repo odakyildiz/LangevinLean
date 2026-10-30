@@ -83,10 +83,10 @@ class LandingContractTests(unittest.TestCase):
             paper_assumptions + added_assumptions + '</section>' +
             '<section id="paper-theorems">'+''.join(paper)+'</section>' +
             '<section id="new-theory">'+numerical_assumptions+constants+new+'</section>' +
-            '<section id="standalone-verification"><pre>python3 scripts/check-example.py '
+            '<section id="verification"><div id="standalone-verification"><pre>python3 scripts/check-example.py '
             '--output /tmp/generated-proof\nlake env lean /tmp/generated-proof/NewA.lean</pre>'
             '<a href="../../standalone/PBGSO/NewA.lean">New A entry</a>'
-            '<a href="../../standalone/PBGSO/NewB.lean">New B entry</a></section>'
+            '<a href="../../standalone/PBGSO/NewB.lean">New B entry</a></div></section>'
             '<section id="proof-roadmap">'+self.roadmap_prose+roadmap_links+
             '<a href="technical.html">Complete details</a><a href="source_audit.md">Source audit</a>'
             '</section></main>')
@@ -171,6 +171,10 @@ class LandingContractTests(unittest.TestCase):
     def test_roadmap_must_finish_the_page(self):
         with self.assertRaises(AssertionError):
             self.check(self.overview.replace('</main>', '<section id="after">After roadmap.</section></main>'))
+
+    def test_verification_must_precede_the_roadmap(self):
+        with self.assertRaises(AssertionError):
+            self.check(self.overview.replace('<section id="verification">', '<section id="checks">'))
 
     def test_roadmap_must_include_each_appendix_result(self):
         with self.assertRaises(AssertionError):

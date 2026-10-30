@@ -78,6 +78,18 @@
       }
     });
   });
+  // An identifier quoted in the mathematical or Lean explanation highlights
+  // the exact source line it refers to while it is hovered or focused.
+  document.querySelectorAll('a.proof-source-ref[href^="#"]').forEach(link => {
+    const line = document.getElementById(decodeURIComponent(link.getAttribute('href').slice(1)));
+    if (!line) return;
+    const on = () => line.classList.add('source-highlight');
+    const off = () => line.classList.remove('source-highlight');
+    link.addEventListener('mouseenter', on);
+    link.addEventListener('mouseleave', off);
+    link.addEventListener('focus', on);
+    link.addEventListener('blur', off);
+  });
   document.querySelector('#print-page')?.addEventListener('click', () => window.print());
   if (location.hash) {
     const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));

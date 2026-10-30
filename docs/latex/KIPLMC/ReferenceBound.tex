@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,18 @@ The averaged lifted potential \(\bar U_N=V_N/N\) has gradient \(F_N\), the physi
 
 The lifted force is still the pointwise gradient of the average potential. Its square-integrable action inherits global Lipschitzness and the same curvature geometry. This permits the shared kinetic local-error proof to be reused without defining a different particle algorithm.
 
+\begin{leanbox}{Lean: \texttt{lpForce}}
+\leansource{\texttt{lpForce} \quad KIPLMC/\allowbreak{}ReferenceBound.lean, lines 22–26}
+\begin{leancode}
+\leanline{0}{def\ lpForce\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Lp\ (State\ N\ dθ\ dx)\ 2\ P\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P\ :=}
+\leanline{2}{ULA.lpDrift\ P\ (gradient\ (@averagePotential\ N\ dθ\ dx\ U))}
+\leanline{4}{(averagePotential\_gradient\_lipschitz\ hN\ hdiff\ hLip)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Force} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -56,17 +91,53 @@ The particular \(L^{2}\) pair \((S_n^X,R_n^X)\) supplies a finite transport coup
 
 The three contributions have distinct origins: the initial coupling contracts, force freezing produces a linear-step bias, and the powered marginal contributes finite-particle concentration. The reference hypotheses identify exactly which path and law facts must be supplied before this conditional comparison becomes an unconditional sampler theorem.
 
+\begin{leanbox}{Lean: \texttt{kiplmc1\_\allowbreak{}reference\_\allowbreak{}parameter\_\allowbreak{}bound}}
+\leansource{\texttt{kiplmc1\_\allowbreak{}reference\_\allowbreak{}parameter\_\allowbreak{}bound} \quad KIPLMC/\allowbreak{}ReferenceBound.lean, lines 31–77}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1\_reference\_parameter\_bound\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m+(L\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ (hstep\ :\ 4*(γ\ :\ ℝ)*(L\ :\ ℝ)*h\ ≤\ m)}
+\leanline{4}{(S\ R\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P\ ×\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(A\ Z\ W\ :\ ℕ\ →\ ℝ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P\ ×\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(B\ :\ ℕ\ →\ ℝ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hA\ :\ ∀\ n,\ Continuous\ (A\ n))\ (hZ\ :\ ∀\ n,\ Continuous\ (Z\ n))\ (hB\ :\ ∀\ n,\ Continuous\ (B\ n))}
+\leanline{4}{(hA0\ :\ ∀\ n,\ A\ n\ 0\ =\ S\ n)\ (hZ0\ :\ ∀\ n,\ Z\ n\ 0\ =\ R\ n)\ (hZh\ :\ ∀\ n,\ Z\ n\ h\ =\ R\ (n+1))}
+\leanline{4}{(hupdate\ :\ ∀\ n,\ S\ (n+1)\ =\ KineticLangevin.exponentialStep}
+\leanline{6}{(lpForce\ P\ hN\ U\ L\ hdiff\ hLip)\ γ\ h\ (S\ n)\ (B\ n\ h,\ ∫\ s\ in\ 0..h,\ B\ n\ s))}
+\leanline{4}{(heA\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →\ A\ n\ t\ -\ A\ n\ 0\ =\ -(∫\ s\ in\ 0..t,}
+\leanline{6}{KineticLangevin.kineticNegativeDrift\ (lpForce\ P\ hN\ U\ L\ hdiff\ hLip)\ γ\ 1\ (A\ n\ s))\ +\ W\ n\ t)}
+\leanline{4}{(heZ\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →\ Z\ n\ t\ -\ Z\ n\ 0\ =\ -(∫\ s\ in\ 0..t,}
+\leanline{6}{KineticLangevin.kineticNegativeDrift\ (lpForce\ P\ hN\ U\ L\ hdiff\ hLip)\ γ\ 1\ (Z\ n\ s))\ +\ W\ n\ t)}
+\leanline{4}{(hmild\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →\ (A\ n\ t).1\ =\ KineticLangevin.psi\ γ\ 0\ t\ •\ (A\ n\ 0).1\ -}
+\leanline{6}{(∫\ s\ in\ 0..t,\ Real.exp\ (-(γ\ :\ ℝ)*(t-s))\ •}
+\leanline{8}{lpForce\ P\ hN\ U\ L\ hdiff\ hLip\ (A\ n\ s).2)\ +\ B\ n\ t)}
+\leanline{4}{(hkin\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →\ (A\ n\ t).2-(A\ n\ 0).2\ =\ ∫\ s\ in\ 0..t,\ (A\ n\ s).1)}
+\leanline{4}{(hthermal\ :\ ∀\ n\ t,\ t\ ∈\ Icc\ 0\ h\ →\ HasLaw\ ((Z\ n\ t).1)\ (velocityTarget\ N\ dθ\ dx)\ P)}
+\leanline{4}{(hstationary\ :\ ∀\ n,\ P.map\ (R\ n).2\ =\ IPLA.gibbsTarget\ U)}
+\leanline{4}{(hvelocity\ :\ (S\ 0).1\ =\ (R\ 0).1)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ U\ θStar)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z-θStar‖\textasciicircum{}2\ ∂P.map\ (S\ n).2)\ ≤}
+\leanline{6}{Real.sqrt\ 2\ *\ (1-3*m*h/(4*(γ\ :\ ℝ)))\textasciicircum{}n\ *\ ‖(S\ 0).2-(R\ 0).2‖\ +}
+\leanline{6}{(L\ :\ ℝ)*h*(Real.sqrt\ 2\ *\ Real.sqrt\ (((dθ\ :\ ℝ)+(N\ :\ ℝ)*(dx\ :\ ℝ))/(N\ :\ ℝ)))/m\ +}
+\leanline{6}{Real.sqrt\ ((dθ\ :\ ℝ)/((N\ :\ ℝ)*m))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\_\allowbreak{}reference\_\allowbreak{}parameter\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{ht}, \texttt{hfinite}, \texttt{hc}, \texttt{hp}, \texttt{hf} in that order. Named proof applications include \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{hp.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
-Earlier results used here: \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.1.1]{LangevinLean2026Kinetic}; \cite[Section~3.10.1]{LangevinLean2026Kinetic}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}; \cite[Section~3.42.1]{LangevinLean2026Kinetic}.
+Earlier results used here: \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.1.1]{LangevinLean2026Kinetic}; \cite[Section~3.10.1]{LangevinLean2026Kinetic}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}; \cite[Section~3.42.1]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b4b7242c6d4f. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

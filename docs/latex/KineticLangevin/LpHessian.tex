@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,43 @@ The field \(\omega \mapsto H(Y(\omega ))\) is strongly measurable because \(H\) 
 
 The frozen operator is the Hessian evaluated at the random initial position. Its measurability and uniform operator bound permit its action on square-integrable variables. It remains random and may be dependent on the displacement to which it is applied.
 
+\begin{leanbox}{Lean: \texttt{lpHessian}, \texttt{lpHessian\_\allowbreak{}coe}, \texttt{lpHessian\_\allowbreak{}norm\_\allowbreak{}le}}
+\leansource{\texttt{lpHessian} \quad KineticLangevin/\allowbreak{}LpHessian.lean, lines 13–18}
+\begin{leancode}
+\leanline{0}{def\ lpHessian\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)\ (Y\ :\ Lp\ E\ 2\ P)\ :\ Lp\ E\ 2\ P\ →L[ℝ]\ Lp\ E\ 2\ P\ :=}
+\leanline{2}{randomOperatorLp\ P\ (fun\ ω\ ↦\ H\ (Y\ ω))}
+\leanline{4}{(hH.continuous.comp\_aestronglyMeasurable\ (Lp.aestronglyMeasurable\ Y))\ M}
+\leanline{4}{(Filter.Eventually.of\_forall\ (fun\ ω\ ↦\ (hg\ (Y\ ω)).le\_of\_lipschitz\ hG))}
+\end{leancode}
+\leansource{\texttt{lpHessian\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpHessian.lean, lines 20–24}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_coe\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)\ (Y\ X\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg\ Y\ X\ =ᵐ[P]\ fun\ ω\ ↦\ H\ (Y\ ω)\ (X\ ω)}
+\end{leancode}
+\leansource{\texttt{lpHessian\_\allowbreak{}norm\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}LpHessian.lean, lines 26–30}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_norm\_le\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)\ (Y\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg\ Y‖≤(M\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hessian} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}coe} gives the formal counterpart of this step.
+
+
+
+
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}norm\_\allowbreak{}le} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Lift the Taylor estimate}{Lift the Taylor estimate}}
 
@@ -42,6 +102,19 @@ For \(X\),\(Y\), expand the representatives of \(g(X)-g(Y)-H(Y)(X-Y)\). Almost e
 
 The pointwise quadratic Taylor estimate is integrated using the displacement fourth moment. This gives a second-mean remainder bound with the Hessian Lipschitz constant. No average Hessian or independent copy is substituted for the frozen operator.
 
+\begin{leanbox}{Lean: \texttt{lpHessian\_\allowbreak{}taylor\_\allowbreak{}bound}}
+\leansource{\texttt{lpHessian\_\allowbreak{}taylor\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LpHessian.lean, lines 33–47}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_taylor\_bound\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)\ (X\ Y\ :\ Lp\ E\ 2\ P)\ (C\ :\ ℝ)\ (hC\ :\ 0≤C)}
+\leanline{4}{(hfour\ :\ eLpNorm\ (X-Y)\ 4\ P≤ENNReal.ofReal\ C)\ :}
+\leanline{4}{‖ULA.lpDrift\ P\ g\ hG\ X-ULA.lpDrift\ P\ g\ hG\ Y-}
+\leanline{6}{lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg\ Y\ (X-Y)‖≤(M2\ :\ ℝ)/2*C\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}taylor\_\allowbreak{}bound} gives the formal counterpart of this step. Named proof applications include \texttt{lp\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}quadratic}, \texttt{force\_\allowbreak{}taylor\_\allowbreak{}remainder\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -55,13 +128,32 @@ The kinematic equation and Gaussian velocity marginals give \(C=t(p^{2}+2p)^(1/4
 
 Stationarity makes each reference velocity marginal standard Gaussian. The integrated-velocity fourth-moment estimate therefore yields the exact factor \(\sqrt{p^2+2p}\) in the second-mean quadratic remainder. This coefficient remains valid in dimension one.
 
+\begin{leanbox}{Lean: \texttt{lpHessian\_\allowbreak{}stationary\_\allowbreak{}taylor\_\allowbreak{}bound}}
+\leansource{\texttt{lpHessian\_\allowbreak{}stationary\_\allowbreak{}taylor\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LpHessian.lean, lines 51–73}
+\begin{leancode}
+\leanline{0}{theorem\ lpHessian\_stationary\_taylor\_bound}
+\leanline{4}{(g\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(H\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι\ →L[ℝ]\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(M\ M2\ :\ ℝ≥0)\ (hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)}
+\leanline{4}{(X\ V\ :\ ℝ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ (hV\ :\ Continuous\ V)\ (T\ :\ ℝ)}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)}
+\leanline{4}{(hlaw\ :\ ∀\ t\ ∈\ Icc\ 0\ T,HasLaw\ (V\ t)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t∈Icc\ 0\ T)\ :}
+\leanline{4}{‖ULA.lpDrift\ P\ g\ hG\ (X\ t)-ULA.lpDrift\ P\ g\ hG\ (X\ 0)-}
+\leanline{6}{lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg\ (X\ 0)\ (X\ t-X\ 0)‖≤}
+\leanline{6}{(M2\ :\ ℝ)/2*Real.sqrt\ ((Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ))*t\textasciicircum{}2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hessian\_\allowbreak{}stationary\_\allowbreak{}taylor\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{D}, \texttt{h\allowbreak{}D}, \texttt{hr}, \texttt{hb} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

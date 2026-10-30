@@ -12,12 +12,13 @@ analogue is also linked as a footnote from IPLA:
 - [KIPLMC](../KIPLMC/exposition/index.html)
 - [PBGSO: paper theorems and new discretisation bounds](../PBGSO/exposition/index.html)
 - [Latent diffusion: assumptions, results and exact Lean statements](../LatentDiffusion/exposition/index.html)
+- [Langevin Monte Carlo with average smoothness](../AverageLMC/exposition/index.html)
 
 Latent diffusion has a source-derived overview and complete declaration pages,
 with variational identities, marginal optimizers, particle error bounds and
-explicit accuracy choices. Its continuous decay results retain explicit analytic
-bridges. The [source audit](../LatentDiffusion/exposition/source_audit.md) records
-remaining gaps, corrected minibatch scaling and the time-zero density obstruction.
+explicit accuracy choices. Its 19 corrected source results are proved under
+explicit added regularity R1–R7. The [source audit](../LatentDiffusion/exposition/source_audit.md)
+records each correction, the corrected minibatch scaling and the time-zero density obstruction.
 
 PBGSO is a separate source-based development with all eight source results
 and both new method bounds verified under explicit source interpretations. It proves the general independent-map framework, actual Brownian/Itô
@@ -53,7 +54,7 @@ constructed. Source A4/A5 derive stationary-target comparison work without
 that universal finite-work convention. Exact assumptions accompany every Lean header. The source audit
 also distinguishes the verified HOL Gaussian covariance from its incorrect
 exact-linear-flow claim and records the improper full-space TV prior. PBGSO
-has no complete proof PDF or published-report claim.
+has a complete proof report with its explicit assumptions and scope interpretations; the report itself is an unpublished draft.
 
 The two kinetic developments prove convergence bounds for the continuous
 kinetic equations and the discrete Gaussian samplers. Kinetic Langevin includes Gibbs stationarity, the KLMC and
@@ -85,9 +86,9 @@ Run `python3 scripts/verify-kinetic-coverage.py --require-complete` to require
 every convergence theorem and required supporting proof. The verifier checks the declarations proving each convergence statement
 and the supporting results required by that proof.
 
-The seven established overviews state their results with all assumptions beside the exact Lean
-headers, provides verification commands, and has a logical proof diagram whose
-boxes open HTML proof pages. Its searchable directory includes every Lean
+All theorem overviews state their results with all assumptions beside the exact Lean
+headers, provide verification commands, and have logical proof diagrams whose
+boxes open HTML proof pages. Each searchable directory includes every Lean
 subfile, import module, and kernel audit in that development. The LSI extensions
 have their own directories and detailed mathematical arguments. PBGSO's main
 page states four main paper theorems and the two final numerical bounds as
@@ -130,22 +131,20 @@ links to imported proofs and users, the complete module context, and a downloada
 LaTeX exposition under `latex/`. The generated IPLA standalone bundle links to the
 proof of each included source module in HTML; its LaTeX export gathers all those
 mathematical statements and proofs into one document in dependency order.
-The seven established theorem overviews each link to a mathematical proof report at
+All nine homepage entries link to a mathematical proof report at
 `pdf/<library>/FullProof.pdf`. IPLA's strongly convex and LSI treatments have
-separate reports. Each report contains its theorem statements, detailed argument,
+separate reports, making ten reports in total. Each report contains its theorem statements, detailed argument,
 and its own supporting proofs in dependency order. Shared results are proved once
 in their owning report and cited by exact section or subsection at their use sites.
-The report order is ULA-SC, ULA-LSI, IPLA-SC, IPLA-LSI, Proximal, Kinetic, KIPLMC.
+The report order is ULA-SC, ULA-LSI, IPLA-SC, IPLA-LSI, Proximal, Kinetic, KIPLMC,
+AverageLMC. The separate PBGSO and latent-diffusion reports use the same three-chapter structure and cover every box in their respective roadmaps.
 The corresponding complete LaTeX source is at `latex/<library>/FullProof.tex`.
 Every overview and module page offers a corporate-author BibTeX citation, with
 copy and download controls. Individual entries and `all-reports.bib` are generated
 under `bib/`; their content revision identifies the report edition. Module pages
 also identify their exact report section when the module belongs to a report.
 The project homepage offers a separate project-level citation. Individual proof
-boxes have no separate PDF downloads. The PDFs use ordinary mathematical
-notation and paper-style exposition throughout: source paths, declaration names,
-tactics and implementation commentary belong to the website's paired reading
-view. The mathematical proofs retain the formal development's logical order,
+boxes have no separate PDF downloads. The PDFs give the mathematical statements and detailed proofs in ordinary notation. Each proof step is followed by a visibly separate box containing its exact Lean statement and an explanation of the corresponding proof logic. The website pairs the same mathematics with the complete declarations and highlights source lines when a proof explanation links to an identifier. The mathematical proofs retain the formal development's logical order,
 including intermediate inequalities, integrability and limiting arguments.
 LaTeX exports use `fontspec` and can be compiled with XeLaTeX or LuaLaTeX.
 
@@ -175,15 +174,16 @@ statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
-`pbgso_overview.py` authors PBGSO's statement-only main page and its roadmap;
+`separate_reports.py` builds the PBGSO and latent-diffusion reports from their `exposition/module_notes.json` and `exposition/argument.json`. It requires a mathematical proof and Lean correspondence for every roadmap target. `lean_latex.py` typesets exact source statements and the corresponding explanation in all ten reports.
+
+`pbgso_overview.py` authors PBGSO's theorem overview, sequential argument and roadmap;
 `assets/pbgso.css` supplies its assumption colours and responsive roadmap layout.
 `build_pbgso.py` generates that overview, the technical catalog and complete declaration
 pages under `PBGSO/exposition/`, using the shared layout and mathematical
 typesetting. It reads every Lean file, shared context, theorem header and full
 structure/definition contract directly into `assumption_inventory.json`.
 `scripts/verify-pbgso.py` checks those exact excerpts and assumptions, source
-audit coverage, local links and regeneration. PBGSO stays outside the published
-PDF report catalog and its bibliography/numbering system.
+audit coverage, local links and regeneration. PBGSO has a separate complete proof report (LL10), with a bibliography entry generated by the shared citation system.
 `python3 scripts/verify-pbgso.py --require-complete` is the separate strict
 coverage check for all eight source results, both actual method bounds and
 required bridges. Its completed ledger uses the explicit SDE meaning of A2 and
@@ -203,10 +203,10 @@ results against their imported Lean proof types.
 `python3 scripts/verify-latent-diffusion.py` additionally checks the source audit
 and unresolved coverage statuses, and runs
 `python3 docs/test_latent_diffusion_landing.py` to check all 19 source cards,
-exact citations, original TeX, and separation/order of the two parts. These
-checks do not certify complete source coverage.
-This development stays outside
-the published PDF report catalog, and its source coverage remains partial.
+exact citations, original TeX, and separation/order of the two parts.
+`python3 scripts/verify-latent-diffusion.py --lean --require-source-complete`
+certifies all 19 corrected statements with their added regularity. These checks
+do not certify the literal printed statements. Its complete proof report (LL08) includes those corrections and added regularity explicitly.
 
 `AverageLMC` is contribution 09 after latent diffusion. Its paired overview,
 module atlas and source audit are authored in
@@ -229,11 +229,8 @@ and explain each inference. Include the inequalities, integrability conditions,
 and limiting arguments needed to justify the conclusion. Avoid metaphors,
 invented terminology, and descriptions of what a proof accomplishes in place
 of the proof itself. Use the same notation throughout an argument.
-Put source correspondence and implementation details in explicitly marked
-`<p class="formal-note">...</p>` elements. These remain available in the paired
-web view and are omitted from mathematical reading mode and LaTeX exports.
-The exporter removes only marked notes; it never guesses which mathematical
-sentences to discard. Equations are protected before HTML parsing, including
+Put proof correspondence in each step's `lean` field, separate from its mathematical `body`. It appears in the Lean pane on the web and in a marked box after the mathematical proof in the PDF. Auxiliary implementation notes can use explicitly marked `<p class="formal-note">...</p>` elements; these are omitted from mathematical reading mode and the mathematical prose of LaTeX exports.
+The mathematical-prose exporter removes marked auxiliary notes and preserves the remaining mathematical sentences. Equations are protected before HTML parsing, including
 strict inequalities containing a literal less-than sign. The reader checks
 reject source identifiers and implementation commentary in the mathematical
 prose. Changing a declaration's name is never a substitute for explaining its
@@ -256,6 +253,8 @@ python3 docs/verify_exposition.py
 python3 docs/verify_site.py
 python3 scripts/verify-pbgso.py
 ```
+
+The shared shell has no global top menu. Homepage cards use one template with the same fields: contribution number, topic, title, description, source reference, formal scope and PDF. Breadcrumbs and in-page contents support navigation, and the theme selector is in the footer.
 
 The builder requires mathematical explanations for every native local declaration,
 rejects unrecognized declaration references, and fails on malformed LaTeX formulas.
@@ -320,7 +319,7 @@ node docs/verify_copy.cjs
 node docs/verify_theme.cjs
 ```
 
-It checks all seven overviews and representative module proofs at desktop,
+It checks the established overviews and representative module proofs at desktop,
 375 px, and 320 px widths, reading modes, search, diagram navigation, LaTeX
 downloads, old section links, and offline `file://` reading. Screenshots and a
 JSON report are written to a temporary directory. Set `NODE_PATH` if Playwright

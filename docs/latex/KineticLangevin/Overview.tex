@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -67,6 +90,24 @@ the separate KLMC theorem below combines them with the numerical analysis.
 
 The source law may include any common square-integrable velocity and admissible continuous forcing, provided it is independent of each initial position. The noise distribution does not enter the difference estimate because the same realization drives both trajectories. The result therefore separates deterministic contraction from the later specialization to Brownian dynamics.
 
+\begin{leanbox}{Lean: \texttt{kineticPositionLaw\_\allowbreak{}wasserstein2Real\_\allowbreak{}general}}
+\leansource{\texttt{kineticPositionLaw\_\allowbreak{}wasserstein2Real\_\allowbreak{}general} \quad KineticLangevin/\allowbreak{}FlowLaw.lean, lines 270–285}
+\begin{leancode}
+\leanline{0}{theorem\ kineticPositionLaw\_wasserstein2Real\_general\ (f\ :\ E\ →\ ℝ)\ (m\ a\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hd\ :\ 0\ <\ (γ\ :\ ℝ)-2*a)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)}
+\leanline{4}{(μ\ ν\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(Q\ :\ Measure\ (E\ ×\ VelocityForcing\ (E\ :=\ E)\ T))\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (kineticPositionLaw\ (gradient\ f)\ M\ γ\ hLip\ T\ hT\ t\ μ\ Q)}
+\leanline{6}{(kineticPositionLaw\ (gradient\ f)\ M\ γ\ hLip\ T\ hT\ t\ ν\ Q)\ ≤}
+\leanline{6}{(Real.sqrt\ (2\ *\ (((γ\ :\ ℝ)-a)\textasciicircum{}2+a\textasciicircum{}2))\ /\ ((γ\ :\ ℝ)-2*a)\ *}
+\leanline{8}{Real.exp\ ((max\ (a\textasciicircum{}2-m)\ ((M\ :\ ℝ)-((γ\ :\ ℝ)-a)\textasciicircum{}2)\ /\ ((γ\ :\ ℝ)-2*a))*t))\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\end{leanbox}
 
 \section{\texorpdfstring{The kinetic equation and its Gibbs phase measure}{The kinetic equation and its Gibbs phase measure}}
 
@@ -102,6 +143,32 @@ of that argument.
 
 The kinetic extension is useful because position is the time integral of velocity even though velocity contains Brownian forcing. This extra time integration reduces the local positional discretization defect. At equilibrium, the Gaussian velocity radius is exactly \(\sqrt p\) in second mean, which determines the dimension factor in the first-order error theorem.
 
+\begin{leanbox}{Lean: \texttt{phaseFlow\_\allowbreak{}gibbs\_\allowbreak{}stationary}, \texttt{positionLaw\_\allowbreak{}gibbs}}
+\leansource{\texttt{phaseFlow\_\allowbreak{}gibbs\_\allowbreak{}stationary} \quad KineticLangevin/\allowbreak{}ContinuousGibbs.lean, lines 89–118}
+\begin{leancode}
+\leanline{0}{theorem\ phaseFlow\_gibbs\_stationary\ (f\ :\ H\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{letI\ :=\ ULA.isProbabilityMeasure\_gibbsMeasure\ f\ m\ hm\ hf\ hsc}
+\leanline{4}{HasLaw\ (lpPhaseCoe\ ((ULA.gibbsMeasure\ f).prod\ (probability\ ι\ (stdGaussian\ (H\ ι))))}
+\leanline{6}{(ProductContinuous.flow\ (probability\ ι\ (stdGaussian\ (H\ ι)))\ (ULA.gibbsMeasure\ f)}
+\leanline{8}{(ULA.memLp\_id\_gibbsMeasure\ f\ m\ hm\ hf\ hsc)\ (velocity\ ι\ (stdGaussian\ (H\ ι))\ IsGaussian.memLp\_two\_id)}
+\leanline{8}{(input\ ι\ (stdGaussian\ (H\ ι))\ γ)\ (continuous\_input\ ι\ (stdGaussian\ (H\ ι))\ γ)}
+\leanline{8}{(gradient\ f)\ M\ γ\ hLip\ T\ hT\ T))}
+\leanline{6}{(kineticGibbsTarget\ f)\ ((ULA.gibbsMeasure\ f).prod\ (probability\ ι\ (stdGaussian\ (H\ ι))))}
+\end{leancode}
+\leansource{\texttt{positionLaw\_\allowbreak{}gibbs} \quad KineticLangevin/\allowbreak{}ContinuousGibbs.lean, lines 121–130}
+\begin{leancode}
+\leanline{0}{theorem\ positionLaw\_gibbs\ (f\ :\ H\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{letI\ :=\ ULA.isProbabilityMeasure\_gibbsMeasure\ f\ m\ hm\ hf\ hsc}
+\leanline{4}{positionLaw\ ι\ (stdGaussian\ (H\ ι))\ IsGaussian.memLp\_two\_id\ (ULA.gibbsMeasure\ f)}
+\leanline{6}{(ULA.memLp\_id\_gibbsMeasure\ f\ m\ hm\ hf\ hsc)\ f\ M\ γ\ hLip\ T\ hT\ =\ ULA.gibbsMeasure\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{phase\allowbreak{}Flow\_\allowbreak{}gibbs\_\allowbreak{}stationary} first installs the normalized Gibbs probability instance and its second-moment bound. The local objects \texttt{Q}, \texttt{V}, \texttt{B} and \texttt{Y} specify the independent Gaussian/\allowbreak{}Brownian source, initial velocity, forcing and integral solution. \texttt{hs} supplies the integral equation and continuity; \texttt{hjoint} supplies the complete initial-phase/\allowbreak{}OU-increment law. These are the inputs of \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}stationary\_\allowbreak{}of\_\allowbreak{}joint\allowbreak{}Noise}. Thus invariance is obtained for the constructed solution. \texttt{position\allowbreak{}Law\_\allowbreak{}gibbs} composes the resulting \texttt{Has\allowbreak{}Law} with the second-coordinate projection to recover the Gibbs position marginal.
+\end{leanbox}
 
 \section{\texorpdfstring{Normalization of inverse mass}{Normalization of inverse mass}}
 
@@ -133,6 +200,31 @@ transformed together.
 
 To check the transformation, write the position increment as an integral before changing variables: \(L_{t/\sqrt u}-L_0=\int_0^{t/\sqrt u}V_sds=\int_0^tu^{-1/2}V_{r/\sqrt u}dr\). The velocity equation transforms similarly. This verifies the normalized equation for integral solutions, including its initial data, rather than only manipulating differential notation.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}integral}, \texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}noise\_\allowbreak{}amplitude}, \texttt{clockBrownian\_\allowbreak{}isPreBrownian}}
+\leansource{\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}integral} \quad KineticLangevin/\allowbreak{}MassScaling.lean, lines 28–54}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_mass\_integral\ (g\ :\ E→E)\ (hg\ :\ Continuous\ g)\ (c\ γ\ T\ :\ ℝ)\ (hc\ :\ 0<c)}
+\leanline{4}{(initial\ :\ E×E)\ (B\ :\ ℝ→E)\ (Y\ :\ ℝ→E×E)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(heY\ :\ ∀\ s\ ∈\ Icc\ 0\ (T/c),Y\ s-initial\ =}
+\leanline{6}{-(∫\ r\ in\ 0..s,kineticNegativeDrift\ g\ γ\ (c\textasciicircum{}2)\ (Y\ r))+(B\ s,0))\ :}
+\leanline{4}{∀\ t\ ∈\ Icc\ 0\ T,}
+\leanline{6}{massPhaseMap\ c⁻¹\ (Y\ (t/c))-massPhaseMap\ c⁻¹\ initial\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,kineticNegativeDrift\ g\ (γ/c)\ 1\ (massPhaseMap\ c⁻¹\ (Y\ (s/c))))+}
+\leanline{10}{(c⁻¹\ •\ B\ (t/c),0)}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}noise\_\allowbreak{}amplitude} \quad KineticLangevin/\allowbreak{}MassScaling.lean, lines 57–62}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_mass\_noise\_amplitude\ (c\ γ\ :\ ℝ)\ (hc\ :\ 0<c)\ (hγ\ :\ 0≤γ)\ :}
+\leanline{4}{c⁻¹*Real.sqrt\ (2*γ*c\textasciicircum{}2)=Real.sqrt\ (2*(γ/c))*Real.sqrt\ c}
+\end{leancode}
+\leansource{\texttt{clockBrownian\_\allowbreak{}isPreBrownian} \quad KineticLangevin/\allowbreak{}BrownianScaling.lean, lines 15–19}
+\begin{leancode}
+\leanline{0}{theorem\ clockBrownian\_isPreBrownian\ \{ι\ :\ Type*\}\ (c\ :\ ℝ≥0)\ (hc\ :\ c≠0)\ (i\ :\ ι)\ :}
+\leanline{4}{IsPreBrownianReal\ (clockBrownian\ c\ i)\ (ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}integral} checks the velocity and position integral equations after the deterministic clock and velocity transformations. \texttt{kinetic\_\allowbreak{}mass\_\allowbreak{}noise\_\allowbreak{}amplitude} checks the resulting square-root coefficient. \texttt{clock\allowbreak{}Brownian\_\allowbreak{}is\allowbreak{}Pre\allowbreak{}Brownian} separately verifies the Brownian law at the changed clock; it supplies the probabilistic justification that cannot be obtained by algebraically substituting time in a stochastic differential notation.
+\end{leanbox}
 
 \section{\texorpdfstring{The difference equation under common Brownian forcing}{The difference equation under common Brownian forcing}}
 
@@ -160,6 +252,39 @@ linear transformation whose squared norm satisfies a differential inequality.
 
 The cancellation takes place before expectations are taken. Consequently the same deterministic estimate holds on every sample path where the integral equations hold, and also in the Hilbert space of square-integrable random vectors. Independent forcing would instead introduce an extra random difference and would not produce this contraction comparison.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}position\_\allowbreak{}decay}, \texttt{wasserstein2\_\allowbreak{}gibbs\_\allowbreak{}general}}
+\leansource{\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}position\_\allowbreak{}decay} \quad KineticLangevin/\allowbreak{}SynchronousFlow.lean, lines 64–94}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_integral\_position\_decay}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\ \textasciicircum{}\ 2)}
+\leanline{4}{(Y\ Z\ B\ :\ ℝ\ →\ E\ ×\ E)\ (hY\ :\ Continuous\ Y)\ (hZ\ :\ Continuous\ Z)\ (T\ :\ ℝ)}
+\leanline{4}{(heY\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ (gradient\ f)\ γ\ 1\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(heZ\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Z\ t\ -\ Z\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ (gradient\ f)\ γ\ 1\ (Z\ s))\ +\ B\ t)}
+\leanline{4}{(hvelocity\ :\ (Y\ 0).1\ =\ (Z\ 0).1)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖(Y\ t).2\ -\ (Z\ t).2‖\ ≤\ Real.sqrt\ 2\ *\ Real.exp\ ((-m\ /\ γ)\ *\ t)\ *}
+\leanline{6}{‖(Y\ 0).2\ -\ (Z\ 0).2‖}
+\end{leancode}
+\leansource{\texttt{wasserstein2\_\allowbreak{}gibbs\_\allowbreak{}general} \quad KineticLangevin/\allowbreak{}ContinuousGibbs.lean, lines 133–147}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_gibbs\_general\ (μ\ :\ Measure\ (H\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ μ)\ (f\ :\ H\ ι\ →\ ℝ)\ (m\ a\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hd\ :\ 0\ <\ (γ\ :\ ℝ)-2*a)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (positionLaw\ ι\ (stdGaussian\ (H\ ι))\ IsGaussian.memLp\_two\_id\ μ\ hμ\ f\ M\ γ\ hLip\ T\ hT)}
+\leanline{6}{(ULA.gibbsMeasure\ f)\ ≤}
+\leanline{6}{(Real.sqrt\ (2*(((γ\ :\ ℝ)-a)\textasciicircum{}2+a\textasciicircum{}2))/((γ\ :\ ℝ)-2*a)\ *}
+\leanline{8}{Real.exp\ (max\ (a\textasciicircum{}2-m)\ ((M\ :\ ℝ)-((γ\ :\ ℝ)-a)\textasciicircum{}2)/((γ\ :\ ℝ)-2*a)*T))\ *}
+\leanline{10}{ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}position\_\allowbreak{}decay} subtracts the two common-input integral equations, so the additive forcing disappears before differentiation and the transformed energy inequality is used. \texttt{wasserstein2\_\allowbreak{}gibbs\_\allowbreak{}general} applies the corresponding two-initial-law coupling theorem and rewrites the stationary comparator using \texttt{position\allowbreak{}Law\_\allowbreak{}gibbs}. The initial coupling is arbitrary; the transport theorem passes its cost to the infimum defining Wasserstein distance.
+\end{leanbox}
 
 \section{\texorpdfstring{The transformed energy and its derivative}{The transformed energy and its derivative}}
 
@@ -206,6 +331,36 @@ This is the explicit form of Proposition 1 and Theorem 1. Squaring and integrati
 
 The inverse position identity follows by adding the two transformed coordinates. Its norm bound is \(\|a_t+b_t\|^2\le2(\|a_t\|^2+\|b_t\|^2)\), obtained from the triangle inequality and \(2rs\le r^2+s^2\). This is the sole projection loss. Propagating the transformed norm through the entire evolution and projecting only once keeps that projection coefficient outside the iteration.
 
+\begin{leanbox}{Lean: \texttt{transform}, \texttt{spectral\_\allowbreak{}identity}, \texttt{potential\_\allowbreak{}general\_\allowbreak{}force\_\allowbreak{}dissipativity}}
+\leansource{\texttt{transform} \quad KineticLangevin/\allowbreak{}Geometry.lean, lines 20–21}
+\begin{leancode}
+\leanline{0}{def\ transform\ (γ\ a\ :\ ℝ)\ (s\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{(s.1\ +\ (γ\ -\ a)\ •\ s.2,\ -s.1\ -\ a\ •\ s.2)}
+\end{leancode}
+\leansource{\texttt{spectral\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}Contraction.lean, lines 28–40}
+\begin{leancode}
+\leanline{0}{theorem\ spectral\_identity\ (γ\ a\ :\ ℝ)\ (H\ :\ E\ →L[ℝ]\ E)}
+\leanline{4}{(hH\ :\ ∀\ x\ y,\ {\leanfallback ⟪}x,\ H\ y{\leanfallback ⟫}\ =\ {\leanfallback ⟪}y,\ H\ x{\leanfallback ⟫})\ (s\ :\ E\ ×\ E)\ :}
+\leanline{4}{(γ\ -\ 2\ *\ a)\ *\ energyDerivative\ γ\ a\ H\ s\ =}
+\leanline{6}{2\ *\ (a\ \textasciicircum{}\ 2\ *\ ‖(transform\ γ\ a\ s).1‖\ \textasciicircum{}\ 2\ -}
+\leanline{8}{{\leanfallback ⟪}(transform\ γ\ a\ s).1,\ H\ (transform\ γ\ a\ s).1{\leanfallback ⟫}\ +}
+\leanline{8}{{\leanfallback ⟪}(transform\ γ\ a\ s).2,\ H\ (transform\ γ\ a\ s).2{\leanfallback ⟫}\ -}
+\leanline{8}{(γ\ -\ a)\ \textasciicircum{}\ 2\ *\ ‖(transform\ γ\ a\ s).2‖\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leansource{\texttt{potential\_\allowbreak{}general\_\allowbreak{}force\_\allowbreak{}dissipativity} \quad KineticLangevin/\allowbreak{}GeneralContraction.lean, lines 116–126}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_general\_force\_dissipativity\ [CompleteSpace\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ γ\ a\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hd\ :\ 0\ <\ γ\ -\ 2\ *\ a)\ (v\ x\ y\ :\ E)\ :}
+\leanline{4}{generalForceEnergyDerivative\ γ\ a\ v\ (x\ -\ y)\ (gradient\ f\ x\ -\ gradient\ f\ y)\ ≤}
+\leanline{6}{(2\ *\ max\ (a\ \textasciicircum{}\ 2\ -\ m)\ ((M\ :\ ℝ)\ -\ (γ\ -\ a)\ \textasciicircum{}\ 2)\ /\ (γ\ -\ 2\ *\ a))\ *}
+\leanline{8}{transformEnergy\ γ\ a\ (v,\ x\ -\ y)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{transform} is exactly the two-coordinate linear change of variables in the argument; its energy is a sum of squared norms, rather than the default maximum norm of a product type. \texttt{spectral\_\allowbreak{}identity} expands the inner products in the quadratic dissipation. \texttt{potential\_\allowbreak{}general\_\allowbreak{}force\_\allowbreak{}dissipativity} uses strong convexity and gradient Lipschitz continuity to bound that quadratic form for the actual force difference. The two scalar spectral bounds correspond to the two entries of the maximum in the displayed exponent.
+\end{leanbox}
 
 \section{\texorpdfstring{The friction regimes and their contraction coefficients}{The friction regimes and their contraction coefficients}}
 
@@ -246,6 +401,29 @@ characteristic root require separate limiting estimates.
 
 The optimized exponent and the prefactor describe different effects. A more negative exponent improves long-time decay, while a large prefactor can make a finite-time bound less useful. Near the repeated-root boundary the coordinate transformation becomes singular, so rate optimization must retain its domain and cannot simply substitute the boundary into the prefactor.
 
+\begin{leanbox}{Lean: \texttt{contractionExponent\_\allowbreak{}low\_\allowbreak{}optimal}, \texttt{contractionExponent\_\allowbreak{}middle\_\allowbreak{}optimal}, \texttt{contractionExponent\_\allowbreak{}high\_\allowbreak{}optimal}}
+\leansource{\texttt{contractionExponent\_\allowbreak{}low\_\allowbreak{}optimal} \quad KineticLangevin/\allowbreak{}Friction.lean, lines 37–44}
+\begin{leancode}
+\leanline{0}{theorem\ contractionExponent\_low\_optimal\ (γ\ m\ M\ a\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hmM\ :\ m\ ≤\ M)\ (hregime\ :\ γ\textasciicircum{}2\ ≤\ m+M)\ (ha\ :\ 0\ ≤\ a)\ (hd\ :\ 0\ <\ γ-2*a)\ :}
+\leanline{4}{(M-γ\textasciicircum{}2)/γ\ ≤\ contractionExponent\ γ\ a\ m\ M}
+\end{leancode}
+\leansource{\texttt{contractionExponent\_\allowbreak{}middle\_\allowbreak{}optimal} \quad KineticLangevin/\allowbreak{}Friction.lean, lines 77–107}
+\begin{leancode}
+\leanline{0}{theorem\ contractionExponent\_middle\_optimal\ (γ\ m\ M\ a\ :\ ℝ)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hmM\ :\ m\ ≤\ M)\ (hleft\ :\ m+M\ ≤\ γ\textasciicircum{}2)\ (hright\ :\ γ\textasciicircum{}2\ ≤\ 3*m+M)}
+\leanline{4}{(hradicand\ :\ 0\ <\ 2*(m+M)-γ\textasciicircum{}2)\ (ha\ :\ 0\ ≤\ a)\ (hd\ :\ 0\ <\ γ-2*a)\ :}
+\leanline{4}{-γ/2\ +\ (M-m)/(2*Real.sqrt\ (2*(m+M)-γ\textasciicircum{}2))\ ≤\ contractionExponent\ γ\ a\ m\ M}
+\end{leancode}
+\leansource{\texttt{contractionExponent\_\allowbreak{}high\_\allowbreak{}optimal} \quad KineticLangevin/\allowbreak{}Friction.lean, lines 131–139}
+\begin{leancode}
+\leanline{0}{theorem\ contractionExponent\_high\_optimal\ (γ\ m\ M\ a\ :\ ℝ)\ (hdisc\ :\ 0\ <\ γ\textasciicircum{}2-4*m)}
+\leanline{4}{(hd\ :\ 0\ <\ γ-2*a)\ :}
+\leanline{4}{-(γ-Real.sqrt\ (γ\textasciicircum{}2-4*m))/2\ ≤\ contractionExponent\ γ\ a\ m\ M}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{contraction\allowbreak{}Exponent\_\allowbreak{}low\_\allowbreak{}optimal}, \texttt{contraction\allowbreak{}Exponent\_\allowbreak{}middle\_\allowbreak{}optimal} and \texttt{contraction\allowbreak{}Exponent\_\allowbreak{}high\_\allowbreak{}optimal} are the three scalar comparisons for the admissible shift. Their case hypotheses select the active branch of the maximum. Each conclusion compares the candidate exponent with every admissible shift; the nonsingularity condition keeps the transformation denominator positive. The full shifted Brownian theorem is retained when a simple-friction specialization is unavailable.
+\end{leanbox}
 
 \section{\texorpdfstring{The exponential update with frozen force}{The exponential update with frozen force}}
 
@@ -284,6 +462,23 @@ This is the KLMC exponential integrator reused by KIPLMC1.
 
 An integrating factor gives \(v_t=e^{-\gamma t}v-\int_0^te^{-\gamma(t-s)}\nabla f(x)ds\) before noise is added. Since the force is constant inside this auxiliary problem, the integral equals \(\psi_1(t)\nabla f(x)\). Integrating this velocity once gives the \(\psi_2\) position coefficient. The two coefficient formulas therefore arise from the same exact frozen system.
 
+\begin{leanbox}{Lean: \texttt{exponentialStep}, \texttt{klmcStep}}
+\leansource{\texttt{exponentialStep} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 57–60}
+\begin{leancode}
+\leanline{0}{def\ exponentialStep\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :\ PhaseSpace\ E\ :=}
+\leanline{2}{(psi\ γ\ 0\ h\ •\ state.1\ -\ psi\ γ\ 1\ h\ •\ force\ state.2\ +\ noise.1,}
+\leanline{3}{state.2\ +\ psi\ γ\ 1\ h\ •\ state.1\ -\ psi\ γ\ 2\ h\ •\ force\ state.2\ +\ noise.2)}
+\end{leancode}
+\leansource{\texttt{klmcStep} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 70–72}
+\begin{leancode}
+\leanline{0}{def\ klmcStep\ (force\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ noise\ :\ PhaseSpace\ E)\ :\ PhaseSpace\ E\ :=}
+\leanline{2}{exponentialStep\ force\ γ\ h\ state\ (Real.sqrt\ (2\ *\ γ)\ •\ noise)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exponential\allowbreak{}Step} records the integrated deterministic friction and frozen-force responses, together with the supplied innovation pair. \texttt{klmc\allowbreak{}Step} substitutes the coefficient functions into that same expression. Their definitions match the two update equations term by term: the first coordinate is velocity and the second is position. Independence and covariance are properties of the innovation law established in the following section, rather than extra terms in this deterministic map.
+\end{leanbox}
 
 \section{\texorpdfstring{The joint law of velocity and position innovations}{The joint law of velocity and position innovations}}
 
@@ -326,6 +521,35 @@ Brownian integrals and establishes independence from the current state.
 
 For an explicit scalar Gaussian construction, write \(C_{00}=a\), \(C_{10}=b\), and \(C_{11}=d\). Positive definiteness gives \(a>0\) and \(d-b^2/a>0\). With independent standard normals \(G,H\), the pair \((\sqrt aG,(b/\sqrt a)G+\sqrt{d-b^2/a}\,H)\) has exactly covariance \(C\). Its nonzero cross term retains the positive cross covariance.
 
+\begin{leanbox}{Lean: \texttt{klmc\_\allowbreak{}jointLaw}, \texttt{canonicalKLMCInnovation\_\allowbreak{}independent}, \texttt{kernelNoisePath\_\allowbreak{}independent} and 1 more}
+\leansource{\texttt{klmc\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}BrownianConvolution.lean, lines 415–419}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_jointLaw\ (γ\ :\ ℝ)\ (t\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (fun\ ω\ =>\ WithLp.toLp\ 2\ (fun\ i\ :\ Fin\ 2\ =>}
+\leanline{6}{convolutionLp\ (klmcKernels\ γ\ i)\ (continuous\_klmcKernels\ γ\ i)\ t\ ω))}
+\leanline{6}{(klmcGaussian\ γ\ t)\ probability}
+\end{leancode}
+\leansource{\texttt{canonicalKLMCInnovation\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}CanonicalVectorSegments.lean, lines 161–164}
+\begin{leancode}
+\leanline{0}{theorem\ canonicalKLMCInnovation\_independent\ (d\ :\ ℕ)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{iIndepFun\ (canonicalKLMCInnovation\ d\ γ\ h)\ (ULA.CanonicalBrownian.vectorProbability\ (Fin\ d))}
+\end{leancode}
+\leansource{\texttt{kernelNoisePath\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}Gaussian.lean, lines 126–130}
+\begin{leancode}
+\leanline{0}{theorem\ kernelNoisePath\_independent\ (d\ :\ ℕ)\ (kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (h\ :\ ℝ)\ :}
+\leanline{4}{iIndepFun\ (fun\ p\ :\ ℕ\ ×\ Fin\ d\ =>}
+\leanline{6}{fun\ ω\ :\ ℕ\ ×\ Fin\ d\ →\ EuclideanSpace\ ℝ\ ι\ =>\ ω\ p)}
+\leanline{6}{(kernelNoisePath\ d\ kernels\ h)}
+\end{leancode}
+\leansource{\texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}independent\_\allowbreak{}normals} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 93–99}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_cholesky\_independent\_normals\ (γ\ h\ :\ ℝ)\ (hh\ :\ 0<h)\ :}
+\leanline{4}{HasLaw\ (fun\ z\ :\ Fin\ 2→ℝ\ =>\ toEuclideanCLM\ ({\leanfallback 𝕜}:=ℝ)\ (choleskyTwo\ (klmcCovariance\ γ\ h))\ (WithLp.toLp\ 2\ z))}
+\leanline{6}{(klmcGaussian\ γ\ h)\ (Measure.pi\ (fun\ \_\ :\ Fin\ 2\ =>\ gaussianReal\ 0\ 1))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\_\allowbreak{}joint\allowbreak{}Law} identifies the joint Gaussian law of the two Brownian convolutions, including their off-diagonal covariance. \texttt{canonical\allowbreak{}KLMCInnovation\_\allowbreak{}independent} and \texttt{kernel\allowbreak{}Noise\allowbreak{}Path\_\allowbreak{}independent} establish independence across the specified source blocks. \texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}independent\_\allowbreak{}normals} then gives the same law as an explicit linear image of two independent standard normals. Equality of the complete joint law is what permits replacement of the Brownian-derived innovations by the implemented correlated Gaussian vectors.
+\end{leanbox}
 
 \section{\texorpdfstring{The local velocity and position errors}{The local velocity and position errors}}
 
@@ -367,6 +591,38 @@ this estimate.
 
 The orders follow from the two scalar integrals: \(\int_0^hsds=h^2/2\), whereas \(\int_0^h(h-s)sds=h^3/6\). Smoothness is used only to turn the position displacement into force variation. The reference velocity moment, rather than a bound on Brownian path derivatives, controls the remaining stochastic quantity.
 
+\begin{leanbox}{Lean: \texttt{velocityDefect\_\allowbreak{}bound}, \texttt{positionDefect\_\allowbreak{}bound}, \texttt{globalReferenceFlow\_\allowbreak{}stationary}}
+\leansource{\texttt{velocityDefect\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 45–71}
+\begin{leancode}
+\leanline{0}{theorem\ velocityDefect\_bound\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(x\ v\ :\ ℝ\ →\ E)\ (γ\ T\ C\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hkin\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ x\ s\ -\ x\ 0\ =\ ∫\ r\ in\ 0..s,\ v\ r)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖velocityDefect\ g\ x\ γ\ t‖\ ≤\ (M\ :\ ℝ)\ *\ C\ *\ t\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leansource{\texttt{positionDefect\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 75–95}
+\begin{leancode}
+\leanline{0}{theorem\ positionDefect\_bound\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(x\ v\ :\ ℝ\ →\ E)\ (γ\ T\ C\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hkin\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ x\ s\ -\ x\ 0\ =\ ∫\ r\ in\ 0..s,\ v\ r)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖positionDefect\ g\ x\ γ\ t‖\ ≤\ (M\ :\ ℝ)\ *\ C\ *\ t\ \textasciicircum{}\ 3\ /\ 6}
+\end{leancode}
+\leansource{\texttt{globalReferenceFlow\_\allowbreak{}stationary} \quad KineticLangevin/\allowbreak{}CanonicalKLMC.lean, lines 12–37}
+\begin{leancode}
+\leanline{0}{theorem\ globalReferenceFlow\_stationary}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ f))}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ d\ →\ H\ d)\ 2\ (ULA.gibbsMeasure\ f))\ :}
+\leanline{4}{GlobalReferenceStationary\ c\ hπ\ f\ M\ γ\ hLip}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Defect\_\allowbreak{}bound} and \texttt{position\allowbreak{}Defect\_\allowbreak{}bound} bound the two frozen-force remainder integrals in the order in which the two update equations are compared. Gradient Lipschitz continuity bounds force differences by position displacements; integration and the stationary velocity second moment supply the powers of the step. \texttt{global\allowbreak{}Reference\allowbreak{}Flow\_\allowbreak{}stationary} proves that the constructed comparator has the Gaussian-times-Gibbs phase law at each time, so the moment used here is derived for that comparator.
+\end{leanbox}
 
 \section{\texorpdfstring{Iteration of the first-order coupling inequality}{Iteration of the first-order coupling inequality}}
 
@@ -406,6 +662,33 @@ claim is that the chain admits the coupling from which it was derived. Equality 
 
 The geometric sum is finite for every iteration count: \(\sum_{j=0}^{n-1}q^j=(1-q^n)/(1-q)\). Bounding it by \((1-q)^{-1}\) separates transient and persistent errors. Because the local forcing is quadratic and the contraction gap is linear in \(h\), the persistent position-error term is linear in the step. The initial-error coefficient remains outside this sum.
 
+\begin{leanbox}{Lean: \texttt{firstOrder\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound}, \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound}}
+\leansource{\texttt{firstOrder\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 69–96}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrder\_coupling\_recurrence\_bound\ (e\ :\ ℕ\ →\ ℝ)\ (r\ M\ h\ C\ :\ ℝ)}
+\leanline{4}{(hr\ :\ 0\ <\ r)\ (hM\ :\ 0\ ≤\ M)\ (hh\ :\ 0\ <\ h)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hcurvature\ :\ 2\ *\ r\ \textasciicircum{}\ 2\ ≤\ M)\ (hstep\ :\ 4\ *\ M\ *\ h\ ≤\ r)}
+\leanline{4}{(hnonneg\ :\ ∀\ n,\ 0\ ≤\ e\ n)}
+\leanline{4}{(hlocal\ :\ ∀\ n,\ e\ (n\ +\ 1)\ ≤\ Real.exp\ (-r\ *\ h)\ *\ e\ n\ +}
+\leanline{6}{(3\ /\ 4\ :\ ℝ)\ *\ M\ *\ h\ \textasciicircum{}\ 2\ *\ (C\ +\ e\ n))\ (n\ :\ ℕ)\ :}
+\leanline{4}{e\ n\ ≤\ (1\ -\ (3\ /\ 4\ :\ ℝ)\ *\ r\ *\ h)\ \textasciicircum{}\ n\ *\ e\ 0\ +\ M\ *\ h\ *\ C\ /\ r}
+\end{leancode}
+\leansource{\texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}CanonicalKLMC.lean, lines 41–53}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_wasserstein\_bound}
+\leanline{4}{(f\ :\ H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m+(M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ (h\ :\ ℝ))\ (hstep\ :\ 4*(γ\ :\ ℝ)*(M\ :\ ℝ)*(h\ :\ ℝ)\ ≤\ m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (klmcLaw\ f\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)\ ≤}
+\leanline{6}{Real.sqrt\ 2\ *\ (1-3*m*(h\ :\ ℝ)/(4*(γ\ :\ ℝ)))\textasciicircum{}n\ *\ ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)\ +}
+\leanline{8}{(M\ :\ ℝ)*(h\ :\ ℝ)*Real.sqrt\ (2*(d\ :\ ℝ))/m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound} combines one-step contraction and local error, iterates the scalar affine recurrence and projects its transformed phase norm to position. \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound} obtains the Gibbs second moment as \texttt{h\ensuremath{\pi}}, then applies \texttt{klmc\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}global\allowbreak{}Stationarity} with the stationarity function proved for every initial coupling. The helper theorem identifies both output marginals and takes the initial-coupling infimum. The displayed transient and bias are therefore conclusions for the actual sampler law.
+\end{leanbox}
 
 \section{\texorpdfstring{The Hessian-corrected exponential update}{The Hessian-corrected exponential update}}
 
@@ -446,6 +729,28 @@ are separate.
 
 The frozen Hessian acts on the displacement generated by the free Ornstein–Uhlenbeck velocity. That displacement contains both the initial-velocity response and fresh Brownian responses. Applying the Hessian to both parts is necessary to obtain the stated higher-order approximation; retaining only the deterministic Hessian–velocity correction would define a different algorithm.
 
+\begin{leanbox}{Lean: \texttt{klmc2Step}, \texttt{klmc2\_\allowbreak{}jointLaw}}
+\leansource{\texttt{klmc2Step} \quad KineticLangevin/\allowbreak{}Integrator.lean, lines 110–117}
+\begin{leancode}
+\leanline{0}{def\ klmc2Step\ (force\ :\ E\ →\ E)\ (hessian\ :\ E\ →\ E\ →L[ℝ]\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(state\ :\ PhaseSpace\ E)\ (noise\ :\ Fin\ 4\ →\ E)\ :\ PhaseSpace\ E\ :=}
+\leanline{2}{(psi\ γ\ 0\ h\ •\ state.1\ -\ psi\ γ\ 1\ h\ •\ force\ state.2\ -}
+\leanline{6}{phi\ γ\ 2\ h\ •\ hessian\ state.2\ state.1\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ γ)\ •\ (noise\ 0\ -\ hessian\ state.2\ (noise\ 2)),}
+\leanline{3}{state.2\ +\ psi\ γ\ 1\ h\ •\ state.1\ -\ psi\ γ\ 2\ h\ •\ force\ state.2\ -}
+\leanline{6}{phi\ γ\ 3\ h\ •\ hessian\ state.2\ state.1\ +}
+\leanline{6}{Real.sqrt\ (2\ *\ γ)\ •\ (noise\ 1\ -\ hessian\ state.2\ (noise\ 3)))}
+\end{leancode}
+\leansource{\texttt{klmc2\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}BrownianConvolution.lean, lines 423–427}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_jointLaw\ (γ\ :\ ℝ)\ (t\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (fun\ ω\ =>\ WithLp.toLp\ 2\ (fun\ i\ :\ Fin\ 4\ =>}
+\leanline{6}{convolutionLp\ (klmc2Kernels\ γ\ i)\ (continuous\_klmc2Kernels\ γ\ i)\ t\ ω))}
+\leanline{6}{(klmc2Gaussian\ γ\ t)\ probability}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc2\allowbreak{}Step} defines the complete Hessian-corrected update. \texttt{klmc2\_\allowbreak{}joint\allowbreak{}Law} identifies all four Brownian response coordinates jointly. This includes the stochastic responses acted on by the frozen Hessian, as well as the initial-velocity response. The final theorem \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact} concerns this complete update, so removing one of its stochastic Hessian contributions would change the algorithm and invalidate the correspondence.
+\end{leanbox}
 
 \section{\texorpdfstring{Fourth moments and stochastic Hessian corrections}{Fourth moments and stochastic Hessian corrections}}
 
@@ -520,6 +825,71 @@ correction gives the repaired one-step comparison.
 
 The fourth moment enters because a quadratic Taylor remainder is estimated in second mean: \(\|\|D\|^2\|_{L^2}=(\mathbb E\|D\|^4)^{1/2}\). Expanding the Gaussian fourth norm gives \(3p+p(p-1)=p^2+2p\). This exact coefficient is kept until any later dimension-dependent simplification is explicitly justified.
 
+\begin{leanbox}{Lean: \texttt{stdGaussian\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}moment}, \texttt{klmc2Step\_\allowbreak{}stationary\_\allowbreak{}local\_\allowbreak{}bound}, \texttt{klmc2SourceStep\_\allowbreak{}comparison\_\allowbreak{}bound} and 1 more}
+\leansource{\texttt{stdGaussian\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}moment} \quad KineticLangevin/\allowbreak{}GaussianFourth.lean, lines 53–106}
+\begin{leancode}
+\leanline{0}{theorem\ stdGaussian\_norm\_fourth\_moment\ (ι\ :\ Type*)\ [Fintype\ ι]\ :}
+\leanline{4}{(∫\ z\ :\ EuclideanSpace\ ℝ\ ι,\ ‖z‖\textasciicircum{}4\ ∂stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ =}
+\leanline{6}{(Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{klmc2Step\_\allowbreak{}stationary\_\allowbreak{}local\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderOneStep.lean, lines 24–50}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2Step\_stationary\_local\_bound}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)}
+\leanline{4}{(H\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι\ →L[ℝ]\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(m\ γ\ T\ :\ ℝ)\ (M\ M2\ :\ ℝ≥0)\ (hm\ :\ 0<m)\ (hγ\ :\ 0≤γ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(hsmall\ :\ γ*T≤1/5)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(R\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ (ULA.CanonicalBrownian.vectorProbability\ ι)\ →L[ℝ]}
+\leanline{6}{Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ (a\ :\ ℝ≥0)}
+\leanline{4}{(V\ X\ :\ ℝ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ (hV\ :\ Continuous\ V)\ (hX\ :\ Continuous\ X)}
+\leanline{4}{(hlaw\ :\ ∀\ t∈Icc\ 0\ T,P.map\ (lpPhaseCoe\ P\ (V\ t,X\ t))=kineticGibbsTarget\ f)}
+\leanline{4}{(hmild\ :\ ∀\ t∈Icc\ 0\ T,V\ t=freeOUResponse\ P\ (Real.sqrt\ (2*γ)\ •\ R)\ (V\ 0)\ γ\ a\ 0\ t-}
+\leanline{6}{dampedIntegral\ γ\ (fun\ s\ ↦\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (X\ s))\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t∈Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)\ :}
+\leanline{4}{let\ G\ :=\ ULA.lpDrift\ P\ (gradient\ f)\ hLip}
+\leanline{4}{let\ A\ :=\ lpHessian\ P\ (gradient\ f)\ H\ M\ M2\ hLip\ hH\ hderiv}
+\leanline{4}{transformNorm\ γ\ 0\ (klmc2Step\ G\ A\ γ\ T\ (V\ 0,X\ 0)\ (liftedKLMC2Noise\ P\ R\ γ\ a\ T)-(V\ T,X\ T))≤}
+\leanline{6}{T\textasciicircum{}3/4*((M2\ :\ ℝ)*Real.sqrt\ ((Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ))+}
+\leanline{8}{(M\ :\ ℝ)*Real.sqrt\ ((M\ :\ ℝ)*(Fintype.card\ ι\ :\ ℝ)))}
+\end{leancode}
+\leansource{\texttt{klmc2SourceStep\_\allowbreak{}comparison\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderComparison.lean, lines 135–169}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2SourceStep\_comparison\_bound}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)}
+\leanline{4}{(H\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι\ →L[ℝ]\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(m\ γ\ t\ α\ :\ ℝ)\ (M\ M2\ :\ ℝ≥0)\ (hm\ :\ 0<m)\ (hmM\ :\ m≤(M\ :\ ℝ))\ (hγ\ :\ 0<γ)}
+\leanline{4}{(hfriction\ :\ m+(M\ :\ ℝ)≤γ\textasciicircum{}2)\ (ht\ :\ 0≤t)\ (hstep\ :\ 5*γ*(M\ :\ ℝ)*t≤m)}
+\leanline{4}{(hα\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤α)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hH\ :\ LipschitzWith\ M2\ H)\ (hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(L\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ (ULA.CanonicalBrownian.vectorProbability\ ι)\ →L[ℝ]}
+\leanline{6}{Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ (a\ :\ ℝ≥0)}
+\leanline{4}{(z\ w\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P×Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ ∀\ r∈Icc\ 0\ t,HasLaw\ (freeOUResponse\ P\ L\ z.1\ γ\ a\ 0\ r)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)\ :}
+\leanline{4}{let\ G\ :=\ ULA.lpDrift\ P\ (gradient\ f)\ hLip}
+\leanline{4}{let\ A\ :=\ lpHessian\ P\ (gradient\ f)\ H\ M\ M2\ hLip\ hH\ hderiv}
+\leanline{4}{transformNorm\ γ\ 0\ (klmc2SourceStep\ P\ G\ A\ L\ γ\ a\ t\ z-klmc2SourceStep\ P\ G\ A\ L\ γ\ a\ t\ w)≤}
+\leanline{6}{(1-m*t/(2*γ)+(M2\ :\ ℝ)*Real.sqrt\ α*t\textasciicircum{}2/γ)*transformNorm\ γ\ 0\ (z-w)+}
+\leanline{8}{Real.sqrt\ 2*t\textasciicircum{}2*((M\ :\ ℝ)-m)*Real.exp\ (-(α-(Fintype.card\ ι\ :\ ℝ))/8)}
+\end{leancode}
+\leansource{\texttt{referenceChain\_\allowbreak{}freeOUResponse\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}CanonicalFreeOU.lean, lines 12–26}
+\begin{leancode}
+\leanline{0}{theorem\ referenceChain\_freeOUResponse\_hasLaw}
+\leanline{4}{(f\ :\ H\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ f))}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ (ULA.gibbsMeasure\ f))}
+\leanline{4}{(h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ (r\ :\ ℝ)\ (hr\ :\ 0≤r)\ :}
+\leanline{4}{HasLaw\ (freeOUResponse\ (probability\ c)\ (inputLift\ c\ γ)}
+\leanline{6}{(referenceChain\ c\ hπ\ f\ M\ γ\ hLip\ h\ n).1\ γ\ ((n\ :\ ℝ≥0)*h)\ 0\ r)}
+\leanline{6}{(stdGaussian\ (H\ ι))\ (probability\ c)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{std\allowbreak{}Gaussian\_\allowbreak{}norm\_\allowbreak{}fourth\_\allowbreak{}moment} supplies the exact dimension factor in the Hessian remainder. \texttt{klmc2\allowbreak{}Step\_\allowbreak{}stationary\_\allowbreak{}local\_\allowbreak{}bound} uses it in the one-step approximation of the stationary flow. \texttt{klmc2\allowbreak{}Source\allowbreak{}Step\_\allowbreak{}comparison\_\allowbreak{}bound} handles the comparison of two numerical states with the complete stochastic Hessian responses. \texttt{reference\allowbreak{}Chain\_\allowbreak{}free\allowbreak{}OUResponse\_\allowbreak{}has\allowbreak{}Law} supplies the Gaussian marginal used in that comparison from the proved joint past/\allowbreak{}future source law; it does not assume independence of the current discrepancy and velocity.
+\end{leanbox}
 
 \section{\texorpdfstring{Gaussian truncation and the second-order sampling bound}{Gaussian truncation and the second-order sampling bound}}
 
@@ -596,6 +966,72 @@ higher-dimensional simplification is not applied.
 
 The cutoff gives two estimates. Its moderate-velocity contribution is proportional to the current displacement and is absorbed into the contraction gap. Its remaining excess is controlled solely by the Gaussian velocity marginal. Thus the argument remains valid when the displacement and velocity share the entire past of the coupled sampler.
 
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positivePart\_\allowbreak{}le}, \texttt{gaussian\_\allowbreak{}truncation\_\allowbreak{}Lp}, \texttt{secondOrderCutoff\_\allowbreak{}tail} and 2 more}
+\leansource{\texttt{gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positivePart\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}GaussianTail.lean, lines 124–131}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_norm\_square\_positivePart\_le\ \{Ω\ ι\ :\ Type*\}\ [MeasurableSpace\ Ω]\ [Fintype\ ι]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ (V\ :\ Ω\ →\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(hV\ :\ HasLaw\ V\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)}
+\leanline{4}{(a\ :\ ℝ)\ (ha\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤a)\ :}
+\leanline{4}{(∫\ ω,max\ (‖V\ ω‖\textasciicircum{}2-a)\ 0\ ∂P)≤4*Real.exp\ (-(a-(Fintype.card\ ι\ :\ ℝ))/4)}
+\end{leancode}
+\leansource{\texttt{gaussian\_\allowbreak{}truncation\_\allowbreak{}Lp} \quad KineticLangevin/\allowbreak{}GaussianTruncation.lean, lines 55–96}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_truncation\_Lp\ \{Ω\ ι\ :\ Type*\}\ [MeasurableSpace\ Ω]\ [Fintype\ ι]}
+\leanline{4}{(P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(D\ X\ V\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hV\ :\ HasLaw\ V\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ P)}
+\leanline{4}{(B\ L\ a\ :\ ℝ)\ (hB\ :\ 0≤B)\ (hL\ :\ 0≤L)\ (ha\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤a)}
+\leanline{4}{(hbound\ :\ ∀ᵐ\ ω\ ∂P,‖D\ ω‖≤min\ B\ (L*‖X\ ω‖)*‖V\ ω‖)\ :}
+\leanline{4}{‖D‖≤L*Real.sqrt\ a*‖X‖+2*B*Real.exp\ (-(a-(Fintype.card\ ι\ :\ ℝ))/8)}
+\end{leancode}
+\leansource{\texttt{secondOrderCutoff\_\allowbreak{}tail} \quad KineticLangevin/\allowbreak{}SecondOrderRecurrence.lean, lines 27–38}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderCutoff\_tail\ (m\ M2\ h\ p\ :\ ℝ)\ (hm\ :\ 0<m)\ (hM2\ :\ 0<M2)}
+\leanline{4}{(hh\ :\ 0<h)\ (hp\ :\ 0≤p)\ (hdim\ :\ 4*Real.sqrt\ (5*p)*M2*h≤m)\ :}
+\leanline{4}{Real.exp\ (-(secondOrderCutoff\ m\ M2\ h-p)/8)≤Real.exp\ (-p/2)\ ∧}
+\leanline{4}{Real.exp\ (-(secondOrderCutoff\ m\ M2\ h-p)/8)≤Real.exp\ (-m\textasciicircum{}2/(160*M2\textasciicircum{}2*h\textasciicircum{}2))}
+\end{leancode}
+\leansource{\texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2.lean, lines 13–62}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_wasserstein\_bound\_exact\ \{μ\ :\ Measure\ (H\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(f\ :\ H\ ι→ℝ)\ (Hess\ :\ H\ ι→H\ ι→L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M:ℝ))\ (hγ\ :\ 0<(γ:ℝ))\ (hM2\ :\ 0<(M2:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)\ (h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))}
+\leanline{4}{(hstep\ :\ 5*(γ:ℝ)*(M:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hdim\ :\ 4*Real.sqrt\ (5*(Fintype.card\ ι:ℝ))*(M2:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (law\ ι\ (gradient\ f)\ Hess\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤}
+\leanline{6}{Real.sqrt\ 2*(1-m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)+}
+\leanline{6}{Real.sqrt\ 2*(h:ℝ)\textasciicircum{}2*((M2:ℝ)*Real.sqrt\ ((Fintype.card\ ι:ℝ)\textasciicircum{}2+2*(Fintype.card\ ι:ℝ))+}
+\leanline{8}{(M:ℝ)*Real.sqrt\ ((M:ℝ)*(Fintype.card\ ι:ℝ)))/m+}
+\leanline{6}{8*((M:ℝ)-m)*(h:ℝ)/m*Real.exp\ (-(secondOrderCutoff\ m\ M2\ h-(Fintype.card\ ι:ℝ))/8)}
+\end{leancode}
+\leansource{\texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2.lean, lines 88–122}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_wasserstein\_bound\ \{μ\ :\ Measure\ (H\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hp\ :\ 2≤Fintype.card\ ι)}
+\leanline{4}{(f\ :\ H\ ι→ℝ)\ (Hess\ :\ H\ ι→H\ ι→L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M:ℝ))\ (hγ\ :\ 0<(γ:ℝ))\ (hM2\ :\ 0<(M2:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)\ (h\ :\ ℝ≥0)\ (hh\ :\ 0<(h:ℝ))}
+\leanline{4}{(hstep\ :\ 5*(γ:ℝ)*(M:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hdim\ :\ 4*Real.sqrt\ (5*(Fintype.card\ ι:ℝ))*(M2:ℝ)*(h:ℝ)≤m)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (law\ ι\ (gradient\ f)\ Hess\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤}
+\leanline{6}{Real.sqrt\ 2*(1-m*(h:ℝ)/(4*(γ:ℝ)))\textasciicircum{}n*ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f)+}
+\leanline{6}{2*(h:ℝ)\textasciicircum{}2*(M2:ℝ)*(Fintype.card\ ι:ℝ)/m+}
+\leanline{6}{(h:ℝ)\textasciicircum{}2*(M:ℝ)*Real.sqrt\ (2*(M:ℝ)*(Fintype.card\ ι:ℝ))/m+}
+\leanline{6}{(8*(M:ℝ)/m)*(h:ℝ)*Real.exp\ (-(Fintype.card\ ι:ℝ)/2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}norm\_\allowbreak{}square\_\allowbreak{}positive\allowbreak{}Part\_\allowbreak{}le} gives the Gaussian excess-moment bound, and \texttt{gaussian\_\allowbreak{}truncation\_\allowbreak{}Lp} converts it into the norm estimate needed by the cutoff comparison. \texttt{second\allowbreak{}Order\allowbreak{}Cutoff\_\allowbreak{}tail} evaluates the chosen cutoff and gives both the dimension and inverse-step-square tail bounds. \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound\_\allowbreak{}exact} retains the exact fourth moment. \texttt{klmc2\_\allowbreak{}wasserstein\_\allowbreak{}bound} subsequently enlarges it to the printed coefficient under its explicit dimension hypothesis; the exact theorem remains available in dimension one.
+\end{leanbox}
 
 \section{\texorpdfstring{Step restrictions and iteration counts for prescribed accuracy}{Step restrictions and iteration counts for prescribed accuracy}}
 
@@ -715,10 +1151,101 @@ it asserts no lower bound on the best possible behavior of the algorithm.
 
 All inverse-step branches must be retained when deriving a uniform work bound. Inverting a minimum of positive admissible steps produces a maximum of the corresponding positive reciprocal costs. The dominant branch may change with curvature, dimension, Hessian regularity, and requested precision. The integer ceiling then adds less than one iteration to the real logarithmic threshold.
 
+\begin{leanbox}{Lean: \texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}explicit}, \texttt{firstOrderIterationCount\_\allowbreak{}spec}, \texttt{klmc2\_\allowbreak{}accuracy\_\allowbreak{}explicit} and 6 more}
+\leansource{\texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}explicit} \quad KineticLangevin/\allowbreak{}Accuracy.lean, lines 63–77}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_accuracy\_explicit\ \{d\ :\ ℕ\}\ (hd\ :\ 0<d)\ \{μ\ :\ Measure\ (CanonicalCoupling.H\ d)\}}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (f\ :\ CanonicalCoupling.H\ d\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hmM\ :\ m≤(M:ℝ))\ (hm\ :\ 0<m)\ (hγ\ :\ 0<(γ:ℝ))\ (hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (ε\ :\ ℝ)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{let\ hs\ :=\ klmcAccuracyStep\_spec\ m\ M\ γ\ d\ ε\ hm\ (hm.trans\_le\ hmM)\ hγ\ (by\ exact\_mod\_cast\ hd)\ hε}
+\leanline{4}{let\ h\ :\ ℝ≥0\ :=\ ⟨klmcAccuracyStep\ m\ M\ γ\ d\ ε,hs.1.le⟩}
+\leanline{4}{let\ n\ :=\ firstOrderIterationCount\ (3*m*(h:ℝ)/(4*(γ:ℝ)))\ (ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f))\ ε}
+\leanline{4}{ULA.wasserstein2Real\ (CanonicalCoupling.klmcLaw\ f\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤ε}
+\end{leancode}
+\leansource{\texttt{firstOrderIterationCount\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}Complexity.lean, lines 33–41}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrderIterationCount\_spec\ (α\ D\ ε\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (n\ :\ ℕ)}
+\leanline{4}{(hn\ :\ firstOrderIterationCount\ α\ D\ ε\ ≤\ n)\ :}
+\leanline{4}{Real.log\ (24*D/ε)\ ≤\ α*(n\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{klmc2\_\allowbreak{}accuracy\_\allowbreak{}explicit} \quad KineticLangevin/\allowbreak{}SecondOrderAccuracy.lean, lines 35–55}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_accuracy\_explicit\ \{μ\ :\ Measure\ (H\ ι)\}\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hp\ :\ 0<Fintype.card\ ι)}
+\leanline{4}{(f\ :\ H\ ι→ℝ)\ (Hess\ :\ H\ ι→H\ ι→L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M:ℝ))\ (hγ\ :\ 0<(γ:ℝ))\ (hM2\ :\ 0<(M2:ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M:ℝ)≤(γ:ℝ)\textasciicircum{}2)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ (ULA.gibbsMeasure\ f)≠⊤)\ (ε\ :\ ℝ)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{let\ hs\ :=\ secondOrderAccuracyStep\_spec\ m\ M\ γ\ M2\ (Fintype.card\ ι)\ ε\ hm\ (hm.trans\_le\ hmM)}
+\leanline{6}{hγ\ hM2\ (by\ exact\_mod\_cast\ hp)\ hε}
+\leanline{4}{let\ h\ :\ ℝ≥0\ :=\ ⟨secondOrderAccuracyStep\ m\ M\ γ\ M2\ (Fintype.card\ ι)\ ε,hs.1.le⟩}
+\leanline{4}{let\ n\ :=\ firstOrderIterationCount\ (m*(h:ℝ)/(4*(γ:ℝ)))\ (ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ f))\ ε}
+\leanline{4}{ULA.wasserstein2Real\ (law\ ι\ (gradient\ f)\ Hess\ γ\ h\ μ\ n)\ (ULA.gibbsMeasure\ f)≤ε}
+\end{leancode}
+\leansource{\texttt{secondOrderAccuracyStep\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}SecondOrderBudget.lean, lines 54–79}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderAccuracyStep\_spec\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)\ (hm\ :\ 0<m)\ (hM\ :\ 0<M)}
+\leanline{4}{(hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{0<secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε\ ∧\ secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε≤1\ ∧}
+\leanline{4}{5*γ*M*secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{4*Real.sqrt\ (5*p)*M2*secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{secondOrderBiasCoefficient\ m\ M\ M2\ p*(secondOrderAccuracyStep\ m\ M\ γ\ M2\ p\ ε)\textasciicircum{}2≤(47/50:ℝ)*ε}
+\end{leancode}
+\leansource{\texttt{secondOrderTailFreeStep\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 21–57}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeStep\_spec\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{0<secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε\ ∧}
+\leanline{4}{5*γ*M*secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{4*Real.sqrt\ (5*p)*M2*secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{2*(secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)\textasciicircum{}2*M2*p/m+}
+\leanline{6}{(secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)\textasciicircum{}2*M*Real.sqrt\ (2*M*p)/m≤ε/(2*Real.sqrt\ m)}
+\end{leancode}
+\leansource{\texttt{secondOrderTailFreeStep\_\allowbreak{}inverse} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 71–77}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeStep\_inverse\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{(secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)⁻¹=secondOrderTailFreeInverse\ m\ M\ γ\ M2\ p\ ε}
+\end{leancode}
+\leansource{\texttt{secondOrderTailFree\_\allowbreak{}iterationCount\_\allowbreak{}conditionNumber} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 177–191}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFree\_iterationCount\_conditionNumber\ (m\ M\ M2\ p\ ε\ D\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤M)\ (hM2\ :\ 0<M2)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{(firstOrderIterationCount}
+\leanline{6}{(m*secondOrderTailFreeStep\ m\ M\ (Real.sqrt\ (m+M))\ M2\ p\ ε/(4*Real.sqrt\ (m+M)))\ D}
+\leanline{6}{(ε/Real.sqrt\ m):ℝ)<}
+\leanline{6}{1+64*secondOrderRefinement\ (max\ (kineticConditionNumber\ m\ M)}
+\leanline{8}{(sourceHessianConditionNumber\ m\ M\ M2\ p))\ p\ ε*}
+\leanline{10}{max\ 0\ (Real.log\ (24*D*Real.sqrt\ m/ε))}
+\end{leancode}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}physical\_\allowbreak{}regime} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 287–293}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_physical\_regime\ (m\ M\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤M)\ (hM2\ :\ 0≤M2)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)}
+\leanline{4}{(hregime\ :\ M*(1-p\ \textasciicircum{}\ (-1/3\ :\ ℝ))≤M2\ \textasciicircum{}\ (2/3\ :\ ℝ))\ :}
+\leanline{4}{secondOrderNormalizedWork\ (M/m)\ (M2/(m*Real.sqrt\ m))\ p\ ε≤}
+\leanline{6}{64*secondOrderRefinement\ (sourceHessianConditionNumber\ m\ M\ M2\ p)\ p\ ε}
+\end{leancode}
+\leansource{\texttt{secondOrderSourceRefinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 297–305}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderSourceRefinement\_no\_uniform\_constant\ (C\ :\ ℝ)\ (hC\ :\ 0<C)\ :}
+\leanline{4}{∃\ n\ :\ ℕ,\ 1≤n\ ∧}
+\leanline{6}{C*secondOrderRefinement}
+\leanline{8}{(sourceHessianConditionNumber\ 1\ ((n:ℝ)\textasciicircum{}2)\ 1\ ((n:ℝ)\textasciicircum{}6))\ ((n:ℝ)\textasciicircum{}6)\ 1\ <}
+\leanline{6}{secondOrderNormalizedWork\ ((n:ℝ)\textasciicircum{}2)\ 1\ ((n:ℝ)\textasciicircum{}6)\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\_\allowbreak{}accuracy\_\allowbreak{}explicit} applies the proved sampler estimate to a positive minimum step and a rounded logarithmic count. \texttt{first\allowbreak{}Order\allowbreak{}Iteration\allowbreak{}Count\_\allowbreak{}spec} verifies the count's transient budget. For the second-order method, \texttt{second\allowbreak{}Order\allowbreak{}Accuracy\allowbreak{}Step\_\allowbreak{}spec} verifies the algebraic and tail allocations at the chosen step, and \texttt{klmc2\_\allowbreak{}accuracy\_\allowbreak{}explicit} combines those with its rounded iteration count. Each allocation is checked before the final real-arithmetic addition of the error budgets.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

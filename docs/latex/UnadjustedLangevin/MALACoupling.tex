@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,15 @@ Define \(a_h(x,y)=\min(1,e^{R_h(x,y)})\), with the proved target/\allowbreak{}pr
 
 Acceptance is a measurable weight in \([0,1]\), so the two alternatives define nonnegative masses. When the reverse target-weighted proposal density is at least the forward density, the exponential ratio is at least one and the move is accepted with full weight.
 
+\begin{leanbox}{Lean: \texttt{malaAcceptance}}
+\leansource{\texttt{malaAcceptance} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{def\ malaAcceptance\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ y\ :\ H)\ :\ ℝ\ :=}
+\leanline{2}{min\ 1\ (Real.exp\ (malaLogRatio\ U\ h\ x\ y))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Acceptance} is a definition with defining expression \texttt{min 1 (Real.\allowbreak{}exp (mala\allowbreak{}Log\allowbreak{}Ratio U h x y))}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Acceptance of the Langevin proposal}{Acceptance of the Langevin proposal}}
 
@@ -42,6 +74,15 @@ Compose \(a_h\) with \((x,\xi)\mapsto(x,T_h(x,\xi))\). The resulting \(a_h(x,T_h
 
 Using the original innovation variable preserves the Gaussian product representation. For the rejection displacement, the state and Gaussian moments can be controlled before changing variables from innovations to proposed positions.
 
+\begin{leanbox}{Lean: \texttt{malaProposalAcceptance}}
+\leansource{\texttt{malaProposalAcceptance} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{def\ malaProposalAcceptance\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (p\ :\ H\ ×\ H)\ :\ ℝ\ :=}
+\leanline{2}{malaAcceptance\ U\ h\ p.1\ (malaProposal\ U\ h\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\allowbreak{}Acceptance} is a definition with defining expression \texttt{mala\allowbreak{}Acceptance U h p.\allowbreak{}1 (mala\allowbreak{}Proposal U h p.\allowbreak{}1 p.\allowbreak{}2)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Nonnegativity of acceptance}{Nonnegativity of acceptance}}
 
@@ -52,6 +93,15 @@ Both entries of the minimum, one and the exponential, are nonnegative. Their min
 
 The lower bound remains valid when the log ratio is very negative: the exponential stays strictly positive even though it may be small. In combination with the upper bound, it guarantees that acceptance and rejection weights are both numbers in the unit interval.
 
+\begin{leanbox}{Lean: \texttt{malaAcceptance\_\allowbreak{}nonneg}}
+\leansource{\texttt{malaAcceptance\_\allowbreak{}nonneg} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 31–32}
+\begin{leancode}
+\leanline{0}{theorem\ malaAcceptance\_nonneg\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ y\ :\ H)\ :}
+\leanline{4}{0\ ≤\ malaAcceptance\ U\ h\ x\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Acceptance\_\allowbreak{}nonneg}: the proof is the application \texttt{le\_\allowbreak{}min (by norm\_\allowbreak{}num) (Real.\allowbreak{}exp\_\allowbreak{}nonneg \_\allowbreak{})}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Acceptance is at most one}{Acceptance is at most one}}
 
@@ -62,6 +112,15 @@ The minimum \(\min(1,e^{R_h})\) is at most its first entry. This proves \(a_h\le
 
 Together the two bounds yield \(a_h+(1-a_h)=1\). Therefore any mixture formed with these weights has the total mass of its input, including when its accepted part alone has mass strictly below one.
 
+\begin{leanbox}{Lean: \texttt{malaAcceptance\_\allowbreak{}le\_\allowbreak{}one}}
+\leansource{\texttt{malaAcceptance\_\allowbreak{}le\_\allowbreak{}one} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 34–35}
+\begin{leancode}
+\leanline{0}{theorem\ malaAcceptance\_le\_one\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ y\ :\ H)\ :}
+\leanline{4}{malaAcceptance\ U\ h\ x\ y\ ≤\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Acceptance\_\allowbreak{}le\_\allowbreak{}one}: the proof is the application \texttt{min\_\allowbreak{}le\_\allowbreak{}left \_\allowbreak{} \_\allowbreak{}}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Measurability of the Gaussian proposal}{Measurability of the Gaussian proposal}}
 
@@ -72,6 +131,16 @@ The gradient is continuous by Lipschitzness. Projections, scalar multiplication,
 
 Joint measurability, rather than measurability for each frozen state alone, is needed to push forward a state/\allowbreak{}innovation product measure. Continuity of the full formula supplies that joint property directly and avoids a separate kernel measurability assumption.
 
+\begin{leanbox}{Lean: \texttt{malaProposal\_\allowbreak{}measurable}}
+\leansource{\texttt{malaProposal\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 37–42}
+\begin{leancode}
+\leanline{0}{theorem\ malaProposal\_measurable\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Measurable\ (fun\ p\ :\ H\ ×\ H\ ↦\ malaProposal\ U\ h\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\_\allowbreak{}measurable}: the intermediate fact is \texttt{hg}, in source order; the source steps apply or rewrite \texttt{measurable\_\allowbreak{}fst.\allowbreak{}sub}, \texttt{hg.\allowbreak{}comp}, \texttt{measurable\_\allowbreak{}fst}, \texttt{const\_\allowbreak{}smul}.
+\end{leanbox}
 
 \section{\texorpdfstring{Measurability of proposal acceptance}{Measurability of proposal acceptance}}
 
@@ -82,6 +151,16 @@ Differentiability makes \(U\) continuous, and Lipschitzness makes its gradient c
 
 The operation \(\min(1,\cdot)\) is continuous, as is the exponential. Their composition therefore preserves the regularity already obtained for the log ratio. No discontinuous indicator of an acceptance event is introduced in the weighted transition representation.
 
+\begin{leanbox}{Lean: \texttt{malaProposalAcceptance\_\allowbreak{}measurable}}
+\leansource{\texttt{malaProposalAcceptance\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 44–52}
+\begin{leancode}
+\leanline{0}{theorem\ malaProposalAcceptance\_measurable\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{Measurable\ (malaProposalAcceptance\ U\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\allowbreak{}Acceptance\_\allowbreak{}measurable}: the intermediate facts include \texttt{h\allowbreak{}U}, \texttt{hg}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{hc.\allowbreak{}measurable}.
+\end{leanbox}
 
 \section{\texorpdfstring{One Gaussian ULA transition}{One Gaussian ULA transition}}
 
@@ -92,6 +171,15 @@ Define \(P_h\mu\) as the pushforward of \(\mu\otimes\gamma\) by the Euler propos
 
 For a bounded test \(f\), \(\int f\,d(P_h\mu)=\iint f(T_h(x,\xi))d\mu(x)d\gamma(\xi)\). This formula identifies exactly the usual fresh-Gaussian transition and is independent of any auxiliary coupling used to analyze its error.
 
+\begin{leanbox}{Lean: \texttt{ulaLawStep}}
+\leansource{\texttt{ulaLawStep} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 55–56}
+\begin{leancode}
+\leanline{0}{def\ ulaLawStep\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ H)\ :\ Measure\ H\ :=}
+\leanline{2}{(μ.prod\ (stdGaussian\ H)).map\ (fun\ p\ ↦\ malaProposal\ U\ h\ p.1\ p.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Law\allowbreak{}Step} is a definition with defining expression \texttt{(\ensuremath{\mu}.\allowbreak{}prod (std\allowbreak{}Gaussian H)).\allowbreak{}map (fun p \ensuremath{\mapsto} mala\allowbreak{}Proposal U h p.\allowbreak{}1 p.\allowbreak{}2)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{One Metropolis-adjusted transition}{One Metropolis-adjusted transition}}
 
@@ -102,6 +190,19 @@ Split \(\mu\otimes\gamma\) into acceptance- and rejection-weighted measures. Map
 
 The expectation formula is \(\iint[a_h f(T_h)+(1-a_h)f(x)]d\mu d\gamma\). It retains the full rejected mass at the original state. Consequently invariance can be proved through weighted pair symmetry, without adding an acceptance random variable to the notation.
 
+\begin{leanbox}{Lean: \texttt{malaOneStep}}
+\leansource{\texttt{malaOneStep} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 59–64}
+\begin{leancode}
+\leanline{0}{def\ malaOneStep\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ H)\ :\ Measure\ H\ :=}
+\leanline{2}{((μ.prod\ (stdGaussian\ H)).withDensity}
+\leanline{6}{(fun\ p\ ↦\ ENNReal.ofReal\ (malaProposalAcceptance\ U\ h\ p))).map}
+\leanline{8}{(fun\ p\ ↦\ malaProposal\ U\ h\ p.1\ p.2)\ +}
+\leanline{4}{((μ.prod\ (stdGaussian\ H)).withDensity}
+\leanline{6}{(fun\ p\ ↦\ ENNReal.ofReal\ (1\ -\ malaProposalAcceptance\ U\ h\ p))).map\ Prod.fst}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}One\allowbreak{}Step} is a definition with defining expression \texttt{((\ensuremath{\mu}.\allowbreak{}prod (std\allowbreak{}Gaussian H)).\allowbreak{}with\allowbreak{}Density}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The common-noise coupled transition}{The common-noise coupled transition}}
 
@@ -112,6 +213,20 @@ For a pair \((x,y)\), draw one shared Gaussian \(\xi\). ULA always moves to \(T_
 
 On acceptance, the distance between outputs is controlled by contraction of the common-noise proposal. On rejection, insert and subtract the MALA proposal to separate the same contraction term from the distance lost by rejection. Weighting these two cases gives the one-step affine cost bound.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep}}
+\leansource{\texttt{malaCoupledStep} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 67–73}
+\begin{leancode}
+\leanline{0}{def\ malaCoupledStep\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (ρ\ :\ Measure\ (H\ ×\ H))\ :\ Measure\ (H\ ×\ H)\ :=}
+\leanline{2}{let\ base\ :=\ ρ.prod\ (stdGaussian\ H)}
+\leanline{2}{let\ a\ :=\ fun\ p\ :\ (H\ ×\ H)\ ×\ H\ ↦\ malaProposalAcceptance\ U\ h\ (p.1.2,\ p.2)}
+\leanline{2}{(base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (a\ p))).map}
+\leanline{6}{(fun\ p\ ↦\ (malaProposal\ U\ h\ p.1.1\ p.2,\ malaProposal\ U\ h\ p.1.2\ p.2))\ +}
+\leanline{4}{(base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (1\ -\ a\ p))).map}
+\leanline{6}{(fun\ p\ ↦\ (malaProposal\ U\ h\ p.1.1\ p.2,\ p.1.2))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step} is a definition with defining expression \texttt{fun p : (H \ensuremath{\times} H) \ensuremath{\times} H \ensuremath{\mapsto} mala\allowbreak{}Proposal\allowbreak{}Acceptance U h (p.\allowbreak{}1.\allowbreak{}2, p.\allowbreak{}2)}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Acceptance and rejection weights sum to one}{Acceptance and rejection weights sum to one}}
 
@@ -122,6 +237,18 @@ For a measurable \(a\in[0,1]\), combine the two weighted-density measures using 
 
 This identity can be tested against any nonnegative function, not just the constant one. It will therefore be used both to prove total mass and to combine two weighted expectations into the unweighted proposal contribution in the cost calculation.
 
+\begin{leanbox}{Lean: \texttt{weighted\_\allowbreak{}accept\_\allowbreak{}reject\_\allowbreak{}add}}
+\leansource{\texttt{weighted\_\allowbreak{}accept\_\allowbreak{}reject\_\allowbreak{}add} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 75–86}
+\begin{leancode}
+\leanline{0}{private\ theorem\ weighted\_accept\_reject\_add\ \{A\ :\ Type*\}\ [MeasurableSpace\ A]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (a\ :\ A\ →\ ℝ)\ (ha\ :\ Measurable\ a)}
+\leanline{4}{(ha0\ :\ ∀\ p,\ 0\ ≤\ a\ p)\ (ha1\ :\ ∀\ p,\ a\ p\ ≤\ 1)\ :}
+\leanline{4}{μ.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (a\ p))\ +}
+\leanline{6}{μ.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (1\ -\ a\ p))\ =\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{weighted\_\allowbreak{}accept\_\allowbreak{}reject\_\allowbreak{}add}: the intermediate fact is \texttt{hw}, in source order; the source steps apply or rewrite \texttt{with\allowbreak{}Density\_\allowbreak{}add\_\allowbreak{}left}, \texttt{ha.\allowbreak{}ennreal\_\allowbreak{}of\allowbreak{}Real}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}add}, \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr}, \texttt{with\allowbreak{}Density\_\allowbreak{}one}.
+\end{leanbox}
 
 \section{\texorpdfstring{The first marginal of the coupled transition}{The first marginal of the coupled transition}}
 
@@ -132,6 +259,17 @@ The first-coordinate update is identical on acceptance and rejection. Combine th
 
 The first component moves by ULA in both acceptance branches. Their weights add to one, so its marginal is the unweighted ULA transition of the first input marginal. It does not depend on the second component's acceptance decisions.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep\_\allowbreak{}fst}}
+\leansource{\texttt{malaCoupledStep\_\allowbreak{}fst} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 89–122}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledStep\_fst\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ρ\ :\ Measure\ (H\ ×\ H))\ [SFinite\ ρ]\ :}
+\leanline{4}{(malaCoupledStep\ U\ h\ ρ).map\ Prod.fst\ =\ ulaLawStep\ U\ h\ (ρ.map\ Prod.fst)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}fst}: the intermediate facts include \texttt{F}, \texttt{G}, \texttt{h\allowbreak{}F}, \texttt{ha}, \texttt{hmap}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}id}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}add}, \texttt{measurable\_\allowbreak{}fst}, \texttt{weighted\_\allowbreak{}accept\_\allowbreak{}reject\_\allowbreak{}add}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}.
+\end{leanbox}
 
 \section{\texorpdfstring{The second marginal of the coupled transition}{The second marginal of the coupled transition}}
 
@@ -142,6 +280,17 @@ Project both branches of the explicit coupling to the second state. They are exa
 
 The second component accepts or rejects exactly according to its own current state and common Gaussian proposal. Integrating out the first state therefore leaves the ordinary MALA transition of the second input marginal, regardless of their dependence under the input coupling.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep\_\allowbreak{}snd}}
+\leansource{\texttt{malaCoupledStep\_\allowbreak{}snd} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 125–161}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledStep\_snd\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ρ\ :\ Measure\ (H\ ×\ H))\ [SFinite\ ρ]\ :}
+\leanline{4}{(malaCoupledStep\ U\ h\ ρ).map\ Prod.snd\ =\ malaOneStep\ U\ h\ (ρ.map\ Prod.snd)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}snd}: the intermediate facts include \texttt{F}, \texttt{G}, \texttt{h\allowbreak{}F}, \texttt{hacc}, \texttt{hrej}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}id}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}add}, \texttt{measurable\_\allowbreak{}snd}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}fst}.
+\end{leanbox}
 
 \section{\texorpdfstring{Normalization of the coupled transition}{Normalization of the coupled transition}}
 
@@ -152,6 +301,17 @@ The first marginal is a measurable pushforward of a probability product by the f
 
 The product input has mass one and the two nonnegative branch weights sum to one. Pushforward preserves each branch mass, so their sum is a probability. First-moment integrals against this joint law are consequently expectations under a probability coupling.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep\_\allowbreak{}isProbability}}
+\leansource{\texttt{malaCoupledStep\_\allowbreak{}isProbability} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 164–172}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledStep\_isProbability\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ρ\ :\ Measure\ (H\ ×\ H))\ [IsProbabilityMeasure\ ρ]\ :}
+\leanline{4}{IsProbabilityMeasure\ (malaCoupledStep\ U\ h\ ρ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}is\allowbreak{}Probability}: the source steps apply or rewrite \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}fst}, \texttt{Measure.\allowbreak{}is\allowbreak{}Probability\allowbreak{}Measure\_\allowbreak{}of\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}fst.\allowbreak{}aemeasurable}.
+\end{leanbox}
 
 \section{\texorpdfstring{The iterated coupled chain}{The iterated coupled chain}}
 
@@ -162,6 +322,16 @@ Initialize on the diagonal \((X_0,Y_0)=(X,X)\) with \(X\sim\mu\), then recursive
 
 Each step applies the same coupled transition to the current pair distribution. This construction retains the dependence needed for the common-noise comparison while allowing each marginal to follow its own algorithm. It is a sequence of joint laws, rather than an independence assertion about the pair.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain}}
+\leansource{\texttt{malaCoupledChain} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 175–177}
+\begin{leancode}
+\leanline{0}{def\ malaCoupledChain\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ H)\ :\ ℕ\ →\ Measure\ (H\ ×\ H)}
+\leanline{2}{|\ 0\ =>\ μ.map\ (fun\ x\ ↦\ (x,\ x))}
+\leanline{2}{|\ n\ +\ 1\ =>\ malaCoupledStep\ U\ h\ (malaCoupledChain\ U\ h\ μ\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain} is a definition with defining expression \texttt{def mala\allowbreak{}Coupled\allowbreak{}Chain (U : H \ensuremath{\to} \ensuremath{\mathbb R}) (h : \ensuremath{\mathbb R}) (\ensuremath{\mu} : Measure H) : \ensuremath{\mathbb N} \ensuremath{\to} Measure (H \ensuremath{\times} H)}. Its pattern-matching branches specify the initial value and the successor update.
+\end{leanbox}
 
 \section{\texorpdfstring{Normalization at every coupled iterate}{Normalization at every coupled iterate}}
 
@@ -172,6 +342,17 @@ The diagonal pushforward of the initial probability is a probability. Induct on 
 
 Induction uses normalization of one coupled transition at each successor. The initial diagonal coupling is already a probability, so every finite-time joint distribution is normalized before any marginal or integrability argument is applied.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain\_\allowbreak{}isProbability}}
+\leansource{\texttt{malaCoupledChain\_\allowbreak{}isProbability} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 179–187}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledChain\_isProbability\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (malaCoupledChain\ U\ h\ μ\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}is\allowbreak{}Probability}: the argument uses \texttt{induction n with}; the source steps apply or rewrite \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}is\allowbreak{}Probability}.
+\end{leanbox}
 
 \section{\texorpdfstring{The first iterated marginal}{The first iterated marginal}}
 
@@ -182,6 +363,17 @@ At zero, diagonal initialization has first marginal \(\mu\). In the successor st
 
 The one-step first-marginal identity proves the induction step: if the first marginal at step \(k\) is the ULA law, its successor is the next ULA law. Thus the constructed coupling represents the numerical chain at every iteration.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain\_\allowbreak{}fst}}
+\leansource{\texttt{malaCoupledChain\_\allowbreak{}fst} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 190–203}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledChain\_fst\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{(malaCoupledChain\ U\ h\ μ\ n).map\ Prod.fst\ =\ (ulaLawStep\ U\ h)\textasciicircum{}[n]\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}fst}: the argument uses \texttt{induction n with}; the intermediate fact is \texttt{hdiag}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}fst}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}id}, \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}fst}.
+\end{leanbox}
 
 \section{\texorpdfstring{The second iterated marginal}{The second iterated marginal}}
 
@@ -192,6 +384,18 @@ At zero the second marginal is \(\pi\). The successor marginal theorem gives \(M
 
 The same induction applies to the second marginal with the MALA transition. When initialized at Gibbs and combined with detailed-balance invariance, this marginal remains Gibbs at every step, even while its first component evolves by unadjusted Euler proposals.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain\_\allowbreak{}snd}}
+\leansource{\texttt{malaCoupledChain\_\allowbreak{}snd} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 208–221}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledChain\_snd\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(π\ :\ Measure\ H)\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(hstationary\ :\ malaOneStep\ U\ h\ π\ =\ π)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(malaCoupledChain\ U\ h\ π\ n).map\ Prod.snd\ =\ π}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}snd}: the argument uses \texttt{induction n with}; the intermediate fact is \texttt{hdiag}, in source order; the source steps apply or rewrite \texttt{Measure.\allowbreak{}map\_\allowbreak{}map}, \texttt{measurable\_\allowbreak{}snd}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}id}, \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}snd}.
+\end{leanbox}
 
 \section{\texorpdfstring{Nonexpansion of common-noise proposals}{Nonexpansion of common-noise proposals}}
 
@@ -202,6 +406,18 @@ Shared noise cancels in \(T_h(x,\xi)-T_h(y,\xi)\). The sharp strong-convexity/\a
 
 Use the sharp gradient-step estimate before taking expectations. In the admissible small-step regime its factor is at most one, and the common additive Gaussian cancels. This yields the pointwise nonexpansiveness required to accumulate rejection errors additively.
 
+\begin{leanbox}{Lean: \texttt{malaProposal\_\allowbreak{}nonexpansive}}
+\leansource{\texttt{malaProposal\_\allowbreak{}nonexpansive} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 224–237}
+\begin{leancode}
+\leanline{0}{theorem\ malaProposal\_nonexpansive\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ y\ ξ\ :\ H)\ :}
+\leanline{4}{‖malaProposal\ U\ h\ x\ ξ\ -\ malaProposal\ U\ h\ y\ ξ‖\ ≤\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Proposal\_\allowbreak{}nonexpansive}: the intermediate facts include \texttt{hc}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{Subsingleton.\allowbreak{}elim}, \texttt{hc.\allowbreak{}trans}, \texttt{mul\_\allowbreak{}nonneg}, \texttt{hm.\allowbreak{}le}, \texttt{norm\_\allowbreak{}nonneg}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The pointwise coupled-step discrepancy}{The pointwise coupled-step discrepancy}}
 
@@ -212,6 +428,21 @@ The accepted distance is at most \(\|x-y\|\) by nonexpansiveness. On rejection, 
 
 On rejection, \(\|T_h(x,\xi)-y\|\le\|T_h(x,\xi)-T_h(y,\xi)\|+\|T_h(y,\xi)-y\|\). On acceptance only the first term remains. Weighting both alternatives gives the old distance plus the rejection-weighted displacement at the second state.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep\_\allowbreak{}pointwise}}
+\leansource{\texttt{malaCoupledStep\_\allowbreak{}pointwise} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 241–260}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledStep\_pointwise\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (x\ y\ ξ\ :\ H)\ :}
+\leanline{4}{malaProposalAcceptance\ U\ h\ (y,ξ)\ *}
+\leanline{8}{‖malaProposal\ U\ h\ x\ ξ\ -\ malaProposal\ U\ h\ y\ ξ‖\ +}
+\leanline{6}{(1\ -\ malaProposalAcceptance\ U\ h\ (y,ξ))\ *\ ‖malaProposal\ U\ h\ x\ ξ\ -\ y‖\ ≤}
+\leanline{6}{‖x-y‖\ +\ malaRejectionDisplacement\ U\ h\ y\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}pointwise}: the intermediate facts include \texttt{ha0}, \texttt{ha1}, \texttt{ht}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{sub\_\allowbreak{}add\_\allowbreak{}sub\_\allowbreak{}cancel}, \texttt{norm\_\allowbreak{}add\_\allowbreak{}le}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The mean separation of a coupled pair}{The mean separation of a coupled pair}}
 
@@ -222,6 +453,15 @@ Define \(\mathcal C(\rho)=\int\|x-y\|d\rho\) as a nonnegative extended integral.
 
 The cost here is a first moment, \(\int\|x-y\|\), suited to comparing characteristic functions. It is different from the square-root second-moment cost defining \(W_2\). The stationarity argument needs only that this first-moment separation tends to zero.
 
+\begin{leanbox}{Lean: \texttt{malaL1Cost}}
+\leansource{\texttt{malaL1Cost} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 263–264}
+\begin{leancode}
+\leanline{0}{def\ malaL1Cost\ (ρ\ :\ Measure\ (H\ ×\ H))\ :\ ℝ≥0∞\ :=}
+\leanline{2}{∫⁻\ p,\ ENNReal.ofReal\ ‖p.1-p.2‖\ ∂ρ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}L1\allowbreak{}Cost} is a definition with defining expression \texttt{\ensuremath{\int}\ensuremath{{}^{-}} p, ENNReal.\allowbreak{}of\allowbreak{}Real \ensuremath{\Vert}p.\allowbreak{}1-\allowbreak{}p.\allowbreak{}2\ensuremath{\Vert} \ensuremath{\partial}\ensuremath{\rho}}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrating a mapped weighted measure}{Integrating a mapped weighted measure}}
 
@@ -232,6 +472,18 @@ Pull an extended nonnegative integral through a measurable pushforward, then thr
 
 For a nonnegative test, the weighted pushforward change-of-variables formula is valid without a prior finiteness assumption. This permits an exact calculation of coupled cost before proving finiteness of the mean rejection contribution.
 
+\begin{leanbox}{Lean: \texttt{lintegral\_\allowbreak{}weighted\_\allowbreak{}map}}
+\leansource{\texttt{lintegral\_\allowbreak{}weighted\_\allowbreak{}map} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 266–276}
+\begin{leancode}
+\leanline{0}{private\ theorem\ lintegral\_weighted\_map\ \{A\ B\ :\ Type*\}\ [MeasurableSpace\ A]\ [MeasurableSpace\ B]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (f\ :\ A\ →\ B)\ (hf\ :\ Measurable\ f)\ (a\ :\ A\ →\ ℝ)}
+\leanline{4}{(ha\ :\ Measurable\ a)\ (ha0\ :\ ∀\ x,\ 0\ ≤\ a\ x)\ (b\ :\ B\ →\ ℝ)\ (hb\ :\ Measurable\ b)\ :}
+\leanline{4}{(∫⁻\ z,\ ENNReal.ofReal\ (b\ z)\ ∂(μ.withDensity\ (fun\ x\ ↦\ ENNReal.ofReal\ (a\ x))).map\ f)\ =}
+\leanline{6}{∫⁻\ x,\ ENNReal.ofReal\ (a\ x\ *\ b\ (f\ x))\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lintegral\_\allowbreak{}weighted\_\allowbreak{}map}: the intermediate fact is \texttt{hbf}, in source order; the source steps apply or rewrite \texttt{lintegral\_\allowbreak{}map}, \texttt{hb.\allowbreak{}ennreal\_\allowbreak{}of\allowbreak{}Real}, \texttt{lintegral\_\allowbreak{}congr}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}mul}.
+\end{leanbox}
 
 \section{\texorpdfstring{The exact coupled-step cost formula}{The exact coupled-step cost formula}}
 
@@ -242,6 +494,22 @@ Apply the change-of-variables formula for the weighted pushforward to accepted a
 
 Expand the two weighted pushforwards against the distance test. The accepted distance is between the two proposals; the rejected distance is between the ULA proposal and the old MALA state. Both use the same Gaussian variable, so the common-noise estimate applies inside the integral.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep\_\allowbreak{}cost\_\allowbreak{}formula}}
+\leansource{\texttt{malaCoupledStep\_\allowbreak{}cost\_\allowbreak{}formula} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 278–311}
+\begin{leancode}
+\leanline{0}{private\ theorem\ malaCoupledStep\_cost\_formula\ (U\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ρ\ :\ Measure\ (H\ ×\ H))\ :}
+\leanline{4}{malaL1Cost\ (malaCoupledStep\ U\ h\ ρ)\ =}
+\leanline{6}{∫⁻\ p\ :\ (H\ ×\ H)\ ×\ H,\ ENNReal.ofReal}
+\leanline{8}{(malaProposalAcceptance\ U\ h\ (p.1.2,p.2)\ *}
+\leanline{10}{‖malaProposal\ U\ h\ p.1.1\ p.2\ -\ malaProposal\ U\ h\ p.1.2\ p.2‖\ +}
+\leanline{10}{(1-malaProposalAcceptance\ U\ h\ (p.1.2,p.2))\ *}
+\leanline{10}{‖malaProposal\ U\ h\ p.1.1\ p.2-p.1.2‖)\ ∂ρ.prod\ (stdGaussian\ H)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}cost\_\allowbreak{}formula}: the intermediate facts include \texttt{hp}, \texttt{h\allowbreak{}F}, \texttt{h\allowbreak{}G}, \texttt{hpx}, \texttt{hpy}, in source order; the source steps apply or rewrite \texttt{lintegral\_\allowbreak{}add\_\allowbreak{}measure}, \texttt{lintegral\_\allowbreak{}add\_\allowbreak{}left}, \texttt{ha.\allowbreak{}mul}, \texttt{hpx.\allowbreak{}sub}, \texttt{ennreal\_\allowbreak{}of\allowbreak{}Real}.
+\end{leanbox}
 
 \section{\texorpdfstring{A one-step cost bound}{A one-step cost bound}}
 
@@ -252,6 +520,22 @@ Integrate the pointwise coupling bound. The old distance integrates to \(\mathca
 
 After integration, the proposal-contraction term contributes at most the old expected distance. The rejection term depends only on the second marginal and fresh Gaussian noise; if that marginal is Gibbs, the uniform local bound contributes at most \(C_{U,L}h^{3/2}\).
 
+\begin{leanbox}{Lean: \texttt{malaCoupledStep\_\allowbreak{}cost\_\allowbreak{}le}}
+\leansource{\texttt{malaCoupledStep\_\allowbreak{}cost\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 314–367}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledStep\_cost\_le\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(ρ\ :\ Measure\ (H\ ×\ H))\ [IsProbabilityMeasure\ ρ]}
+\leanline{4}{(hsnd\ :\ ρ.map\ Prod.snd\ =\ gibbsMeasure\ U)\ :}
+\leanline{4}{malaL1Cost\ (malaCoupledStep\ U\ h\ ρ)\ ≤\ malaL1Cost\ ρ\ +}
+\leanline{6}{ENNReal.ofReal\ (malaRejectionConstant\ U\ L\ *\ h\ *\ Real.sqrt\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}cost\_\allowbreak{}le}: the intermediate facts include \texttt{hd}, \texttt{h\allowbreak{}U}, \texttt{hg}, \texttt{hold}, \texttt{hrej}, in source order; the source steps apply or rewrite \texttt{hc.\allowbreak{}measurable}, \texttt{Measure.\allowbreak{}map\_\allowbreak{}prod\_\allowbreak{}map}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real}, \texttt{mala\allowbreak{}Coupled\allowbreak{}Step\_\allowbreak{}cost\_\allowbreak{}formula}, \texttt{lintegral\_\allowbreak{}add\_\allowbreak{}left}. The \texttt{calc} block checks the successive equalities or inequalities in the argument.
+\end{leanbox}
 
 \section{\texorpdfstring{The accumulated coupled-chain cost}{The accumulated coupled-chain cost}}
 
@@ -262,6 +546,21 @@ Induct from zero diagonal cost. The second marginal remains Gibbs by the supplie
 
 Starting from a diagonal pair, the initial cost is zero. Repeatedly applying \(c_{k+1}\le c_k+b_h\) gives \(c_n\le n b_h\), with \(b_h=C_{U,L}h^{3/2}\). On a fixed horizon this vanishes as the mesh tends to zero.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain\_\allowbreak{}cost\_\allowbreak{}le}}
+\leansource{\texttt{malaCoupledChain\_\allowbreak{}cost\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 371–395}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledChain\_cost\_le\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hstationary\ :\ malaOneStep\ U\ h\ (gibbsMeasure\ U)\ =\ gibbsMeasure\ U)\ (n\ :\ ℕ)\ :}
+\leanline{4}{malaL1Cost\ (malaCoupledChain\ U\ h\ (gibbsMeasure\ U)\ n)\ ≤}
+\leanline{6}{(n\ :\ ℝ≥0∞)\ *\ ENNReal.ofReal\ (malaRejectionConstant\ U\ L*h*Real.sqrt\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}cost\_\allowbreak{}le}: the argument uses \texttt{induction n with}; the intermediate facts include \texttt{hdiag}, \texttt{hd}, \texttt{hs}, \texttt{hb}, \texttt{hc}, in source order; the source steps apply or rewrite \texttt{lintegral\_\allowbreak{}map}, \texttt{hb.\allowbreak{}trans}, \texttt{Nat.\allowbreak{}cast\_\allowbreak{}one}, \texttt{add\_\allowbreak{}mul}, \texttt{one\_\allowbreak{}mul}.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrability of the coupled-chain distance}{Integrability of the coupled-chain distance}}
 
@@ -272,6 +571,21 @@ The quantitative extended cost estimate bounds \(\int\|x-y\|d\rho_n\) by a finit
 
 The nonnegative cost has a finite extended integral by the preceding explicit bound. Since the distance is measurable, this is precisely finiteness of its ordinary first moment. The signed characteristic-function calculation can therefore use subtraction of finite integrals.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain\_\allowbreak{}distance\_\allowbreak{}integrable}}
+\leansource{\texttt{malaCoupledChain\_\allowbreak{}distance\_\allowbreak{}integrable} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 399–412}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledChain\_distance\_integrable\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hstationary\ :\ malaOneStep\ U\ h\ (gibbsMeasure\ U)\ =\ gibbsMeasure\ U)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Integrable\ (fun\ p\ :\ H\ ×\ H\ ↦\ ‖p.1-p.2‖)}
+\leanline{6}{(malaCoupledChain\ U\ h\ (gibbsMeasure\ U)\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}distance\_\allowbreak{}integrable}: the intermediate fact is \texttt{hd}, in source order; the source steps apply or rewrite \texttt{hd.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{lt\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}lt}, \texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}cost\_\allowbreak{}le}.
+\end{leanbox}
 
 \section{\texorpdfstring{The ordinary integral cost estimate}{The ordinary integral cost estimate}}
 
@@ -282,5 +596,20 @@ The coupled distance is nonnegative and integrable by the preceding finite-cost 
 
 Identifying the ordinary expected distance with the finite nonnegative cost transfers the same bound to real expectations. The characteristic-function comparison with the continuous solution uses this finite first-moment estimate.
 
+\begin{leanbox}{Lean: \texttt{malaCoupledChain\_\allowbreak{}distance\_\allowbreak{}integral\_\allowbreak{}le}}
+\leansource{\texttt{malaCoupledChain\_\allowbreak{}distance\_\allowbreak{}integral\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}MALACoupling.lean, lines 416–437}
+\begin{leancode}
+\leanline{0}{theorem\ malaCoupledChain\_distance\_integral\_le\ (U\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (h1\ :\ h\ ≤\ 1)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hstationary\ :\ malaOneStep\ U\ h\ (gibbsMeasure\ U)\ =\ gibbsMeasure\ U)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(∫\ p\ :\ H\ ×\ H,\ ‖p.1-p.2‖\ ∂malaCoupledChain\ U\ h\ (gibbsMeasure\ U)\ n)\ ≤}
+\leanline{6}{(n\ :\ ℝ)\ *\ malaRejectionConstant\ U\ L\ *\ h\ *\ Real.sqrt\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Coupled\allowbreak{}Chain\_\allowbreak{}distance\_\allowbreak{}integral\_\allowbreak{}le}: the intermediate facts include \texttt{hb}, \texttt{h\allowbreak{}C}, \texttt{hrewrite}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}sqrt}, \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real\_\allowbreak{}iff}, \texttt{of\allowbreak{}Real\_\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}lintegral\_\allowbreak{}of\allowbreak{}Real}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 \end{document}

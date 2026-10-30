@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -28,8 +51,36 @@ View the supplied \(L^2\) functions as \(L^2\) vectors. Cauchy–Schwarz makes e
 
 For \(i\ne j\), independence and zero means give \(\langle\mathbb E X_i,\mathbb E X_j\rangle=0\). The diagonal terms are \(\mathbb E\|X_i\|^2\). For distinct indices \(i\ne j\), centering alone would not remove covariance; independence is required for this factorization. Products of \(L^2\) norms are integrable, which justifies the complete termwise identity.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}inner\_\allowbreak{}of\_\allowbreak{}memLp}, \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sum\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}independent}}
+\leansource{\texttt{integrable\_\allowbreak{}inner\_\allowbreak{}of\_\allowbreak{}memLp} \quad ProximalLangevin/\allowbreak{}MeanFieldVariance.lean, lines 28–34}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_inner\_of\_memLp\ \{X\ Y\ :\ Ω\ →\ E\}}
+\leanline{4}{(hX\ :\ MemLp\ X\ 2\ P)\ (hY\ :\ MemLp\ Y\ 2\ P)\ :}
+\leanline{4}{Integrable\ (fun\ ω\ =>\ {\leanfallback ⟪}X\ ω,Y\ ω{\leanfallback ⟫})\ P}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sum\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}independent} \quad ProximalLangevin/\allowbreak{}MeanFieldVariance.lean, lines 38–62}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_norm\_sum\_sq\_centered\_independent}
+\leanline{4}{\{ι\ :\ Type*\}\ [Fintype\ ι]\ (X\ :\ ι\ →\ Ω\ →\ E)}
+\leanline{4}{(hX\ :\ ∀\ i,\ MemLp\ (X\ i)\ 2\ P)\ (hind\ :\ iIndepFun\ X\ P)}
+\leanline{4}{(hmean\ :\ ∀\ i,\ (∫\ ω,X\ i\ ω\ ∂P)=0)\ :}
+\leanline{4}{(∫\ ω,\ ‖∑\ i,\ X\ i\ ω‖\textasciicircum{}2\ ∂P)\ =\ ∑\ i,\ ∫\ ω,\ ‖X\ i\ ω‖\textasciicircum{}2\ ∂P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Expand the Hilbert square as \(\|\sum_iX_i\|^2=\sum_{i,j}\langle X_i,X_j\rangle\). Each mixed product is integrable by the \(L^2\) inner-product bound, which justifies moving the finite double sum through the integral. For \(i\ne j\), independence factors \(\mathbb E\langle X_i,X_j\rangle\) into \(\langle\mathbb EX_i,\mathbb EX_j\rangle=0\). For \(i=j\), it is \(\mathbb E\|X_i\|^2\). The local facts \texttt{hint}, \texttt{hcross} and \texttt{hexpand} establish these prerequisites and identities separately. Centering without independence would leave the off-diagonal covariances.
 
 
+
+Formal correspondence: integrable\_inner\_of\_memLp : Every inner product of two \(L^2\) random variables is integrable. integral\_norm\_sum\_sq\_centered\_independent : Centered independent Hilbert-valued samples have exactly additive second moments. Independence is used for each mixed term.
+
+
+
+\texttt{integrable\_\allowbreak{}inner\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp}: the intermediate fact is \texttt{h}, in source order; the source steps apply or rewrite \texttt{h.\allowbreak{}congr}.
+
+
+
+\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sum\_\allowbreak{}sq\_\allowbreak{}centered\_\allowbreak{}independent}: the cases are separated by \texttt{by\_\allowbreak{}cases hij : i=j}; the intermediate facts include \texttt{hint}, \texttt{hcross}, \texttt{h}, \texttt{hexpand}, in source order; the source steps apply or rewrite \texttt{ite\_\allowbreak{}true}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}comm}, \texttt{integral\_\allowbreak{}finset\allowbreak{}Sum}, \texttt{integrable\_\allowbreak{}finset\allowbreak{}Sum}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026IPLA}.
@@ -51,8 +102,47 @@ The root mean square sampling factor is \(N^{-1/2}\). This variance identity is 
 
 Indeed let \(C_i=\phi(X_i)-\mathbb E\phi\). Its average is \(N^{-1}\sum_iC_i\), the expected squared sum is \(N\mathbb E\|C_1\|^2\), and the averaging prefactor is \(N^{-2}\). Their product is \(N^{-1}\mathbb E\|C_1\|^2\). Taking square roots gives \(1/\sqrt N\). Independence here comes from the finite product construction, rather than an assumption about interacting particle states.
 
+\begin{leanbox}{Lean: \texttt{empiricalAverage}, \texttt{iid\_\allowbreak{}empirical\_\allowbreak{}variance}, \texttt{iid\_\allowbreak{}empirical\_\allowbreak{}rms}}
+\leansource{\texttt{empiricalAverage} \quad ProximalLangevin/\allowbreak{}MeanFieldVariance.lean, lines 67–70}
+\begin{leancode}
+\leanline{0}{def\ empiricalAverage\ \{N\ :\ ℕ\}\ \{A\ E\ :\ Type*\}\ [AddCommMonoid\ E]\ [Module\ ℝ\ E]}
+\leanline{4}{(φ\ :\ A\ →\ E)\ (x\ :\ Fin\ N\ →\ A)\ :\ E\ :=\ (N\ :\ ℝ)⁻¹\ •\ ∑\ i,φ\ (x\ i)}
+\leanline{0}{\strut}
+\leanline{0}{section\ ProductVariance}
+\end{leancode}
+\leansource{\texttt{iid\_\allowbreak{}empirical\_\allowbreak{}variance} \quad ProximalLangevin/\allowbreak{}MeanFieldVariance.lean, lines 80–124}
+\begin{leancode}
+\leanline{0}{theorem\ iid\_empirical\_variance\ \{N\ :\ ℕ\}\ (hN\ :\ 0<N)\ :}
+\leanline{4}{(∫\ x\ :\ Fin\ N\ →\ A,\ ‖empiricalAverage\ φ\ x-(∫\ a,φ\ a\ ∂μ)‖\textasciicircum{}2}
+\leanline{6}{∂Measure.pi\ (fun\ \_\ :\ Fin\ N\ =>\ μ))\ =}
+\leanline{6}{(∫\ a,‖φ\ a-(∫\ b,φ\ b\ ∂μ)‖\textasciicircum{}2\ ∂μ)/(N\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{iid\_\allowbreak{}empirical\_\allowbreak{}rms} \quad ProximalLangevin/\allowbreak{}MeanFieldVariance.lean, lines 127–131}
+\begin{leancode}
+\leanline{0}{theorem\ iid\_empirical\_rms\ \{N\ :\ ℕ\}\ (hN\ :\ 0<N)\ :}
+\leanline{4}{Real.sqrt\ (∫\ x\ :\ Fin\ N\ →\ A,‖empiricalAverage\ φ\ x-(∫\ a,φ\ a\ ∂μ)‖\textasciicircum{}2}
+\leanline{6}{∂Measure.pi\ (fun\ \_\ :\ Fin\ N\ =>\ μ))\ =}
+\leanline{4}{Real.sqrt\ (∫\ a,‖φ\ a-(∫\ b,φ\ b\ ∂μ)‖\textasciicircum{}2\ ∂μ)/Real.sqrt\ (N\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+On the explicit product probability \(P=\mu^{\otimes N}\), set \(C(a)=\varphi(a)-\mathbb E_\mu\varphi\) and \(X_i(\omega)=C(\omega_i)\). Measure-preserving coordinate evaluation proves that each \(X_i\) has the same finite second moment, zero mean and law, and the product construction proves their joint independence. The exact centered-mean identity is \[\frac1N\sum_i\varphi(\omega_i)-\mathbb E\varphi=\frac1N\sum_iX_i(\omega).\] Thus the previous variance identity gives \[\mathbb E_P\left\|\frac1N\sum_i\varphi(\omega_i)-\mathbb E\varphi\right\|^2=\frac{\mathbb E_\mu\|\varphi-\mathbb E\varphi\|^2}{N}.\] In the code, \texttt{h\allowbreak{}Xi}, \texttt{hind}, \texttt{hmean}, \texttt{hvar} and \texttt{hid} verify each of these assertions. Taking the nonnegative square root gives the RMS version.
 
 
+
+Formal correspondence: empiricalAverage : The empirical mean on the explicitly specified finite sample space. iid\_empirical\_variance : The actual iid finite product gives the exact centered empirical variance. All moments are Bochner integrals, including the mean used for centering. iid\_empirical\_rms : The same exact identity written as an RMS sampling error.
+
+
+
+\texttt{empirical\allowbreak{}Average} is a definition with defining expression \texttt{(N : \ensuremath{\mathbb R})\ensuremath{{}^{-1}} \ensuremath{\bullet} ∑ i,\ensuremath{\varphi} (x i)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{iid\_\allowbreak{}empirical\_\allowbreak{}variance}: the intermediate facts include \texttt{hn}, \texttt{C}, \texttt{h\allowbreak{}C}, \texttt{hsum}, \texttt{hid}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}sub}, \texttt{h\ensuremath{\varphi}.\allowbreak{}integrable}, \texttt{Fintype.\allowbreak{}card\_\allowbreak{}fin}, \texttt{integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{nsmul\_\allowbreak{}eq\_\allowbreak{}mul}. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}.
+
+
+
+\texttt{iid\_\allowbreak{}empirical\_\allowbreak{}rms}: the source steps apply or rewrite \texttt{iid\_\allowbreak{}empirical\_\allowbreak{}variance}, \texttt{Real.\allowbreak{}sqrt\_\allowbreak{}div}, \texttt{integral\_\allowbreak{}nonneg}, \texttt{sq\_\allowbreak{}nonneg}.
+\end{leanbox}
 
 \section{\texorpdfstring{The empirical parameter-gradient variance}{The empirical parameter-gradient variance}}
 
@@ -63,15 +153,37 @@ Assume \(N>0\), fix \(\theta\), and put \(\phi(x)=\nabla_\theta U(\theta,x)\). J
 
 This is the exact variance of the empirical parameter force. Its finite variance is derived from the gradient and latent-moment assumptions rather than postulated as an additional sampling-error bound.
 
+\begin{leanbox}{Lean: \texttt{iid\_\allowbreak{}parameterGradient\_\allowbreak{}variance}}
+\leansource{\texttt{iid\_\allowbreak{}parameterGradient\_\allowbreak{}variance} \quad ProximalLangevin/\allowbreak{}MeanFieldVariance.lean, lines 137–147}
+\begin{leancode}
+\leanline{0}{theorem\ iid\_parameterGradient\_variance\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dx)))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ :}
+\leanline{4}{(∫\ x\ :\ Fin\ N\ →\ EuclideanSpace\ ℝ\ (Fin\ dx),}
+\leanline{6}{‖empiricalAverage\ (parameterGradient\ U\ θ)\ x-meanFieldDrift\ U\ θ\ μ‖\textasciicircum{}2}
+\leanline{6}{∂Measure.pi\ (fun\ \_\ :\ Fin\ N\ =>\ μ))\ =}
+\leanline{6}{(∫\ x,‖parameterGradient\ U\ θ\ x-meanFieldDrift\ U\ θ\ μ‖\textasciicircum{}2\ ∂μ)/(N\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+For \(\varphi(x)=\nabla_\theta U(\theta,x)\), the parameter projection is nonexpansive and the full score is \(L\)-Lipschitz, so \(\varphi\) is \(L\)-Lipschitz in the latent variable. A latent law with finite second moment therefore makes this observable square integrable. Its Bochner mean is exactly \texttt{mean\allowbreak{}Field\allowbreak{}Drift}, so the general iid identity applies without assuming a separate variance bound for this particular gradient observable.
 
 
+
+Formal correspondence: iid\_parameterGradient\_variance : Exact iid empirical parameter-gradient variance for the actual joint potential. The copies are independent under the displayed finite product.
+
+
+
+\texttt{iid\_\allowbreak{}parameter\allowbreak{}Gradient\_\allowbreak{}variance}: the source steps apply or rewrite \texttt{iid\_\allowbreak{}empirical\_\allowbreak{}variance}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

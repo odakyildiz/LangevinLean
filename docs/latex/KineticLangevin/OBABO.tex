@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,61 +39,306 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-OBABO brackets a kick–drift–kick Hamiltonian step between two Ornstein–Uhlenbeck half steps. The module proves the composition and its reversal and cancellation identities for arbitrary supplied vectors. The Gaussian-law and convergence analysis is separate. Its thermostat coefficient is chosen so that the damping and fresh noise exactly preserve a target scalar velocity variance.
+Let \(\mathcal V\) be a real vector space (no norm is needed), \(F:\mathcal V\to\mathcal V\) a force field and phase points \(z=(v,x)\in\mathcal V\times\mathcal V\), velocity first. The OBABO integrator is the composition of five substeps: an Ornstein–Uhlenbeck velocity update \(O\) with damping \(\delta\), noise coefficient \(\sigma\) and a supplied noise vector \(\xi\); a half kick \(B_{h/2}\), which changes the velocity by \(-(h/2)F(x)\); a drift \(A_h\), which moves the position by \(hv\); a second half kick; and a second Ornstein–Uhlenbeck update with a new noise vector \(\xi'\). The three middle substeps form the velocity Verlet step.
 
 
 
-The five-stage chronology determines both deterministic reversibility and the placement of the two independent refresh noises. Its expanded identities are the starting point for the weighted contraction calculation.
+
+This section proves pathwise identities for these maps, for arbitrary supplied vectors: the expanded formula of one OBABO step; the inverse of each kick and drift; the conjugation of kicks and drifts by velocity reversal; the identity \(V_{-h}\circ V_h=\mathrm{id}\) for the Verlet step \(V_h\); the triviality of OBABO for \(h=0\), \(\delta=1\), \(\sigma=0\); the difference of two OBABO steps driven by the same noises, in which both noises cancel; and, for the standard damping \(\delta=e^{-\gamma h/2}\), the identity \(\delta^2u+\bigl(\sqrt{u(1-\delta^2)}\bigr)^2=u\), which expresses that each Ornstein–Uhlenbeck half step preserves the velocity variance \(u\). Probability laws of the noises and convergence of the scheme are treated in later sections.
 
 
-\section{\texorpdfstring{Define each subflow and compose \(O\)–\(B\)–\(A\)–\(B\)–\(O\)}{Define each subflow and compose O–B–A–B–O}}
+\section{\texorpdfstring{The substeps and the expanded OBABO step}{The substeps and the expanded OBABO step}}
 
 
-In velocity–position ordering, \(O(v,x)=(\delta v+\sigma\xi,x)\), \(B_h(v,x)=(v-hg(x),x)\), and \(A_h(v,x)=(v,x+hv)\). the OBABO update composes \(O,B_{h/2},A_h,B_{h/2},O\), using distinct noise arguments in the two thermostat steps. Expanding the nested definitions gives \(v_{1/2}=\delta v+\sigma\xi-hg(x)/2\), \(x^+=x+hv_{1/2}\), and \(v^+=\delta(v_{1/2}-hg(x^+)/2)+\sigma\xi'\). the expanded five-stage OBABO formula is proved by the defining formulas because this formula follows directly from the composition; the new-position force is structurally enforced.
+\textbf{Definitions.} For \(\delta,\sigma,h\in\mathbb R\), \(\xi\in\mathcal V\) and \(z=(v,x)\) put
+
+
+\[O_{\delta,\sigma,\xi}(v,x)=(\delta v+\sigma\xi,\;x),\qquad B_h(v,x)=(v-hF(x),\;x),\qquad A_h(v,x)=(v,\;x+hv),\]
+\[\Psi(z;\xi,\xi')=O_{\delta,\sigma,\xi'}\circ B_{h/2}\circ A_h\circ B_{h/2}\circ O_{\delta,\sigma,\xi}\,(z).\]
+
+
+\textbf{Claim.} With \(v_{1/2}=\delta v+\sigma\xi-\tfrac h2F(x)\) and \(x^+=x+h\,v_{1/2}\),
+
+
+\[\Psi\bigl((v,x);\xi,\xi'\bigr)=\Bigl(\delta\bigl(v_{1/2}-\tfrac h2F(x^+)\bigr)+\sigma\xi',\;x^+\Bigr).\]
+
+
+\textbf{Proof.} Apply the five maps in turn:
+
+
+\[\begin{aligned}
+(v,x)&\overset{O}{\mapsto}(\delta v+\sigma\xi,x)
+\overset{B_{h/2}}{\mapsto}(v_{1/2},x)\\
+&\overset{A_h}{\mapsto}(v_{1/2},x^+)
+\overset{B_{h/2}}{\mapsto}\bigl(v_{1/2}-\tfrac h2F(x^+),x^+\bigr)\\
+&\overset{O}{\mapsto}\Bigl(\delta\bigl(v_{1/2}-\tfrac h2F(x^+)\bigr)+\sigma\xi',x^+\Bigr).
+\qquad\square
+\end{aligned}\]
+
+
+The second kick uses the force at the new position \(x^+\). The two Ornstein–Uhlenbeck substeps use different noise vectors \(\xi\) and \(\xi'\), which in the stochastic scheme are independent standard Gaussian vectors.
+
+\begin{leanbox}{Lean: \texttt{ornsteinStep}, \texttt{kickStep}, \texttt{driftStep} and 2 more}
+\leansource{\texttt{ornsteinStep} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 21–22}
+\begin{leancode}
+\leanline{0}{def\ ornsteinStep\ (δ\ σ\ :\ ℝ)\ (ξ\ :\ E)\ (z\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{(δ\ •\ z.1\ +\ σ\ •\ ξ,\ z.2)}
+\end{leancode}
+\leansource{\texttt{kickStep} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 25–26}
+\begin{leancode}
+\leanline{0}{def\ kickStep\ (force\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{(z.1\ -\ h\ •\ force\ z.2,\ z.2)}
+\end{leancode}
+\leansource{\texttt{driftStep} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 29–30}
+\begin{leancode}
+\leanline{0}{def\ driftStep\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{(z.1,\ z.2\ +\ h\ •\ z.1)}
+\end{leancode}
+\leansource{\texttt{obaboStep} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 35–39}
+\begin{leancode}
+\leanline{0}{def\ obaboStep\ (force\ :\ E\ →\ E)\ (h\ δ\ σ\ :\ ℝ)\ (z\ :\ E\ ×\ E)}
+\leanline{4}{(ξ\ ξ'\ :\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{ornsteinStep\ δ\ σ\ ξ'}
+\leanline{4}{(kickStep\ force\ (h\ /\ 2)}
+\leanline{6}{(driftStep\ h\ (kickStep\ force\ (h\ /\ 2)\ (ornsteinStep\ δ\ σ\ ξ\ z))))}
+\end{leancode}
+\leansource{\texttt{obaboStep\_\allowbreak{}expanded} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 43–48}
+\begin{leancode}
+\leanline{0}{theorem\ obaboStep\_expanded\ (force\ :\ E\ →\ E)\ (h\ δ\ σ\ :\ ℝ)\ (z\ :\ E\ ×\ E)}
+\leanline{4}{(ξ\ ξ'\ :\ E)\ :}
+\leanline{4}{obaboStep\ force\ h\ δ\ σ\ z\ ξ\ ξ'\ =}
+\leanline{6}{let\ vhalf\ :=\ δ\ •\ z.1\ +\ σ\ •\ ξ\ -\ (h\ /\ 2)\ •\ force\ z.2}
+\leanline{6}{let\ xnext\ :=\ z.2\ +\ h\ •\ vhalf}
+\leanline{6}{(δ\ •\ (vhalf\ -\ (h\ /\ 2)\ •\ force\ xnext)\ +\ σ\ •\ ξ',\ xnext)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The section only assumes that \texttt{E} is a real vector space (instances \texttt{[Add\allowbreak{}Comm\allowbreak{}Group E] [Module \ensuremath{\mathbb R} E]}). \texttt{ornstein\allowbreak{}Step \ensuremath{\delta} \ensuremath{\sigma} \ensuremath{\xi} z}, \texttt{kick\allowbreak{}Step force h z} and \texttt{drift\allowbreak{}Step h z} are the maps \(O_{\delta,\sigma,\xi}\), \(B_h\) and \(A_h\), and \texttt{obabo\allowbreak{}Step force h \ensuremath{\delta} \ensuremath{\sigma} z \ensuremath{\xi} \ensuremath{\xi}'} is their composition \(\Psi\), with the first noise \texttt{\ensuremath{\xi}} used by the first thermostat. In \texttt{obabo\allowbreak{}Step\_\allowbreak{}expanded} the intermediate quantities are introduced by \texttt{let vhalf := …} and \texttt{let xnext := …}, the \(v_{1/2}\) and \(x^+\) of the claim; the statement is a definitional equality, proved by \texttt{rfl}.
+\end{leanbox}
+
+\section{\texorpdfstring{Inverses of the kick and drift and velocity reversal}{Inverses of the kick and drift and velocity reversal}}
+
+
+\textbf{Definition.} The velocity reversal is \(R(v,x)=(-v,x)\).
 
 
 
-The first and last thermostat stages and both force kicks have half the step length; the position drift has the entire step length. In this order, the second force evaluation occurs after the position update. The composition is symmetric in its deterministic stages.
 
-
-\section{\texorpdfstring{Reverse the deterministic kick and drift}{Reverse the deterministic kick and drift}}
-
-
-The kick leaves position fixed, so subtracting \(hg(x)\) and then adding it cancels exactly. The drift leaves velocity fixed, so adding \(hv\) and then subtracting it also cancels. Their inverse formulas hold for arbitrary real \(h\) and arbitrary force, with no smoothness assumption. Velocity reversal negates velocity and keeps position; applying it twice is the identity. Conjugating a kick or drift by this reversal changes \(h\) to \(-h\). Equality of the velocity and position components, with these scalar signs, proves the reversal identities.
-
-
-
-A kick changes velocity while holding position fixed, so reversing its step size gives its inverse. A drift changes position while holding velocity fixed and has the same property. These triangular maps are the elementary reversible pieces used to build the Hamiltonian proposal.
-
-
-\section{\texorpdfstring{The palindromic Hamiltonian composition has an exact inverse}{The palindromic Hamiltonian composition has an exact inverse}}
-
-
-The velocity-Verlet map is \(B_{h/2}A_hB_{h/2}\). To invert it, reverse the order and invert each factor. Since the composition is palindromic, this is precisely \(B_{-h/2}A_{-h}B_{-h/2}\). The proof expands the two compositions, rewrites \((-h)/2=-(h/2)\), and cancels the three adjacent inverse pairs with the preceding lemmas. The OBABO zero-time theorem separately checks that \(h=0,\delta=1,\sigma=0\) makes every substep the identity. Reversal of the deterministic map alone does not assert reversibility of a stochastic transition with a particular probability density.
+\textbf{Claim.} For all \(h\in\mathbb R\) and \(z\in\mathcal V\times\mathcal V\):
+(i) \(B_{-h}(B_hz)=z\) and \(A_{-h}(A_hz)=z\);
+(ii) \(R(Rz)=z\);
+(iii) \(R(B_h(Rz))=B_{-h}z\) and \(R(A_h(Rz))=A_{-h}z\).
 
 
 
-Velocity reversal changes the sign of the drift direction and interchanges forward and backward kicks. The symmetry of the Verlet composition therefore gives its inverse under velocity reversal. This reversibility identity holds for any force; conservation of the true Hamiltonian is a separate question.
 
-
-\section{\texorpdfstring{Synchronous noises cancel while the new forces remain}{Synchronous noises cancel while the new forces remain}}
-
-
-Apply two OBABO steps with the same \(\xi,\xi'\). The difference of half velocities is \(a=\delta\Delta v-h(g(x)-g(y))/2\). Thus \(\Delta x^+=\Delta x+ha\). The final shared refresh cancels too, leaving \(\Delta v^+=\delta(a-h(g(x^+)-g(y^+))/2)\). The proof unfolds all subflows, proves the velocity and position identities as a conjunction, and normalizes vector expressions with vector-space algebra. Although additive noises disappear explicitly from the difference, the new positions still depend on the common first noise. The identity preserves their force evaluations instead of treating them as old-position gradients.
+\textbf{Proof.} Let \(z=(v,x)\). (i) \(B_{-h}(v-hF(x),x)=(v-hF(x)+hF(x),x)=(v,x)\), because the kick does not change the position at which the force is evaluated. \(A_{-h}(v,x+hv)=(v,x+hv-hv)=(v,x)\), because the drift does not change the velocity. (ii) \(-(-v)=v\). (iii) \(R(B_h(-v,x))=R(-v-hF(x),x)=(v+hF(x),x)=B_{-h}(v,x)\) and \(R(A_h(-v,x))=R(-v,x-hv)=(v,x-hv)=A_{-h}(v,x)\). \(\square\)
 
 
 
-The two trajectories use the same first thermostat innovation and the same second thermostat innovation. Their differences still contain forces at their respective updated positions. Thus cancellation of noise simplifies the comparison but does not linearize the nonlinear force.
+
+Statement (iii) says that reversing the velocity turns a kick or drift forward in time into the same substep backward in time; this is the algebraic form of the time reversibility of Hamiltonian dynamics.
+
+\begin{leanbox}{Lean: \texttt{kickStep\_\allowbreak{}neg}, \texttt{driftStep\_\allowbreak{}neg}, \texttt{reverseVelocity} and 3 more}
+\leansource{\texttt{kickStep\_\allowbreak{}neg} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 50–52}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ kickStep\_neg\ (force\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{kickStep\ force\ (-h)\ (kickStep\ force\ h\ z)\ =\ z}
+\end{leancode}
+\leansource{\texttt{driftStep\_\allowbreak{}neg} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 54–56}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ driftStep\_neg\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{driftStep\ (-h)\ (driftStep\ h\ z)\ =\ z}
+\end{leancode}
+\leansource{\texttt{reverseVelocity} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 59–59}
+\begin{leancode}
+\leanline{0}{def\ reverseVelocity\ (z\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=\ (-z.1,\ z.2)}
+\end{leancode}
+\leansource{\texttt{reverseVelocity\_\allowbreak{}twice} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 62–63}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ reverseVelocity\_twice\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{reverseVelocity\ (reverseVelocity\ z)\ =\ z}
+\end{leancode}
+\leansource{\texttt{reverseVelocity\_\allowbreak{}kick} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 65–68}
+\begin{leancode}
+\leanline{0}{theorem\ reverseVelocity\_kick\ (force\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{reverseVelocity\ (kickStep\ force\ h\ (reverseVelocity\ z))\ =}
+\leanline{6}{kickStep\ force\ (-h)\ z}
+\end{leancode}
+\leansource{\texttt{reverseVelocity\_\allowbreak{}drift} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 70–72}
+\begin{leancode}
+\leanline{0}{theorem\ reverseVelocity\_drift\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{reverseVelocity\ (driftStep\ h\ (reverseVelocity\ z))\ =\ driftStep\ (-h)\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
 
 
-\section{\texorpdfstring{Choose damping and prove the thermal variance identity}{Choose damping and prove the thermal variance identity}}
+\item \texttt{kick\allowbreak{}Step\_\allowbreak{}neg} and \texttt{drift\allowbreak{}Step\_\allowbreak{}neg} are (i); \texttt{reverse\allowbreak{}Velocity} is \(R\), \texttt{reverse\allowbreak{}Velocity\_\allowbreak{}twice} is (ii), and \texttt{reverse\allowbreak{}Velocity\_\allowbreak{}kick}, \texttt{reverse\allowbreak{}Velocity\_\allowbreak{}drift} are (iii). Each is proved coordinatewise by \texttt{ext <;> simp […]} after unfolding the definitions (with \texttt{add\_\allowbreak{}comm} for the kick).
+
+\item \texttt{omit [Module \ensuremath{\mathbb R} E] in} removes the scalar multiplication hypothesis for \texttt{reverse\allowbreak{}Velocity\_\allowbreak{}twice}, whose statement involves only negation.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The Verlet step has an exact inverse}{The Verlet step has an exact inverse}}
 
 
-The OU half-step damping is \(\delta=e^{-\gamma h/2}>0\). The exponential addition identity gives \(\delta^2=e^{-\gamma h}\). With \(\gamma,h\ge0\), this is at most one, so \(s^2=1-\delta^2\ge0\). For a target velocity variance \(u\ge0\), set \(\sigma=\sqrt{u(1-\delta^2)}\). Then \(\delta^2u+\sigma^2=u\). One proves positivity directly from positivity of the exponential, rewrites the square with the exponential addition formula, uses the nonpositive exponent to bound the exponential, and finally applies the square-root identity followed by expansion of the scalar polynomials. For independent centered input velocity and fresh Gaussian noise this is the scalar covariance balance; Gaussian-law preservation additionally uses those distributional facts.
+\textbf{Definition.} The velocity Verlet step is \(V_h=B_{h/2}\circ A_h\circ B_{h/2}\).
 
 
 
-With \(\delta=e^{-\gamma h/2}\), the deterministic variance contribution is \(\delta^2\). An independent standard Gaussian scaled by \(\sqrt{1-\delta^2}\) supplies the missing variance. Nonnegative \(\gamma h\) ensures that the square root is real and that thermostat is contractive.
 
+\textbf{Claim.} (i) For all \(h\) and \(z\), \(V_{-h}(V_hz)=z\).
+(ii) For every \(F\), \(z\), \(\xi\), \(\xi'\), the OBABO step with \(h=0\), \(\delta=1\), \(\sigma=0\) is the identity: \(\Psi(z;\xi,\xi')=z\).
+
+
+
+
+\textbf{Proof.} (i) Since \((-h)/2=-(h/2)\),
+
+
+\[V_{-h}\circ V_h=B_{-h/2}\circ A_{-h}\circ B_{-h/2}\circ B_{h/2}\circ A_h\circ B_{h/2}.\]
+
+
+By (i) of the previous step the innermost pair \(B_{-h/2}\circ B_{h/2}\) is the identity, then \(A_{-h}\circ A_h\), then \(B_{-h/2}\circ B_{h/2}\). (ii) With \(h=0\) the kicks and the drift are the identity, and with \(\delta=1\), \(\sigma=0\) so are both Ornstein–Uhlenbeck substeps. \(\square\)
+
+
+
+
+The Verlet step is palindromic, which is why running it with the negated step undoes it exactly. Combined with (iii) of the previous step it gives \(R\circ V_h\circ R=V_{-h}=V_h^{-1}\), the reversibility used for Metropolis corrections of Hamiltonian proposals.
+
+\begin{leanbox}{Lean: \texttt{verletStep}, \texttt{verletStep\_\allowbreak{}neg}, \texttt{obaboStep\_\allowbreak{}zero}}
+\leansource{\texttt{verletStep} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 76–77}
+\begin{leancode}
+\leanline{0}{def\ verletStep\ (force\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :\ E\ ×\ E\ :=}
+\leanline{2}{kickStep\ force\ (h\ /\ 2)\ (driftStep\ h\ (kickStep\ force\ (h\ /\ 2)\ z))}
+\end{leancode}
+\leansource{\texttt{verletStep\_\allowbreak{}neg} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 79–82}
+\begin{leancode}
+\leanline{0}{theorem\ verletStep\_neg\ (force\ :\ E\ →\ E)\ (h\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ :}
+\leanline{4}{verletStep\ force\ (-h)\ (verletStep\ force\ h\ z)\ =\ z}
+\end{leancode}
+\leansource{\texttt{obaboStep\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 84–86}
+\begin{leancode}
+\leanline{0}{theorem\ obaboStep\_zero\ (force\ :\ E\ →\ E)\ (z\ :\ E\ ×\ E)\ (ξ\ ξ'\ :\ E)\ :}
+\leanline{4}{obaboStep\ force\ 0\ 1\ 0\ z\ ξ\ ξ'\ =\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{verlet\allowbreak{}Step force h z} is \texttt{kick\allowbreak{}Step force (h /\allowbreak{} 2) (drift\allowbreak{}Step h (kick\allowbreak{}Step force (h /\allowbreak{} 2) z))}.
+
+\item \texttt{verlet\allowbreak{}Step\_\allowbreak{}neg} unfolds the definition and rewrites \((-h)/2\) as \(-(h/2)\) with \texttt{neg\_\allowbreak{}div}; then \texttt{rw [kick\allowbreak{}Step\_\allowbreak{}neg, drift\allowbreak{}Step\_\allowbreak{}neg, kick\allowbreak{}Step\_\allowbreak{}neg]} cancels the three pairs from the inside out, as in the proof.
+
+\item \texttt{obabo\allowbreak{}Step\_\allowbreak{}zero} is closed by \texttt{simp} after unfolding the five substeps.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Synchronous noises cancel in the difference of two steps}{Synchronous noises cancel in the difference of two steps}}
+
+
+\textbf{Claim.} Let \(z=(v,x)\), \(w=(v',x')\), \(h,\delta,\sigma\in\mathbb R\) and \(\xi,\xi'\in\mathcal V\). Put
+
+
+\[a=\delta(v-v')-\tfrac h2\bigl(F(x)-F(x')\bigr),\quad x^+=x+h\bigl(\delta v+\sigma\xi-\tfrac h2F(x)\bigr),\quad y^+=x'+h\bigl(\delta v'+\sigma\xi-\tfrac h2F(x')\bigr).\]
+
+
+Then the two OBABO steps \(\Psi(z;\xi,\xi')=(v^+,x^+)\) and \(\Psi(w;\xi,\xi')=(v'^+,y^+)\), driven by the same noises, satisfy
+
+
+\[v^+-v'^+=\delta\Bigl(a-\tfrac h2\bigl(F(x^+)-F(y^+)\bigr)\Bigr),\qquad x^+-y^+=x-x'+h\,a .\]
+
+
+\textbf{Proof.} By the expanded formula of the first step, the half-step velocities are \(v_{1/2}=\delta v+\sigma\xi-\frac h2F(x)\) and \(v'_{1/2}=\delta v'+\sigma\xi-\frac h2F(x')\); their difference is \(a\), the noise \(\sigma\xi\) cancelling. The new positions are \(x^+=x+hv_{1/2}\) and \(y^+=x'+hv'_{1/2}\), whose difference is \(x-x'+ha\). The new velocities are \(\delta(v_{1/2}-\frac h2F(x^+))+\sigma\xi'\) and \(\delta(v'_{1/2}-\frac h2F(y^+))+\sigma\xi'\); subtracting, \(\sigma\xi'\) cancels and the difference is \(\delta(a-\frac h2(F(x^+)-F(y^+)))\). \(\square\)
+
+
+
+
+Under a synchronous coupling both thermostat noises disappear from the difference, which therefore evolves deterministically; but the second kick still involves the forces at the new positions \(x^+\), \(y^+\), which depend on the noise \(\xi\). The contraction analysis of OBABO starts from this identity.
+
+\begin{leanbox}{Lean: \texttt{obaboStep\_\allowbreak{}synchronous}}
+\leansource{\texttt{obaboStep\_\allowbreak{}synchronous} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 91–101}
+\begin{leancode}
+\leanline{0}{theorem\ obaboStep\_synchronous\ (force\ :\ E\ →\ E)\ (h\ δ\ σ\ :\ ℝ)}
+\leanline{4}{(z\ w\ :\ E\ ×\ E)\ (ξ\ ξ'\ :\ E)\ :}
+\leanline{4}{let\ a\ :=\ δ\ •\ (z.1\ -\ w.1)\ -\ (h\ /\ 2)\ •\ (force\ z.2\ -\ force\ w.2)}
+\leanline{4}{let\ x\ :=\ z.2\ +\ h\ •\ (δ\ •\ z.1\ +\ σ\ •\ ξ\ -\ (h\ /\ 2)\ •\ force\ z.2)}
+\leanline{4}{let\ y\ :=\ w.2\ +\ h\ •\ (δ\ •\ w.1\ +\ σ\ •\ ξ\ -\ (h\ /\ 2)\ •\ force\ w.2)}
+\leanline{4}{(obaboStep\ force\ h\ δ\ σ\ z\ ξ\ ξ').1\ -\ (obaboStep\ force\ h\ δ\ σ\ w\ ξ\ ξ').1\ =}
+\leanline{6}{δ\ •\ (a\ -\ (h\ /\ 2)\ •\ (force\ x\ -\ force\ y))\ ∧}
+\leanline{4}{(obaboStep\ force\ h\ δ\ σ\ z\ ξ\ ξ').2\ -\ (obaboStep\ force\ h\ δ\ σ\ w\ ξ\ ξ').2\ =}
+\leanline{6}{z.2\ -\ w.2\ +\ h\ •\ a}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{obabo\allowbreak{}Step\_\allowbreak{}synchronous} introduces \(a\), \(x^+\), \(y^+\) by \texttt{let a := …}, \texttt{let x := …}, \texttt{let y := …} and states the two identities as a conjunction \texttt{∧}. The proof unfolds the substeps with \texttt{dsimp}, splits the conjunction with \texttt{constructor}, and proves both linear identities with \texttt{module}.
+\end{leanbox}
+
+\section{\texorpdfstring{The standard damping and the preservation of the velocity variance}{The standard damping and the preservation of the velocity variance}}
+
+
+\textbf{Definitions.} For \(\gamma,h\in\mathbb R\) put \(\delta=e^{-\gamma h/2}\) and \(\varsigma^2=1-\delta^2\).
+
+
+
+
+\textbf{Claim.} (i) \(\delta>0\) and \(\delta^2=e^{-\gamma h}\).
+(ii) If \(\gamma\ge0\) and \(h\ge0\), then \(1-\delta^2\ge0\).
+(iii) If \(\gamma\ge0\), \(h\ge0\) and \(u\ge0\), then
+
+
+\[\delta^2u+\Bigl(\sqrt{u\,(1-\delta^2)}\Bigr)^2=u .\]
+
+
+\textbf{Proof.} (i) The exponential is positive, and \(\delta^2=e^{-\gamma h/2}e^{-\gamma h/2}=e^{-\gamma h}\) by the addition formula. (ii) \(-\gamma h\le0\), so \(\delta^2=e^{-\gamma h}\le1\). (iii) By (ii) and \(u\ge0\), the radicand \(u(1-\delta^2)\) is nonnegative, so the square of its square root equals it; then \(\delta^2u+u(1-\delta^2)=u\). \(\square\)
+
+
+
+
+Interpretation: if a velocity coordinate has variance \(u\) and \(\xi\) is an independent standard Gaussian, then \(\delta v+\sqrt{u(1-\delta^2)}\,\xi\) again has variance \(\delta^2u+u(1-\delta^2)=u\). With \(u\) the inverse mass, this is the choice \(\sigma=\sqrt{u(1-e^{-\gamma h})}\) of the noise coefficient for which each half thermostat preserves the Gaussian velocity marginal; the identity itself is a statement about real numbers.
+
+\begin{leanbox}{Lean: \texttt{obaboDamping}, \texttt{obaboVariance}, \texttt{obaboDamping\_\allowbreak{}pos} and 3 more}
+\leansource{\texttt{obaboDamping} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 104–104}
+\begin{leancode}
+\leanline{0}{def\ obaboDamping\ (γ\ h\ :\ ℝ)\ :\ ℝ\ :=\ Real.exp\ (-γ\ *\ h\ /\ 2)}
+\end{leancode}
+\leansource{\texttt{obaboVariance} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 107–107}
+\begin{leancode}
+\leanline{0}{def\ obaboVariance\ (γ\ h\ :\ ℝ)\ :\ ℝ\ :=\ 1\ -\ obaboDamping\ γ\ h\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{obaboDamping\_\allowbreak{}pos} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 109–109}
+\begin{leancode}
+\leanline{0}{theorem\ obaboDamping\_pos\ (γ\ h\ :\ ℝ)\ :\ 0\ <\ obaboDamping\ γ\ h}
+\end{leancode}
+\leansource{\texttt{obaboDamping\_\allowbreak{}sq} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 111–114}
+\begin{leancode}
+\leanline{0}{theorem\ obaboDamping\_sq\ (γ\ h\ :\ ℝ)\ :\ obaboDamping\ γ\ h\ \textasciicircum{}\ 2\ =\ Real.exp\ (-γ\ *\ h)}
+\end{leancode}
+\leansource{\texttt{obaboVariance\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 116–120}
+\begin{leancode}
+\leanline{0}{theorem\ obaboVariance\_nonneg\ \{γ\ h\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{0\ ≤\ obaboVariance\ γ\ h}
+\end{leancode}
+\leansource{\texttt{obabo\_\allowbreak{}thermostat\_\allowbreak{}variance} \quad KineticLangevin/\allowbreak{}OBABO.lean, lines 123–128}
+\begin{leancode}
+\leanline{0}{theorem\ obabo\_thermostat\_variance\ \{γ\ h\ u\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hu\ :\ 0\ ≤\ u)\ :}
+\leanline{4}{obaboDamping\ γ\ h\ \textasciicircum{}\ 2\ *\ u\ +\ Real.sqrt\ (u\ *\ obaboVariance\ γ\ h)\ \textasciicircum{}\ 2\ =\ u}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{obabo\allowbreak{}Damping \ensuremath{\gamma} h} is \texttt{Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma} * h /\allowbreak{} 2)} and \texttt{obabo\allowbreak{}Variance \ensuremath{\gamma} h} is \texttt{1 -\allowbreak{} obabo\allowbreak{}Damping \ensuremath{\gamma} h \textasciicircum{} 2}.
+
+\item \texttt{obabo\allowbreak{}Damping\_\allowbreak{}pos} is \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos \_\allowbreak{}}; \texttt{obabo\allowbreak{}Damping\_\allowbreak{}sq} uses \texttt{pow\_\allowbreak{}two}, \texttt{← Real.\allowbreak{}exp\_\allowbreak{}add} and \texttt{ring} on the exponent.
+
+\item \texttt{obabo\allowbreak{}Variance\_\allowbreak{}nonneg} (hypotheses \texttt{h\ensuremath{\gamma} : 0 \ensuremath{\le} \ensuremath{\gamma}}, \texttt{hh : 0 \ensuremath{\le} h}) uses \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff} and \texttt{mul\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonneg} to show \(e^{-\gamma h}\le1\).
+
+\item \texttt{obabo\_\allowbreak{}thermostat\_\allowbreak{}variance} (additionally \texttt{hu : 0 \ensuremath{\le} u}) removes the square root with \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt}, whose side condition is \texttt{mul\_\allowbreak{}nonneg hu (obabo\allowbreak{}Variance\_\allowbreak{}nonneg h\ensuremath{\gamma} hh)}, and closes with \texttt{ring}.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,8 +55,37 @@ The splitting law is the pushforward of its \(L^2\) iterate. Change of variables
 
 Indeed the \(L^2\) state is sent into \(L^2\) by the linear projection. A deterministic center is an \(L^2\) constant under a probability measure, so their difference has finite second moment. These moment conclusions hold for every positive proximal scale before the more restrictive convergence-step condition is imposed.
 
+\begin{leanbox}{Lean: \texttt{pipglaLaws\_\allowbreak{}state\_\allowbreak{}memLp}, \texttt{pipglaLaws\_\allowbreak{}parameter\_\allowbreak{}memLp}}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}state\_\allowbreak{}memLp} \quad ProximalLangevin/\allowbreak{}SplittingProjection.lean, lines 31–39}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_state\_memLp\ (initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{MemLp\ (fun\ z\ :\ IPLA.State\ N\ dθ\ dx\ =>\ z)\ 2}
+\leanline{6}{(pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)}
+\end{leancode}
+\leansource{\texttt{pipglaLaws\_\allowbreak{}parameter\_\allowbreak{}memLp} \quad ProximalLangevin/\allowbreak{}SplittingProjection.lean, lines 42–51}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaLaws\_parameter\_memLp\ (initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{MemLp\ (fun\ z\ =>\ IPLA.parameterCLM\ z\ -\ θ)\ 2}
+\leanline{6}{(pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The law equals the pushforward of \texttt{lp\allowbreak{}Pipgla\allowbreak{}Chain}, so the identity observable under that law has a finite second moment. The continuous parameter projection preserves \(L^2\), and subtracting a constant center also preserves it because the law is a probability. These two declarations establish finiteness before the later comparison writes a real square-root integral.
 
 
+
+Formal correspondence: pipglaLaws\_state\_memLp : Every actual output law has a finite state second moment, without Gaussianity or a convergence assumption. pipglaLaws\_parameter\_memLp : The actual parameter error has finite second moment about every center.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}state\_\allowbreak{}mem\allowbreak{}Lp}: the intermediate fact is \texttt{X}, in source order; the source steps apply or rewrite \texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Law}, \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff}, \texttt{fun\_\allowbreak{}prop}, \texttt{Lp.\allowbreak{}mem\allowbreak{}Lp}.
+
+
+
+\texttt{pipgla\allowbreak{}Laws\_\allowbreak{}parameter\_\allowbreak{}mem\allowbreak{}Lp}: the intermediate fact is \texttt{h}, in source order; the source steps apply or rewrite \texttt{h.\allowbreak{}continuous\allowbreak{}Linear\allowbreak{}Map\_\allowbreak{}comp}, \texttt{IPLA.\allowbreak{}parameter\allowbreak{}CLM}, \texttt{mem\allowbreak{}Lp\_\allowbreak{}const}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}.
@@ -55,16 +107,46 @@ Changing the center by its deterministic displacement gives
 
 For each coupling the projection does not increase its quadratic cost, and the reference parameter error is bounded by \(\sqrt{d_\theta/(Nm)}\). Taking the coupling infimum gives the transport contribution. The center change is at most \(\sqrt{\eta K^2/m}\) by the finite smoothing gap. These operations use the same smoothed target, and the subsequent splitting transport theorem supplies the remaining numerical bound.
 
+\begin{leanbox}{Lean: \texttt{pipgla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original\_\allowbreak{}le\_\allowbreak{}transport}}
+\leansource{\texttt{pipgla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original\_\allowbreak{}le\_\allowbreak{}transport} \quad ProximalLangevin/\allowbreak{}SplittingProjection.lean, lines 58–104}
+\begin{leancode}
+\leanline{0}{theorem\ pipgla\_parameter\_rms\_original\_le\_transport}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ η\ lam\ γ\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hη\ :\ 0\ <\ η)\ (hlam\ :\ 0\ <\ lam)}
+\leanline{4}{(θU\ θη\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmaxU\ :\ IPLA.IsMarginalMaximizer\ (fun\ z\ =>\ g₁\ z\ +\ g₂\ z)\ θU)}
+\leanline{4}{(hmaxη\ :\ IPLA.IsMarginalMaximizer\ (smoothedPotential\ g₁\ g₂\ η)\ θη)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θU‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n))\ ≤}
+\leanline{6}{Real.sqrt\ (η\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ m)\ +}
+\leanline{6}{Real.sqrt\ ((dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{6}{ULA.wasserstein2Real}
+\leanline{8}{(pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)}
+\leanline{8}{(IPLA.gibbsTarget\ (smoothedPotential\ g₁\ g₂\ η))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipgla\_parameter\_rms\_original\_le\_transport : A rigorous original-center comparison for the actual PIPGLA law. The remaining transport term is its genuine Wasserstein distance to the smoothed Gibbs target; this statement alone is not a convergence rate.
 
+
+
+\texttt{pipgla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original\_\allowbreak{}le\_\allowbreak{}transport}: the intermediate facts include \texttt{V}, \texttt{\ensuremath{\rho}}, \texttt{h\allowbreak{}V}, \texttt{hmove}, \texttt{hdist}, in source order; the source steps apply or rewrite \texttt{IPLA.\allowbreak{}projected\allowbreak{}RMSReal\_\allowbreak{}eq\_\allowbreak{}sqrt\_\allowbreak{}integral}, \texttt{hmem.\allowbreak{}e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{norm\_\allowbreak{}sub\_\allowbreak{}rev}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ Scalar multiplication, subtraction and addition of \(L^{2}\) classes agree with 
 
 The affine parts of the corrected formula are evaluated using one common set of representatives. Their finite almost-everywhere identities can be intersected. This ensures the full vector equality, including signs and scalar coefficients, holds at each sample point outside one null set.
 
+\begin{leanbox}{Lean: \texttt{affineHessian\_\allowbreak{}lp\_\allowbreak{}coe}}
+\leansource{\texttt{affineHessian\_\allowbreak{}lp\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpKLMC2.lean, lines 12–20}
+\begin{leancode}
+\leanline{0}{theorem\ affineHessian\_lp\_coe\ (a\ b\ c\ d\ :\ ℝ)\ (V\ G\ HV\ N\ HN\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{(a\ •\ V-b\ •\ G-c\ •\ HV+d\ •\ (N-HN)\ :\ Lp\ E\ 2\ P)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ =>\ a\ •\ V\ ω-b\ •\ G\ ω-c\ •\ HV\ ω+d\ •\ (N\ ω-HN\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{affine\allowbreak{}Hessian\_\allowbreak{}lp\_\allowbreak{}coe} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The step and full chain}{The step and full chain}}
 
@@ -42,6 +75,31 @@ The lifted gradient has the original gradient as its representative. The proved 
 
 The random Hessian acts pointwise on both velocity and correction-noise representatives. Substituting its representative formula identifies every term of the four-response update. Induction then identifies the numerical sequence at every fixed iteration.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}klmc2Step\_\allowbreak{}coe}, \texttt{lp\_\allowbreak{}klmc2Chain\_\allowbreak{}coe}}
+\leansource{\texttt{lp\_\allowbreak{}klmc2Step\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpKLMC2.lean, lines 23–53}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_klmc2Step\_coe\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (N\ :\ Fin\ 4\ →\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (klmc2Step\ (ULA.lpDrift\ P\ g\ hG)\ (lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg)\ γ\ h\ S\ N)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ =>\ klmc2Step\ g\ H\ γ\ h\ (lpPhaseCoe\ P\ S\ ω)\ (fun\ j\ =>\ N\ j\ ω)}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}klmc2Chain\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpKLMC2.lean, lines 56–70}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_klmc2Chain\_coe\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (N\ :\ ℕ\ →\ Fin\ 4\ →\ Lp\ E\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (klmc2Chain\ (ULA.lpDrift\ P\ g\ hG)\ (lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg)\ γ\ h\ S\ N\ n)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ =>\ klmc2Chain\ g\ H\ γ\ h\ (lpPhaseCoe\ P\ S\ ω)\ (fun\ k\ j\ =>\ N\ k\ j\ ω)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}klmc2\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. The main intermediate facts are \texttt{G}, \texttt{A}, \texttt{pv}, \texttt{px}, \texttt{hv}, \texttt{hx} in that order. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\_\allowbreak{}klmc2\allowbreak{}Chain\_\allowbreak{}coe} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -55,13 +113,51 @@ Continuity of the original force and Hessian makes the full state-and-four-noise
 
 Measurability of the gradient, Hessian, and affine response operations makes the complete update measurable. Pushing the independent initialization-and-stream law through its recursion therefore gives the defined Markov law. The analytic Hilbert-space chain has exactly this law.
 
+\begin{leanbox}{Lean: \texttt{klmc2Step\_\allowbreak{}measurable}, \texttt{klmc2Chain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain}, \texttt{lp\_\allowbreak{}klmc2Chain\_\allowbreak{}law\_\allowbreak{}of\_\allowbreak{}jointLaw}}
+\leansource{\texttt{klmc2Step\_\allowbreak{}measurable} \quad KineticLangevin/\allowbreak{}LpKLMC2.lean, lines 74–79}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2Step\_measurable\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)}
+\leanline{4}{(hG\ :\ Continuous\ g)\ (hH\ :\ Continuous\ H)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (klmc2Step\ g\ H\ γ\ h))}
+\end{leancode}
+\leansource{\texttt{klmc2Chain\_\allowbreak{}eq\_\allowbreak{}noiseDrivenChain} \quad KineticLangevin/\allowbreak{}LpKLMC2.lean, lines 82–87}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2Chain\_eq\_noiseDrivenChain\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(S\ :\ E×E)\ (N\ :\ ℕ\ →\ Fin\ 4\ →\ E)\ (n\ :\ ℕ)\ :}
+\leanline{4}{klmc2Chain\ g\ H\ γ\ h\ S\ N\ n=ULA.noiseDrivenChain\ (klmc2Step\ g\ H\ γ\ h)\ S\ N\ n}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}klmc2Chain\_\allowbreak{}law\_\allowbreak{}of\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}LpKLMC2.lean, lines 90–102}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_klmc2Chain\_law\_of\_jointLaw\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ H)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (H\ x)\ x)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (N\ :\ ℕ\ →\ Fin\ 4\ →\ Lp\ E\ 2\ P)}
+\leanline{4}{(π\ :\ Measure\ (E×E))\ [IsProbabilityMeasure\ π]\ (η\ :\ Measure\ (Fin\ 4\ →\ E))\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hjoint\ :\ HasLaw\ (fun\ ω\ =>\ (lpPhaseCoe\ P\ S\ ω,fun\ k\ j\ =>\ N\ k\ j\ ω))}
+\leanline{6}{(π.prod\ (Measure.infinitePi\ (fun\ \_\ :\ ℕ\ =>\ η)))\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{P.map\ (lpPhaseCoe\ P\ (klmc2Chain\ (ULA.lpDrift\ P\ g\ hG)\ (lpHessian\ P\ g\ H\ M\ M2\ hG\ hH\ hg)\ γ\ h\ S\ N\ n))\ =}
+\leanline{6}{ULA.markovLaws\ (klmc2Step\ g\ H\ γ\ h)\ η\ π\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc2\allowbreak{}Step\_\allowbreak{}measurable} gives the formal counterpart of this step. Named proof applications include \texttt{Continuous.\allowbreak{}measurable}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{klmc2\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}noise\allowbreak{}Driven\allowbreak{}Chain} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{lp\_\allowbreak{}klmc2\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}of\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step. Named proof applications include \texttt{noise\allowbreak{}Driven\allowbreak{}Chain\_\allowbreak{}law\_\allowbreak{}of\_\allowbreak{}joint\allowbreak{}Law}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

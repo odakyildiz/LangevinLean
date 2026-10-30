@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,25 @@ Set \(D_v(t)=\int_0^te^{-\gamma(t-s)}(g(x_s)-g(x_0))ds\), and \(D_x(t)=\int_0^tD
 
 The comparison starts from the same phase and uses the same forcing. Every noise term therefore disappears from the error equation. What remains is the effect of replacing the exact moving force by its initial value, so the defect can be represented by an ordinary time integral.
 
+\begin{leanbox}{Lean: \texttt{velocityDefect}, \texttt{positionDefect}}
+\leansource{\texttt{velocityDefect} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 23–24}
+\begin{leancode}
+\leanline{0}{def\ velocityDefect\ (g\ :\ E\ →\ E)\ (x\ :\ ℝ\ →\ E)\ (γ\ t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ •\ (g\ (x\ s)\ -\ g\ (x\ 0))}
+\end{leancode}
+\leansource{\texttt{positionDefect} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 27–28}
+\begin{leancode}
+\leanline{0}{def\ positionDefect\ (g\ :\ E\ →\ E)\ (x\ :\ ℝ\ →\ E)\ (γ\ t\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{∫\ s\ in\ 0..t,\ velocityDefect\ g\ x\ γ\ s}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Defect} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{position\allowbreak{}Defect} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrating velocity gives a linear position increment}{Integrating velocity gives a linear position increment}}
 
@@ -42,6 +84,17 @@ Assume \(x_t-x_0=\int_0^tv_sds\), with \(\|v_s\|\le C\) on the horizon. The norm
 
 If velocity is bounded by \(R\) on the step, then \(\|x_s-x_0\|\le Rs\). This uses only the kinematic relation \(x_s-x_0=\int_0^sv_rdr\). It explains why the force variation is linear in elapsed time even though velocity may be Brownian-driven.
 
+\begin{leanbox}{Lean: \texttt{kinematic\_\allowbreak{}increment\_\allowbreak{}bound}}
+\leansource{\texttt{kinematic\_\allowbreak{}increment\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 32–41}
+\begin{leancode}
+\leanline{0}{theorem\ kinematic\_increment\_bound\ (x\ v\ :\ ℝ\ →\ E)\ (T\ C\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hkin\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ x\ s\ -\ x\ 0\ =\ ∫\ r\ in\ 0..s,\ v\ r)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :\ ‖x\ t\ -\ x\ 0‖\ ≤\ C\ *\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinematic\_\allowbreak{}increment\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb} in that order. Named proof applications include \texttt{hbound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrate a linear force increment to obtain the quadratic velocity defect}{Integrate a linear force increment to obtain the quadratic velocity defect}}
 
@@ -52,6 +105,19 @@ Lipschitzness gives \(\|g(x_s)-g(x_0)\|\le MCs\). With \(\gamma\ge0\) and \(s\le
 
 An \(M\)-Lipschitz force gives \(\|g(x_s)-g(x_0)\|\le MRs\). Dropping the exponential kernel only increases the integral when friction is nonnegative. Hence the velocity defect is bounded by \(MR\int_0^h s\,ds=MRh^2/2\).
 
+\begin{leanbox}{Lean: \texttt{velocityDefect\_\allowbreak{}bound}}
+\leansource{\texttt{velocityDefect\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 45–71}
+\begin{leancode}
+\leanline{0}{theorem\ velocityDefect\_bound\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(x\ v\ :\ ℝ\ →\ E)\ (γ\ T\ C\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hkin\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ x\ s\ -\ x\ 0\ =\ ∫\ r\ in\ 0..s,\ v\ r)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖velocityDefect\ g\ x\ γ\ t‖\ ≤\ (M\ :\ ℝ)\ *\ C\ *\ t\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Defect\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hint} in that order. Named proof applications include \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrate once more to obtain the cubic position defect}{Integrate once more to obtain the cubic position defect}}
 
@@ -62,6 +128,19 @@ Apply the proved velocity-defect bound at each intermediate time \(s\): \(\|D_v(
 
 For the position defect the first response is bounded by the remaining time: \(\psi_1(h-s)\le h-s\). Thus \(MR\int_0^h(h-s)s\,ds=MRh^3/6\). The extra integration is responsible for the one-higher power of the position error.
 
+\begin{leanbox}{Lean: \texttt{positionDefect\_\allowbreak{}bound}}
+\leansource{\texttt{positionDefect\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 75–95}
+\begin{leancode}
+\leanline{0}{theorem\ positionDefect\_bound\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(x\ v\ :\ ℝ\ →\ E)\ (γ\ T\ C\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hkin\ :\ ∀\ s\ ∈\ Icc\ 0\ T,\ x\ s\ -\ x\ 0\ =\ ∫\ r\ in\ 0..s,\ v\ r)}
+\leanline{4}{\{t\ :\ ℝ\}\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖positionDefect\ g\ x\ γ\ t‖\ ≤\ (M\ :\ ℝ)\ *\ C\ *\ t\ \textasciicircum{}\ 3\ /\ 6}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{position\allowbreak{}Defect\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hint} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The paper’s three-quarter transformed local constant}{The paper’s three-quarter transformed local constant}}
 
@@ -72,5 +151,20 @@ Put \(B=MCh^2\). The component bounds give \(\|D_v\|\le B/2\) and \(\|D_x\|\le B
 
 The transformed norm combines velocity and friction times position. Under the stated step restriction, the cubic position term is bounded by the remaining part of the quadratic velocity-error estimate. The resulting constant must be combined with exact-flow contraction before accumulating errors over many steps.
 
+\begin{leanbox}{Lean: \texttt{localDefect\_\allowbreak{}energy\_\allowbreak{}bound}}
+\leansource{\texttt{localDefect\_\allowbreak{}energy\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LocalError.lean, lines 100–133}
+\begin{leancode}
+\leanline{0}{theorem\ localDefect\_energy\_bound\ \{F\ :\ Type*\}\ [NormedAddCommGroup\ F]\ [InnerProductSpace\ ℝ\ F]}
+\leanline{4}{(g\ :\ F\ →\ F)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(x\ v\ :\ ℝ\ →\ F)\ (γ\ h\ C\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (hh\ :\ 0\ ≤\ h)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hsmall\ :\ γ\ *\ h\ ≤\ 1\ /\ 4)}
+\leanline{4}{(hbound\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖v\ s‖\ ≤\ C)}
+\leanline{4}{(hkin\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ x\ s\ -\ x\ 0\ =\ ∫\ r\ in\ 0..s,\ v\ r)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (velocityDefect\ g\ x\ γ\ h,\ positionDefect\ g\ x\ γ\ h)\ ≤}
+\leanline{6}{((3\ /\ 4\ :\ ℝ)\ *\ (M\ :\ ℝ)\ *\ C\ *\ h\ \textasciicircum{}\ 2)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{local\allowbreak{}Defect\_\allowbreak{}energy\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{B}, \texttt{h\allowbreak{}B}, \texttt{hv}, \texttt{hp}, \texttt{ht}, \texttt{hsum} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \end{document}

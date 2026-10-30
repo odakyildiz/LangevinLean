@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,20 @@ For deterministic points, strong convexity and Lipschitz gradient imply \(\|\nab
 
 Apply the finite-dimensional sector inequality at almost every sample point, then integrate. All pairings are integrable by Cauchy–Schwarz. The integrated inequality is precisely the Hilbert-space sector bound for square-integrable random vectors, with the original curvature constants unchanged.
 
+\begin{leanbox}{Lean: \texttt{lpDrift\_\allowbreak{}centered\_\allowbreak{}bound}}
+\leansource{\texttt{lpDrift\_\allowbreak{}centered\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LpContraction.lean, lines 25–43}
+\begin{leancode}
+\leanline{0}{theorem\ lpDrift\_centered\_bound}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(X\ Y\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{‖(ULA.lpDrift\ P\ (gradient\ f)\ hLip\ X\ -\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ Y)\ -}
+\leanline{6}{((m\ +\ (M\ :\ ℝ))\ /\ 2)\ •\ (X\ -\ Y)‖\ ≤\ ((M\ :\ ℝ)\ -\ m)\ /\ 2\ *\ ‖X\ -\ Y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Drift\_\allowbreak{}centered\_\allowbreak{}bound} gives the formal counterpart of this step. Named proof applications include \texttt{Lp.\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}norm\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{ULA.\allowbreak{}gradient\_\allowbreak{}difference\_\allowbreak{}centered\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.10.2]{LangevinLean2026ULASC}; \cite[Section~3.10.3]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -48,13 +85,54 @@ Two phase paths satisfy the kinetic integral equations with the lifted gradient 
 
 The shared-input random paths are viewed as paths in a Hilbert space of square-integrable variables. Their integral equations give the same right derivatives and energy identity as in the deterministic argument. The resulting norm contraction is a root-mean-square coupling estimate.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}energy\_\allowbreak{}decay}, \texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}transformNorm\_\allowbreak{}decay}}
+\leansource{\texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}energy\_\allowbreak{}decay} \quad KineticLangevin/\allowbreak{}LpContraction.lean, lines 47–102}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_kinetic\_integral\_energy\_decay}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\ \textasciicircum{}\ 2)}
+\leanline{4}{(Y\ Z\ B\ :\ ℝ\ →\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ (hY\ :\ Continuous\ Y)\ (hZ\ :\ Continuous\ Z)\ (T\ :\ ℝ)}
+\leanline{4}{(heY\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,}
+\leanline{6}{kineticNegativeDrift\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ 1\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(heZ\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Z\ t\ -\ Z\ 0\ =\ -(∫\ s\ in\ 0..t,}
+\leanline{6}{kineticNegativeDrift\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ 1\ (Z\ s))\ +\ B\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (Y\ t\ -\ Z\ t)\ ≤}
+\leanline{6}{transformEnergy\ γ\ 0\ (Y\ 0\ -\ Z\ 0)\ *\ Real.exp\ ((-2\ *\ m\ /\ γ)\ *\ t)}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}transformNorm\_\allowbreak{}decay} \quad KineticLangevin/\allowbreak{}LpContraction.lean, lines 105–127}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_kinetic\_integral\_transformNorm\_decay}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ γ\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hmM\ :\ m\ ≤\ (M\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ (γ\ :\ ℝ))\ (hfriction\ :\ m\ +\ (M\ :\ ℝ)\ ≤\ (γ\ :\ ℝ)\ \textasciicircum{}\ 2)}
+\leanline{4}{(Y\ Z\ B\ :\ ℝ\ →\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ (hY\ :\ Continuous\ Y)\ (hZ\ :\ Continuous\ Z)\ (T\ :\ ℝ)}
+\leanline{4}{(heY\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,}
+\leanline{6}{kineticNegativeDrift\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ 1\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(heZ\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Z\ t\ -\ Z\ 0\ =\ -(∫\ s\ in\ 0..t,}
+\leanline{6}{kineticNegativeDrift\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ 1\ (Z\ s))\ +\ B\ t)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (Y\ t\ -\ Z\ t)\ ≤}
+\leanline{6}{Real.exp\ ((-m\ /\ γ)\ *\ t)\ *\ transformNorm\ γ\ 0\ (Y\ 0\ -\ Z\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}energy\_\allowbreak{}decay} gives the formal counterpart of this step. The main intermediate facts are \texttt{G}, \texttt{h\allowbreak{}G}, \texttt{hd}, \texttt{F}, \texttt{hcont}, \texttt{hder} in that order. Named proof applications include \texttt{has\allowbreak{}Deriv\allowbreak{}Within\allowbreak{}At\_\allowbreak{}general\allowbreak{}Force\allowbreak{}Energy}, \texttt{he}, \texttt{hgr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\_\allowbreak{}kinetic\_\allowbreak{}integral\_\allowbreak{}transform\allowbreak{}Norm\_\allowbreak{}decay} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hexp} in that order. Named proof applications include \texttt{transform\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le}, \texttt{mul\_\allowbreak{}nonneg}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

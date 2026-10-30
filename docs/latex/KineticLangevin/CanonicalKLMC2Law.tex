@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,57 @@ The source contains independent standard Gaussian velocity and a vector Brownian
 
 The initial position is independent of the standard Gaussian velocity and the Brownian source. The four-response endpoint map is measurable and has the constructed stream as its input. Its pushforward defines the constructed KLMC2 position law without reference to a coupling.
 
+\begin{leanbox}{Lean: \texttt{SourceSample}, \texttt{sourceInnovation}, \texttt{sourceInnovation\_\allowbreak{}memLp} and 2 more}
+\leansource{\texttt{SourceSample} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 11–11}
+\begin{leancode}
+\leanline{0}{abbrev\ SourceSample\ :=\ H\ ι\ ×\ ULA.CanonicalBrownian.VectorSample\ ι}
+\end{leancode}
+\leansource{\texttt{sourceInnovation} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 14–15}
+\begin{leancode}
+\leanline{0}{def\ sourceInnovation\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ (p\ :\ SourceSample\ ι)\ :\ Fin\ 4\ →\ H\ ι\ :=}
+\leanline{2}{innovation\ ι\ γ\ h\ n\ p.2}
+\end{leancode}
+\leansource{\texttt{sourceInnovation\_\allowbreak{}memLp} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 17–19}
+\begin{leancode}
+\leanline{0}{theorem\ sourceInnovation\_memLp\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ (j\ :\ Fin\ 4)\ :}
+\leanline{4}{MemLp\ (fun\ p\ =>\ sourceInnovation\ ι\ γ\ h\ n\ p\ j)\ 2\ (GenericCanonicalSource.canonicalSourceProbability\ ι)}
+\end{leancode}
+\leansource{\texttt{law} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 22–25}
+\begin{leancode}
+\leanline{0}{def\ law\ (g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)}
+\leanline{4}{(μ\ :\ Measure\ (H\ ι))\ (n\ :\ ℕ)\ :\ Measure\ (H\ ι)\ :=}
+\leanline{2}{productKLMC2Law\ (GenericCanonicalSource.canonicalSourceProbability\ ι)\ g\ Hess\ γ\ h\ μ\ Prod.fst}
+\leanline{4}{(fun\ k\ =>\ sourceInnovation\ ι\ γ\ h\ k)\ n}
+\end{leancode}
+\leansource{\texttt{law\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 27–32}
+\begin{leancode}
+\leanline{0}{theorem\ law\_probability\ (g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)}
+\leanline{4}{(hG\ :\ Continuous\ g)\ (hH\ :\ Continuous\ Hess)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)}
+\leanline{4}{(μ\ :\ Measure\ (H\ ι))\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :\ IsProbabilityMeasure\ (law\ ι\ g\ Hess\ γ\ h\ μ\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Source\allowbreak{}Sample} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{source\allowbreak{}Innovation} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{source\allowbreak{}Innovation\_\allowbreak{}mem\allowbreak{}Lp} gives the formal counterpart of this step.
+
+
+
+
+\texttt{law} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{law\_\allowbreak{}probability} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}.
@@ -45,6 +119,31 @@ On phase-times-Brownian source, the initial phase is independent of the entire i
 
 The whole-stream product law implies that every next response block is independent of the history generated by the recursion. This is the precise hypothesis needed for iterated Markov transitions. Pushing the full input law through the recursion identifies the constructed and Markov descriptions.
 
+\begin{leanbox}{Lean: \texttt{initial\_\allowbreak{}innovation\_\allowbreak{}jointLaw}, \texttt{law\_\allowbreak{}eq\_\allowbreak{}markovLaws}}
+\leansource{\texttt{initial\_\allowbreak{}innovation\_\allowbreak{}jointLaw} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 35–43}
+\begin{leancode}
+\leanline{0}{theorem\ initial\_innovation\_jointLaw\ (μ\ :\ Measure\ (H\ ι))\ [IsProbabilityMeasure\ μ]\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{HasLaw\ (fun\ p\ :\ H\ ι\ ×\ SourceSample\ ι\ =>\ ((p.2.1,p.1),fun\ n\ =>\ innovation\ ι\ γ\ h\ n\ p.2.2))}
+\leanline{6}{(((stdGaussian\ (H\ ι)).prod\ μ).prod\ (Measure.infinitePi\ (fun\ \_\ :\ ℕ\ =>\ gaussianInnovationLaw\ ι\ γ\ h)))}
+\leanline{6}{(μ.prod\ (GenericCanonicalSource.canonicalSourceProbability\ ι))}
+\end{leancode}
+\leansource{\texttt{law\_\allowbreak{}eq\_\allowbreak{}markovLaws} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 46–69}
+\begin{leancode}
+\leanline{0}{theorem\ law\_eq\_markovLaws\ (g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)}
+\leanline{4}{(hG\ :\ Continuous\ g)\ (hH\ :\ Continuous\ Hess)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)}
+\leanline{4}{(μ\ :\ Measure\ (H\ ι))\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{law\ ι\ g\ Hess\ γ\ h\ μ\ n\ =}
+\leanline{6}{(ULA.markovLaws\ (klmc2Step\ g\ Hess\ γ\ h)\ (gaussianInnovationLaw\ ι\ γ\ h)}
+\leanline{8}{((stdGaussian\ (H\ ι)).prod\ μ)\ n).map\ Prod.snd}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{initial\_\allowbreak{}innovation\_\allowbreak{}joint\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{hj} in that order. Named proof applications include \texttt{hj.\allowbreak{}comp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{law\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws} gives the formal counterpart of this step. The main intermediate facts are \texttt{P}, \texttt{hs}, \texttt{hc}, \texttt{hl}, \texttt{hp} in that order. Named proof applications include \texttt{hp}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.4]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}.
@@ -58,6 +157,80 @@ The directly lifted Brownian convolutions and the generic independent-source noi
 
 The direct Brownian response lift and the generic source lift agree almost everywhere in each coordinate. With the same original gradient and random Hessian, their numerical updates coincide. This connects the constructed coupling variables to the single already defined sampler law.
 
+\begin{leanbox}{Lean: \texttt{extensionInnovation\_\allowbreak{}eq\_\allowbreak{}generic}, \texttt{numericalChain}, \texttt{numericalChain\_\allowbreak{}outputLaw} and 2 more}
+\leansource{\texttt{extensionInnovation\_\allowbreak{}eq\_\allowbreak{}generic} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 74–83}
+\begin{leancode}
+\leanline{0}{theorem\ extensionInnovation\_eq\_generic\ (c\ :\ ULA.Coupling\ μ\ π)\ (γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{extensionInnovation\ c\ γ\ h\ n\ =}
+\leanline{6}{extensionKLMC2Noise\ (GenericCanonicalSource.canonicalSourceProbability\ ι)\ c}
+\leanline{8}{(fun\ k\ =>\ sourceInnovation\ ι\ γ\ h\ k)\ (sourceInnovation\_memLp\ ι\ γ\ h)\ n}
+\end{leancode}
+\leansource{\texttt{numericalChain} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 86–94}
+\begin{leancode}
+\leanline{0}{def\ numericalChain\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ :\ ℕ\ →\ Lp\ (H\ ι)\ 2\ (GenericCanonicalCoupling.probability\ c)\ ×}
+\leanline{6}{Lp\ (H\ ι)\ 2\ (GenericCanonicalCoupling.probability\ c)\ :=}
+\leanline{2}{klmc2Chain\ (ULA.lpDrift\ (GenericCanonicalCoupling.probability\ c)\ g\ hG)}
+\leanline{4}{(lpHessian\ (GenericCanonicalCoupling.probability\ c)\ g\ Hess\ M\ M2\ hG\ hH\ hg)\ γ\ h}
+\leanline{4}{(GenericCanonicalCoupling.numericalInitial\ c\ hc\ hπ)\ (extensionInnovation\ c\ γ\ h)}
+\end{leancode}
+\leansource{\texttt{numericalChain\_\allowbreak{}outputLaw} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 97–109}
+\begin{leancode}
+\leanline{0}{theorem\ numericalChain\_outputLaw\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(GenericCanonicalCoupling.probability\ c).map\ (numericalChain\ c\ hc\ hπ\ g\ Hess\ M\ M2\ hG\ hH\ hg\ γ\ h\ n).2\ =}
+\leanline{6}{law\ ι\ g\ Hess\ γ\ h\ μ\ n}
+\end{leancode}
+\leansource{\texttt{numericalChain\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 112–117}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ numericalChain\_zero\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{numericalChain\ c\ hc\ hπ\ g\ Hess\ M\ M2\ hG\ hH\ hg\ γ\ h\ 0=GenericCanonicalCoupling.numericalInitial\ c\ hc\ hπ}
+\end{leancode}
+\leansource{\texttt{numericalChain\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 120–128}
+\begin{leancode}
+\leanline{0}{theorem\ numericalChain\_succ\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{numericalChain\ c\ hc\ hπ\ g\ Hess\ M\ M2\ hG\ hH\ hg\ γ\ h\ (n+1)=}
+\leanline{6}{klmc2Step\ (ULA.lpDrift\ (GenericCanonicalCoupling.probability\ c)\ g\ hG)}
+\leanline{8}{(lpHessian\ (GenericCanonicalCoupling.probability\ c)\ g\ Hess\ M\ M2\ hG\ hH\ hg)\ γ\ h}
+\leanline{8}{(numericalChain\ c\ hc\ hπ\ g\ Hess\ M\ M2\ hG\ hH\ hg\ γ\ h\ n)\ (extensionInnovation\ c\ γ\ h\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{extension\allowbreak{}Innovation\_\allowbreak{}eq\_\allowbreak{}generic} gives the formal counterpart of this step. Named proof applications include \texttt{Lp.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{numerical\allowbreak{}Chain} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{numerical\allowbreak{}Chain\_\allowbreak{}output\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}N} in that order. Named proof applications include \texttt{product\_\allowbreak{}klmc2\allowbreak{}Chain\_\allowbreak{}output\allowbreak{}Law}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{numerical\allowbreak{}Chain\_\allowbreak{}zero} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+
+
+
+
+\texttt{numerical\allowbreak{}Chain\_\allowbreak{}succ} is a definitional equality: \texttt{rfl} closes it because both sides reduce to the same expression.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}.
@@ -71,13 +244,55 @@ A finite-cost initial coupling and the finite target second moment construct an 
 
 The finite Gibbs moment and one finite-cost initial plan give a square-integrable output coupling. This proves finite output Wasserstein distance before taking real values. The initial discrepancy norm equals the chosen plan cost, enabling the final infimum over all such plans.
 
+\begin{leanbox}{Lean: \texttt{law\_\allowbreak{}memLp\_\allowbreak{}of\_\allowbreak{}finiteCost}, \texttt{law\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top}, \texttt{initial\_\allowbreak{}position\_\allowbreak{}cost}}
+\leansource{\texttt{law\_\allowbreak{}memLp\_\allowbreak{}of\_\allowbreak{}finiteCost} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 131–138}
+\begin{leancode}
+\leanline{0}{theorem\ law\_memLp\_of\_finiteCost\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ (law\ ι\ g\ Hess\ γ\ h\ μ\ n)}
+\end{leancode}
+\leansource{\texttt{law\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 141–150}
+\begin{leancode}
+\leanline{0}{theorem\ law\_wasserstein2\_ne\_top\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ (hfinite\ :\ ULA.wasserstein2\ μ\ π\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ (law\ ι\ g\ Hess\ γ\ h\ μ\ n)\ π\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{initial\_\allowbreak{}position\_\allowbreak{}cost} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Law.lean, lines 153–160}
+\begin{leancode}
+\leanline{0}{theorem\ initial\_position\_cost\ (c\ :\ ULA.Coupling\ μ\ π)\ (hc\ :\ ULA.couplingCost\ c.joint\ ≠\ ⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ π)}
+\leanline{4}{(g\ :\ H\ ι\ →\ H\ ι)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (M\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hG\ :\ LipschitzWith\ M\ g)\ (hH\ :\ LipschitzWith\ M2\ Hess)\ (hg\ :\ ∀\ x,HasFDerivAt\ g\ (Hess\ x)\ x)}
+\leanline{4}{(γ\ :\ ℝ)\ (h\ :\ ℝ≥0)\ :}
+\leanline{4}{‖(numericalChain\ c\ hc\ hπ\ g\ Hess\ M\ M2\ hG\ hH\ hg\ γ\ h\ 0).2-(GenericCanonicalCoupling.referenceInitial\ c\ hπ).2‖=}
+\leanline{6}{(ULA.couplingCost\ c.joint).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{law\_\allowbreak{}mem\allowbreak{}Lp\_\allowbreak{}of\_\allowbreak{}finite\allowbreak{}Cost} gives the formal counterpart of this step.
+
+
+
+
+\texttt{law\_\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top} gives the formal counterpart of this step. Named proof applications include \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{initial\_\allowbreak{}position\_\allowbreak{}cost} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.18.2]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

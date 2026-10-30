@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,6 +54,34 @@ The coordinate quadratic model implies
 
 Integrate the nonnegative functions against Lebesgue measure. Translation invariance leaves the partition function unchanged, and finite positive normalization cancels it. Replacing a by minus \(t\) produces the Gaussian MGF bound for the actual \(j\)th score coordinate, with proxy \(M_j\). The same finite exponential integral bound supplies exponential integrability, so this is an actual sub-Gaussian statement rather than a formal integral comparison.
 
+\begin{leanbox}{Lean: \texttt{coordinate\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le}, \texttt{coordinate\_\allowbreak{}score\_\allowbreak{}subgaussian}}
+\leansource{\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 24–64}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_score\_lmgf\_le\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hZ\ :\ ULA.gibbsPartition\ f\ ≠\ ⊤)}
+\leanline{4}{(j\ :\ Fin\ p)\ (a\ :\ ℝ)\ :}
+\leanline{4}{(∫⁻\ x,\ ENNReal.ofReal\ (Real.exp\ (-a\ *\ (gradient\ f\ x)\ j))}
+\leanline{6}{∂ULA.gibbsMeasure\ f)\ ≤}
+\leanline{6}{ENNReal.ofReal\ (Real.exp\ (coordinateSmoothness\ f\ j\ /\ 2\ *\ a\ \textasciicircum{}\ 2))}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}subgaussian} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 66–91}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_score\_subgaussian\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hZ\ :\ ULA.gibbsPartition\ f\ ≠\ ⊤)}
+\leanline{4}{(j\ :\ Fin\ p)\ (hj\ :\ 0\ ≤\ coordinateSmoothness\ f\ j)\ :}
+\leanline{4}{HasSubgaussianMGF\ (fun\ x\ ↦\ (gradient\ f\ x)\ j)}
+\leanline{6}{⟨coordinateSmoothness\ f\ j,\ hj⟩\ (ULA.gibbsMeasure\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}lmgf\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hw}, \texttt{hc}, \texttt{hg}, \texttt{hpoint}, \texttt{ht} in that order. Named proof applications include \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}exp.\allowbreak{}mpr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}subgaussian} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hi}, \texttt{h} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}.
@@ -44,6 +95,19 @@ Strong convexity implies \(m\) at most every coordinate Taylor supremum, so each
 
 Only differentiability, a Lipschitz gradient, and positive strong convexity are used in this sharper score bound.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le}}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 95–127}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_norm\_sq\_gradient\_gibbs\_le\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ f)\ ≤}
+\leanline{6}{(p\ :\ ℝ)\ *\ averageSmoothness\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}gibbs\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}Z}, \texttt{hj}, \texttt{hi}, \texttt{hb} in that order. Named proof applications include \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.10]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}; \cite[Section~3.27.5]{LangevinLean2026ULASC}.
@@ -53,6 +117,50 @@ Earlier results used here: \cite[Section~3.26.10]{LangevinLean2026ULASC}; \cite[
 
 A normalized Gibbs integral is integrable exactly when its exponential-weighted Lebesgue integrand is integrable, since the partition function is finite and positive. The coordinate score equals the directional Frechet derivative in \(e_j\). Differentiating that expression identifies its derivative in \(e_j\) with the actual diagonal Hessian entry. \(C^{2}\) regularity makes this coordinate score \(C^{1}\). Projecting the global gradient Lipschitz inequality bounds the coordinate score with the same Lipschitz constant, and hence bounds its derivative. These facts justify the weighted integration by parts used next.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}weighted}, \texttt{fderiv\_\allowbreak{}coordinate\_\allowbreak{}score}, \texttt{coordinate\_\allowbreak{}score\_\allowbreak{}contDiff} and 1 more}
+\leansource{\texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}weighted} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 129–140}
+\begin{leancode}
+\leanline{0}{private\ theorem\ integrable\_gibbs\_weighted\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (hf\ :\ Differentiable\ ℝ\ f)\ (hZ\ :\ ULA.gibbsPartition\ f\ ≠\ ⊤)}
+\leanline{4}{(g\ :\ State\ p\ →\ ℝ)\ :\ Integrable\ g\ (ULA.gibbsMeasure\ f)\ ↔}
+\leanline{6}{Integrable\ (fun\ x\ ↦\ Real.exp\ (-f\ x)\ *\ g\ x)\ volume}
+\end{leancode}
+\leansource{\texttt{fderiv\_\allowbreak{}coordinate\_\allowbreak{}score} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 144–153}
+\begin{leancode}
+\leanline{0}{theorem\ fderiv\_coordinate\_score\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(hf\ :\ ContDiff\ ℝ\ 2\ f)\ (x\ :\ State\ p)\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{fderiv\ ℝ\ (fun\ y\ ↦\ (gradient\ f\ y)\ j)\ x\ (coordinateVector\ j)\ =\ hessian\ f\ x\ j\ j}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}contDiff} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 155–163}
+\begin{leancode}
+\leanline{0}{private\ theorem\ coordinate\_score\_contDiff\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(hf\ :\ ContDiff\ ℝ\ 2\ f)\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{ContDiff\ ℝ\ 1\ (fun\ y\ ↦\ (gradient\ f\ y)\ j)}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}lipschitz} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 165–172}
+\begin{leancode}
+\leanline{0}{private\ theorem\ coordinate\_score\_lipschitz\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{LipschitzWith\ M\ (fun\ x\ ↦\ (gradient\ f\ x)\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}gibbs\_\allowbreak{}weighted} gives the formal counterpart of this step. The main intermediate facts are \texttt{hw} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{fderiv\_\allowbreak{}coordinate\_\allowbreak{}score} gives the formal counterpart of this step. The main intermediate facts are \texttt{heq} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}cont\allowbreak{}Diff} gives the formal counterpart of this step. The main intermediate facts are \texttt{heq} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{coordinate\_\allowbreak{}score\_\allowbreak{}lipschitz} gives the formal counterpart of this step. Named proof applications include \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}.
@@ -66,6 +174,46 @@ Set \(\psi\) equal to the \(j\)th score coordinate. Its first and second moments
 
 No decay or boundary term is supplied as a hypothesis. Summing the finite coordinate identities and using \(\operatorname{tr}(D^2f)=\Delta f\) proves the full score-Laplacian identity. The partition-based statement works whenever normalization is finite; strong convexity supplies normalization automatically.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}score\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}hessian}, \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}of\_\allowbreak{}partition}, \texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}eq\_\allowbreak{}laplacian}}
+\leansource{\texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}score\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}hessian} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 176–240}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_coordinate\_score\_sq\_eq\_hessian\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hZ\ :\ ULA.gibbsPartition\ f\ ≠\ ⊤)}
+\leanline{4}{(j\ :\ Fin\ p)\ :}
+\leanline{4}{(∫\ x,\ (gradient\ f\ x)\ j\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ f)\ =}
+\leanline{6}{∫\ x,\ hessian\ f\ x\ j\ j\ ∂ULA.gibbsMeasure\ f}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}of\_\allowbreak{}partition} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 244–282}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_norm\_sq\_gradient\_eq\_laplacian\_of\_partition\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hZ\ :\ ULA.gibbsPartition\ f\ ≠\ ⊤)\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ f)\ =}
+\leanline{6}{∫\ x,\ laplacian\ f\ x\ ∂ULA.gibbsMeasure\ f}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}eq\_\allowbreak{}laplacian} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 285–292}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_norm\_sq\_gradient\_eq\_laplacian\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hf\ :\ ContDiff\ ℝ\ 2\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ f)\ =}
+\leanline{6}{∫\ x,\ laplacian\ f\ x\ ∂ULA.gibbsMeasure\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}score\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}hessian} gives the formal counterpart of this step. The main intermediate facts are \texttt{hdiff}, \texttt{\ensuremath{\psi}}, \texttt{h\ensuremath{\psi}}, \texttt{h\ensuremath{\psi}\allowbreak{}Lp}, \texttt{hi\ensuremath{\psi}}, \texttt{hi\ensuremath{\psi}2} in that order. Named proof applications include \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{hibp}, \texttt{congr\allowbreak{}Arg}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}eq\_\allowbreak{}laplacian\_\allowbreak{}of\_\allowbreak{}partition} gives the formal counterpart of this step. The main intermediate facts are \texttt{hdiff}, \texttt{hscore}, \texttt{h\allowbreak{}H} in that order. Named proof applications include \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{integral\_\allowbreak{}coordinate\_\allowbreak{}score\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}hessian}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{integral\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}gradient\_\allowbreak{}eq\_\allowbreak{}laplacian} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.10]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}; \cite[Section~3.27.7]{LangevinLean2026ULASC}; \cite[Section~3.46.3]{LangevinLean2026ULASC}.
@@ -75,22 +223,128 @@ Earlier results used here: \cite[Section~3.26.10]{LangevinLean2026ULASC}; \cite[
 
 Apply the coordinate upper model at \(x\) with displacement \(ae_j\) and at \(x+ae_j\) with displacement minus \(ae_j\). Addition gives \(a\) times the difference of the coordinate scores at most \(M_j\) \(a^2\). For \(a>0\), divide by \(a^2\) and take the right derivative at zero. Its actual derivative is the diagonal Hessian entry, so \(\partial_{jj}f(x)\) is at most \(M_j\). Taking the trace proves the pointwise Laplacian bound \(p\) \(M_{\rm av}\). Conversely strong gradient monotonicity along the same coordinate line bounds its difference quotient below by \(m\). Taking the same derivative gives \(m\) at most every diagonal Hessian entry. In the convex case \(m=0\), their sum is nonnegative.
 
+\begin{leanbox}{Lean: \texttt{hessian\_\allowbreak{}diagonal\_\allowbreak{}le\_\allowbreak{}coordinateSmoothness}, \texttt{laplacian\_\allowbreak{}le\_\allowbreak{}averageSmoothness}, \texttt{strongConvex\_\allowbreak{}le\_\allowbreak{}hessian\_\allowbreak{}diagonal} and 1 more}
+\leansource{\texttt{hessian\_\allowbreak{}diagonal\_\allowbreak{}le\_\allowbreak{}coordinateSmoothness} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 296–324}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_diagonal\_le\_coordinateSmoothness\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (x\ :\ State\ p)\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{hessian\ f\ x\ j\ j\ ≤\ coordinateSmoothness\ f\ j}
+\end{leancode}
+\leansource{\texttt{laplacian\_\allowbreak{}le\_\allowbreak{}averageSmoothness} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 326–338}
+\begin{leancode}
+\leanline{0}{theorem\ laplacian\_le\_averageSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (x\ :\ State\ p)\ :}
+\leanline{4}{laplacian\ f\ x\ ≤\ (p\ :\ ℝ)\ *\ averageSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{strongConvex\_\allowbreak{}le\_\allowbreak{}hessian\_\allowbreak{}diagonal} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 341–369}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvex\_le\_hessian\_diagonal\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)\ (x\ :\ State\ p)\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{m\ ≤\ hessian\ f\ x\ j\ j}
+\end{leancode}
+\leansource{\texttt{laplacian\_\allowbreak{}nonneg\_\allowbreak{}of\_\allowbreak{}convex} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 372–379}
+\begin{leancode}
+\leanline{0}{theorem\ laplacian\_nonneg\_of\_convex\ \{p\ :\ ℕ\}}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)\ (hconv\ :\ ConvexOn\ ℝ\ Set.univ\ f)}
+\leanline{4}{(x\ :\ State\ p)\ :\ 0\ ≤\ laplacian\ f\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hessian\_\allowbreak{}diagonal\_\allowbreak{}le\_\allowbreak{}coordinate\allowbreak{}Smoothness} gives the formal counterpart of this step. The main intermediate facts are \texttt{hdiff}, \texttt{h\ensuremath{\psi}}, \texttt{hline}, \texttt{hd}, \texttt{hb}, \texttt{hlim} in that order. Named proof applications include \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
 
 
-Earlier results used here: \cite[Section~3.2.2]{LangevinLean2026ULASC}.
+
+
+\texttt{laplacian\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness} gives the formal counterpart of this step. The main intermediate facts are \texttt{h} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}hessian\_\allowbreak{}diagonal} gives the formal counterpart of this step. The main intermediate facts are \texttt{hdiff}, \texttt{h\ensuremath{\psi}}, \texttt{hline}, \texttt{hd}, \texttt{hb}, \texttt{hlim} in that order. Named proof applications include \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{laplacian\_\allowbreak{}nonneg\_\allowbreak{}of\_\allowbreak{}convex} gives the formal counterpart of this step. Named proof applications include \texttt{Finset.\allowbreak{}sum\_\allowbreak{}nonneg}, \texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}hessian\_\allowbreak{}diagonal}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.2.3]{LangevinLean2026ULASC}.
 
 \section{\texorpdfstring{Use the genuine Laplacian supremum and complete Lemma 7}{Use the genuine Laplacian supremum and complete Lemma 7}}
 
 
 Define \(M_{1,\Delta}\) as the supremum of the range of the true Laplacian, divided by \(p\). Its range is nonempty, and the pointwise bound \(p\) \(M_{\rm av}\) makes it bounded above. The defining supremum therefore bounds every Laplacian value and is itself at most \(p\) \(M_{\rm av}\). Dividing by positive \(p\) gives \(M_{1,\Delta}\) at most \(M_{\rm av}\). \(C^{2}\) regularity also makes the Laplacian continuous, as a finite sum of continuous score derivatives. Its nonnegativity and finite pointwise bound prove actual integrability. Under the normalized Gibbs law, the score identity and these pointwise comparisons give exactly
 
-\[\mathbb E_\pi\|\nabla f\|^2=\mathbb E_\pi|\Delta f|\le pM_{1,\Delta}\le pM_{\rm av}.\]
+\[\mathbb E_\pi\|\nabla f\|^2=\mathbb E_\pi|\Delta f|\le pM_{1,\Delta}\le pM_{\rm av}.\]\begin{leanbox}{Lean: \texttt{averageLaplacianSmoothness}, \texttt{averageLaplacianSmoothness\_\allowbreak{}le\_\allowbreak{}averageSmoothness}, \texttt{laplacian\_\allowbreak{}le\_\allowbreak{}averageLaplacianSmoothness} and 2 more}
+\leansource{\texttt{averageLaplacianSmoothness} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 383–384}
+\begin{leancode}
+\leanline{0}{def\ averageLaplacianSmoothness\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{sSup\ (Set.range\ (laplacian\ f))\ /\ (p\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{averageLaplacianSmoothness\_\allowbreak{}le\_\allowbreak{}averageSmoothness} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 386–394}
+\begin{leancode}
+\leanline{0}{theorem\ averageLaplacianSmoothness\_le\_averageSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{averageLaplacianSmoothness\ f\ ≤\ averageSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{laplacian\_\allowbreak{}le\_\allowbreak{}averageLaplacianSmoothness} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 397–408}
+\begin{leancode}
+\leanline{0}{theorem\ laplacian\_le\_averageLaplacianSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (x\ :\ State\ p)\ :}
+\leanline{4}{laplacian\ f\ x\ ≤\ (p\ :\ ℝ)\ *\ averageLaplacianSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}laplacian} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 410–419}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_laplacian\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)\ :}
+\leanline{4}{Continuous\ (laplacian\ f)}
+\end{leancode}
+\leansource{\texttt{score\_\allowbreak{}laplacian\_\allowbreak{}identity\_\allowbreak{}and\_\allowbreak{}bounds} \quad AverageLMC/\allowbreak{}ScoreMoment.lean, lines 424–454}
+\begin{leancode}
+\leanline{0}{theorem\ score\_laplacian\_identity\_and\_bounds\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ ContDiff\ ℝ\ 2\ f)}
+\leanline{4}{(hconv\ :\ ConvexOn\ ℝ\ Set.univ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hZ\ :\ ULA.gibbsPartition\ f\ ≠\ ⊤)\ :}
+\leanline{4}{(∫\ x,\ ‖gradient\ f\ x‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ f)\ =}
+\leanline{8}{(∫\ x,\ |laplacian\ f\ x|\ ∂ULA.gibbsMeasure\ f)\ ∧}
+\leanline{6}{(∫\ x,\ |laplacian\ f\ x|\ ∂ULA.gibbsMeasure\ f)\ ≤}
+\leanline{8}{(p\ :\ ℝ)\ *\ averageLaplacianSmoothness\ f\ ∧}
+\leanline{6}{(p\ :\ ℝ)\ *\ averageLaplacianSmoothness\ f\ ≤\ (p\ :\ ℝ)\ *\ averageSmoothness\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{average\allowbreak{}Laplacian\allowbreak{}Smoothness} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{average\allowbreak{}Laplacian\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness} gives the formal counterpart of this step. Named proof applications include \texttt{cs\allowbreak{}Sup\_\allowbreak{}le}, \texttt{laplacian\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{laplacian\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Laplacian\allowbreak{}Smoothness} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{h} in that order. Named proof applications include \texttt{laplacian\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{continuous\_\allowbreak{}laplacian} gives the formal counterpart of this step. The main intermediate facts are \texttt{heq} in that order. Named proof applications include \texttt{continuous\_\allowbreak{}finset\allowbreak{}Sum}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{score\_\allowbreak{}laplacian\_\allowbreak{}identity\_\allowbreak{}and\_\allowbreak{}bounds} gives the formal counterpart of this step. The main intermediate facts are \texttt{hdiff}, \texttt{hn}, \texttt{habs}, \texttt{hi} in that order. Named proof applications include \texttt{ENNReal.\allowbreak{}inv\_\allowbreak{}mul\_\allowbreak{}cancel}, \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{laplacian\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
 
 Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.26.9]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

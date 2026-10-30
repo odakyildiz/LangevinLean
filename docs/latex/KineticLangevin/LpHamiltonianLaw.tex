@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,32 @@ Suppose \(L^{2}\) phase variables \(S_n\) converge to \(S\), and their represent
 
 A second-mean convergent sequence has a subsequence converging almost everywhere. If the same numerical maps converge pointwise to the deterministic Hamiltonian endpoint, the two limits coincide almost everywhere. This identifies the Hilbert-space limit with the intended pointwise flow.
 
+\begin{leanbox}{Lean: \texttt{measure\_\allowbreak{}map\_\allowbreak{}lpPhase\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit}, \texttt{lp\_\allowbreak{}verlet\_\allowbreak{}iterate\_\allowbreak{}coe}}
+\leansource{\texttt{measure\_\allowbreak{}map\_\allowbreak{}lpPhase\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 24–57}
+\begin{leancode}
+\leanline{0}{theorem\ measure\_map\_lpPhase\_eq\_pointwise\_limit}
+\leanline{4}{(S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (Sn\ :\ ℕ\ →\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)}
+\leanline{4}{(hS\ :\ Tendsto\ Sn\ atTop\ ({\leanfallback 𝓝}\ S))\ (Y\ :\ Ω\ →\ E\ ×\ E)\ (hY\ :\ Measurable\ Y)}
+\leanline{4}{(fn\ :\ ℕ\ →\ Ω\ →\ E\ ×\ E)\ (hfn\ :\ ∀\ n,\ Measurable\ (fn\ n))}
+\leanline{4}{(hcoe\ :\ ∀\ n,\ lpPhaseCoe\ P\ (Sn\ n)\ =ᵐ[P]\ fn\ n)}
+\leanline{4}{(hpoint\ :\ ∀ᵐ\ ω\ ∂P,\ Tendsto\ (fun\ n\ ↦\ fn\ n\ ω)\ atTop\ ({\leanfallback 𝓝}\ (Y\ ω)))\ :}
+\leanline{4}{P.map\ (lpPhaseCoe\ P\ S)\ =\ P.map\ Y}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}verlet\_\allowbreak{}iterate\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 81–93}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_verlet\_iterate\_coe\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{lpPhaseCoe\ P\ ((verletStep\ (ULA.lpDrift\ P\ g\ hg)\ h)\textasciicircum{}[n]\ S)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ (verletStep\ g\ h)\textasciicircum{}[n]\ (lpPhaseCoe\ P\ S\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{measure\_\allowbreak{}map\_\allowbreak{}lp\allowbreak{}Phase\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{h\allowbreak{}F}, \texttt{hb}, \texttt{hlim}, \texttt{heq}, \texttt{hactual} in that order. Named proof applications include \texttt{ae\_\allowbreak{}of\_\allowbreak{}all}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{tendsto\_\allowbreak{}nhds\_\allowbreak{}unique}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\_\allowbreak{}verlet\_\allowbreak{}iterate\_\allowbreak{}coe} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
@@ -52,6 +101,32 @@ Apply this argument to the \(L^{2}\) Hamiltonian flow and its Verlet approximant
 
 The initial and numerical representatives are chosen on the same probability source. The verified stage identities identify them with the original vector algorithm. The resulting law statement concerns random variables, independently of any representative chosen for their equivalence classes.
 
+\begin{leanbox}{Lean: \texttt{lpPhaseCoe\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit}, \texttt{lpHamiltonianFlow\_\allowbreak{}coe}}
+\leansource{\texttt{lpPhaseCoe\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 59–79}
+\begin{leancode}
+\leanline{0}{theorem\ lpPhaseCoe\_eq\_pointwise\_limit}
+\leanline{4}{(S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (Sn\ :\ ℕ\ →\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)}
+\leanline{4}{(hS\ :\ Tendsto\ Sn\ atTop\ ({\leanfallback 𝓝}\ S))\ (Y\ :\ Ω\ →\ E\ ×\ E)}
+\leanline{4}{(fn\ :\ ℕ\ →\ Ω\ →\ E\ ×\ E)\ (hfn\ :\ ∀\ n,\ Measurable\ (fn\ n))}
+\leanline{4}{(hcoe\ :\ ∀\ n,\ lpPhaseCoe\ P\ (Sn\ n)\ =ᵐ[P]\ fn\ n)}
+\leanline{4}{(hpoint\ :\ ∀ᵐ\ ω\ ∂P,\ Tendsto\ (fun\ n\ ↦\ fn\ n\ ω)\ atTop\ ({\leanfallback 𝓝}\ (Y\ ω)))\ :}
+\leanline{4}{lpPhaseCoe\ P\ S\ =ᵐ[P]\ Y}
+\end{leancode}
+\leansource{\texttt{lpHamiltonianFlow\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 110–136}
+\begin{leancode}
+\leanline{0}{theorem\ lpHamiltonianFlow\_coe\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{lpPhaseCoe\ P\ (lpHamiltonianFlow\ P\ (gradient\ f)\ M\ hLip\ T\ hT\ S\ t)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ hamiltonianFlow\ f\ M\ hLip\ t\ ht.1\ (lpPhaseCoe\ P\ S\ ω)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Phase\allowbreak{}Coe\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit} gives the formal counterpart of this step. The main intermediate facts are \texttt{h1}, \texttt{h2}, \texttt{hc1}, \texttt{hc2}, \texttt{hp1}, \texttt{hp2} in that order. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow\_\allowbreak{}coe} gives the formal counterpart of this step. The main intermediate facts are \texttt{A}, \texttt{Sn}, \texttt{hs}, \texttt{h\allowbreak{}Sn}, \texttt{Y}, \texttt{h\allowbreak{}Y} in that order. Named proof applications include \texttt{lp\allowbreak{}Phase\allowbreak{}Coe\_\allowbreak{}eq\_\allowbreak{}pointwise\_\allowbreak{}limit}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
@@ -65,6 +140,42 @@ The \(L^{2}\) force is pointwise application of the Lipschitz gradient; its glob
 
 Solve the Hamiltonian integral equation in second mean and identify its representative with the pointwise selected flow. Pushing forward the known initial law then gives its exact endpoint law. For Gibbs initialization, the previously proved Hamiltonian invariance makes that law stationary.
 
+\begin{leanbox}{Lean: \texttt{lpHamiltonianFlow}, \texttt{lpHamiltonianFlow\_\allowbreak{}spec}, \texttt{lpHamiltonianFlow\_\allowbreak{}law}}
+\leansource{\texttt{lpHamiltonianFlow} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 95–97}
+\begin{leancode}
+\leanline{0}{def\ lpHamiltonianFlow\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :\ ℝ\ →\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P\ :=}
+\leanline{2}{kineticFlow\ (ULA.lpDrift\ P\ g\ hg)\ M\ 0\ 1\ (ULA.lpDrift\_lipschitz\ P\ g\ hg)\ T\ hT\ S\ 0}
+\end{leancode}
+\leansource{\texttt{lpHamiltonianFlow\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 99–108}
+\begin{leancode}
+\leanline{0}{theorem\ lpHamiltonianFlow\_spec\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{Continuous\ (lpHamiltonianFlow\ P\ g\ M\ hg\ T\ hT\ S)\ ∧}
+\leanline{6}{lpHamiltonianFlow\ P\ g\ M\ hg\ T\ hT\ S\ 0\ =\ S\ ∧}
+\leanline{6}{∀\ t\ ∈\ Icc\ 0\ T,\ lpHamiltonianFlow\ P\ g\ M\ hg\ T\ hT\ S\ t\ -\ S\ =}
+\leanline{8}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ (ULA.lpDrift\ P\ g\ hg)\ 0\ 1\ (lpHamiltonianFlow\ P\ g\ M\ hg\ T\ hT\ S\ s))}
+\end{leancode}
+\leansource{\texttt{lpHamiltonianFlow\_\allowbreak{}law} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 138–144}
+\begin{leancode}
+\leanline{0}{theorem\ lpHamiltonianFlow\_law\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{P.map\ (lpPhaseCoe\ P\ (lpHamiltonianFlow\ P\ (gradient\ f)\ M\ hLip\ T\ hT\ S\ t))\ =}
+\leanline{6}{(P.map\ (lpPhaseCoe\ P\ S)).map\ (fun\ z\ ↦\ hamiltonianFlow\ f\ M\ hLip\ t\ ht.1\ z\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow\_\allowbreak{}law} gives the formal counterpart of this step. Named proof applications include \texttt{Measure.\allowbreak{}map\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
@@ -78,6 +189,48 @@ If the initial phase law is the constructed independent Gaussian-times-Gibbs tar
 
 The target factorization supplies the Gaussian velocity marginal and the Gibbs position marginal. Their finite moments control the velocity and force bounds along the stationary Hamiltonian reference. These are the quantities entering the Verlet local-error estimate.
 
+\begin{leanbox}{Lean: \texttt{lpHamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}target}, \texttt{lpHamiltonianFlow\_\allowbreak{}component\_\allowbreak{}equations}, \texttt{lpHamiltonianFlow\_\allowbreak{}target\_\allowbreak{}moments}}
+\leansource{\texttt{lpHamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}target} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 147–154}
+\begin{leancode}
+\leanline{0}{theorem\ lpHamiltonianFlow\_preserves\_target\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)}
+\leanline{4}{(hS\ :\ P.map\ (lpPhaseCoe\ P\ S)\ =\ kineticGibbsTarget\ f)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{P.map\ (lpPhaseCoe\ P\ (lpHamiltonianFlow\ P\ (gradient\ f)\ M\ hLip\ T\ hT\ S\ t))\ =\ kineticGibbsTarget\ f}
+\end{leancode}
+\leansource{\texttt{lpHamiltonianFlow\_\allowbreak{}component\_\allowbreak{}equations} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 156–185}
+\begin{leancode}
+\leanline{0}{theorem\ lpHamiltonianFlow\_component\_equations\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ E\ 2\ P\ ×\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{let\ A\ :=\ lpHamiltonianFlow\ P\ g\ M\ hg\ T\ hT\ S}
+\leanline{4}{(∀\ t\ ∈\ Icc\ 0\ T,\ (A\ t).1\ -\ (A\ 0).1\ =\ -(∫\ s\ in\ 0..t,\ ULA.lpDrift\ P\ g\ hg\ (A\ s).2))\ ∧}
+\leanline{6}{(∀\ t\ ∈\ Icc\ 0\ T,\ (A\ t).2\ -\ (A\ 0).2\ =\ ∫\ s\ in\ 0..t,\ (A\ s).1)}
+\end{leancode}
+\leansource{\texttt{lpHamiltonianFlow\_\allowbreak{}target\_\allowbreak{}moments} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 191–211}
+\begin{leancode}
+\leanline{0}{theorem\ lpHamiltonianFlow\_target\_moments}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (S\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ ×\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hS\ :\ P.map\ (lpPhaseCoe\ P\ S)\ =\ kineticGibbsTarget\ f)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{let\ A\ :=\ lpHamiltonianFlow\ P\ (gradient\ f)\ M\ hLip\ T\ hT\ S}
+\leanline{4}{‖(A\ t).1‖\ =\ Real.sqrt\ (Fintype.card\ ι\ :\ ℝ)\ ∧}
+\leanline{6}{‖ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (A\ t).2‖\ ≤\ Real.sqrt\ ((M\ :\ ℝ)\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow\_\allowbreak{}preserves\_\allowbreak{}target} gives the formal counterpart of this step.
+
+
+
+
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow\_\allowbreak{}component\_\allowbreak{}equations} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hc} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}, \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\allowbreak{}Hamiltonian\allowbreak{}Flow\_\allowbreak{}target\_\allowbreak{}moments} gives the formal counterpart of this step. The main intermediate facts are \texttt{hlaw}, \texttt{h\allowbreak{}V}, \texttt{h\allowbreak{}X} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.28.2]{LangevinLean2026ULASC}.
@@ -95,13 +248,34 @@ The two thermostat noises are retained, their common final contribution cancels,
 
 Apply the deterministic common-noise OBABO comparison to the constructed stationary reference variables. Integrating its phase bound gives the stated local root-mean-square cost. Thus the local kernel discrepancy uses Hamiltonian and thermostat laws.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}obabo\_\allowbreak{}target\_\allowbreak{}local\_\allowbreak{}bound}}
+\leansource{\texttt{lp\_\allowbreak{}obabo\_\allowbreak{}target\_\allowbreak{}local\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}LpHamiltonianLaw.lean, lines 213–235}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_obabo\_target\_local\_bound}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ γ\ h\ δ\ σ\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)\ (hM\ :\ 0\ <\ (M\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hfriction\ :\ 4\ *\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)\ (hδ\ :\ |δ|\ ≤\ 1)}
+\leanline{4}{(Z\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ ×\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(Ξ\ Ξ'\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hlaw\ :\ P.map\ (lpPhaseCoe\ P\ (ornsteinStep\ δ\ σ\ Ξ\ Z))\ =\ kineticGibbsTarget\ f)\ :}
+\leanline{4}{let\ A\ :=\ lpHamiltonianFlow\ P\ (gradient\ f)\ M\ hLip\ h\ hh\ (ornsteinStep\ δ\ σ\ Ξ\ Z)}
+\leanline{4}{weightedPhaseNorm\ (1\ /\ (M\ :\ ℝ))\ (1\ /\ γ)}
+\leanline{6}{(obaboStep\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ h\ δ\ σ\ Z\ Ξ\ Ξ'\ -\ ornsteinStep\ δ\ σ\ Ξ'\ (A\ h))\ ≤}
+\leanline{8}{2\ *\ h\ \textasciicircum{}\ 2\ *\ (Real.sqrt\ ((M\ :\ ℝ)\ *\ (Fintype.card\ ι\ :\ ℝ))\ +}
+\leanline{10}{Real.sqrt\ (M\ :\ ℝ)\ *\ Real.sqrt\ (Fintype.card\ ι\ :\ ℝ)\ +}
+\leanline{10}{Real.sqrt\ (M\ :\ ℝ)\ *\ Real.sqrt\ ((M\ :\ ℝ)\ *\ (Fintype.card\ ι\ :\ ℝ))\ *\ h\ /\ 4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}obabo\_\allowbreak{}target\_\allowbreak{}local\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hcomp}, \texttt{hmom} in that order. Named proof applications include \texttt{obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

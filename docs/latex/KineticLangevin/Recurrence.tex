@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,15 @@ For \(x\ge0\), let \(F(x)=1-x+x^2/2-e^{-x}\). Its derivative is \(-1+x+e^{-x}\),
 
 The scalar estimate is applied only for a nonnegative step parameter. Its quadratic remainder quantifies how much the exact exponential contraction differs from its linear approximation. That remainder is later paid for using the small-step restriction, rather than silently discarded.
 
+\begin{leanbox}{Lean: \texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}quadratic}}
+\leansource{\texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 20–36}
+\begin{leancode}
+\leanline{0}{theorem\ exp\_neg\_le\_quadratic\ (x\ :\ ℝ)\ (hx\ :\ 0\ ≤\ x)\ :}
+\leanline{4}{Real.exp\ (-x)\ ≤\ 1\ -\ x\ +\ x\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exp\_\allowbreak{}neg\_\allowbreak{}le\_\allowbreak{}quadratic} gives the formal counterpart of this step. The main intermediate facts are \texttt{F}, \texttt{hd}, \texttt{hm}, \texttt{hb} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Keep most of the exact-flow contraction after the local correction}{Keep most of the exact-flow contraction after the local correction}}
 
@@ -45,6 +77,28 @@ Set \(r=m/\gamma\). Suppose \(r,M,h\ge0\), \(2r^2\le M\), and \(4Mh\le r\). The 
 
 The local error contains a term proportional to the old coupling discrepancy as well as a stationary forcing term. The step restriction keeps the proportional correction small enough to retain a fixed fraction of the continuous contraction. Only the remaining stationary term contributes to the persistent bias.
 
+\begin{leanbox}{Lean: \texttt{firstOrder\_\allowbreak{}coefficient\_\allowbreak{}bound}, \texttt{kinetic\_\allowbreak{}scalar\_\allowbreak{}conditions}}
+\leansource{\texttt{firstOrder\_\allowbreak{}coefficient\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 40–47}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrder\_coefficient\_bound\ (r\ M\ h\ :\ ℝ)\ (hr\ :\ 0\ ≤\ r)\ (hM\ :\ 0\ ≤\ M)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hcurvature\ :\ 2\ *\ r\ \textasciicircum{}\ 2\ ≤\ M)\ (hstep\ :\ 4\ *\ M\ *\ h\ ≤\ r)\ :}
+\leanline{4}{Real.exp\ (-r\ *\ h)\ +\ (3\ /\ 4\ :\ ℝ)\ *\ M\ *\ h\ \textasciicircum{}\ 2\ ≤\ 1\ -\ (3\ /\ 4\ :\ ℝ)\ *\ r\ *\ h}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}scalar\_\allowbreak{}conditions} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 51–64}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_scalar\_conditions\ (m\ M\ γ\ h\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hmM\ :\ m\ ≤\ M)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hfriction\ :\ m\ +\ M\ ≤\ γ\ \textasciicircum{}\ 2)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hstep\ :\ 4\ *\ γ\ *\ M\ *\ h\ ≤\ m)\ :}
+\leanline{4}{2\ *\ (m\ /\ γ)\ \textasciicircum{}\ 2\ ≤\ M\ ∧\ 4\ *\ M\ *\ h\ ≤\ m\ /\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}coefficient\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hc}, \texttt{hs} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}scalar\_\allowbreak{}conditions} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}M}, \texttt{hmult}, \texttt{hfactor} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Sum the affine recurrence with the visible local-coupling premise}{Sum the affine recurrence with the visible local-coupling premise}}
 
@@ -55,6 +109,20 @@ Assume nonnegative errors satisfy \(e_{n+1}\le e^{-rh}e_n+3Mh^2(C+e_n)/4\), with
 
 If \(A_{n+1}\le qA_n+b\) and \(0\le q<1\), induction gives \(A_n\le q^nA_0+b\sum_{j=0}^{n-1}q^j\). The sum is at most \((1-q)^{-1}\). A local defect of order \(h^2\) therefore produces a global persistent error term of order \(h\).
 
+\begin{leanbox}{Lean: \texttt{firstOrder\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound}}
+\leansource{\texttt{firstOrder\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 69–96}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrder\_coupling\_recurrence\_bound\ (e\ :\ ℕ\ →\ ℝ)\ (r\ M\ h\ C\ :\ ℝ)}
+\leanline{4}{(hr\ :\ 0\ <\ r)\ (hM\ :\ 0\ ≤\ M)\ (hh\ :\ 0\ <\ h)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hcurvature\ :\ 2\ *\ r\ \textasciicircum{}\ 2\ ≤\ M)\ (hstep\ :\ 4\ *\ M\ *\ h\ ≤\ r)}
+\leanline{4}{(hnonneg\ :\ ∀\ n,\ 0\ ≤\ e\ n)}
+\leanline{4}{(hlocal\ :\ ∀\ n,\ e\ (n\ +\ 1)\ ≤\ Real.exp\ (-r\ *\ h)\ *\ e\ n\ +}
+\leanline{6}{(3\ /\ 4\ :\ ℝ)\ *\ M\ *\ h\ \textasciicircum{}\ 2\ *\ (C\ +\ e\ n))\ (n\ :\ ℕ)\ :}
+\leanline{4}{e\ n\ ≤\ (1\ -\ (3\ /\ 4\ :\ ℝ)\ *\ r\ *\ h)\ \textasciicircum{}\ n\ *\ e\ 0\ +\ M\ *\ h\ *\ C\ /\ r}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\_\allowbreak{}coupling\_\allowbreak{}recurrence\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{q}, \texttt{hcoeff}, \texttt{hq}, \texttt{hq1}, \texttt{hrec}, \texttt{hr} in that order. Named proof applications include \texttt{hr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.15.3]{LangevinLean2026ULASC}.
@@ -72,10 +140,42 @@ The argument explicitly proves the projection factor and contraction coefficient
 
 The physical substitution identifies the dimension-dependent stationary velocity radius and the curvature-dependent contraction gap. The transformed initial error contributes a factor \(\gamma\), while endpoint position projection contributes \(1/\gamma\). Their cancellation leaves the stated first-order position bias.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}firstOrder\_\allowbreak{}coupling\_\allowbreak{}bound}, \texttt{kinetic\_\allowbreak{}firstOrder\_\allowbreak{}projected\_\allowbreak{}bound}}
+\leansource{\texttt{kinetic\_\allowbreak{}firstOrder\_\allowbreak{}coupling\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 101–113}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_firstOrder\_coupling\_bound\ (e\ :\ ℕ\ →\ ℝ)\ (m\ M\ γ\ h\ C\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hmM\ :\ m\ ≤\ M)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hfriction\ :\ m\ +\ M\ ≤\ γ\ \textasciicircum{}\ 2)\ (hh\ :\ 0\ <\ h)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hstep\ :\ 4\ *\ γ\ *\ M\ *\ h\ ≤\ m)\ (hnonneg\ :\ ∀\ n,\ 0\ ≤\ e\ n)}
+\leanline{4}{(hlocal\ :\ ∀\ n,\ e\ (n\ +\ 1)\ ≤\ Real.exp\ (-(m\ /\ γ)\ *\ h)\ *\ e\ n\ +}
+\leanline{6}{(3\ /\ 4\ :\ ℝ)\ *\ M\ *\ h\ \textasciicircum{}\ 2\ *\ (C\ +\ e\ n))\ (n\ :\ ℕ)\ :}
+\leanline{4}{e\ n\ ≤\ (1\ -\ 3\ *\ m\ *\ h\ /\ (4\ *\ γ))\ \textasciicircum{}\ n\ *\ e\ 0\ +\ γ\ *\ M\ *\ h\ *\ C\ /\ m}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}firstOrder\_\allowbreak{}projected\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}Recurrence.lean, lines 119–158}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_firstOrder\_projected\_bound\ (e\ d\ :\ ℕ\ →\ ℝ)\ (m\ M\ γ\ h\ C\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hmM\ :\ m\ ≤\ M)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hfriction\ :\ m\ +\ M\ ≤\ γ\ \textasciicircum{}\ 2)\ (hh\ :\ 0\ <\ h)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hstep\ :\ 4\ *\ γ\ *\ M\ *\ h\ ≤\ m)\ (hnonneg\ :\ ∀\ n,\ 0\ ≤\ e\ n)}
+\leanline{4}{(hlocal\ :\ ∀\ n,\ e\ (n\ +\ 1)\ ≤\ Real.exp\ (-(m\ /\ γ)\ *\ h)\ *\ e\ n\ +}
+\leanline{6}{(3\ /\ 4\ :\ ℝ)\ *\ M\ *\ h\ \textasciicircum{}\ 2\ *\ (C\ +\ e\ n))}
+\leanline{4}{(hproject\ :\ ∀\ n,\ d\ n\ ≤\ Real.sqrt\ 2\ /\ γ\ *\ e\ n)}
+\leanline{4}{(hinitial\ :\ e\ 0\ ≤\ γ\ *\ d\ 0)\ (n\ :\ ℕ)\ :}
+\leanline{4}{d\ n\ ≤\ Real.sqrt\ 2\ *\ (1\ -\ 3\ *\ m\ *\ h\ /\ (4\ *\ γ))\ \textasciicircum{}\ n\ *\ d\ 0\ +}
+\leanline{6}{M\ *\ h\ *\ Real.sqrt\ 2\ *\ C\ /\ m}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}first\allowbreak{}Order\_\allowbreak{}coupling\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hcoeff}, \texttt{hfloor} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}first\allowbreak{}Order\_\allowbreak{}projected\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{he}, \texttt{hfactor}, \texttt{hp}, \texttt{hc}, \texttt{hq}, \texttt{hi} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

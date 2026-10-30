@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,46 @@ The Gaussian forward map is jointly continuous, and the following map \(T\) is L
 
 Composition with square-integrable vectors preserves this identity almost surely, so the corresponding \(L^2\) drift maps add as \(L^2\) elements. Hence the reference drift used in the integral equation is the gradient of the stated sum potential.
 
+\begin{leanbox}{Lean: \texttt{splittingUpdate}, \texttt{splittingUpdate\_\allowbreak{}measurable}, \texttt{lpDrift\_\allowbreak{}gradient\_\allowbreak{}add}}
+\leansource{\texttt{splittingUpdate} \quad ProximalLangevin/\allowbreak{}SplittingCanonical.lean, lines 26–29}
+\begin{leancode}
+\leanline{0}{def\ splittingUpdate\ (f₁\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)}
+\leanline{4}{(T\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι)\ (h\ :\ ℝ)}
+\leanline{4}{(x\ z\ :\ EuclideanSpace\ ℝ\ ι)\ :\ EuclideanSpace\ ℝ\ ι\ :=}
+\leanline{2}{T\ (x\ -\ h\ •\ gradient\ f₁\ x\ +\ Real.sqrt\ (2\ *\ h)\ •\ z)}
+\end{leancode}
+\leansource{\texttt{splittingUpdate\_\allowbreak{}measurable} \quad ProximalLangevin/\allowbreak{}SplittingCanonical.lean, lines 31–37}
+\begin{leancode}
+\leanline{0}{theorem\ splittingUpdate\_measurable\ \{f₁\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ\}}
+\leanline{4}{\{T\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι\}\ \{L\ LT\ :\ ℝ≥0\}}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f₁))\ (hT\ :\ LipschitzWith\ LT\ T)\ (h\ :\ ℝ)\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (splittingUpdate\ f₁\ T\ h))}
+\end{leancode}
+\leansource{\texttt{lpDrift\_\allowbreak{}gradient\_\allowbreak{}add} \quad ProximalLangevin/\allowbreak{}SplittingCanonical.lean, lines 41–52}
+\begin{leancode}
+\leanline{0}{theorem\ lpDrift\_gradient\_add\ \{f\ e\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ\}\ \{Lf\ Le\ :\ ℝ≥0\}}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(hLf\ :\ LipschitzWith\ Lf\ (gradient\ f))\ (hLe\ :\ LipschitzWith\ Le\ (gradient\ e))}
+\leanline{4}{(hF\ :\ LipschitzWith\ (Lf\ +\ Le)\ (gradient\ (fun\ x\ =>\ f\ x\ +\ e\ x)))}
+\leanline{4}{(X\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)\ :}
+\leanline{4}{lpDrift\ P\ (gradient\ (fun\ x\ =>\ f\ x\ +\ e\ x))\ hF\ X\ =}
+\leanline{6}{lpDrift\ P\ (gradient\ f)\ hLf\ X\ +\ lpDrift\ P\ (gradient\ e)\ hLe\ X}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: splittingUpdate : The actual forward, noise, backward splitting transition. lpDrift\_gradient\_add : The lifted drift of an actual sum is the sum of its lifted gradients.
 
+
+
+\texttt{splitting\allowbreak{}Update} is a definition with defining expression \texttt{T (x -\allowbreak{} h \ensuremath{\bullet} gradient f\ensuremath{{}_{1}} x + Real.\allowbreak{}sqrt (2 * h) \ensuremath{\bullet} z)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{splitting\allowbreak{}Update\_\allowbreak{}measurable}: the proof is the application \texttt{h\allowbreak{}T.\allowbreak{}continuous.\allowbreak{}measurable.\allowbreak{}comp (pointwise\allowbreak{}Update\_\allowbreak{}measurable f\ensuremath{{}_{1}} h L h\allowbreak{}Lip)}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{lp\allowbreak{}Drift\_\allowbreak{}gradient\_\allowbreak{}add}: the source steps apply or rewrite \texttt{Lp.\allowbreak{}ext}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{gradient\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}differentiable}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.23.2]{LangevinLean2026ULASC}.
@@ -49,16 +111,59 @@ The normalized increment over \([0,h]\) is independent standard Gaussian noise f
 
 More explicitly, the initial coupling \(c\) has reference marginal \(\pi\propto e^{-(f_1+e)}\) and gives initial variables \(X,Z\). The integral solution \(Y_t\) starts from \(Z\) and satisfies \(\operatorname{Law}(Y_t)=\pi\). Thus stationarity, Gaussian laws, moments, and orthogonality follow from the construction under the potential assumptions, rather than being extra assumptions of the final convergence theorem.
 
+\begin{leanbox}{Lean: \texttt{splitting\_\allowbreak{}markov\_\allowbreak{}step\_\allowbreak{}coupling\_\allowbreak{}bound}}
+\leansource{\texttt{splitting\_\allowbreak{}markov\_\allowbreak{}step\_\allowbreak{}coupling\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}SplittingCanonical.lean, lines 59–248}
+\begin{leancode}
+\leanline{0}{theorem\ splitting\_markov\_step\_coupling\_bound}
+\leanline{4}{\{f₁\ f\ e\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ\}}
+\leanline{4}{\{T\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι\}\ \{L₁\ Le\ Kf\ Ke\ LT\ K\ :\ ℝ≥0\}}
+\leanline{4}{(hf₁\ :\ Differentiable\ ℝ\ f₁)\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f₁)}
+\leanline{4}{(hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ f₁))\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(heconv\ :\ ConvexOn\ ℝ\ univ\ e)\ (hegrad\ :\ LipschitzWith\ Le\ (gradient\ e))}
+\leanline{4}{(heLip\ :\ LipschitzWith\ Ke\ e)\ (hfLip\ :\ LipschitzWith\ Kf\ f)}
+\leanline{4}{(hbounded\ :\ ∀\ x,\ ‖gradient\ e\ x‖\ ≤\ (K\ :\ ℝ))}
+\leanline{4}{(hT\ :\ LipschitzWith\ LT\ T)}
+\leanline{4}{(henergy\ :\ ∀\ x\ y,\ ‖T\ x\ -\ y‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{‖x\ -\ y‖\ \textasciicircum{}\ 2\ -\ 2\ *\ h\ *\ (f\ x\ -\ f\ y)\ +\ h\ \textasciicircum{}\ 2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2)}
+\leanline{4}{(delta\ :\ ℝ)\ (hgap\ :\ ∀\ x,\ e\ x\ ≤\ f\ x\ ∧\ f\ x\ ≤\ e\ x\ +\ delta)}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(c\ :\ Coupling\ μ\ (gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x)))}
+\leanline{4}{(hc\ :\ couplingCost\ c.joint\ ≠\ ⊤)\ :}
+\leanline{4}{let\ G\ :=\ Real.sqrt\ (2\ *\ (L₁\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ ((Module.finrank\ ℝ\ (EuclideanSpace\ ℝ\ ι)\ :\ ℝ)\ /\ m)\ +}
+\leanline{6}{2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2)\ +\ (K\ :\ ℝ)}
+\leanline{4}{let\ noise\ :=\ Real.sqrt\ (2\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\leanline{4}{wasserstein2\ (markovStep\ (splittingUpdate\ f₁\ T\ h)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ μ)}
+\leanline{6}{(gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real\ (markovStep\ (splittingUpdate\ f₁\ T\ h)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ μ)}
+\leanline{6}{(gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ *\ (couplingCost\ c.joint).toReal\ \textasciicircum{}\ 2\ +}
+\leanline{8}{splittingCouplingForcing\ m\ h\ (L₁\ :\ ℝ)\ G\ noise\ (K\ :\ ℝ)\ delta}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The bound on the total reference force is \[G=\sqrt{2L_1^2d/m+2K^2}+K,\] combining the proved smooth-score Gibbs moment with the uniformly bounded envelope score. The Brownian moment gives \(\|B_t\|_2\le\sqrt{2d}\sqrt t\). Adaptedness and future-increment independence prove \texttt{horth}; stationarity proves equality of the envelope expectations in \texttt{hstationary}. These facts discharge the analytic one-step theorem's stochastic inputs.
 
 
 
+Finally, the normalized Brownian increment \(V\) has the standard Gaussian law and is independent of \(X\). The representative identity \texttt{h\allowbreak{}X'coe} identifies the updated random variable with \(T(X-h\nabla f_1(X)+\sqrt{2h}V)\); \texttt{h\allowbreak{}X'law} proves its law is the actual independent-Gaussian Markov step. The pair \((X',Y_h)\) therefore provides a finite transport coupling. This proves both output finiteness and the squared estimate for the original arbitrary \(c\).
 
 
-Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.17]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.20]{LangevinLean2026ULASC}; \cite[Section~3.22.21]{LangevinLean2026ULASC}; \cite[Section~3.22.22]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.22.7]{LangevinLean2026ULASC}; \cite[Section~3.22.8]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.4]{LangevinLean2026ULASC}; \cite[Section~3.25.6]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.29.8]{LangevinLean2026ULASC}; \cite[Section~3.32.12]{LangevinLean2026ULASC}; \cite[Section~3.32.13]{LangevinLean2026ULASC}; \cite[Section~3.32.15]{LangevinLean2026ULASC}; \cite[Section~3.32.16]{LangevinLean2026ULASC}; \cite[Section~3.32.17]{LangevinLean2026ULASC}; \cite[Section~3.32.19]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.42.6]{LangevinLean2026ULASC}; \cite[Section~3.42.7]{LangevinLean2026ULASC}; \cite[Section~3.8.11]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.18]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.8.21]{LangevinLean2026ULASC}.
+
+Formal correspondence: splitting\_markov\_step\_coupling\_bound : A genuine canonical coupling estimate for one actual independent Gaussian splitting step. All stochastic inputs of the analytic one-step theorem are constructed here from the potential assumptions.
+
+
+
+\texttt{splitting\_\allowbreak{}markov\_\allowbreak{}step\_\allowbreak{}coupling\_\allowbreak{}bound}: the intermediate facts include \texttt{F}, \texttt{h\allowbreak{}F}, \texttt{hsc\allowbreak{}F}, \texttt{hr}, \texttt{hsq}, in source order; the source steps apply or rewrite \texttt{convex\_\allowbreak{}univ}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}, \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}nonneg}, \texttt{hsq.\allowbreak{}trans}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.22.17]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.20]{LangevinLean2026ULASC}; \cite[Section~3.22.21]{LangevinLean2026ULASC}; \cite[Section~3.22.22]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.22.7]{LangevinLean2026ULASC}; \cite[Section~3.22.8]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.4]{LangevinLean2026ULASC}; \cite[Section~3.25.6]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.29.8]{LangevinLean2026ULASC}; \cite[Section~3.32.12]{LangevinLean2026ULASC}; \cite[Section~3.32.13]{LangevinLean2026ULASC}; \cite[Section~3.32.15]{LangevinLean2026ULASC}; \cite[Section~3.32.16]{LangevinLean2026ULASC}; \cite[Section~3.32.17]{LangevinLean2026ULASC}; \cite[Section~3.32.19]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.42.6]{LangevinLean2026ULASC}; \cite[Section~3.42.7]{LangevinLean2026ULASC}; \cite[Section~3.8.11]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.8.21]{LangevinLean2026ULASC}; \cite[Section~3.8.22]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

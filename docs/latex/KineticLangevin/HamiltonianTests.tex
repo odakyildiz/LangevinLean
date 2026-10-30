@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,17 @@ For measurable \(0\le a\le1\), the two weighted measures \(a\pi\) and \((1-a)\pi
 
 For each state, the accepted and rejected coefficients sum to one. Keeping both terms makes the corrected transition a probability kernel and its target identity exact. Dropping the rejected term would produce a subprobability expression and an incorrect invariance statement.
 
+\begin{leanbox}{Lean: \texttt{acceptance\_\allowbreak{}measure\_\allowbreak{}split}}
+\leansource{\texttt{acceptance\_\allowbreak{}measure\_\allowbreak{}split} \quad KineticLangevin/\allowbreak{}HamiltonianTests.lean, lines 20–30}
+\begin{leancode}
+\leanline{0}{theorem\ acceptance\_measure\_split\ (π\ :\ Measure\ H)\ (a\ :\ H\ →\ ℝ)\ (ha\ :\ Measurable\ a)}
+\leanline{4}{(ha0\ :\ ∀\ z,\ 0\ ≤\ a\ z)\ (ha1\ :\ ∀\ z,\ a\ z\ ≤\ 1)\ :}
+\leanline{4}{π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (a\ z))\ +}
+\leanline{6}{π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (1-a\ z))\ =\ π}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{acceptance\_\allowbreak{}measure\_\allowbreak{}split} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The integral identity for the explicit invariant measure}{The integral identity for the explicit invariant measure}}
 
@@ -42,6 +76,21 @@ Suppose the already constructed corrected measure satisfies \(V_\#(a\pi)+R_\#((1
 
 An invariant measure equality implies equality of integrals for every bounded measurable test. This formulation is convenient for passing to numerical limits, because the error between corrected and uncorrected tests can be controlled pointwise by the rejection probability.
 
+\begin{leanbox}{Lean: \texttt{correctedMeasure\_\allowbreak{}test\_\allowbreak{}identity}}
+\leansource{\texttt{correctedMeasure\_\allowbreak{}test\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}HamiltonianTests.lean, lines 34–70}
+\begin{leancode}
+\leanline{0}{theorem\ correctedMeasure\_test\_identity\ (π\ :\ Measure\ H)\ [IsFiniteMeasure\ π]}
+\leanline{4}{(V\ R\ :\ H\ →\ H)\ (hV\ :\ Measurable\ V)\ (hR\ :\ Measurable\ R)}
+\leanline{4}{(a\ :\ H\ →\ ℝ)\ (ha\ :\ Measurable\ a)\ (ha0\ :\ ∀\ z,\ 0\ ≤\ a\ z)\ (ha1\ :\ ∀\ z,\ a\ z\ ≤\ 1)}
+\leanline{4}{(hstationary\ :\ (π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (a\ z))).map\ V\ +}
+\leanline{6}{(π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (1-a\ z))).map\ R\ =\ π)}
+\leanline{4}{(F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (C\ :\ ℝ)\ (hbound\ :\ ∀\ z,\ ‖F\ z‖\ ≤\ C)\ :}
+\leanline{4}{(∫\ z,\ F\ z\ ∂π)\ =\ (∫\ z,\ a\ z\ •\ F\ (V\ z)\ ∂π)\ +}
+\leanline{6}{(∫\ z,\ (1-a\ z)\ •\ F\ (R\ z)\ ∂π)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Measure\_\allowbreak{}test\_\allowbreak{}identity} gives the formal counterpart of this step. The main intermediate facts are \texttt{A}, \texttt{B}, \texttt{hsplit}, \texttt{h\allowbreak{}A}, \texttt{h\allowbreak{}B}, \texttt{hi\allowbreak{}A} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Bound the entire rejected move through the test bound}{Bound the entire rejected move through the test bound}}
 
@@ -52,5 +101,20 @@ Subtract the invariant-test identity from the ordinary proposal expectation. The
 
 If a test is bounded in absolute value by \(B\), changing its argument changes its value by at most \(2B\). Multiplying this bound by the rejection probability controls the entire rejected move. No Lipschitz regularity of the test is required for this step.
 
+\begin{leanbox}{Lean: \texttt{correctedMeasure\_\allowbreak{}weak\_\allowbreak{}error}}
+\leansource{\texttt{correctedMeasure\_\allowbreak{}weak\_\allowbreak{}error} \quad KineticLangevin/\allowbreak{}HamiltonianTests.lean, lines 74–132}
+\begin{leancode}
+\leanline{0}{theorem\ correctedMeasure\_weak\_error\ (π\ :\ Measure\ H)\ [IsFiniteMeasure\ π]}
+\leanline{4}{(V\ R\ :\ H\ →\ H)\ (hV\ :\ Measurable\ V)\ (hR\ :\ Measurable\ R)}
+\leanline{4}{(a\ :\ H\ →\ ℝ)\ (ha\ :\ Measurable\ a)\ (ha0\ :\ ∀\ z,\ 0\ ≤\ a\ z)\ (ha1\ :\ ∀\ z,\ a\ z\ ≤\ 1)}
+\leanline{4}{(hstationary\ :\ (π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (a\ z))).map\ V\ +}
+\leanline{6}{(π.withDensity\ (fun\ z\ ↦\ ENNReal.ofReal\ (1-a\ z))).map\ R\ =\ π)}
+\leanline{4}{(F\ :\ H\ →\ ℂ)\ (hF\ :\ Measurable\ F)\ (C\ :\ ℝ)\ (hC\ :\ 0\ ≤\ C)}
+\leanline{4}{(hbound\ :\ ∀\ z,\ ‖F\ z‖\ ≤\ C)\ :}
+\leanline{4}{‖(∫\ z,\ F\ (V\ z)\ ∂π)-(∫\ z,\ F\ z\ ∂π)‖\ ≤\ 2*C*(∫\ z,\ 1-a\ z\ ∂π)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrected\allowbreak{}Measure\_\allowbreak{}weak\_\allowbreak{}error} gives the formal counterpart of this step. The main intermediate facts are \texttt{hb}, \texttt{hb1}, \texttt{h\allowbreak{}FV}, \texttt{h\allowbreak{}A}, \texttt{h\allowbreak{}B}, \texttt{hrej} in that order. Named proof applications include \texttt{hb1}, \texttt{integral\_\allowbreak{}congr\_\allowbreak{}ae}, \texttt{integral\_\allowbreak{}mono}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

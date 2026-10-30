@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,7 +59,29 @@ The forcing is nonnegative because \(e\le f\le e+\delta\) implies \(\delta\ge0\)
 
 The reference target is fixed during iteration at the chosen scale. One finite input coupling proves finite output transport, while the estimate for every coupling gives the infimum bound. The condition \(mh\le1\) ensures its preceding-error coefficient is nonnegative, permitting iteration.
 
-
+\begin{leanbox}{Lean: \texttt{step\_\allowbreak{}product\_\allowbreak{}le\_\allowbreak{}one}, \texttt{splitting\_\allowbreak{}markov\_\allowbreak{}step\_\allowbreak{}sq\_\allowbreak{}bound}}
+\leansource{\texttt{step\_\allowbreak{}product\_\allowbreak{}le\_\allowbreak{}one} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 42–46}
+\begin{leancode}
+\leanline{0}{private\ theorem\ step\_product\_le\_one\ :\ m\ *\ h\ ≤\ 1}
+\end{leancode}
+\leansource{\texttt{splitting\_\allowbreak{}markov\_\allowbreak{}step\_\allowbreak{}sq\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 50–75}
+\begin{leancode}
+\leanline{0}{theorem\ splitting\_markov\_step\_sq\_bound}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ ≠\ ⊤)\ :}
+\leanline{4}{let\ G\ :=\ Real.sqrt\ (2\ *\ (L₁\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ ((Module.finrank\ ℝ\ (EuclideanSpace\ ℝ\ ι)\ :\ ℝ)\ /\ m)\ +}
+\leanline{6}{2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2)\ +\ (K\ :\ ℝ)}
+\leanline{4}{let\ noise\ :=\ Real.sqrt\ (2\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\leanline{4}{wasserstein2\ (markovStep\ (splittingUpdate\ f₁\ T\ h)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ μ)}
+\leanline{6}{(gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real\ (markovStep\ (splittingUpdate\ f₁\ T\ h)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ μ)}
+\leanline{6}{(gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ \textasciicircum{}\ 2\ +}
+\leanline{8}{splittingCouplingForcing\ m\ h\ (L₁\ :\ ℝ)\ G\ noise\ (K\ :\ ℝ)\ delta}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{step\_\allowbreak{}product\_\allowbreak{}le\_\allowbreak{}one} derives the nonnegative contraction factor from the stable step. \texttt{splitting\_\allowbreak{}markov\_\allowbreak{}step\_\allowbreak{}sq\_\allowbreak{}bound} obtains \texttt{hcouple}, the squared-error bound on every finite-cost coupling. A coupling from \texttt{exists\_\allowbreak{}finite\allowbreak{}Cost\_\allowbreak{}coupling} gives finite output transport. \texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings} then takes the initial-cost infimum, using the nonnegative contraction factor and forcing. The forcing sign follows from the nonnegative potential gap and its explicit formula. Thus an optimal coupling is unnecessary.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}.
@@ -54,7 +99,26 @@ The denominator is \(1-q=mh>0\). Explicitly \(\delta\le hK^2/2\) gives \(\mathca
 
 Cancellation is valid because \(m,h>0\). For \(E_{k+1}\le qE_k+mh^2C\) and \(q=1-mh\), the finite-sum formula is \(E_n\le q^nE_0+mh^2C(1-q^n)/(1-q)\). Identity \(1-q=mh>0\) bounds its added term by \(hC\). The same induction proves normalization and finiteness needed to reapply the transition estimate at every step.
 
-
+\begin{leanbox}{Lean: \texttt{splitting\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq\_\allowbreak{}bound}}
+\leansource{\texttt{splitting\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 80–130}
+\begin{leancode}
+\leanline{0}{theorem\ splitting\_markov\_laws\_sq\_bound}
+\leanline{4}{(hdelta\ :\ delta\ ≤\ h\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ 2)}
+\leanline{4}{(μ\ :\ Measure\ (EuclideanSpace\ ℝ\ ι))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hfinite\ :\ wasserstein2\ μ\ (gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ ≠\ ⊤)\ (n\ :\ ℕ)\ :}
+\leanline{4}{let\ G\ :=\ Real.sqrt\ (2\ *\ (L₁\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ ((Module.finrank\ ℝ\ (EuclideanSpace\ ℝ\ ι)\ :\ ℝ)\ /\ m)\ +}
+\leanline{6}{2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2)\ +\ (K\ :\ ℝ)}
+\leanline{4}{let\ noise\ :=\ Real.sqrt\ (2\ *\ (Fintype.card\ ι\ :\ ℝ))}
+\leanline{4}{wasserstein2\ (markovLaws\ (splittingUpdate\ f₁\ T\ h)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ μ\ n)}
+\leanline{6}{(gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real\ (markovLaws\ (splittingUpdate\ f₁\ T\ h)\ (stdGaussian\ (EuclideanSpace\ ℝ\ ι))\ μ\ n)}
+\leanline{6}{(gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ \textasciicircum{}\ n\ *\ wasserstein2Real\ μ\ (gibbsMeasure\ (fun\ x\ =>\ f₁\ x\ +\ e\ x))\ \textasciicircum{}\ 2\ +}
+\leanline{8}{h\ *\ splittingRMSConstant\ m\ (L₁\ :\ ℝ)\ G\ noise\ (K\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{splitting\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq\_\allowbreak{}bound} defines the transition iterates \texttt{laws} and proves their probability instances \texttt{hprob}. The induction \texttt{hfinite'} first establishes finite transport at every step. \texttt{hforcing} applies the scalar absorption bound, and \texttt{hstep} obtains the resulting squared-distance recurrence. \texttt{affine\_\allowbreak{}recurrence\_\allowbreak{}bound} sums it. The algebraic identity \texttt{heq} divides the forcing by the contraction gap, leaving the displayed time-scaled constant. Its conclusion keeps finite transport together with the numerical estimate.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.15.3]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}.
@@ -68,7 +132,42 @@ Let \(d=d_\theta+Nd_x\) and substitute \(\bar m=Nm\), \(\bar L=NL_1\), \(\bar K=
 
 The resulting coefficient is \(C_N=C(Nm,NL_1,G_N,\sqrt{2d},NK)\). Its nonnegativity follows from \(N,m>0\) and the scalar coefficient inequality. Both lifted force constants have factor \(N\), and the moment uses dimension \(D=d_\theta+Nd_x\). This defines \(C_N\) with all particle dependence explicit before the forward step is varied. Independence of the step does not imply independence of particle count.
 
+\begin{leanbox}{Lean: \texttt{pipglaReferenceG}, \texttt{pipglaTransportConstant}, \texttt{pipglaTransportConstant\_\allowbreak{}nonneg}}
+\leansource{\texttt{pipglaReferenceG} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 135–138}
+\begin{leancode}
+\leanline{0}{def\ pipglaReferenceG\ (N\ dθ\ dx\ :\ ℕ)\ (m\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ (2\ *\ ((N\ :\ ℝ)\ *\ (L₁\ :\ ℝ))\ \textasciicircum{}\ 2\ *}
+\leanline{4}{((dθ\ +\ N\ *\ dx\ :\ ℕ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +\ 2\ *\ ((N\ :\ ℝ)\ *\ (K\ :\ ℝ))\ \textasciicircum{}\ 2)\ +}
+\leanline{4}{(N\ :\ ℝ)\ *\ (K\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{pipglaTransportConstant} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 141–144}
+\begin{leancode}
+\leanline{0}{def\ pipglaTransportConstant\ (N\ dθ\ dx\ :\ ℕ)\ (m\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)\ :\ ℝ\ :=}
+\leanline{2}{splittingRMSConstant\ ((N\ :\ ℝ)\ *\ m)\ ((N\ :\ ℝ)\ *\ (L₁\ :\ ℝ))}
+\leanline{4}{(pipglaReferenceG\ N\ dθ\ dx\ m\ L₁\ K)\ (Real.sqrt\ (2\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)))}
+\leanline{4}{((N\ :\ ℝ)\ *\ (K\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{pipglaTransportConstant\_\allowbreak{}nonneg} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 147–152}
+\begin{leancode}
+\leanline{0}{theorem\ pipglaTransportConstant\_nonneg\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{m\ :\ ℝ\}\ (hm\ :\ 0\ <\ m)\ (L₁\ K\ :\ ℝ≥0)\ :}
+\leanline{4}{0\ ≤\ pipglaTransportConstant\ N\ dθ\ dx\ m\ L₁\ K}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipglaReferenceG : Smoothing-uniform moment bound in the scaled particle coordinates. pipglaTransportConstant : A finite explicit coefficient for the equal-step PIPGLA transport floor. pipglaTransportConstant\_nonneg : The explicit transport coefficient is nonnegative in the intended regime.
 
+
+
+\texttt{pipgla\allowbreak{}Reference\allowbreak{}G} is a definition with defining expression \texttt{Real.\allowbreak{}sqrt (2 * ((N : \ensuremath{\mathbb R}) * (L\ensuremath{{}_{1}} : \ensuremath{\mathbb R})) \textasciicircum{} 2 *}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{pipgla\allowbreak{}Transport\allowbreak{}Constant} is a definition with defining expression \texttt{splitting\allowbreak{}RMSConstant ((N : \ensuremath{\mathbb R}) * m) ((N : \ensuremath{\mathbb R}) * (L\ensuremath{{}_{1}} : \ensuremath{\mathbb R}))}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{pipgla\allowbreak{}Transport\allowbreak{}Constant\_\allowbreak{}nonneg}: the intermediate fact is \texttt{hn}, in source order; the source steps apply or rewrite \texttt{splitting\allowbreak{}RMSConstant\_\allowbreak{}nonneg}, \texttt{mul\_\allowbreak{}pos}.
+\end{leanbox}
 
 \section{\texorpdfstring{The equal-step PIPGLA estimate}{The equal-step PIPGLA estimate}}
 
@@ -79,17 +178,39 @@ For \(\lambda=\gamma>0\) take \(h=\gamma/N\), \(T=\operatorname{Pair}_{P_\gamma}
 
 Coefficient \(C_N\) does not depend on \(\gamma\), although the target itself uses envelope scale \(\gamma\). In detail the gap \(N\gamma K^2/2\), with \(h=\gamma/N\) and \(K_N=NK\), is exactly \(hK_N^2/2\). The contraction factor is \(1-m\gamma\) and the floor is \((\gamma/N)C_N\). These are substitutions into the proved recurrence for the output laws, which equal those of the supplied splitting recursion.
 
-
-
+\begin{leanbox}{Lean: \texttt{pipgla\_\allowbreak{}equal\_\allowbreak{}step\_\allowbreak{}transport\_\allowbreak{}sq}}
+\leansource{\texttt{pipgla\_\allowbreak{}equal\_\allowbreak{}step\_\allowbreak{}transport\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}SplittingEndpoint.lean, lines 158–247}
+\begin{leancode}
+\leanline{0}{theorem\ pipgla\_equal\_step\_transport\_sq}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ \{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{let\ π\ :=\ @IPLA.gibbsTarget\ N\ dθ\ dx\ (smoothedPotential\ g₁\ g₂\ γ)}
+\leanline{4}{wasserstein2\ (pipglaLaws\ Q\ g₁\ (prox\ g₂\ γ)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)\ π\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real\ (pipglaLaws\ Q\ g₁\ (prox\ g₂\ γ)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)\ π\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ n\ *\ wasserstein2Real\ (Q.map\ initial)\ π\ \textasciicircum{}\ 2\ +}
+\leanline{8}{(γ\ /\ N)\ *\ pipglaTransportConstant\ N\ dθ\ dx\ m\ L₁\ K}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pipgla\_\allowbreak{}equal\_\allowbreak{}step\_\allowbreak{}transport\_\allowbreak{}sq} lifts the smooth potential \texttt{f\ensuremath{{}_{1}}}, nonsmooth potential \texttt{f}, envelope \texttt{e} and pairwise proximal map \texttt{T}. The facts \texttt{he}, \texttt{heconv}, \texttt{hegrad}, \texttt{he\allowbreak{}Lip} and \texttt{hbound} provide the required envelope regularity and bounded force. \texttt{henergy} is the particle proximal energy inequality, while \texttt{hgap} and \texttt{h\ensuremath{\delta}} supply the finite smoothing gap. \texttt{hfinite} proves initial transport finiteness from the actual square-integrable initialization. \texttt{splitting\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq\_\allowbreak{}bound} then gives \texttt{hb'}. The identity \texttt{hupdate} and the Gaussian law rewrites identify its iterates with the actual PIPGLA laws; \texttt{hfactor} cancels the particle count in the contraction exponent.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.33.9]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.7.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

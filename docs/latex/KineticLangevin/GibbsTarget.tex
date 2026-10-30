@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,16 @@ The Gaussian proposal density at step \(h=1/2\) and center zero is exactly the s
 
 The standard Gaussian velocity law has a density proportional to \(e^{-\|v\|^2/2}\) with respect to Euclidean volume. This identifies the explicit Gaussian measure with the kinetic factor in the Hamiltonian Gibbs weight. The normalization is therefore known, not left implicit.
 
+\begin{leanbox}{Lean: \texttt{stdGaussian\_\allowbreak{}hamiltonian\_\allowbreak{}density}}
+\leansource{\texttt{stdGaussian\_\allowbreak{}hamiltonian\_\allowbreak{}density} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 14–34}
+\begin{leancode}
+\leanline{0}{theorem\ stdGaussian\_hamiltonian\_density\ :}
+\leanline{4}{stdGaussian\ E\ =\ ENNReal.ofReal\ (ULA.radialGaussianNormalizer\ (H\ :=\ E)\ (1/2))\ •}
+\leanline{6}{(volume\ :\ Measure\ E).withDensity\ (fun\ v\ ↦\ ENNReal.ofReal\ (Real.exp\ (-‖v‖\textasciicircum{}2/2)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{std\allowbreak{}Gaussian\_\allowbreak{}hamiltonian\_\allowbreak{}density} gives the formal counterpart of this step. The main intermediate facts are \texttt{hm}, \texttt{hprecision}, \texttt{hfun} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.37.17]{LangevinLean2026ULASC}; \cite[Section~3.37.2]{LangevinLean2026ULASC}; \cite[Section~3.37.4]{LangevinLean2026ULASC}; \cite[Section~3.37.5]{LangevinLean2026ULASC}.
@@ -52,6 +85,38 @@ The proof distributes the two scalar normalizers through the product of measures
 
 Product integration gives the phase partition function as the product of the velocity and position partition functions. Dividing the factored density by that positive finite mass yields the independent Gaussian-times-position probability measure used in the sampler theorem.
 
+\begin{leanbox}{Lean: \texttt{kineticGibbsTarget}, \texttt{kineticGibbsTarget\_\allowbreak{}eq\_\allowbreak{}scaled}, \texttt{kineticGibbsTarget\_\allowbreak{}probability}}
+\leansource{\texttt{kineticGibbsTarget} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 38–39}
+\begin{leancode}
+\leanline{0}{def\ kineticGibbsTarget\ (f\ :\ E\ →\ ℝ)\ :\ Measure\ (E×E)\ :=}
+\leanline{2}{(stdGaussian\ E).prod\ (ULA.gibbsMeasure\ f)}
+\end{leancode}
+\leansource{\texttt{kineticGibbsTarget\_\allowbreak{}eq\_\allowbreak{}scaled} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 43–50}
+\begin{leancode}
+\leanline{0}{theorem\ kineticGibbsTarget\_eq\_scaled\ (f\ :\ E\ →\ ℝ)\ (hf\ :\ Measurable\ f)\ :}
+\leanline{4}{kineticGibbsTarget\ f\ =}
+\leanline{6}{(ENNReal.ofReal\ (ULA.radialGaussianNormalizer\ (H\ :=\ E)\ (1/2))\ *}
+\leanline{8}{(ULA.gibbsPartition\ f)⁻¹)\ •\ hamiltonianGibbs\ (volume\ :\ Measure\ E)\ f}
+\end{leancode}
+\leansource{\texttt{kineticGibbsTarget\_\allowbreak{}probability} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 53–58}
+\begin{leancode}
+\leanline{0}{theorem\ kineticGibbsTarget\_probability\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{IsProbabilityMeasure\ (kineticGibbsTarget\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Gibbs\allowbreak{}Target} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{kinetic\allowbreak{}Gibbs\allowbreak{}Target\_\allowbreak{}eq\_\allowbreak{}scaled} gives the formal counterpart of this step.
+
+
+
+
+\texttt{kinetic\allowbreak{}Gibbs\allowbreak{}Target\_\allowbreak{}probability} gives the formal counterpart of this step.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.37.2]{LangevinLean2026ULASC}.
@@ -65,6 +130,19 @@ The selected Hamiltonian flow already preserves the unnormalized Hamiltonian wei
 
 The Hamiltonian flow preserves its normalized energy-weighted measure. The density factorization identifies that measure exactly with the normalized Gibbs target. Hence the proved Hamiltonian invariance transfers to the same target probability used by the kinetic analysis.
 
+\begin{leanbox}{Lean: \texttt{hamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}target}}
+\leansource{\texttt{hamiltonianFlow\_\allowbreak{}preserves\_\allowbreak{}target} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 62–70}
+\begin{leancode}
+\leanline{0}{theorem\ hamiltonianFlow\_preserves\_target}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ :}
+\leanline{4}{(kineticGibbsTarget\ f).map\ (fun\ z\ ↦\ hamiltonianFlow\ f\ M\ hLip\ T\ hT\ z\ T)\ =}
+\leanline{6}{kineticGibbsTarget\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{hamiltonian\allowbreak{}Flow\_\allowbreak{}preserves\_\allowbreak{}target} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{The thermostat identity with fresh independent Gaussian noise}{The thermostat identity with fresh independent Gaussian noise}}
 
@@ -79,6 +157,30 @@ Specializing the arbitrary position law to the normalized Gibbs target proves th
 
 The thermostat preserves a standard Gaussian velocity by the fluctuation–dissipation identity and leaves position unchanged. Independence of the fresh refresh noise from the full initial phase ensures that the resulting velocity remains independent of the position.
 
+\begin{leanbox}{Lean: \texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}independent\_\allowbreak{}position}, \texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}target}}
+\leansource{\texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}independent\_\allowbreak{}position} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 74–99}
+\begin{leancode}
+\leanline{0}{theorem\ thermostat\_preserves\_independent\_position\ (π\ :\ Measure\ E)\ [IsProbabilityMeasure\ π]}
+\leanline{4}{(a\ b\ :\ ℝ)\ (hab\ :\ a\textasciicircum{}2+b\textasciicircum{}2\ =\ 1)\ :}
+\leanline{4}{(((stdGaussian\ E).prod\ π).prod\ (stdGaussian\ E)).map}
+\leanline{6}{(fun\ p\ ↦\ (a\ •\ p.1.1+b\ •\ p.2,p.1.2))\ =\ (stdGaussian\ E).prod\ π}
+\end{leancode}
+\leansource{\texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}target} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 103–109}
+\begin{leancode}
+\leanline{0}{theorem\ thermostat\_preserves\_target\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(a\ b\ :\ ℝ)\ (hab\ :\ a\textasciicircum{}2+b\textasciicircum{}2=1)\ :}
+\leanline{4}{((kineticGibbsTarget\ f).prod\ (stdGaussian\ E)).map}
+\leanline{6}{(fun\ p\ ↦\ (a\ •\ p.1.1+b\ •\ p.2,p.1.2))\ =\ kineticGibbsTarget\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}independent\_\allowbreak{}position} gives the formal counterpart of this step. The main intermediate facts are \texttt{hperm}, \texttt{h\allowbreak{}O} in that order. Named proof applications include \texttt{hp.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}target} gives the formal counterpart of this step. Named proof applications include \texttt{thermostat\_\allowbreak{}preserves\_\allowbreak{}independent\_\allowbreak{}position}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -92,13 +194,34 @@ Projecting the independent product \(\varphi\otimes\pi\) to position integrates 
 
 The first marginal of the product is the Gaussian velocity law and the second is the normalized position Gibbs law. These exact marginals supply the stationary velocity moment and the desired sampling reference simultaneously. They are consequences of the definition and normalization of the target.
 
+\begin{leanbox}{Lean: \texttt{kineticGibbsTarget\_\allowbreak{}position}, \texttt{kineticGibbsTarget\_\allowbreak{}velocity}}
+\leansource{\texttt{kineticGibbsTarget\_\allowbreak{}position} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 112–117}
+\begin{leancode}
+\leanline{0}{theorem\ kineticGibbsTarget\_position\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{(kineticGibbsTarget\ f).map\ Prod.snd\ =\ ULA.gibbsMeasure\ f}
+\end{leancode}
+\leansource{\texttt{kineticGibbsTarget\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}GibbsTarget.lean, lines 120–125}
+\begin{leancode}
+\leanline{0}{theorem\ kineticGibbsTarget\_velocity\ (f\ :\ E\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ :}
+\leanline{4}{(kineticGibbsTarget\ f).map\ Prod.fst\ =\ stdGaussian\ E}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Gibbs\allowbreak{}Target\_\allowbreak{}position} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{kinetic\allowbreak{}Gibbs\allowbreak{}Target\_\allowbreak{}velocity} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

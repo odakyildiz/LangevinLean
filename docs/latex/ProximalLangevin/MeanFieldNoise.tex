@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,51 @@ Product coordinate evaluation preserves the reference measure, so each pulled-ba
 
 The coordinate numbered zero exists under \(N>0\). Its Langevin-scaled noise \(\sqrt2W_t\), multiplied by \(N^{-1/2}\), gives the parameter input. Fixed scaling preserves the \(L^2\) continuity and zero initial value. Equivalently the finite-dimensional Brownian vector is multiplied by \(\sqrt{2/N}\); its inherited \(L^2\) continuity verifies the additive-input hypotheses rather than assuming them for an unspecified process.
 
+\begin{leanbox}{Lean: \texttt{empiricalParameter\_\allowbreak{}preBrownian}, \texttt{empiricalParameterNoise}, \texttt{empiricalParameterNoise\_\allowbreak{}continuous} and 1 more}
+\leansource{\texttt{empiricalParameter\_\allowbreak{}preBrownian} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 28–32}
+\begin{leancode}
+\leanline{0}{theorem\ empiricalParameter\_preBrownian\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{IsPreBrownianReal\ (fun\ s\ (ω\ :\ Fin\ N\ →\ Ω)\ =>\ W\ j\ s\ (ω\ ⟨0,\ hN⟩))}
+\leanline{6}{(Measure.pi\ (fun\ \_\ :\ Fin\ N\ =>\ Q))}
+\end{leancode}
+\leansource{\texttt{empiricalParameterNoise} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 35–40}
+\begin{leancode}
+\leanline{0}{def\ empiricalParameterNoise\ (t\ :\ ℝ)\ :}
+\leanline{4}{Lp\ (EuclideanSpace\ ℝ\ (Fin\ dθ))\ 2\ (Measure.pi\ (fun\ \_\ :\ Fin\ N\ =>\ Q))\ :=}
+\leanline{2}{(Real.sqrt\ (N\ :\ ℝ))⁻¹\ •}
+\leanline{4}{ULA.brownianLangevinNoise\ (Measure.pi\ (fun\ \_\ :\ Fin\ N\ =>\ Q))}
+\leanline{6}{(fun\ j\ s\ (ω\ :\ Fin\ N\ →\ Ω)\ =>\ W\ j\ s\ (ω\ ⟨0,\ hN⟩))}
+\leanline{6}{(empiricalParameter\_preBrownian\ Q\ hN\ W\ hW)\ 0\ t}
+\end{leancode}
+\leansource{\texttt{empiricalParameterNoise\_\allowbreak{}continuous} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 42–51}
+\begin{leancode}
+\leanline{0}{theorem\ empiricalParameterNoise\_continuous\ :}
+\leanline{4}{Continuous\ (empiricalParameterNoise\ Q\ hN\ W\ hW)}
+\end{leancode}
+\leansource{\texttt{empiricalParameterNoise\_\allowbreak{}zero} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 53–55}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ empiricalParameterNoise\_zero\ :}
+\leanline{4}{empiricalParameterNoise\ Q\ hN\ W\ hW\ 0\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: empiricalParameter\_preBrownian : Each coordinate of the common parameter source has the actual Brownian law after pullback to the finite iid product. empiricalParameterNoise : The actual parameter Brownian input, with the particle scaling.
 
+
+
+\texttt{empirical\allowbreak{}Parameter\_\allowbreak{}pre\allowbreak{}Brownian}: the proof is the application \texttt{ULA.\allowbreak{}Hilbert.\allowbreak{}pre\allowbreak{}Brownian\_\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise} is a definition with defining expression \texttt{(Real.\allowbreak{}sqrt (N : \ensuremath{\mathbb R}))\ensuremath{{}^{-1}} \ensuremath{\bullet}}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}continuous}: the source steps apply or rewrite \texttt{continuous\_\allowbreak{}const}, \texttt{Real.\allowbreak{}sqrt}.
+
+
+
+\texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}zero}: the source steps apply or rewrite \texttt{ULA.\allowbreak{}brownian\allowbreak{}Langevin\allowbreak{}Noise\_\allowbreak{}zero}, \texttt{smul\_\allowbreak{}zero}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.2]{LangevinLean2026ULASC}; \cite[Section~3.25.3]{LangevinLean2026ULASC}; \cite[Section~3.32.1]{LangevinLean2026ULASC}.
@@ -49,14 +116,49 @@ Each scalar increment has variance \(t\). Thus its Langevin vector has squared \
 
 Monotonicity bounds the time factor by \(\sqrt T\). In coordinate form the squared norm is \((2/N)\sum_{j=1}^{d_\theta}\mathbb E|B_t^j-B_0^j|^2=2d_\theta t/N\). For \(t\le T\) its root gives horizon coefficient \(\sqrt{2d_\theta T}\), independent of \(N\). Substitution of the constructed Brownian probability space gives an explicit example with these distributions and moments.
 
+\begin{leanbox}{Lean: \texttt{empiricalParameterNoise\_\allowbreak{}norm}, \texttt{empiricalParameterNoise\_\allowbreak{}bound}, \texttt{canonical\_\allowbreak{}empiricalParameterNoise\_\allowbreak{}bound}}
+\leansource{\texttt{empiricalParameterNoise\_\allowbreak{}norm} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 58–64}
+\begin{leancode}
+\leanline{0}{theorem\ empiricalParameterNoise\_norm\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{‖empiricalParameterNoise\ Q\ hN\ W\ hW\ t‖\ =}
+\leanline{6}{Real.sqrt\ (2\ *\ (dθ\ :\ ℝ))\ *\ Real.sqrt\ t\ /\ Real.sqrt\ (N\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{empiricalParameterNoise\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 67–72}
+\begin{leancode}
+\leanline{0}{theorem\ empiricalParameterNoise\_bound\ (T\ t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖empiricalParameterNoise\ Q\ hN\ W\ hW\ t‖\ ≤}
+\leanline{6}{(Real.sqrt\ (2\ *\ (dθ\ :\ ℝ))\ *\ Real.sqrt\ T)\ /\ Real.sqrt\ (N\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{canonical\_\allowbreak{}empiricalParameterNoise\_\allowbreak{}bound} \quad ProximalLangevin/\allowbreak{}MeanFieldNoise.lean, lines 78–83}
+\begin{leancode}
+\leanline{0}{theorem\ canonical\_empiricalParameterNoise\_bound\ (N\ dθ\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(T\ t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{‖empiricalParameterNoise\ (ULA.CanonicalBrownian.vectorProbability\ (Fin\ dθ))\ hN}
+\leanline{6}{ULA.CanonicalBrownian.coordinate\ ULA.CanonicalBrownian.coordinate\_isPreBrownian\ t‖\ ≤}
+\leanline{6}{(Real.sqrt\ (2\ *\ (dθ\ :\ ℝ))\ *\ Real.sqrt\ T)\ /\ Real.sqrt\ (N\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: empiricalParameterNoise\_norm : The exact Brownian second-moment scale of the actual parameter input. empiricalParameterNoise\_bound : A finite-horizon bound with an explicit coefficient independent of \(N\). canonical\_empiricalParameterNoise\_bound : A concrete source exists: the Brownian coordinates are the already constructed independent Gaussian time-indicator processes.
 
 
 
-Earlier results used here: \cite[Section~3.25.4]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.18]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}.
+\texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}norm}: the source steps apply or rewrite \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{Fintype.\allowbreak{}card\_\allowbreak{}fin}. The remaining scalar rearrangements are checked by \texttt{ring}.
+
+
+
+\texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}bound}: the source steps apply or rewrite \texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}norm}, \texttt{ht.\allowbreak{}1}, \texttt{div\_\allowbreak{}le\_\allowbreak{}div\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}.
+
+
+
+\texttt{canonical\_\allowbreak{}empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}bound}: the proof is the application \texttt{empirical\allowbreak{}Parameter\allowbreak{}Noise\_\allowbreak{}bound \_\allowbreak{} h\allowbreak{}N \_\allowbreak{} \_\allowbreak{} T t ht}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.25.4]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

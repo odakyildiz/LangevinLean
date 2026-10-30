@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -18,7 +41,7 @@ The Gaussian interpolation has positive differentiable density, finite score mom
 \section{\texorpdfstring{Theorem}{Theorem}}
 
 
-Let \(d\ge1\) and let \(\nu(dx)=Z^{-1}e^{-U(x)}dx\) be a probability on \(\mathbb R^d\). Assume \(U\) is differentiable, its gradient is globally \(L\)-Lipschitz with \(L>0\), and \(\nu\) satisfies the logarithmic Sobolev inequality with constant \(\alpha>0\):
+Let \(d\ge0\) and let \(\nu(dx)=Z^{-1}e^{-U(x)}dx\) be a probability on \(\mathbb R^d\). Assume \(U\) is differentiable, its gradient is globally \(L\)-Lipschitz with \(L>0\), and \(\nu\) satisfies the logarithmic Sobolev inequality with constant \(\alpha>0\):
 
 \[2\alpha H_\nu(\rho)\le I_\nu(\rho),\qquad
 H_\nu(\rho)=\int\log\frac{d\rho}{d\nu}\,d\rho,\quad
@@ -33,8 +56,24 @@ Then the laws \(\rho_k=\operatorname{Law}(X_k)\) have finite relative entropy an
 
 \[\boxed{H_\nu(\rho_k)\le e^{-\alpha hk}H_\nu(\rho_0)+\frac{8hdL^2}{\alpha}.}\]
 
-This is the bound in Vempala–Wibisono (2019), Theorem 2. Its first term decays with iteration, while its second term is the time-discretization contribution. Convexity of \(U\) is not required. The inequality \(\alpha\le L\) follows below from the functional inequality and smoothness in positive dimension. For infinite initial entropy the corresponding extended-valued inequality is immediate; the finite-entropy assertion supplies the quantitative conclusion.
+This is the bound in Vempala–Wibisono (2019), Theorem 2. Its first term decays with iteration, while its second term is the time-discretization contribution. Convexity of \(U\) is not required. The inequality \(\alpha\le L\) follows below from the functional inequality and smoothness in positive dimension; if \(d=0\), all probability laws coincide and every relative entropy vanishes. For infinite initial entropy the corresponding extended-valued inequality is immediate; the finite-entropy assertion supplies the quantitative conclusion.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}bound}}
+\leansource{\texttt{ula\_\allowbreak{}kl\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 227–253}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_kl\_bound}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (ulaLaws\ U\ h\ μ\ k)\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ k\ ≤}
+\leanline{8}{Real.exp\ (-α\ *\ h\ *\ k)\ *\ (InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +}
+\leanline{10}{8\ *\ h\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α}
+\end{leancode}
+\end{leanbox}
 
 \section{\texorpdfstring{The Gibbs relative density and Gaussian Euler interpolation}{The Gibbs relative density and Gaussian Euler interpolation}}
 
@@ -57,6 +96,24 @@ The initial law is \(\mu\), and at time \(h\) the law is its Gaussian Euler tran
 
 The drift during this interpolation is fixed at its initial value. Its discrepancy from the Langevin drift is the difference of \(\nabla U(X)\) and \(\nabla U(Y_t)\). Estimating that difference gives a continuous entropy inequality whose two endpoint laws are exactly the two discrete laws needed for the recurrence.
 
+\begin{leanbox}{Lean: \texttt{IsLogSobolev}, \texttt{interpolationLaw\_\allowbreak{}endpoint}}
+\leansource{\texttt{IsLogSobolev} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}FunctionalInequality.lean, lines 46–51}
+\begin{leancode}
+\leanline{0}{def\ IsLogSobolev\ [BorelSpace\ E]\ (ν\ :\ Measure\ E)\ (α\ :\ ℝ)\ :\ Prop\ :=}
+\leanline{2}{IsProbabilityMeasure\ ν\ ∧}
+\leanline{2}{∀\ r\ :\ E\ →\ ℝ,\ (∀\ x,\ 0\ <\ r\ x)\ →\ ContDiff\ ℝ\ 1\ r\ →}
+\leanline{4}{IsProbabilityMeasure\ (tiltedMeasure\ ν\ r)\ →}
+\leanline{4}{ENNReal.ofReal\ (2\ *\ α)\ *\ InformationTheory.klDiv\ (tiltedMeasure\ ν\ r)\ ν\ ≤}
+\leanline{6}{relativeFisher\ ν\ r}
+\end{leancode}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}endpoint} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 53–55}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_endpoint\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)\ (k\ :\ ℕ)\ :}
+\leanline{4}{interpolationLaw\ U\ (ulaLaws\ U\ h\ μ\ k)\ h\ =\ ulaLaws\ U\ h\ μ\ (k\ +\ 1)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev} includes the probability normalization of its target and quantifies over the positive differentiable density class. Its Fisher and KL quantities use extended nonnegative values, allowing finiteness to be proved later. \texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint} rewrites the frozen interpolation at the chosen step as the one-step Gaussian law; it is an equality of pushforward measures, so it needs no entropy differentiation. The relative-density results subsequently identify the positive Gaussian mixture divided by Gibbs with that same interpolation law. This supplies the density to which the functional inequality is applied.
+\end{leanbox}
 
 \section{\texorpdfstring{The inequality \(\alpha\le L\) from bounded tests}{The inequality α≤ L from bounded tests}}
 
@@ -85,6 +142,27 @@ The bounded cosine tends pointwise to one, so dominated convergence gives \(\alp
 
 For \(t>0\) divide by \(t^2\) and multiply by \(\alpha\). The cosine limit needs no moment of \(\langle v,X\rangle\). Positive dimension is used only to choose a unit vector. On a singleton, all probability laws coincide and relative entropy is zero. No position second moment or Hessian assumption enters the positive-dimensional argument.
 
+\begin{leanbox}{Lean: \texttt{IsLogSobolev.\allowbreak{}exponential\_\allowbreak{}test}, \texttt{logSobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness}}
+\leansource{\texttt{IsLogSobolev.\allowbreak{}exponential\_\allowbreak{}test} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 42–122}
+\begin{leancode}
+\leanline{0}{theorem\ IsLogSobolev.exponential\_test}
+\leanline{4}{\{ν\ :\ Measure\ E\}\ \{α\ :\ ℝ\}\ (hLSI\ :\ IsLogSobolev\ ν\ α)\ (hα\ :\ 0\ ≤\ α)}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (hf\ :\ ContDiff\ ℝ\ 1\ f)\ (B\ D\ :\ ℝ)}
+\leanline{4}{(hb\ :\ ∀\ x,\ |f\ x|\ ≤\ B)\ (hD\ :\ 0\ ≤\ D)}
+\leanline{4}{(hg\ :\ ∀\ x,\ ‖gradient\ f\ x‖\ ≤\ D)\ (t\ :\ ℝ)\ :}
+\leanline{4}{2\ *\ α\ *\ (t\ *\ deriv\ (cgf\ f\ ν)\ t\ -\ cgf\ f\ ν\ t)\ ≤\ t\ \textasciicircum{}\ 2\ *\ D\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{logSobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}Compatibility.lean, lines 315–405}
+\begin{leancode}
+\leanline{0}{theorem\ logSobolev\_constant\_le\_smoothness\ [FiniteDimensional\ ℝ\ E]\ [Nontrivial\ E]}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (α\ :\ ℝ)\ (hα\ :\ 0\ ≤\ α)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hZ\ :\ gibbsPartition\ U\ ≠\ ⊤)\ (hLSI\ :\ IsLogSobolev\ (gibbsMeasure\ U)\ α)\ :}
+\leanline{4}{α\ ≤\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Is\allowbreak{}Log\allowbreak{}Sobolev.\allowbreak{}exponential\_\allowbreak{}test} inserts the normalized exponential density of a bounded differentiable test into the functional inequality. The normalization and derivative identities in that module translate its KL and Fisher terms into the moment-generating expression. \texttt{log\allowbreak{}Sobolev\_\allowbreak{}constant\_\allowbreak{}le\_\allowbreak{}smoothness} then combines the resulting variance estimate, the Gibbs score identities and bounded trigonometric tests. Its positive-dimensional hypothesis is what permits a unit direction. The proof takes the small-frequency limit under a bounded cosine majorant; it does not assume a position moment. The final unconditional theorem treats a singleton space separately before using this compatibility result.
+\end{leanbox}
 
 \section{\texorpdfstring{The initial score moment from relative entropy}{The initial score moment from relative entropy}}
 
@@ -114,6 +192,35 @@ Indeed, for \(a=d\mu/d\nu\) and observable \(F\) with finite exponential moment,
 
 The convex-duality bound and monotone truncation justify the integrals for the full nonnegative \(F\). Substituting \(F=\|\nabla U\|^2/(4L)\) and \(\log M\le d/2\), then multiplying by \(4L\), yields the score moment. It is derived from finite entropy and does not require an initial position moment.
 
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}score\_\allowbreak{}exponential\_\allowbreak{}moment}, \texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl\_\allowbreak{}of\_\allowbreak{}alpha\_\allowbreak{}le}}
+\leansource{\texttt{gibbs\_\allowbreak{}score\_\allowbreak{}exponential\_\allowbreak{}moment} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyMoment.lean, lines 182–222}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_score\_exponential\_moment}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hL\ :\ 0\ <\ L)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (hZ\ :\ ULA.gibbsPartition\ U\ ≠\ ⊤)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ Real.exp\ (‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ /\ (4\ *\ (L\ :\ ℝ))))}
+\leanline{6}{(ULA.gibbsMeasure\ U)\ ∧}
+\leanline{6}{(∫\ x,\ Real.exp\ (‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ /\ (4\ *\ (L\ :\ ℝ)))}
+\leanline{8}{∂ULA.gibbsMeasure\ U)\ ≤\ Real.exp\ (Module.finrank\ ℝ\ E\ /\ 2\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl\_\allowbreak{}of\_\allowbreak{}alpha\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyMoment.lean, lines 260–280}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_gradient\_moment\_bound\_of\_finite\_kl\_of\_alpha\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (hαL\ :\ α\ ≤\ (L\ :\ ℝ))\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ\ ∧}
+\leanline{6}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ ≤}
+\leanline{8}{(4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *}
+\leanline{10}{(InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +}
+\leanline{10}{2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}score\_\allowbreak{}exponential\_\allowbreak{}moment} integrates the directional score exponential bound over an auxiliary Gaussian and evaluates the Gaussian square-exponential integral. \texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl\_\allowbreak{}of\_\allowbreak{}alpha\_\allowbreak{}le} combines that exponential integrability with the entropy variational estimate, and uses the supplied order of constants to enlarge its entropy coefficient. The conclusion supplies integrability together with the numerical moment bound. \texttt{Mem\allowbreak{}Lp} at exponent two, used in the later Gaussian lemmas, records almost-everywhere strong measurability and finite second moment. Thus finite entropy supplies the exact analytic moment hypothesis required by those lemmas.
+\end{leanbox}
 
 \section{\texorpdfstring{The displacement and gradient-error second moments}{The displacement and gradient-error second moments}}
 
@@ -142,6 +249,35 @@ The cancellation is the justified identity
 
 Cauchy–Schwarz gives mixed-term integrability. No bound on \(\mathbb E\|X\|^2\) is needed because position cancels before the expansion. Multiplication by \(L^2\) retains drift contribution \(t^2G_0\) and Gaussian contribution \(2td\). These give, respectively, the old-entropy and dimensional parts of the subsequent forcing.
 
+\begin{leanbox}{Lean: \texttt{frozen\_\allowbreak{}displacement\_\allowbreak{}second\_\allowbreak{}moment}, \texttt{frozenGaussianKernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy}}
+\leansource{\texttt{frozen\_\allowbreak{}displacement\_\allowbreak{}second\_\allowbreak{}moment} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianDrift.lean, lines 130–139}
+\begin{leancode}
+\leanline{0}{theorem\ frozen\_displacement\_second\_moment}
+\leanline{4}{(μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]\ (U\ :\ E\ →\ ℝ)}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{(∫\ p\ :\ E\ ×\ E,\ ‖ULA.malaProposal\ U\ t\ p.1\ p.2\ -\ p.1‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂μ.prod\ (stdGaussian\ E))\ =}
+\leanline{6}{t\ \textasciicircum{}\ 2\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{8}{2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{frozenGaussianKernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEnergyIntegrability.lean, lines 222–263}
+\begin{leancode}
+\leanline{0}{theorem\ frozenGaussianKernel\_gradient\_error\_energy}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ z\ :\ E\ ×\ E\ ↦\ realGaussianKernel\ (1\ /\ (4\ *\ t))}
+\leanline{6}{(z.1\ -\ t\ •\ gradient\ U\ z.1)\ z.2\ *\ ‖gradient\ U\ z.2\ -\ gradient\ U\ z.1‖\ \textasciicircum{}\ 2)}
+\leanline{6}{(μ.prod\ volume)\ ∧}
+\leanline{6}{(∫\ z\ :\ E\ ×\ E,\ realGaussianKernel\ (1\ /\ (4\ *\ t))}
+\leanline{8}{(z.1\ -\ t\ •\ gradient\ U\ z.1)\ z.2\ *\ ‖gradient\ U\ z.2\ -\ gradient\ U\ z.1‖\ \textasciicircum{}\ 2}
+\leanline{10}{∂μ.prod\ volume)\ ≤}
+\leanline{8}{(L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ (t\ \textasciicircum{}\ 2\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{10}{2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\_\allowbreak{}displacement\_\allowbreak{}second\_\allowbreak{}moment} expands the squared displacement of the product-space Gaussian update. The mixed expectation vanishes using independence and centering; the standard Gaussian second moment supplies the dimensional term. \texttt{frozen\allowbreak{}Gaussian\allowbreak{}Kernel\_\allowbreak{}gradient\_\allowbreak{}error\_\allowbreak{}energy} transports that calculation to the kernel input-output measure, then applies the Lipschitz gradient bound to the squared gradient difference. The relevant integrability lemmas precede the signed integral expansion. The formulas retain the initial gradient moment and do not introduce a position moment.
+\end{leanbox}
 
 \section{\texorpdfstring{Gaussian density regularity, finite Fisher information, and the weak equation}{Gaussian density regularity, finite Fisher information, and the weak equation}}
 
@@ -182,6 +318,42 @@ K_t(x,y)d\mu(x)dy\\
 
 The inner moment is independent of the initial location, so no position moment of \(\mu\) is needed. Its divergence as \(t\downarrow0\) requires first working away from zero. In the weak equation the bounded test controls the flux-test integral, finite gradient energy controls the flux-gradient integral by Cauchy–Schwarz, and the Gaussian derivative formula controls the flux derivative. These integrability conditions justify global integration by parts without an assumed boundary-decay statement.
 
+\begin{leanbox}{Lean: \texttt{interpolationLebesgue\_\allowbreak{}fisher\_\allowbreak{}bound}, \texttt{hasDerivAt\_\allowbreak{}interpolationLebesgueDensity\_\allowbreak{}time}, \texttt{interpolationLebesgueDensity\_\allowbreak{}weak\_\allowbreak{}identity}}
+\leansource{\texttt{interpolationLebesgue\_\allowbreak{}fisher\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEntropy.lean, lines 510–538}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgue\_fisher\_bound\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ :}
+\leanline{4}{Integrable\ (fun\ y\ ↦\ ‖gradient\ (fun\ y\ ↦\ Real.log}
+\leanline{6}{(interpolationLebesgueDensity\ U\ μ\ t\ y))\ y‖\ \textasciicircum{}\ 2)\ (interpolationLaw\ U\ μ\ t)\ ∧}
+\leanline{4}{(∫\ y,\ ‖gradient\ (fun\ y\ ↦\ Real.log\ (interpolationLebesgueDensity\ U\ μ\ t\ y))\ y‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂interpolationLaw\ U\ μ\ t)\ ≤\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ /\ (2\ *\ t)}
+\end{leancode}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}interpolationLebesgueDensity\_\allowbreak{}time} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianTimeDerivative.lean, lines 210–275}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_interpolationLebesgueDensity\_time}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hG\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (y\ :\ E)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ frozenGaussianKernelDot\ U\ t\ x\ y)\ μ\ ∧}
+\leanline{6}{HasDerivAt\ (fun\ s\ ↦\ interpolationLebesgueDensity\ U\ μ\ s\ y)}
+\leanline{8}{(interpolationLebesgueDensityTimeDerivative\ U\ μ\ t\ y)\ t}
+\end{leancode}
+\leansource{\texttt{interpolationLebesgueDensity\_\allowbreak{}weak\_\allowbreak{}identity} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianWeakEquation.lean, lines 334–384}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLebesgueDensity\_weak\_identity\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (t\ :\ ℝ)\ (ht\ :\ 0\ <\ t)}
+\leanline{4}{(ψ\ :\ E\ →\ ℝ)\ (hψ\ :\ ContDiff\ ℝ\ 1\ ψ)\ (M\ :\ ℝ)\ (hM\ :\ ∀\ y,\ ‖ψ\ y‖\ ≤\ M)}
+\leanline{4}{(hψgrad\ :\ MemLp\ (gradient\ ψ)\ 2\ (interpolationLaw\ U\ μ\ t))\ :}
+\leanline{4}{(∫\ y,\ interpolationLebesgueDensityTimeDerivative\ U\ μ\ t\ y\ *\ ψ\ y)\ =}
+\leanline{6}{-(∫\ z\ :\ E\ ×\ E,\ inner\ ℝ\ (frozenGaussianFlux\ U\ t\ z.1\ z.2)}
+\leanline{8}{(gradient\ ψ\ z.2)\ ∂μ.prod\ volume)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Lebesgue\_\allowbreak{}fisher\_\allowbreak{}bound} uses the differentiated mixture formula and weighted Cauchy–Schwarz to bound the mixture score by the averaged component-score energy. \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}time} justifies differentiation of the Gaussian probability mixture with the positive-time kernel domination estimates. \texttt{interpolation\allowbreak{}Lebesgue\allowbreak{}Density\_\allowbreak{}weak\_\allowbreak{}identity} applies the Gaussian flux integration-by-parts result under its bounded-test and finite-energy premises. The statements use the same interpolation density and initial gradient moment, so these results can be combined with the relative-density identity and the log-Sobolev inequality. Their conclusions concern positive times; none assumes differentiability at zero.
+\end{leanbox}
 
 \section{\texorpdfstring{Bounded logarithmic tests and the entropy derivative}{Bounded logarithmic tests and the entropy derivative}}
 
@@ -213,6 +385,42 @@ For entropy at a fixed time the Gibbs dominating function is \(r_t\log r_t-r_t+1
 
 The right side is integrable on every compact positive-time interval. Hence entropy is locally absolutely continuous and has the displayed derivative almost everywhere. Young’s inequality contributes one quarter of \(I_t\) to the error estimate, leaving three quarters as dissipation. No everywhere-defined entropy derivative is assumed.
 
+\begin{leanbox}{Lean: \texttt{boundedEntropy\_\allowbreak{}tendsto}, \texttt{interpolationEntropy\_\allowbreak{}local\_\allowbreak{}chain\_\allowbreak{}rule}, \texttt{interpolationEntropy\_\allowbreak{}derivative\_\allowbreak{}bound\_\allowbreak{}ae}}
+\leansource{\texttt{boundedEntropy\_\allowbreak{}tendsto} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}BoundedLog.lean, lines 190–216}
+\begin{leancode}
+\leanline{0}{theorem\ boundedEntropy\_tendsto\ \{r\ :\ ℝ\}\ (\_hr\ :\ 0\ <\ r)\ :}
+\leanline{4}{Tendsto\ (fun\ m\ :\ ℕ\ ↦\ boundedEntropy\ m\ r)\ atTop\ ({\leanfallback 𝓝}\ (InformationTheory.klFun\ r))}
+\end{leancode}
+\leansource{\texttt{interpolationEntropy\_\allowbreak{}local\_\allowbreak{}chain\_\allowbreak{}rule} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEntropyIdentity.lean, lines 660–677}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationEntropy\_local\_chain\_rule}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (a\ b\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ (hab\ :\ a\ ≤\ b)\ :}
+\leanline{4}{AbsolutelyContinuousOnInterval\ (actualInterpolationEntropy\ U\ μ)\ a\ b\ ∧}
+\leanline{6}{∀ᵐ\ t\ ∂volume,\ t\ ∈\ Ioo\ a\ b\ →}
+\leanline{8}{HasDerivAt\ (actualInterpolationEntropy\ U\ μ)\ (interpolationRawEntropyFlux\ U\ μ\ t)\ t}
+\end{leancode}
+\leansource{\texttt{interpolationEntropy\_\allowbreak{}derivative\_\allowbreak{}bound\_\allowbreak{}ae} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GaussianEntropyProduction.lean, lines 234–264}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationEntropy\_derivative\_bound\_ae}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hgrad\ :\ MemLp\ (gradient\ U)\ 2\ μ)\ (T\ :\ ℝ)\ (hT\ :\ 0\ <\ T)\ :}
+\leanline{4}{∀ᵐ\ t\ ∂volume,\ t\ ∈\ Set.Ioo\ 0\ T\ →}
+\leanline{6}{deriv\ (actualInterpolationEntropy\ U\ μ)\ t\ ≤}
+\leanline{8}{-(3\ /\ 4\ :\ ℝ)\ *}
+\leanline{10}{(relativeFisher\ (ULA.gibbsMeasure\ U)\ (interpolationRelativeDensity\ U\ μ\ t)).toReal\ +}
+\leanline{10}{t\ \textasciicircum{}\ 2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{12}{2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{bounded\allowbreak{}Entropy\_\allowbreak{}tendsto} proves the endpoint limit of the bounded logarithmic primitives. \texttt{interpolation\allowbreak{}Entropy\_\allowbreak{}local\_\allowbreak{}chain\_\allowbreak{}rule} obtains \texttt{hq}, integrability of the raw flux from \texttt{interpolation\_\allowbreak{}entropy\_\allowbreak{}flux\_\allowbreak{}time\_\allowbreak{}domination}, and applies \texttt{regularity\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}identity} to the integrated identity. The result contains local absolute continuity and an almost-everywhere \texttt{Has\allowbreak{}Deriv\allowbreak{}At} statement. \texttt{interpolation\allowbreak{}Entropy\_\allowbreak{}derivative\_\allowbreak{}bound\_\allowbreak{}ae} applies this on a countable family of intervals starting at reciprocal integers. \texttt{hall} gathers their almost-everywhere statements, and \texttt{exists\_\allowbreak{}nat\_\allowbreak{}one\_\allowbreak{}div\_\allowbreak{}lt} chooses an interval containing any given positive time. Rewriting by \texttt{hd.\allowbreak{}deriv} and applying \texttt{interpolation\allowbreak{}Raw\allowbreak{}Entropy\allowbreak{}Flux\_\allowbreak{}le} gives the stated production inequality almost everywhere.
+\end{leanbox}
 
 \section{\texorpdfstring{The initial-time upper bound for finite-entropy laws}{The initial-time upper bound for finite-entropy laws}}
 
@@ -247,6 +455,41 @@ For example suppose \(H'\le-aH+B\) with \(a>0\). Integration on \([s,h]\) with \
 
 Substitute \(H(s)\le M(s)\) and let \(s\downarrow0\). Continuity of \(M\) gives the same upper bound with \(H(0)\) as the initial term. Only this upper majorant is needed; two-sided continuity of entropy at the initial time is not required.
 
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le}, \texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}eventually\_\allowbreak{}le\_\allowbreak{}majorant}, \texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}local\_\allowbreak{}ae\_\allowbreak{}deriv\_\allowbreak{}le}}
+\leansource{\texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GibbsInterpolationBound.lean, lines 41–78}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_frozen\_exponent\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ s\ :\ ℝ)\ (ht\ :\ 0\ <\ t)\ (hs\ :\ 0\ <\ s)}
+\leanline{4}{(hscale\ :\ s\ *\ (1\ -\ 4\ *\ t\ *\ (L\ :\ ℝ))\ =\ t)\ (x\ y\ :\ E)\ :}
+\leanline{4}{U\ y\ -\ U\ x\ -\ ‖y\ -\ (x\ -\ t\ •\ gradient\ U\ x)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ t)\ ≤}
+\leanline{6}{-‖x\ -\ (y\ -\ s\ •\ gradient\ U\ y)‖\ \textasciicircum{}\ 2\ /\ (4\ *\ s)\ +\ s\ *\ ‖gradient\ U\ y‖\ \textasciicircum{}\ 2\ /\ 4}
+\end{leancode}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}eventually\_\allowbreak{}le\_\allowbreak{}majorant} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InitialEntropy.lean, lines 104–121}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_entropy\_eventually\_le\_majorant}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hL\ :\ 0\ <\ L)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ :}
+\leanline{4}{∀ᶠ\ t\ in\ {\leanfallback 𝓝}[>]\ (0\ :\ ℝ),}
+\leanline{6}{(InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ t)\ (ULA.gibbsMeasure\ U)).toReal\ ≤}
+\leanline{8}{interpolationEntropyMajorant\ U\ L\ μ\ t}
+\end{leancode}
+\leansource{\texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}local\_\allowbreak{}ae\_\allowbreak{}deriv\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}IntegratedEntropy.lean, lines 78–105}
+\begin{leancode}
+\leanline{0}{theorem\ affine\_decay\_of\_local\_ae\_deriv\_le}
+\leanline{4}{(H\ M\ :\ ℝ\ →\ ℝ)\ (a\ b\ T\ :\ ℝ)\ (ha\ :\ 0\ <\ a)\ (hT\ :\ 0\ <\ T)}
+\leanline{4}{(hAC\ :\ ∀\ s\ ∈\ Ioo\ 0\ T,\ AbsolutelyContinuousOnInterval\ H\ s\ T)}
+\leanline{4}{(hbound\ :\ ∀ᵐ\ u\ ∂volume,\ u\ ∈\ Ioo\ 0\ T\ →\ deriv\ H\ u\ ≤\ -a\ *\ H\ u\ +\ b)}
+\leanline{4}{(hM\ :\ ContinuousAt\ M\ 0)}
+\leanline{4}{(hupper\ :\ ∀ᶠ\ s\ in\ {\leanfallback 𝓝}[>]\ (0\ :\ ℝ),\ H\ s\ ≤\ M\ s)\ :}
+\leanline{4}{H\ T\ ≤\ Real.exp\ (-a\ *\ T)\ *\ M\ 0\ +\ b\ /\ a\ *\ (1\ -\ Real.exp\ (-a\ *\ T))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}frozen\_\allowbreak{}exponent\_\allowbreak{}le} starts with \texttt{hmodel}, the smooth upper model, and \texttt{hdiff}, the gradient-difference bound. \texttt{hinner} controls the resulting mixed product. After \texttt{hx} and \texttt{hy} rewrite both squares in a common displacement, the positive factor involving the two times clears denominators and \texttt{hscale'} cancels the remaining quadratic coefficient. \texttt{interpolation\allowbreak{}Law\_\allowbreak{}entropy\_\allowbreak{}eventually\_\allowbreak{}le\_\allowbreak{}majorant} restricts to \texttt{hsmall}, sufficiently small positive times, and obtains \texttt{h\ensuremath{\delta}} before applying the finite majorant theorem. \texttt{affine\_\allowbreak{}decay\_\allowbreak{}of\_\allowbreak{}local\_\allowbreak{}ae\_\allowbreak{}deriv\_\allowbreak{}le} compares on a positive starting interval and defines \texttt{F} with the continuous majorant in place of the initial entropy value. Its \texttt{hlim} and \texttt{le\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}tendsto} pass that comparison to the zero-time limit.
+\end{leanbox}
 
 \section{\texorpdfstring{The one-step entropy estimate with coefficient six}{The one-step entropy estimate with coefficient six}}
 
@@ -276,6 +519,25 @@ Nonnegativity of \(H(0)\) justifies that multiplication, and nonnegativity of \(
 
 Replacing coefficient \(e^{-3\alpha h/2}\) by \(e^{-\alpha h}\) includes the initial-entropy forcing. The remaining dimensional term is the discretization contribution. The coefficient six is a valid enlargement of \(5/2\) and is not claimed optimal. The argument only uses the entropy derivative almost everywhere at positive time.
 
+\begin{leanbox}{Lean: \texttt{one\_\allowbreak{}step\_\allowbreak{}entropy\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}interpolation}}
+\leansource{\texttt{one\_\allowbreak{}step\_\allowbreak{}entropy\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}interpolation} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}IntegratedEntropy.lean, lines 110–185}
+\begin{leancode}
+\leanline{0}{theorem\ one\_step\_entropy\_of\_ae\_interpolation}
+\leanline{4}{(H\ M\ I\ :\ ℝ\ →\ ℝ)\ (G₀\ α\ L\ h\ n\ :\ ℝ)}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hL\ :\ 0\ <\ L)\ (hh\ :\ 0\ <\ h)\ (hαL\ :\ α\ ≤\ L)\ (hn\ :\ 0\ ≤\ n)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ L\ \textasciicircum{}\ 2))\ (hM₀\ :\ 0\ ≤\ M\ 0)}
+\leanline{4}{(hAC\ :\ ∀\ s\ ∈\ Ioo\ 0\ h,\ AbsolutelyContinuousOnInterval\ H\ s\ h)}
+\leanline{4}{(hM\ :\ ContinuousAt\ M\ 0)}
+\leanline{4}{(hupper\ :\ ∀ᶠ\ s\ in\ {\leanfallback 𝓝}[>]\ (0\ :\ ℝ),\ H\ s\ ≤\ M\ s)}
+\leanline{4}{(hlsi\ :\ ∀ᵐ\ t\ ∂volume,\ t\ ∈\ Ioo\ 0\ h\ →\ 2\ *\ α\ *\ H\ t\ ≤\ I\ t)}
+\leanline{4}{(hproduction\ :\ ∀ᵐ\ t\ ∂volume,\ t\ ∈\ Ioo\ 0\ h\ →}
+\leanline{6}{deriv\ H\ t\ ≤\ -(3\ /\ 4\ :\ ℝ)\ *\ I\ t\ +\ t\ \textasciicircum{}\ 2\ *\ L\ \textasciicircum{}\ 2\ *\ G₀\ +\ 2\ *\ t\ *\ n\ *\ L\ \textasciicircum{}\ 2)}
+\leanline{4}{(hgradient\ :\ G₀\ ≤\ (4\ *\ L\ \textasciicircum{}\ 2\ /\ α)\ *\ M\ 0\ +\ 2\ *\ n\ *\ L)\ :}
+\leanline{4}{H\ h\ ≤\ Real.exp\ (-α\ *\ h)\ *\ M\ 0\ +\ 6\ *\ h\ \textasciicircum{}\ 2\ *\ n\ *\ L\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{one\_\allowbreak{}step\_\allowbreak{}entropy\_\allowbreak{}of\_\allowbreak{}ae\_\allowbreak{}interpolation}, \texttt{h\allowbreak{}AC} is the positive-time absolute continuity, \texttt{hproduction} the almost-everywhere derivative estimate, \texttt{hlsi} the Fisher lower bound, and \texttt{hgradient} the initial score-moment bound. \texttt{hstep}, \texttt{hh\allowbreak{}L} and \texttt{hh\ensuremath{\alpha}} derive the scalar step restrictions. \texttt{hcoeff} and \texttt{hnoise} bound the two parts of the old-gradient forcing; \texttt{huniform} combines them. The constant \texttt{b} then gives \texttt{hbound}, the scalar affine differential inequality. \texttt{hcompare} applies the positive-time comparison with its initial majorant. Finally \texttt{hintegral} bounds the accumulated forcing, \texttt{hexp} absorbs the old-entropy term through \texttt{exp\_\allowbreak{}three\_\allowbreak{}halves\_\allowbreak{}gap}, and \texttt{hnoise\_\allowbreak{}final} gives the stated numerical coefficient.
+\end{leanbox}
 
 \section{\texorpdfstring{Finiteness of iterated entropy and the finite geometric sum}{Finiteness of iterated entropy and the finite geometric sum}}
 
@@ -303,10 +565,32 @@ Starting from \(H_0\), each occurrence of forcing \(c\) is multiplied by the con
 
 The denominator is positive because \(\alpha\) and \(h\) are positive. Its lower bound is proportional to \(h\), so local forcing of order \(h^2\) gives a global term of order \(h\). At fixed step, increasing \(k\) decreases only the initial contribution. Density regularity, moment bounds, the weak equation, entropy regularity, and compatibility were derived above, leaving smoothness, the target logarithmic Sobolev inequality, the step restriction, and finite initial entropy as the final hypotheses.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite}, \texttt{discrete\_\allowbreak{}entropy\_\allowbreak{}recurrence\_\allowbreak{}bound}}
+\leansource{\texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 60–78}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_kl\_finite}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)\ (hL\ :\ 0\ <\ L)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (ulaLaws\ U\ h\ μ\ k)\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{discrete\_\allowbreak{}entropy\_\allowbreak{}recurrence\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}DiscreteEntropy.lean, lines 61–93}
+\begin{leancode}
+\leanline{0}{theorem\ discrete\_entropy\_recurrence\_bound\ (H\ :\ ℕ\ →\ ℝ)\ (α\ h\ n\ L\ :\ ℝ)}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)\ (hn\ :\ 0\ ≤\ n)\ (hsmall\ :\ α\ *\ h\ ≤\ 1\ /\ 4)}
+\leanline{4}{(hstep\ :\ ∀\ k,\ H\ (k\ +\ 1)\ ≤\ Real.exp\ (-α\ *\ h)\ *\ H\ k\ +\ 6\ *\ h\ \textasciicircum{}\ 2\ *\ n\ *\ L\ \textasciicircum{}\ 2)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{H\ k\ ≤\ Real.exp\ (-α\ *\ h\ *\ k)\ *\ H\ 0\ +\ 8\ *\ h\ *\ n\ *\ L\ \textasciicircum{}\ 2\ /\ α}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite} inducts over the iteration. Its successor uses the current finite KL to obtain \texttt{hgradient}, then \texttt{hmem} converts this to second-moment membership, and \texttt{hfinite} applies the positive-time Fisher/\allowbreak{}LSI finiteness result. Rewriting with \texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint} identifies the next iterate. \texttt{discrete\_\allowbreak{}entropy\_\allowbreak{}recurrence\_\allowbreak{}bound} obtains \texttt{hq} and the positive denominator \texttt{hden}. \texttt{hden\_\allowbreak{}lower} is the elementary exponential lower bound; \texttt{hfloor} turns it into the forcing floor. \texttt{hp} identifies the power of the exponential, and \texttt{hrec} invokes the affine recurrence bound before the final comparison.
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -76,6 +76,20 @@ def reader_issues(value):
     return issues
 
 
+def mathematical_tex(content):
+    """A report without its Lean boxes, code blocks and front matter on the formalization.
+
+    The Lean statements and the explanations of the formal proofs belong in the
+    marked boxes; the mathematics outside them must not depend on source names.
+    """
+    content = re.sub(r'\\begin\{leanbox\}.*?\\end\{leanbox\}', '', content, flags=re.S)
+    content = re.sub(r'\\begin\{leancode\}.*?\\end\{leancode\}', '', content, flags=re.S)
+    content = re.sub(r'\\chapter\*\{About this document\}.*?(?=\\section\*\{Literature and scope\})', '',
+                     content, flags=re.S)
+    preamble_end = content.find(r'\begin{document}')
+    return content[preamble_end:] if preamble_end >= 0 else content
+
+
 def verify():
     _, _, notes = load()
     issues = []
@@ -84,6 +98,8 @@ def verify():
         passages = [('title', note['title']), ('summary', note['summary'])]
         for index, step in enumerate(note['steps'], 1):
             boxes += 1
+            if step['declarations'] and not step.get('lean', '').strip():
+                issues.append(f'{path}, step {index}: missing Lean correspondence')
             passages.extend([(f'step {index} title', step['title']),
                              (f'step {index}', step['body'])])
         for label, value in passages:
@@ -93,17 +109,19 @@ def verify():
             issues.extend(f'{library}, result {result["title"]}: {issue}'
                           for issue in reader_issues(result['body']))
         for part in config.get('proof', []):
+            if not part.get('lean', '').strip():
+                issues.append(f'{library}, argument {part["title"]}: missing Lean correspondence')
             issues.extend(f'{library}, argument {part["title"]}: {issue}'
                           for issue in reader_issues(part['body']))
     for path in (ROOT/'docs/latex').rglob('*.tex'):
-        content = path.read_text()
-        if re.search(r'\\texttt\{|Lean declarations:|Source module:|\bMathlib\b|\bLean\b', content):
-            issues.append(f'{path.relative_to(ROOT)}: source metadata in paper export')
+        if re.search(r'\\texttt\{|Lean declarations:|Source module:|\bMathlib\b|\bLean\b',
+                     mathematical_tex(path.read_text())):
+            issues.append(f'{path.relative_to(ROOT)}: source metadata outside the marked Lean boxes')
     if issues:
         raise SystemExit('Mathematical exposition checks failed:\n' + '\n'.join(issues))
     print(f'Checked paper-facing exposition for {len(notes)} modules, {boxes} proof boxes, '
           f'{len(CONFIG)} theorem overviews, and all LaTeX exports: no source code, '
-          'declaration names or implementation commentary.')
+          'declaration names or implementation commentary outside the marked Lean boxes.')
 
 
 if __name__ == '__main__':

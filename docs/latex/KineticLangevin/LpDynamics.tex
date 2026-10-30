@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,27 @@ The representative of a phase consists of the velocity and position representati
 
 A square-integrable phase is represented almost everywhere by a pair of ordinary random vectors. Evaluating the exponential update on these representatives gives the original pointwise algorithm. The lifted force acts by applying the original gradient separately at each sample point.
 
+\begin{leanbox}{Lean: \texttt{lpPhaseCoe}, \texttt{lp\_\allowbreak{}exponentialStep\_\allowbreak{}coe}}
+\leansource{\texttt{lpPhaseCoe} \quad KineticLangevin/\allowbreak{}LpDynamics.lean, lines 24–24}
+\begin{leancode}
+\leanline{0}{def\ lpPhaseCoe\ (S\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ (ω\ :\ Ω)\ :\ H\ ×\ H\ :=\ (S.1\ ω,\ S.2\ ω)}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}exponentialStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpDynamics.lean, lines 33–56}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_exponentialStep\_coe\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(S\ N\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{(fun\ ω\ ↦\ lpPhaseCoe\ P\ (exponentialStep\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ h\ S\ N)\ ω)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ exponentialStep\ (gradient\ f)\ γ\ h\ (lpPhaseCoe\ P\ S\ ω)\ (lpPhaseCoe\ P\ N\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Phase\allowbreak{}Coe} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{lp\_\allowbreak{}exponential\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. The main intermediate facts are \texttt{G}, \texttt{hv}, \texttt{hp}, \texttt{hid} in that order. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -48,6 +92,15 @@ The representative of a sum or scalar multiple of \(L^p\) classes agrees with th
 
 Addition, scalar multiplication, and the bounded coordinate projections commute with passage to square-integrable equivalence classes. Consequently the affine update identities hold almost everywhere simultaneously for the finitely many operations in each step. No alternative numerical map is introduced by the functional-analytic formulation.
 
+\begin{leanbox}{Lean: \texttt{affine\_\allowbreak{}lp\_\allowbreak{}coe}}
+\leansource{\texttt{affine\_\allowbreak{}lp\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpDynamics.lean, lines 26–30}
+\begin{leancode}
+\leanline{0}{private\ theorem\ affine\_lp\_coe\ (a\ b\ :\ ℝ)\ (X\ Y\ Z\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{(a\ •\ X\ -\ b\ •\ Y\ +\ Z\ :\ Lp\ H\ 2\ P)\ =ᵐ[P]\ fun\ ω\ ↦\ a\ •\ X\ ω\ -\ b\ •\ Y\ ω\ +\ Z\ ω}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{affine\_\allowbreak{}lp\_\allowbreak{}coe} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Noise scaling and equality of the recursively defined iterates}{Noise scaling and equality of the recursively defined iterates}}
 
@@ -58,13 +111,49 @@ The two phase components of a scaled \(L^{2}\) innovation agree almost everywher
 
 Induct on the iteration number, using the same representative innovation at each successor step. The physical amplitude is retained in the induction identity. Thus the sequence whose error is analyzed in second mean has exactly the same random outputs as the defined KLMC recursion.
 
+\begin{leanbox}{Lean: \texttt{lpPhaseCoe\_\allowbreak{}smul\_\allowbreak{}ae}, \texttt{lp\_\allowbreak{}klmcStep\_\allowbreak{}coe}, \texttt{lp\_\allowbreak{}klmcChain\_\allowbreak{}coe}}
+\leansource{\texttt{lpPhaseCoe\_\allowbreak{}smul\_\allowbreak{}ae} \quad KineticLangevin/\allowbreak{}LpDynamics.lean, lines 59–62}
+\begin{leancode}
+\leanline{0}{theorem\ lpPhaseCoe\_smul\_ae\ (c\ :\ ℝ)\ (N\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{(fun\ ω\ ↦\ lpPhaseCoe\ P\ (c\ •\ N)\ ω)\ =ᵐ[P]\ fun\ ω\ ↦\ c\ •\ lpPhaseCoe\ P\ N\ ω}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}klmcStep\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpDynamics.lean, lines 66–73}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_klmcStep\_coe\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(S\ N\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{(fun\ ω\ ↦\ lpPhaseCoe\ P\ (klmcStep\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ h\ S\ N)\ ω)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ klmcStep\ (gradient\ f)\ γ\ h\ (lpPhaseCoe\ P\ S\ ω)\ (lpPhaseCoe\ P\ N\ ω)}
+\end{leancode}
+\leansource{\texttt{lp\_\allowbreak{}klmcChain\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}LpDynamics.lean, lines 77–89}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_klmcChain\_coe\ (f\ :\ H\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(fun\ ω\ ↦\ lpPhaseCoe\ P\ (klmcChain\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip)\ γ\ h\ initial\ noise\ n)\ ω)\ =ᵐ[P]}
+\leanline{6}{fun\ ω\ ↦\ klmcChain\ (gradient\ f)\ γ\ h\ (lpPhaseCoe\ P\ initial\ ω)}
+\leanline{8}{(fun\ k\ ↦\ lpPhaseCoe\ P\ (noise\ k)\ ω)\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Phase\allowbreak{}Coe\_\allowbreak{}smul\_\allowbreak{}ae} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\_\allowbreak{}klmc\allowbreak{}Step\_\allowbreak{}coe} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{lp\_\allowbreak{}klmc\allowbreak{}Chain\_\allowbreak{}coe} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Named proof applications include \texttt{hstep}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -285,7 +285,12 @@ def verify_landing(overview, catalog, audit, sources, catalog_path, root=ROOT):
     roadmap = doc.by_id('proof-roadmap')
     sections = [n for n in main.walk() if n.tag == 'section' and
                 not any(a.tag == 'section' for a in n.ancestors())]
-    assert sections and sections[-1] is roadmap, 'The substantial proof roadmap must finish the main page'
+    order = [n.attrs.get('id') for n in sections]
+    assert roadmap in sections and 'verification' in order and \
+        order.index('verification') < order.index('proof-roadmap'), \
+        'The verification commands must precede the proof roadmap'
+    assert set(order[order.index('proof-roadmap') + 1:]) <= {'mathematical-proof', 'modules'}, \
+        'Only the mathematical argument and the supporting proofs may follow the proof roadmap'
     words = re.findall(r'\b[\w’\'-]+\b', roadmap.text())
     assert len(words) >= 180, 'The final proof roadmap needs a substantial mathematical explanation'
     roadmap_links = [n.attrs['href'] for n in roadmap.walk() if n.tag == 'a' and 'href' in n.attrs]
@@ -380,7 +385,8 @@ def verify(require_complete=False):
         assert len(doc.ids) == len(set(doc.ids)), f'Duplicate HTML IDs: {path}'
         assert 'katex-error' not in text, f'Invalid math: {path}'
         verify_prose_math(text, path)
-        assert not any(urlsplit(href).path.endswith('.pdf') for href in doc.links), f'Unestablished PDF link: {path}'
+        assert all(urlsplit(href).path.endswith('docs/pdf/PBGSO/FullProof.pdf') for href in doc.links
+                   if urlsplit(href).path.endswith('.pdf')), f'PDF link other than the PBGSO report: {path}'
         represented = set()
         for block in doc.blocks:
             excerpts += 1

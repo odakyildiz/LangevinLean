@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,102 +39,305 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Let \(\gamma_d\) denote standard Gaussian measure, and set \(T_t(x,z)=x-t\nabla U(x)+\sqrt{2t}\,z\) for \(t\ge0\). For an initial law \(\mu\), define \(P_t\mu=(T_t)_*(\mu\otimes\gamma_d)\). The product measure specifies that the Gaussian variable is independent of the initial state. For a fixed step \(h\), put \(\rho_0=\mu\) and \(\rho_{k+1}=P_h\rho_k\). The interpolation during step \(k\) is \(\rho_{k,t}=P_t\rho_k\); it satisfies \(\rho_{k,0}=\rho_k\) and \(\rho_{k,h}=\rho_{k+1}\).
+Let \(E\) be a real inner product space of finite dimension \(n\), let \(U:E\to\mathbb R\) be a potential, and let \(\gamma_n\) be the standard Gaussian measure on \(E\), the law of \(\sum_{i=1}^n\xi_ie_i\) for an orthonormal basis \((e_i)\) and independent real standard normal variables \(\xi_1,\dots,\xi_n\). For \(t\ge0\) define the update map and the transition on measures
+
+
+\[T_t(x,z)=x-t\nabla U(x)+\sqrt{2t}\,z,\qquad P_t\rho=(T_t)_\#(\rho\otimes\gamma_n),\]
+
+
+so that, for a probability measure \(\rho\), \(P_t\rho\) is the law of \(X-t\nabla U(X)+\sqrt{2t}\,Z\) with \(X\sim\rho\) and \(Z\sim\gamma_n\) independent. With step \(h\) and initial law \(\mu\), the unadjusted Langevin algorithm (ULA) has laws \(\rho_k=P_h^k\mu\), and the interpolating laws of its \(k\)-th step are \(\rho_{k,t}=P_t\rho_k\). In Vempala and Wibisono (2019) these are the laws of \(x_{k,t}=x_k-t\nabla U(x_k)+\sqrt2\,(W_{kh+t}-W_{kh})\), \(0\le t\le h\), along the time-\(t\) Euler step from \(x_k\sim\rho_k\).
+
+
+
+
+The section proves the identities that connect the interpolation with the algorithm, namely \(P_0\rho=\rho\), \(\rho_0=\mu\), \(\rho_{k+1}=P_h\rho_k\) and hence \(\rho_{k,0}=\rho_k\), \(\rho_{k,h}=\rho_{k+1}\); and it proves that, when \(\mu\) is a probability measure and \(\nabla U\) is Lipschitz, all these laws are probability measures. It also defines the sequence of entropies \(H_\nu(\rho_k)\) as real numbers. No convexity or log-Sobolev assumption enters, and nothing is asserted here about densities, differentiability in \(t\) or entropy production; those are the subject of later sections, which use the identities proved here to turn an estimate along the interpolation into an estimate between consecutive iterates.
 
 
 
 Earlier results used here: \cite[Section~3.36]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Entropy of the ULA iterates}{Entropy of the ULA iterates}}
+\section{\texorpdfstring{The frozen-drift interpolating law}{The frozen-drift interpolating law}}
 
 
-Define \(H_k=\operatorname{KL}(\rho_k\mid\nu)\), where \(\rho_k\) is obtained by applying the Gaussian transition \(k\) times. The divergence is allowed to equal infinity at the definition stage. To use the sequence in a real recurrence, one must prove \(H_k<\infty\) at every index. In the final convergence theorem this is proved by induction from finite initial entropy, using the positive-time Gaussian density and LSI.
+\textbf{Definition.} For \(t\in\mathbb R\) and a measure \(\rho\) on \(E\), the frozen-drift interpolation of \(\rho\) at time \(t\) is the measure
 
 
-\section{\texorpdfstring{Entropy at the initial law}{Entropy at the initial law}}
+\[P_t\rho=(T_t)_\#(\rho\otimes\gamma_n),\qquad T_t(x,z)=x-t\nabla U(x)+\sqrt{2t}\,z,\]
 
 
-The zeroth iterate of the transition is the identity, so \(\rho_0=\mu\). Substitution in the definition of entropy gives \(H_0=\operatorname{KL}(\mu\mid\nu)\). This equality holds independently of the step size. When the initial divergence is finite, it provides the numerical initial value in the entropy recurrence.
-
-
-\section{\texorpdfstring{Definition of the interpolating law}{Definition of the interpolating law}}
-
-
-Let \(X\sim\mu\) and \(Z\sim\gamma_d\) be independent. Define
-
-\[P_t\mu=\operatorname{Law}(X-t\nabla U(X)+\sqrt{2t}Z)=(T_t)_*(\mu\otimes\gamma_d).\]
-
-Conditional on \(X=x\), the new variable has Gaussian law with mean \(x-t\nabla U(x)\) and covariance \(2tI_d\). The gradient is evaluated at the initial state throughout this interpolation. This conditional law determines the mixture density and the drift discrepancy used in the entropy calculation.
+that is, \((P_t\rho)(A)=(\rho\otimes\gamma_n)\bigl(\{(x,z):T_t(x,z)\in A\}\bigr)\) for Borel sets \(A\subseteq E\), whenever \(T_t\) is measurable. The square root is taken with the convention \(\sqrt s=0\) for \(s<0\); only \(t\ge0\) is used.
 
 
 
-Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Iteration of the transition}{Iteration of the transition}}
+The product measure \(\rho\otimes\gamma_n\) encodes the independence of the Gaussian innovation from the current state: if \(X\sim\rho\) and \(Z\sim\gamma_n\) are independent, then \((X,Z)\) has law \(\rho\otimes\gamma_n\) and \(P_t\rho\) is the law of \(Y_t=X-t\nabla U(X)+\sqrt{2t}\,Z\). Conditionally on \(X=x\), \(Y_t\) is Gaussian with mean \(x-t\nabla U(x)\) and covariance \(2t\,I\). The drift \(\nabla U\) is evaluated at the initial state \(X\) for every \(t\) (it is frozen), and \(t\) plays the role of the step size: \(P_h\) is one step of the algorithm with step \(h\), and \(t\mapsto P_t\rho\) interpolates between \(\rho\) and \(P_h\rho\).
 
-
-For a fixed \(h\), define \(\rho_k=P_h^k\mu\). Each transition is applied to the law obtained at the preceding index and integrates a new independent Gaussian variable. A stochastic recursion with innovations independent of its initial state and of its past has these marginal laws: conditioning on the current state gives \(P_h\), and induction identifies its distribution at every index. The definition by measures therefore does not depend on a particular probability space realizing the recursion.
-
+\begin{leanbox}{Lean: \texttt{interpolationLaw}}
+\leansource{\texttt{interpolationLaw} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 29–30}
+\begin{leancode}
+\leanline{0}{def\ interpolationLaw\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ (t\ :\ ℝ)\ :\ Measure\ E\ :=}
+\leanline{2}{ULA.ulaLawStep\ U\ t\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law U \ensuremath{\mu} t} is defined as \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step U t \ensuremath{\mu}}, the one-step ULA transition with step \texttt{t} from the base library. That transition is \texttt{(\ensuremath{\mu}.\allowbreak{}prod (std\allowbreak{}Gaussian H)).\allowbreak{}map (fun p \ensuremath{\mapsto} mala\allowbreak{}Proposal U h p.\allowbreak{}1 p.\allowbreak{}2)}, where \texttt{Measure.\allowbreak{}prod} is the product measure, \texttt{std\allowbreak{}Gaussian} is Mathlib's standard Gaussian measure on a finite-dimensional inner product space (the image of the product of \(n\) one-dimensional standard normal laws under \(x\mapsto\sum_ix_ie_i\) for an orthonormal basis), \texttt{\ensuremath{\mu}.\allowbreak{}map f} is the image measure \(f_\#\mu\), and \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal U h x \ensuremath{\xi}} is \texttt{x -\allowbreak{} h \ensuremath{\bullet} gradient U x + Real.\allowbreak{}sqrt (2 * h) \ensuremath{\bullet} \ensuremath{\xi}}, the map \(T_h\). Mathlib's \texttt{Real.\allowbreak{}sqrt} returns \(0\) on negative numbers, which is the convention of the definition. Mathlib's \texttt{Measure.\allowbreak{}map f \ensuremath{\mu}} is the zero measure when \(f\) is not almost-everywhere measurable, so properties such as total mass require a measurability proof; this is where Lipschitz continuity of the gradient enters below.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The final law of one interpolation step}{The final law of one interpolation step}}
+\section{\texorpdfstring{The laws of the algorithm}{The laws of the algorithm}}
 
 
-The interpolation starting from \(\rho_k\) is \(\rho_{k,t}=P_t\rho_k\). At elapsed time \(h\), the defining recursion gives
-
-\[\rho_{k,h}=P_h\rho_k=\rho_{k+1}.\]
-
-Consequently an entropy estimate for the interpolation at \(h\) is an estimate for the next ULA iterate. This equality, rather than an approximation by a continuous diffusion, is used to derive the discrete recurrence.
+\textbf{Definition.} For a step \(h\in\mathbb R\), an initial measure \(\mu\) and \(k\in\mathbb N\), the \(k\)-th ULA law is
 
 
-\section{\texorpdfstring{Each iterate is a probability measure}{Each iterate is a probability measure}}
+\[\rho_k=P_h^k\mu=\underbrace{P_h(P_h(\cdots P_h}_{k\text{ times}}(\mu)\cdots)),\]
 
 
-Suppose \(\mu\) is a probability measure and \(\nabla U\) is Lipschitz. The gradient is continuous, so the Gaussian update map is measurable. The transition preserves total mass because it is a pushforward of the product of two probability measures. Starting with \(\rho_0=\mu\), induction using \(\rho_{k+1}=P_h\rho_k\) proves that every \(\rho_k\) has mass one. The probability assumptions in the subsequent entropy identities thus hold at every index.
+the \(k\)-fold composition of the transition \(P_h\) applied to \(\mu\), with \(P_h^0\mu=\mu\).
 
 
-\section{\texorpdfstring{The interpolating law at zero}{The interpolating law at zero}}
 
 
-At \(t=0\), the map satisfies \(T_0(x,z)=x\): both time-dependent terms vanish. Its pushforward is the first marginal of \(\mu\otimes\gamma_d\). Since the Gaussian measure has mass one, that marginal is \(\mu\). Therefore \(P_0\mu=\mu\). The proof is an equality of measures and uses no limiting argument or regularity of \(U\).
+If \(x_0\sim\mu\) and \(x_{k+1}=x_k-h\nabla U(x_k)+\sqrt{2h}\,Z_k\), where \(Z_0,Z_1,\dots\) are independent standard Gaussian vectors that are independent of \(x_0\), then \(\rho_k\) is the law of \(x_k\): since \(Z_k\) is independent of \(x_k\), which is a function of \(x_0,Z_0,\dots,Z_{k-1}\), the pair \((x_k,Z_k)\) has law \(\operatorname{Law}(x_k)\otimes\gamma_n\), so \(\operatorname{Law}(x_{k+1})=P_h\operatorname{Law}(x_k)\), and induction on \(k\) gives \(\operatorname{Law}(x_k)=\rho_k\). The definition by measures does not refer to any particular probability space realizing the recursion.
 
+\begin{leanbox}{Lean: \texttt{ulaLaws}}
+\leansource{\texttt{ulaLaws} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 33–34}
+\begin{leancode}
+\leanline{0}{def\ ulaLaws\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)\ (k\ :\ ℕ)\ :\ Measure\ E\ :=}
+\leanline{2}{(ULA.ulaLawStep\ U\ h)\textasciicircum{}[k]\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Laws U h \ensuremath{\mu} k} is \texttt{(ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step U h)\textasciicircum{}[k] \ensuremath{\mu}}. The notation \texttt{f\textasciicircum{}[k]} is Lean's \(k\)-fold iterate of a function \texttt{f : \ensuremath{\alpha} \ensuremath{\to} \ensuremath{\alpha}}, here the transition \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step U h : Measure E \ensuremath{\to} Measure E}; by definition \texttt{f\textasciicircum{}[0]} is the identity and \texttt{f\textasciicircum{}[k+1] = f\textasciicircum{}[k] \ensuremath{\circ} f}.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The interpolating law at time zero}{The interpolating law at time zero}}
+
+
+\textbf{Claim.} For every function \(U:E\to\mathbb R\) and every measure \(\rho\) on \(E\), \(P_0\rho=\rho\).
+
+
+
+
+\textbf{Proof.} At \(t=0\), \(T_0(x,z)=x-0\cdot\nabla U(x)+\sqrt0\,z=x\), so \(T_0\) is the projection \(\pi_1(x,z)=x\), which is measurable. For a Borel set \(A\subseteq E\),
+
+
+\[(P_0\rho)(A)=(\rho\otimes\gamma_n)\bigl(\pi_1^{-1}(A)\bigr)=(\rho\otimes\gamma_n)(A\times E)=\rho(A)\,\gamma_n(E)=\rho(A),\]
+
+
+where the third equality is the defining property of the product measure on rectangles (valid because \(\gamma_n\) is a finite measure) and the last one uses \(\gamma_n(E)=1\). \(\square\)
+
+
+
+
+No regularity of \(U\) is needed, because the gradient is multiplied by \(0\). The identity is an equality of measures and involves no limit \(t\downarrow0\); continuity of the interpolation at \(t=0\) is a different matter, treated elsewhere.
+
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}zero}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 39–43}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_zero\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)\ :}
+\leanline{4}{interpolationLaw\ U\ μ\ 0\ =\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}zero} is proved by \texttt{simp [interpolation\allowbreak{}Law, ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step, ULA.\allowbreak{}mala\allowbreak{}Proposal]}. Unfolding the three definitions, the simplifier rewrites \texttt{0 \ensuremath{\bullet} gradient U x} to \texttt{0}, \(\sqrt{2\cdot0}\) to \(0\) and \(0\cdot z\) to \(0\), so the map becomes the first projection \texttt{Prod.\allowbreak{}fst}; Mathlib's simp lemma \texttt{Measure.\allowbreak{}map\_\allowbreak{}fst\_\allowbreak{}prod} identifies the image of a product measure under the first projection as \texttt{(\ensuremath{\nu} univ) \ensuremath{\bullet} \ensuremath{\mu}}, and \texttt{measure\_\allowbreak{}univ} with \texttt{one\_\allowbreak{}smul} evaluates the total mass of the Gaussian factor to \(1\). The attribute \texttt{@[simp]} makes the identity available to later simplifications.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The zeroth iterate}{The zeroth iterate}}
+\section{\texorpdfstring{The zeroth law}{The zeroth law}}
 
 
-By definition, the zeroth iterate of any transition map is the identity map on measures. It follows that \(\rho_0=\mu\). No Gaussian transition is performed at this index. In particular, the initialization in the stochastic recursion and in the entropy estimate refers to the same measure.
+\textbf{Claim.} \(\rho_0=\mu\) for every \(U\), \(h\) and \(\mu\).
 
+
+
+
+\textbf{Proof.} The zeroth iterate of any map is the identity, so \(\rho_0=P_h^0\mu=\mu\). \(\square\)
+
+
+
+
+No transition is applied at index \(0\); the initial law of the algorithm and the starting point of the entropy recurrence are the same measure.
+
+\begin{leanbox}{Lean: \texttt{ulaLaws\_\allowbreak{}zero}}
+\leansource{\texttt{ulaLaws\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 44–45}
+\begin{leancode}
+\leanline{0}{theorem\ ulaLaws\_zero\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)\ :}
+\leanline{4}{ulaLaws\ U\ h\ μ\ 0\ =\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Laws\_\allowbreak{}zero} is proved by \texttt{rfl}: \texttt{(ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step U h)\textasciicircum{}[0] \ensuremath{\mu}} reduces to \texttt{\ensuremath{\mu}} by the definition of the iterate. It is tagged \texttt{@[simp]}.
+\end{leanbox}
 
 \section{\texorpdfstring{The recursion for successive laws}{The recursion for successive laws}}
 
 
-The elementary identity for iterates of a map gives \(P_h^{k+1}\mu=P_h(P_h^k\mu)\). In the notation for ULA laws this is
+\textbf{Claim.} For every \(k\in\mathbb N\), \(\rho_{k+1}=P_h\rho_k\).
 
-\[\rho_{k+1}=P_h(\rho_k).\]
 
-The order of composition agrees with one additional update of the current state using a fresh Gaussian variable. This identity is used when the one-step entropy estimate is iterated.
 
+
+\textbf{Proof.} For any map \(f\) and any \(k\), \(f^{k+1}(x)=f(f^k(x))\); this follows by induction on \(k\) from \(f^{k+1}=f^k\circ f\) (both sides equal \(f(x)\) for \(k=0\), and \(f^{k+2}(x)=f^{k+1}(f(x))=f(f^k(f(x)))=f(f^{k+1}(x))\) by the induction hypothesis applied at \(f(x)\)). With \(f=P_h\) and \(x=\mu\) this is \(\rho_{k+1}=P_h\rho_k\). \(\square\)
+
+
+
+
+The order matters: the new transition is applied to the law at index \(k\), which corresponds to updating the current state with a fresh Gaussian innovation.
+
+\begin{leanbox}{Lean: \texttt{ulaLaws\_\allowbreak{}succ}}
+\leansource{\texttt{ulaLaws\_\allowbreak{}succ} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 48–50}
+\begin{leancode}
+\leanline{0}{theorem\ ulaLaws\_succ\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ulaLaws\ U\ h\ μ\ (k\ +\ 1)\ =\ ULA.ulaLawStep\ U\ h\ (ulaLaws\ U\ h\ μ\ k)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Laws\_\allowbreak{}succ} is \texttt{Function.\allowbreak{}iterate\_\allowbreak{}succ\_\allowbreak{}apply' (ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step U h) k \ensuremath{\mu}}, Mathlib's identity \texttt{f\textasciicircum{}[n.\allowbreak{}succ] x = f (f\textasciicircum{}[n] x)}; the definition of iterates gives the other order \texttt{f\textasciicircum{}[n+1] = f\textasciicircum{}[n] \ensuremath{\circ} f} directly, and the primed lemma supplies the order needed here.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{The interpolation preserves total mass}{The interpolation preserves total mass}}
+\section{\texorpdfstring{The interpolating law at the end of a step}{The interpolating law at the end of a step}}
 
 
-Assume \(\nabla U\) is Lipschitz and \(\mu\) is a probability measure. For fixed \(t\), addition, scalar multiplication and continuity of the gradient make \(T_t\) measurable. The product \(\mu\otimes\gamma_d\) has total mass one. A measurable pushforward has the same total mass as its source; hence \(P_t\mu\) is a probability measure. This argument also verifies the normalization of each density used in LSI.
+\textbf{Claim.} For every \(k\in\mathbb N\), \(\rho_{k,h}=P_h\rho_k=\rho_{k+1}\); that is, the interpolation started from the \(k\)-th law reaches the next law at time \(h\).
 
+
+
+
+\textbf{Proof.} By definition \(\rho_{k,h}=P_h\rho_k\), and \(P_h\rho_k=\rho_{k+1}\) is the previous claim read from right to left. \(\square\)
+
+
+
+
+Together with \(\rho_{k,0}=P_0\rho_k=\rho_k\), this shows that the two endpoints of the \(k\)-th interpolation are exactly two consecutive laws of the algorithm. An inequality between the entropies at \(t=0\) and \(t=h\) of the interpolation is therefore an inequality between \(H_\nu(\rho_k)\) and \(H_\nu(\rho_{k+1})\); no comparison with a continuous-time diffusion is involved.
+
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}endpoint}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}endpoint} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 53–55}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_endpoint\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)\ (k\ :\ ℕ)\ :}
+\leanline{4}{interpolationLaw\ U\ (ulaLaws\ U\ h\ μ\ k)\ h\ =\ ulaLaws\ U\ h\ μ\ (k\ +\ 1)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint} is \texttt{(ula\allowbreak{}Laws\_\allowbreak{}succ U h \ensuremath{\mu} k).\allowbreak{}symm}. The left side \texttt{interpolation\allowbreak{}Law U (ula\allowbreak{}Laws U h \ensuremath{\mu} k) h} unfolds by definition to \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step U h (ula\allowbreak{}Laws U h \ensuremath{\mu} k)}, which is the right side of \texttt{ula\allowbreak{}Laws\_\allowbreak{}succ}; \texttt{.\allowbreak{}symm} reverses the equality.
+\end{leanbox}
+
+\section{\texorpdfstring{The interpolating law is a probability measure}{The interpolating law is a probability measure}}
+
+
+\textbf{Claim.} Let \(E\) carry its Borel \(\sigma\)-algebra, let \(\mu\) be a probability measure on \(E\), and let \(\nabla U\) be \(L\)-Lipschitz for some \(L\ge0\). Then \(P_t\mu\) is a probability measure for every \(t\in\mathbb R\).
+
+
+
+
+\textbf{Proof.} A Lipschitz map is continuous, and a continuous map between metric spaces is Borel measurable; hence \(\nabla U\) is measurable. The coordinate maps \((x,z)\mapsto x\) and \((x,z)\mapsto z\) are measurable on \(E\times E\), and so are the compositions \((x,z)\mapsto t\nabla U(x)\) and \((x,z)\mapsto\sqrt{2t}\,z\). Sums and differences of measurable maps into the finite-dimensional space \(E\) are measurable (addition is continuous and \(E\) is separable). Hence \(T_t\) is measurable. Therefore
+
+
+\[(P_t\mu)(E)=(\mu\otimes\gamma_n)\bigl(T_t^{-1}(E)\bigr)=(\mu\otimes\gamma_n)(E\times E)=\mu(E)\,\gamma_n(E)=1. \qquad\square\]
+
+
+The Lipschitz hypothesis is used only through the measurability of \(\nabla U\). Its role is to make the image measure well defined; without measurability of the update map the image of \(\mu\otimes\gamma_n\) is not defined.
+
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}isProbability}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}isProbability} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 61–68}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_isProbability\ (U\ :\ E\ →\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (t\ :\ ℝ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (interpolationLaw\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Probability} takes \texttt{[Is\allowbreak{}Probability\allowbreak{}Measure \ensuremath{\mu}]}, the constant \texttt{L : \ensuremath{\mathbb R}\ensuremath{\ge}0} and \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With L (gradient U)}, and concludes \texttt{Is\allowbreak{}Probability\allowbreak{}Measure (interpolation\allowbreak{}Law U \ensuremath{\mu} t)}, the statement that the measure of the whole space is \(1\). After \texttt{constructor} the goal is \((P_t\mu)(E)=1\). The rewrite chain unfolds \texttt{interpolation\allowbreak{}Law} and \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step}, evaluates the image measure on the measurable set \texttt{Set.\allowbreak{}univ} by \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply}, which requires the measurability proof \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal\_\allowbreak{}measurable U t L h\allowbreak{}Lip} (proved in the base library: the gradient is measurable because a Lipschitz map is continuous, and the update map is built from it and the coordinate projections by sums, differences and scalar multiples), replaces the preimage of the whole space by the whole space (\texttt{Set.\allowbreak{}preimage\_\allowbreak{}univ}), and closes with \texttt{measure\_\allowbreak{}univ} for the product of two probability measures.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
 
+\section{\texorpdfstring{Every law of the algorithm is a probability measure}{Every law of the algorithm is a probability measure}}
+
+
+\textbf{Claim.} Under the hypotheses of the previous step (Borel \(\sigma\)-algebra, \(\mu\) a probability measure, \(\nabla U\) Lipschitz), every \(\rho_k=P_h^k\mu\) is a probability measure, for every \(h\in\mathbb R\).
+
+
+
+
+\textbf{Proof.} Induction on \(k\). For \(k=0\), \(\rho_0=\mu\) is a probability measure by hypothesis. If \(\rho_k\) is a probability measure, then \(\rho_{k+1}=P_h\rho_k\) by the recursion, and the previous step applied to the probability measure \(\rho_k\) shows that \(P_h\rho_k\) is a probability measure. \(\square\)
+
+
+
+
+Consequently every interpolating law \(\rho_{k,t}=P_t\rho_k\) is also a probability measure, by the previous step applied to \(\rho_k\). This is the normalization required of the densities to which the log-Sobolev inequality is applied.
+
+\begin{leanbox}{Lean: \texttt{ulaLaws\_\allowbreak{}isProbability}}
+\leansource{\texttt{ulaLaws\_\allowbreak{}isProbability} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 71–80}
+\begin{leancode}
+\leanline{0}{theorem\ ulaLaws\_isProbability\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (k\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (ulaLaws\ U\ h\ μ\ k)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Laws\_\allowbreak{}is\allowbreak{}Probability} is proved by \texttt{induction k with}. In the \texttt{zero} case the goal \texttt{Is\allowbreak{}Probability\allowbreak{}Measure (ula\allowbreak{}Laws U h \ensuremath{\mu} 0)} is the instance for \texttt{\ensuremath{\mu}}, obtained by \texttt{infer\allowbreak{}Instance\allowbreak{}As} since the two measures agree by definition. In the \texttt{succ} case the induction hypothesis \texttt{ih} is made available as an instance (\texttt{have := ih}), the goal is rewritten with \texttt{ula\allowbreak{}Laws\_\allowbreak{}succ}, and \texttt{interpolation\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Probability U (ula\allowbreak{}Laws U h \ensuremath{\mu} k) L h\allowbreak{}Lip h} concludes, the transition with step \texttt{h} being the interpolation at time \texttt{h}.
+\end{leanbox}
+
+\section{\texorpdfstring{The entropy of the laws of the algorithm}{The entropy of the laws of the algorithm}}
+
+
+\textbf{Definition.} For a measure \(\nu\) (the target), the entropy of the \(k\)-th ULA law is the real number
+
+
+\[H_k=\begin{cases}H_\nu(\rho_k), & \text{if }H_\nu(\rho_k)<\infty,\\ 0, & \text{otherwise},\end{cases}\]
+
+
+where \(H_\nu(\rho_k)\in[0,\infty]\) is the Kullback–Leibler divergence of \(\rho_k\) with respect to \(\nu\).
+
+
+
+
+The value \(0\) for an infinite divergence is a convention that makes \(k\mapsto H_k\) a real sequence; a real inequality for \(H_k\) is a statement about the divergence only together with a proof that \(H_\nu(\rho_k)<\infty\). In the final convergence theorem this finiteness is proved for every \(k\), by induction from finite initial entropy, using the positive-time Gaussian density of the interpolation and the log-Sobolev inequality.
+
+\begin{leanbox}{Lean: \texttt{ulaEntropy}}
+\leansource{\texttt{ulaEntropy} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 84–85}
+\begin{leancode}
+\leanline{0}{def\ ulaEntropy\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ ν\ :\ Measure\ E)\ (k\ :\ ℕ)\ :\ ℝ\ :=}
+\leanline{2}{(InformationTheory.klDiv\ (ulaLaws\ U\ h\ μ\ k)\ ν).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Entropy U h \ensuremath{\mu} \ensuremath{\nu} k} is \texttt{(Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div (ula\allowbreak{}Laws U h \ensuremath{\mu} k) \ensuremath{\nu}).\allowbreak{}to\allowbreak{}Real}. \texttt{Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div} is Mathlib's divergence with values in \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0\ensuremath{\infty}}, and \texttt{.\allowbreak{}to\allowbreak{}Real} (that is, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real}) maps a finite value to itself and \(\infty\) to \(0\), which is the case distinction in the definition.
+\end{leanbox}
+
+\section{\texorpdfstring{The entropy of the zeroth law}{The entropy of the zeroth law}}
+
+
+\textbf{Claim.} For every \(U\), \(h\), \(\mu\) and \(\nu\), \(H_0\) is the real value of \(H_\nu(\mu)\), that is \(H_0=H_\nu(\mu)\) if \(H_\nu(\mu)<\infty\) and \(H_0=0\) otherwise.
+
+
+
+
+\textbf{Proof.} \(\rho_0=\mu\) by the zeroth-iterate identity, so the two definitions coincide. \(\square\)
+
+
+
+
+The initial term of the entropy recurrence is therefore the divergence of the initial law itself, independently of the step size. If \(H_\nu(\mu)<\infty\), it is the numerical initial value in the final bound.
+
+\begin{leanbox}{Lean: \texttt{ulaEntropy\_\allowbreak{}zero}}
+\leansource{\texttt{ulaEntropy\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}ULALaw.lean, lines 89–90}
+\begin{leancode}
+\leanline{0}{theorem\ ulaEntropy\_zero\ (U\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ ν\ :\ Measure\ E)\ :}
+\leanline{4}{ulaEntropy\ U\ h\ μ\ ν\ 0\ =\ (InformationTheory.klDiv\ μ\ ν).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Entropy\_\allowbreak{}zero} states \texttt{ula\allowbreak{}Entropy U h \ensuremath{\mu} \ensuremath{\nu} 0 = (Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div \ensuremath{\mu} \ensuremath{\nu}).\allowbreak{}to\allowbreak{}Real} and is proved by \texttt{rfl}, since \texttt{ula\allowbreak{}Laws U h \ensuremath{\mu} 0} reduces to \texttt{\ensuremath{\mu}}. It is tagged \texttt{@[simp]}; the line \texttt{omit [Borel\allowbreak{}Space E] in} drops the Borel assumption, which is not needed.
+\end{leanbox}
+
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

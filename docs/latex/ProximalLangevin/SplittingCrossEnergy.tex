@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -28,7 +51,21 @@ Suppose \(f(x)\le e(x)+\delta\) and both functions are Lipschitz. For \(L^2\) va
 
 The subsequent comparison uses \(e\le f\) at the algorithm’s intermediate state and \(f\le e+\delta\) at the reference endpoint. The integrated gap is \(\delta\) because the source is a probability. All expected values are finite before subtraction, and no derivative of the original nonsmooth function is used.
 
+\begin{leanbox}{Lean: \texttt{expectation\_\allowbreak{}gap\_\allowbreak{}le}}
+\leansource{\texttt{expectation\_\allowbreak{}gap\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingCrossEnergy.lean, lines 25–35}
+\begin{leancode}
+\leanline{0}{theorem\ expectation\_gap\_le\ \{f\ e\ :\ E\ →\ ℝ\}\ \{Kf\ Ke\ :\ ℝ≥0\}}
+\leanline{4}{(hf\ :\ LipschitzWith\ Kf\ f)\ (he\ :\ LipschitzWith\ Ke\ e)}
+\leanline{4}{(delta\ :\ ℝ)\ (hgap\ :\ ∀\ x,\ f\ x\ ≤\ e\ x\ +\ delta)\ (X\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{(∫\ ω,\ f\ (X\ ω)\ ∂P)\ -\ (∫\ ω,\ e\ (X\ ω)\ ∂P)\ ≤\ delta}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: expectation\_gap\_le : A finite uniform value gap controls its actual expectation.
 
+
+
+\texttt{expectation\_\allowbreak{}gap\_\allowbreak{}le}: the intermediate fact is \texttt{hi}, in source order; the source steps apply or rewrite \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{integral\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{The stationary convex-support and future-drift estimates}{The stationary convex-support and future-drift estimates}}
 
@@ -47,15 +84,47 @@ Stationarity replaces \(\mathbb Ee(Y_t)\) by \(\mathbb Ee(Y_h)\). Integration ov
 
 The decomposition \(S-Y_h=(S-Y_t)+(Y_t-Y_h)\) separates the convex support term from the future-increment term. Again \(\mathbb E e(Y_t)\) equals \(\mathbb E e(Y_h)\). At \(S\) use \(e\le f\), and at \(Y_h\) use \(f\le e+\delta\). Only one additive gap \(\delta\) remains. This is the energy comparison used to cancel the original potential difference in the splitting estimate.
 
+\begin{leanbox}{Lean: \texttt{splitting\_\allowbreak{}cross\_\allowbreak{}energy\_\allowbreak{}le}}
+\leansource{\texttt{splitting\_\allowbreak{}cross\_\allowbreak{}energy\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingCrossEnergy.lean, lines 41–86}
+\begin{leancode}
+\leanline{0}{theorem\ splitting\_cross\_energy\_le\ \{f\ e\ :\ E\ →\ ℝ\}}
+\leanline{4}{(he\ :\ Differentiable\ ℝ\ e)\ (hconv\ :\ ConvexOn\ ℝ\ univ\ e)}
+\leanline{4}{\{L\ Ke\ Kf\ Lg\ :\ ℝ≥0\}\ (hegrad\ :\ LipschitzWith\ L\ (gradient\ e))}
+\leanline{4}{(heLip\ :\ LipschitzWith\ Ke\ e)\ (hfLip\ :\ LipschitzWith\ Kf\ f)}
+\leanline{4}{(delta\ :\ ℝ)\ (hgap\ :\ ∀\ x,\ e\ x\ ≤\ f\ x\ ∧\ f\ x\ ≤\ e\ x\ +\ delta)}
+\leanline{4}{(g\ :\ Lp\ E\ 2\ P\ →\ Lp\ E\ 2\ P)\ (hg\ :\ LipschitzWith\ Lg\ g)}
+\leanline{4}{(Y\ B\ :\ ℝ\ →\ Lp\ E\ 2\ P)\ (hY\ :\ Continuous\ Y)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(G\ K\ :\ ℝ)\ (hG\ :\ 0\ ≤\ G)\ (hK\ :\ 0\ ≤\ K)}
+\leanline{4}{(hgBound\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖g\ (Y\ t)‖\ ≤\ G)}
+\leanline{4}{(hbBound\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ t)‖\ ≤\ K)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ Y\ 0\ =\ -(∫\ s\ in\ 0..t,\ g\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(horth\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{{\leanfallback ⟪}ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ t),\ B\ h\ -\ B\ t{\leanfallback ⟫}\ =\ 0)}
+\leanline{4}{(hstationary\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{(∫\ ω,\ e\ (Y\ t\ ω)\ ∂P)\ =\ ∫\ ω,\ e\ (Y\ h\ ω)\ ∂P)}
+\leanline{4}{(S\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{2\ *\ {\leanfallback ⟪}S\ -\ Y\ h,\ ∫\ t\ in\ 0..h,\ ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ t){\leanfallback ⟫}\ -}
+\leanline{6}{2\ *\ h\ *\ ((∫\ ω,\ f\ (S\ ω)\ ∂P)\ -\ ∫\ ω,\ f\ (Y\ h\ ω)\ ∂P)\ ≤}
+\leanline{6}{2\ *\ h\ *\ delta\ +\ 2\ *\ h\ \textasciicircum{}\ 2\ *\ G\ *\ K}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The two value comparisons give \([\mathbb Ee(S)-\mathbb Ee(Y_h)]-[\mathbb Ef(S)-\mathbb Ef(Y_h)]\le\delta\). Multiply by \(2h\) and combine to obtain the displayed \(2h\delta+2h^2GK\) remainder. In Lean, \texttt{hpoint} is the pointwise-in-time estimate, \texttt{hi} its integral, and \texttt{hsum} the finite value-gap cancellation. The conclusion never substitutes \(\operatorname{Lip}(\nabla e)\) into this remainder.
 
 
+
+Formal correspondence: splitting\_cross\_energy\_le : The integrated reference-gradient cross term cancels the original nonsmooth energy up to a finite value gap and a drift error of order \(h^2\). The orthogonality premise is instantiated by the actual Brownian construction in lp\_langevin\_future\_inner\_zero , not by a convergence assumption.
+
+
+
+\texttt{splitting\_\allowbreak{}cross\_\allowbreak{}energy\_\allowbreak{}le}: the intermediate facts include \texttt{b}, \texttt{hb\allowbreak{}Cont}, \texttt{hc\allowbreak{}Cont}, \texttt{hsum}, \texttt{hmul}, in source order; the source steps apply or rewrite \texttt{hs.\allowbreak{}trans}, \texttt{add\_\allowbreak{}le\_\allowbreak{}add}, \texttt{sub\_\allowbreak{}zero}, \texttt{smul\_\allowbreak{}eq\_\allowbreak{}mul}, \texttt{expectation\_\allowbreak{}gap\_\allowbreak{}le}. The remaining scalar rearrangements are checked by \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

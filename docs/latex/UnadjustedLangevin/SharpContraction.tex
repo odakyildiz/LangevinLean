@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,345 +39,492 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Suppose the same differentiable potential has strong-convexity constant \(m\) and gradient Lipschitz constant \(L\), with \(m\le L\). The quadratic lower and upper inequalities imply \(mL\|d\|^2+\|v\|^2\le(m+L)\langle v,d\rangle\), where \(d=x-y\) and \(v=\nabla U(x)-\nabla U(y)\). Completing the square gives \(\|v-(m+L)d/2\|\le(L-m)\|d\|/2\).
+Let \(H\) be a real inner-product space, and let \(f:H\to\mathbb R\) be differentiable, \(m\)-strongly convex, with \(L\)-Lipschitz gradient, where \(L\ge0\) and \(m\le L\) (from Step 2 on \(H\) is a Hilbert space, so that \(\nabla f\) is defined). For \(x,y\in H\) write \(u=x-y\) and \(v=\nabla f(x)-\nabla f(y)\). The quadratic lower bound of strong convexity and the quadratic upper bound of the Lipschitz gradient together imply the \emph{interpolation inequality}
+
+
+\[mL\|u\|^2+\|v\|^2\le(m+L)\langle v,u\rangle,\]
+
+
+which is stronger than strong monotonicity. Completing the square, it says that \(v\) lies in the closed ball with centre \(\frac{m+L}2u\) and radius \(\frac{L-m}2\|u\|\). Decomposing the difference of two gradient steps as \(u-hv=(1-h\frac{m+L}2)u-h(v-\frac{m+L}2u)\) then gives, for \(h\ge0\),
+
+
+\[\|(x-h\nabla f(x))-(y-h\nabla f(y))\|\le\Bigl(\Bigl|1-h\frac{m+L}2\Bigr|+h\frac{L-m}2\Bigr)\|x-y\|.\]
+
+
+If \(m+L>0\), the factor equals \(1-mh\) for \(0\le h\le2/(m+L)\) and \(Lh-1\) for \(h\ge2/(m+L)\); in both cases it is at most \(\max\{|1-mh|,|1-Lh|\}\). These are the contraction factors of Dalalyan's analysis of the unadjusted Langevin algorithm. Since a common noise vector cancels from the difference of two ULA updates, the same factors bound one step of the algorithm under shared noise. The boundary case \(m=L\) is included throughout; no division by \(L-m\) occurs.
 
 
 
-Decompose \(d-hv\) using this center. The triangle inequality gives \((|1-h(m+L)/2|+h(L-m)/2)\|d\|\). For \(m+L>0\), its factor is \(1-mh\) when \(0\le h\le2/(m+L)\), and \(Lh-1\) when \(h\ge2/(m+L)\). At \(m=L\), the completed-square radius is zero, so no division by \(L-m\) is needed.
+
+The interpolation inequality is derived from an abstract statement (Step 1): if a function \(F\) and a vector field \(G\) satisfy a linear lower model and a quadratic upper model with constant \(K\ge0\), then \(\|G(x)-G(y)\|^2\le K\langle G(x)-G(y),x-y\rangle\) (cocoercivity). It is applied to \(F=f-\frac m2\|\cdot\|^2\), \(G=\nabla f-m\,\mathrm{id}\) and \(K=L-m\).
 
 
 \section{\texorpdfstring{Cocoercivity from two quadratic models}{Cocoercivity from two quadratic models}}
 
 
-Let \(H\) be a real inner-product space, \(f:H\to\mathbb R\), \(g:H\to H\), and \(K\ge0\). Suppose that for all \(a,b\in H\),
-
-\[f(a)+\langle g(a),b-a\rangle\le f(b)\le f(a)+\langle g(a),b-a\rangle+\frac K2\|b-a\|^2.\]
-
-Then for all \(x,y\),
-
-\[\|g(x)-g(y)\|^2\le K\langle g(x)-g(y),x-y\rangle.\]
-
-The proof includes \(K=0\), and does not separately assume that \(g\) is a gradient.
+\textbf{Claim.} Let \(H\) be a real inner-product space, \(f:H\to\mathbb R\), \(g:H\to H\) and \(K\ge0\). Assume that for all \(a,b\in H\)
 
 
+\[f(a)+\langle g(a),b-a\rangle\le f(b)\qquad\text{and}\qquad f(b)\le f(a)+\langle g(a),b-a\rangle+\frac K2\|b-a\|^2.\]
 
-Fix \(a,b\), \(t\ge0\), and set \(v=g(a)-g(b)\), \(z=a-tv\). Compare the lower model based at \(b\) with the upper model based at \(a\), both evaluated at \(z\):
+
+Then for all \(x,y\in H\),
+
+
+\[\|g(x)-g(y)\|^2\le K\,\langle g(x)-g(y),x-y\rangle.\]
+
+
+\textbf{Proof.} \emph{(a) A one-sided estimate.} Fix \(a,b\in H\) and \(t\ge0\); put \(v=g(a)-g(b)\) and \(z=a-tv\). The lower model with base point \(b\) and the upper model with base point \(a\), both evaluated at \(z\), give
+
 
 \[f(b)+\langle g(b),z-b\rangle\le f(z)\le f(a)+\langle g(a),z-a\rangle+\frac K2\|z-a\|^2.\]
 
-The displacements are \(z-a=-tv\) and \(z-b=(a-b)-tv\). Substitute them into the two models. Since \(t\ge0\), the quadratic term is \(\|z-a\|^2=t^2\|v\|^2\).
+
+Here \(z-a=-tv\), \(z-b=(a-b)-tv\) and \(\|z-a\|^2=t^2\|v\|^2\). Substituting, and dropping the middle term,
+
+
+\[f(b)+\langle g(b),a-b\rangle-t\langle g(b),v\rangle\le f(a)-t\langle g(a),v\rangle+\frac K2t^2\|v\|^2.\]
+
+
+Since \(\langle g(a),v\rangle-\langle g(b),v\rangle=\langle v,v\rangle=\|v\|^2\), rearranging gives
+
+
+\[\Bigl(t-\frac K2t^2\Bigr)\|g(a)-g(b)\|^2\le f(a)-f(b)-\langle g(b),a-b\rangle.\qquad(1)\]
+
+
+\emph{(b) Symmetrisation.} Put \(A=\|g(x)-g(y)\|^2\) and \(B=\langle g(x)-g(y),x-y\rangle\). Apply (1) to \((a,b)=(x,y)\) and to \((a,b)=(y,x)\) with the same \(t\ge0\). In the second inequality \(\|g(y)-g(x)\|^2=A\) and \(\langle g(x),y-x\rangle=-\langle g(x),x-y\rangle\). Adding the two inequalities, the function values cancel, and
+
+
+\[(2t-Kt^2)A\le\langle g(x),x-y\rangle-\langle g(y),x-y\rangle=B\qquad\text{for every }t\ge0.\qquad(2)\]
+
+
+\emph{(c) The case \(K>0\).} Take \(t=1/K\) in (2): \((2/K-1/K)A=A/K\le B\). Multiplying by \(K>0\) gives \(A\le KB\).
 
 
 
-The difference of the linear terms satisfies
 
-\[\langle g(a),v\rangle-\langle g(b),v\rangle=\|v\|^2.\]
-
-Eliminating \(f(z)\) therefore gives
-
-\[\left(t-\frac K2t^2\right)\|g(a)-g(b)\|^2\le f(a)-f(b)-\langle g(b),a-b\rangle.\]
-
-Apply this estimate to \((a,b)=(x,y)\) and \((y,x)\), with the same \(t\ge0\). Adding will cancel the function values.
+\emph{(d) The case \(K=0\).} Now (2) reads \(2tA\le B\) for all \(t\ge0\), and the claim is \(A\le0\). Taking \(t=1\) gives \(B\ge2A\ge0\). Suppose \(A>0\). Then \(t=(B+1)/(2A)\) is nonnegative, and (2) with this \(t\) gives \(B+1=2tA\le B\), a contradiction. Hence \(A\le0=K B\). \(\square\)
 
 
 
-The two gradient norms are equal and the reversed displacement changes the sign of its inner product. Thus, writing \(A=\|g(x)-g(y)\|^2\) and \(B=\langle g(x)-g(y),x-y\rangle\), we have for every \(t\ge0\),
 
-\[(2t-Kt^2)A\le B.\]
+The choice \(t=1/K\) maximises \(2t-Kt^2\) over \(t\ge0\). When \(K=0\) the conclusion is \(g(x)=g(y)\) for all \(x,y\). The field \(g\) is not assumed to be a gradient: the two model inequalities are the only hypotheses.
 
-First consider \(K=0\). Taking \(t=1\) gives \(2A\le B\). As \(A\ge0\), this also shows \(B\ge0\).
-
-
-
-If the desired conclusion \(A\le0\) were false, then \(A>0\). We could choose
-
-\[t=\frac{B+1}{2A}\ge0.\]
-
-The estimate \(2tA\le B\) would then force \(B+1\le B\).
-
-
-
-To justify that substitution, \(A>0\) implies \(\|g(x)-g(y)\|\ne0\), so its square can be cancelled from the denominator. Hence indeed
-
-\[2\frac{B+1}{2A}A=B+1.\]
-
-The contradiction \(B+1\le B\) excludes \(A>0\). Thus \(A=0\), proving the claim when \(K=0\).
+\begin{leanbox}{Lean: \texttt{cocoercive\_\allowbreak{}of\_\allowbreak{}quadratic\_\allowbreak{}models}}
+\leansource{\texttt{cocoercive\_\allowbreak{}of\_\allowbreak{}quadratic\_\allowbreak{}models} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 26–84}
+\begin{leancode}
+\leanline{0}{theorem\ cocoercive\_of\_quadratic\_models\ (f\ :\ H\ →\ ℝ)\ (g\ :\ H\ →\ H)\ (K\ :\ ℝ)}
+\leanline{4}{(hK\ :\ 0\ ≤\ K)}
+\leanline{4}{(hlower\ :\ ∀\ x\ y,\ f\ x\ +\ inner\ ℝ\ (g\ x)\ (y\ -\ x)\ ≤\ f\ y)}
+\leanline{4}{(hupper\ :\ ∀\ x\ y,}
+\leanline{6}{f\ y\ ≤\ f\ x\ +\ inner\ ℝ\ (g\ x)\ (y\ -\ x)\ +\ K\ /\ 2\ *\ ‖y\ -\ x‖\ \textasciicircum{}\ 2)}
+\leanline{4}{(x\ y\ :\ H)\ :}
+\leanline{4}{‖g\ x\ -\ g\ y‖\ \textasciicircum{}\ 2\ ≤\ K\ *\ inner\ ℝ\ (g\ x\ -\ g\ y)\ (x\ -\ y)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{cocoercive\_\allowbreak{}of\_\allowbreak{}quadratic\_\allowbreak{}models} the hypotheses \texttt{h\allowbreak{}K : 0 \ensuremath{\le} K}, \texttt{hlower} and \texttt{hupper} are \(K\ge0\) and the two models for all pairs of points; \texttt{inner \ensuremath{\mathbb R} u v} is \(\langle u,v\rangle\). No completeness of \(H\) is assumed. The proof has the structure (a)–(d).
 
 
 
-Now suppose \(K>0\). Choose \(t=K^{-1}\) in the common estimate:
-
-\[\frac AK\le B.\]
-
-Multiplying by \(K\) gives \(A\le KB\), as required.
+\begin{enumerate}
 
 
+\item \texttt{hbregman a b t ht} is (1). It introduces \texttt{z := a -\allowbreak{} t \ensuremath{\bullet} (g a -\allowbreak{} g b)}, takes \texttt{hl := hlower b z} and \texttt{hu := hupper a z}, computes the displacements \texttt{hz\ensuremath{{}_{1}}} and \texttt{hz\ensuremath{{}_{2}}} with the \texttt{module} tactic, evaluates \(\|z-a\|\) using \texttt{norm\_\allowbreak{}smul} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg ht}, proves the identity \texttt{hi} (\(\langle g(a),v\rangle-\langle g(b),v\rangle=\|v\|^2\)) from \texttt{inner\_\allowbreak{}sub\_\allowbreak{}left} and \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}, and concludes with \texttt{nlinarith}.
 
-For positive \(K\), the choice \(t=1/K\) maximizes the quadratic coefficient \(2t-Kt^2\). This gives the coefficient obtained by substituting the reciprocal smoothness constant. At \(K=0\), no reciprocal is available; allowing arbitrarily large nonnegative \(t\) instead forces the squared gradient difference to vanish. These cases prove the claim for every nonnegative smoothness constant.
+\item \texttt{hsum t ht} is (2): it adds \texttt{hbregman x y t ht} and \texttt{hbregman y x t ht} after rewriting \(\|g(y)-g(x)\|=\|g(x)-g(y)\|\) (\texttt{norm\_\allowbreak{}sub\_\allowbreak{}rev}) and \(y-x=-(x-y)\) (\texttt{neg\_\allowbreak{}sub}, \texttt{inner\_\allowbreak{}neg\_\allowbreak{}right}); \texttt{linarith} performs the addition.
 
+\item \texttt{rcases h\allowbreak{}K.\allowbreak{}eq\_\allowbreak{}or\_\allowbreak{}lt with hzero | hpos} splits into \(K=0\) and \(K>0\).
 
-\section{\texorpdfstring{The strong-smooth interpolation inequality}{The strong-smooth interpolation inequality}}
+\item Case \(K=0\) (d): after \texttt{subst K}, \texttt{hsum 1} gives \(2A\le B\) and \texttt{hmono} gives \(B\ge0\). The proof is by contradiction (\texttt{by\_\allowbreak{}contra hn}); \texttt{hnpos} is \(A>0\). \texttt{hh} is (2) at \(t=(B+1)/(2A)\), whose nonnegativity \texttt{positivity} obtains from \texttt{hmono} and \texttt{hnpos}; \texttt{heq} evaluates \(2tA=B+1\) by \texttt{field\_\allowbreak{}simp}, using that \(\|g(x)-g(y)\|\ne0\) (\texttt{hnorm}); \texttt{linarith} derives the contradiction.
 
+\item Case \(K>0\) (c): \texttt{hsum K\ensuremath{{}^{-1}}} is (2) at \(t=1/K\); \texttt{hmul} multiplies it by \(K\); \texttt{field\_\allowbreak{}simp} clears the inverse and \texttt{nlinarith} concludes.
 
-Let \(H\) be a real Hilbert space, \(f:H\to\mathbb R\) differentiable and \(m\)-strongly convex, and let \(\nabla f\) be \(L\)-Lipschitz, where \(L\ge0\) and \(m\le L\). Then for every \(x,y\),
+\end{enumerate}
+\end{leanbox}
 
-\[mL\|x-y\|^2+\|\nabla f(x)-\nabla f(y)\|^2\le(m+L)\langle\nabla f(x)-\nabla f(y),x-y\rangle.\]
-
-The inequality holds also at the boundary \(m=L\).
-
-
-
-Subtract the strong-convexity quadratic and its gradient:
-
-\[F(v)=f(v)-\frac m2\|v\|^2,\qquad G(v)=\nabla f(v)-mv.\]
-
-The quadratic lower model for \(f\) becomes an ordinary supporting plane for \(F\):
-
-\[F(a)+\langle G(a),b-a\rangle\le F(b).\]
-
-This follows by expanding the squared distance and collecting the terms involving \(m\).
+\section{\texorpdfstring{The interpolation inequality}{The interpolation inequality}}
 
 
-
-Apply the smooth upper model to \(f\), and substitute the same definitions of \(F\) and \(G\).
-
+\textbf{Claim.} Let \(H\) be a real Hilbert space, \(m\in\mathbb R\) and \(L\ge0\) with \(m\le L\). Let \(f:H\to\mathbb R\) be differentiable at every point and \(m\)-strongly convex, and let \(\nabla f\) be \(L\)-Lipschitz. Then for all \(x,y\in H\),
 
 
-Expanding the quadratic terms shows that the upper curvature decreases from \(L\) to \(L-m\):
+\[mL\|x-y\|^2+\|\nabla f(x)-\nabla f(y)\|^2\le(m+L)\,\langle\nabla f(x)-\nabla f(y),x-y\rangle.\]
 
-\[F(b)\le F(a)+\langle G(a),b-a\rangle+\frac{L-m}{2}\|b-a\|^2.\]
 
-Since \(L-m\ge0\), cocoercivity for these two models gives
+\textbf{Proof.} Define \(F(w)=f(w)-\frac m2\|w\|^2\) and \(G(w)=\nabla f(w)-mw\). We use the identity
 
-\[\|G(x)-G(y)\|^2\le(L-m)\langle G(x)-G(y),x-y\rangle.\]
 
-Write \(d=x-y\) and \(v=\nabla f(x)-\nabla f(y)\). The shifted gradient difference is exactly
+\[\|b\|^2-\|a\|^2-2\langle a,b-a\rangle=\|b-a\|^2\qquad(a,b\in H),\qquad(1)\]
 
-\[G(x)-G(y)=v-md.\]
 
-Expand the cocoercivity inequality using this identity:
+which follows by expanding \(\|b-a\|^2=\|b\|^2-2\langle a,b\rangle+\|a\|^2\). By (1),
 
-\[\|v\|^2-2m\langle v,d\rangle+m^2\|d\|^2\le(L-m)\bigl(\langle v,d\rangle-m\langle d,d\rangle\bigr).\]
 
-Use \(\langle d,d\rangle=\|d\|^2\) and collect terms. This gives
+\[F(a)+\langle G(a),b-a\rangle=f(a)+\langle\nabla f(a),b-a\rangle+\frac m2\|b-a\|^2-\frac m2\|b\|^2.\qquad(2)\]
 
-\[\|v\|^2+mL\|d\|^2\le(m+L)\langle v,d\rangle.\]
 
-When \(m=L\), the cocoercivity constant above is zero, forcing \(G(x)=G(y)\); consequently \(\nabla f(x)-\nabla f(y)=m(x-y)\). Thus no division by \(L-m\) or limiting argument is needed.
+\emph{(a) Lower model.} The quadratic lower bound of strong convexity states \(f(a)+\langle\nabla f(a),b-a\rangle+\frac m2\|b-a\|^2\le f(b)\). Subtracting \(\frac m2\|b\|^2\) and using (2) gives \(F(a)+\langle G(a),b-a\rangle\le F(b)\).
 
 
 
-The shifted upper curvature \(L-m\) is nonnegative by assumption. Expanding \(\|v-md\|^2\le(L-m)\langle v-md,d\rangle\) gives coefficients \(-2m\) and \(-(L-m)\) on the mixed term; collecting them produces \(m+L\). The coefficient of \(\|d\|^2\) becomes \(mL\), as stated in the interpolation inequality.
 
+\emph{(b) Upper model with constant \(L-m\).} The quadratic upper bound for the \(L\)-Lipschitz gradient states \(f(b)\le f(a)+\langle\nabla f(a),b-a\rangle+\frac L2\|b-a\|^2\). Subtracting \(\frac m2\|b\|^2\) and using (2),
+
+
+\[F(b)\le F(a)+\langle G(a),b-a\rangle+\frac{L-m}2\|b-a\|^2.\]
+
+
+\emph{(c) Cocoercivity.} Since \(m\le L\), the constant \(K=L-m\) is nonnegative, and (a), (b) are the hypotheses of Step 1 for \((F,G,K)\). Hence
+
+
+\[\|G(x)-G(y)\|^2\le(L-m)\,\langle G(x)-G(y),x-y\rangle.\qquad(3)\]
+
+
+\emph{(d) Expansion.} With \(u=x-y\) and \(v=\nabla f(x)-\nabla f(y)\) we have \(G(x)-G(y)=v-mu\), so \(\|G(x)-G(y)\|^2=\|v\|^2-2m\langle v,u\rangle+m^2\|u\|^2\) and \(\langle G(x)-G(y),u\rangle=\langle v,u\rangle-m\|u\|^2\). Inequality (3) becomes
+
+
+\[\|v\|^2-2m\langle v,u\rangle+m^2\|u\|^2\le(L-m)\langle v,u\rangle-(L-m)m\|u\|^2.\]
+
+
+Collecting terms, \(m^2+(L-m)m=mL\) and \((L-m)+2m=m+L\), so \(\|v\|^2+mL\|u\|^2\le(m+L)\langle v,u\rangle\). \(\square\)
+
+
+
+
+For \(m=L\), (3) holds with constant \(0\) and Step 1 gives \(G(x)=G(y)\), i.e. \(\nabla f(x)-\nabla f(y)=m(x-y)\); the claim then holds with equality. The hypothesis \(m\le L\) is needed for \(K\ge0\); it holds automatically for every potential on a nonzero space satisfying both assumptions, since \(m\|u\|^2\le\langle v,u\rangle\le L\|u\|^2\).
+
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}interpolation}}
+\leansource{\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}interpolation} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 88–125}
+\begin{leancode}
+\leanline{0}{theorem\ strong\_smooth\_gradient\_interpolation\ [CompleteSpace\ H]}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))\ (x\ y\ :\ H)\ :}
+\leanline{4}{m\ *\ (L\ :\ ℝ)\ *\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ +\ ‖gradient\ f\ x\ -\ gradient\ f\ y‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(m\ +\ (L\ :\ ℝ))\ *\ inner\ ℝ\ (gradient\ f\ x\ -\ gradient\ f\ y)\ (x\ -\ y)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}interpolation} assumes \texttt{[Complete\allowbreak{}Space H]}, \texttt{hdiff}, \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m f}, \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With L (gradient f)} with \texttt{L : \ensuremath{\mathbb R}\ensuremath{\ge}0}, and \texttt{hm\allowbreak{}L : m \ensuremath{\le} (L : \ensuremath{\mathbb R})}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{F} and \texttt{G} are \(F\) and \(G\) (the term \texttt{m \ensuremath{\bullet} v} is \(mv\)).
+
+\item \texttt{hlower} is (a). It starts from \texttt{strong\_\allowbreak{}first\_\allowbreak{}order hdiff hsc a b}, expands all inner products (\texttt{inner\_\allowbreak{}sub\_\allowbreak{}left}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}smul\_\allowbreak{}left}, \texttt{inner\_\allowbreak{}sub\_\allowbreak{}right}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}self\_\allowbreak{}eq\_\allowbreak{}norm\_\allowbreak{}sq}) and \(\|b-a\|^2\) (\texttt{norm\_\allowbreak{}sub\_\allowbreak{}sq\_\allowbreak{}real}), and concludes with \texttt{nlinarith}; this is the computation (1)–(2).
+
+\item \texttt{hupper} is (b), obtained in the same way from \texttt{Analysis.\allowbreak{}smooth\_\allowbreak{}upper\_\allowbreak{}bound f L hdiff h\allowbreak{}Lip a b}.
+
+\item \texttt{hc} is (3): \texttt{cocoercive\_\allowbreak{}of\_\allowbreak{}quadratic\_\allowbreak{}models} applied to \texttt{F}, \texttt{G} and the constant \texttt{(L : \ensuremath{\mathbb R}) -\allowbreak{} m}, whose nonnegativity is \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr hm\allowbreak{}L}.
+
+\item \texttt{h\allowbreak{}G} is the identity \(G(x)-G(y)=v-mu\) (by \texttt{module}). After rewriting \texttt{hc} with it and expanding the squares and inner products, \texttt{hinner} records \(\langle x,u\rangle-\langle y,u\rangle=\|u\|^2\), and \texttt{nlinarith} performs the collection of terms (d).
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{The gradient difference lies in a ball}{The gradient difference lies in a ball}}
 
 
-Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\), and \(m,L\in\mathbb R\) with \(m\le L\). Suppose
+\textbf{Claim.} Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\) and \(m,L\in\mathbb R\) with \(m\le L\). Assume
 
-\[mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle.\]
+
+\[mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\,\langle g_x-g_y,x-y\rangle.\]
+
 
 Then
 
-\[\left\|(g_x-g_y)-\frac{m+L}{2}(x-y)\right\|\le\frac{L-m}{2}\|x-y\|.\]
 
-The proposed radius is nonnegative because \(m\le L\). Both sides of the desired norm bound are therefore nonnegative, so it is enough to prove the corresponding squared inequality.
-
+\[\Bigl\|(g_x-g_y)-\frac{m+L}2(x-y)\Bigr\|\le\frac{L-m}2\,\|x-y\|.\]
 
 
-Set \(c=(m+L)/2\), \(r=(L-m)/2\), \(d=x-y\), and \(v=g_x-g_y\). Completing the square in the interpolation inequality gives
-
-\[\begin{aligned}\|v-cd\|^2&=\|v\|^2-(m+L)\langle v,d\rangle+c^2\|d\|^2\\&\le(c^2-mL)\|d\|^2=r^2\|d\|^2.\end{aligned}\]
-
-Taking nonnegative square roots proves the claim. If \(m=L\), the radius is zero and \(v=md\).
+\textbf{Proof.} Put \(u=x-y\), \(v=g_x-g_y\), \(c=(m+L)/2\) and \(r=(L-m)/2\); then \(r\ge0\) because \(m\le L\). Both sides of the claim are nonnegative, and for nonnegative numbers \(\alpha,\beta\) the inequality \(\alpha^2\le\beta^2\) implies \(\alpha\le\beta\); it therefore suffices to prove \(\|v-cu\|^2\le r^2\|u\|^2\). Expanding and using the hypothesis in the form \(\|v\|^2-(m+L)\langle v,u\rangle\le-mL\|u\|^2\),
 
 
-
-The algebra uses \(((m+L)/2)^2-mL=((L-m)/2)^2\). Thus the interpolation inequality describes a closed ball in the gradient-difference variable for each fixed displacement. Its radius vanishes at \(m=L\), identifying the gradient difference exactly with \(m(x-y)\). This geometric form avoids dividing by either curvature difference or point separation.
-
-
-\section{\texorpdfstring{The centered Euler-step bound}{The centered Euler-step bound}}
+\[\|v-cu\|^2=\|v\|^2-2c\langle v,u\rangle+c^2\|u\|^2=\|v\|^2-(m+L)\langle v,u\rangle+c^2\|u\|^2\le(c^2-mL)\|u\|^2.\]
 
 
-Let \(H\) be a real inner-product space, \(m,L,h\in\mathbb R\) with \(m\le L\) and \(h\ge0\), and let \(x,y,g_x,g_y\in H\) satisfy
-
-\[mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle.\]
-
-Then
-
-\[\|(x-hg_x)-(y-hg_y)\|\le\left(\left|1-h\frac{m+L}{2}\right|+h\frac{L-m}{2}\right)\|x-y\|.\]
-
-The preceding ball bound gives \(\|v-cd\|\le r\|d\|\), where \(d=x-y\), \(v=g_x-g_y\), \(c=(m+L)/2\), and \(r=(L-m)/2\).
+Finally \(c^2-mL=\frac{(m+L)^2-4mL}4=\frac{(L-m)^2}4=r^2\). \(\square\)
 
 
 
-Decompose the Euler difference into its centered part and its deviation:
 
-\[d-hv=(1-hc)d-h(v-cd).\]
+Conversely, expanding \(\|v-cu\|^2\le r^2\|u\|^2\) returns the hypothesis, so the two statements are equivalent. When \(m=L\) the radius is zero and \(v=mu\).
 
-The triangle inequality and homogeneity of the norm give
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}difference\_\allowbreak{}centered\_\allowbreak{}bound}}
+\leansource{\texttt{gradient\_\allowbreak{}difference\_\allowbreak{}centered\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 129–140}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_difference\_centered\_bound}
+\leanline{4}{(x\ y\ gx\ gy\ :\ H)\ (m\ L\ :\ ℝ)\ (hmL\ :\ m\ ≤\ L)}
+\leanline{4}{(hinterp\ :\ m\ *\ L\ *\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ +\ ‖gx\ -\ gy‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(m\ +\ L)\ *\ inner\ ℝ\ (gx\ -\ gy)\ (x\ -\ y))\ :}
+\leanline{4}{‖(gx\ -\ gy)\ -\ ((m\ +\ L)\ /\ 2)\ •\ (x\ -\ y)‖\ ≤}
+\leanline{6}{((L\ -\ m)\ /\ 2)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{gradient\_\allowbreak{}difference\_\allowbreak{}centered\_\allowbreak{}bound}, \texttt{hinterp} is the hypothesis and \texttt{hm\allowbreak{}L : m \ensuremath{\le} L}; here \(m\) and \(L\) are arbitrary real numbers. \texttt{hrad} is \(r\ge0\). The step \texttt{apply (sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}} (norm\_\allowbreak{}nonneg \_\allowbreak{}) (mul\_\allowbreak{}nonneg hrad (norm\_\allowbreak{}nonneg \_\allowbreak{}))).\allowbreak{}mp} uses the Mathlib equivalence \texttt{sq\_\allowbreak{}le\_\allowbreak{}sq\ensuremath{{}_{0}}} (\(\alpha^2\le\beta^2\iff\alpha\le\beta\) for \(\alpha,\beta\ge0\)) to reduce the goal to the squared inequality. The rewrites expand \(\|v-cu\|^2\) (\texttt{norm\_\allowbreak{}sub\_\allowbreak{}sq\_\allowbreak{}real}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}smul\_\allowbreak{}right}, \texttt{norm\_\allowbreak{}smul}, \texttt{sq\_\allowbreak{}abs}, \texttt{mul\_\allowbreak{}pow}), and \texttt{nlinarith} completes the computation above.
+\end{leanbox}
 
-\[\|d-hv\|\le|1-hc|\,\|d\|+h\|v-cd\|,\]
-
-where \(|-h|=h\) because \(h\ge0\).
-
-
-
-Multiply the ball bound by \(h\ge0\) and substitute it:
-
-\[\|d-hv\|\le\bigl(|1-hc|+hr\bigr)\|d\|.\]
-
-For \(m=L\), this reduces to the exact scalar factor \(|1-mh|\).
-
-
-
-The two summands in the decomposition are parallel to the displacement and the deviation from the ball center, respectively. The triangle inequality bounds the norm of their sum by the sum of these two norms. Because \(h\ge0\), scaling its radius contributes \(h(L-m)/2\). Keeping the absolute value on the center yields one expression valid on both sides of the step threshold.
+\section{\texorpdfstring{The centred Euler-step bound}{The centred Euler-step bound}}
 
 
-\section{\texorpdfstring{The sharp small-step factor}{The sharp small-step factor}}
+\textbf{Claim.} Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\) and \(m,L,h\in\mathbb R\) with \(m\le L\) and \(h\ge0\). If \(mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle\), then
 
 
-Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\), and \(m,L,h\in\mathbb R\). Suppose \(m\le L\), \(m+L>0\), \(0\le h\le2/(m+L)\), and
-
-\[mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle.\]
-
-Then
-
-\[\|(x-hg_x)-(y-hg_y)\|\le(1-mh)\|x-y\|.\]
-
-Apply the centered bound. The step-size assumption and \(m+L>0\) imply \(h(m+L)\le2\), hence \(1-h(m+L)/2\ge0\).
+\[\|(x-hg_x)-(y-hg_y)\|\le\Bigl(\Bigl|1-h\frac{m+L}2\Bigr|+h\frac{L-m}2\Bigr)\|x-y\|.\]
 
 
-
-Remove the absolute value with this sign and simplify its coefficient:
-
-\[\left|1-h\frac{m+L}{2}\right|+h\frac{L-m}{2}=1-h\frac{m+L}{2}+h\frac{L-m}{2}=1-mh.\]
-
-The threshold ensures that the center coefficient is nonnegative. Moreover \(m\le L\) implies \(mh\le h(m+L)/2\le1\), so the simplified factor \(1-mh\) is itself nonnegative. This sign check makes the resulting pointwise estimate suitable for integration into an \(L^2\) inequality without any absolute value adjustment.
+\textbf{Proof.} With \(u,v,c,r\) as in the previous step, that step gives \(\|v-cu\|\le r\|u\|\). Since \((1-hc)u-h(v-cu)=u-hv\), the difference of the two Euler steps decomposes as
 
 
-\section{\texorpdfstring{The sharp large-step factor}{The sharp large-step factor}}
+\[(x-hg_x)-(y-hg_y)=u-hv=(1-hc)\,u+(-h)\,(v-cu).\]
 
 
-Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\), and \(m,L,h\in\mathbb R\). Suppose \(m\le L\), \(m+L>0\), \(h\ge0\), \(2/(m+L)\le h\), and
+By the triangle inequality and the homogeneity \(\|\lambda w\|=|\lambda|\,\|w\|\), with \(|-h|=h\) because \(h\ge0\),
 
-\[mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle.\]
 
-Then
+\[\|u-hv\|\le|1-hc|\,\|u\|+h\,\|v-cu\|.\]
 
-\[\|(x-hg_x)-(y-hg_y)\|\le(Lh-1)\|x-y\|.\]
 
-This is a distance bound; it is a strict contraction only when its coefficient is below one.
+Multiplying \(\|v-cu\|\le r\|u\|\) by \(h\ge0\) and substituting gives \(\|u-hv\|\le(|1-hc|+hr)\|u\|\). \(\square\)
 
 
 
-Apply the centered estimate. Now the step-size assumption gives \(2\le h(m+L)\), so \(1-h(m+L)/2\le0\).
+
+The absolute value is kept on the coefficient \(1-hc\) so that one formula covers both sides of the threshold \(hc=1\), i.e. \(h=2/(m+L)\); the next two steps remove it on each side.
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}step\_\allowbreak{}centered\_\allowbreak{}contract}}
+\leansource{\texttt{gradient\_\allowbreak{}step\_\allowbreak{}centered\_\allowbreak{}contract} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 144–160}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_step\_centered\_contract}
+\leanline{4}{(x\ y\ gx\ gy\ :\ H)\ (m\ L\ h\ :\ ℝ)\ (hmL\ :\ m\ ≤\ L)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hinterp\ :\ m\ *\ L\ *\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ +\ ‖gx\ -\ gy‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(m\ +\ L)\ *\ inner\ ℝ\ (gx\ -\ gy)\ (x\ -\ y))\ :}
+\leanline{4}{‖(x\ -\ h\ •\ gx)\ -\ (y\ -\ h\ •\ gy)‖\ ≤}
+\leanline{6}{(|1\ -\ h\ *\ ((m\ +\ L)\ /\ 2)|\ +\ h\ *\ ((L\ -\ m)\ /\ 2))\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{gradient\_\allowbreak{}step\_\allowbreak{}centered\_\allowbreak{}contract}, \texttt{hc} is the ball bound of the previous step; \texttt{heq} is the decomposition, proved by \texttt{module}; \texttt{htri} is the triangle inequality \texttt{norm\_\allowbreak{}add\_\allowbreak{}le} for the two summands, simplified with \texttt{norm\_\allowbreak{}smul}, \texttt{abs\_\allowbreak{}neg} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg hh}; \texttt{hscaled} multiplies \texttt{hc} by \(h\ge0\) (\texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}left}). \texttt{nlinarith} combines \texttt{htri} and \texttt{hscaled}.
+\end{leanbox}
+
+\section{\texorpdfstring{The small-step factor}{The small-step factor}}
 
 
+\textbf{Claim.} Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\) and \(m,L,h\in\mathbb R\). Assume \(m\le L\), \(m+L>0\), \(0\le h\le2/(m+L)\), and \(mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle\). Then
 
-Replace the absolute value by the negative of its argument. The coefficient becomes
 
-\[\left|1-h\frac{m+L}{2}\right|+h\frac{L-m}{2}=h\frac{m+L}{2}-1+h\frac{L-m}{2}=Lh-1.\]
+\[\|(x-hg_x)-(y-hg_y)\|\le(1-mh)\,\|x-y\|.\]
 
-Above the threshold the scalar center coefficient is nonpositive, so its absolute value is its negative. The factor \(Lh-1\) is nonnegative because \(h(m+L)\ge2\) and \(m\le L\) imply \(Lh\ge1\). Its being below one is the separate stability condition \(Lh<2\), which is needed later to sum the geometric error recurrence.
 
+\textbf{Proof.} Because \(m+L>0\), the inequality \(h\le2/(m+L)\) is equivalent to \(h(m+L)\le2\). Hence \(1-h\frac{m+L}2\ge0\), and the absolute value in the previous step may be removed:
+
+
+\[\Bigl|1-h\frac{m+L}2\Bigr|+h\frac{L-m}2=1-h\frac{m+L}2+h\frac{L-m}2=1-mh.\qquad\square\]
+
+
+In this regime \(1-mh\ge0\): indeed \(2mh=h(m+L)-h(L-m)\le h(m+L)\le2\), since \(h(L-m)\ge0\). For \(m>0\) and \(h>0\) the factor is strictly less than one.
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}small}}
+\leansource{\texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}small} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 163–173}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_step\_sharp\_contract\_small}
+\leanline{4}{(x\ y\ gx\ gy\ :\ H)\ (m\ L\ h\ :\ ℝ)\ (hmL\ :\ m\ ≤\ L)\ (hpos\ :\ 0\ <\ m\ +\ L)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ L))}
+\leanline{4}{(hinterp\ :\ m\ *\ L\ *\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ +\ ‖gx\ -\ gy‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(m\ +\ L)\ *\ inner\ ℝ\ (gx\ -\ gy)\ (x\ -\ y))\ :}
+\leanline{4}{‖(x\ -\ h\ •\ gx)\ -\ (y\ -\ h\ •\ gy)‖\ ≤\ (1\ -\ m\ *\ h)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}small}, \texttt{hc} is the centred bound, \texttt{hs : h * (m + L) \ensuremath{\le} 2} is obtained from \texttt{hsmall} by \texttt{(le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}} hpos).\allowbreak{}mp} (Mathlib's \(a\le b/c\iff ac\le b\) for \(c>0\)), \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg} removes the absolute value (its sign condition is proved by \texttt{nlinarith} from \texttt{hs}), and \texttt{convert hc using 1} leaves the identity of coefficients, which \texttt{ring} proves.
+\end{leanbox}
+
+\section{\texorpdfstring{The large-step factor}{The large-step factor}}
+
+
+\textbf{Claim.} Let \(H\) be a real inner-product space, \(x,y,g_x,g_y\in H\) and \(m,L,h\in\mathbb R\). Assume \(m\le L\), \(m+L>0\), \(h\ge0\), \(2/(m+L)\le h\), and \(mL\|x-y\|^2+\|g_x-g_y\|^2\le(m+L)\langle g_x-g_y,x-y\rangle\). Then
+
+
+\[\|(x-hg_x)-(y-hg_y)\|\le(Lh-1)\,\|x-y\|.\]
+
+
+\textbf{Proof.} Because \(m+L>0\), the inequality \(2/(m+L)\le h\) is equivalent to \(2\le h(m+L)\). Hence \(1-h\frac{m+L}2\le0\), so its absolute value is its negative, and
+
+
+\[\Bigl|1-h\frac{m+L}2\Bigr|+h\frac{L-m}2=h\frac{m+L}2-1+h\frac{L-m}2=Lh-1.\qquad\square\]
+
+
+In this regime \(Lh-1\ge0\), because \(2\le h(m+L)\le2hL\). The factor is less than one exactly when \(Lh<2\); that condition is not needed for the inequality and is imposed only when the bound is iterated.
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}large}}
+\leansource{\texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}large} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 176–186}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_step\_sharp\_contract\_large}
+\leanline{4}{(x\ y\ gx\ gy\ :\ H)\ (m\ L\ h\ :\ ℝ)\ (hmL\ :\ m\ ≤\ L)\ (hpos\ :\ 0\ <\ m\ +\ L)}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ L)\ ≤\ h)}
+\leanline{4}{(hinterp\ :\ m\ *\ L\ *\ ‖x\ -\ y‖\ \textasciicircum{}\ 2\ +\ ‖gx\ -\ gy‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(m\ +\ L)\ *\ inner\ ℝ\ (gx\ -\ gy)\ (x\ -\ y))\ :}
+\leanline{4}{‖(x\ -\ h\ •\ gx)\ -\ (y\ -\ h\ •\ gy)‖\ ≤\ (L\ *\ h\ -\ 1)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}large} is proved like the small-step case: \texttt{hs : 2 \ensuremath{\le} h * (m + L)} comes from \texttt{hlarge} by \texttt{(div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} hpos).\allowbreak{}mp}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonpos} replaces the absolute value by the negative of its argument, and \texttt{convert hc using 1} followed by \texttt{ring} identifies the coefficient with \(Lh-1\).
+\end{leanbox}
 
 \section{\texorpdfstring{Small-step contraction for a potential}{Small-step contraction for a potential}}
 
 
-Let \(f:H\to\mathbb R\) be differentiable and \(m\)-strongly convex on a real Hilbert space, with an \(L\)-Lipschitz gradient, \(L\ge0\), \(m\le L\), and \(m+L>0\). If \(0\le h\le2/(m+L)\), then for every \(x,y\),
-
-\[\|(x-h\nabla f(x))-(y-h\nabla f(y))\|\le(1-mh)\|x-y\|.\]
-
-The quadratic models imply the strong-smooth interpolation inequality for \(g_x=\nabla f(x)\) and \(g_y=\nabla f(y)\). Apply the small-step Euler bound to these two vectors. Its hypotheses are exactly the stated curvature and step-size assumptions.
+\textbf{Claim.} Let \(H\) be a real Hilbert space, \(m,h\in\mathbb R\), \(L\ge0\), and let \(f:H\to\mathbb R\) be differentiable at every point and \(m\)-strongly convex, with \(L\)-Lipschitz gradient. Assume \(m\le L\), \(m+L>0\) and \(0\le h\le2/(m+L)\). Then for all \(x,y\in H\),
 
 
-
-Here the two vectors inserted into the abstract estimate are the gradients of the given potential, so their interpolation inequality follows from the potential's lower and upper models. No additional relation between arbitrary vectors is assumed. The estimate works uniformly over every pair \(x,y\), which is what permits the same contraction constant to act on random states.
-
-
-\section{\texorpdfstring{Large-step contraction for a potential}{Large-step contraction for a potential}}
+\[\|(x-h\nabla f(x))-(y-h\nabla f(y))\|\le(1-mh)\,\|x-y\|.\]
 
 
-Let \(H\) be a real Hilbert space and \(f:H\to\mathbb R\) differentiable and \(m\)-strongly convex, with an \(L\)-Lipschitz gradient. Suppose \(L\ge0\), \(m\le L\), \(m+L>0\), \(h\ge0\), and \(2/(m+L)\le h\). Then for every \(x,y\in H\),
+\textbf{Proof.} By Step 2 the vectors \(g_x=\nabla f(x)\) and \(g_y=\nabla f(y)\) satisfy the interpolation inequality. All hypotheses of Step 5 hold, and Step 5 gives the claim. \(\square\)
 
-\[\|(x-h\nabla f(x))-(y-h\nabla f(y))\|\le(Lh-1)\|x-y\|.\]
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract}}
+\leansource{\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 190–200}
+\begin{leancode}
+\leanline{0}{theorem\ strong\_smooth\_gradient\_step\_contract\ [CompleteSpace\ H]}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hpos\ :\ 0\ <\ m\ +\ (L\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(x\ y\ :\ H)\ :}
+\leanline{4}{‖(x\ -\ h\ •\ gradient\ f\ x)\ -\ (y\ -\ h\ •\ gradient\ f\ y)‖\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract} is the term \texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}small} applied to \texttt{gradient f x} and \texttt{gradient f y}, with the interpolation hypothesis supplied by \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}interpolation f m L hdiff hsc h\allowbreak{}Lip hm\allowbreak{}L x y}.
+\end{leanbox}
 
-Use the potential's interpolation inequality in the large-step Euler bound. This gives the second sharp factor \(Lh-1\).
+\section{\texorpdfstring{Large-step bound for a potential}{Large-step bound for a potential}}
+
+
+\textbf{Claim.} Let \(H\), \(f\), \(m\), \(L\) be as in the previous step (\(f\) differentiable and \(m\)-strongly convex with \(L\)-Lipschitz gradient, \(L\ge0\), \(m\le L\), \(m+L>0\)), and let \(h\ge0\) with \(2/(m+L)\le h\). Then for all \(x,y\in H\),
+
+
+\[\|(x-h\nabla f(x))-(y-h\nabla f(y))\|\le(Lh-1)\,\|x-y\|.\]
+
+
+\textbf{Proof.} By Step 2 the gradients satisfy the interpolation inequality, and Step 6 applies. \(\square\)
 
 
 
-The potential assumptions verify the geometric interpolation inequality before the large-step algebra is used. The conclusion is a bound for every \(h\) in this branch, including unstable values with \(Lh\ge2\). Only when applying the bound as a contraction in a convergence theorem is the upper restriction \(Lh<2\) imposed.
+
+The claim holds for every \(h\) in this range, including \(h\ge2/L\), where the factor is at least one.
+
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}large}}
+\leansource{\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}large} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 203–213}
+\begin{leancode}
+\leanline{0}{theorem\ strong\_smooth\_gradient\_step\_contract\_large\ [CompleteSpace\ H]}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hpos\ :\ 0\ <\ m\ +\ (L\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ (L\ :\ ℝ))\ ≤\ h)}
+\leanline{4}{(x\ y\ :\ H)\ :}
+\leanline{4}{‖(x\ -\ h\ •\ gradient\ f\ x)\ -\ (y\ -\ h\ •\ gradient\ f\ y)‖\ ≤}
+\leanline{6}{((L\ :\ ℝ)\ *\ h\ -\ 1)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}large} applies \texttt{gradient\_\allowbreak{}step\_\allowbreak{}sharp\_\allowbreak{}contract\_\allowbreak{}large} to the two gradients, with the interpolation inequality from \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}interpolation}.
+\end{leanbox}
+
+\section{\texorpdfstring{The maximum of the two factors}{The maximum of the two factors}}
 
 
-\section{\texorpdfstring{The maximum of the two curvature factors}{The maximum of the two curvature factors}}
+\textbf{Claim.} Let \(H\) be a real Hilbert space, \(m,h\in\mathbb R\), \(L\ge0\), and let \(f:H\to\mathbb R\) be differentiable and \(m\)-strongly convex with \(L\)-Lipschitz gradient. Assume \(m\le L\), \(m+L>0\) and \(h\ge0\). Then for all \(x,y\in H\),
 
-
-Let \(f\) be differentiable and \(m\)-strongly convex on a real Hilbert space, with an \(L\)-Lipschitz gradient, \(L\ge0\), \(m\le L\), and \(m+L>0\). For every \(h\ge0\) and every \(x,y\),
 
 \[\|(x-h\nabla f(x))-(y-h\nabla f(y))\|\le\max\{|1-mh|,|1-Lh|\}\,\|x-y\|.\]
 
-If \(0<m\le L\), this factor is below one for \(0<h<2/L\). At \(m=L\), the two endpoint factors coincide.
+
+\textbf{Proof.} \emph{Case \(h\le2/(m+L)\).} Step 7 bounds the left-hand side by \((1-mh)\|x-y\|\). Since \(1-mh\le|1-mh|\le\max\{|1-mh|,|1-Lh|\}\) and \(\|x-y\|\ge0\), the claim follows.
 
 
 
-Split according to whether \(h\le2/(m+L)\). In the first case the small-step theorem bounds the distance by \((1-mh)\|x-y\|\).
+
+\emph{Case \(h>2/(m+L)\).} Step 8 bounds the left-hand side by \((Lh-1)\|x-y\|\). Since \(Lh-1=-(1-Lh)\le|1-Lh|\le\max\{|1-mh|,|1-Lh|\}\) and \(\|x-y\|\ge0\), the claim follows. \(\square\)
 
 
 
-Since \(1-mh\le|1-mh|\le\max\{|1-mh|,|1-Lh|\}\), multiplying by \(\|x-y\|\ge0\) gives the desired bound in this case.
+
+If \(0<m\le L\), the factor is less than one if and only if \(0<h<2/L\), since \(|1-mh|<1\iff0<mh<2\) and \(|1-Lh|<1\iff0<Lh<2\). At \(h=2/(m+L)\) both factors equal \((L-m)/(L+m)\).
+
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}max}}
+\leansource{\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}max} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 217–235}
+\begin{leancode}
+\leanline{0}{theorem\ strong\_smooth\_gradient\_step\_contract\_max\ [CompleteSpace\ H]}
+\leanline{4}{(f\ :\ H\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hpos\ :\ 0\ <\ m\ +\ (L\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)\ (x\ y\ :\ H)\ :}
+\leanline{4}{‖(x\ -\ h\ •\ gradient\ f\ x)\ -\ (y\ -\ h\ •\ gradient\ f\ y)‖\ ≤}
+\leanline{6}{max\ |1\ -\ m\ *\ h|\ |1\ -\ (L\ :\ ℝ)\ *\ h|\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}max} splits with \texttt{by\_\allowbreak{}cases hs : h \ensuremath{\le} 2 /\allowbreak{} (m + (L : \ensuremath{\mathbb R}))}. In the first case \texttt{hc} is the small-step bound, and \texttt{hc.\allowbreak{}trans} with \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right} enlarges the factor using \texttt{le\_\allowbreak{}abs\_\allowbreak{}self} and \texttt{le\_\allowbreak{}max\_\allowbreak{}left}. In the second case \texttt{lt\_\allowbreak{}of\_\allowbreak{}not\_\allowbreak{}ge hs} gives \(2/(m+L)<h\); \texttt{hc} is the large-step bound, \texttt{hfactor} is \(Lh-1\le|1-Lh|\) (from \texttt{neg\_\allowbreak{}le\_\allowbreak{}abs}), and \texttt{le\_\allowbreak{}max\_\allowbreak{}right} completes the enlargement.
+\end{leanbox}
+
+\section{\texorpdfstring{Sharp shared-noise contraction for small steps}{Sharp shared-noise contraction for small steps}}
+
+
+\textbf{Claim.} Let \(f:E_d\to\mathbb R\) be differentiable at every point and \(m\)-strongly convex, with \(L\)-Lipschitz gradient, where \(m\in\mathbb R\), \(L\ge0\), \(m\le L\) and \(m+L>0\). Let \(0\le h\le2/(m+L)\), and let \(T_h^z(x)=x-h\nabla f(x)+\sqrt{2h}\,z\) be the ULA update. Then for all \(x,y,z\in E_d\),
+
+
+\[\|T_h^z(x)-T_h^z(y)\|\le(1-mh)\,\|x-y\|.\]
+
+
+\textbf{Proof.} The common noise vector cancels: \(T_h^z(x)-T_h^z(y)=(x-h\nabla f(x))-(y-h\nabla f(y))\). Since \(E_d\) is a Hilbert space, Step 7 applies. \(\square\)
 
 
 
-In the other case \(h>2/(m+L)\), so the large-step theorem bounds the distance by \((Lh-1)\|x-y\|\).
+
+The bound holds for every \(z\); it therefore holds pointwise for random states and a random common noise vector, whatever their joint law.
+
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract\_\allowbreak{}sharp}}
+\leansource{\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract\_\allowbreak{}sharp} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 239–248}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_shared\_noise\_contract\_sharp\ \{d\ :\ ℕ\}}
+\leanline{4}{(f\ :\ E\ d\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hpos\ :\ 0\ <\ m\ +\ (L\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)\ (hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(x\ y\ z\ :\ E\ d)\ :}
+\leanline{4}{‖ulaUpdate\ f\ h\ x\ z\ -\ ulaUpdate\ f\ h\ y\ z‖\ ≤\ (1\ -\ m\ *\ h)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract\_\allowbreak{}sharp} rewrites with \texttt{ula\allowbreak{}Update\_\allowbreak{}sub} (noise cancellation) and applies \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract} on the Euclidean space \texttt{E d}.
+\end{leanbox}
+
+\section{\texorpdfstring{Sharp shared-noise bound for large steps}{Sharp shared-noise bound for large steps}}
+
+
+\textbf{Claim.} Let \(f:E_d\to\mathbb R\) be differentiable and \(m\)-strongly convex with \(L\)-Lipschitz gradient, \(L\ge0\), \(m\le L\), \(m+L>0\), and let \(h\ge0\) with \(2/(m+L)\le h\). Then for all \(x,y,z\in E_d\),
+
+
+\[\|T_h^z(x)-T_h^z(y)\|\le(Lh-1)\,\|x-y\|.\]
+
+
+\textbf{Proof.} Cancel the common noise and apply Step 8 on \(E_d\). \(\square\)
 
 
 
-The elementary absolute-value inequality yields
 
-\[Lh-1=-(1-Lh)\le|1-Lh|.\]
+When the bound is iterated, the contraction factor \(q=Lh-1\) must be less than one, i.e. \(Lh<2\); the gap \(1-q=2-Lh\) then appears in the denominator of the final error bound.
 
-Finally \(|1-Lh|\le\max\{|1-mh|,|1-Lh|\}\). Multiply by the nonnegative distance to finish the second case.
-
-
-
-The maximum bounds the factors associated with the two curvature constants. In the small-step branch it bounds \(1-mh\), while in the large-step branch it bounds \(Lh-1\). For \(0<m\le L\), choosing \(h=2/(m+L)\) balances the two endpoint factors and gives \((L-m)/(L+m)\), which is the factor at the common step threshold.
-
-
-\section{\texorpdfstring{Sharp shared-noise contraction: small steps}{Sharp shared-noise contraction: small steps}}
-
-
-Let \(f:E_d\to\mathbb R\) be differentiable and \(m\)-strongly convex, with an \(L\)-Lipschitz gradient, \(L\ge0\), \(m\le L\), and \(m+L>0\). If \(0\le h\le2/(m+L)\), then for all starting states \(x,y\) and every common noise vector \(z\),
-
-\[\|T_h^z(x)-T_h^z(y)\|\le(1-mh)\|x-y\|.\]
-
-The common noise cancels exactly, leaving the distance between the gradient steps from \(x\) and \(y\).
-
-
-
-Apply the potential-based small-step estimate. It gives the factor \(1-mh\) independently of the value or distribution of \(z\).
-
-
-
-Apply cancellation first and then the deterministic sharp estimate. Since the resulting coefficient contains no \(z\), its square integrates under any joint law of the starting pair and noise. The same deterministic factor therefore bounds the coupled random updates. The Gaussian law is used to identify the marginal transition.
-
-
-\section{\texorpdfstring{Sharp shared-noise contraction: large steps}{Sharp shared-noise contraction: large steps}}
-
-
-Let \(f:E_d\to\mathbb R\) be differentiable and \(m\)-strongly convex, with an \(L\)-Lipschitz gradient, \(L\ge0\), \(m\le L\), and \(m+L>0\). If \(h\ge0\) and \(2/(m+L)\le h\), then for every \(x,y,z\in E_d\),
-
-\[\|T_h^z(x)-T_h^z(y)\|\le(Lh-1)\|x-y\|.\]
-
-Cancel the shared noise, reducing the two ULA updates to their deterministic gradient-step difference.
-
-
-
-Apply the potential-based large-step estimate. This yields the factor \(Lh-1\) for every common noise vector.
-
-
-
-The same pointwise cancellation applies in the second regime, but the factor now increases with the step. The geometric recurrence then has the denominator \(2-Lh\): it is precisely \(1-(Lh-1)\). As \(Lh\) approaches two, contraction is lost and the geometric accumulation of local defects can no longer be bounded uniformly.
-
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract\_\allowbreak{}sharp\_\allowbreak{}large}}
+\leansource{\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract\_\allowbreak{}sharp\_\allowbreak{}large} \quad UnadjustedLangevin/\allowbreak{}SharpContraction.lean, lines 251–260}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_shared\_noise\_contract\_sharp\_large\ \{d\ :\ ℕ\}}
+\leanline{4}{(f\ :\ E\ d\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ f))\ (hmL\ :\ m\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hpos\ :\ 0\ <\ m\ +\ (L\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)\ (hlarge\ :\ 2\ /\ (m\ +\ (L\ :\ ℝ))\ ≤\ h)}
+\leanline{4}{(x\ y\ z\ :\ E\ d)\ :}
+\leanline{4}{‖ulaUpdate\ f\ h\ x\ z\ -\ ulaUpdate\ f\ h\ y\ z‖\ ≤\ ((L\ :\ ℝ)\ *\ h\ -\ 1)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract\_\allowbreak{}sharp\_\allowbreak{}large} rewrites with \texttt{ula\allowbreak{}Update\_\allowbreak{}sub} and applies \texttt{strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract\_\allowbreak{}large}.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ The acceptance is defined by the defect \(d=H(V_hz)-H(z)\). The already proved s
 
 The scalar acceptance bound is first applied pointwise to the exact numerical energy change. An upper bound on its absolute value also bounds its positive part. The resulting rejection upper bound is measurable and can therefore be integrated under the target law.
 
+\begin{leanbox}{Lean: \texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}energy\_\allowbreak{}defect}}
+\leansource{\texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}energy\_\allowbreak{}defect} \quad KineticLangevin/\allowbreak{}HamiltonianRejection.lean, lines 12–15}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_rejection\_le\_energy\_defect\ (f\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (z\ :\ E×E)\ :}
+\leanline{4}{1-verletAcceptance\ f\ h\ z\ ≤}
+\leanline{6}{|hamiltonianEnergy\ f\ (verletStep\ (gradient\ f)\ h\ z)-hamiltonianEnergy\ f\ z|}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}energy\_\allowbreak{}defect} gives the formal counterpart of this step. Named proof applications include \texttt{metropolis\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}abs\_\allowbreak{}energy}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Reduce all intermediate stages to a quadratic phase bound}{Reduce all intermediate stages to a quadratic phase bound}}
 
@@ -42,6 +75,31 @@ Put \(a=\|v\|\), \(b=\|\nabla f(x)\|\), \(w=v-h\nabla f(x)/2\), and \(q=a^2+b^2\
 
 Intermediate kick velocities and drift positions are bounded by the original velocity and force using the triangle inequality and force Lipschitzness. Squaring introduces cross terms, controlled by \(2ab\le a^2+b^2\). This reduces the upper bound to a finite sum of second moments.
 
+\begin{leanbox}{Lean: \texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}quadratic}, \texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}quadratic}}
+\leansource{\texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}HamiltonianRejection.lean, lines 19–67}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_energy\_defect\_quadratic\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (hh1\ :\ h\ ≤\ 1)\ (z\ :\ E×E)\ :}
+\leanline{4}{|hamiltonianEnergy\ f\ (verletStep\ (gradient\ f)\ h\ z)-hamiltonianEnergy\ f\ z|\ ≤}
+\leanline{6}{h\textasciicircum{}2*((M\ :\ ℝ)*(2*(M\ :\ ℝ)+11)/8)*(‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2)}
+\end{leancode}
+\leansource{\texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}HamiltonianRejection.lean, lines 70–76}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_rejection\_le\_quadratic\ (f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (hh1\ :\ h\ ≤\ 1)\ (z\ :\ E×E)\ :}
+\leanline{4}{1-verletAcceptance\ f\ h\ z\ ≤}
+\leanline{6}{h\textasciicircum{}2*((M\ :\ ℝ)*(2*(M\ :\ ℝ)+11)/8)*(‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{verlet\_\allowbreak{}energy\_\allowbreak{}defect\_\allowbreak{}quadratic} gives the formal counterpart of this step. The main intermediate facts are \texttt{w}, \texttt{a}, \texttt{b}, \texttt{W}, \texttt{q}, \texttt{ha} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}le\_\allowbreak{}quadratic} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{The integrated rejection bound}{The integrated rejection bound}}
 
@@ -52,5 +110,20 @@ For any finite phase measure with integrable \(q(z)=\|v\|^2+\|\nabla f(x)\|^2\),
 
 Under a finite quadratic phase bound, the pointwise rejection estimate has a finite integral. The step-size factors remain explicit while the phase dependence becomes a target moment constant. This separation is what makes the later weak-error bound uniform over a fixed time horizon.
 
+\begin{leanbox}{Lean: \texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}integral\_\allowbreak{}le}}
+\leansource{\texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}integral\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}HamiltonianRejection.lean, lines 80–100}
+\begin{leancode}
+\leanline{0}{theorem\ verlet\_rejection\_integral\_le\ (π\ :\ Measure\ (E×E))\ [IsFiniteMeasure\ π]}
+\leanline{4}{(f\ :\ E\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hf\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(henv\ :\ Integrable\ (fun\ z\ :\ E×E\ ↦\ ‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2)\ π)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (hh1\ :\ h\ ≤\ 1)\ :}
+\leanline{4}{(∫\ z,\ 1-verletAcceptance\ f\ h\ z\ ∂π)\ ≤}
+\leanline{6}{h\textasciicircum{}2*((M\ :\ ℝ)*(2*(M\ :\ ℝ)+11)/8)*}
+\leanline{8}{(∫\ z,\ ‖z.1‖\textasciicircum{}2+‖gradient\ f\ z.2‖\textasciicircum{}2\ ∂π)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{verlet\_\allowbreak{}rejection\_\allowbreak{}integral\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{hmeas}, \texttt{hi} in that order. Named proof applications include \texttt{Integrable.\allowbreak{}of\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

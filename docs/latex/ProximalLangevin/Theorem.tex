@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,109 +32,226 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{MYIPLA about the original nonsmooth marginal maximizer}{MYIPLA about the original nonsmooth marginal maximizer}}
+\title{\texorpdfstring{MYIPLA about the marginal maximizer of the original nonsmooth model}{MYIPLA about the marginal maximizer of the original nonsmooth model}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Assume \(g_1\) is differentiable and \(m\)-strongly convex with \(L_1\)-Lipschitz gradient, and \(g_2\) is convex, bounded below, and \(K\)-Lipschitz. Let \(m,\eta,\gamma>0\), \(N>0\), and \(\gamma\le2/(m+L_1+\eta^{-1})\). Assume initialization in \(L^2\) and independent standard Gaussian innovation coordinates, independent of initialization. A finite uniform envelope gap bounds the displacement of the original and smoothed marginal maximizers. Adding this displacement to the smoothed-model estimate gives the four error terms below.
-
-
-\section{\texorpdfstring{Existence of an original marginal maximizer}{Existence of an original marginal maximizer}}
-
-
-The envelope estimate gives \(V_\eta\le U\le V_\eta+\eta K^2/2\) for \(U=g_1+g_2\). Since the smoothed potential is smooth and strongly convex, it has a Gaussian majorant controlling the latent integral \(k_U(\theta)=\int e^{-U(\theta,x)}dx\). In particular
+Let \(U=g_1+g_2\) be a pair potential on \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\), where \(g_1\) is differentiable and \(m\)-strongly convex with \(L_1\)-Lipschitz gradient (\(m>0\)), and \(g_2\) is convex, bounded below and \(K\)-Lipschitz. For \(\eta>0\) let \(V_\eta=g_1+g_2^\eta\) be the smoothed potential and \(L_\eta=L_1+\eta^{-1}\). The Moreau gap gives the two-sided comparison \(V_\eta\le U\le V_\eta+\eta K^2/2\). From it we derive that the original model has a marginal maximizer \(\theta_U\), i.e. a maximizer of \(\theta\mapsto\int e^{-U(\theta,x)}\,dx\), and that \(\|\theta_U-\theta_\eta\|\le\sqrt{\eta K^2/m}\) for every marginal maximizer \(\theta_\eta\) of the smoothed model.
 
 
 
-\(e^{-\eta K^2/2}e^{-V_\eta}\le e^{-U}\le e^{-V_\eta}\).
+
+Combined with the MYIPLA estimate of the previous section and Minkowski's inequality, this gives the main bound for MYIPLA relative to the original model: under Gaussian innovations independent of a square-integrable initialization and \(0<\gamma\le2/(m+L_\eta)\),
+
+
+\[\Bigl(\mathbb E\|\theta_n-\theta_U\|^2\Bigr)^{1/2}\le\sqrt{\frac{\eta K^2}{m}}+\sqrt{\frac{d_\theta}{Nm}}+(1-m\gamma)^nW_2(\rho_0,\pi_{N,V_\eta})+\frac{33}{20}\,\frac{L_\eta}{m}\sqrt{d_x+\frac{d_\theta}N}\,\sqrt\gamma .\]
+
+
+The smoothing contribution is of order \(\sqrt\eta\). This replaces the smoothing term of Theorem 4.1 of arXiv:2406.14292v3, which was derived from a Taylor expansion and is of linear order in \(\eta\); the linear order is not established here. The discretization term depends on \(\eta\) through \(L_\eta\).
+
+
+\section{\texorpdfstring{The uniform comparison and existence of the original marginal maximizer}{The uniform comparison and existence of the original marginal maximizer}}
+
+
+\textbf{Claim.} (a) Let \(E\) be a finite-dimensional real inner-product space, \(g_1:E\to\mathbb R\) any function, \(g_2:E\to\mathbb R\) convex, bounded below and \(K\)-Lipschitz (\(K\ge0\)), and \(\eta>0\). Then for every \(z\in E\)
+
+
+\[V_\eta(z)\le g_1(z)+g_2(z)\le V_\eta(z)+\frac{\eta K^2}{2},\qquad V_\eta=g_1+g_2^\eta.\qquad(1)\]
+
+
+(b) On the pair space, let in addition \(g_1\) be differentiable and \(m\)-strongly convex with \(m>0\). Then \(U=g_1+g_2\) has a marginal maximizer: there is \(\theta_U\in\mathbb R^{d_\theta}\) with \(k_U(\theta)\le k_U(\theta_U)\) for all \(\theta\), where \(k_U(\theta)=\int_{\mathbb R^{d_x}}e^{-U(\theta,x)}\,dx\).
 
 
 
-These pointwise inequalities give positive finite original marginal values and an upper Gaussian bound with parameter decay. Continuity follows by dominated convergence, using continuity of the original potential and the common latent majorant. The positive continuous marginal tends to zero at infinity and therefore attains a maximum on a sufficiently large closed ball. Thus existence of an original marginal maximizer follows from the potential assumptions.
+
+\textbf{Proof.} (a) By the Moreau envelope section, \(0\le g_2(z)-g_2^\eta(z)\le\eta K^2/2\). Adding \(g_1(z)\) to the three members of \(g_2^\eta(z)\le g_2(z)\le g_2^\eta(z)+\eta K^2/2\) gives (1).
 
 
+
+
+(b) Fix any \(\eta>0\). The function \(U\) is continuous, because \(g_1\) is differentiable and \(g_2\) is Lipschitz. The comparison potential \(V_\eta\) is differentiable (sum of \(g_1\) and the differentiable envelope) and \(m\)-strongly convex (sum of \(g_1\) and the convex envelope), and \(V_\eta\le U\) by (1). These are exactly the hypotheses of the existence theorem for the original marginal maximizer \cite[Section~3.4.3]{LangevinLean2026Proximal}, which proves (b): the bound \(e^{-U}\le e^{-V_\eta}\) and a Gaussian majorant of \(e^{-V_\eta}\) make \(k_U\) finite, positive, continuous and tending to \(0\) as \(\|\theta\|\to\infty\), so \(k_U\) attains its maximum. \(\square\)
+
+
+
+
+The smoothing parameter in (b) is auxiliary; any \(\eta>0\) provides the required smooth lower comparison potential.
+
+\begin{leanbox}{Lean: \texttt{smoothedPotential\_\allowbreak{}gap}, \texttt{moreau\_\allowbreak{}original\_\allowbreak{}maximizer\_\allowbreak{}exists}}
+\leansource{\texttt{smoothedPotential\_\allowbreak{}gap} \quad ProximalLangevin/\allowbreak{}Theorem.lean, lines 25–34}
+\begin{leancode}
+\leanline{0}{theorem\ smoothedPotential\_gap\ \{E\ :\ Type*\}\ [NormedAddCommGroup\ E]}
+\leanline{4}{[InnerProductSpace\ ℝ\ E]\ [FiniteDimensional\ ℝ\ E]}
+\leanline{4}{(g₁\ g₂\ :\ E\ →\ ℝ)\ (hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)}
+\leanline{4}{(hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)\ \{η\ :\ ℝ\}\ (hη\ :\ 0\ <\ η)}
+\leanline{4}{\{K\ :\ ℝ≥0\}\ (hK\ :\ LipschitzWith\ K\ g₂)\ (z\ :\ E)\ :}
+\leanline{4}{smoothedPotential\ g₁\ g₂\ η\ z\ ≤\ g₁\ z\ +\ g₂\ z\ ∧}
+\leanline{6}{g₁\ z\ +\ g₂\ z\ ≤\ smoothedPotential\ g₁\ g₂\ η\ z\ +\ η\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leansource{\texttt{moreau\_\allowbreak{}original\_\allowbreak{}maximizer\_\allowbreak{}exists} \quad ProximalLangevin/\allowbreak{}Theorem.lean, lines 38–48}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_original\_maximizer\_exists\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ η\ :\ ℝ)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hη\ :\ 0\ <\ η)\ \{K\ :\ ℝ≥0\}\ (hK\ :\ LipschitzWith\ K\ g₂)\ :}
+\leanline{4}{∃\ θ,\ IPLA.IsMarginalMaximizer\ (fun\ z\ ↦\ g₁\ z\ +\ g₂\ z)\ θ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{smoothed\allowbreak{}Potential\_\allowbreak{}gap} states (1) as a conjunction for \texttt{smoothed\allowbreak{}Potential g\ensuremath{{}_{1}} g\ensuremath{{}_{2}} \ensuremath{\eta} z}, under \texttt{hg\ensuremath{{}_{2}} : Convex\allowbreak{}On \ensuremath{\mathbb R} univ g\ensuremath{{}_{2}}}, \texttt{hb}, \texttt{h\ensuremath{\eta} : 0 < \ensuremath{\eta}} and \texttt{h\allowbreak{}K : Lipschitz\allowbreak{}With K g\ensuremath{{}_{2}}} with \texttt{K : \ensuremath{\mathbb R}\ensuremath{\ge}0}; no hypothesis on \texttt{g\ensuremath{{}_{1}}} is needed. The proof takes \texttt{h := moreau\_\allowbreak{}gap\_\allowbreak{}of\_\allowbreak{}lipschitz hg\ensuremath{{}_{2}} hb h\ensuremath{\eta} h\allowbreak{}K z}, unfolds the smoothed potential, and proves both inequalities with \texttt{constructor <;> linarith}.
+
+
+
+
+\texttt{moreau\_\allowbreak{}original\_\allowbreak{}maximizer\_\allowbreak{}exists} returns \texttt{\ensuremath{\exists} \ensuremath{\theta}, IPLA.\allowbreak{}Is\allowbreak{}Marginal\allowbreak{}Maximizer (fun z \ensuremath{\mapsto} g\ensuremath{{}_{1}} z + g\ensuremath{{}_{2}} z) \ensuremath{\theta}}. It is \texttt{exists\_\allowbreak{}original\_\allowbreak{}marginal\allowbreak{}Maximizer} applied with comparison potential \texttt{smoothed\allowbreak{}Potential g\ensuremath{{}_{1}} g\ensuremath{{}_{2}} \ensuremath{\eta}}; the arguments are continuity of \(U\) (\texttt{hg\ensuremath{{}_{1}}.\allowbreak{}continuous.\allowbreak{}add h\allowbreak{}K.\allowbreak{}continuous}), differentiability of \(V_\eta\) (\texttt{hg\ensuremath{{}_{1}}.\allowbreak{}add (moreau\_\allowbreak{}differentiable hg\ensuremath{{}_{2}} hb h\ensuremath{\eta})}), its strong convexity (\texttt{smoothed\_\allowbreak{}strong\allowbreak{}Convex hsc (moreau\_\allowbreak{}convex hg\ensuremath{{}_{2}} hb h\ensuremath{\eta})}) and the first half of \texttt{smoothed\allowbreak{}Potential\_\allowbreak{}gap}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The marginal-center displacement estimate}{The marginal-center displacement estimate}}
+\section{\texorpdfstring{The distance between the original and the smoothed marginal maximizers}{The distance between the original and the smoothed marginal maximizers}}
 
 
-For the split Moreau approximation the uniform gap is \(\delta=\lambda K^2/2\). The marginal-potential comparison and strong convexity consequently give
+\textbf{Claim.} Let \(g_1\) be differentiable and \(m\)-strongly convex with \(m>0\), let \(g_2\) be convex, bounded below and \(K\)-Lipschitz, and \(\eta>0\). If \(\theta_U\) is a marginal maximizer of \(U=g_1+g_2\) and \(\theta_\eta\) is a marginal maximizer of \(V_\eta=g_1+g_2^\eta\), then
 
-\[
-\|\theta_\star-\theta_{\lambda,\star}\|
-\le\sqrt{\frac{\lambda K^2}{m}}.
-\]
 
-Both marginal maximizers exist. Once finite algorithmic second moments are established, Minkowski’s inequality gives
+\[\|\theta_U-\theta_\eta\|\le\sqrt{\frac{\eta K^2}{m}} .\]
 
-\[
-\left(\mathbb E\|\theta_n-\theta_\star\|^2\right)^{1/2}
-\le\left(\mathbb E\|\theta_n-\theta_{\lambda,\star}\|^2\right)^{1/2}
- +\|\theta_{\lambda,\star}-\theta_\star\|.
-\]
 
-To derive the deterministic displacement, compare \(F_{V_\eta}(\theta_U)\) and \(F_{V_\eta}(\theta_\eta)\). The marginal sandwich and minimality of \(\theta_U\) bound their difference by \(\eta K^2/2\). Strong-convexity growth bounds it below by \((m/2)\|\theta_U-\theta_\eta\|^2\). Comparing these bounds gives the finite \(O(\sqrt\eta)\) estimate. This differs from the source’s claimed linear smoothing expansion: no Hessian along a parameter fiber or uniform Taylor domination is assumed, so a linear rate is not substituted into the result.
+\textbf{Proof.} By (1) of the previous step, \(V_\eta\le U\le V_\eta+\delta\) with \(\delta=\eta K^2/2\). As in the previous step, \(U\) is continuous and \(V_\eta\) is differentiable and \(m\)-strongly convex. The marginal-center comparison \cite[Section~3.4.4]{LangevinLean2026Proximal} states that, under exactly these conditions, any marginal maximizers satisfy \(\|\theta_U-\theta_\eta\|\le\sqrt{2\delta/m}\). Its proof compares the marginal potentials \(\varphi_W=-\log k_W\): integrating \(e^{-V_\eta-\delta}\le e^{-U}\le e^{-V_\eta}\) over the latent variable gives \(\varphi_{V_\eta}\le\varphi_U\le\varphi_{V_\eta}+\delta\), the marginal potential \(\varphi_{V_\eta}\) is \(m\)-strongly convex with minimizer \(\theta_\eta\), and therefore
+
+
+\[\frac m2\|\theta_U-\theta_\eta\|^2\le\varphi_{V_\eta}(\theta_U)-\varphi_{V_\eta}(\theta_\eta)\le\varphi_U(\theta_U)-\varphi_{V_\eta}(\theta_\eta)\le\varphi_U(\theta_\eta)-\varphi_{V_\eta}(\theta_\eta)\le\delta .\]
+
+
+With \(\delta=\eta K^2/2\), \(2\delta/m=\eta K^2/m\). \(\square\)
 
 
 
+
+The bound is of order \(\sqrt\eta\). No second derivative of \(U\) and no Taylor expansion of the envelope are used.
+
+\begin{leanbox}{Lean: \texttt{moreau\_\allowbreak{}marginal\_\allowbreak{}center\_\allowbreak{}distance}}
+\leansource{\texttt{moreau\_\allowbreak{}marginal\_\allowbreak{}center\_\allowbreak{}distance} \quad ProximalLangevin/\allowbreak{}Theorem.lean, lines 53–70}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_marginal\_center\_distance\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ η\ :\ ℝ)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hη\ :\ 0\ <\ η)\ \{K\ :\ ℝ≥0\}\ (hK\ :\ LipschitzWith\ K\ g₂)}
+\leanline{4}{(θU\ θη\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmaxU\ :\ IPLA.IsMarginalMaximizer\ (fun\ z\ ↦\ g₁\ z\ +\ g₂\ z)\ θU)}
+\leanline{4}{(hmaxη\ :\ IPLA.IsMarginalMaximizer\ (smoothedPotential\ g₁\ g₂\ η)\ θη)\ :}
+\leanline{4}{‖θU\ -\ θη‖\ ≤\ Real.sqrt\ (η\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{moreau\_\allowbreak{}marginal\_\allowbreak{}center\_\allowbreak{}distance} takes the two maximizer hypotheses \texttt{hmax\allowbreak{}U} and \texttt{hmax\ensuremath{\eta}} for the given points \texttt{\ensuremath{\theta}\allowbreak{}U} and \texttt{\ensuremath{\theta}\ensuremath{\eta}}. Its \texttt{h} is \texttt{marginal\_\allowbreak{}center\_\allowbreak{}distance} applied with \(\delta=\) \texttt{\ensuremath{\eta} * (K : \ensuremath{\mathbb R}) \textasciicircum{} 2 /\allowbreak{} 2}, the same continuity, differentiability and strong-convexity arguments as in the previous step, and the gap \texttt{smoothed\allowbreak{}Potential\_\allowbreak{}gap}; the conclusion of \texttt{h} is \(\|\theta_U-\theta_\eta\|\le\sqrt{2\delta/m}\). \texttt{convert h using 1}, \texttt{congr 1} and \texttt{ring} identify \(2\cdot(\eta K^2/2)/m\) with \(\eta K^2/m\).
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}.
 
-\section{\texorpdfstring{The MYIPLA bound about the original marginal maximizer}{The MYIPLA bound about the original marginal maximizer}}
+\section{\texorpdfstring{The MYIPLA error about the original marginal maximizer}{The MYIPLA error about the original marginal maximizer}}
 
 
-Let \(U=g_1+g_2\) on \(\mathbb R^{d_\theta+d_x}\). Assume \(g_1\) is differentiable and \(m\)-strongly convex with \(m>0\) and \(L_1\)-Lipschitz gradient. Assume \(g_2\) is finite, convex, bounded below, and \(K\)-Lipschitz. For \(\lambda>0\) put
+\textbf{Claim.} Let \((\Omega,Q)\) be a probability space and \(N\ge1\). Let \(g_1\) be differentiable and \(m\)-strongly convex with \(L_1\)-Lipschitz gradient, and \(g_2\) convex, bounded below and \(K\)-Lipschitz, with \(L_1,K\ge0\). Let \(m,\eta,\gamma>0\), \(L_\eta=L_1+\eta^{-1}\), and
 
-\[
-V_\lambda=g_1+g_2^\lambda,\qquad L_\lambda=L_1+\lambda^{-1}.
-\]
 
-Take \(N>0\), finite-second-moment initialization, mutually independent standard Gaussian innovations independent of initialization, and
+\[\gamma\le\frac{2}{m+L_\eta}.\]
 
-\[
-0<\gamma\le\frac{2}{m+L_\lambda}.
-\]
 
-Let \(\mu_n\) be the scaled MYIPLA law, \(\Pi_{\lambda,N}\) the smoothed Gibbs law, and \(\theta_\star\) a maximizer of \(\int e^{-U(\theta,x)}dx\). Then
+Let \(\theta_U\) be a marginal maximizer of \(U=g_1+g_2\) and \(\theta_\eta\) one of \(V_\eta=g_1+g_2^\eta\). Let the initialization \(Z_0\) and innovations \(\xi_0,\xi_1,\dots\) be square-integrable random states such that all innovation coordinates are independent standard Gaussian and \(Z_0\) is independent of the innovation sequence. Let \(\rho_n\) be the law of the \(n\)-th MYIPLA iterate with proximal map \(P_\eta\) of \(g_2\), and \(\theta_n\) its parameter block. Then for every \(n\ge0\)
 
-\[
-\begin{aligned}
-\left(\mathbb E\|\theta_n-\theta_\star\|^2\right)^{1/2}
-\le{}&\sqrt{\frac{\lambda K^2}{m}}
- +\sqrt{\frac{d_\theta}{Nm}}\\
-&+(1-m\gamma)^n W_2(\mu_0,\Pi_{\lambda,N})\\
-&+\frac{33}{20}\frac{L_\lambda}{m}
- \sqrt{d_x+\frac{d_\theta}{N}}\sqrt\gamma.
-\end{aligned}
-\]
 
-Normalization, stationary comparison, finite transport moments, and sharp equilibrium concentration follow from the preceding transport and particle results. The last term depends on \(\lambda\). The source’s claimed \(O(\lambda)+O(\lambda^2)\) smoothing expression is replaced here by the proved finite \(O(\sqrt\lambda)\) bound; the statement is therefore a qualified version of that source theorem.
+\[\Bigl(\mathbb E\|\theta_n-\theta_U\|^2\Bigr)^{1/2}\le\sqrt{\frac{\eta K^2}{m}}+\sqrt{\frac{d_\theta}{Nm}}+(1-m\gamma)^nW_2(\rho_0,\pi_{N,V_\eta})+\frac{33}{20}\,\frac{L_\eta}{m}\sqrt{d_x+\frac{d_\theta}N}\,\sqrt\gamma .\]
+
+
+\textbf{Proof.} \emph{Finiteness.} By the previous section, \(\rho_n\) is a probability measure and \(\mathbb E\|\theta_n-\theta_\eta\|^2=\int\|\theta(z)-\theta_\eta\|^2\rho_n(dz)<\infty\).
 
 
 
-Apply the smoothed-model estimate at \(\theta_\eta\) and use its finite second moment in
 
-\[\bigl(\mathbb E\|\theta_n-\theta_U\|^2\bigr)^{1/2}\le\bigl(\mathbb E\|\theta_n-\theta_\eta\|^2\bigr)^{1/2}+\|\theta_\eta-\theta_U\|.\]
-
-The decomposition \(\theta_n-\theta_U=(\theta_n-\theta_\eta)+(\theta_\eta-\theta_U)\) gives this inequality by Minkowski. The deterministic term is bounded by the center comparison. Hence the four contributions are smoothing, equilibrium concentration, initial transport, and discretization. The coefficient still contains \(L_1+1/\eta\), so the admissible step and smoothing scale remain coupled.
+\emph{Change of center.} By Minkowski's inequality in \(L^2(\rho_n)\) applied to \(\theta(z)-\theta_U=(\theta(z)-\theta_\eta)+(\theta_\eta-\theta_U)\), in the form proved in \cite[Section~3.8.2]{LangevinLean2026Proximal} (which requires the finite moment just established),
 
 
+\[\Bigl(\mathbb E\|\theta_n-\theta_U\|^2\Bigr)^{1/2}\le\Bigl(\mathbb E\|\theta_n-\theta_\eta\|^2\Bigr)^{1/2}+\|\theta_\eta-\theta_U\|.\qquad(1)\]
 
+
+\emph{The two terms.} By the previous step, \(\|\theta_\eta-\theta_U\|=\|\theta_U-\theta_\eta\|\le\sqrt{\eta K^2/m}\). By the MYIPLA estimate for the Moreau envelope of the previous section, applied with the smoothed marginal maximizer \(\theta_\eta\),
+
+
+\[\Bigl(\mathbb E\|\theta_n-\theta_\eta\|^2\Bigr)^{1/2}\le\sqrt{\frac{d_\theta}{Nm}}+(1-m\gamma)^nW_2(\rho_0,\pi_{N,V_\eta})+\frac{33}{20}\,\frac{L_\eta}{m}\sqrt{d_x+\frac{d_\theta}N}\,\sqrt\gamma .\]
+
+
+Inserting both bounds into (1) proves the claim. \(\square\)
+
+
+
+
+The four terms are the smoothing bias, the equilibrium spread of the parameter marginal, the contracted initial transport distance, and the discretization error. Decreasing \(\eta\) decreases the first term but increases \(L_\eta\), hence the last term and the restriction on \(\gamma\). The existence of \(\theta_U\) was proved in the first step, and a marginal maximizer \(\theta_\eta\) of the smooth strongly convex potential \(V_\eta\) exists by \cite[Section~3.9.4]{LangevinLean2026IPLA}; the theorem itself takes both points as given maximizers.
+
+\begin{leanbox}{Lean: \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original}}
+\leansource{\texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original} \quad ProximalLangevin/\allowbreak{}Theorem.lean, lines 77–113}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_myipla\_parameter\_rms\_original}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ η\ γ\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hη\ :\ 0\ <\ η)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (smoothingLipschitz\ L₁\ η\ :\ ℝ)))}
+\leanline{4}{(θU\ θη\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmaxU\ :\ IPLA.IsMarginalMaximizer\ (fun\ z\ ↦\ g₁\ z\ +\ g₂\ z)\ θU)}
+\leanline{4}{(hmaxη\ :\ IPLA.IsMarginalMaximizer\ (smoothedPotential\ g₁\ g₂\ η)\ θη)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θU‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(myiplaLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n))\ ≤}
+\leanline{6}{Real.sqrt\ (η\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ m)\ +}
+\leanline{6}{Real.sqrt\ ((dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ (Q.map\ initial)}
+\leanline{8}{(IPLA.gibbsTarget\ (smoothedPotential\ g₁\ g₂\ η))\ +}
+\leanline{6}{(33\ /\ 20\ :\ ℝ)\ *\ ((smoothingLipschitz\ L₁\ η\ :\ ℝ)\ /\ m)\ *}
+\leanline{8}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ Real.sqrt\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original} has the hypotheses of \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms} together with \texttt{h\allowbreak{}K : Lipschitz\allowbreak{}With K g\ensuremath{{}_{2}}}, the two points \texttt{\ensuremath{\theta}\allowbreak{}U \ensuremath{\theta}\ensuremath{\eta}} and their maximizer properties \texttt{hmax\allowbreak{}U} and \texttt{hmax\ensuremath{\eta}}. The law is \texttt{myipla\allowbreak{}Laws Q g\ensuremath{{}_{1}} (prox g\ensuremath{{}_{2}} \ensuremath{\eta}) \ensuremath{\eta} \ensuremath{\gamma} initial (fun k \ensuremath{\mapsto} noise k) n}, named \texttt{\ensuremath{\rho}} in the proof. The proof follows the text.
+
+
+
+\begin{enumerate}
+
+
+\item The instance \texttt{Is\allowbreak{}Probability\allowbreak{}Measure \ensuremath{\rho}} comes from \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}is\allowbreak{}Probability}, and \texttt{hmem}, the finite second moment about \texttt{\ensuremath{\theta}\ensuremath{\eta}}, from \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}mem\allowbreak{}Lp}.
+
+\item \texttt{hmove} is (1): \texttt{sqrt\_\allowbreak{}integral\_\allowbreak{}center\_\allowbreak{}le} with the projection \texttt{IPLA.\allowbreak{}parameter\allowbreak{}CLM}, centers \texttt{\ensuremath{\theta}\allowbreak{}U} and \texttt{\ensuremath{\theta}\ensuremath{\eta}}, and the finiteness \texttt{hmem.\allowbreak{}e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}ne\_\allowbreak{}top}; \texttt{norm\_\allowbreak{}sub\_\allowbreak{}rev} rewrites \(\|\theta_\eta-\theta_U\|\) as \(\|\theta_U-\theta_\eta\|\).
+
+\item \texttt{hdist} is \texttt{moreau\_\allowbreak{}marginal\_\allowbreak{}center\_\allowbreak{}distance} and \texttt{hbound} is \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms} at the center \texttt{\ensuremath{\theta}\ensuremath{\eta}}.
+
+\item \texttt{linarith} adds \texttt{hmove}, \texttt{hdist} and \texttt{hbound}.
+
+\end{enumerate}
+
+
+
+The source docstring records the comparison with Theorem 4.1 of arXiv:2406.14292v3: the present theorem is a finite-\(\eta\) statement whose smoothing term is \(\sqrt{\eta K^2/m}\) and whose discretization constant depends explicitly on \(\eta\); it has no interpolation, entropy-production or convergence hypotheses.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+\bibitem[Proximal]{LangevinLean2026Proximal}
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

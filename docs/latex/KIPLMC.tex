@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,18 +32,24 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{Kinetic particle Langevin results and supporting arguments}{Kinetic particle Langevin results and supporting arguments}}
+\title{\texorpdfstring{Kinetic interacting particle Langevin Monte Carlo: the results of this report}{Kinetic interacting particle Langevin Monte Carlo: the results of this report}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-This root module imports the components of the kinetic development. The following sections state the mathematical results, their hypotheses, and their proofs. An import collection does not by itself assert that every theorem in the source paper has been formalized; the source correspondence audit separately records the required probabilistic conclusions.
+This report treats the kinetic interacting particle Langevin Monte Carlo methods of Valsecchi Oliva and Akyildiz for maximum marginal likelihood estimation. A joint potential \(U(\theta,x)=-\log p_\theta(x,y)\) on \(\mathbb R^{d_\theta}\times\mathbb R^{d_x}\) is given; the goal is the maximizer \(\theta_\star\) of the marginal likelihood \(\ell(\theta)=\int e^{-U(\theta,x)}\,dx\). The standing assumptions are that \(U\) is differentiable and \(m\)-strongly convex with \(m>0\), that \(\nabla U\) is \(L\)-Lipschitz, and that the number of particles \(N\) is positive. The particle state is written in the scaled coordinates \(z=(\theta,X^1/\sqrt N,\dots,X^N/\sqrt N)\) of dimension \(d_\theta+Nd_x\), in which the force of the kinetic particle diffusion is the gradient of the averaged potential \(\bar U_N\), an \(m\)-strongly convex function with \(L\)-Lipschitz gradient.
 
 
 
-The particle development combines scaled geometry, exact thermal and clock laws, constructed kinetic convergence, and powered-marginal concentration. Its error theorems bound parameter RMS error for both independent-Gaussian algorithms.
+
+The main results are the following. (1) The phase law \(\mathcal N(0,N^{-1}I)\otimes\pi_N\), with \(\pi_N\propto e^{-N\bar U_N}\), is stationary for the kinetic particle diffusion, and its parameter marginal \(\pi_\Theta\) has density proportional to \(\ell(\theta)^N\) (Proposition 1 of the paper). (2) \(\int\|\theta-\theta_\star\|^2\,d\pi_\Theta\le d_\theta/(Nm)\) (Proposition 2). (3) If \(\gamma^2\ge m+L\), the diffusion started with independent thermal velocities converges to \(\pi_N\) in Wasserstein distance at rate \(\sqrt2e^{-mt/\gamma}\), and its parameter marginal satisfies the bound of Proposition 3. (4) For KIPLMC1, under \(\gamma^2\ge m+L\) and \(4\gamma Lh\le m\), the root mean square error of \(\theta_n\) about \(\theta_\star\) is at most \(\sqrt2(1-\frac{3mh}{4\gamma})^nW_2(\nu,\pi_N)+\frac{\sqrt2Lh}m\sqrt{d_\theta/N+d_x}+\sqrt{d_\theta/(Nm)}\) (Theorem 1). (5) For KIPLMC2, under \(\gamma^2\ge4L\) and \(33\gamma^3h\le m\), an analogous bound holds with contraction factor \((1-\frac{mh}{3\gamma})^{n/2}\) and bias of order \(h\sqrt{d_\theta/N+d_x}\); it implies the bound of Theorem 2 of the paper with an explicit constant depending only on \(m\), \(L\), \(\gamma\). (6) Explicit choices of \(N\), \(h\) and \(n\) reach a prescribed accuracy \(\varepsilon\). (7) The Bayesian logistic regression model of the experiments has a Lipschitz gradient and is strictly convex when the covariates span the latent space, but it is not strongly convex without additional regularization.
+
+
+
+
+The sections are ordered as follows: the particle geometry and the two update maps; the Gibbs phase target and the concentration of its parameter marginal; integral solutions and Markov laws; the correlated innovation measure and the law of the diffusion; the clock change that identifies both algorithms with standard kinetic algorithms for the sum potential; the error bounds for KIPLMC1 and KIPLMC2; the Brownian particle diffusion and its stationarity; the accuracy budgets; and the logistic example.
 
 
 \end{document}

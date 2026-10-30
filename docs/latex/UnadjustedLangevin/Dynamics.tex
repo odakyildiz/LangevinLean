@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,79 +39,101 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Given the initial vector \(x_0\) and innovations \(\xi_k\), define \(X_0=x_0\) and \(X_{k+1}=X_k-h\nabla U(X_k)+\sqrt{2h}\xi_k\). For fixed \(n\), the state depends only on the initial vector and \(\xi_0,\ldots,\xi_{n-1}\). The initial and successor identities follow from this definition.
+Let \(U:E_d\to\mathbb R\) be a potential with gradient \(\nabla U\), let \(h\in\mathbb R\), and let \(T_h^z(x)=x-h\nabla U(x)+\sqrt{2h}\,z\) be the ULA update. Given an initial vector \(x_0\in E_d\) and a sequence of noise vectors \(\xi_0,\xi_1,\ldots\in E_d\), the ULA iterates are
 
 
-
-If the initial vector and each innovation are measurable and the gradient is Lipschitz, every iterate is measurable by induction. The gradient is continuous, and measurable vector addition and scalar multiplication preserve the induction hypothesis. Gaussianity and independence are separate assumptions used when computing the laws of these iterates.
-
-
-\section{\texorpdfstring{Definition of the chain}{Definition of the chain}}
+\[X_0=x_0,\qquad X_{k+1}=T_h^{\xi_k}(X_k)=X_k-h\nabla U(X_k)+\sqrt{2h}\,\xi_k\qquad(k\ge0).\]
 
 
-Given \(U:\mathbb R^d\to\mathbb R\), \(h\in\mathbb R\), an initial vector \(x_0\), and noise \((\xi_k)\), define
-
-\[X_0=x_0,\qquad X_{k+1}=X_k-h\nabla U(X_k)+\sqrt{2h}\,\xi_k.\]
-
-Start the recursion at the supplied initial vector: \(X_0=x_0\).
+The iterate \(X_n\) depends only on \(x_0\) and \(\xi_0,\dots,\xi_{n-1}\). When \(x_0\) and the \(\xi_k\) are random vectors, with the \(\xi_k\) independent standard Gaussian vectors independent of \(x_0\), this is the unadjusted Langevin algorithm. The recursion itself is deterministic and is defined for every input sequence; the coupling estimates of the later sections hold for every common noise sequence. This section records the defining identities and proves that every iterate is a measurable function of the randomness when the gradient is Lipschitz and the inputs are measurable, so that the law of each iterate is defined.
 
 
-
-Apply the Euler update to \(X_k\) using the next noise vector \(\xi_k\). This determines \(X_{k+1}\).
-
+\section{\texorpdfstring{Definition of the iterates}{Definition of the iterates}}
 
 
-The recursion determines a unique finite-time state from the initial vector and a finite prefix of innovations. The potential enters only through its gradient evaluated at already constructed states. The definition requires only the specified vector operations. Measurability, Gaussian laws, independence, and contraction are additional properties established or assumed below.
+\textbf{Definition.} For \(U:E_d\to\mathbb R\), \(h\in\mathbb R\), \(x_0\in E_d\) and \((\xi_k)_{k\ge0}\) in \(E_d\), the ULA iterates are defined recursively by \(X_0=x_0\) and \(X_{k+1}=T_h^{\xi_k}(X_k)\) for \(k\ge0\).
 
+\begin{leanbox}{Lean: \texttt{ulaChain}}
+\leansource{\texttt{ulaChain} \quad UnadjustedLangevin/\allowbreak{}Dynamics.lean, lines 20–23}
+\begin{leancode}
+\leanline{0}{def\ ulaChain\ \{d\ :\ ℕ\}\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (initial\ :\ E\ d)}
+\leanline{4}{(noise\ :\ ℕ\ →\ E\ d)\ :\ ℕ\ →\ E\ d}
+\leanline{2}{|\ 0\ =>\ initial}
+\leanline{2}{|\ n\ +\ 1\ =>\ ulaUpdate\ U\ h\ (ulaChain\ U\ h\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Chain U h initial noise} is a function \texttt{\ensuremath{\mathbb N} \ensuremath{\to} E d} defined by structural recursion: the clause for \texttt{0} is \texttt{initial} and the clause for \texttt{n + 1} is \texttt{ula\allowbreak{}Update U h (ula\allowbreak{}Chain U h initial noise n) (noise n)}. The noise is a sequence \texttt{noise : \ensuremath{\mathbb N} \ensuremath{\to} E d}.
+\end{leanbox}
 
 \section{\texorpdfstring{The initial iterate}{The initial iterate}}
 
 
-For every potential, step, initial vector, and noise sequence, the recursively defined chain satisfies \(X_0=x_0\).
+\textbf{Claim.} \(X_0=x_0\).
 
 
 
-The equality is exactly the initial clause of the recursive definition.
 
+\textbf{Proof.} This is the first clause of the definition. \(\square\)
 
-
-At index zero the noise prefix is empty. Thus the initial law of the chain is exactly the pushforward law of the supplied initialization, without any transition or Gaussian convolution. This identity is the base case for the later induction identifying the noise-driven law with the iterated Markov transition.
-
+\begin{leanbox}{Lean: \texttt{ulaChain\_\allowbreak{}zero}}
+\leansource{\texttt{ulaChain\_\allowbreak{}zero} \quad UnadjustedLangevin/\allowbreak{}Dynamics.lean, lines 25–26}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ ulaChain\_zero\ \{d\ :\ ℕ\}\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ E\ d)\ (noise\ :\ ℕ\ →\ E\ d)\ :\ ulaChain\ U\ h\ initial\ noise\ 0\ =\ initial}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Chain\_\allowbreak{}zero} is proved by \texttt{rfl}; the attribute \texttt{@[simp]} makes it available to the simplifier.
+\end{leanbox}
 
 \section{\texorpdfstring{The update identity}{The update identity}}
 
 
-For every \(k\ge0\), the chain satisfies \(X_{k+1}=T_h(U,h,X_k,\xi_k)\).
+\textbf{Claim.} For every \(k\ge0\), \(X_{k+1}=T_h^{\xi_k}(X_k)\).
 
 
 
-The successor clause of the recursion gives the asserted update formula.
 
+\textbf{Proof.} This is the second clause of the definition. \(\square\)
 
-
-Writing the successor through the update map makes the dependence on the current state and fresh innovation explicit. The state on the right has index \(k\), and the noise has that same index; the result has index \(k+1\). Under independent innovations the next innovation is independent of the finite preceding list; in a synchronous comparison both updates use this innovation.
-
+\begin{leanbox}{Lean: \texttt{ulaChain\_\allowbreak{}succ}}
+\leansource{\texttt{ulaChain\_\allowbreak{}succ} \quad UnadjustedLangevin/\allowbreak{}Dynamics.lean, lines 28–31}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ ulaChain\_succ\ \{d\ :\ ℕ\}\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)}
+\leanline{4}{(initial\ :\ E\ d)\ (noise\ :\ ℕ\ →\ E\ d)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ulaChain\ U\ h\ initial\ noise\ (n\ +\ 1)\ =}
+\leanline{6}{ulaUpdate\ U\ h\ (ulaChain\ U\ h\ initial\ noise\ n)\ (noise\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Chain\_\allowbreak{}succ} is proved by \texttt{rfl} and is a \texttt{@[simp]} lemma.
+\end{leanbox}
 
 \section{\texorpdfstring{Measurability of every iterate}{Measurability of every iterate}}
 
 
-Let \(\Omega\) be a measurable space. If \(\nabla U\) is \(L\)-Lipschitz, the initial vector \(X_0:\Omega\to\mathbb R^d\) is measurable, and every \(\xi_k:\Omega\to\mathbb R^d\) is measurable, then \(X_n\) is measurable for every \(n\).
+\textbf{Claim.} Let \(\Omega\) be a measurable space, \(L\ge0\), and \(U:E_d\to\mathbb R\) with \(L\)-Lipschitz gradient. Let \(x_0:\Omega\to E_d\) and \(\xi_k:\Omega\to E_d\) (\(k\ge0\)) be measurable, where \(E_d\) carries its Borel \(\sigma\)-algebra. Then for every \(n\), the map \(\omega\mapsto X_n(\omega)\), the \(n\)-th iterate with initial vector \(x_0(\omega)\) and noise \((\xi_k(\omega))_k\), is measurable.
 
 
 
-A Lipschitz gradient is continuous and therefore measurable.
+
+\textbf{Proof.} A Lipschitz map is continuous, and continuous maps between metric spaces are Borel measurable; so \(\nabla U\) is measurable. We argue by induction on \(n\). For \(n=0\), \(X_0=x_0\) is measurable by hypothesis. Assume \(X_n\) is measurable. Then \(\nabla U\circ X_n\) is measurable as a composition of measurable maps. Scalar multiples, differences and sums of measurable \(E_d\)-valued maps are measurable (the vector operations are continuous and \(E_d\) is separable, so the Borel \(\sigma\)-algebra of \(E_d\times E_d\) is the product \(\sigma\)-algebra). Hence \(X_{n+1}=X_n-h\,\nabla U\circ X_n+\sqrt{2h}\,\xi_n\) is measurable. \(\square\)
 
 
 
-Induct on \(n\). The initial iterate is measurable by hypothesis. For the successor step, assume \(X_n\) is measurable.
 
+Consequently the law \((X_n)_\#P\) of every iterate is defined for every measure \(P\) on \(\Omega\).
 
-
-The composition \(\nabla U\circ X_n\) is measurable. Subtracting its scalar multiple from \(X_n\), then adding \(\sqrt{2h}\,\xi_n\), preserves measurability. Hence \(X_{n+1}\) is measurable.
-
-
-
-At the induction step, continuity of the gradient makes \(\nabla U(X_n)\) measurable, while measurable vector operations preserve the two scalar multiples and their sum. The proof concerns every fixed finite \(n\). Its conclusion permits the pushforward law of each iterate to be used in the distributional convergence statements.
-
+\begin{leanbox}{Lean: \texttt{ulaChain\_\allowbreak{}measurable}}
+\leansource{\texttt{ulaChain\_\allowbreak{}measurable} \quad UnadjustedLangevin/\allowbreak{}Dynamics.lean, lines 34–46}
+\begin{leancode}
+\leanline{0}{theorem\ ulaChain\_measurable\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ \{d\ :\ ℕ\}}
+\leanline{4}{(U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Ω\ →\ E\ d)\ (noise\ :\ ℕ\ →\ Ω\ →\ E\ d)}
+\leanline{4}{(hinitial\ :\ Measurable\ initial)\ (hnoise\ :\ ∀\ n,\ Measurable\ (noise\ n))\ (n\ :\ ℕ)\ :}
+\leanline{4}{Measurable\ (fun\ ω\ ↦\ ulaChain\ U\ h\ (initial\ ω)\ (fun\ k\ ↦\ noise\ k\ ω)\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{ula\allowbreak{}Chain\_\allowbreak{}measurable} the hypotheses are \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With L (gradient U)}, \texttt{hinitial : Measurable initial} and \texttt{hnoise : \ensuremath{\forall} n, Measurable (noise n)}. \texttt{hg} is measurability of the gradient, \texttt{h\allowbreak{}Lip.\allowbreak{}continuous.\allowbreak{}measurable}. The proof is \texttt{induction n}: the \texttt{zero} case is \texttt{hinitial}; in the \texttt{succ} case \texttt{simp only [ula\allowbreak{}Chain\_\allowbreak{}succ, ula\allowbreak{}Update]} unfolds one step, and the term \texttt{(ih.\allowbreak{}sub ((hg.\allowbreak{}comp ih).\allowbreak{}const\_\allowbreak{}smul h)).\allowbreak{}add ((hnoise n).\allowbreak{}const\_\allowbreak{}smul (Real.\allowbreak{}sqrt (2 * h)))} assembles measurability from the induction hypothesis \texttt{ih} by the rules for composition, scalar multiplication, subtraction and addition.
+\end{leanbox}
 
 \end{document}

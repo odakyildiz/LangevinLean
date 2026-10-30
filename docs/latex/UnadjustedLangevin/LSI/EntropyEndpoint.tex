@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ Adjoin the same independent probability innovation \(\eta\) to two finite measur
 
 Taking a product with the same independent probability does not change the likelihood ratio: it depends only on the first coordinate. Integrating out the extra factor therefore preserves the relative entropy.
 
+\begin{leanbox}{Lean: \texttt{klDiv\_\allowbreak{}prod\_\allowbreak{}same\_\allowbreak{}right}}
+\leansource{\texttt{klDiv\_\allowbreak{}prod\_\allowbreak{}same\_\allowbreak{}right} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 25–29}
+\begin{leancode}
+\leanline{0}{theorem\ klDiv\_prod\_same\_right\ (μ\ ν\ :\ Measure\ Ω)\ [IsFiniteMeasure\ μ]\ [IsFiniteMeasure\ ν]}
+\leanline{4}{(η\ :\ Measure\ Ξ)\ [IsProbabilityMeasure\ η]\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.prod\ η)\ (ν.prod\ η)\ =\ InformationTheory.klDiv\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kl\allowbreak{}Div\_\allowbreak{}prod\_\allowbreak{}same\_\allowbreak{}right}: the proof is the application \texttt{simpa only [Measure.\allowbreak{}comp\allowbreak{}Prod\_\allowbreak{}const] using}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 \section{\texorpdfstring{Adding log likelihoods through an intermediate law}{Adding log likelihoods through an intermediate law}}
 
@@ -46,6 +79,17 @@ On this full-measure set the density ratios are ordinary positive finite values,
 
 For three mutually compatible absolutely continuous laws, their density ratios multiply. Taking logarithms gives the sum of the two log likelihoods on the common full-measure set, before any integration is attempted.
 
+\begin{leanbox}{Lean: \texttt{llr\_\allowbreak{}eq\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}absolutelyContinuous}}
+\leansource{\texttt{llr\_\allowbreak{}eq\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}absolutelyContinuous} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 32–45}
+\begin{leancode}
+\leanline{0}{theorem\ llr\_eq\_add\_of\_absolutelyContinuous}
+\leanline{4}{(μ\ ρ\ ν\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ρ]}
+\leanline{4}{[IsProbabilityMeasure\ ν]\ (hμρ\ :\ μ\ {\leanfallback ≪}\ ρ)\ (hρν\ :\ ρ\ {\leanfallback ≪}\ ν)\ :}
+\leanline{4}{llr\ μ\ ν\ =ᵐ[μ]\ fun\ x\ ↦\ llr\ μ\ ρ\ x\ +\ llr\ ρ\ ν\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{llr\_\allowbreak{}eq\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}absolutely\allowbreak{}Continuous}: the intermediate fact is \texttt{h\ensuremath{\mu}\ensuremath{\nu}}, in source order; the source steps apply or rewrite \texttt{Pi.\allowbreak{}mul\_\allowbreak{}apply}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mul}, \texttt{ht.\allowbreak{}ne}, \texttt{hq.\allowbreak{}ne'}, \texttt{hu.\allowbreak{}ne}.
+\end{leanbox}
 
 \section{\texorpdfstring{An exponential bound on the negative log likelihood}{An exponential bound on the negative log likelihood}}
 
@@ -56,6 +100,16 @@ For \(\mu\ll\nu\), the reciprocal likelihood \(e^{-\log(d\mu/d\nu)}\) agrees \(\
 
 The exponential of the negative log likelihood is a reciprocal density ratio. Its integral under the first law is bounded by the reference mass, giving control of the negative log-likelihood tail.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}llr}}
+\leansource{\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}llr} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 49–52}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_exp\_neg\_llr}
+\leanline{4}{(μ\ ν\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμν\ :\ μ\ {\leanfallback ≪}\ ν)\ :\ Integrable\ (fun\ x\ ↦\ Real.exp\ (-llr\ μ\ ν\ x))\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}llr}: the source steps apply or rewrite \texttt{Measure.\allowbreak{}integrable\_\allowbreak{}to\allowbreak{}Real\_\allowbreak{}rn\allowbreak{}Deriv.\allowbreak{}congr}, \texttt{exp\_\allowbreak{}neg\_\allowbreak{}llr}.
+\end{leanbox}
 
 \section{\texorpdfstring{Log-likelihood integrability from an upper bound}{Log-likelihood integrability from an upper bound}}
 
@@ -66,6 +120,17 @@ Suppose the log likelihood \(\ell=\log(d\mu/d\nu)\) has an integrable upper boun
 
 An integrable upper bound controls the positive part, while the exponential estimate controls the negative part. Together they establish absolute integrability of the log likelihood needed for the entropy chain rule.
 
+\begin{leanbox}{Lean: \texttt{integrable\_\allowbreak{}llr\_\allowbreak{}of\_\allowbreak{}integrable\_\allowbreak{}upper\_\allowbreak{}bound}}
+\leansource{\texttt{integrable\_\allowbreak{}llr\_\allowbreak{}of\_\allowbreak{}integrable\_\allowbreak{}upper\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 56–70}
+\begin{leancode}
+\leanline{0}{theorem\ integrable\_llr\_of\_integrable\_upper\_bound}
+\leanline{4}{(μ\ ν\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμν\ :\ μ\ {\leanfallback ≪}\ ν)\ (b\ :\ Ω\ →\ ℝ)\ (hb\ :\ Integrable\ b\ μ)}
+\leanline{4}{(hbound\ :\ ∀ᵐ\ x\ ∂μ,\ llr\ μ\ ν\ x\ ≤\ b\ x)\ :\ Integrable\ (llr\ μ\ ν)\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integrable\_\allowbreak{}llr\_\allowbreak{}of\_\allowbreak{}integrable\_\allowbreak{}upper\_\allowbreak{}bound}: the cases are separated by \texttt{by\_\allowbreak{}cases hp : 0 \ensuremath{\le} llr \ensuremath{\mu} \ensuremath{\nu} x}; the intermediate facts include \texttt{he}, \texttt{hn}, in source order; the source steps apply or rewrite \texttt{hb.\allowbreak{}norm.\allowbreak{}add}, \texttt{integrable\_\allowbreak{}exp\_\allowbreak{}neg\_\allowbreak{}llr}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}nonneg}, \texttt{abs\_\allowbreak{}of\_\allowbreak{}neg}, \texttt{lt\_\allowbreak{}of\_\allowbreak{}not\_\allowbreak{}ge}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Entropy comparison through a reference density bound}{Entropy comparison through a reference density bound}}
 
@@ -80,6 +145,22 @@ The log-likelihood chain rule gives \(\log(d\mu/d\nu)\le\log(d\mu/d\rho)+b\). It
 
 Decompose the log likelihood through the intermediate reference law. Its first entropy is controlled by data processing, and the density-ratio upper bound controls the added term by an integrable observable.
 
+\begin{leanbox}{Lean: \texttt{klDiv\_\allowbreak{}finite\_\allowbreak{}and\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}reference\_\allowbreak{}density\_\allowbreak{}bound}}
+\leansource{\texttt{klDiv\_\allowbreak{}finite\_\allowbreak{}and\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}reference\_\allowbreak{}density\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 75–103}
+\begin{leancode}
+\leanline{0}{theorem\ klDiv\_finite\_and\_le\_of\_reference\_density\_bound}
+\leanline{4}{(μ\ ρ\ ν\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ρ]}
+\leanline{4}{[IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ρ\ ≠\ ⊤)\ (hρν\ :\ ρ\ {\leanfallback ≪}\ ν)}
+\leanline{4}{(b\ :\ Ω\ →\ ℝ)\ (hb\ :\ Integrable\ b\ μ)}
+\leanline{4}{(hbound\ :\ ∀ᵐ\ x\ ∂ν,\ (ρ.rnDeriv\ ν\ x).toReal\ ≤\ Real.exp\ (b\ x))\ :}
+\leanline{4}{InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ μ\ ν).toReal\ ≤}
+\leanline{8}{(InformationTheory.klDiv\ μ\ ρ).toReal\ +\ ∫\ x,\ b\ x\ ∂μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kl\allowbreak{}Div\_\allowbreak{}finite\_\allowbreak{}and\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}reference\_\allowbreak{}density\_\allowbreak{}bound}: the intermediate facts include \texttt{h\ensuremath{\mu}\ensuremath{\nu}}, \texttt{hchain}, \texttt{hupper}, \texttt{hnew}, \texttt{hi}, in source order; the source steps apply or rewrite \texttt{Real.\allowbreak{}log\_\allowbreak{}le\_\allowbreak{}iff\_\allowbreak{}le\_\allowbreak{}exp}, \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}pos}, \texttt{Information\allowbreak{}Theory.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}kl\allowbreak{}Div\_\allowbreak{}of\_\allowbreak{}measure\_\allowbreak{}eq}, \texttt{Pi.\allowbreak{}add\_\allowbreak{}apply}, \texttt{integral\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Data processing for the Gaussian transition}{Data processing for the Gaussian transition}}
 
@@ -90,6 +171,18 @@ The interpolation is the measurable image of the initial law times standard Gaus
 
 Both inputs are passed through the same measurable Gaussian update with the same independent noise law. Relative-entropy data processing therefore bounds the two output laws by the divergence of their inputs.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}klDiv\_\allowbreak{}le}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}klDiv\_\allowbreak{}le} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 110–119}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_klDiv\_le}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(μ\ ν\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ (t\ :\ ℝ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ t)\ (interpolationLaw\ U\ ν\ t)\ ≤}
+\leanline{6}{InformationTheory.klDiv\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}kl\allowbreak{}Div\_\allowbreak{}le}: the intermediate fact is \texttt{h}, in source order; the source steps apply or rewrite \texttt{kl\allowbreak{}Div\_\allowbreak{}prod\_\allowbreak{}same\_\allowbreak{}right}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
@@ -107,6 +200,22 @@ Pointwise, the squared norm of the sum is at most twice each squared norm. Integ
 
 Lipschitzness bounds \(\|\nabla U(Y_t)\|^2\) by \(2\|\nabla U(X)\|^2+2L^2\|Y_t-X\|^2\). The exact displacement moment then yields the displayed propagated energy.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}gradient\_\allowbreak{}moment}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}gradient\_\allowbreak{}moment} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 123–182}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_gradient\_moment}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hi\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ (interpolationLaw\ U\ μ\ t)\ ∧}
+\leanline{6}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t)\ ≤}
+\leanline{8}{2\ *\ (1\ +\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ t\ \textasciicircum{}\ 2)\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +}
+\leanline{10}{4\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}gradient\_\allowbreak{}moment}: the intermediate facts include \texttt{hgrad}, \texttt{hg0}, \texttt{hproposal}, \texttt{hg0eq}, \texttt{houteq}, in source order; the source steps apply or rewrite \texttt{he.\allowbreak{}add}, \texttt{hgrad.\allowbreak{}comp\_\allowbreak{}fst}, \texttt{prob\allowbreak{}Real\_\allowbreak{}univ}, \texttt{one\_\allowbreak{}smul}, \texttt{integral\_\allowbreak{}map\_\allowbreak{}of\_\allowbreak{}strongly\allowbreak{}Measurable}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
@@ -124,13 +233,35 @@ Finite initial KL first supplies finite \(G_0\) through the direct entropy/\allo
 
 Insert the explicit log density-ratio bound and the propagated gradient moment into the entropy decomposition. This gives a finite upper bound on interpolation entropy, suitable for sending elapsed time to zero.
 
+\begin{leanbox}{Lean: \texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}density\_\allowbreak{}bound}}
+\leansource{\texttt{interpolationLaw\_\allowbreak{}entropy\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}density\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}EntropyEndpoint.lean, lines 187–222}
+\begin{leancode}
+\leanline{0}{theorem\ interpolationLaw\_entropy\_bound\_of\_density\_bound}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hL\ :\ 0\ <\ L)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ (b\ c\ :\ ℝ)}
+\leanline{4}{(href\ :\ interpolationLaw\ U\ (ULA.gibbsMeasure\ U)\ t\ {\leanfallback ≪}\ ULA.gibbsMeasure\ U)}
+\leanline{4}{(hbound\ :\ ∀ᵐ\ x\ ∂ULA.gibbsMeasure\ U,}
+\leanline{6}{((interpolationLaw\ U\ (ULA.gibbsMeasure\ U)\ t).rnDeriv\ (ULA.gibbsMeasure\ U)\ x).toReal\ ≤}
+\leanline{8}{Real.exp\ (b\ +\ c\ *\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2))\ :}
+\leanline{4}{InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ t)\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (interpolationLaw\ U\ μ\ t)\ (ULA.gibbsMeasure\ U)).toReal\ ≤}
+\leanline{8}{(InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +\ b\ +}
+\leanline{10}{c\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂interpolationLaw\ U\ μ\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{interpolation\allowbreak{}Law\_\allowbreak{}entropy\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}density\_\allowbreak{}bound}: the intermediate facts include \texttt{hdpi}, \texttt{hbetween}, \texttt{hreal}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}add}, \texttt{integrable\_\allowbreak{}const}, \texttt{integral\_\allowbreak{}const}, \texttt{prob\allowbreak{}Real\_\allowbreak{}univ}, \texttt{one\_\allowbreak{}smul}. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

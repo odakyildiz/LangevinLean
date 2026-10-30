@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -24,6 +47,52 @@ The assumptions specify relative densities \(r_{k,t}\) representing the Gaussian
 
 For every index \(k\) and elapsed time \(t\in[0,h]\), suppose \(r_{k,t}\nu=\rho_{k,t}\). Require positive \(C^1\) densities, local time derivatives and domination of their entropy derivatives, an admissible forced weak equation, integrable score and discrepancy energies, and the numerical bounds on these energies and the starting gradient moment. The equality of measures holds throughout the interpolation, so the density at every time represents the same law used in the algorithm. An entropy derivative, a recurrence, or a convergence bound is not among these assumptions.
 
+\begin{leanbox}{Lean: \texttt{RegularInterpolationData}}
+\leansource{\texttt{RegularInterpolationData} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationData.lean, lines 28–66}
+\begin{leancode}
+\leanline{0}{structure\ RegularInterpolationData\ (U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(μ\ :\ Measure\ E)\ where}
+\leanline{2}{r\ :\ ℕ\ →\ ℝ\ →\ E\ →\ ℝ}
+\leanline{2}{rdot\ :\ ℕ\ →\ ℝ\ →\ E\ →\ ℝ}
+\leanline{2}{err\ :\ ℕ\ →\ ℝ\ →\ E\ →\ E}
+\leanline{2}{law\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{4}{tiltedMeasure\ (ULA.gibbsMeasure\ U)\ (r\ k\ t)\ =}
+\leanline{6}{interpolationLaw\ U\ (ulaLaws\ U\ h\ μ\ k)\ t}
+\leanline{2}{positive\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →\ ∀\ x,\ 0\ <\ r\ k\ t\ x}
+\leanline{2}{smooth\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →\ ContDiff\ ℝ\ 1\ (r\ k\ t)}
+\leanline{2}{regularity\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{4}{LocalEntropyRegularity\ (ULA.gibbsMeasure\ U)\ (r\ k)\ (rdot\ k)\ t}
+\leanline{2}{score\_integrable\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ (fun\ y\ ↦\ Real.log\ (r\ k\ t\ y))\ x‖\ \textasciicircum{}\ 2)}
+\leanline{6}{(tiltedMeasure\ (ULA.gibbsMeasure\ U)\ (r\ k\ t))}
+\leanline{2}{error\_integrable\ :\ ∀\ k\ t,\ t\ ∈\ Ico\ 0\ h\ →}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ r\ k\ t\ x\ *\ ‖err\ k\ t\ x‖\ \textasciicircum{}\ 2)\ (ULA.gibbsMeasure\ U)}
+\leanline{2}{error\_measurable\ :\ ∀\ k\ t,\ t\ ∈\ Ico\ 0\ h\ →}
+\leanline{4}{AEStronglyMeasurable\ (fun\ x\ ↦\ r\ k\ t\ x\ *\ inner\ ℝ\ (err\ k\ t\ x)}
+\leanline{6}{(gradient\ (fun\ y\ ↦\ Real.log\ (r\ k\ t\ y))\ x))\ (ULA.gibbsMeasure\ U)}
+\leanline{2}{weak\_equation\ :\ ∀\ k\ t,\ t\ ∈\ Ico\ 0\ h\ →\ ∀\ ψ\ :\ E\ →\ ℝ,\ ContDiff\ ℝ\ 1\ ψ\ →}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ rdot\ k\ t\ x\ *\ ψ\ x)\ (ULA.gibbsMeasure\ U)\ →}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ inner\ ℝ\ (gradient\ (r\ k\ t)\ x)\ (gradient\ ψ\ x))}
+\leanline{6}{(ULA.gibbsMeasure\ U)\ →}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ r\ k\ t\ x\ *\ inner\ ℝ\ (err\ k\ t\ x)\ (gradient\ ψ\ x))}
+\leanline{6}{(ULA.gibbsMeasure\ U)\ →}
+\leanline{4}{(∫\ x,\ rdot\ k\ t\ x\ *\ ψ\ x\ ∂ULA.gibbsMeasure\ U)\ =}
+\leanline{6}{-(∫\ x,\ inner\ ℝ\ (gradient\ (r\ k\ t)\ x)\ (gradient\ ψ\ x)\ ∂ULA.gibbsMeasure\ U)\ +}
+\leanline{8}{∫\ x,\ r\ k\ t\ x\ *\ inner\ ℝ\ (err\ k\ t\ x)\ (gradient\ ψ\ x)\ ∂ULA.gibbsMeasure\ U}
+\leanline{2}{error\_bound\ :\ ∀\ k\ t,\ t\ ∈\ Ico\ 0\ h\ →}
+\leanline{4}{(∫\ x,\ r\ k\ t\ x\ *\ ‖err\ k\ t\ x‖\ \textasciicircum{}\ 2\ ∂ULA.gibbsMeasure\ U)\ ≤}
+\leanline{6}{t\ \textasciicircum{}\ 2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ ulaGradientMoment\ U\ h\ μ\ k\ +}
+\leanline{8}{2\ *\ t\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\leanline{2}{gradient\_integrable\ :\ ∀\ k,}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ (ulaLaws\ U\ h\ μ\ k)}
+\leanline{2}{gradient\_bound\ :\ ∀\ k,}
+\leanline{4}{ulaGradientMoment\ U\ h\ μ\ k\ ≤}
+\leanline{6}{(4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ densityEntropy\ (ULA.gibbsMeasure\ U)\ (r\ k\ 0)\ +}
+\leanline{8}{2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Regular\allowbreak{}Interpolation\allowbreak{}Data} packages the objects and hypotheses in the displayed statement. Its named fields are \texttt{r}, \texttt{rdot}, \texttt{err}, \texttt{law}, \texttt{positive}, \texttt{smooth}, \texttt{regularity}, \texttt{score\_\allowbreak{}integrable}, \texttt{error\_\allowbreak{}integrable}, \texttt{error\_\allowbreak{}measurable}, \texttt{weak\_\allowbreak{}equation}, \texttt{error\_\allowbreak{}bound}, \texttt{gradient\_\allowbreak{}integrable}, \texttt{gradient\_\allowbreak{}bound}. Supplying this structure means supplying each field, with the types shown in the exact statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -33,6 +102,17 @@ Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 The Gaussian transition preserves probability, and each ULA iterate is a probability measure. Therefore the interpolation starting from that iterate has total mass one. The equality \(r_{k,t}\nu=\rho_{k,t}\) gives \(\int r_{k,t}\,d\nu=1\). This establishes the normalization required to apply LSI to the relative density.
 
+\begin{leanbox}{Lean: \texttt{RegularInterpolationData.\allowbreak{}path\_\allowbreak{}probability}}
+\leansource{\texttt{RegularInterpolationData.\allowbreak{}path\_\allowbreak{}probability} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationData.lean, lines 98–104}
+\begin{leancode}
+\leanline{0}{theorem\ RegularInterpolationData.path\_probability\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(data\ :\ RegularInterpolationData\ U\ α\ h\ L\ μ)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (k\ :\ ℕ)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{IsProbabilityMeasure\ (tiltedMeasure\ (ULA.gibbsMeasure\ U)\ (data.r\ k\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Regular\allowbreak{}Interpolation\allowbreak{}Data.\allowbreak{}path\_\allowbreak{}probability}: the source steps apply or rewrite \texttt{data.\allowbreak{}law}, \texttt{interpolation\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Probability}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -42,6 +122,17 @@ Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 Local entropy regularity gives integrability of \(r_{k,t}\log r_{k,t}\), hence finite KL for the represented probability measure. At elapsed time zero the equality of measures becomes \(r_{k,0}\nu=\rho_k\). Thus \(\operatorname{KL}(\rho_k\mid\nu)<\infty\) for every \(k\). The target is assumed to be a probability measure; in applications this property is included in LSI.
 
+\begin{leanbox}{Lean: \texttt{RegularInterpolationData.\allowbreak{}kl\_\allowbreak{}finite}}
+\leansource{\texttt{RegularInterpolationData.\allowbreak{}kl\_\allowbreak{}finite} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationData.lean, lines 72–79}
+\begin{leancode}
+\leanline{0}{theorem\ RegularInterpolationData.kl\_finite}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(data\ :\ RegularInterpolationData\ U\ α\ h\ L\ μ)\ (hh\ :\ 0\ ≤\ h)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (ulaLaws\ U\ h\ μ\ k)\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Regular\allowbreak{}Interpolation\allowbreak{}Data.\allowbreak{}kl\_\allowbreak{}finite}: the source steps apply or rewrite \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite\_\allowbreak{}of\_\allowbreak{}interpolation}, \texttt{ULA.\allowbreak{}gibbs\allowbreak{}Measure}, \texttt{data.\allowbreak{}r}, \texttt{data.\allowbreak{}law}, \texttt{kl\allowbreak{}Div\_\allowbreak{}finite\_\allowbreak{}of\_\allowbreak{}local\allowbreak{}Regularity}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -51,6 +142,22 @@ Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 Define the proposed entropy derivative by integrating \(\dot r_{k,t}(\log r_{k,t}+1)\). The local differentiation assumptions prove that this is the right derivative of relative entropy. The weak equation and finite energies give the Fisher-information derivative bound. LSI and the stated moment estimates then satisfy the hypotheses of the scalar one-step comparison. Identifying the laws at zero and \(h\) yields the recurrence for successive ULA entropies.
 
+\begin{leanbox}{Lean: \texttt{RegularInterpolationData.\allowbreak{}one\_\allowbreak{}step}}
+\leansource{\texttt{RegularInterpolationData.\allowbreak{}one\_\allowbreak{}step} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationData.lean, lines 108–148}
+\begin{leancode}
+\leanline{0}{theorem\ RegularInterpolationData.one\_step\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(data\ :\ RegularInterpolationData\ U\ α\ h\ L\ μ)}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)\ (hL\ :\ 0\ <\ (L\ :\ ℝ))\ (hαL\ :\ α\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hUdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ (k\ +\ 1)\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ h)\ *\ ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ k\ +}
+\leanline{8}{6\ *\ h\ \textasciicircum{}\ 2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Regular\allowbreak{}Interpolation\allowbreak{}Data.\allowbreak{}one\_\allowbreak{}step}: the intermediate facts include \texttt{H}, \texttt{hcalculus}, \texttt{hp}, \texttt{he}, in source order; the source steps apply or rewrite \texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}interpolation}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{linarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
@@ -60,13 +167,29 @@ Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 Under LSI, gradient Lipschitzness and the positive step restriction, the regular interpolation assumptions imply the one-step bound at every index. Every entropy is finite by the preceding argument. Apply the finite geometric-sum estimate to obtain the stated bound for \(\operatorname{KL}(\rho_k\mid\nu)\). All density, weak-equation and moment hypotheses remain in this conditional conclusion.
 
+\begin{leanbox}{Lean: \texttt{RegularInterpolationData.\allowbreak{}kl\_\allowbreak{}bound}}
+\leansource{\texttt{RegularInterpolationData.\allowbreak{}kl\_\allowbreak{}bound} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}InterpolationData.lean, lines 83–95}
+\begin{leancode}
+\leanline{0}{theorem\ RegularInterpolationData.kl\_bound\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(data\ :\ RegularInterpolationData\ U\ α\ h\ L\ μ)}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)\ (hL\ :\ 0\ <\ (L\ :\ ℝ))\ (hαL\ :\ α\ ≤\ (L\ :\ ℝ))}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hUdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ k\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ h\ *\ k)\ *\ (InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +}
+\leanline{8}{8\ *\ h\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Regular\allowbreak{}Interpolation\allowbreak{}Data.\allowbreak{}kl\_\allowbreak{}bound}: the proof is the application \texttt{ula\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}regular\_\allowbreak{}interpolation U \ensuremath{\alpha} h L \ensuremath{\mu} h\ensuremath{\alpha} hh h\allowbreak{}L h\ensuremath{\alpha}\allowbreak{}L hsmall h\allowbreak{}Udiff h\allowbreak{}Lip}. It specializes that result with the hypotheses and objects in the exact statement.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

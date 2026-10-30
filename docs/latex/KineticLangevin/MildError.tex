@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,6 +59,30 @@ One proves interval integrability using continuity of the path, drift and expone
 
 The decomposition \(g(x_s)=g(x_0)+(g(x_s)-g(x_0))\) separates the part integrated exactly by the method from the nonlinear remainder. The frozen term produces the response coefficients. The second term alone produces the local defect and can be bounded by gradient Lipschitzness.
 
+\begin{leanbox}{Lean: \texttt{velocityDefect\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}sub}, \texttt{frozenVelocity\_\allowbreak{}error}}
+\leansource{\texttt{velocityDefect\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}sub} \quad KineticLangevin/\allowbreak{}MildError.lean, lines 24–34}
+\begin{leancode}
+\leanline{0}{theorem\ velocityDefect\_eq\_integral\_sub\ (g\ :\ E\ →\ E)\ (hg\ :\ Continuous\ g)}
+\leanline{4}{(x\ :\ ℝ\ →\ E)\ (hx\ :\ Continuous\ x)\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{velocityDefect\ g\ x\ γ\ t\ =}
+\leanline{6}{(∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ •\ g\ (x\ s))\ -\ psi\ γ\ 1\ t\ •\ g\ (x\ 0)}
+\end{leancode}
+\leansource{\texttt{frozenVelocity\_\allowbreak{}error} \quad KineticLangevin/\allowbreak{}MildError.lean, lines 38–45}
+\begin{leancode}
+\leanline{0}{theorem\ frozenVelocity\_error\ (g\ :\ E\ →\ E)\ (hg\ :\ Continuous\ g)}
+\leanline{4}{(x\ :\ ℝ\ →\ E)\ (hx\ :\ Continuous\ x)\ (γ\ t\ :\ ℝ)\ (v0\ V\ B\ :\ E)}
+\leanline{4}{(hmild\ :\ V\ =\ psi\ γ\ 0\ t\ •\ v0\ -}
+\leanline{6}{(∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ •\ g\ (x\ s))\ +\ B)\ :}
+\leanline{4}{frozenVelocity\ γ\ v0\ (g\ (x\ 0))\ t\ +\ B\ -\ V\ =\ velocityDefect\ g\ x\ γ\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Defect\_\allowbreak{}eq\_\allowbreak{}integral\_\allowbreak{}sub} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{hi0} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{frozen\allowbreak{}Velocity\_\allowbreak{}error} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Integrating the frozen velocity gives the position formula}{Integrating the frozen velocity gives the position formula}}
 
@@ -46,6 +93,15 @@ The frozen position is \(x+\psi_1(t)v-\psi_2(t)g\). Its derivative is the frozen
 
 The position equation is obtained by integrating the velocity formula. Interchanging the two deterministic integrals produces the first primitive response kernel. This explains why the position defect has an additional time factor and why the position noise is the primitive of the velocity response.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}frozenVelocity}}
+\leansource{\texttt{integral\_\allowbreak{}frozenVelocity} \quad KineticLangevin/\allowbreak{}MildError.lean, lines 49–56}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_frozenVelocity\ (γ\ t\ :\ ℝ)\ (x\ v\ force\ :\ E)\ :}
+\leanline{4}{(∫\ s\ in\ 0..t,\ frozenVelocity\ γ\ v\ force\ s)\ =\ frozenPosition\ γ\ x\ v\ force\ t\ -\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{integral\_\allowbreak{}frozen\allowbreak{}Velocity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{he} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Velocity and position use the same noise convolution}{Velocity and position use the same noise convolution}}
 
@@ -60,6 +116,22 @@ One proves the velocity identity at every point in the interval, changes the int
 
 The same convolution appears on the exact and numerical sides of the coupling. Thus the comparison involves no independent Gaussian variance penalty. Correctly retaining their common source is essential; merely matching separate marginal covariances would not justify pathwise cancellation.
 
+\begin{leanbox}{Lean: \texttt{exponentialStep\_\allowbreak{}error\_\allowbreak{}identity}}
+\leansource{\texttt{exponentialStep\_\allowbreak{}error\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}MildError.lean, lines 60–91}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialStep\_error\_identity}
+\leanline{4}{(g\ :\ E\ →\ E)\ (hg\ :\ Continuous\ g)\ (x\ V\ B\ :\ ℝ\ →\ E)}
+\leanline{4}{(hx\ :\ Continuous\ x)\ (hV\ :\ Continuous\ V)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hmild\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ V\ t\ =\ psi\ γ\ 0\ t\ •\ V\ 0\ -}
+\leanline{6}{(∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ •\ g\ (x\ s))\ +\ B\ t)}
+\leanline{4}{(hkin\ :\ x\ h\ -\ x\ 0\ =\ ∫\ s\ in\ 0..h,\ V\ s)\ :}
+\leanline{4}{exponentialStep\ g\ γ\ h\ (V\ 0,\ x\ 0)\ (B\ h,\ ∫\ s\ in\ 0..h,\ B\ s)\ -\ (V\ h,\ x\ h)\ =}
+\leanline{6}{(velocityDefect\ g\ x\ γ\ h,\ positionDefect\ g\ x\ γ\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exponential\allowbreak{}Step\_\allowbreak{}error\_\allowbreak{}identity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hv}, \texttt{hi\allowbreak{}Frozen}, \texttt{hi\allowbreak{}B}, \texttt{hi\allowbreak{}V}, \texttt{hp} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Bound the defined step in the transformed norm}{Bound the defined step in the transformed norm}}
 
@@ -70,5 +142,24 @@ Apply the exact step-error identity to replace the numerical-minus-exact endpoin
 
 Combine the explicit velocity and position remainder bounds before taking the transformed norm. The triangle inequality in that norm separates the two coordinates with their friction coefficient. The bound applies to the exponential update because that map equals the frozen-force response.
 
+\begin{leanbox}{Lean: \texttt{exponentialStep\_\allowbreak{}localNorm\_\allowbreak{}bound}}
+\leansource{\texttt{exponentialStep\_\allowbreak{}localNorm\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}MildError.lean, lines 95–110}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialStep\_localNorm\_bound}
+\leanline{4}{\{F\ :\ Type*\}\ [NormedAddCommGroup\ F]\ [InnerProductSpace\ ℝ\ F]\ [CompleteSpace\ F]}
+\leanline{4}{(g\ :\ F\ →\ F)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (x\ V\ B\ :\ ℝ\ →\ F)}
+\leanline{4}{(hx\ :\ Continuous\ x)\ (hV\ :\ Continuous\ V)\ (hB\ :\ Continuous\ B)}
+\leanline{4}{(γ\ h\ C\ :\ ℝ)\ (hγ\ :\ 0\ ≤\ γ)\ (hh\ :\ 0\ ≤\ h)\ (hC\ :\ 0\ ≤\ C)\ (hsmall\ :\ γ\ *\ h\ ≤\ 1\ /\ 4)}
+\leanline{4}{(hmild\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ V\ t\ =\ psi\ γ\ 0\ t\ •\ V\ 0\ -}
+\leanline{6}{(∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ •\ g\ (x\ s))\ +\ B\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ x\ t\ -\ x\ 0\ =\ ∫\ s\ in\ 0..t,\ V\ s)}
+\leanline{4}{(hvelocity\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖V\ t‖\ ≤\ C)\ :}
+\leanline{4}{transformNorm\ γ\ 0}
+\leanline{6}{(exponentialStep\ g\ γ\ h\ (V\ 0,\ x\ 0)\ (B\ h,\ ∫\ s\ in\ 0..h,\ B\ s)\ -\ (V\ h,\ x\ h))\ ≤}
+\leanline{8}{(3\ /\ 4\ :\ ℝ)\ *\ (M\ :\ ℝ)\ *\ C\ *\ h\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exponential\allowbreak{}Step\_\allowbreak{}local\allowbreak{}Norm\_\allowbreak{}bound} gives the formal counterpart of this step. Named proof applications include \texttt{transform\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

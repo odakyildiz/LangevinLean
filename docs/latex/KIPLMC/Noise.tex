@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,45 +39,200 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-Velocity and position innovations within a coordinate share a Brownian source and are correlated. Distinct spatial coordinates are independent. This section constructs that joint probability measure using the kinetic library's two-dimensional Gram Gaussian, directly on the parameter-and-particle coordinate set. It works also when one of the dimensions is zero.
+One KIPLMC1 step adds to the velocity and to the position two Wiener integrals of the same Brownian increment, \(\int_0^h\psi_0(h-s)\,dW_s\) and \(\int_0^h\psi_1(h-s)\,dW_s\), coordinate by coordinate. In each coordinate this pair is a centered Gaussian vector in \(\mathbb R^2\) with the Gram covariance
 
 
+\[C(\gamma,h)_{kl}=\int_0^h\psi_k(t)\psi_l(t)\,dt\qquad(k,l\in\{0,1\}),\]
 
-The innovation is built from independent spatial response blocks. Packing preserves each block’s correlation and gives the finite-dimensional Gaussian vectors used by the defined first particle algorithm.
+
+and different coordinates are independent. This section constructs the corresponding probability measure \(\eta_1(\gamma,h)\) on \(\mathcal Z_N\times\mathcal Z_N\): take independent copies of the two-dimensional Gaussian law \(\mathcal G_{\gamma,h}=\mathcal N(0,C(\gamma,h))\), one for each coordinate of the scaled particle space, and collect the first entries into a velocity vector and the second entries into a position vector. We prove that the construction gives a probability measure, that the blocks of distinct coordinates are independent, and that the velocity–position pair of each coordinate has law exactly \(\mathcal G_{\gamma,h}\). The factor \(\sqrt{2\gamma/N}\) is applied by the update, not by this measure. The construction works for arbitrary dimensions, including \(d_\theta=0\) or \(d_x=0\).
 
 
 
 Earlier results used here: \cite[Section~3.26]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{Construct independent spatial Gaussian blocks and assemble phase vectors}{Construct independent spatial Gaussian blocks and assemble phase vectors}}
+\section{\texorpdfstring{Independent Gaussian blocks indexed by the coordinates}{Independent Gaussian blocks indexed by the coordinates}}
 
 
-The coordinate set is \(I=\{1,\ldots,d_\theta\}\sqcup(\{1,\ldots,N\}\times\{1,\ldots,d_x\})\). For each \(i\in I\), take the shared kinetic Gaussian \((\varepsilon_i,\varepsilon_i\prime)\sim\mathcal N(0,C_{\gamma,h})\), independently across \(i\). Their finite product measure is the independent spatial Gaussian blocks. The assembly map collects the first entries into the velocity vector and the second entries into the position vector. The proof defines these two Euclidean vectors with the Euclidean identification and proves the map measurable coordinate by coordinate. Pushing the product measure forward gives the correlated exponential noise. Probability follows from the Gaussian probability properties and preservation of total mass under the measurable map; no normalization assumption is supplied.
+\textbf{Definitions.} The coordinate set of \(\mathcal Z_N\) is \(I_N=\{1,\dots,d_\theta\}\sqcup(\{1,\dots,N\}\times\{1,\dots,d_x\})\). Let \(\mathcal G_{\gamma,h}\) be the centered Gaussian measure on \(\mathbb R^2\) with covariance matrix \(C(\gamma,h)\) above, constructed in the kinetic report (\cite[Section~3.26.3]{LangevinLean2026Kinetic}). For \(h\ge0\) the matrix \(C(\gamma,h)\) is symmetric and positive semidefinite, since for \(u\in\mathbb R^2\)
+
+
+\[u^{\mathsf T}C(\gamma,h)u=\int_0^h\bigl(u_0\psi_0(t)+u_1\psi_1(t)\bigr)^2\,dt\ge0,\]
+
+
+so \(\mathcal G_{\gamma,h}\) is the law of a centered Gaussian vector whose covariances are the entries of \(C(\gamma,h)\). The block measure is the finite product
+
+
+\[\beta_{\gamma,h}=\bigotimes_{a\in I_N}\mathcal G_{\gamma,h}\qquad\text{on }(\mathbb R^2)^{I_N},\]
+
+
+the joint law of independent random vectors \(\omega_a\in\mathbb R^2\), \(a\in I_N\), each with law \(\mathcal G_{\gamma,h}\).
 
 
 
-For each scaled particle-space coordinate, draw one two-response Gaussian block. Independent products over coordinates preserve the within-block velocity–position covariance. Packing all first responses and all second responses produces the two vector innovations used in the update.
 
+\textbf{Claim.} \(\beta_{\gamma,h}\) is a probability measure.
+
+
+
+
+\textbf{Proof.} A product of finitely many probability measures is a probability measure: the product measure of the whole space is the product of the total masses, \(\prod_{a\in I_N}1=1\). \(\square\)
+
+
+
+
+The entries of \(C(\gamma,h)\) are the covariances of the two Wiener integrals displayed in the summary, by the Itô isometry and the substitution \(t=h-s\); in particular the off-diagonal entry is positive for \(h>0\), so velocity and position innovations of the same coordinate are correlated.
+
+\begin{leanbox}{Lean: \texttt{Coordinate}, \texttt{exponentialNoiseBlocks}, \texttt{exponentialNoiseBlocks\_\allowbreak{}probability}}
+\leansource{\texttt{Coordinate} \quad KIPLMC/\allowbreak{}Noise.lean, lines 18–18}
+\begin{leancode}
+\leanline{0}{abbrev\ Coordinate\ (N\ dθ\ dx\ :\ ℕ)\ :=\ Fin\ dθ\ ⊕\ (Fin\ N\ ×\ Fin\ dx)}
+\end{leancode}
+\leansource{\texttt{exponentialNoiseBlocks} \quad KIPLMC/\allowbreak{}Noise.lean, lines 21–23}
+\begin{leancode}
+\leanline{0}{def\ exponentialNoiseBlocks\ (N\ dθ\ dx\ :\ ℕ)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{Measure\ (Coordinate\ N\ dθ\ dx\ →\ EuclideanSpace\ ℝ\ (Fin\ 2))\ :=}
+\leanline{2}{Measure.pi\ (fun\ \_\ ↦\ KineticLangevin.klmcGaussian\ γ\ h)}
+\end{leancode}
+\leansource{\texttt{exponentialNoiseBlocks\_\allowbreak{}probability} \quad KIPLMC/\allowbreak{}Noise.lean, lines 25–28}
+\begin{leancode}
+\leanline{0}{instance\ exponentialNoiseBlocks\_probability\ (N\ dθ\ dx\ :\ ℕ)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (exponentialNoiseBlocks\ N\ dθ\ dx\ γ\ h)\ :=\ by}
+\leanline{2}{unfold\ exponentialNoiseBlocks}
+\leanline{2}{infer\_instance}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Coordinate N d\ensuremath{\theta} dx} is an abbreviation for \texttt{Fin d\ensuremath{\theta} ⊕ (Fin N \ensuremath{\times} Fin dx)}, the index type of \texttt{State N d\ensuremath{\theta} dx}. \texttt{exponential\allowbreak{}Noise\allowbreak{}Blocks N d\ensuremath{\theta} dx \ensuremath{\gamma} h} is \texttt{Measure.\allowbreak{}pi (fun \_\allowbreak{} \ensuremath{\mapsto} Kinetic\allowbreak{}Langevin.\allowbreak{}klmc\allowbreak{}Gaussian \ensuremath{\gamma} h)}, Mathlib's finite product measure on functions \texttt{Coordinate N d\ensuremath{\theta} dx \ensuremath{\to} Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin 2)}. The kinetic report defines \texttt{klmc\allowbreak{}Gaussian \ensuremath{\gamma} h} as Mathlib's multivariate Gaussian with mean \(0\) and the Gram covariance of the kernels \(\psi_0,\psi_1\). \texttt{exponential\allowbreak{}Noise\allowbreak{}Blocks\_\allowbreak{}probability} is an instance, proved by unfolding and \texttt{infer\_\allowbreak{}instance}, which finds the instance for products of probability measures and the probability instance of the kinetic Gaussian.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026Kinetic}.
 
-\section{\texorpdfstring{Coordinate independence and within-pair covariance}{Coordinate independence and within-pair covariance}}
+\section{\texorpdfstring{Assembling the velocity and position innovations}{Assembling the velocity and position innovations}}
 
 
-The product-space evaluation maps are independent, so the Gaussian blocks belonging to distinct coordinates are independent. Evaluating the assembled velocity and position at a fixed spatial coordinate recovers its original two-dimensional Gaussian block exactly. The proof composes the two pushforwards, proves equality of the composed function with the block evaluation map by checking the two possible indices, and uses the product-measure evaluation law. The covariance of the pair is therefore exactly the kinetic Gram matrix, already proved positive semidefinite in the shared library. Multiplication by \(\sqrt{2\gamma/N}\) is performed by the particle step, not by this base noise law.
+\textbf{Definitions.} The assembly map \(A:(\mathbb R^2)^{I_N}\to\mathcal Z_N\times\mathcal Z_N\) collects first and second entries:
+
+
+\[A(\omega)=\bigl((\omega_{a,0})_{a\in I_N},\;(\omega_{a,1})_{a\in I_N}\bigr).\]
+
+
+The KIPLMC1 innovation law is \(\eta_1(\gamma,h)=A_\#\beta_{\gamma,h}\); a sample \((\xi,\xi')\) has velocity part \(\xi_a=\omega_{a,0}\) and position part \(\xi'_a=\omega_{a,1}\).
 
 
 
-Different spatial coordinate blocks are independent because they are projections of different product factors. The two entries of a single block generally remain correlated through their common response Gram matrix. Both properties are required to recover the intended particle transition law.
 
+\textbf{Claim.} \(A\) is measurable, and \(\eta_1(\gamma,h)\) is a probability measure.
+
+
+
+
+\textbf{Proof.} Every coordinate of \(A(\omega)\) is a coordinate of \(\omega\), so \(A\) is linear and continuous, hence Borel measurable. Therefore \(\eta_1(\gamma,h)(\mathcal Z_N\times\mathcal Z_N)=\beta_{\gamma,h}(A^{-1}(\mathcal Z_N\times\mathcal Z_N))=\beta_{\gamma,h}((\mathbb R^2)^{I_N})=1\) by the previous step. \(\square\)
+
+
+
+
+The assembly only rearranges coordinates, so all joint moments of \(\eta_1\) are those of the blocks: \(\xi\) and \(\xi'\) are centered Gaussian vectors in \(\mathcal Z_N\) with covariances \(C_{00}I\) and \(C_{11}I\) and cross-covariance \(C_{01}I\).
+
+\begin{leanbox}{Lean: \texttt{assembleExponentialNoise}, \texttt{assembleExponentialNoise\_\allowbreak{}measurable}, \texttt{exponentialNoise} and 1 more}
+\leansource{\texttt{assembleExponentialNoise} \quad KIPLMC/\allowbreak{}Noise.lean, lines 31–34}
+\begin{leancode}
+\leanline{0}{def\ assembleExponentialNoise\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(ω\ :\ Coordinate\ N\ dθ\ dx\ →\ EuclideanSpace\ ℝ\ (Fin\ 2))\ :}
+\leanline{4}{State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx\ :=}
+\leanline{2}{(WithLp.toLp\ 2\ (fun\ i\ ↦\ ω\ i\ 0),\ WithLp.toLp\ 2\ (fun\ i\ ↦\ ω\ i\ 1))}
+\end{leancode}
+\leansource{\texttt{assembleExponentialNoise\_\allowbreak{}measurable} \quad KIPLMC/\allowbreak{}Noise.lean, lines 36–39}
+\begin{leancode}
+\leanline{0}{theorem\ assembleExponentialNoise\_measurable\ (N\ dθ\ dx\ :\ ℕ)\ :}
+\leanline{4}{Measurable\ (@assembleExponentialNoise\ N\ dθ\ dx)}
+\end{leancode}
+\leansource{\texttt{exponentialNoise} \quad KIPLMC/\allowbreak{}Noise.lean, lines 42–44}
+\begin{leancode}
+\leanline{0}{def\ exponentialNoise\ (N\ dθ\ dx\ :\ ℕ)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ :=}
+\leanline{2}{(exponentialNoiseBlocks\ N\ dθ\ dx\ γ\ h).map\ assembleExponentialNoise}
+\end{leancode}
+\leansource{\texttt{exponentialNoise\_\allowbreak{}probability} \quad KIPLMC/\allowbreak{}Noise.lean, lines 46–50}
+\begin{leancode}
+\leanline{0}{instance\ exponentialNoise\_probability\ (N\ dθ\ dx\ :\ ℕ)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (exponentialNoise\ N\ dθ\ dx\ γ\ h)\ :=\ by}
+\leanline{2}{constructor}
+\leanline{2}{rw\ [exponentialNoise,\ Measure.map\_apply\ (assembleExponentialNoise\_measurable\ N\ dθ\ dx)}
+\leanline{4}{MeasurableSet.univ,\ Set.preimage\_univ,\ measure\_univ]}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{assemble\allowbreak{}Exponential\allowbreak{}Noise \ensuremath{\omega}} is the pair \texttt{(With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (fun i \ensuremath{\mapsto} \ensuremath{\omega} i 0), With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (fun i \ensuremath{\mapsto} \ensuremath{\omega} i 1))}; \texttt{With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2} regards a function on the index type as a vector of the Euclidean space, and the indices \texttt{0}, \texttt{1} of \texttt{Fin 2} select the velocity and the position entry. \texttt{assemble\allowbreak{}Exponential\allowbreak{}Noise\_\allowbreak{}measurable} is proved by unfolding and \texttt{fun\_\allowbreak{}prop}, which checks measurability coordinatewise.
+
+
+
+
+\texttt{exponential\allowbreak{}Noise N d\ensuremath{\theta} dx \ensuremath{\gamma} h} is \texttt{(exponential\allowbreak{}Noise\allowbreak{}Blocks N d\ensuremath{\theta} dx \ensuremath{\gamma} h).\allowbreak{}map assemble\allowbreak{}Exponential\allowbreak{}Noise}. The instance \texttt{exponential\allowbreak{}Noise\_\allowbreak{}probability} evaluates the total mass with \texttt{Measure.\allowbreak{}map\_\allowbreak{}apply}, using the measurability lemma and \texttt{Measurable\allowbreak{}Set.\allowbreak{}univ}, then \texttt{Set.\allowbreak{}preimage\_\allowbreak{}univ} and \texttt{measure\_\allowbreak{}univ}.
+\end{leanbox}
+
+\section{\texorpdfstring{Independence across coordinates and the law of each pair}{Independence across coordinates and the law of each pair}}
+
+
+\textbf{Claim.} (a) Under \(\beta_{\gamma,h}\) the random vectors \(\omega\mapsto\omega_a\), \(a\in I_N\), are mutually independent. (b) For every coordinate \(a\in I_N\), the image of \(\eta_1(\gamma,h)\) under \((\xi,\xi')\mapsto(\xi_a,\xi'_a)\in\mathbb R^2\) is \(\mathcal G_{\gamma,h}\).
+
+
+
+
+\textbf{Proof.} (a) For a product of probability measures \(\bigotimes_a\mu_a\) and measurable sets \(S_a\subseteq\mathbb R^2\), the event \(\{\omega_a\in S_a\text{ for all }a\in J\}\) for a finite set \(J\) of indices is the box \(\prod_{a\in J}S_a\times\prod_{a\notin J}\mathbb R^2\), whose measure is \(\prod_{a\in J}\mu_a(S_a)\cdot1\). This is mutual independence of the coordinate maps.
+
+
+
+
+(b) Let \(\pi_a(\xi,\xi')=(\xi_a,\xi'_a)\). The image of \(\eta_1=A_\#\beta_{\gamma,h}\) under \(\pi_a\) is \((\pi_a\circ A)_\#\beta_{\gamma,h}\), since both maps are measurable. By the definition of \(A\), \(\pi_a(A(\omega))=(\omega_{a,0},\omega_{a,1})=\omega_a\), checked on the two entries. Finally, the image of a product of probability measures under the evaluation \(\omega\mapsto\omega_a\) is the factor \(\mathcal G_{\gamma,h}\): for measurable \(S\subseteq\mathbb R^2\) the preimage is \(S\times\prod_{b\ne a}\mathbb R^2\), of measure \(\mathcal G_{\gamma,h}(S)\). \(\square\)
+
+
+
+
+Thus \(\eta_1(\gamma,h)\) is the law of independent coordinate pairs, each with covariance \(C(\gamma,h)\), which is the noise of Algorithm 1 in scaled coordinates: the parameter coordinates give \((\varepsilon^0,\varepsilon^{0\prime})\) and the latent coordinates of particle \(i\) give \((\varepsilon^i,\varepsilon^{i\prime})\). Multiplication by \(\sqrt{2\gamma/N}\) in the update, and by \(\sqrt N\) when the latent coordinates are unscaled, produces the amplitudes \(\sqrt{2\gamma/N}\) and \(\sqrt{2\gamma}\) of the paper.
+
+\begin{leanbox}{Lean: \texttt{exponentialNoiseBlocks\_\allowbreak{}independent}, \texttt{exponentialNoise\_\allowbreak{}coordinate\_\allowbreak{}law}}
+\leansource{\texttt{exponentialNoiseBlocks\_\allowbreak{}independent} \quad KIPLMC/\allowbreak{}Noise.lean, lines 53–56}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialNoiseBlocks\_independent\ (N\ dθ\ dx\ :\ ℕ)\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{iIndepFun\ (fun\ i\ (ω\ :\ Coordinate\ N\ dθ\ dx\ →\ EuclideanSpace\ ℝ\ (Fin\ 2))\ ↦\ ω\ i)}
+\leanline{6}{(exponentialNoiseBlocks\ N\ dθ\ dx\ γ\ h)}
+\end{leancode}
+\leansource{\texttt{exponentialNoise\_\allowbreak{}coordinate\_\allowbreak{}law} \quad KIPLMC/\allowbreak{}Noise.lean, lines 61–78}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialNoise\_coordinate\_law\ (N\ dθ\ dx\ :\ ℕ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(i\ :\ Coordinate\ N\ dθ\ dx)\ :}
+\leanline{4}{(exponentialNoise\ N\ dθ\ dx\ γ\ h).map}
+\leanline{6}{(fun\ z\ ↦\ WithLp.toLp\ 2\ (fun\ j\ :\ Fin\ 2\ ↦\ if\ j\ =\ 0\ then\ z.1\ i\ else\ z.2\ i))\ =}
+\leanline{6}{KineticLangevin.klmcGaussian\ γ\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exponential\allowbreak{}Noise\allowbreak{}Blocks\_\allowbreak{}independent} states \texttt{i\allowbreak{}Indep\allowbreak{}Fun (fun i \ensuremath{\omega} \ensuremath{\mapsto} \ensuremath{\omega} i) (exponential\allowbreak{}Noise\allowbreak{}Blocks N d\ensuremath{\theta} dx \ensuremath{\gamma} h)}, mutual independence of the evaluation maps, and is Mathlib's \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}pi} applied to the identity maps of the factors (whose measurability is \texttt{measurable\_\allowbreak{}id.\allowbreak{}aemeasurable}).
+
+
+
+
+\texttt{exponential\allowbreak{}Noise\_\allowbreak{}coordinate\_\allowbreak{}law} states that the image of \texttt{exponential\allowbreak{}Noise N d\ensuremath{\theta} dx \ensuremath{\gamma} h} under \texttt{fun z \ensuremath{\mapsto} With\allowbreak{}Lp.\allowbreak{}to\allowbreak{}Lp 2 (fun j : Fin 2 \ensuremath{\mapsto} if j = 0 then z.\allowbreak{}1 i else z.\allowbreak{}2 i)}, the pair \((\xi_a,\xi'_a)\) with \texttt{i} playing the role of \(a\), is \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}klmc\allowbreak{}Gaussian \ensuremath{\gamma} h}.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{Measure.\allowbreak{}map\_\allowbreak{}map} combines the two pushforwards into one, after measurability is supplied by \texttt{fun\_\allowbreak{}prop} and \texttt{assemble\allowbreak{}Exponential\allowbreak{}Noise\_\allowbreak{}measurable}; the \texttt{change} line displays the composed map.
+
+\item \texttt{he} proves that the composed map equals \texttt{fun \ensuremath{\omega} \ensuremath{\mapsto} \ensuremath{\omega} i}: \texttt{funext} and \texttt{ext j} reduce this to the entries, and \texttt{fin\_\allowbreak{}cases j} checks the two values of \texttt{j} by \texttt{simp [assemble\allowbreak{}Exponential\allowbreak{}Noise]}.
+
+\item \texttt{(measure\allowbreak{}Preserving\_\allowbreak{}eval (fun \_\allowbreak{} \ensuremath{\mapsto} Kinetic\allowbreak{}Langevin.\allowbreak{}klmc\allowbreak{}Gaussian \ensuremath{\gamma} h) i).\allowbreak{}map\_\allowbreak{}eq} is Mathlib's statement that evaluation at \texttt{i} pushes the product of probability measures to the \texttt{i}th factor.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b4b7242c6d4f. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

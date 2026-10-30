@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -38,6 +61,21 @@ Applying the compact Dynkin identities, the generator approximation, and radial 
 
 If a random \(L^{2}\) state has law \(\pi\), the squared norm of the difference of its two canonical observations is exactly the integral of the squared pointwise error under \(\pi\). Taking square roots identifies the \(L^{2}\) distance. Continuity of the square root at zero therefore turns convergence of the genuine squared-error integrals into convergence of the actual \(L^{2}\) observations. This theorem uses the displayed map-law equality and the square-integrability witnesses, rather than assuming convergence after composition.
 
+\begin{leanbox}{Lean: \texttt{stationaryObservation\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}sq\_\allowbreak{}error}}
+\leansource{\texttt{stationaryObservation\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}sq\_\allowbreak{}error} \quad AverageLMC/\allowbreak{}LaplacianPairing.lean, lines 29–44}
+\begin{leancode}
+\leanline{0}{theorem\ stationaryObservation\_tendsto\_of\_sq\_error\ \{p\ :\ ℕ\}}
+\leanline{4}{(π\ :\ Measure\ (State\ p))\ (F\ :\ ℕ\ →\ State\ p\ →\ State\ p)\ (G\ :\ State\ p\ →\ State\ p)}
+\leanline{4}{(hFc\ :\ ∀\ n,\ Continuous\ (F\ n))\ (hGc\ :\ Continuous\ G)}
+\leanline{4}{(hF\ :\ ∀\ n,\ MemLp\ (F\ n)\ 2\ π)\ (hG\ :\ MemLp\ G\ 2\ π)}
+\leanline{4}{(Y\ :\ Lp\ (State\ p)\ 2\ P)\ (hlaw\ :\ P.map\ Y\ =\ π)}
+\leanline{4}{(herr\ :\ Tendsto\ (fun\ n\ ↦\ ∫\ x,\ ‖F\ n\ x\ -\ G\ x‖\ \textasciicircum{}\ 2\ ∂π)\ atTop\ ({\leanfallback 𝓝}\ 0))\ :}
+\leanline{4}{Tendsto\ (fun\ n\ ↦\ stationaryObservation\ P\ π\ (F\ n)\ (hF\ n)\ Y\ hlaw)\ atTop}
+\leanline{6}{({\leanfallback 𝓝}\ (stationaryObservation\ P\ π\ G\ hG\ Y\ hlaw))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{stationary\allowbreak{}Observation\_\allowbreak{}tendsto\_\allowbreak{}of\_\allowbreak{}sq\_\allowbreak{}error} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Construct and pass the actual compact Dynkin pairings to the score increment}{Construct and pass the actual compact Dynkin pairings to the score increment}}
 
@@ -56,13 +94,45 @@ Radially clip the initial vector \(\Psi\). The clipped vector has bounded coordi
 
 For a fixed clipped weight, apply the compact Dynkin approximation limit theorem to the endpoint \(L^{2}\) limits and the uniform generator bound \(R+\operatorname{err}(n)\). This gives the pairing of the clipped weight with the actual score increment at most \(T\) times its \(L^{2}\) norm times \(R\). Finally apply the clipping limit theorem: the pairings converge, and the clipped norms never exceed the original \(L^{2}\) norm. The resulting stationary gradient pairing bound applies to every square-integrable independent initial vector. Its stochastic hypotheses concern the actual Brownian integral equation and independence; no desired Wasserstein recurrence or score-increment bound is supplied as a premise.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}stationary\_\allowbreak{}gradient\_\allowbreak{}pairing\_\allowbreak{}bound}}
+\leansource{\texttt{lp\_\allowbreak{}stationary\_\allowbreak{}gradient\_\allowbreak{}pairing\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}LaplacianPairing.lean, lines 50–210}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_stationary\_gradient\_pairing\_bound\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ f))}
+\leanline{4}{(Mdelta\ :\ ℝ)\ (hMdelta\ :\ 0\ ≤\ Mdelta)\ (hδ\ :\ LaplacianSmooth\ f\ Mdelta)}
+\leanline{4}{(initial\ :\ Lp\ (State\ p)\ 2\ P)}
+\leanline{4}{(B\ :\ Fin\ p\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)\ (hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)}
+\leanline{4}{(hscalar\ :\ ∀\ r\ :\ ℝ,\ 0\ <\ r\ →\ iIndepFun\ (fun\ q\ :\ ℕ\ ×\ Fin\ p\ ↦\ fun\ a\ ↦}
+\leanline{6}{ULA.Hilbert.brownianEulerNoise\ P\ B\ hB\ r\ q.1\ a\ q.2)\ P)}
+\leanline{4}{(Ψ\ :\ Lp\ (State\ p)\ 2\ P)}
+\leanline{4}{(hind\ :\ ∀\ r\ :\ ℝ,\ 0\ <\ r\ →\ IndepFun\ (fun\ a\ ↦\ (Ψ\ a,\ initial\ a))}
+\leanline{6}{(fun\ a\ k\ ↦\ ULA.Hilbert.brownianEulerNoise\ P\ B\ hB\ r\ k\ a)\ P)}
+\leanline{4}{(Y\ :\ ℝ\ →\ Lp\ (State\ p)\ 2\ P)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ initial\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ s))\ +}
+\leanline{8}{ULA.brownianLangevinNoise\ P\ B\ hB\ 0\ t)}
+\leanline{4}{(hstationary\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ P.map\ (Y\ t)\ =\ ULA.gibbsMeasure\ f)\ :}
+\leanline{4}{inner\ ℝ\ Ψ\ (ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (Y\ T)\ -}
+\leanline{6}{ULA.lpDrift\ P\ (gradient\ f)\ hLip\ initial)\ ≤}
+\leanline{8}{T\ *\ ‖Ψ‖\ *\ ((L\ :\ ℝ)\ *\ Real.sqrt\ (averageSmoothness\ f\ *\ (p\ :\ ℝ))\ +}
+\leanline{10}{Mdelta\ *\ Real.sqrt\ (p\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\textbf{Formal correspondence.} The resulting estimate is \texttt{lp\_\allowbreak{}stationary\_\allowbreak{}gradient\_\allowbreak{}pairing\_\allowbreak{}bound}.
+
+
+
+\texttt{lp\_\allowbreak{}stationary\_\allowbreak{}gradient\_\allowbreak{}pairing\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hf}, \texttt{h\allowbreak{}Z}, \texttt{\ensuremath{\pi}}, \texttt{h\allowbreak{}Y0}, \texttt{hinitlaw}, \texttt{h\allowbreak{}Tlaw} in that order. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr\_\allowbreak{}ae\_\allowbreak{}restrict}, \texttt{\ensuremath{\langle}ht.\allowbreak{}1.\allowbreak{}le}, \texttt{pairing\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}compact\_\allowbreak{}dynkin\_\allowbreak{}approximations}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.25.3]{LangevinLean2026ULASC}; \cite[Section~3.26.10]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.46.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

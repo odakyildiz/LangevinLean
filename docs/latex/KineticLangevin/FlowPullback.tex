@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,67 @@ Measure-preserving composition is a linear isometry on \(L^{2}\). The source pul
 
 Changing probability source by a measure-preserving map defines an isometry on square-integrable variables. Apply it separately to velocity and position to obtain the phase pullback. Bounded linearity preserves continuity and commutes with the time integrals in the kinetic equation.
 
+\begin{leanbox}{Lean: \texttt{sourcePullback}, \texttt{phasePullback}, \texttt{sourcePullback\_\allowbreak{}coe} and 3 more}
+\leansource{\texttt{sourcePullback} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 15–16}
+\begin{leancode}
+\leanline{0}{def\ sourcePullback\ :\ Lp\ H\ 2\ P\ →L[ℝ]\ Lp\ H\ 2\ Q\ :=}
+\leanline{2}{(Lp.compMeasurePreservingₗᵢ\ ℝ\ φ\ hφ).toContinuousLinearMap}
+\end{leancode}
+\leansource{\texttt{phasePullback} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 19–21}
+\begin{leancode}
+\leanline{0}{def\ phasePullback\ :\ (Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ →L[ℝ]\ (Lp\ H\ 2\ Q\ ×\ Lp\ H\ 2\ Q)\ :=}
+\leanline{2}{((sourcePullback\ φ\ hφ).comp\ (ContinuousLinearMap.fst\ ℝ\ \_\ \_)).prod}
+\leanline{4}{((sourcePullback\ φ\ hφ).comp\ (ContinuousLinearMap.snd\ ℝ\ \_\ \_))}
+\end{leancode}
+\leansource{\texttt{sourcePullback\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{theorem\ sourcePullback\_coe\ (X\ :\ Lp\ H\ 2\ P)\ :\ sourcePullback\ φ\ hφ\ X\ =ᵐ[Q]\ fun\ ξ\ =>\ X\ (φ\ ξ)}
+\end{leancode}
+\leansource{\texttt{phasePullback\_\allowbreak{}coe} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 28–32}
+\begin{leancode}
+\leanline{0}{theorem\ phasePullback\_coe\ (S\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{(fun\ ξ\ =>\ ((phasePullback\ φ\ hφ\ S).1\ ξ,(phasePullback\ φ\ hφ\ S).2\ ξ))\ =ᵐ[Q]}
+\leanline{6}{fun\ ξ\ =>\ (S.1\ (φ\ ξ),S.2\ (φ\ ξ))}
+\end{leancode}
+\leansource{\texttt{sourcePullback\_\allowbreak{}map} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 35–39}
+\begin{leancode}
+\leanline{0}{theorem\ sourcePullback\_map\ [MeasurableSpace\ H]\ [BorelSpace\ H]\ (X\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{Q.map\ (sourcePullback\ φ\ hφ\ X)\ =\ P.map\ X}
+\end{leancode}
+\leansource{\texttt{sourcePullback\_\allowbreak{}comp} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 42–49}
+\begin{leancode}
+\leanline{0}{theorem\ sourcePullback\_comp\ \{Ζ\ :\ Type*\}\ [MeasurableSpace\ Ζ]\ \{R\ :\ Measure\ Ζ\}\ [IsFiniteMeasure\ R]}
+\leanline{4}{(ψ\ :\ Ζ\ →\ Ξ)\ (hψ\ :\ MeasurePreserving\ ψ\ R\ Q)\ (X\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{sourcePullback\ ψ\ hψ\ (sourcePullback\ φ\ hφ\ X)\ =\ sourcePullback\ (φ\ ∘\ ψ)\ (hφ.comp\ hψ)\ X}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{source\allowbreak{}Pullback} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{phase\allowbreak{}Pullback} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{source\allowbreak{}Pullback\_\allowbreak{}coe} gives the formal counterpart of this step.
+
+
+
+
+\texttt{phase\allowbreak{}Pullback\_\allowbreak{}coe} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{source\allowbreak{}Pullback\_\allowbreak{}map} gives the formal counterpart of this step.
+
+
+
+
+\texttt{source\allowbreak{}Pullback\_\allowbreak{}comp} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Named proof applications include \texttt{Lp.\allowbreak{}ext}, \texttt{h1.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Commute the nonlinear drift with pullback}{Commute the nonlinear drift with pullback}}
 
@@ -45,6 +129,27 @@ The lifted vector field is pointwise application of the original Lipschitz field
 
 The lifted drift is defined pointwise from the original gradient. Composing a representative with the source map therefore commutes with evaluating that gradient. Together with the affine phase terms, this proves that pullback preserves the nonlinear kinetic drift.
 
+\begin{leanbox}{Lean: \texttt{lpDrift\_\allowbreak{}sourcePullback}, \texttt{kineticDrift\_\allowbreak{}phasePullback}}
+\leansource{\texttt{lpDrift\_\allowbreak{}sourcePullback} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 52–64}
+\begin{leancode}
+\leanline{0}{theorem\ lpDrift\_sourcePullback\ (g\ :\ H\ →\ H)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)\ (X\ :\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{ULA.lpDrift\ Q\ g\ hg\ (sourcePullback\ φ\ hφ\ X)\ =\ sourcePullback\ φ\ hφ\ (ULA.lpDrift\ P\ g\ hg\ X)}
+\end{leancode}
+\leansource{\texttt{kineticDrift\_\allowbreak{}phasePullback} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 67–76}
+\begin{leancode}
+\leanline{0}{theorem\ kineticDrift\_phasePullback\ (g\ :\ H\ →\ H)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(γ\ u\ :\ ℝ)\ (S\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ :}
+\leanline{4}{kineticNegativeDrift\ (ULA.lpDrift\ Q\ g\ hg)\ γ\ u\ (phasePullback\ φ\ hφ\ S)\ =}
+\leanline{6}{phasePullback\ φ\ hφ\ (kineticNegativeDrift\ (ULA.lpDrift\ P\ g\ hg)\ γ\ u\ S)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\allowbreak{}Drift\_\allowbreak{}source\allowbreak{}Pullback} gives the formal counterpart of this step. The main intermediate facts are \texttt{hsource} in that order. Named proof applications include \texttt{Lp.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\allowbreak{}Drift\_\allowbreak{}phase\allowbreak{}Pullback} gives the formal counterpart of this step. Named proof applications include \texttt{Prod.\allowbreak{}ext}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
@@ -62,13 +167,44 @@ The integral-equation identity proves this transformation for any continuous kin
 
 Pulling back the solution equation gives a solution with the pulled-back initial phase and forcing. Uniqueness identifies it with the independently selected solution on the new source. This validates the coupling-space comparison of flows defined on different product spaces.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}sourcePullback}, \texttt{kineticSegmentFlow\_\allowbreak{}sourcePullback}}
+\leansource{\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}sourcePullback} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 79–95}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_integral\_sourcePullback\ (g\ :\ H\ →\ H)\ (M\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(Y\ :\ ℝ\ →\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)\ (B\ :\ ℝ\ →\ Lp\ H\ 2\ P)\ (hY\ :\ Continuous\ Y)\ (T\ :\ ℝ)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t-Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,kineticNegativeDrift\ (ULA.lpDrift\ P\ g\ hg)\ γ\ u\ (Y\ s))+(B\ t,0))}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{phasePullback\ φ\ hφ\ (Y\ t)-phasePullback\ φ\ hφ\ (Y\ 0)\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,kineticNegativeDrift\ (ULA.lpDrift\ Q\ g\ hg)\ γ\ u\ (phasePullback\ φ\ hφ\ (Y\ s)))+}
+\leanline{8}{(sourcePullback\ φ\ hφ\ (B\ t),0)}
+\end{leancode}
+\leansource{\texttt{kineticSegmentFlow\_\allowbreak{}sourcePullback} \quad KineticLangevin/\allowbreak{}FlowPullback.lean, lines 98–143}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSegmentFlow\_sourcePullback\ (g\ :\ H\ →\ H)\ (M\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)\ (initial\ :\ Lp\ H\ 2\ P\ ×\ Lp\ H\ 2\ P)}
+\leanline{4}{(B\ :\ ℝ\ →\ Lp\ H\ 2\ P)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0=0)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ T)\ :}
+\leanline{4}{kineticSegmentFlow\ (ULA.lpDrift\ Q\ g\ hg)\ M\ γ\ u\ (ULA.lpDrift\_lipschitz\ Q\ g\ hg)\ T\ hT}
+\leanline{6}{(phasePullback\ φ\ hφ\ initial)\ (fun\ s\ =>\ sourcePullback\ φ\ hφ\ (B\ s))\ ((sourcePullback\ φ\ hφ).continuous.comp\ hB)\ t\ =}
+\leanline{6}{phasePullback\ φ\ hφ}
+\leanline{8}{(kineticSegmentFlow\ (ULA.lpDrift\ P\ g\ hg)\ M\ γ\ u\ (ULA.lpDrift\_lipschitz\ P\ g\ hg)\ T\ hT\ initial\ B\ hB\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}integral\_\allowbreak{}source\allowbreak{}Pullback} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{he}, \texttt{hn} in that order.
+
+
+
+
+\texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow\_\allowbreak{}source\allowbreak{}Pullback} gives the formal counterpart of this step. The main intermediate facts are \texttt{Y}, \texttt{Z}, \texttt{hs\allowbreak{}Y}, \texttt{hs\allowbreak{}Z}, \texttt{hc}, \texttt{he\allowbreak{}Z} in that order. Named proof applications include \texttt{hs\allowbreak{}Z.\allowbreak{}2.\allowbreak{}2}, \texttt{he}, \texttt{integral\_\allowbreak{}solution\_\allowbreak{}unique}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

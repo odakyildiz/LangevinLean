@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -26,7 +49,7 @@ g_2^\eta(x)=g_2(P_\eta(x))+\frac{\|P_\eta(x)-x\|^2}{2\eta},\]
 \[V_\eta=g_1+g_2^\eta,\qquad L_\eta=L_1+\eta^{-1},\qquad\eta>0.\]
 
 
-Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are independent over coordinates and time and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.
+Let \(N\ge1\), \(d_\theta,d_x\ge0\), and assume the initial particle state in scaled coordinates has a finite second moment. The Gaussian vectors are standard, independent over coordinates and time, and are independent of the initial state. Denote the initial distribution in these coordinates by \(\rho_0\), and denote the Gibbs measure associated with the sum of the \(N\) copies of \(V_\eta\) by \(\Pi_{N,\eta}\). Let \(\theta_U\) and \(\theta_\eta\) maximize the parameter marginals corresponding to \(g_1+g_2\) and \(V_\eta\). The proof establishes the existence of both maximizers under these assumptions.
 
 
 
@@ -61,6 +84,34 @@ For \(0<\gamma\le2/(m+L_\eta)\) and every \(n\in\mathbb N\), the parameter itera
 
 The first term bounds \(\|\theta_U-\theta_\eta\|\). The second bounds the root mean square distance from a parameter drawn from \(\Pi_{N,\eta}\) to \(\theta_\eta\). The remaining two terms bound the distance between the numerical distribution and \(\Pi_{N,\eta}\). The smoothing estimate is \(O(\sqrt\eta)\), and the discretization term depends on \(\eta\) through \(L_\eta\). These are the bounds proved here; the paper's linear-in-\(\eta\) smoothing expression is not a conclusion of this argument.
 
+\begin{leanbox}{Lean: \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original}}
+\leansource{\texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original} \quad ProximalLangevin/\allowbreak{}Theorem.lean, lines 77–113}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_myipla\_parameter\_rms\_original}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ η\ γ\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hη\ :\ 0\ <\ η)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (smoothingLipschitz\ L₁\ η\ :\ ℝ)))}
+\leanline{4}{(θU\ θη\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmaxU\ :\ IPLA.IsMarginalMaximizer\ (fun\ z\ ↦\ g₁\ z\ +\ g₂\ z)\ θU)}
+\leanline{4}{(hmaxη\ :\ IPLA.IsMarginalMaximizer\ (smoothedPotential\ g₁\ g₂\ η)\ θη)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θU‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(myiplaLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n))\ ≤}
+\leanline{6}{Real.sqrt\ (η\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ m)\ +}
+\leanline{6}{Real.sqrt\ ((dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ (Q.map\ initial)}
+\leanline{8}{(IPLA.gibbsTarget\ (smoothedPotential\ g₁\ g₂\ η))\ +}
+\leanline{6}{(33\ /\ 20\ :\ ℝ)\ *\ ((smoothingLipschitz\ L₁\ η\ :\ ℝ)\ /\ m)\ *}
+\leanline{8}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ Real.sqrt\ γ}
+\end{leancode}
+\end{leanbox}
 
 \section{\texorpdfstring{Proximal optimality and differentiability of the envelope}{Proximal optimality and differentiability of the envelope}}
 
@@ -78,6 +129,18 @@ Expansion of residual differences also makes \(I-P_\eta\) nonexpansive. Compare 
 Residual nonexpansiveness gives gradient constant \(\eta^{-1}\). Convexity of the envelope means \(V_\eta=g_1+g_2^\eta\) retains curvature \(m\) and has gradient constant \(L_\eta=L_1+\eta^{-1}\). These established properties meet the Gaussian Euler transport theorem \cite[Section~3.45.7]{LangevinLean2026ULASC}.
 
 
+
+
+For the remainder calculation put \(e(x)=g_2^\eta(x)\) and \(r(x)=(x-P_\eta x)/\eta\). Evaluation at \(P_\eta x\) gives \(e(x+u)\le e(x)+\langle r(x),u\rangle+\|u\|^2/(2\eta)\). Convex support at \(P_\eta x\), followed by minimization over the competitor for the envelope at \(x+u\), gives \(e(x+u)\ge e(x)+\langle r(x),u\rangle\). Hence the remainder after subtracting the linear functional lies between zero and \(\|u\|^2/(2\eta)\). Division by \(\|u\|\) makes it tend to zero, which is the definition of differentiability with derivative \(u\mapsto\langle r(x),u\rangle\). Residual nonexpansiveness gives \(\|r(x)-r(y)\|\le\eta^{-1}\|x-y\|\), so this derivative is continuous. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}moreau}}
+\leansource{\texttt{gradient\_\allowbreak{}moreau} \quad ProximalLangevin/\allowbreak{}Moreau.lean, lines 143–144}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_moreau\ (x\ :\ E)\ :\ gradient\ (moreau\ f\ lam)\ x\ =\ residual\ f\ lam\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}moreau} identifies the actual gradient by applying the uniqueness property \texttt{.\allowbreak{}gradient} to \texttt{moreau\_\allowbreak{}has\allowbreak{}Gradient\allowbreak{}At}. The underlying derivative proof has already obtained the two-sided remainder from the same minimizing-point comparisons described above. The section assumptions \texttt{hf}, \texttt{hb} and \texttt{hlam} are convexity, a global lower bound and a positive proximal scale. \texttt{residual} is the scaled displacement from the proximal minimizer, so the conclusion is the displayed envelope-gradient formula. Smoothness follows in the subsequent declarations by combining that identity with nonexpansiveness of the residual map.
+\end{leanbox}
 
 \section{\texorpdfstring{The finite Moreau potential-gap estimate}{The finite Moreau potential-gap estimate}}
 
@@ -97,6 +160,19 @@ Exponentiation reverses potential order and latent integration preserves the res
 
 
 
+
+The square completion is \(-Kr+r^2/(2\eta)=(r-\eta K)^2/(2\eta)-\eta K^2/2\), valid for \(\eta>0\). The two pointwise potential bounds imply \(e^{-\delta_\eta}e^{-V_\eta}\le e^{-U}\le e^{-V_\eta}\). Their latent integrals obey the same inequalities. Since these integrals are positive, applying the increasing logarithm and then changing sign gives \(F_\eta\le F_U\le F_\eta+\delta_\eta\) with precisely the same gap. A parameter-independent Jacobian from scaled coordinates cancels before this comparison is used for the marginal centers. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{moreau\_\allowbreak{}gap\_\allowbreak{}of\_\allowbreak{}lipschitz}}
+\leansource{\texttt{moreau\_\allowbreak{}gap\_\allowbreak{}of\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}Moreau.lean, lines 193–200}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_gap\_of\_lipschitz\ \{K\ :\ NNReal\}\ (hK\ :\ LipschitzWith\ K\ f)\ (x\ :\ E)\ :}
+\leanline{4}{0\ ≤\ f\ x\ -\ moreau\ f\ lam\ x\ ∧\ f\ x\ -\ moreau\ f\ lam\ x\ ≤\ lam\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{moreau\_\allowbreak{}gap\_\allowbreak{}of\_\allowbreak{}lipschitz} proves both halves of the potential gap. For the lower half it invokes \texttt{moreau\_\allowbreak{}le}, the competitor-at-the-input inequality. For the upper half it invokes \texttt{moreau\_\allowbreak{}lower\_\allowbreak{}of\_\allowbreak{}lipschitz}, which performs the scalar square completion using \texttt{h\allowbreak{}K}, and rearranges the resulting inequality. The assumptions retained from the section are convexity \texttt{hf}, a global lower bound \texttt{hb} and positive scale \texttt{hlam}. The conclusion bounds a function-value difference; marginal and center comparisons are separate subsequent applications.
+\end{leanbox}
+
 \section{\texorpdfstring{Marginal-potential comparison and center displacement}{Marginal-potential comparison and center displacement}}
 
 
@@ -115,6 +191,26 @@ Taking square roots yields \(\|\theta_U-\theta_\eta\|\le K\sqrt{\eta/m}\) for ev
 
 
 
+
+The quadratic-growth inequality follows even without a derivative of the marginal: apply strong convexity to \((1-t)\theta_\eta+t\theta_U\), use minimality at \(\theta_\eta\), divide by \(t>0\), and let \(t\downarrow0\). This gives \(m\|\theta_U-\theta_\eta\|^2/2\le F_\eta(\theta_U)-F_\eta(\theta_\eta)\). The upper bound by \(\delta_\eta\) then yields \(\|\theta_U-\theta_\eta\|^2\le2\delta_\eta/m=\eta K^2/m\). Nonnegative square roots give the stated expression, including \(K=0\). The hypotheses specify both centers as marginal maximizers; the comparison does not assume uniqueness of the original nonsmooth model's center. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{marginal\_\allowbreak{}center\_\allowbreak{}distance}}
+\leansource{\texttt{marginal\_\allowbreak{}center\_\allowbreak{}distance} \quad ProximalLangevin/\allowbreak{}Perturbation.lean, lines 233–244}
+\begin{leancode}
+\leanline{0}{theorem\ marginal\_center\_distance\ \{dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(U\ V\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (δ\ m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)}
+\leanline{4}{(hU\ :\ Continuous\ U)\ (hV\ :\ Differentiable\ ℝ\ V)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ V)}
+\leanline{4}{(hgap\ :\ ∀\ z,\ V\ z\ ≤\ U\ z\ ∧\ U\ z\ ≤\ V\ z\ +\ δ)}
+\leanline{4}{(θU\ θV\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmaxU\ :\ IPLA.IsMarginalMaximizer\ U\ θU)}
+\leanline{4}{(hmaxV\ :\ IPLA.IsMarginalMaximizer\ V\ θV)\ :}
+\leanline{4}{‖θU\ -\ θV‖\ ≤\ Real.sqrt\ (2\ *\ δ\ /\ m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{marginal\_\allowbreak{}center\_\allowbreak{}distance} assumes the uniform two-sided potential comparison as \texttt{hgap}, continuity of the original potential as \texttt{h\allowbreak{}U}, and differentiable strong convexity of the comparison potential as \texttt{h\allowbreak{}V} and \texttt{hsc}. \texttt{hmax\allowbreak{}U} and \texttt{hmax\allowbreak{}V} specify both marginal centers. It calls \texttt{marginal\_\allowbreak{}center\_\allowbreak{}distance\_\allowbreak{}sq} for the quadratic-growth argument, deduces nonnegativity of the radicand in \texttt{hnonneg}, and uses \texttt{Real.\allowbreak{}le\_\allowbreak{}sqrt} to obtain the norm estimate. Substitution of the previously proved Moreau gap gives the smoothing-scale expression without differentiating the nonsmooth potential.
+\end{leanbox}
+
 \section{\texorpdfstring{The MYIPLA bound about the original marginal maximizer}{The MYIPLA bound about the original marginal maximizer}}
 
 
@@ -132,6 +228,40 @@ The sharp marginal estimate \cite[Section~3.6.1]{LangevinLean2026Proximal} gives
 A smaller \(\eta\) reduces the first contribution while increasing \(L_\eta\) and restricting the admissible step. Thus smoothing and discretization choices must satisfy the displayed joint conditions. The estimate is for the stated Gaussian particle law.
 
 
+
+
+At the final projection step use \(\theta-\theta_U=(\theta-\theta_\eta)+(\theta_\eta-\theta_U)\) under the MYIPLA output probability. Minkowski bounds its root second moment by the smoothed-center root second moment plus the constant center displacement. The square-integrability of the projected output is established from the finite initial second moment and Lipschitz updates before taking this root. Substituting the sharp concentration, the transport theorem and the center comparison yields the four displayed terms. Every scale is positive and the step must satisfy the smoothness-dependent restriction with \(L_\eta=L_1+\eta^{-1}\); a small smoothing scale cannot be chosen independently of that step. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original}}
+\leansource{\texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original} \quad ProximalLangevin/\allowbreak{}Theorem.lean, lines 77–113}
+\begin{leancode}
+\leanline{0}{theorem\ moreau\_myipla\_parameter\_rms\_original}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ η\ γ\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hη\ :\ 0\ <\ η)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (smoothingLipschitz\ L₁\ η\ :\ ℝ)))}
+\leanline{4}{(θU\ θη\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmaxU\ :\ IPLA.IsMarginalMaximizer\ (fun\ z\ ↦\ g₁\ z\ +\ g₂\ z)\ θU)}
+\leanline{4}{(hmaxη\ :\ IPLA.IsMarginalMaximizer\ (smoothedPotential\ g₁\ g₂\ η)\ θη)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θU‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(myiplaLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n))\ ≤}
+\leanline{6}{Real.sqrt\ (η\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ m)\ +}
+\leanline{6}{Real.sqrt\ ((dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ (Q.map\ initial)}
+\leanline{8}{(IPLA.gibbsTarget\ (smoothedPotential\ g₁\ g₂\ η))\ +}
+\leanline{6}{(33\ /\ 20\ :\ ℝ)\ *\ ((smoothingLipschitz\ L₁\ η\ :\ ℝ)\ /\ m)\ *}
+\leanline{8}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ Real.sqrt\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}original}, \texttt{\ensuremath{\rho}} is the actual MYIPLA output law. \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}is\allowbreak{}Probability} and \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}mem\allowbreak{}Lp} first provide normalization and the finite projected moment. \texttt{hmove}, from \texttt{sqrt\_\allowbreak{}integral\_\allowbreak{}center\_\allowbreak{}le}, is Minkowski for moving the center. \texttt{hdist} comes from \texttt{moreau\_\allowbreak{}marginal\_\allowbreak{}center\_\allowbreak{}distance}; \texttt{hbound} is the proved smoothed-center theorem \texttt{moreau\_\allowbreak{}myipla\_\allowbreak{}parameter\_\allowbreak{}rms}. After reversing the center-distance norm, the final arithmetic adds those two bounds. The hypotheses retain the lower bound \texttt{hb}, value Lipschitzness \texttt{h\allowbreak{}K}, both marginal-maximizer premises and Gaussian independence \texttt{h\allowbreak{}Gaussian}.
+\end{leanbox}
 
 \section{\texorpdfstring{The equal-scale PIPGLA transport estimate}{The equal-scale PIPGLA transport estimate}}
 
@@ -158,6 +288,23 @@ Projection adds the sharp equilibrium radius to the square root of this transpor
 
 
 
+
+For the scalar absorption, put \(R=Gs+\sigma\sqrt s\). Since \((Gs-\sigma\sqrt s)^2\ge0\), \(R^2\le2G^2s^2+2\sigma^2s\). The restriction \(s\le1/a\) makes this at most \(2s(G^2/a+\sigma^2)\). Consequently \((1+(as)^{-1})b^2s^2R^2\le2b^2s^2(s+1/a)(G^2/a+\sigma^2)\le4b^2s^2(G^2/a+\sigma^2)/a\). The gap contribution is \(2s\delta\le s^2c^2\). Adding the other two terms gives \(\mathcal F\le4b^2s^2(G^2/a+\sigma^2)/a+2s^2Gc+2s^2c^2=as^2C_N\). Dividing the constant forcing in the squared-error recurrence by its gap \(as\) leaves \(sC_N\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{splittingCouplingForcing\_\allowbreak{}le}}
+\leansource{\texttt{splittingCouplingForcing\_\allowbreak{}le} \quad ProximalLangevin/\allowbreak{}SplittingRate.lean, lines 29–78}
+\begin{leancode}
+\leanline{0}{theorem\ splittingCouplingForcing\_le\ \{m\ h\ L\ G\ noise\ K\ delta\ :\ ℝ\}}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)\ (hsmall\ :\ h\ ≤\ 1\ /\ m)}
+\leanline{4}{(\_hG\ :\ 0\ ≤\ G)\ (\_hnoise\ :\ 0\ ≤\ noise)\ (\_hK\ :\ 0\ ≤\ K)}
+\leanline{4}{(hdelta\ :\ delta\ ≤\ h\ *\ K\ \textasciicircum{}\ 2\ /\ 2)\ :}
+\leanline{4}{splittingCouplingForcing\ m\ h\ L\ G\ noise\ K\ delta\ ≤}
+\leanline{6}{m\ *\ h\ \textasciicircum{}\ 2\ *\ splittingRMSConstant\ m\ L\ G\ noise\ K}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{splitting\allowbreak{}Coupling\allowbreak{}Forcing\_\allowbreak{}le} is the scalar estimate used after the stationary coupling has supplied its four forcing terms. \texttt{hlocal} bounds the squared increment by twice the sum of squares. \texttt{h\allowbreak{}Gscale} uses \texttt{hsmall} to remove one time power, and \texttt{hlocal'} collects that estimate. \texttt{hweight} allows multiplication by the Young weight. The identity \texttt{heq} and bound \texttt{htwice} control its coefficient; \texttt{hdelta'} inserts the potential gap. Finally \texttt{h\allowbreak{}C} expands the proposed constant and \texttt{hfirst} bounds the weighted smooth-error term. Unfolding \texttt{splitting\allowbreak{}Coupling\allowbreak{}Forcing} leaves precisely the scalar inequality stated above. The actual law recurrence is established separately in the splitting endpoint module.
+\end{leanbox}
+
 \section{\texorpdfstring{PIPGLA comparison at two positive proximal scales}{PIPGLA comparison at two positive proximal scales}}
 
 
@@ -173,6 +320,35 @@ Apply this estimate to every pair. Jensen for the parameter average and the exac
 From common initialization, geometric summation bounds their difference by \(K|\lambda-\eta|/(1-q)=K|\lambda-\eta|/(m\gamma)\) uniformly over finite iteration counts. Set \(\eta=\gamma\) and combine this comparison with the equal-scale bound. Minkowski adds the same constant to the parameter root mean square error.
 
 
+
+
+Let \(d_k\) be the state distance between the two common-noise chains, with \(d_0=0\). One update gives \(d_{k+1}\le qd_k+K|\lambda-\eta|\), because the same-scale map contracts by \(q\) and the change of scale contributes the second term. Induction gives \(d_k\le K|\lambda-\eta|\sum_{j=0}^{k-1}q^j\le K|\lambda-\eta|/(m\gamma)\). This is pointwise for every shared noise sequence. Parameter projection has norm at most one; taking the root second moment and using Minkowski yields the same additive constant for the output root mean square errors about any fixed center. Independence of the noise is not required for this comparison itself. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{pipgla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}prox\_\allowbreak{}comparison}}
+\leansource{\texttt{pipgla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}prox\_\allowbreak{}comparison} \quad ProximalLangevin/\allowbreak{}SplittingTheorem.lean, lines 23–91}
+\begin{leancode}
+\leanline{0}{theorem\ pipgla\_parameter\_rms\_prox\_comparison}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (m\ γ\ lam\ eta\ :\ ℝ)\ (L₁\ K\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hK\ :\ LipschitzWith\ K\ g₂)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hlam\ :\ 0\ <\ lam)\ (heta\ :\ 0\ <\ eta)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)}
+\leanline{4}{(θ\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θ‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(pipglaLaws\ Q\ g₁\ (prox\ g₂\ lam)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n))\ ≤}
+\leanline{6}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θ‖\ \textasciicircum{}\ 2}
+\leanline{8}{∂(pipglaLaws\ Q\ g₁\ (prox\ g₂\ eta)\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n))\ +}
+\leanline{6}{(K\ :\ ℝ)\ *\ |lam\ -\ eta|\ /\ (m\ *\ γ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pipgla\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}prox\_\allowbreak{}comparison} constructs the two square-integrable chains \texttt{X} and \texttt{Y} on the same probability space and the comparison radius \texttt{c}. \texttt{hpoint} uses \texttt{pipgla\allowbreak{}Chain\_\allowbreak{}parameter\_\allowbreak{}comparison\_\allowbreak{}bound} at common initial input, and \texttt{h\allowbreak{}XY} integrates the resulting pointwise bound. The centered projected vectors \texttt{A} and \texttt{B} satisfy \texttt{h\allowbreak{}AB}; projection contraction and the triangle inequality give \texttt{hn}. \texttt{hnorm} identifies each law-based root integral with its corresponding Hilbert-space norm using \texttt{pipgla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}lp\allowbreak{}Law}, \texttt{integral\_\allowbreak{}map} and \texttt{lp\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq\_\allowbreak{}integral}. Both proximal scales are positive; this comparison does not require the noises themselves to be independent Gaussian vectors.
+\end{leanbox}
 
 \section{\texorpdfstring{The finite-particle MYPGD–MYIPLA comparison}{The finite-particle MYPGD–MYIPLA comparison}}
 
@@ -194,13 +370,32 @@ The comparison radius is a finite-particle upper bound and remains for finite \(
 
 
 
+
+Write the full Gaussian innovation as independent parameter and latent blocks. Conditional on both current states, the deterministic update discrepancy and shared latent innovation have zero cross expectation with the centered parameter innovation. Expanding the squared norm therefore adds only \(2\gamma d_\theta/N\). The denominator in the sum is \(1-q^2=m\gamma(2-m\gamma)\), where \(q=1-m\gamma\). The admissible step gives \(0\le m\gamma\le1\), so \(2-m\gamma\ge1\), and division by this positive gap gives \(E_n\le2d_\theta/(Nm)\). Taking nonnegative square roots and applying the parameter transport projection proves the stated comparison radius. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}actual\_\allowbreak{}transport\_\allowbreak{}sq}}
+\leansource{\texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}actual\_\allowbreak{}transport\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGDTheorem.lean, lines 39–54}
+\begin{leancode}
+\leanline{0}{theorem\ mypgd\_myipla\_actual\_transport\_sq\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2}
+\leanline{6}{(mypgdLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)}
+\leanline{6}{(myiplaLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)\ ≠\ ⊤\ ∧}
+\leanline{4}{ULA.wasserstein2Real}
+\leanline{6}{(mypgdLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)}
+\leanline{6}{(myiplaLaws\ Q\ g₁\ (prox\ g₂\ η)\ η\ γ\ initial\ (fun\ k\ =>\ noise\ k)\ n)\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}actual\_\allowbreak{}transport\_\allowbreak{}sq} first uses \texttt{mem\allowbreak{}Lp\_\allowbreak{}map\_\allowbreak{}measure\_\allowbreak{}iff} and \texttt{Lp.\allowbreak{}mem\allowbreak{}Lp initial} to transfer square integrability to the initial distribution. It applies \texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}markov\_\allowbreak{}transport\_\allowbreak{}sq}, the transition-law coupling theorem containing the centered-noise cancellation and geometric recurrence. The two rewrites \texttt{mypgd\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws} and \texttt{myipla\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws} identify these transition iterates with the actual algorithms under \texttt{h\allowbreak{}Gaussian}. Its conclusion includes finite transport before the ordinary real squared-distance bound. The following declaration \texttt{mypgd\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}le\_\allowbreak{}myipla} applies projection to that finite bound.
+\end{leanbox}
+
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Proximal]{LangevinLean2026Proximal}
-LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision 295051dd9fc1. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Proximal particle Langevin}. LL-05, 2026. Draft report, content revision f201d59ac57b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/ProximalLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

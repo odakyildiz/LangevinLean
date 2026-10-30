@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,21 @@ Start with a continuous global solution \(Y\), and suppose the local input is th
 
 The shifted global path and the selected local path have the same starting phase and the same input increment. Subtract their integral equations and apply uniqueness. Their equality follows on the whole local interval, not only at its endpoint.
 
+\begin{leanbox}{Lean: \texttt{kineticSegmentFlow\_\allowbreak{}eq\_\allowbreak{}shift}}
+\leansource{\texttt{kineticSegmentFlow\_\allowbreak{}eq\_\allowbreak{}shift} \quad KineticLangevin/\allowbreak{}SegmentGlobal.lean, lines 11–35}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSegmentFlow\_eq\_shift\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(Y\ :\ ℝ\ →\ E\ ×\ E)\ (B\ W\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (hW\ :\ Continuous\ W)\ (hW0\ :\ W\ 0\ =\ 0)}
+\leanline{4}{(T\ a\ h\ :\ ℝ)\ (ha\ :\ 0\ ≤\ a)\ (hh\ :\ 0\ ≤\ h)\ (hah\ :\ a+h\ ≤\ T)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (B\ t,0))}
+\leanline{4}{(hWseg\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ W\ t\ =\ B\ (a+t)-B\ a)}
+\leanline{4}{(t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{kineticSegmentFlow\ g\ L\ γ\ u\ hg\ h\ hh\ (Y\ a)\ W\ hW\ t\ =\ Y\ (a+t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow\_\allowbreak{}eq\_\allowbreak{}shift} gives the formal counterpart of this step. The main intermediate facts are \texttt{A}, \texttt{Z}, \texttt{hs}, \texttt{h\allowbreak{}Aeq}, \texttt{h\allowbreak{}Zeq}, \texttt{hstart} in that order. Named proof applications include \texttt{hs.\allowbreak{}2.\allowbreak{}2}, \texttt{he}, \texttt{integral\_\allowbreak{}solution\_\allowbreak{}unique}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Identify every stitched grid point with the global solution}{Identify every stitched grid point with the global solution}}
 
@@ -42,6 +80,23 @@ The reference chain starts at \(Y_0\). Inductively assume its state at step \(n\
 
 Induct on the grid index. At zero the initial states coincide; equality of the selected local solution with the shifted global solution identifies the next stitched endpoint. Thus the recursively constructed exact reference sequence is exactly the global flow sampled on the grid.
 
+\begin{leanbox}{Lean: \texttt{kineticReferenceChain\_\allowbreak{}eq\_\allowbreak{}global}}
+\leansource{\texttt{kineticReferenceChain\_\allowbreak{}eq\_\allowbreak{}global} \quad KineticLangevin/\allowbreak{}SegmentGlobal.lean, lines 38–61}
+\begin{leancode}
+\leanline{0}{theorem\ kineticReferenceChain\_eq\_global\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (hW0\ :\ ∀\ n,\ W\ n\ 0\ =\ 0)}
+\leanline{4}{(Y\ :\ ℝ\ →\ E\ ×\ E)\ (B\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (T\ :\ ℝ)}
+\leanline{4}{(hY0\ :\ Y\ 0\ =\ initial)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t-Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (B\ t,0))}
+\leanline{4}{(hsegments\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →\ W\ k\ t\ =\ B\ ((k\ :\ ℝ)*h+t)-B\ ((k\ :\ ℝ)*h))}
+\leanline{4}{(n\ :\ ℕ)\ (hn\ :\ (n\ :\ ℝ)*h\ ≤\ T)\ :}
+\leanline{4}{kineticReferenceChain\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ =\ Y\ ((n\ :\ ℝ)*h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Reference\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}global} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Identify all intermediate times within a reference segment}{Identify all intermediate times within a reference segment}}
 
@@ -52,5 +107,22 @@ Once the starting grid point is identified, the same uniqueness result proves \(
 
 The same uniqueness argument applies before the local endpoint. Hence every intermediate reference time is a value of the global solution. Global stationarity and moment statements can therefore be transferred to all local times needed in integral error bounds.
 
+\begin{leanbox}{Lean: \texttt{kineticReferenceSegment\_\allowbreak{}eq\_\allowbreak{}global}}
+\leansource{\texttt{kineticReferenceSegment\_\allowbreak{}eq\_\allowbreak{}global} \quad KineticLangevin/\allowbreak{}SegmentGlobal.lean, lines 64–78}
+\begin{leancode}
+\leanline{0}{theorem\ kineticReferenceSegment\_eq\_global\ (g\ :\ E\ →\ E)\ (L\ γ\ u\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ L\ g)}
+\leanline{4}{(h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (initial\ :\ E\ ×\ E)\ (W\ :\ ℕ\ →\ ℝ\ →\ E)}
+\leanline{4}{(hW\ :\ ∀\ n,\ Continuous\ (W\ n))\ (hW0\ :\ ∀\ n,\ W\ n\ 0\ =\ 0)}
+\leanline{4}{(Y\ :\ ℝ\ →\ E\ ×\ E)\ (B\ :\ ℝ\ →\ E)\ (hY\ :\ Continuous\ Y)\ (T\ :\ ℝ)}
+\leanline{4}{(hY0\ :\ Y\ 0\ =\ initial)}
+\leanline{4}{(heq\ :\ ∀\ t\ ∈\ Icc\ 0\ T,\ Y\ t-Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ kineticNegativeDrift\ g\ γ\ u\ (Y\ s))\ +\ (B\ t,0))}
+\leanline{4}{(hsegments\ :\ ∀\ k\ t,\ t\ ∈\ Icc\ 0\ h\ →\ W\ k\ t\ =\ B\ ((k\ :\ ℝ)*h+t)-B\ ((k\ :\ ℝ)*h))}
+\leanline{4}{(n\ :\ ℕ)\ (hn\ :\ ((n\ :\ ℝ)+1)*h\ ≤\ T)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{kineticReferenceSegment\ g\ L\ γ\ u\ hg\ h\ hh\ initial\ W\ hW\ n\ t\ =\ Y\ ((n\ :\ ℝ)*h+t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Reference\allowbreak{}Segment\_\allowbreak{}eq\_\allowbreak{}global} gives the formal counterpart of this step. The main intermediate facts are \texttt{hn0} in that order. Named proof applications include \texttt{kinetic\allowbreak{}Segment\allowbreak{}Flow\_\allowbreak{}eq\_\allowbreak{}shift}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

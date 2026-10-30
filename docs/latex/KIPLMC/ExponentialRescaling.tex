@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,9 +58,47 @@ Write \(c>0\), \(\gamma^\prime=c\gamma\), and \(h^\prime=h/c\). A time change co
 
 The velocity response contains one Brownian integration factor, whereas the position response has an additional time primitive. Their different powers of the clock scale are therefore unavoidable. A single common scalar multiplication would not transform the two-component innovation correctly.
 
+\begin{leanbox}{Lean: \texttt{kineticBlockScale}, \texttt{kineticBlockScale\_\allowbreak{}apply}, \texttt{klmcKernels\_\allowbreak{}apply} and 1 more}
+\leansource{\texttt{kineticBlockScale} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 17–18}
+\begin{leancode}
+\leanline{0}{def\ kineticBlockScale\ (c\ :\ ℝ)\ :\ EuclideanSpace\ ℝ\ (Fin\ 2)\ →L[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ 2)\ :=}
+\leanline{2}{Matrix.toEuclideanCLM\ ({\leanfallback 𝕜}\ :=\ ℝ)\ (Matrix.diagonal\ (fun\ i\ :\ Fin\ 2\ ↦\ (Real.sqrt\ c*c\textasciicircum{}(i:ℕ))⁻¹))}
+\end{leancode}
+\leansource{\texttt{kineticBlockScale\_\allowbreak{}apply} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 20–22}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ kineticBlockScale\_apply\ (c\ :\ ℝ)\ (z\ :\ EuclideanSpace\ ℝ\ (Fin\ 2))\ (i\ :\ Fin\ 2)\ :}
+\leanline{4}{kineticBlockScale\ c\ z\ i\ =\ (Real.sqrt\ c*c\textasciicircum{}(i:ℕ))⁻¹*z\ i}
+\end{leancode}
+\leansource{\texttt{klmcKernels\_\allowbreak{}apply} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 24–25}
+\begin{leancode}
+\leanline{0}{theorem\ klmcKernels\_apply\ (γ\ t\ :\ ℝ)\ (i\ :\ Fin\ 2)\ :\ klmcKernels\ γ\ i\ t=psi\ γ\ (i:ℕ)\ t}
+\end{leancode}
+\leansource{\texttt{phaseClockScale} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 89–90}
+\begin{leancode}
+\leanline{0}{def\ phaseClockScale\ (c\ :\ ℝ)\ (z\ :\ E×E)\ :\ E×E\ :=}
+\leanline{2}{((Real.sqrt\ c)⁻¹\ •\ z.1,(Real.sqrt\ c*c)⁻¹\ •\ z.2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Block\allowbreak{}Scale} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
 
 
-Earlier results used here: \cite[Section~3.10.9]{LangevinLean2026Kinetic}.
+
+
+\texttt{kinetic\allowbreak{}Block\allowbreak{}Scale\_\allowbreak{}apply} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{klmc\allowbreak{}Kernels\_\allowbreak{}apply} gives the formal counterpart of this step.
+
+
+
+
+\texttt{phase\allowbreak{}Clock\allowbreak{}Scale} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.10.11]{LangevinLean2026Kinetic}.
 
 \section{\texorpdfstring{The covariance transformation and the Gaussian measure identity}{The covariance transformation and the Gaussian measure identity}}
 
@@ -52,9 +113,29 @@ Both measures are centered Gaussian measures. The mean of their linear pushforwa
 
 The off-diagonal covariance acquires the product of the two different diagonal scale factors. Checking that entry is essential: it verifies that the common Brownian forcing is preserved. Gaussian uniqueness then upgrades the covariance calculation to an equality of measures.
 
+\begin{leanbox}{Lean: \texttt{klmcCovariance\_\allowbreak{}clock}, \texttt{klmcGaussian\_\allowbreak{}clock}}
+\leansource{\texttt{klmcCovariance\_\allowbreak{}clock} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 28–46}
+\begin{leancode}
+\leanline{0}{theorem\ klmcCovariance\_clock\ (c\ γ\ h\ :\ ℝ)\ (hc\ :\ 0<c)\ (i\ j\ :\ Fin\ 2)\ :}
+\leanline{4}{klmcCovariance\ (c*γ)\ (h/c)\ i\ j\ =}
+\leanline{6}{(Real.sqrt\ c*c\textasciicircum{}(i:ℕ))⁻¹\ *\ (Real.sqrt\ c*c\textasciicircum{}(j:ℕ))⁻¹\ *\ klmcCovariance\ γ\ h\ i\ j}
+\end{leancode}
+\leansource{\texttt{klmcGaussian\_\allowbreak{}clock} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 49–85}
+\begin{leancode}
+\leanline{0}{theorem\ klmcGaussian\_clock\ (c\ γ\ h\ :\ ℝ)\ (hc\ :\ 0<c)\ (hh\ :\ 0≤h)\ :}
+\leanline{4}{(klmcGaussian\ γ\ h).map\ (kineticBlockScale\ c)\ =\ klmcGaussian\ (c*γ)\ (h/c)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\allowbreak{}Covariance\_\allowbreak{}clock} gives the formal counterpart of this step. The main intermediate facts are \texttt{hcn}, \texttt{hsn}, \texttt{hss}, \texttt{he}, \texttt{hcoeff} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
 
 
-Earlier results used here: \cite[Section~3.10.3]{LangevinLean2026Kinetic}; \cite[Section~3.10.8]{LangevinLean2026Kinetic}; \cite[Section~3.10.9]{LangevinLean2026Kinetic}; \cite[Section~3.26.1]{LangevinLean2026Kinetic}; \cite[Section~3.26.2]{LangevinLean2026Kinetic}; \cite[Section~3.26.3]{LangevinLean2026Kinetic}.
+
+
+\texttt{klmc\allowbreak{}Gaussian\_\allowbreak{}clock} gives the formal counterpart of this step. Named proof applications include \texttt{Is\allowbreak{}Gaussian.\allowbreak{}ext}, \texttt{kernel\allowbreak{}Gaussian\_\allowbreak{}covariance}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.10.10]{LangevinLean2026Kinetic}; \cite[Section~3.10.11]{LangevinLean2026Kinetic}; \cite[Section~3.10.3]{LangevinLean2026Kinetic}; \cite[Section~3.26.1]{LangevinLean2026Kinetic}; \cite[Section~3.26.2]{LangevinLean2026Kinetic}; \cite[Section~3.26.3]{LangevinLean2026Kinetic}.
 
 \section{\texorpdfstring{Transport the independent spatial blocks without losing correlation}{Transport the independent spatial blocks without losing correlation}}
 
@@ -65,6 +146,16 @@ The particle noise measure is the finite product of these two-component Gaussian
 
 The diagonal block transformation is applied independently at each spatial coordinate. Product pushforward preserves independence between blocks. Because each whole block is transformed together, its internal response correlation is retained exactly.
 
+\begin{leanbox}{Lean: \texttt{exponentialNoise\_\allowbreak{}clock}}
+\leansource{\texttt{exponentialNoise\_\allowbreak{}clock} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 94–108}
+\begin{leancode}
+\leanline{0}{theorem\ exponentialNoise\_clock\ (N\ dθ\ dx\ :\ ℕ)\ (c\ γ\ h\ :\ ℝ)\ (hc\ :\ 0<c)\ (hh\ :\ 0≤h)\ :}
+\leanline{4}{(exponentialNoise\ N\ dθ\ dx\ γ\ h).map\ (phaseClockScale\ c)\ =}
+\leanline{6}{exponentialNoise\ N\ dθ\ dx\ (c*γ)\ (h/c)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{exponential\allowbreak{}Noise\_\allowbreak{}clock} gives the formal counterpart of this step. The main intermediate facts are \texttt{hp}, \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Conjugate the exponential update}{Conjugate the exponential update}}
 
@@ -75,9 +166,22 @@ For \(c=\sqrt N\), multiply velocity by \(c\) and leave position fixed. Under th
 
 The transformed force is the gradient of the sum potential and the transformed velocity has unit temperature. The response scaling and thermal amplitude identities together identify both coordinates of the update. Position remains the original scaled particle position.
 
+\begin{leanbox}{Lean: \texttt{kiplmc1Step\_\allowbreak{}unitTemperature}}
+\leansource{\texttt{kiplmc1Step\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 111–141}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1Step\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)}
+\leanline{4}{(z\ ξ\ :\ State\ N\ dθ\ dx×State\ N\ dθ\ dx)\ :}
+\leanline{4}{klmcStep\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N)}
+\leanline{6}{(rescaleVelocity\ (Real.sqrt\ N)\ z)\ (phaseClockScale\ (Real.sqrt\ N)\ ξ)\ =}
+\leanline{6}{rescaleVelocity\ (Real.sqrt\ N)\ (kiplmc1Step\ U\ γ\ h\ z\ ξ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc1\allowbreak{}Step\_\allowbreak{}unit\allowbreak{}Temperature} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hs}, \texttt{he}, \texttt{hv}, \texttt{hx}, \texttt{hnoise} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
-Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}.
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}.
 
 \section{\texorpdfstring{Pass the clock identity through the Markov laws}{Pass the clock identity through the Markov laws}}
 
@@ -88,9 +192,37 @@ The generic innovation-mapping lemma proves that replacing the noise law by \(R_
 
 One-step transition equality extends by induction to all iterated laws. At each successor step, product pushforward transports the fresh innovation measure and the update together. Thus the law identity includes the full source distribution, not only a deterministic formula.
 
+\begin{leanbox}{Lean: \texttt{markovLaws\_\allowbreak{}noise\_\allowbreak{}map}, \texttt{kiplmc1GaussianLaws\_\allowbreak{}unitTemperature}}
+\leansource{\texttt{markovLaws\_\allowbreak{}noise\_\allowbreak{}map} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 145–161}
+\begin{leancode}
+\leanline{0}{theorem\ markovLaws\_noise\_map\ (G\ :\ A→B→A)\ (R\ :\ Z→B)}
+\leanline{4}{(hG\ :\ Measurable\ (Function.uncurry\ G))\ (hR\ :\ Measurable\ R)}
+\leanline{4}{(μ\ :\ Measure\ A)\ (Q\ :\ Measure\ Z)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ Q]\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.markovLaws\ (fun\ x\ ξ\ ↦\ G\ x\ (R\ ξ))\ Q\ μ\ n\ =\ ULA.markovLaws\ G\ (Q.map\ R)\ μ\ n}
+\end{leancode}
+\leansource{\texttt{kiplmc1GaussianLaws\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 165–200}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1GaussianLaws\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx×State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{(kiplmc1GaussianLaws\ U\ γ\ h\ μ\ n).map\ (rescaleVelocity\ (Real.sqrt\ N))\ =}
+\leanline{6}{ULA.markovLaws\ (klmcStep\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N))}
+\leanline{8}{(exponentialNoise\ N\ dθ\ dx\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N))}
+\leanline{8}{(μ.map\ (rescaleVelocity\ (Real.sqrt\ N)))\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Laws\_\allowbreak{}noise\_\allowbreak{}map} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses.
 
 
-Earlier results used here: \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.113.3]{LangevinLean2026Kinetic}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}.
+
+
+\texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Laws\_\allowbreak{}unit\allowbreak{}Temperature} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg}, \texttt{hstep}, \texttt{hscale}, \texttt{hpair}, \texttt{hscaled}, \texttt{hc} in that order. Named proof applications include \texttt{Continuous.\allowbreak{}measurable}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.113.3]{LangevinLean2026Kinetic}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}.
 
 \section{\texorpdfstring{The thermal initialization and the unchanged position marginal}{The thermal initialization and the unchanged position marginal}}
 
@@ -101,17 +233,45 @@ The physical velocity target is the explicit Gaussian pushforward \(N^{-1/2}\mat
 
 The independent thermal initialization is transported to the independent standard-Gaussian initialization required by the shared theorem. Projecting the full chain-law identity onto position removes the velocity rescaling. This allows the unit-temperature sampling estimate to be imported without changing the observable.
 
+\begin{leanbox}{Lean: \texttt{thermalInitial\_\allowbreak{}unitTemperature}, \texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}unitTemperature}}
+\leansource{\texttt{thermalInitial\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 203–210}
+\begin{leancode}
+\leanline{0}{theorem\ thermalInitial\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [SFinite\ ν]\ :}
+\leanline{4}{((velocityTarget\ N\ dθ\ dx).prod\ ν).map\ (rescaleVelocity\ (Real.sqrt\ N))\ =}
+\leanline{6}{(stdGaussian\ (State\ N\ dθ\ dx)).prod\ ν}
+\end{leancode}
+\leansource{\texttt{kiplmc1GaussianPositionLaws\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}ExponentialRescaling.lean, lines 214–228}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc1GaussianPositionLaws\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)}
+\leanline{4}{(ν\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ ν]\ (n\ :\ ℕ)\ :}
+\leanline{4}{(kiplmc1GaussianLaws\ U\ γ\ h\ ((velocityTarget\ N\ dθ\ dx).prod\ ν)\ n).map\ Prod.snd\ =}
+\leanline{6}{(ULA.markovLaws\ (klmcStep\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N))}
+\leanline{8}{(exponentialNoise\ N\ dθ\ dx\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N))}
+\leanline{8}{((stdGaussian\ (State\ N\ dθ\ dx)).prod\ ν)\ n).map\ Prod.snd}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{thermal\allowbreak{}Initial\_\allowbreak{}unit\allowbreak{}Temperature} gives the formal counterpart of this step. The main intermediate facts are \texttt{hp} in that order. Named proof applications include \texttt{hp.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
 
 
-Earlier results used here: \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.1]{LangevinLean2026Kinetic}.
+
+
+\texttt{kiplmc1\allowbreak{}Gaussian\allowbreak{}Position\allowbreak{}Laws\_\allowbreak{}unit\allowbreak{}Temperature} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hs} in that order. Named proof applications include \texttt{hs}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.12.2]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b4b7242c6d4f. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,28 @@
 \documentclass[11pt,a4paper]{report}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype,xcolor}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project},bookmarksdepth=2}
@@ -18,13 +40,25 @@
 \raggedbottom
 \title{\texorpdfstring{Interacting Particle Langevin under LSI}{Interacting Particle Langevin under LSI}\\[0.6em]\large Mathematical proofs}
 \author{LangevinLean Project}
-\date{Draft report LL-04\\[0.4em]\small Content revision 4d909f318e0f}
+\date{Draft report LL-04\\[0.4em]\small Content revision e69841a9315f}
 \begin{document}
 \pagenumbering{roman}
 \maketitle
 \chapter*{About this document}
 \addcontentsline{toc}{chapter}{About this document}
-Chapter 1 states the assumptions and convergence estimates. Chapter 2 gives their proofs. Chapter 3 proves the supporting lemmas, in an order in which each lemma precedes its applications.
+Chapter 1 states the assumptions and the main results. Chapter 2 proves them, following the argument from the hypotheses to the conclusion in order. Chapter 3 proves the supporting lemmas, each before its first use. The proofs are written for readers with an undergraduate background in analysis, linear algebra and probability; definitions are recalled where they are first used, and each inequality is justified.
+
+\section*{Mathematics and its Lean formalization}
+Every result is followed by a grey box headed \emph{Lean}. The box reproduces the exact statement of the corresponding Lean declaration, read from the source file and line range named in the box, and then explains how the Lean proof follows the mathematical argument: which hypothesis encodes which assumption, and which formal step carries out which step of the proof. The mathematics can be read without the boxes; the boxes connect each claim to the statement that Lean has checked.
+
+\section*{Checking the proofs}
+The results are verified by Lean 4 with the Mathlib library, at the versions pinned in the repository \url{https://github.com/odakyildiz/LangevinLean}. After installing the Lean toolchain manager elan and cloning the repository, run from its root:
+\begin{leancode}
+\leanline{0}{lake\ exe\ cache\ get}
+\leanline{0}{lake\ build\ IPLA}
+\leanline{0}{lake\ env\ lean\ IPLA/LSI/Check.lean}
+\end{leancode}
+The second command checks every proof in the library. The third prints the axioms on which the main theorems depend; they are only the standard axioms of propositional extensionality, choice and quotient soundness.
 
 Prepared by the LangevinLean Project with AI assistance, these notes form part of an ongoing effort to formalize Langevin algorithms comprehensively. This is draft work and may contain mistakes.
 
@@ -44,7 +78,7 @@ Results from the earlier reports \cite{LangevinLean2026ULASC,LangevinLean2026ULA
 \section{\texorpdfstring{Joint KL bound and the linear lifted-LSI specialization}{Joint KL bound and the linear lifted-LSI specialization}}
 
 
-Let \(N\ge1\) and \(D=d_\theta+Nd_x\) with \(D\ge1\). Assume differentiable joint potential \(U(\theta,x)\) has globally \(L\)-Lipschitz gradient and \(L>0\). Define the scaled potential and target by
+Let \(N\ge1\) and \(D=d_\theta+Nd_x\). Assume differentiable joint potential \(U(\theta,x)\) has globally \(L\)-Lipschitz gradient and \(L>0\). Define the scaled potential and target by
 
 \[z=(\theta,x^1/\sqrt N,\ldots,x^N/\sqrt N),\qquad
 V_N(z)=\sum_{i=1}^NU(\theta,\sqrt N z_i),\quad
@@ -68,6 +102,24 @@ e^{-\alpha\gamma k}\frac{H_{\Pi_N}(\mu_0)}N
 
 The step condition is then \(0<\gamma\le\alpha/(4L^2)\). The functional inequality is assumed for the coupled lifted target itself; a one-pair inequality is insufficient for this substitution. Gaussian interpolation and moment estimates follow from \cite[Section~3.29.7]{LangevinLean2026ULALSI} and finite initial joint entropy. If \(D=0\), the state space is a singleton and all probability-law divergences vanish.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 76–96}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_linear\_lsi\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\end{leanbox}
 
 {\small\color{gray}Supporting proof: Section~\ref{proof-module-IPLA-LSI-UnconditionalTheorem-lean}.\par}
 \chapter{Mathematical argument}
@@ -93,6 +145,21 @@ Multiplication of a latent scaled coordinate by \(\sqrt N\) gives the physical f
 
 The same joint innovations therefore realize the same particle algorithm. Its full dimension \(D\) and full joint entropy are the quantities used in the Gaussian Euler entropy theorem \cite[Section~3.29.7]{LangevinLean2026ULALSI}.
 
+\begin{leanbox}{Lean: \texttt{particleLaws\_\allowbreak{}eq\_\allowbreak{}laws}}
+\leansource{\texttt{particleLaws\_\allowbreak{}eq\_\allowbreak{}laws} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 53–62}
+\begin{leancode}
+\leanline{0}{theorem\ particleLaws\_eq\_laws}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ GaussianInnovations\ P\ initial\ noise)\ (k\ :\ ℕ)\ :}
+\leanline{4}{particleLaws\ U\ γ\ (P.map\ initial)\ k\ =}
+\leanline{6}{laws\ P\ U\ γ\ L\ hdiff\ hLip\ initial\ noise\ k}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}laws} unfolds \texttt{particle\allowbreak{}Laws} and \texttt{ULA.\allowbreak{}LSI.\allowbreak{}ula\allowbreak{}Laws}, then uses \texttt{IPLA.\allowbreak{}laws\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} in the reverse direction. The latter identifies the actual random recursion with the Gaussian transition iterate under \texttt{h\allowbreak{}Gaussian}. The scaled geometry supplies its differentiability and Lipschitz constants separately. Since this is a probability-law identity, the same substitution applies to KL, Fisher regularity at positive interpolation times, and the recurrence without choosing a new realization.
+\end{leanbox}
 \section{\texorpdfstring{The lifted one-step entropy recurrence}{The lifted one-step entropy recurrence}}
 
 
@@ -116,6 +183,23 @@ The logarithmic Sobolev hypothesis includes target normalization by \cite[Sectio
 
 The recurrence is for full joint divergence. There is no factor \(N^{-1}\) in its forcing because the squared step contributes \(N^{-2}\) and squared gradient constant contributes \(N^2\). Division by \(N\) is a separate normalization of the entire inequality.
 
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step}}
+\leansource{\texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 205–220}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_kl\_one\_step}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (α\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hLSI\ :\ IsLogSobolev\ (ULA.gibbsMeasure\ U)\ α)}
+\leanline{4}{(hsmall\ :\ h\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ (k\ +\ 1)\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ h)\ *\ ulaEntropy\ U\ h\ μ\ (ULA.gibbsMeasure\ U)\ k\ +}
+\leanline{8}{6\ *\ h\ \textasciicircum{}\ 2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} first installs the probability instance for the current iterate. It obtains \texttt{hfinite} from \texttt{ula\_\allowbreak{}kl\_\allowbreak{}finite}, with \texttt{positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step} providing positive smoothness from the admissible positive step. \texttt{interpolation\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} is then applied to that current law. The final \texttt{interpolation\allowbreak{}Law\_\allowbreak{}endpoint} rewrite changes the interpolation endpoint into the successor iterate. Substituting the lifted potential, its gradient bound and scaled step yields the particle recurrence; the particle-count cancellation in the forcing is scalar algebra, not a further probabilistic premise.
+\end{leanbox}
 \section{\texorpdfstring{Full and per-particle joint entropy estimates}{Full and per-particle joint entropy estimates}}
 
 
@@ -140,6 +224,42 @@ Under \(\beta_N=N\alpha\) the full dimension \(D=d_\theta+Nd_x\) gives
 
 The parameter contribution is divided by particle count, while one latent-dimension contribution remains. This is scalar normalization of the same-reference entropy, not a change of measure. Assumption \(\beta_N=N\alpha\) must hold for the interacting lifted target.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}, \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 56–72}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_normalized\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{8\ *\ γ\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 76–96}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_linear\_lsi\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} obtains the finite-divergence result \texttt{hfinite} and full numerical bound \texttt{hb} from \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}. \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} divides the complete inequality by the positive particle count. For the linear specialization, \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} establishes \texttt{hn} and \texttt{h\allowbreak{}L}, rewrites the step condition with \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff}, and applies the normalized theorem with the lifted constant. \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} give exactly the displayed exponent and dimension normalization. Both conclusions retain finite output KL as their first component.
+\end{leanbox}
 \section{\texorpdfstring{Parameter-law relative entropy by data processing}{Parameter-law relative entropy by data processing}}
 
 
@@ -164,6 +284,28 @@ For density \(R=d\mu_k/d\Pi_N\), its marginal density is \(\mathbb E_{\Pi_N}[R\m
 
 There is no factor \(N^{-1}\) in data processing. Hence normalization of a joint entropy bound must be undone by multiplication by \(N\) before it bounds the ordinary parameter divergence.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 100–121}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{6}{(@parameterTarget\ N\ dθ\ dx\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{8}{(@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{12}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} first supplies probability instances for the numerical law and Gibbs target. It calls \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} for the full joint bound and its finiteness. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} gives finite projected divergence, while \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} applies data processing and transfers the full upper bound. The target \texttt{parameter\allowbreak{}Target} is the pushforward of the same lifted Gibbs probability. No normalization by particle count is inserted in these projection lemmas.
+\end{leanbox}
 \chapter{Supporting proofs}
 The following sections give the definitions and prove the lemmas used in the convergence arguments.
 
@@ -191,7 +333,36 @@ The lifted theorem uses \(h=\gamma/N\), \(L_N=NL\), \(D=d_\theta+Nd_x\), and tar
 
 Squaring the lifted gradient constant introduces \(N^2\). The scaled Euler step contributes \(1/N\), leaving one factor \(N\) in the physical restriction. Growth of the lifted logarithmic Sobolev constant proportional to \(N\) cancels that factor. Since the pair potentials share a parameter, this growth is not inferred from product tensorization of independent pair targets.
 
+\begin{leanbox}{Lean: \texttt{lifted\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff}, \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility\_\allowbreak{}iff}, \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility} and 1 more}
+\leansource{\texttt{lifted\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 22–29}
+\begin{leancode}
+\leanline{0}{theorem\ lifted\_lsi\_step\_iff\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (β\ L\ γ\ :\ ℝ)\ (hL\ :\ 0\ <\ L)\ :}
+\leanline{4}{γ\ /\ (N\ :\ ℝ)\ ≤\ β\ /\ (4\ *\ ((N\ :\ ℝ)\ *\ L)\ \textasciicircum{}\ 2)\ ↔}
+\leanline{6}{γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ L\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility\_\allowbreak{}iff} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 32–35}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_lsi\_compatibility\_iff\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (α\ L\ :\ ℝ)\ :}
+\leanline{4}{(N\ :\ ℝ)\ *\ α\ ≤\ (N\ :\ ℝ)\ *\ L\ ↔\ α\ ≤\ L}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 37–39}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_lsi\_compatibility\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (α\ L\ :\ ℝ)}
+\leanline{4}{(hαL\ :\ α\ ≤\ L)\ :\ (N\ :\ ℝ)\ *\ α\ ≤\ (N\ :\ ℝ)\ *\ L}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 43–49}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_lsi\_step\_iff\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (α\ L\ γ\ :\ ℝ)\ (hL\ :\ 0\ <\ L)\ :}
+\leanline{4}{γ\ ≤\ ((N\ :\ ℝ)\ *\ α)\ /\ (4\ *\ (N\ :\ ℝ)\ *\ L\ \textasciicircum{}\ 2)\ ↔}
+\leanline{6}{γ\ ≤\ α\ /\ (4\ *\ L\ \textasciicircum{}\ 2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lifted\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff} rewrites the lifted step denominator and uses positivity of \texttt{N} to cancel it from the inequality. \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility\_\allowbreak{}iff} likewise cancels a positive particle factor; \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility} selects its forward consequence. \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff} cancels the particle factors in the specialized admissible step. \texttt{field\_\allowbreak{}simp} uses the explicitly proved nonzero denominators, so every cancellation is justified by \texttt{h\allowbreak{}N} and the stated positive smoothness premise.
 
+
+
+Formal correspondence: lifted\_lsi\_step\_iff : The ULA restriction for the lifted step is exactly this IPLA restriction. linear\_lsi\_compatibility\_iff : The scaled compatibility condition is equivalent to the base comparison. linear\_lsi\_step\_iff : When the actual lifted LSI constant is \(N\alpha\), the IPLA step restriction has no remaining particle-number factor.
+\end{leanbox}
 \subsection{\texorpdfstring{The contraction exponent under time scaling}{The contraction exponent under time scaling}}
 \label{report-step-IPLA-LSI-Scaling-lean-2}
 
@@ -202,7 +373,32 @@ The identity \(-\beta(\gamma/N)k=-\beta\gamma k/N\) gives equality of the corres
 
 Thus uniformity in \(N\) requires the stated linear scaling of the lifted constant. In one step the exponent is \(\beta h\), and after \(k\) steps it is \(\beta hk\). The elapsed physical time is \(k\gamma\), so the decay coefficient per unit physical time is \(\beta/N\). A lower bound of order \(N\) on the lifted constant therefore gives a rate uniform in particle count.
 
+\begin{leanbox}{Lean: \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq}, \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq}, \texttt{linear\_\allowbreak{}ula\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq}}
+\leansource{\texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 52–56}
+\begin{leancode}
+\leanline{0}{theorem\ lifted\_entropy\_rate\_eq\ (N\ :\ ℕ)\ (β\ γ\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{Real.exp\ (-β\ *\ (γ\ /\ (N\ :\ ℝ))\ *\ k)\ =}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ (N\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 60–65}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_entropy\_rate\_eq\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (α\ γ\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{Real.exp\ (-((N\ :\ ℝ)\ *\ α)\ *\ γ\ *\ k\ /\ (N\ :\ ℝ))\ =}
+\leanline{6}{Real.exp\ (-α\ *\ γ\ *\ k)}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}ula\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 68–71}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_ula\_entropy\_rate\_eq\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (α\ γ\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{Real.exp\ (-((N\ :\ ℝ)\ *\ α)\ *\ (γ\ /\ (N\ :\ ℝ))\ *\ k)\ =}
+\leanline{6}{Real.exp\ (-α\ *\ γ\ *\ k)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} uses equality of exponential arguments and scalar ring algebra to move the particle denominator. \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} cancels the nonzero particle factor in the specialized exponent. \texttt{linear\_\allowbreak{}ula\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} performs these two rewrites in sequence. Only positivity of the particle count is needed for the cancellation; no sign condition on the scalar exponent parameters is used in these identities.
 
+
+
+Formal correspondence: lifted\_entropy\_rate\_eq : The general decay rate retains the actual lifted LSI constant. linear\_entropy\_rate\_eq : The rewritten general rate simplifies under the additional linear LSI scaling assumption. linear\_ula\_entropy\_rate\_eq : The same simplification directly from the ULA step notation.
+\end{leanbox}
 \subsection{\texorpdfstring{Full and per-particle entropy error terms}{Full and per-particle entropy error terms}}
 \label{report-step-IPLA-LSI-Scaling-lean-3}
 
@@ -221,7 +417,43 @@ The algebraic identity can treat \(\alpha=0\) separately, but entropy applicatio
 
 The forcing in one step is instead \(6h^2DL_N^2=6\gamma^2DL^2\), whose normalized version is \(6\gamma^2L^2(d_x+d_\theta/N)\). This distinction accounts for the factor \(N\) between full and per-particle quantities. Division by \(N\) leaves the exponential unchanged. The error also depends on the full dimension \(D\); rewriting \(D/N\) displays the parameter and latent contributions separately.
 
+\begin{leanbox}{Lean: \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq}, \texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq}, \texttt{normalized\_\allowbreak{}dimension\_\allowbreak{}eq} and 2 more}
+\leansource{\texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 75–82}
+\begin{leancode}
+\leanline{0}{theorem\ lifted\_entropy\_bias\_eq\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (β\ γ\ L\ D\ :\ ℝ)\ :}
+\leanline{4}{8\ *\ (γ\ /\ (N\ :\ ℝ))\ *\ D\ *\ ((N\ :\ ℝ)\ *\ L)\ \textasciicircum{}\ 2\ /\ β\ =}
+\leanline{6}{8\ *\ γ\ *\ (N\ :\ ℝ)\ *\ D\ *\ L\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leansource{\texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 85–91}
+\begin{leancode}
+\leanline{0}{theorem\ normalized\_entropy\_bias\_eq\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (β\ γ\ L\ D\ :\ ℝ)\ :}
+\leanline{4}{(8\ *\ γ\ *\ (N\ :\ ℝ)\ *\ D\ *\ L\ \textasciicircum{}\ 2\ /\ β)\ /\ (N\ :\ ℝ)\ =}
+\leanline{6}{8\ *\ γ\ *\ D\ *\ L\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leansource{\texttt{normalized\_\allowbreak{}dimension\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 94–99}
+\begin{leancode}
+\leanline{0}{theorem\ normalized\_dimension\_eq\ (N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ :}
+\leanline{4}{((dθ\ +\ N\ *\ dx\ :\ ℕ)\ :\ ℝ)\ /\ (N\ :\ ℝ)\ =\ (dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 102–110}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_normalized\_entropy\_bias\_eq\ (N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (α\ γ\ L\ :\ ℝ)\ :}
+\leanline{4}{8\ *\ γ\ *\ ((dθ\ +\ N\ *\ dx\ :\ ℕ)\ :\ ℝ)\ *\ L\ \textasciicircum{}\ 2\ /\ ((N\ :\ ℝ)\ *\ α)\ =}
+\leanline{6}{(8\ *\ γ\ *\ L\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 114–123}
+\begin{leancode}
+\leanline{0}{theorem\ normalize\_entropy\_bound\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (β\ γ\ L\ D\ H\ H₀\ q\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ H\ ≤\ q\ *\ H₀\ +\ 8\ *\ γ\ *\ (N\ :\ ℝ)\ *\ D\ *\ L\ \textasciicircum{}\ 2\ /\ β)\ :}
+\leanline{4}{H\ /\ (N\ :\ ℝ)\ ≤\ q\ *\ (H₀\ /\ (N\ :\ ℝ))\ +\ 8\ *\ γ\ *\ D\ *\ L\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} cancels one particle factor from the squared smoothness and time step, leaving the full entropy bias. \texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} cancels the further factor arising from division by particle count. \texttt{normalized\_\allowbreak{}dimension\_\allowbreak{}eq} expands the natural-number dimension after \texttt{push\_\allowbreak{}cast}. \texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} handles a zero entropy constant separately before clearing denominators in the other case. \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} divides the complete supplied inequality by the positive particle count, including the initial-entropy term.
 
+
+
+Formal correspondence: lifted\_entropy\_bias\_eq : The unnormalized entropy bias after substituting the lifted step and smoothness. The dimension \(D\) is kept as a scalar parameter. normalized\_entropy\_bias\_eq : Dividing the entropy by the particle number cancels one bias factor. normalized\_dimension\_eq : The intensive dimension appearing in normalized entropy. linear\_normalized\_entropy\_bias\_eq : The normalized bias under an LSI constant \(N\alpha\) for the actual lift. normalize\_entropy\_bound : A general entropy bound can be divided by the positive particle number, with its initial contribution and bias both normalized exactly.
+\end{leanbox}
 \subsection{\texorpdfstring{Normalization of the one-step entropy recurrence}{Normalization of the one-step entropy recurrence}}
 \label{report-step-IPLA-LSI-Scaling-lean-4}
 
@@ -240,7 +472,44 @@ The implication follows by division by positive \(N\) and substitution in the ex
 
 Summing the one-step forcing introduces denominator \(1-e^{-\beta h}\), of order \(\beta h\). Thus a forcing quadratic in the step gives a long-time error linear in the step. Numerical normalization changes neither this summation nor its analytic hypotheses.
 
+\begin{leanbox}{Lean: \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq}, \texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq}, \texttt{normalize\_\allowbreak{}lifted\_\allowbreak{}entropy\_\allowbreak{}recurrence} and 1 more}
+\leansource{\texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 127–130}
+\begin{leancode}
+\leanline{0}{theorem\ lifted\_entropy\_forcing\_eq\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (γ\ L\ D\ :\ ℝ)\ :}
+\leanline{4}{6\ *\ (γ\ /\ (N\ :\ ℝ))\ \textasciicircum{}\ 2\ *\ D\ *\ ((N\ :\ ℝ)\ *\ L)\ \textasciicircum{}\ 2\ =\ 6\ *\ γ\ \textasciicircum{}\ 2\ *\ D\ *\ L\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 133–139}
+\begin{leancode}
+\leanline{0}{theorem\ normalized\_entropy\_forcing\_eq\ (N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (γ\ L\ :\ ℝ)\ :}
+\leanline{4}{(6\ *\ γ\ \textasciicircum{}\ 2\ *\ ((dθ\ +\ N\ *\ dx\ :\ ℕ)\ :\ ℝ)\ *\ L\ \textasciicircum{}\ 2)\ /\ (N\ :\ ℝ)\ =}
+\leanline{6}{6\ *\ γ\ \textasciicircum{}\ 2\ *\ L\ \textasciicircum{}\ 2\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{normalize\_\allowbreak{}lifted\_\allowbreak{}entropy\_\allowbreak{}recurrence} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 143–158}
+\begin{leancode}
+\leanline{0}{theorem\ normalize\_lifted\_entropy\_recurrence\ (N\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(β\ γ\ L\ D\ :\ ℝ)\ (H\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(hstep\ :\ ∀\ k,\ H\ (k\ +\ 1)\ ≤\ Real.exp\ (-β\ *\ (γ\ /\ (N\ :\ ℝ)))\ *\ H\ k\ +}
+\leanline{6}{6\ *\ (γ\ /\ (N\ :\ ℝ))\ \textasciicircum{}\ 2\ *\ D\ *\ ((N\ :\ ℝ)\ *\ L)\ \textasciicircum{}\ 2)\ (k\ :\ ℕ)\ :}
+\leanline{4}{H\ (k\ +\ 1)\ /\ (N\ :\ ℝ)\ ≤\ Real.exp\ (-β\ *\ γ\ /\ (N\ :\ ℝ))\ *\ (H\ k\ /\ (N\ :\ ℝ))\ +}
+\leanline{6}{(6\ *\ γ\ \textasciicircum{}\ 2\ *\ D\ *\ L\ \textasciicircum{}\ 2)\ /\ (N\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}recurrence} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Scaling.lean, lines 161–172}
+\begin{leancode}
+\leanline{0}{theorem\ linear\_normalized\_entropy\_recurrence\ (N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(α\ γ\ L\ :\ ℝ)\ (H\ :\ ℕ\ →\ ℝ)}
+\leanline{4}{(hstep\ :\ ∀\ k,\ H\ (k\ +\ 1)\ ≤\ Real.exp\ (-((N\ :\ ℝ)\ *\ α)\ *\ (γ\ /\ (N\ :\ ℝ)))\ *\ H\ k\ +}
+\leanline{6}{6\ *\ (γ\ /\ (N\ :\ ℝ))\ \textasciicircum{}\ 2\ *\ ((dθ\ +\ N\ *\ dx\ :\ ℕ)\ :\ ℝ)\ *\ ((N\ :\ ℝ)\ *\ L)\ \textasciicircum{}\ 2)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{H\ (k\ +\ 1)\ /\ (N\ :\ ℝ)\ ≤\ Real.exp\ (-α\ *\ γ)\ *\ (H\ k\ /\ (N\ :\ ℝ))\ +}
+\leanline{6}{6\ *\ γ\ \textasciicircum{}\ 2\ *\ L\ \textasciicircum{}\ 2\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq} cancels both particle factors between squared step and squared smoothness. \texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq} inserts the effective dimension after division by particle count. \texttt{normalize\_\allowbreak{}lifted\_\allowbreak{}entropy\_\allowbreak{}recurrence} applies the positive-division equivalence to \texttt{hstep k} and rewrites its exponent and forcing. \texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}recurrence} then invokes that result and rewrites the linearly scaled exponent with \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq}. These are scalar consequences of an explicitly supplied recurrence.
 
+
+
+Formal correspondence: lifted\_entropy\_forcing\_eq : The unnormalized one-step forcing loses both particle factors from the squared step. normalized\_entropy\_forcing\_eq : The normalized one-step forcing has the intensive dimension. normalize\_lifted\_entropy\_recurrence : Normalizing the lifted one-step recurrence. Its analytic recurrence is an explicit premise; this theorem performs only scalar scaling. linear\_normalized\_entropy\_recurrence : The normalized recurrence under the additional linear lifted-LSI scale.
+\end{leanbox}
 \section{\texorpdfstring{Entropy convergence under interpolation regularity assumptions}{Entropy convergence under interpolation regularity assumptions}}
 \label{proof-module-IPLA-LSI-Theorem-lean}
 
@@ -257,11 +526,53 @@ Earlier results used here: \cite[Section~3.16]{LangevinLean2026IPLA}; \cite[Sect
 
 The Gaussian Euler transition is the measurable pushforward of the product of a current probability law and an independent standard Gaussian law. It is therefore a probability kernel, and each finite iterate has total mass one. Independence of the innovation sequence identifies these iterated laws with the particle recursion. This identification does not require a stationary reference process.
 
+\begin{leanbox}{Lean: \texttt{particleLaws}, \texttt{particleLaws\_\allowbreak{}zero}, \texttt{particleLaws\_\allowbreak{}isProbability} and 1 more}
+\leansource{\texttt{particleLaws} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 34–38}
+\begin{leancode}
+\leanline{0}{def\ particleLaws\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (γ\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ (k\ :\ ℕ)\ :\ Measure\ (State\ N\ dθ\ dx)\ :=}
+\leanline{2}{ULA.LSI.ulaLaws\ (@potential\ N\ dθ\ dx\ U)\ (γ\ /\ N)\ μ\ k}
+\leanline{0}{\strut}
+\leanline{0}{@[simp]}
+\end{leancode}
+\leansource{\texttt{particleLaws\_\allowbreak{}zero} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 39–40}
+\begin{leancode}
+\leanline{0}{theorem\ particleLaws\_zero\ \{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (γ\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ :\ particleLaws\ U\ γ\ μ\ 0\ =\ μ}
+\end{leancode}
+\leansource{\texttt{particleLaws\_\allowbreak{}isProbability} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 43–49}
+\begin{leancode}
+\leanline{0}{theorem\ particleLaws\_isProbability}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (γ\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (k\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (particleLaws\ U\ γ\ μ\ k)}
+\end{leancode}
+\leansource{\texttt{particleLaws\_\allowbreak{}eq\_\allowbreak{}laws} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 53–62}
+\begin{leancode}
+\leanline{0}{theorem\ particleLaws\_eq\_laws}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(initial\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ GaussianInnovations\ P\ initial\ noise)\ (k\ :\ ℕ)\ :}
+\leanline{4}{particleLaws\ U\ γ\ (P.map\ initial)\ k\ =}
+\leanline{6}{laws\ P\ U\ γ\ L\ hdiff\ hLip\ initial\ noise\ k}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\allowbreak{}Laws} defines the lifted Gaussian Euler iterates at step divided by particle count. \texttt{particle\allowbreak{}Laws\_\allowbreak{}zero} is \texttt{rfl}, since a zero-fold iterate is the input measure. \texttt{particle\allowbreak{}Laws\_\allowbreak{}is\allowbreak{}Probability} applies the Gaussian-law normalization result with \texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}. \texttt{particle\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}laws} unfolds the iterates and rewrites using \texttt{IPLA.\allowbreak{}laws\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} in the reverse direction; \texttt{h\allowbreak{}Gaussian} supplies all coordinate laws and independence for the actual recursion.
 
 
 
+Define \(\rho_k=\mu_0K_{\gamma/N}^{\,k}\); at \(k=0\) this is \(\mu_0\) by the iterate definition. The lifted gradient is \(NL\)-Lipschitz, so the measurable Gaussian transition preserves probability, and induction through the shared ULA law theorem proves \(\rho_k\) is a probability for every \(k\). If \(\mu_0\) is the initial law of the explicit independent-Gaussian IPLA recursion, \texttt{laws\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} identifies it with this same iterate. Thus the entropy result concerns the actual algorithm rather than a substituted reference process.
 
-Earlier results used here: \cite[Section~3.8.4]{LangevinLean2026ULALSI}; \cite[Section~3.8.6]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.16.3]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
+
+
+Formal correspondence: particleLaws : The canonical Markov laws of IPLA, using its proved lifted-ULA transition. particleLaws\_isProbability : The actual lifted IPLA transition preserves probability mass. particleLaws\_eq\_laws : These Markov laws agree with the existing noise-driven Gaussian IPLA realization, including its scalar coordinate laws and independence.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.8.2]{LangevinLean2026ULALSI}; \cite[Section~3.8.8]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.16.3]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 \subsection{\texorpdfstring{Finiteness of the discrete joint entropy}{Finiteness of the discrete joint entropy}}
 \label{report-step-IPLA-LSI-Theorem-lean-2}
 
@@ -272,8 +583,28 @@ The logarithmic Sobolev hypothesis includes normalization of \(\Pi_N\). Assume p
 
 For a relative density \(r\), the entropy equals \(\int r\log r\,d\Pi_N\) when the integrand is integrable. The interpolation assumptions justify this integral and identify its interval endpoints with the discrete laws. In particular the entropy of \(\rho_k\) is finite. This conclusion is required before using the divergence as a real number in the differential inequality and recurrence.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}finite}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}finite} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 66–74}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_finite}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ (hγ\ :\ 0\ ≤\ γ)}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}finite} extracts target normalization from \texttt{h\allowbreak{}LSI.\allowbreak{}1}. It then applies \texttt{data.\allowbreak{}kl\_\allowbreak{}finite} with the nonnegative scaled step. Here \texttt{data} is explicitly supplied \texttt{ULA.\allowbreak{}LSI.\allowbreak{}Regular\allowbreak{}Interpolation\allowbreak{}Data}: this intermediate theorem retains those density and entropy-regularity hypotheses. The later unconditional theorem constructs their analytic consequences from finite initial KL instead.
 
 
+
+The time-zero interpolation identity transfers this density-level KL finiteness to the actual iterate. In the probability-law application, the integrable entropy density also equals that actual finite KL. This guard precedes every use of \texttt{to\allowbreak{}Real}; infinite divergence is never turned into an artificial zero. The proof requires the supplied regularity, not a strong-convexity premise.
+
+
+
+Formal correspondence: particle\_kl\_finite : The identified regular interpolation gives finite actual IPLA relative entropy. Target normalization follows from the lifted LSI assumption.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -295,9 +626,54 @@ An affine differential comparison and \(e^{-3x/2}+x/4\le e^{-x}\) for \(0\le x\l
 
 Division by positive \(N\) gives the normalized recurrence with forcing \(6\gamma^2L^2(d_x+d_\theta/N)\). The error field is the difference between the current-gradient drift and the drift frozen at the beginning of the interval. Young’s inequality absorbs its score pairing into Fisher dissipation, and the logarithmic Sobolev inequality bounds entropy by that dissipation. The step restriction limits the old-entropy contribution from the error so that the remaining recurrence is contractive. Thus the recurrence is derived from the regularity and error assumptions, rather than included among them.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step}, \texttt{particle\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}normalized}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 78–107}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_one\_step}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hβL\ :\ β\ ≤\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ (k\ +\ 1))\ (gibbsTarget\ U)).toReal\ ≤}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ /\ N)\ *}
+\leanline{8}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ +}
+\leanline{10}{6\ *\ γ\ \textasciicircum{}\ 2\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}normalized} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 111–136}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_one\_step\_normalized}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hβL\ :\ β\ ≤\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ (k\ +\ 1))\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ /\ N)\ *}
+\leanline{8}{((InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{10}{(6\ *\ γ\ \textasciicircum{}\ 2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step} proves \texttt{hn} and positive smoothness \texttt{h\allowbreak{}L} from the particle count and compatibility premise. \texttt{hs} uses \texttt{lifted\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff}; \texttt{h\allowbreak{}Ls}, \texttt{h\ensuremath{\beta}\allowbreak{}Ls} and \texttt{hscaled} express the same facts at the nonnegative-real lifted Lipschitz constant. \texttt{data.\allowbreak{}one\_\allowbreak{}step} gives the analytic recurrence. The last simplification uses \texttt{finrank\_\allowbreak{}state}, \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq} and \texttt{hrate}. \texttt{particle\_\allowbreak{}kl\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}normalized} divides that entire recurrence by the positive particle count and uses \texttt{normalized\_\allowbreak{}entropy\_\allowbreak{}forcing\_\allowbreak{}eq}.
 
 
 
+Let \(H_k=\operatorname{KL}(\rho_k\Vert\Pi_N)\). The canonical laws are those of the actual lifted Gaussian Euler kernel, and the law identity relates them to the supplied realization. The regular interpolation data connect the density at both endpoints of every Euler interval to these same laws, and supply the analytic weak-equation and moment regularity used by the shared entropy theorem. Finite KL is proved before \texttt{to\allowbreak{}Real} is used.
+
+
+
+Apply that theorem with \(h=\gamma/N\), \(L_N=NL\), dimension \(D\), and actual lifted LSI constant \(\beta\). The compatibility and positive-step facts are established by \texttt{h\allowbreak{}L}, \texttt{h\allowbreak{}Ls}, \texttt{h\ensuremath{\beta}\allowbreak{}Ls} and \texttt{hscaled}. The result is \[H_{k+1}\le e^{-\beta\gamma/N}H_k+6\gamma^2DL^2.\] The normalized declaration divides this proved inequality by positive \(N\) and substitutes \(D/N=d_x+d_\theta/N\).
+
+
+
+Formal correspondence: particle\_kl\_one\_step : The one-step entropy recurrence is derived from the regular weak interpolation equation. The forcing is \(6\gamma^2DL^2\) in the full state. particle\_kl\_one\_step\_normalized : The actual one-step recurrence per particle has the intensive dimension \(d_x+d_\theta/N\).
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -323,7 +699,46 @@ The exponent controlling the geometric sum is \(\beta h\). The resulting full es
 
 Division by \(N\) applies to both the initial entropy and the error term. If the additional lifted-target assumption \(\operatorname{LSI}(\Pi_N,N\alpha)\) holds, substitution gives rate \(e^{-\alpha\gamma k}\) and dimension factor \(d_x+d_\theta/N\). The denominator of the geometric series is positive because \(\beta,h>0\). Its lower bound on \(1-e^{-\beta h}\) changes the quadratic one-step forcing to the linear-step error term. The finite sum is bounded in this way for every finite \(k\); no infinite-time limit is used.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound}, \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 141–169}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hβL\ :\ β\ ≤\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ ≤}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{8}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{10}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 173–189}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_normalized}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hβL\ :\ β\ ≤\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{8}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{10}{8\ *\ γ\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound} derives the same positive scaled constants and admissible step, then applies \texttt{data.\allowbreak{}kl\_\allowbreak{}bound}. The dimension, rate and bias rewrites are \texttt{finrank\_\allowbreak{}state}, \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq}. \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized} invokes \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} on this full joint estimate. Both results retain the explicit regular-interpolation input \texttt{data}; the unconditional endpoint is a separate theorem.
 
+
+
+Formal correspondence: particle\_kl\_bound : The shared ULA entropy argument in IPLA coordinates. The LSI constant \(\beta\) belongs to the full lifted target; in particular it is not assumed to equal \(N\) times a pair-target constant. particle\_kl\_bound\_normalized : Dividing the full-state relative entropy by the particle number gives its natural per-particle normalization.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -337,7 +752,30 @@ Assume the lifted target has logarithmic Sobolev constant \(N\alpha\), with \(0<
 
 The substitution \(\beta=N\alpha\) is a hypothesis concerning the coupled lifted Gibbs law. After division by \(N\), its dimension term is \(d_x+d_\theta/N\). The common parameter prevents a product decomposition into independent parameter–particle targets. Accordingly a one-pair logarithmic Sobolev inequality alone does not supply this specialization.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 195–215}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_of\_linear\_lsi}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hαL\ :\ α\ ≤\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α)}
+\leanline{6}{(γ\ /\ N)\ ((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{8}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{10}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi} sets the lifted constant to particle count times the base constant. \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff} rewrites the step premise and \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}compatibility} supplies compatibility. The normalized theorem is then specialized to these values. \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} produce the final rate and effective dimension. The lifted-target functional inequality with that scaled constant remains an explicit hypothesis.
 
+
+
+Formal correspondence: particle\_kl\_bound\_of\_linear\_lsi : If the lifted target actually has LSI constant \(N\alpha\), the rate is independent of \(N\) and the normalized dimension is \(d_x+d_\theta/N\). This is a specialization of a supplied lifted-target LSI, rather than a tensorization assertion about the original pair model.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -351,7 +789,54 @@ On probability space \(P\), assume square-integrable initialization and all the 
 
 The interpolation regularity assumptions remain assumptions on these same Euler laws. The equality of realizations adds no entropy estimate and requires no new analytic argument. The conclusions concern joint or projected probability-law divergence; concentration about a deterministic maximizing parameter is a separate assertion.
 
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}ipla\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized}, \texttt{gaussian\_\allowbreak{}ipla\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi}}
+\leansource{\texttt{gaussian\_\allowbreak{}ipla\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 219–238}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_ipla\_kl\_bound\_normalized}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hβL\ :\ β\ ≤\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(initial\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ (P.map\ initial))\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (laws\ P\ U\ γ\ L\ hdiff\ hLip\ initial\ noise\ k)}
+\leanline{6}{(gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{8}{((InformationTheory.klDiv\ (P.map\ initial)\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{10}{8\ *\ γ\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leansource{\texttt{gaussian\_\allowbreak{}ipla\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Theorem.lean, lines 242–261}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_ipla\_kl\_bound\_of\_linear\_lsi}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hαL\ :\ α\ ≤\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(initial\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α)}
+\leanline{6}{(γ\ /\ N)\ ((N\ :\ ℝ≥0)\ *\ L)\ (P.map\ initial))\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (laws\ P\ U\ γ\ L\ hdiff\ hLip\ initial\ noise\ k)}
+\leanline{6}{(gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{6}{Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{8}{((InformationTheory.klDiv\ (P.map\ initial)\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{10}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}ipla\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized} applies the law-based normalized bound to the initial pushforward measure and rewrites with \texttt{particle\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}laws}. \texttt{gaussian\_\allowbreak{}ipla\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi} performs the identical law substitution after the linear lifted-constant specialization. The original recursion, its Gaussian coordinate laws, its independence assumptions and its explicit regular-interpolation input are all retained.
 
+
+
+Formal correspondence: gaussian\_ipla\_kl\_bound\_normalized : The normalized bound for the original independent-Gaussian IPLA realization. It is obtained by identifying its laws with particleLaws . gaussian\_ipla\_kl\_bound\_of\_linear\_lsi : The \(N\alpha\) lifted-LSI specialization for the actual Gaussian IPLA realization, with every algorithm-law assumption retained.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -378,7 +863,31 @@ Put \(p=p_\theta\) and define \(\Pi_N^\theta=p_\#\Pi_N\). The continuous linear 
 
 Thus it preserves probability, both for the current state law and for the reference whenever \(\Pi_N\) is normalized. In the conditional entropy result this normalization is part of the logarithmic Sobolev assumption. The definition \(\Pi_N^\theta=(p_\theta)_\#\Pi_N\) fixes the parameter reference as a measure even when no marginal-potential representation has been established.
 
+\begin{leanbox}{Lean: \texttt{parameterTarget}, \texttt{parameterLaw\_\allowbreak{}isProbability}, \texttt{parameterTarget\_\allowbreak{}isProbability}}
+\leansource{\texttt{parameterTarget} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 31–32}
+\begin{leancode}
+\leanline{0}{def\ parameterTarget\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ :\ Measure\ (EuclideanSpace\ ℝ\ (Fin\ dθ))\ :=}
+\leanline{2}{(@gibbsTarget\ N\ dθ\ dx\ U).map\ parameterCLM}
+\end{leancode}
+\leansource{\texttt{parameterLaw\_\allowbreak{}isProbability} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 35–40}
+\begin{leancode}
+\leanline{0}{theorem\ parameterLaw\_isProbability\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ :}
+\leanline{4}{IsProbabilityMeasure\ (μ.map\ parameterCLM)}
+\end{leancode}
+\leansource{\texttt{parameterTarget\_\allowbreak{}isProbability} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 44–47}
+\begin{leancode}
+\leanline{0}{theorem\ parameterTarget\_isProbability\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]\ :}
+\leanline{4}{IsProbabilityMeasure\ (@parameterTarget\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\allowbreak{}Target} is defined as the pushforward of \texttt{gibbs\allowbreak{}Target} through \texttt{parameter\allowbreak{}CLM}. \texttt{parameter\allowbreak{}Law\_\allowbreak{}is\allowbreak{}Probability} computes the pushforward measure of the whole space using continuity of the projection and \texttt{measure\_\allowbreak{}univ}. \texttt{parameter\allowbreak{}Target\_\allowbreak{}is\allowbreak{}Probability} is its direct specialization to the Gibbs probability. Neither definition constructs a marginal-density formula or asserts concentration about a mode.
 
+
+
+Formal correspondence: parameterTarget : The parameter target is the actual lifted Gibbs law projected to its parameter coordinates. Probability normalization remains an explicit premise. parameterLaw\_isProbability : Projecting a probability-valued state law preserves probability mass. parameterTarget\_isProbability : The Gibbs parameter target is normalized whenever the actual joint target is normalized. No concentration or convexity hypothesis is introduced.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -392,8 +901,40 @@ For a measurable projection the data-processing inequality states
 
 Convexity of \(u\log u\) implies that averaging over the discarded coordinates cannot increase divergence. The measure-theoretic theorem expresses this without requiring an explicit conditional density. Its inequality is meaningful in the extended nonnegative reals. If the joint divergence is finite, the inequality also makes the projected divergence finite; conversion of both finite quantities to real numbers then preserves order. This is the finite form used in the numerical bounds.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}klReal\_\allowbreak{}le\_\allowbreak{}joint}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 50–54}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_le\_joint\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)\ ≤}
+\leanline{6}{InformationTheory.klDiv\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 57–61}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_ne\_top\_of\_joint\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}klReal\_\allowbreak{}le\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 65–71}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_klReal\_le\_joint\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)).toReal\ ≤}
+\leanline{6}{(InformationTheory.klDiv\ μ\ ν).toReal}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}joint} is \texttt{Information\allowbreak{}Theory.\allowbreak{}kl\allowbreak{}Div\_\allowbreak{}map\_\allowbreak{}le} for the measurable parameter projection. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}joint} applies \texttt{ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}ne\_\allowbreak{}top} to obtain marginal finiteness from joint finiteness. \texttt{parameter\_\allowbreak{}kl\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}joint} uses \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}to\allowbreak{}Real} only after both finiteness proofs are available. This ordering ensures the ordinary numerical comparison represents the actual divergences.
 
 
+
+The parameter projection is a continuous linear map and hence measurable. Data processing gives the extended inequality \(\operatorname{KL}(p_\#\mu\Vert p_\#\nu)\le\operatorname{KL}(\mu\Vert\nu)\) before any real conversion. A finite joint KL therefore proves finite marginal KL, and only then can \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}to\allowbreak{}Real} transfer the order. This is a divergence statement about the actual pushed-forward target, with no density formula or optimizer concentration assumed.
+
+
+
+Formal correspondence: parameter\_kl\_le\_joint : Extended-valued data processing for the common parameter projection. parameter\_kl\_ne\_top\_of\_joint : Finite joint KL implies finite parameter KL. parameter\_klReal\_le\_joint : The real data-processing inequality, with finiteness of both divergences established before taking their toReal values.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}.
@@ -411,7 +952,32 @@ In particular the estimate \(H/N\le B\), multiplied by positive \(N\), becomes \
 
 The initial quantity in the resulting parameter estimate is still the full initial joint entropy. Data processing makes the projected initial entropy smaller; it does not justify substituting that smaller number into an upper bound derived for the joint evolution. Both the normalization factor and the initial term must therefore be retained.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}joint\_\allowbreak{}bound}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}joint\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 74–79}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_joint\_bound\ (μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ (B\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ (InformationTheory.klDiv\ μ\ ν).toReal\ ≤\ B)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)).toReal\ ≤\ B}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 83–92}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_per\_particle\_bound\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(μ\ ν\ :\ Measure\ (State\ N\ dθ\ dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ ν\ ≠\ ⊤)\ (B\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ (InformationTheory.klDiv\ μ\ ν).toReal\ /\ (N\ :\ ℝ)\ ≤\ B)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (ν.map\ parameterCLM)).toReal\ ≤}
+\leanline{6}{(N\ :\ ℝ)\ *\ B}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}joint\_\allowbreak{}bound} composes the finite real data-processing inequality with \texttt{hbound}. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound} first converts a per-particle bound back to a full joint bound with \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} h\allowbreak{}Nreal}, then invokes the former theorem. This is the exact reason a factor of particle count appears on the upper bound for the ordinary parameter divergence.
 
+
+
+Formal correspondence: parameter\_kl\_bound\_of\_joint\_bound : Any finite real bound on full joint KL is also a parameter-marginal bound. parameter\_kl\_bound\_of\_per\_particle\_bound : A per-particle joint entropy bound controls unscaled parameter KL after multiplication by the particle count.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}.
@@ -425,7 +991,39 @@ Set \(\nu=\Pi_N\) in the generic projection theorem. The definition of \(\Pi_N^\
 
 Both laws are projected by the same map. Their normalization and the finite-joint condition are inherited from the joint theorem. This specialization requires no density regularity, particle independence, concentration estimate, or optimizer assumption beyond those used to establish that theorem.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}gibbs\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}gibbs\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 95–100}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_le\_gibbs\_joint\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (@parameterTarget\ N\ dθ\ dx\ U)\ ≤}
+\leanline{6}{InformationTheory.klDiv\ μ\ (gibbsTarget\ U)}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 103–108}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_ne\_top\_of\_gibbs\_joint\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ :}
+\leanline{4}{InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (@parameterTarget\ N\ dθ\ dx\ U)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Marginal.lean, lines 112–118}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_gibbs\_joint\_bound\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{[IsProbabilityMeasure\ (@gibbsTarget\ N\ dθ\ dx\ U)]}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (B\ :\ ℝ)}
+\leanline{4}{(hbound\ :\ (InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ ≤\ B)\ :}
+\leanline{4}{(InformationTheory.klDiv\ (μ.map\ parameterCLM)\ (@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤\ B}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}le\_\allowbreak{}gibbs\_\allowbreak{}joint}, \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} and \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} specialize the preceding generic projection lemmas to \texttt{gibbs\allowbreak{}Target U}. Unfolding \texttt{parameter\allowbreak{}Target} gives the correct reference marginal automatically. The only target assumption at this stage is probability normalization; convexity, a marginal maximizer and a marginal-density representation are not needed for data processing.
 
+
+
+Formal correspondence: parameter\_kl\_le\_gibbs\_joint : Extended KL data processing with the actual Gibbs parameter target. parameter\_kl\_ne\_top\_of\_gibbs\_joint : Finite actual Gibbs-relative joint KL gives finite parameter KL. parameter\_kl\_bound\_of\_gibbs\_joint\_bound : A joint KL estimate transfers to the actual Gibbs parameter marginal, without constructing a formula for its marginal density.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -452,6 +1050,26 @@ The lifted potential is differentiable with \(NL\)-Lipschitz gradient, and its G
 
 In detail, the squared gradient constant is \(\ell^2=N^2L^2\) and the step is \(h=\gamma/N\). These substitutions give restriction \(\gamma\le\beta/(4NL^2)\) and error term \(8\gamma NDL^2/\beta\). The Gaussian theorem supplies the interpolation regularity and the compatibility of constants, so neither is an additional premise here. The finite-divergence conclusion is retained alongside the real inequality, justifying each real-valued entropy in the formula.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 22–52}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{12}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} derives \texttt{hn} from positive particle count and proves \texttt{h\allowbreak{}L} by excluding zero smoothness: that case contradicts the admissible positive step. \texttt{hs} and \texttt{hscaled} express the lifted step restriction. \texttt{ULA.\allowbreak{}LSI.\allowbreak{}ula\_\allowbreak{}kl\_\allowbreak{}bound} supplies \texttt{hfinite} and \texttt{hb} for the actual summed potential. \texttt{potential\_\allowbreak{}differentiable} and \texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} supply its analytic hypotheses; the remaining simplification uses \texttt{finrank\_\allowbreak{}state}, \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{lifted\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq}. No regular-interpolation data is an additional premise here.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.29.7]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -465,7 +1083,30 @@ Divide the finite joint entropy inequality by positive \(N\). Division preserves
 
 Because \(N>0\), every term is divided by the same finite positive number. The exponential is unchanged, and its initial factor is the initial joint entropy per particle. This is a numerical normalization of the joint divergence, not the divergence of the parameter marginal.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 56–72}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_normalized\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{8\ *\ γ\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}normalized\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} obtains the finite joint divergence \texttt{hfinite} and full bound \texttt{hb} from \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}. It keeps the former as the first component of its conclusion and applies \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} to the latter. Thus every term of the full inequality, including the initial entropy, is divided by the same positive particle count.
 
+
+
+The helper \texttt{normalize\_\allowbreak{}entropy\_\allowbreak{}bound} divides both the initial contribution and the bias, canceling one particle factor in the latter. The same finite-KL witness is retained for the unnormalized divergence. This quantity is the entropy of the full state divided by particle number; parameter projection is handled separately.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -479,6 +1120,26 @@ Assume the lifted Gibbs target has logarithmic Sobolev constant \(\beta=N\alpha\
 
 The functional-inequality premise concerns \(\Pi_N\) itself. The relation \(D/N=d_x+d_\theta/N\) separates the intensive latent and parameter contributions. Since the particles share a parameter, no product tensorization of independent pair targets is used to obtain the assumed constant.
 
+\begin{leanbox}{Lean: \texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 76–96}
+\begin{leancode}
+\leanline{0}{theorem\ particle\_kl\_bound\_linear\_lsi\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ (particleLaws\ U\ γ\ μ\ k)\ (gibbsTarget\ U)).toReal\ /\ N\ ≤}
+\leanline{8}{Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{10}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{12}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{particle\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}linear\_\allowbreak{}lsi\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} proves positive smoothness using \texttt{ULA.\allowbreak{}LSI.\allowbreak{}positive\_\allowbreak{}smoothness\_\allowbreak{}of\_\allowbreak{}step}, then rewrites the step assumption with \texttt{linear\_\allowbreak{}lsi\_\allowbreak{}step\_\allowbreak{}iff}. It applies the normalized theorem at the supplied linearly scaled lifted-target constant. The final rewrites \texttt{linear\_\allowbreak{}entropy\_\allowbreak{}rate\_\allowbreak{}eq} and \texttt{linear\_\allowbreak{}normalized\_\allowbreak{}entropy\_\allowbreak{}bias\_\allowbreak{}eq} give the stated exponent and effective dimension while retaining finite joint divergence.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.29.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -492,6 +1153,28 @@ Project both the particle law and its Gibbs reference to their parameter coordin
 
 The initial quantity is the full joint entropy \(H_0\). The parameter divergence is unnormalized, so its error retains factor \(N\). If a joint bound is supplied per particle, it must first be multiplied by \(N\). Data processing changes only the left-hand divergence and does not replace the initial joint entropy by a smaller projected quantity.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} \quad IPLA/\allowbreak{}LSI/\allowbreak{}UnconditionalTheorem.lean, lines 100–121}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_finite\_kl}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(hKL\ :\ InformationTheory.klDiv\ μ\ (gibbsTarget\ U)\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{6}{(@parameterTarget\ N\ dθ\ dx\ U)\ ≠\ ⊤\ ∧}
+\leanline{6}{(InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{8}{(@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤}
+\leanline{8}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{10}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{12}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}kl} installs probability instances for the numerical and target laws, then obtains \texttt{hfinite} and \texttt{hb} from the full joint entropy theorem. \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint} supplies finite marginal divergence and \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound} transfers the full bound through the parameter projection. It is the unnormalized joint estimate that is passed to data processing.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -511,7 +1194,27 @@ The Gaussian transition makes \(\rho_k\) a probability, and the logarithmic Sobo
 
 This conclusion is first an extended-valued finiteness statement. It establishes that the projected divergence is an ordinary finite number before a numerical upper bound is applied. No extra parameter-density formula is required.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}finite}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}finite} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Corollaries.lean, lines 26–40}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_finite}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hγ\ :\ 0\ ≤\ γ)}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{6}{(@parameterTarget\ N\ dθ\ dx\ U)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: parameter\_kl\_finite : Finite actual joint IPLA KL supplies finite actual parameter KL.
 
+
+
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}finite}: the source steps apply or rewrite \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -525,7 +1228,31 @@ Assume \(N>0\), \(\beta>0\), \(\beta\le NL\), and \(0<\gamma\le\beta/(4NL^2)\), 
 
 Here \(H_0=\operatorname{KL}(\mu_0\Vert\Pi_N)\). At the same iteration \(k\), projection decreases only the divergence on the left; substitution of the joint bound leaves its initial quantity, exponential, and error term unchanged. The initial quantity includes parameter and latent information. The estimate compares parameter probability laws and does not itself give concentration about a likelihood maximizer.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Corollaries.lean, lines 44–63}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(β\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hβ\ :\ 0\ <\ β)\ (hβL\ :\ β\ ≤\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ β\ /\ (4\ *\ (N\ :\ ℝ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ β)}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ β\ (γ\ /\ N)}
+\leanline{6}{((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{6}{(@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤}
+\leanline{6}{Real.exp\ (-β\ *\ γ\ *\ k\ /\ N)\ *}
+\leanline{8}{(InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ +}
+\leanline{10}{8\ *\ γ\ *\ N\ *\ (dθ\ +\ N\ *\ dx\ :\ ℕ)\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ β}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: parameter\_kl\_bound : The actual parameter marginal inherits the full joint KL bound for any supplied lifted LSI constant \(\beta\). The initial entropy is the full joint entropy.
 
+
+
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound}: the source steps apply or rewrite \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}gibbs\_\allowbreak{}joint\_\allowbreak{}bound}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
@@ -547,18 +1274,42 @@ For constant \(N\alpha\) the multiplication by \(N\) is explicitly
 
 Probability normalization and finite joint entropy justify the finite data-processing inequality. Multiplication by \(N\) restores the initial quantity \(H_0\) and gives error term \(8\gamma L^2D/\alpha\), exactly as direct substitution of \(\beta=N\alpha\) into the full estimate does. The interpolation and lifted logarithmic Sobolev hypotheses remain in force, and this conclusion concerns divergence between probability laws.
 
+\begin{leanbox}{Lean: \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi}}
+\leansource{\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi} \quad IPLA/\allowbreak{}LSI/\allowbreak{}Corollaries.lean, lines 68–89}
+\begin{leancode}
+\leanline{0}{theorem\ parameter\_kl\_bound\_of\_linear\_lsi}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(α\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (μ\ :\ Measure\ (State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hα\ :\ 0\ <\ α)\ (hαL\ :\ α\ ≤\ (L\ :\ ℝ))\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ α\ /\ (4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2))}
+\leanline{4}{(hLSI\ :\ ULA.LSI.IsLogSobolev\ (@gibbsTarget\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α))}
+\leanline{4}{(data\ :\ ULA.LSI.RegularInterpolationData\ (@potential\ N\ dθ\ dx\ U)\ ((N\ :\ ℝ)\ *\ α)}
+\leanline{6}{(γ\ /\ N)\ ((N\ :\ ℝ≥0)\ *\ L)\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(InformationTheory.klDiv\ ((particleLaws\ U\ γ\ μ\ k).map\ parameterCLM)}
+\leanline{6}{(@parameterTarget\ N\ dθ\ dx\ U)).toReal\ ≤}
+\leanline{6}{(N\ :\ ℝ)\ *\ (Real.exp\ (-α\ *\ γ\ *\ k)\ *}
+\leanline{8}{((InformationTheory.klDiv\ μ\ (gibbsTarget\ U)).toReal\ /\ N)\ +}
+\leanline{10}{(8\ *\ γ\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ N))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: parameter\_kl\_bound\_of\_linear\_lsi : Under the supplied lifted LSI constant \(N\alpha\), the normalized joint entropy estimate bounds unscaled parameter KL only after multiplication by \(N\). This does not replace the initial joint entropy with initial parameter entropy.
 
+
+
+\texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}linear\_\allowbreak{}lsi}: the source steps apply or rewrite \texttt{parameter\_\allowbreak{}kl\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}per\_\allowbreak{}particle\_\allowbreak{}bound}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.3]{LangevinLean2026ULALSI}; \cite[Section~3.34.1]{LangevinLean2026ULALSI}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[ULA-LSI]{LangevinLean2026ULALSI}
-LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision 82104af6b17a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision 7046bc2a17e4. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

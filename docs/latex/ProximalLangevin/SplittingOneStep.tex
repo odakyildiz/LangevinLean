@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -28,7 +51,20 @@ For \(m,h>0\), drift bound \(G\), noise coefficient \(\sigma\), perturbation-gra
 
 The first term is the squared smooth local defect with Young factor \(1+(mh)^{-1}\). The other terms are, respectively, the finite potential-gap contribution, the reference drift paired with the bounded perturbation gradient, and the proximal quadratic remainder. These distinct estimates will bound the sum by a constant times the squared step.
 
+\begin{leanbox}{Lean: \texttt{splittingCouplingForcing}}
+\leansource{\texttt{splittingCouplingForcing} \quad ProximalLangevin/\allowbreak{}SplittingOneStep.lean, lines 19–21}
+\begin{leancode}
+\leanline{0}{def\ splittingCouplingForcing\ (m\ h\ L\ G\ noise\ K\ delta\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(1\ +\ (m\ *\ h)⁻¹)\ *\ (L\ *\ h\ *\ (G\ *\ h\ +\ noise\ *\ Real.sqrt\ h))\ \textasciicircum{}\ 2\ +}
+\leanline{4}{2\ *\ h\ *\ delta\ +\ 2\ *\ h\ \textasciicircum{}\ 2\ *\ G\ *\ K\ +\ h\ \textasciicircum{}\ 2\ *\ K\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: splittingCouplingForcing : Explicit local forcing in the synchronous splitting proof.
 
+
+
+\texttt{splitting\allowbreak{}Coupling\allowbreak{}Forcing} is a definition with defining expression \texttt{(1 + (m * h)\ensuremath{{}^{-1}}) * (L * h * (G * h + noise * Real.\allowbreak{}sqrt h)) \textasciicircum{} 2 +}. The right-hand side specifies the object used in the mathematical statement.
+\end{leanbox}
 
 \section{\texorpdfstring{The error decomposition and energy comparison}{The error decomposition and energy comparison}}
 
@@ -43,15 +79,53 @@ The conditions \(m\le L\) and \(h\le2/(m+L)\) imply \(mh\le1\), as required in t
 
 This identity retains the integrated envelope force until its energy comparison is applied. The nonpositive square can then be dropped. Weighted Young leaves coefficient \(1-mh\) on the preceding squared error. The forcing is derived from these inequalities rather than assumed as a stochastic recurrence; the Gaussian reference construction supplies the stated reference premises.
 
-
-
+\begin{leanbox}{Lean: \texttt{splitting\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}solution}}
+\leansource{\texttt{splitting\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}solution} \quad ProximalLangevin/\allowbreak{}SplittingOneStep.lean, lines 31–114}
+\begin{leancode}
+\leanline{0}{theorem\ splitting\_one\_step\_of\_integral\_solution}
+\leanline{4}{\{f₁\ f\ e\ :\ E\ →\ ℝ\}\ \{T\ :\ E\ →\ E\}\ \{L₁\ Le\ Kf\ Ke\ LT\ K\ :\ ℝ≥0\}}
+\leanline{4}{(hf₁\ :\ Differentiable\ ℝ\ f₁)\ (he\ :\ Differentiable\ ℝ\ e)}
+\leanline{4}{(m\ h\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ f₁)}
+\leanline{4}{(hLip₁\ :\ LipschitzWith\ L₁\ (gradient\ f₁))\ (hmL\ :\ m\ ≤\ (L₁\ :\ ℝ))}
+\leanline{4}{(hsmall\ :\ h\ ≤\ 2\ /\ (m\ +\ (L₁\ :\ ℝ)))}
+\leanline{4}{(heconv\ :\ ConvexOn\ ℝ\ univ\ e)\ (hegrad\ :\ LipschitzWith\ Le\ (gradient\ e))}
+\leanline{4}{(heLip\ :\ LipschitzWith\ Ke\ e)\ (hfLip\ :\ LipschitzWith\ Kf\ f)}
+\leanline{4}{(hT\ :\ LipschitzWith\ LT\ T)}
+\leanline{4}{(henergy\ :\ ∀\ x\ y,\ ‖T\ x\ -\ y‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{‖x\ -\ y‖\ \textasciicircum{}\ 2\ -\ 2\ *\ h\ *\ (f\ x\ -\ f\ y)\ +\ h\ \textasciicircum{}\ 2\ *\ (K\ :\ ℝ)\ \textasciicircum{}\ 2)}
+\leanline{4}{(delta\ :\ ℝ)\ (hgap\ :\ ∀\ x,\ e\ x\ ≤\ f\ x\ ∧\ f\ x\ ≤\ e\ x\ +\ delta)}
+\leanline{4}{(Y\ B\ :\ ℝ\ →\ Lp\ E\ 2\ P)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(G\ noise\ :\ ℝ)\ (hG\ :\ 0\ ≤\ G)\ (hnoise\ :\ 0\ ≤\ noise)}
+\leanline{4}{(hgbound\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{‖ULA.lpDrift\ P\ (gradient\ f₁)\ hLip₁\ (Y\ t)\ +}
+\leanline{8}{ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ t)‖\ ≤\ G)}
+\leanline{4}{(hbbound\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{‖ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ t)‖\ ≤\ (K\ :\ ℝ))}
+\leanline{4}{(hB\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ ‖B\ t‖\ ≤\ noise\ *\ Real.sqrt\ t)}
+\leanline{4}{(hYe\ :\ ∀\ t\ ∈\ Icc\ 0\ h,\ Y\ t\ -\ Y\ 0\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ ULA.lpDrift\ P\ (gradient\ f₁)\ hLip₁\ (Y\ s)\ +}
+\leanline{8}{ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ s))\ +\ B\ t)}
+\leanline{4}{(horth\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{{\leanfallback ⟪}ULA.lpDrift\ P\ (gradient\ e)\ hegrad\ (Y\ t),\ B\ h\ -\ B\ t{\leanfallback ⟫}\ =\ 0)}
+\leanline{4}{(hstationary\ :\ ∀\ t\ ∈\ Icc\ 0\ h,}
+\leanline{6}{(∫\ ω,\ e\ (Y\ t\ ω)\ ∂P)\ =\ ∫\ ω,\ e\ (Y\ h\ ω)\ ∂P)}
+\leanline{4}{(X\ :\ Lp\ E\ 2\ P)\ :}
+\leanline{4}{‖ULA.lpDrift\ P\ T\ hT}
+\leanline{6}{(X\ -\ h\ •\ ULA.lpDrift\ P\ (gradient\ f₁)\ hLip₁\ X\ +\ B\ h)\ -\ Y\ h‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(1\ -\ m\ *\ h)\ *\ ‖X\ -\ Y\ 0‖\ \textasciicircum{}\ 2\ +}
+\leanline{8}{splittingCouplingForcing\ m\ h\ (L₁\ :\ ℝ)\ G\ noise\ (K\ :\ ℝ)\ delta}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{splitting\_\allowbreak{}one\_\allowbreak{}step\_\allowbreak{}of\_\allowbreak{}integral\_\allowbreak{}solution} names the lifted smooth and envelope drifts \texttt{a} and \texttt{b}, their sum \texttt{g}, the forward state \texttt{S}, the contracted difference \texttt{v}, the smooth defect \texttt{R} and the integrated envelope force \texttt{H}. \texttt{hdecomp} is their exact error decomposition; \texttt{hnorm} retains its envelope inner product in the squared norm. \texttt{hbase} inserts the proximal energy inequality. The contraction estimate \texttt{hv} and weighted estimate \texttt{hweighted} control the smooth part; \texttt{h\allowbreak{}Rbound} and \texttt{h\allowbreak{}Rweighted} bound its local defect. \texttt{hcross} invokes stationarity and the orthogonality premise to control the retained energy cross term. Unfolding \texttt{splitting\allowbreak{}Coupling\allowbreak{}Forcing} collects precisely the four stated forcing terms.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.11.1]{LangevinLean2026ULASC}; \cite[Section~3.11.2]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.13.6]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

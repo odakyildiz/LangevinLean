@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -51,8 +74,32 @@ Writing \(\mu_0\) for the initial scaled-state law, for every \(k\in\mathbb N\),
 \end{aligned}\]
 
 
-The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal and the existence of its minimizer. Thus \(\theta_\star\) is a maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).
+The assumptions imply that the Gibbs measures are normalized by finite positive constants and have finite second moments. The proof also establishes strong convexity of the negative log marginal. Existence and uniqueness of its minimizer are proved separately from the same assumptions, so \(\theta_\star\) exists and is the unique maximizer of the integrated joint density \(\ell_y\). If the potential includes the negative log of a prior density, the same definition maximizes that prior-weighted marginal. The proof compares the particle distribution with its Gibbs measure and then bounds the parameter's second moment about \(\theta_\star\).
 
+\begin{leanbox}{Lean: \texttt{theorem1}}
+\leansource{\texttt{theorem1} \quad IPLA/\allowbreak{}Theorem.lean, lines 105–137}
+\begin{leancode}
+\leanline{0}{theorem\ theorem1}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ (U\ y))\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hMaximizer\ :\ IsMarginalMaximizer\ (U\ y)\ θStar)}
+\leanline{4}{(initial\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(laws\ P\ (U\ y)\ γ\ L\ hdiff\ hLip\ initial\ noise\ k))\ ≤}
+\leanline{6}{Real.sqrt\ (2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{8}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ (P.map\ initial)\ (gibbsTarget\ (U\ y))\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *}
+\leanline{10}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ Real.sqrt\ γ}
+\end{leancode}
+\end{leanbox}
 
 \section{\texorpdfstring{The scaled particle geometry}{The scaled particle geometry}}
 
@@ -69,6 +116,20 @@ Summing the pair strong-convexity inequalities gives quadratic correction \(Nm\|
 The dimension is \(D=d_\theta+Nd_x\). The argument permits unequal parameter and latent dimensions, and zero-dimensional blocks contribute zero to the sums.
 
 
+
+
+Write \(w=z-z'\) and let \(v\) be an arbitrary direction. The chain rule gives \(\langle\nabla V_N(z)-\nabla V_N(z'),v\rangle=\sum_i\langle\nabla U(J_i z)-\nabla U(J_i z'),J_i v\rangle\). Cauchy–Schwarz in each pair and then in the finite particle sum gives an upper bound \(L(\sum_i\|J_iw\|^2)^{1/2}(\sum_i\|J_iv\|^2)^{1/2}=NL\|w\|\|v\|\). Set \(v=\nabla V_N(z)-\nabla V_N(z')\); if it is nonzero, divide by its positive norm, and otherwise the desired estimate is zero. This proves the gradient bound without estimating the operator norms of the individual pair maps separately. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}}
+\leansource{\texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} \quad IPLA/\allowbreak{}Geometry.lean, lines 139–173}
+\begin{leancode}
+\leanline{0}{theorem\ potential\_gradient\_lipschitz\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hU\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{LipschitzWith\ ((N\ :\ ℝ≥0)\ *\ L)\ (gradient\ (@potential\ N\ dθ\ dx\ U))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz} proves the bound through \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}. Its local claim \texttt{hi} pairs the gradient difference with an arbitrary direction. \texttt{inner\_\allowbreak{}gradient\_\allowbreak{}potential} rewrites that pairing as a sum over physical pairs; \texttt{joint\_\allowbreak{}sub} and \texttt{h\allowbreak{}Lip.\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} bound each summand. \texttt{sum\_\allowbreak{}joint\_\allowbreak{}norm\_\allowbreak{}mul} is the finite Cauchy–Schwarz estimate using the replicated-pair squared-norm identity. The proof then substitutes the gradient difference itself for the direction. If its norm is zero, \texttt{hz} closes the estimate directly; otherwise positivity permits cancellation of that norm. The differentiability assumption \texttt{h\allowbreak{}U} is used in the chain-rule pairing formula.
+\end{leanbox}
 
 \section{\texorpdfstring{The particle recursion as a Gaussian Euler update}{The particle recursion as a Gaussian Euler update}}
 
@@ -87,6 +148,24 @@ The independent next innovation is independent of the current state, so its cond
 
 
 
+
+In a latent block the scaled drift is \(-(\gamma/N)\sqrt N\nabla_xU\). Multiplication by \(\sqrt N\) gives \(-\gamma\nabla_xU\), because \((\sqrt N)^2=N\). Its noise coefficient becomes \(\sqrt N\sqrt{2\gamma/N}=\sqrt{2\gamma}\). In the parameter block no coordinate rescaling is needed. Since the current state is a measurable function of initialization and the preceding innovations, independence of the entire Gaussian sequence and initialization makes the next innovation independent of that state. Consequently conditioning on the current state gives the stated Gaussian transition, and induction identifies its iterates with the algorithmic laws. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{scaledUpdate\_\allowbreak{}particle}}
+\leansource{\texttt{scaledUpdate\_\allowbreak{}particle} \quad IPLA/\allowbreak{}Geometry.lean, lines 255–275}
+\begin{leancode}
+\leanline{0}{theorem\ scaledUpdate\_particle\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hN\ :\ 0\ <\ N)\ (hU\ :\ Differentiable\ ℝ\ U)\ (h\ :\ ℝ)}
+\leanline{4}{(z\ ξ\ :\ State\ N\ dθ\ dx)\ (i\ :\ Fin\ N)\ (j\ :\ Fin\ dx)\ :}
+\leanline{4}{Real.sqrt\ N\ *\ scaledUpdate\ U\ h\ z\ ξ\ (Sum.inr\ (i,\ j))\ =}
+\leanline{6}{Real.sqrt\ N\ *\ z\ (Sum.inr\ (i,\ j))\ -}
+\leanline{8}{h\ *\ gradient\ U\ (joint\ i\ z)\ (Sum.inr\ j)\ +}
+\leanline{8}{Real.sqrt\ (2\ *\ h)\ *\ ξ\ (Sum.inr\ (i,\ j))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{scaled\allowbreak{}Update\_\allowbreak{}particle} assumes \texttt{h\allowbreak{}N} so the particle count is nonzero. \texttt{gradient\_\allowbreak{}potential\_\allowbreak{}particle h\allowbreak{}U} supplies the exact latent derivative of the summed potential. The proof first establishes \texttt{hn}, the identity for the rescaled noise coefficient. After expanding \texttt{scaled\allowbreak{}Update} coordinatewise, \texttt{hd} cancels the two square-root particle factors in the drift. Rewriting by these two identities yields the physical-particle update. This algebraic identity itself permits any real step; Gaussian transition and probability results impose a positive step when they use it.
+\end{leanbox}
+
 \section{\texorpdfstring{Latent integration and marginal strong convexity}{Latent integration and marginal strong convexity}}
 
 
@@ -104,6 +183,21 @@ To prove curvature of \(F\), subtract the parameter quadratic corresponding to \
 
 
 
+
+More explicitly, for \(a,b\ge0\), \(a+b=1\), joint strong convexity gives \(U(a\theta+b\theta',ax+bx')\le aU(\theta,x)+bU(\theta',x')-abm(\|\theta-\theta'\|^2+\|x-x'\|^2)/2\). Discard the nonpositive latent correction and exponentiate the reversed inequality. Prékopa–Leindler then gives \(\ell(a\theta+b\theta')\ge e^{abm\|\theta-\theta'\|^2/2}\ell(\theta)^a\ell(\theta')^b\). All marginal integrals are positive and finite by the Gaussian bounds. Taking negative logarithms gives the defining strong-convexity inequality for \(F=-\log\ell\). This is a statement about integration over latent variables, so it does not identify the marginal maximizer with a joint minimizer. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{marginalPotential\_\allowbreak{}strongConvex}}
+\leansource{\texttt{marginalPotential\_\allowbreak{}strongConvex} \quad IPLA/\allowbreak{}StrongLogConcavity.lean, lines 96–138}
+\begin{leancode}
+\leanline{0}{theorem\ marginalPotential\_strongConvex\ \{dθ\ dx\ :\ ℕ\}\ (U\ :\ Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{StrongConvexOn\ Set.univ\ m\ (marginalPotential\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{marginal\allowbreak{}Potential\_\allowbreak{}strong\allowbreak{}Convex} constructs the defining convexity inequality at arbitrary nonnegative weights \texttt{a}, \texttt{b} summing to one. \texttt{hf}, \texttt{hg} and \texttt{hh} provide Gaussian domination of the three latent weights. \texttt{hpoint} follows from \texttt{hsc.\allowbreak{}2} after \texttt{pair\_\allowbreak{}affine} and \texttt{pair\_\allowbreak{}sub}; the nonnegative latent squared distance is discarded while the parameter curvature term \texttt{c} is retained. \texttt{Prekopa.\allowbreak{}prekopa\_\allowbreak{}leindler} integrates this pointwise inequality. \texttt{integral\_\allowbreak{}latent\allowbreak{}Weight} identifies the marginal integrals, \texttt{hz} proves strict positivity, and \texttt{Real.\allowbreak{}log\_\allowbreak{}le\_\allowbreak{}log} turns the integrated inequality into strong convexity of the negative logarithm.
+\end{leanbox}
+
 \section{\texorpdfstring{Equilibrium fluctuations about the marginal maximizer}{Equilibrium fluctuations about the marginal maximizer}}
 
 
@@ -115,6 +209,23 @@ The parameter marginal potential \(NF\) has curvature \(Nm\) and minimizer \(\th
 Its nonnegative square root is \(r_N=\sqrt{2d_\theta/(Nm)}\). This is the radius about the marginal mode; minimizing over latent coordinates instead of integrating them would generally give a different point. Although the dynamics have dimension \(D\), only parameter dimension appears in this concentration estimate. Under \(d_\theta=0\) the projection is constant and the radius vanishes. A separate dilation argument establishes the improved factor used in later proximal and kinetic estimates.
 
 
+
+
+The lifted Gibbs law projects to the ordinary Gibbs law with potential \(NF\): the change-of-variable factor in the latent integral cancels with the partition factor. Strong convexity scales from \(m\) to \(Nm\), while the parameter dimension remains \(d_\theta\). Apply the continuous-potential concentration estimate in that space and then take the nonnegative square root. Integrability follows first from the strongly convex lifted potential and the bounded parameter projection; thus the root integral is an ordinary finite number. Neither a Lipschitz constant for the marginal gradient nor independence of the particles is used in this concentration step. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{gibbsTarget\_\allowbreak{}parameter\_\allowbreak{}concentration}}
+\leansource{\texttt{gibbsTarget\_\allowbreak{}parameter\_\allowbreak{}concentration} \quad IPLA/\allowbreak{}Concentration.lean, lines 93–110}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsTarget\_parameter\_concentration\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(U\ :\ Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ (θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmax\ :\ IsMarginalMaximizer\ U\ θStar)\ :}
+\leanline{4}{projectedRMS\ (@gibbsTarget\ N\ dθ\ dx\ U)\ parameterCLM\ θStar\ ≤}
+\leanline{6}{ENNReal.ofReal\ (Real.sqrt\ (2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Target\_\allowbreak{}parameter\_\allowbreak{}concentration} obtains the probability instance and square integrability from the strong-convex Gibbs results. \texttt{continuous\allowbreak{}Linear\allowbreak{}Map\_\allowbreak{}comp} transports square integrability through the parameter projection, and subtraction of \texttt{mem\allowbreak{}Lp\_\allowbreak{}const \ensuremath{\theta}\allowbreak{}Star} centers it. \texttt{projected\allowbreak{}RMS\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}second\allowbreak{}Moment} reduces the desired root bound to the second-moment estimate. \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt} cancels the square root using nonnegativity, and \texttt{gibbs\allowbreak{}Target\_\allowbreak{}parameter\_\allowbreak{}second\allowbreak{}Moment\_\allowbreak{}le} supplies that estimate. The premise \texttt{hmax} identifies the marginal maximizer; it is not a joint minimizer hypothesis.
+\end{leanbox}
 
 \section{\texorpdfstring{The parameter projection of a transport coupling}{The parameter projection of a transport coupling}}
 
@@ -131,6 +242,19 @@ Define \(Pz=\theta\). Orthogonality of the state blocks gives \(\|P(z-z')\|\le\|
 Taking the finite-cost coupling infimum, as in \cite[Section~3.48.9]{LangevinLean2026ULASC}, gives \(\|\theta_k-\theta_\star\|_{L^2}\le W_2(\mu_k,\Pi_N)+r_N\). Finite second moments of both laws justify these real quantities. No particle independence at equilibrium or finite time is needed for this projection argument.
 
 
+
+
+For a nonnegative random variable \(R\), write \(\|R\|_{L^2}=(\mathbb ER^2)^{1/2}\). The triangle inequality in this norm follows by expanding the square and applying Cauchy–Schwarz to the mixed product. With the displayed coupling, it bounds the parameter error by the coupling root cost plus the equilibrium root moment. That equilibrium moment depends only on the second marginal, so it is the same for every admissible coupling. Taking the infimum over all finite-cost couplings therefore leaves it unchanged and gives the claimed transport projection bound. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{norm\_\allowbreak{}parameterCLM\_\allowbreak{}apply\_\allowbreak{}le}}
+\leansource{\texttt{norm\_\allowbreak{}parameterCLM\_\allowbreak{}apply\_\allowbreak{}le} \quad IPLA/\allowbreak{}Geometry.lean, lines 226–232}
+\begin{leancode}
+\leanline{0}{theorem\ norm\_parameterCLM\_apply\_le\ \{N\ dθ\ dx\ :\ ℕ\}\ (z\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖parameterCLM\ z‖\ ≤\ ‖z‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{norm\_\allowbreak{}parameter\allowbreak{}CLM\_\allowbreak{}apply\_\allowbreak{}le} rewrites both squared norms with \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq}. \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type} separates parameter coordinates from latent coordinates; the latter sum is nonnegative term by term by \texttt{sq\_\allowbreak{}nonneg}. The local inequality \texttt{hs} therefore compares the squared norms. Nonnegativity of both norms permits the final passage to their unsquared comparison. The transport consequence uses this pointwise contraction inside any coupling and then the coupling infimum, as in \texttt{projected\allowbreak{}RMSReal\_\allowbreak{}le\_\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}add} in the cited projection module.
+\end{leanbox}
 
 \section{\texorpdfstring{The particle-scaled transport and parameter bound}{The particle-scaled transport and parameter bound}}
 
@@ -149,9 +273,39 @@ Thus \(N\) controls equilibrium concentration, \(\gamma\) controls the time-disc
 
 
 
+
+The dimension rescaling is \(sD=(\gamma/N)(d_\theta+Nd_x)=\gamma(d_x+d_\theta/N)\). Because \(N>0\), the ratio of the lifted smoothness and curvature is \((NL)/(Nm)=L/m\), and the small-step condition \(\gamma/N\le2/(N(m+L))\) is equivalent to \(\gamma\le2/(m+L)\). These identities give exactly the displayed contraction and numerical error. The initial square-integrable state gives finite initial transport to the square-integrable Gibbs target, and independent Gaussian innovations identify the law to which the estimate applies. If the full state has dimension zero, both dimensions are zero and the parameter error is identically zero. \(\square\)
+
+\begin{leanbox}{Lean: \texttt{theorem1}}
+\leansource{\texttt{theorem1} \quad IPLA/\allowbreak{}Theorem.lean, lines 105–137}
+\begin{leancode}
+\leanline{0}{theorem\ theorem1}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ (U\ y))\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hsmall\ :\ γ\ ≤\ 2\ /\ (m\ +\ (L\ :\ ℝ)))}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hMaximizer\ :\ IsMarginalMaximizer\ (U\ y)\ θStar)}
+\leanline{4}{(initial\ :\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(laws\ P\ (U\ y)\ γ\ L\ hdiff\ hLip\ initial\ noise\ k))\ ≤}
+\leanline{6}{Real.sqrt\ (2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{8}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ (P.map\ initial)\ (gibbsTarget\ (U\ y))\ +}
+\leanline{8}{(33\ /\ 20\ :\ ℝ)\ *\ ((L\ :\ ℝ)\ /\ m)\ *}
+\leanline{10}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ Real.sqrt\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{theorem1} receives the differentiable, strongly convex, smooth pair potential together with positive curvature, positive step, Gaussian independence and the marginal-maximizer premise. It splits on \texttt{hindex}, which records whether the full state has any coordinate. In the nonempty case \texttt{nonempty\_\allowbreak{}dimension\_\allowbreak{}bound} assembles scaled Gaussian transport and parameter concentration. In the empty case, \texttt{h\ensuremath{\theta}} and \texttt{hx} force both dimensions to zero, so the parameter error and every dimensional contribution vanish. The initial state is supplied as an \texttt{Lp} vector of exponent two; the Gaussian assumptions identify its algorithmic laws with the transition iterates.
+\end{leanbox}
+
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

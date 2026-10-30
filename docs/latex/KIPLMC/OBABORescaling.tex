@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -35,6 +58,51 @@ The thermostat sends \(v\) to \(\delta v+\sigma\xi\); multiplying velocity by \(
 
 Under the velocity-and-clock change, the damping product is unchanged, while the drift and kick coefficients compensate for the velocity scale. The thermal amplitude is transformed at the same time. Verifying all five stages identifies the complete physical and unit-temperature steps.
 
+\begin{leanbox}{Lean: \texttt{ornsteinStep\_\allowbreak{}conjugate}, \texttt{driftStep\_\allowbreak{}conjugate}, \texttt{kickStep\_\allowbreak{}conjugate} and 1 more}
+\leansource{\texttt{ornsteinStep\_\allowbreak{}conjugate} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 22–25}
+\begin{leancode}
+\leanline{0}{theorem\ ornsteinStep\_conjugate\ (c\ δ\ σ\ :\ ℝ)\ (z\ :\ E\ ×\ E)\ (ξ\ :\ E)\ :}
+\leanline{4}{KineticLangevin.ornsteinStep\ δ\ (c*σ)\ ξ\ (rescaleVelocity\ c\ z)\ =}
+\leanline{6}{rescaleVelocity\ c\ (KineticLangevin.ornsteinStep\ δ\ σ\ ξ\ z)}
+\end{leancode}
+\leansource{\texttt{driftStep\_\allowbreak{}conjugate} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 28–32}
+\begin{leancode}
+\leanline{0}{theorem\ driftStep\_conjugate\ (c\ h\ :\ ℝ)\ (hc\ :\ c\ ≠\ 0)\ (z\ :\ E×E)\ :}
+\leanline{4}{KineticLangevin.driftStep\ (h/c)\ (rescaleVelocity\ c\ z)\ =}
+\leanline{6}{rescaleVelocity\ c\ (KineticLangevin.driftStep\ h\ z)}
+\end{leancode}
+\leansource{\texttt{kickStep\_\allowbreak{}conjugate} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 35–39}
+\begin{leancode}
+\leanline{0}{theorem\ kickStep\_conjugate\ (g\ :\ E\ →\ E)\ (c\ h\ :\ ℝ)\ (hc\ :\ c\ ≠\ 0)\ (z\ :\ E×E)\ :}
+\leanline{4}{KineticLangevin.kickStep\ g\ (h/c)\ (rescaleVelocity\ c\ z)\ =}
+\leanline{6}{rescaleVelocity\ c\ (KineticLangevin.kickStep\ (fun\ x\ ↦\ (c\textasciicircum{}2)⁻¹\ •\ g\ x)\ h\ z)}
+\end{leancode}
+\leansource{\texttt{obaboStep\_\allowbreak{}conjugate} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 42–51}
+\begin{leancode}
+\leanline{0}{theorem\ obaboStep\_conjugate\ (g\ :\ E\ →\ E)\ (c\ h\ δ\ σ\ :\ ℝ)\ (hc\ :\ c\ ≠\ 0)}
+\leanline{4}{(z\ :\ E×E)\ (ξ\ ξ'\ :\ E)\ :}
+\leanline{4}{KineticLangevin.obaboStep\ g\ (h/c)\ δ\ (c*σ)\ (rescaleVelocity\ c\ z)\ ξ\ ξ'\ =}
+\leanline{6}{rescaleVelocity\ c}
+\leanline{8}{(KineticLangevin.obaboStep\ (fun\ x\ ↦\ (c\textasciicircum{}2)⁻¹\ •\ g\ x)\ h\ δ\ σ\ z\ ξ\ ξ')}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ornstein\allowbreak{}Step\_\allowbreak{}conjugate} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{drift\allowbreak{}Step\_\allowbreak{}conjugate} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{kick\allowbreak{}Step\_\allowbreak{}conjugate} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{obabo\allowbreak{}Step\_\allowbreak{}conjugate} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026Kinetic}.
@@ -48,6 +116,17 @@ The transformed potential has smoothness \(c^2L\) and friction \(c\gamma\). In i
 
 The weighted metric is designed from friction and phase coordinates. Scaling friction and velocity together preserves its value after the stated clock normalization. Thus transporting the contraction theorem introduces no hidden particle-dependent norm-equivalence factor.
 
+\begin{leanbox}{Lean: \texttt{weightedPhaseEnergy\_\allowbreak{}rescaleVelocity}}
+\leansource{\texttt{weightedPhaseEnergy\_\allowbreak{}rescaleVelocity} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 55–62}
+\begin{leancode}
+\leanline{0}{theorem\ weightedPhaseEnergy\_rescaleVelocity}
+\leanline{4}{(c\ L\ γ\ :\ ℝ)\ (hc\ :\ 0<c)\ (z\ :\ E×E)\ :}
+\leanline{4}{KineticLangevin.weightedPhaseEnergy\ (1/(c\textasciicircum{}2*L))\ (1/(c*γ))\ (rescaleVelocity\ c\ z)\ =}
+\leanline{6}{KineticLangevin.weightedPhaseEnergy\ (1/L)\ (1/γ)\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{weighted\allowbreak{}Phase\allowbreak{}Energy\_\allowbreak{}rescale\allowbreak{}Velocity} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.69.1]{LangevinLean2026Kinetic}.
@@ -61,6 +140,39 @@ Take \(c=\sqrt N\). The force \(N^{-1}\nabla V_N\) is precisely \(c^{-2}\nabla V
 
 Apply the step conjugacy inductively with the transformed noises. The entire physical trajectory is mapped to the shared unit-temperature trajectory. Since position is unchanged by the velocity map, their position sequences agree under this coupling.
 
+\begin{leanbox}{Lean: \texttt{kiplmc2Step\_\allowbreak{}unitTemperature}, \texttt{kiplmc2Chain\_\allowbreak{}unitTemperature}}
+\leansource{\texttt{kiplmc2Step\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 65–81}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Step\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (ξ\ ξ'\ :\ State\ N\ dθ\ dx)\ :}
+\leanline{4}{KineticLangevin.obaboStep\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))}
+\leanline{6}{(h/Real.sqrt\ N)\ (KineticLangevin.obaboDamping\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N))}
+\leanline{6}{(Real.sqrt\ (KineticLangevin.obaboVariance\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N)))}
+\leanline{6}{(rescaleVelocity\ (Real.sqrt\ N)\ z)\ ξ\ ξ'\ =}
+\leanline{8}{rescaleVelocity\ (Real.sqrt\ N)\ (kiplmc2Step\ U\ γ\ h\ z\ ξ\ ξ')}
+\end{leancode}
+\leansource{\texttt{kiplmc2Chain\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 85–100}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Chain\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(z\ :\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)}
+\leanline{4}{(noise\ :\ ℕ\ →\ State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx)\ (n\ :\ ℕ)\ :}
+\leanline{4}{rescaleVelocity\ (Real.sqrt\ N)\ (kiplmc2Chain\ U\ γ\ h\ z\ noise\ n)\ =}
+\leanline{6}{ULA.noiseDrivenChain\ (fun\ s\ ξ\ ↦\ KineticLangevin.obaboStep}
+\leanline{8}{(gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))\ (h/Real.sqrt\ N)}
+\leanline{8}{(KineticLangevin.obaboDamping\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N))}
+\leanline{8}{(Real.sqrt\ (KineticLangevin.obaboVariance\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N)))}
+\leanline{8}{s\ ξ.1\ ξ.2)\ (rescaleVelocity\ (Real.sqrt\ N)\ z)\ noise\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kiplmc2\allowbreak{}Step\_\allowbreak{}unit\allowbreak{}Temperature} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hv} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Chain\_\allowbreak{}unit\allowbreak{}Temperature} proceeds by \texttt{induction n with}. The base cases establish the initial claims and the inductive branches use the induction hypotheses.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.20.1]{LangevinLean2026Kinetic}; \cite[Section~3.20.5]{LangevinLean2026Kinetic}.
@@ -74,17 +186,46 @@ The unit-temperature phase target is \(\mathcal N(0,I)\otimes\pi_{V_N}\). Multip
 
 The thermal Gaussian velocity becomes standard Gaussian, and the position Gibbs target is unchanged. The exact transition conjugacy then transports both the invariant comparison target and all numerical Markov iterates. This is the equality of laws used by the particle OBABO error theorem.
 
+\begin{leanbox}{Lean: \texttt{kineticTarget\_\allowbreak{}rescaleVelocity}, \texttt{kiplmc2Laws\_\allowbreak{}unitTemperature}}
+\leansource{\texttt{kineticTarget\_\allowbreak{}rescaleVelocity} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 104–123}
+\begin{leancode}
+\leanline{0}{theorem\ kineticTarget\_rescaleVelocity\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (m\ :\ ℝ)\ (hm\ :\ 0<m)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)\ :}
+\leanline{4}{(KineticLangevin.kineticGibbsTarget\ (@IPLA.potential\ N\ dθ\ dx\ U)).map}
+\leanline{6}{(rescaleVelocity\ (Real.sqrt\ N)⁻¹)\ =\ gibbsPhaseTarget\ U}
+\end{leancode}
+\leansource{\texttt{kiplmc2Laws\_\allowbreak{}unitTemperature} \quad KIPLMC/\allowbreak{}OBABORescaling.lean, lines 127–147}
+\begin{leancode}
+\leanline{0}{theorem\ kiplmc2Laws\_unitTemperature\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0<N)}
+\leanline{4}{(U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ (γ\ h\ :\ ℝ)}
+\leanline{4}{(μ\ :\ Measure\ (State\ N\ dθ\ dx\ ×\ State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{(kiplmc2Laws\ U\ γ\ h\ μ\ n).map\ (rescaleVelocity\ (Real.sqrt\ N))\ =}
+\leanline{6}{KineticLangevin.obaboLaws\ (gradient\ (@IPLA.potential\ N\ dθ\ dx\ U))}
+\leanline{8}{(Real.sqrt\ N*γ)\ (h/Real.sqrt\ N)}
+\leanline{8}{(Real.sqrt\ (KineticLangevin.obaboVariance\ (Real.sqrt\ N*γ)\ (h/Real.sqrt\ N)))}
+\leanline{8}{(obaboNoise\ N\ dθ\ dx)\ (μ.map\ (rescaleVelocity\ (Real.sqrt\ N)))\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Target\_\allowbreak{}rescale\allowbreak{}Velocity} gives the formal counterpart of this step. The main intermediate facts are \texttt{hr} in that order. Named proof applications include \texttt{IPLA.\allowbreak{}gibbs\allowbreak{}Target\_\allowbreak{}is\allowbreak{}Probability}, \texttt{hr.\allowbreak{}symm}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kiplmc2\allowbreak{}Laws\_\allowbreak{}unit\allowbreak{}Temperature} gives the formal counterpart of this step. The main intermediate facts are \texttt{hg} in that order. Named proof applications include \texttt{Kinetic\allowbreak{}Langevin.\allowbreak{}markov\allowbreak{}Laws\_\allowbreak{}map\_\allowbreak{}conjugacy}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}; \cite[Section~3.113.3]{LangevinLean2026Kinetic}; \cite[Section~3.20.1]{LangevinLean2026Kinetic}; \cite[Section~3.20.5]{LangevinLean2026Kinetic}; \cite[Section~3.51.2]{LangevinLean2026Kinetic}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \bibitem[Kinetic]{LangevinLean2026Kinetic}
-LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b4b7242c6d4f. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision 74e68143120e. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

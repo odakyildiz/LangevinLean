@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,83 +39,122 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-For \(E_d=\mathbb R^d\), potential \(U\), step \(h\), and innovation \(z\), define \(T_h^z(x)=x-h\nabla U(x)+\sqrt{2h}z\). When the same innovation is used at \(x\) and \(y\), subtraction cancels the two noise increments. The distance between updates is therefore bounded by the deterministic Euler estimate. This comparison holds for each noise vector and does not require Gaussianity or independence. If \(h>0\) and the innovation is standard Gaussian, its scaled covariance is \(2hI_d\).
+For a natural number \(d\), let \(E_d=\mathbb R^d\) with the Euclidean inner product \(\langle x,y\rangle=\sum_{i=0}^{d-1}x_iy_i\) and norm \(\|x\|=\langle x,x\rangle^{1/2}\); it is a real Hilbert space, and for \(d=0\) it is the zero space. For a potential \(U:E_d\to\mathbb R\) with gradient \(\nabla U\), a step size \(h\in\mathbb R\) and a noise vector \(z\in E_d\), one step of the unadjusted Langevin algorithm (ULA) maps \(x\in E_d\) to
+
+
+\[T_h^z(x)=x-h\nabla U(x)+\sqrt{2h}\,z,\]
+
+
+with the convention \(\sqrt{2h}=0\) for \(h<0\). If \(h>0\) and \(z\) is a standard Gaussian vector, \(T_h^z(x)\) has the Gaussian law with mean \(x-h\nabla U(x)\) and covariance \(2hI_d\); this is the Euler–Maruyama step for the Langevin equation \(dX_t=-\nabla U(X_t)\,dt+\sqrt2\,dB_t\).
+
+
+
+
+When the same noise vector is used at two states, it cancels from the difference of the two updates, which then equals the difference of two deterministic gradient steps. Combined with the previous section, this gives the shared-noise estimate \(\|T_h^z(x)-T_h^z(y)\|\le\sqrt{1-2hm+h^2L^2}\,\|x-y\|\) for a differentiable \(m\)-strongly convex potential with \(L\)-Lipschitz gradient. The estimate holds for every vector \(z\); no probabilistic assumption on the noise is involved.
 
 
 \section{\texorpdfstring{The Euclidean state space}{The Euclidean state space}}
 
 
-For a natural number \(d\), write \(E_d=\mathbb R^d\) with its Euclidean inner product and norm. Vectors may be represented as real-valued functions on the finite index set \(\{0,\ldots,d-1\}\); when \(d=0\), this index set is empty.
+\textbf{Definition.} For \(d\in\mathbb N\), \(E_d\) is the space \(\mathbb R^d\) of vectors \(x=(x_0,\dots,x_{d-1})\), with the operations defined coordinatewise, the inner product \(\langle x,y\rangle=\sum_{i=0}^{d-1}x_iy_i\) and the norm \(\|x\|=\bigl(\sum_{i=0}^{d-1}x_i^2\bigr)^{1/2}\).
 
 
 
-Introduce the abbreviation
 
-\[E_d:=\mathbb R^d.\]
+Being finite-dimensional, \(E_d\) is complete, hence a real Hilbert space; all statements of the previous sections that require a Hilbert space apply to it. For \(d=0\) the index set is empty and \(E_0=\{0\}\).
 
-This equips the coordinate functions with the Euclidean norm \(\|x\|=(\sum_{i=0}^{d-1}x_i^2)^{1/2}\), so the subsequent gradient and distance estimates use the usual geometry of \(\mathbb R^d\).
-
-
-
-The coordinate expression for the inner product is \(\langle x,y\rangle=\sum_{i=0}^{d-1}x_iy_i\). In particular, coordinatewise addition and scalar multiplication agree with the Euclidean vector operations used by the update. When \(d=0\), the empty coordinate list gives one state and a zero norm; later nondegenerate arguments separate this case explicitly.
-
+\begin{leanbox}{Lean: \texttt{E}}
+\leansource{\texttt{E} \quad UnadjustedLangevin/\allowbreak{}ULAStep.lean, lines 14–14}
+\begin{leancode}
+\leanline{0}{abbrev\ E\ (d\ :\ ℕ)\ :=\ EuclideanSpace\ ℝ\ (Fin\ d)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{abbrev E (d : \ensuremath{\mathbb N}) := Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin d)}. Here \texttt{Fin d} is the set \(\{0,\dots,d-1\}\) and \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} \ensuremath{\iota}} is Mathlib's space of real vectors indexed by a finite set \(\iota\) with the Euclidean (\(\ell^2\)) inner product and norm. Declaring \texttt{E} as an \texttt{abbrev} makes it reducible, so that the inner-product, completeness and measurability structures of \texttt{Euclidean\allowbreak{}Space} are used for \texttt{E d} without further declarations.
+\end{leanbox}
 
 \section{\texorpdfstring{One unadjusted Langevin step}{One unadjusted Langevin step}}
 
 
-For a potential \(U:E_d\to\mathbb R\), a real step size \(h\), a state \(x\in E_d\), and a noise vector \(z\in E_d\), define
-
-\[T_h^z(x)=x-h\nabla U(x)+\sqrt{2h}\,z.\]
-
-The definition itself imposes no sign condition on \(h\); later contraction results assume \(h\ge0\).
+\textbf{Definition.} For \(U:E_d\to\mathbb R\), \(h\in\mathbb R\) and \(x,z\in E_d\), the ULA update is
 
 
+\[T_h^z(x)=x-h\nabla U(x)+\sqrt{2h}\,z,\]
 
-The update consists of the current state, the drift increment \(-h\nabla U(x)\), and the noise increment \(\sqrt{2h}\,z\).
+
+where \(\sqrt{2h}=0\) if \(h<0\).
 
 
 
-For \(h>0\) and standard Gaussian \(z\), the conditional covariance of the noise increment is \(2hI_d\). The deterministic center is \(x-h\nabla U(x)\), so the update is the Euler discretization of drift \(-\nabla U\) and diffusion \(\sqrt2\). The definition remains a deterministic function until a law for its inputs is specified.
 
+The update consists of the gradient step \(x-h\nabla U(x)\) and the noise increment \(\sqrt{2h}\,z\). The definition is a deterministic function of \((x,z)\); probabilistic statements arise only when \(x\) and \(z\) are replaced by random vectors. No sign condition on \(h\) is imposed here; the estimates below assume \(h\ge0\).
+
+\begin{leanbox}{Lean: \texttt{ulaUpdate}}
+\leansource{\texttt{ulaUpdate} \quad UnadjustedLangevin/\allowbreak{}ULAStep.lean, lines 17–18}
+\begin{leancode}
+\leanline{0}{def\ ulaUpdate\ \{d\ :\ ℕ\}\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ z\ :\ E\ d)\ :\ E\ d\ :=}
+\leanline{2}{x\ -\ h\ •\ gradient\ U\ x\ +\ Real.sqrt\ (2\ *\ h)\ •\ z}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Update U h x z} is defined as \texttt{x -\allowbreak{} h \ensuremath{\bullet} gradient U x + Real.\allowbreak{}sqrt (2 * h) \ensuremath{\bullet} z}; \texttt{\ensuremath{\bullet}} is scalar multiplication and \texttt{Real.\allowbreak{}sqrt} is \(0\) on negative arguments. \texttt{gradient U x} is the Riesz representative of the derivative of \(U\) at \(x\); Mathlib sets it to \(0\) at points where \(U\) is not differentiable, but every theorem below assumes that \(U\) is differentiable, so this convention never intervenes. The definition is outside the namespace \texttt{ULA}.
+\end{leanbox}
 
 \section{\texorpdfstring{Shared noise cancels}{Shared noise cancels}}
 
 
-For every potential \(U:E_d\to\mathbb R\), \(h\in\mathbb R\), and vectors \(x,y,z\in E_d\),
-
-\[T_h^z(x)-T_h^z(y)=(x-h\nabla U(x))-(y-h\nabla U(y)).\]
-
-Expand the two updates. The two copies of \(\sqrt{2h}\,z\) subtract to zero:
-
-\[(x-h\nabla U(x)+\sqrt{2h}\,z)-(y-h\nabla U(y)+\sqrt{2h}\,z)=(x-h\nabla U(x))-(y-h\nabla U(y)).\]
-
-The cancellation uses the same realization of \(z\), rather than merely two noises with the same distribution. If the noises differed, an additional term \(\sqrt{2h}(z-z')\) would remain and would need its own moment estimate. With equal innovations the additional term is zero, so the deterministic Euler bound applies to the update difference.
+\textbf{Claim.} For every \(U:E_d\to\mathbb R\), \(h\in\mathbb R\) and \(x,y,z\in E_d\),
 
 
-\section{\texorpdfstring{The initial shared-noise estimate}{The initial shared-noise estimate}}
+\[T_h^z(x)-T_h^z(y)=\bigl(x-h\nabla U(x)\bigr)-\bigl(y-h\nabla U(y)\bigr).\]
 
 
-Suppose \(U:E_d\to\mathbb R\) is differentiable and \(m\)-strongly convex, \(\nabla U\) is \(L\)-Lipschitz with \(L\ge0\), and \(h\ge0\). For every \(x,y,z\in E_d\),
-
-\[\|T_h^z(x)-T_h^z(y)\|\le\sqrt{1-2hm+h^2L^2}\,\|x-y\|.\]
-
-For \(h>0\) this factor is strictly below one whenever \(hL^2<2m\).
+\textbf{Proof.} With \(a=x-h\nabla U(x)\), \(b=y-h\nabla U(y)\) and \(c=\sqrt{2h}\,z\), the two updates are \(a+c\) and \(b+c\), and \((a+c)-(b+c)=a-b\) in any vector space. \(\square\)
 
 
 
-Cancel the common noise. The left-hand side becomes the distance between the two deterministic gradient steps.
+
+The cancellation requires the same vector \(z\) in both updates. With two different noise vectors \(z,z'\), the additional term \(\sqrt{2h}(z-z')\) would remain.
+
+\begin{leanbox}{Lean: \texttt{ulaUpdate\_\allowbreak{}sub}}
+\leansource{\texttt{ulaUpdate\_\allowbreak{}sub} \quad UnadjustedLangevin/\allowbreak{}ULAStep.lean, lines 21–24}
+\begin{leancode}
+\leanline{0}{lemma\ ulaUpdate\_sub\ \{d\ :\ ℕ\}\ (U\ :\ E\ d\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ y\ z\ :\ E\ d)\ :}
+\leanline{4}{ulaUpdate\ U\ h\ x\ z\ -\ ulaUpdate\ U\ h\ y\ z\ =}
+\leanline{6}{(x\ -\ h\ •\ gradient\ U\ x)\ -\ (y\ -\ h\ •\ gradient\ U\ y)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Update\_\allowbreak{}sub} is proved by unfolding \texttt{ula\allowbreak{}Update} and applying the group identity \texttt{add\_\allowbreak{}sub\_\allowbreak{}add\_\allowbreak{}right\_\allowbreak{}eq\_\allowbreak{}sub}, \((a+c)-(b+c)=a-b\).
+\end{leanbox}
+
+\section{\texorpdfstring{The shared-noise estimate from strong monotonicity}{The shared-noise estimate from strong monotonicity}}
+
+
+\textbf{Claim.} Let \(U:E_d\to\mathbb R\) be differentiable at every point and \(m\)-strongly convex, where \(m\in\mathbb R\), and let \(\nabla U\) be \(L\)-Lipschitz with \(L\ge0\). Let \(h\ge0\). Then for all \(x,y,z\in E_d\),
+
+
+\[\|T_h^z(x)-T_h^z(y)\|\le\sqrt{1-2hm+h^2L^2}\;\|x-y\|.\]
+
+
+\textbf{Proof.} By the previous step, the left-hand side equals \(\|(x-h\nabla U(x))-(y-h\nabla U(y))\|\). Apply the square-root Euler-step bound of the previous section with \(g_x=\nabla U(x)\) and \(g_y=\nabla U(y)\). Its two hypotheses hold: \(m\|x-y\|^2\le\langle\nabla U(x)-\nabla U(y),x-y\rangle\) is the strong monotonicity of the gradient, proved for differentiable \(m\)-strongly convex functions on the Hilbert space \(E_d\); and \(\|\nabla U(x)-\nabla U(y)\|\le L\|x-y\|\) is the Lipschitz assumption. \(\square\)
 
 
 
-Strong convexity gives
 
-\[m\|x-y\|^2\le\langle\nabla U(x)-\nabla U(y),x-y\rangle,\]
+The factor is less than one exactly when \(h(hL^2-2m)<0\), that is, when \(h>0\) and \(hL^2<2m\). The sharp contraction of the next section improves it: if \(0<m\le L\), then \((1-mh)^2\le1-2hm+h^2L^2\) and \((1-Lh)^2\le1-2hm+h^2L^2\), because \(m^2\le L^2\) and \(-2hL\le-2hm\), so the sharp factor \(\max\{|1-mh|,|1-Lh|\}\) is never larger.
 
-and the Lipschitz assumption gives \(\|\nabla U(x)-\nabla U(y)\|\le L\|x-y\|\). Insert these two inequalities into the Euler-step square-root bound.
-
-
-
-The coefficient is independent of the noise distribution because cancellation occurs before taking a norm. Hence the inequality holds pointwise and may be integrated against any coupled starting law. A strict contraction requires \(1-2hm+h^2L^2<1\); for \(h>0\), this is the stated inequality between the linear and quadratic terms in the coefficient.
-
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract}}
+\leansource{\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract} \quad UnadjustedLangevin/\allowbreak{}ULAStep.lean, lines 37–48}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_shared\_noise\_contract\ \{d\ :\ ℕ\}\ (U\ :\ E\ d\ →\ ℝ)\ (m\ h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ U)}
+\leanline{4}{(hsm\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(x\ y\ z\ :\ E\ d)\ :}
+\leanline{4}{‖ulaUpdate\ U\ h\ x\ z\ -\ ulaUpdate\ U\ h\ y\ z‖\ ≤}
+\leanline{6}{Real.sqrt\ (1\ -\ 2\ *\ h\ *\ m\ +\ h\ \textasciicircum{}\ 2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2)\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contract} takes \texttt{hdiff : Differentiable \ensuremath{\mathbb R} U}, \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m U}, \texttt{hsm : Lipschitz\allowbreak{}With L (gradient U)} and \texttt{hh : 0 \ensuremath{\le} h}. After \texttt{rw [ula\allowbreak{}Update\_\allowbreak{}sub]} (the noise cancellation of the previous step), the goal is closed by \texttt{ULA.\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract} applied to \texttt{gradient U x} and \texttt{gradient U y}. Its monotonicity hypothesis is \texttt{ULA.\allowbreak{}strong\_\allowbreak{}gradient\_\allowbreak{}monotone hdiff hsc x y}; its Lipschitz hypothesis is \texttt{hsm.\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul x y}, with distances rewritten as norms of differences by \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,8 +54,75 @@ Define \(P_\theta(\theta,x)=(\theta,0)\) and \(P_x(\theta,x)=(0,x)\). These boun
 
 Coordinate evaluation gives \(P_\theta+P_x=I\), \(P_\theta P_x=0\), \(P_\theta^2=P_\theta\), and \(P_x^2=P_x\). Their ranges are therefore complementary orthogonal parameter and latent subspaces. Applying \(P_x\) to the noise removes its parameter component and leaves the deterministic drift unchanged, which is the update difference in the MYPGD comparison.
 
+\begin{leanbox}{Lean: \texttt{parameterNoiseCLM}, \texttt{parameterNoiseCLM\_\allowbreak{}parameter}, \texttt{parameterNoiseCLM\_\allowbreak{}particle} and 3 more}
+\leansource{\texttt{parameterNoiseCLM} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 20–24}
+\begin{leancode}
+\leanline{0}{def\ parameterNoiseCLM\ \{N\ dθ\ dx\ :\ ℕ\}\ :\ IPLA.State\ N\ dθ\ dx\ →L[ℝ]\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{LinearMap.toContinuousLinearMap}
+\leanline{4}{\{\ toFun\ :=\ fun\ z\ =>\ WithLp.toLp\ 2\ (Sum.elim\ (fun\ j\ =>\ z\ (Sum.inl\ j))\ (fun\ \_\ =>\ 0))}
+\leanline{6}{map\_add'\ :=\ by\ intro\ x\ y;\ ext\ i;\ cases\ i\ <;>\ simp}
+\leanline{6}{map\_smul'\ :=\ by\ intro\ a\ x;\ ext\ i;\ cases\ i\ <;>\ simp\ \}}
+\end{leancode}
+\leansource{\texttt{parameterNoiseCLM\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 26–28}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ parameterNoiseCLM\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{parameterNoiseCLM\ z\ (Sum.inl\ j)\ =\ z\ (Sum.inl\ j)}
+\end{leancode}
+\leansource{\texttt{parameterNoiseCLM\_\allowbreak{}particle} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 30–32}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ parameterNoiseCLM\_particle\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ N\ ×\ Fin\ dx)\ :}
+\leanline{4}{parameterNoiseCLM\ z\ (Sum.inr\ j)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{latentNoiseCLM} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 35–36}
+\begin{leancode}
+\leanline{0}{def\ latentNoiseCLM\ \{N\ dθ\ dx\ :\ ℕ\}\ :\ IPLA.State\ N\ dθ\ dx\ →L[ℝ]\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{ContinuousLinearMap.id\ ℝ\ \_\ -\ parameterNoiseCLM}
+\end{leancode}
+\leansource{\texttt{latentNoiseCLM\_\allowbreak{}parameter} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 38–40}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ latentNoiseCLM\_parameter\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ dθ)\ :}
+\leanline{4}{latentNoiseCLM\ z\ (Sum.inl\ j)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{latentNoiseCLM\_\allowbreak{}particle} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 42–44}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ latentNoiseCLM\_particle\ \{N\ dθ\ dx\ :\ ℕ\}}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ (j\ :\ Fin\ N\ ×\ Fin\ dx)\ :}
+\leanline{4}{latentNoiseCLM\ z\ (Sum.inr\ j)\ =\ z\ (Sum.inr\ j)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Denote the two maps by \(P_\theta\) and \(P_x=I-P_\theta\). On a scaled particle state, \(P_\theta(\theta,z_1,\ldots,z_N)=(\theta,0,\ldots,0)\), while \(P_x(\theta,z_1,\ldots,z_N)=(0,z_1,\ldots,z_N)\). The four coordinate lemmas establish these formulas directly; the subtraction defining \texttt{latent\allowbreak{}Noise\allowbreak{}CLM} is an equality of continuous linear maps, so all later compositions are measurable.
 
 
+
+Formal correspondence: parameterNoiseCLM : Retain the parameter coordinates and erase the latent coordinates. latentNoiseCLM : Retain precisely the latent noise of the original particle scheme.
+
+
+
+\texttt{parameter\allowbreak{}Noise\allowbreak{}CLM} is a definition with defining expression \texttt{intro x y; ext i; cases i <;> simp}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{parameter\allowbreak{}Noise\allowbreak{}CLM\_\allowbreak{}parameter} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{parameter\allowbreak{}Noise\allowbreak{}CLM\_\allowbreak{}particle} is proved by \texttt{rfl}: evaluating the definitions makes the two sides the same expression.
+
+
+
+\texttt{latent\allowbreak{}Noise\allowbreak{}CLM} is a definition with defining expression \texttt{Continuous\allowbreak{}Linear\allowbreak{}Map.\allowbreak{}id \ensuremath{\mathbb R} \_\allowbreak{} -\allowbreak{} parameter\allowbreak{}Noise\allowbreak{}CLM}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{latent\allowbreak{}Noise\allowbreak{}CLM\_\allowbreak{}parameter}: the concluding step is \texttt{simp [latent\allowbreak{}Noise\allowbreak{}CLM]}.
+
+
+
+\texttt{latent\allowbreak{}Noise\allowbreak{}CLM\_\allowbreak{}particle}: the concluding step is \texttt{simp [latent\allowbreak{}Noise\allowbreak{}CLM]}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -46,6 +136,42 @@ The parameter projection satisfies \(\|P_\theta z\|^2=\sum_{j=1}^{d_\theta}z_j^2
 
 In the coordinate expansion \(\sum_{j=1}^{d_\theta}z_j^2\), each summand is integrable because the Gaussian vector belongs to \(L^2\). The identities \(\mathbb E z_j^2=1\) and \(\mathbb E P_\theta Z=P_\theta\mathbb EZ=0\) therefore give \(\mathbb E\|P_\theta Z\|^2=d_\theta\) by a finite sum. No factor \(N\) occurs: the projection retains exactly \(d_\theta\) scalar coordinates and their variances sum to \(d_\theta\). The particle count enters only when this noise block is multiplied by amplitude \(\sqrt{2\gamma/N}\).
 
+\begin{leanbox}{Lean: \texttt{parameterNoise\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{parameterNoise\_\allowbreak{}lipschitz}, \texttt{integral\_\allowbreak{}parameterNoise\_\allowbreak{}stdGaussian} and 1 more}
+\leansource{\texttt{parameterNoise\_\allowbreak{}norm\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 46–48}
+\begin{leancode}
+\leanline{0}{theorem\ parameterNoise\_norm\_sq\ \{N\ dθ\ dx\ :\ ℕ\}\ (z\ :\ IPLA.State\ N\ dθ\ dx)\ :}
+\leanline{4}{‖parameterNoiseCLM\ z‖\ \textasciicircum{}\ 2\ =\ ∑\ j\ :\ Fin\ dθ,\ (z\ (Sum.inl\ j))\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{parameterNoise\_\allowbreak{}lipschitz} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 50–58}
+\begin{leancode}
+\leanline{0}{theorem\ parameterNoise\_lipschitz\ \{N\ dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{LipschitzWith\ 1\ (@parameterNoiseCLM\ N\ dθ\ dx)}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}parameterNoise\_\allowbreak{}stdGaussian} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 60–64}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_parameterNoise\_stdGaussian\ \{N\ dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{(∫\ z\ :\ IPLA.State\ N\ dθ\ dx,\ parameterNoiseCLM\ z\ ∂stdGaussian\ \_)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}parameterNoise\_\allowbreak{}sq\_\allowbreak{}stdGaussian} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 66–83}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_parameterNoise\_sq\_stdGaussian\ \{N\ dθ\ dx\ :\ ℕ\}\ :}
+\leanline{4}{(∫\ z\ :\ IPLA.State\ N\ dθ\ dx,\ ‖parameterNoiseCLM\ z‖\ \textasciicircum{}\ 2\ ∂stdGaussian\ \_)\ =\ (dθ\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{parameter\allowbreak{}Noise\_\allowbreak{}norm\_\allowbreak{}sq}: the source steps apply or rewrite \texttt{Euclidean\allowbreak{}Space.\allowbreak{}real\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}eq}, \texttt{Fintype.\allowbreak{}sum\_\allowbreak{}sum\_\allowbreak{}type}.
+
+
+
+\texttt{parameter\allowbreak{}Noise\_\allowbreak{}lipschitz}: the intermediate fact is \texttt{hs}, in source order; the source steps apply or rewrite \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}, \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm}, \texttt{le\_\allowbreak{}add\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}nonneg}, \texttt{sq\_\allowbreak{}nonneg}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+
+
+
+\texttt{integral\_\allowbreak{}parameter\allowbreak{}Noise\_\allowbreak{}std\allowbreak{}Gaussian}: the intermediate fact is \texttt{h}, in source order; the source steps apply or rewrite \texttt{integral\_\allowbreak{}id\_\allowbreak{}std\allowbreak{}Gaussian}, \texttt{map\_\allowbreak{}zero}.
+
+
+
+\texttt{integral\_\allowbreak{}parameter\allowbreak{}Noise\_\allowbreak{}sq\_\allowbreak{}std\allowbreak{}Gaussian}: the intermediate facts include \texttt{hz}, \texttt{hi}, \texttt{hm}, \texttt{hv}, in source order; the source steps apply or rewrite \texttt{Euclidean\allowbreak{}Space.\allowbreak{}inner\_\allowbreak{}single\_\allowbreak{}left}, \texttt{one\_\allowbreak{}mul}, \texttt{Fintype.\allowbreak{}card\_\allowbreak{}fin}, \texttt{nsmul\_\allowbreak{}eq\_\allowbreak{}mul}, \texttt{mul\_\allowbreak{}one}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -59,17 +185,35 @@ Let \(g\) be square-integrable and independent of standard Gaussian \(\xi\). Exp
 
 The independence is between the fresh Gaussian and \(g\); the discrepancy \(g\) need not be centered. In particular \(\mathbb E\langle g,P_\theta\xi\rangle\) factors into the inner product of the two means, and the Gaussian mean is zero. Either sign of the removed parameter block therefore adds exactly \(b^2d_\theta\) to the squared error.
 
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}add\_\allowbreak{}parameterNoise\_\allowbreak{}sq}}
+\leansource{\texttt{integral\_\allowbreak{}add\_\allowbreak{}parameterNoise\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGDNoise.lean, lines 87–130}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_add\_parameterNoise\_sq}
+\leanline{4}{\{A\ :\ Type*\}\ [MeasurableSpace\ A]\ (μ\ :\ Measure\ A)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (g\ :\ A\ →\ IPLA.State\ N\ dθ\ dx)\ (hg\ :\ MemLp\ g\ 2\ μ)\ (b\ :\ ℝ)\ :}
+\leanline{4}{(∫\ p\ :\ A\ ×\ IPLA.State\ N\ dθ\ dx,\ ‖g\ p.1\ +\ b\ •\ parameterNoiseCLM\ p.2‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂μ.prod\ (stdGaussian\ \_))\ =\ (∫\ x,\ ‖g\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ +\ b\ \textasciicircum{}\ 2\ *\ (dθ\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+For a general \(g\in L^2(\mu)\), use the actual product law \(\mu\otimes\mathcal N(0,I)\), and expand \[\|g(x)+bP_\theta z\|^2=\|g(x)\|^2+2b\langle g(x),P_\theta z\rangle+b^2\|P_\theta z\|^2.\] The facts \texttt{hgsq} and \texttt{hzsq} prove integrability of the two squares on the product; \texttt{hcross} proves integrability of the bilinear term, so splitting the integral is justified. Independence here is the product-measure construction itself: \texttt{integral\_\allowbreak{}prod\_\allowbreak{}bilin} factors the mixed integral as \(\langle\mathbb Eg,\mathbb E P_\theta Z\rangle=0\). Hence \(\mathbb E\|g+bP_\theta Z\|^2=\mathbb E\|g\|^2+b^2d_\theta\), with no assumption that \(g\) is centered.
 
 
+
+Formal correspondence: integral\_add\_parameterNoise\_sq : Exact independent-noise identity, for an arbitrary square-integrable source. The mixed term vanishes by the actual product Gaussian law.
+
+
+
+\texttt{integral\_\allowbreak{}add\_\allowbreak{}parameter\allowbreak{}Noise\_\allowbreak{}sq}: the intermediate facts include \texttt{hz}, \texttt{hg1}, \texttt{hz1}, \texttt{hfst}, \texttt{hsnd}, in source order; the source steps apply or rewrite \texttt{norm\_\allowbreak{}inner\_\allowbreak{}le\_\allowbreak{}norm}, \texttt{integral\_\allowbreak{}parameter\allowbreak{}Noise\_\allowbreak{}std\allowbreak{}Gaussian}, \texttt{prob\allowbreak{}Real\_\allowbreak{}univ}, \texttt{one\_\allowbreak{}smul}, \texttt{integral\_\allowbreak{}parameter\allowbreak{}Noise\_\allowbreak{}sq\_\allowbreak{}std\allowbreak{}Gaussian}. The remaining scalar rearrangements are checked by \texttt{ring}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-LSI]{LangevinLean2026ULALSI}
-LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision 82104af6b17a. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under LSI}. LL-02, 2026. Draft report, content revision 7046bc2a17e4. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/LSI/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

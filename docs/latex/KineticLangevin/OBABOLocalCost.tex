@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,24 @@ The local-error bound is \(b_h=2h^2(\sqrt{Md}+\sqrt M\sqrt d+h\sqrt M\sqrt{Md}/4
 
 The local-error bound retains the explicit step size, friction, smoothness, and dimension factors obtained from the Hamiltonian comparator. Its order in the step is quadratic. This order is needed because geometric accumulation will later divide by a contraction gap of first order.
 
+\begin{leanbox}{Lean: \texttt{obaboLocalBudget}, \texttt{obaboLocalBudget\_\allowbreak{}nonneg}}
+\leansource{\texttt{obaboLocalBudget} \quad KineticLangevin/\allowbreak{}OBABOLocalCost.lean, lines 19–20}
+\begin{leancode}
+\leanline{0}{def\ obaboLocalBudget\ (M\ h\ d\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{2\ *\ h\ \textasciicircum{}\ 2\ *\ (Real.sqrt\ (M\ *\ d)\ +\ Real.sqrt\ M\ *\ Real.sqrt\ d\ +\ Real.sqrt\ M\ *\ Real.sqrt\ (M\ *\ d)\ *\ h\ /\ 4)}
+\end{leancode}
+\leansource{\texttt{obaboLocalBudget\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}OBABOLocalCost.lean, lines 22–24}
+\begin{leancode}
+\leanline{0}{theorem\ obaboLocalBudget\_nonneg\ (M\ h\ d\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :\ 0\ ≤\ obaboLocalBudget\ M\ h\ d}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{obabo\allowbreak{}Local\allowbreak{}Budget} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{obabo\allowbreak{}Local\allowbreak{}Budget\_\allowbreak{}nonneg} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{The full common-noise defect before taking its cost}{The full common-noise defect before taking its cost}}
 
@@ -42,13 +83,33 @@ Construct the \(L^{2}\) Hamiltonian path at the first thermostat output. The str
 
 Both updates use exactly the same thermostat noises. The weighted random-variable discrepancy is therefore a coupling cost for their output measures. Integrating the previously derived deterministic local defect under the stationary reference yields the stated kernel error.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}cost}}
+\leansource{\texttt{lp\_\allowbreak{}obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}cost} \quad KineticLangevin/\allowbreak{}OBABOLocalCost.lean, lines 26–59}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_obabo\_hamiltonian\_local\_cost}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)\ (m\ γ\ h\ δ\ σ\ :\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)\ (hM\ :\ 0\ <\ (M\ :\ ℝ))\ (hh\ :\ 0\ ≤\ h)}
+\leanline{4}{(hfriction\ :\ 4\ *\ (M\ :\ ℝ)\ ≤\ γ\ \textasciicircum{}\ 2)\ (hδ\ :\ |δ|\ ≤\ 1)}
+\leanline{4}{(Z\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P\ ×\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(Ξ\ Ξ'\ :\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hlaw\ :\ P.map\ (lpPhaseCoe\ P\ (ornsteinStep\ δ\ σ\ Ξ\ Z))\ =\ kineticGibbsTarget\ f)\ :}
+\leanline{4}{eLpNorm\ (fun\ ω\ ↦\ weightedPhaseTransform\ (1\ /\ (M\ :\ ℝ))\ (1\ /\ γ)}
+\leanline{6}{(obaboStep\ (gradient\ f)\ h\ δ\ σ\ (lpPhaseCoe\ P\ Z\ ω)\ (Ξ\ ω)\ (Ξ'\ ω)\ -}
+\leanline{8}{ornsteinStep\ δ\ σ\ (Ξ'\ ω)}
+\leanline{10}{(hamiltonianFlow\ f\ M\ hLip\ h\ hh\ (ornsteinStep\ δ\ σ\ (Ξ\ ω)\ (lpPhaseCoe\ P\ Z\ ω))\ h)))\ 2\ P\ ≤}
+\leanline{6}{ENNReal.ofReal\ (obaboLocalBudget\ M\ h\ (Fintype.card\ ι\ :\ ℝ))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}obabo\_\allowbreak{}hamiltonian\_\allowbreak{}local\_\allowbreak{}cost} gives the formal counterpart of this step. The main intermediate facts are \texttt{A}, \texttt{N}, \texttt{R}, \texttt{hlocal}, \texttt{h\allowbreak{}N}, \texttt{h\allowbreak{}R} in that order. Named proof applications include \texttt{ENNReal.\allowbreak{}of\allowbreak{}Real\_\allowbreak{}le\_\allowbreak{}of\allowbreak{}Real}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,7 +55,27 @@ The additive term \(a^2d_\theta\) is independent of the chosen coupling. Since \
 
 The infimum replaces the squared input cost by \(W_2(\mu,\nu)^2\), with nonnegative coefficient \(r^2\). One finite input coupling already proves a finite output cost. Thus neither finiteness nor the recurrence assumes attainment of the optimal coupling.
 
+\begin{leanbox}{Lean: \texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}sq}}
+\leansource{\texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGD.lean, lines 29–45}
+\begin{leancode}
+\leanline{0}{theorem\ latent\_full\_markov\_sq}
+\leanline{4}{(μ\ ν\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ (hν\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ ν)\ :}
+\leanline{4}{wasserstein2}
+\leanline{6}{(markovStep\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ)}
+\leanline{6}{(markovStep\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ ν)\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real}
+\leanline{6}{(markovStep\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ)}
+\leanline{6}{(markovStep\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ ν)\textasciicircum{}2\ ≤}
+\leanline{6}{(r\ :\ ℝ)\textasciicircum{}2*wasserstein2Real\ μ\ ν\textasciicircum{}2+a\textasciicircum{}2*(dθ\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: latent\_full\_markov\_sq : The finite-moment independent Gaussian transition satisfies the derived squared transport recurrence.
 
+
+
+\texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}sq}: the intermediate fact is \texttt{hf}, in source order; the source steps apply or rewrite \texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}coupling\_\allowbreak{}sq}, \texttt{wasserstein2\_\allowbreak{}sq\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}finite\_\allowbreak{}couplings}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.18.2]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -46,8 +89,31 @@ Measurable transitions preserve probability, and their linear-growth moment boun
 
 For recurrence \(E_{k+1}\le r^2E_k+a^2d_\theta\) with zero initial value, induction gives \(E_k\le a^2d_\theta\sum_{j<k}r^{2j}\). The condition \(r<1\) makes \(1-r^2\) positive, so the finite geometric sum is bounded by its infinite-series value. This proves the stated uniform bound while retaining finite moments at each iteration.
 
+\begin{leanbox}{Lean: \texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq}}
+\leansource{\texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGD.lean, lines 49–102}
+\begin{leancode}
+\leanline{0}{theorem\ latent\_full\_markov\_laws\_sq\ (hr\ :\ (r\ :\ ℝ)\ <\ 1)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{wasserstein2}
+\leanline{6}{(markovLaws\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)}
+\leanline{6}{(markovLaws\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real}
+\leanline{6}{(markovLaws\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)}
+\leanline{6}{(markovLaws\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)\textasciicircum{}2\ ≤}
+\leanline{6}{a\textasciicircum{}2*(dθ\ :\ ℝ)/(1-(r\ :\ ℝ)\textasciicircum{}2)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Let \(E_k=W_2(\mu_k^x,\mu_k^{\mathrm{full}})^2\), with the same initial law. The two inductions \texttt{h\allowbreak{}Mm} and \texttt{h\allowbreak{}Im} propagate finite second moments, while \texttt{h\allowbreak{}Mp} and \texttt{h\allowbreak{}Ip} propagate probability mass. Therefore the one-step theorem applies at every \(k\), giving \(E_{k+1}\le r^2E_k+a^2d_\theta\). A diagonal realization proves \(E_0=0\). Since \(0\le r<1\), the affine-recurrence sum yields \[E_k\le a^2d_\theta\sum_{j=0}^{k-1}r^{2j}\le\frac{a^2d_\theta}{1-r^2}.\] This recurrence is derived from the transitions, rather than a hypothesis of this theorem.
 
 
+
+Formal correspondence: latent\_full\_markov\_laws\_sq : The actual iterated independent-Gaussian laws differ by at most the explicit noise-removal floor. No error recurrence is assumed.
+
+
+
+\texttt{latent\_\allowbreak{}full\_\allowbreak{}markov\_\allowbreak{}laws\_\allowbreak{}sq}: the argument uses \texttt{induction k with}; the intermediate facts include \texttt{M}, \texttt{I}, \texttt{h\allowbreak{}Mp}, \texttt{hr2}, \texttt{hzero}, in source order; the source steps apply or rewrite \texttt{latent\allowbreak{}Gaussian\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{full\allowbreak{}Gaussian\allowbreak{}Step\_\allowbreak{}mem\allowbreak{}Lp}, \texttt{zero\_\allowbreak{}pow}, \texttt{mul\_\allowbreak{}zero}, \texttt{zero\_\allowbreak{}add}. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.15.3]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.17.9]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
@@ -76,17 +142,58 @@ For \(V_\eta=g_1+g_2^\eta\), the envelope results give curvature \(m\) and gradi
 
 With \(r=1-m\gamma\) and \(a^2=2\gamma/N\), the denominator in the geometric sum is \(1-r^2=m\gamma(2-m\gamma)\). Inequality \(m\gamma\le1\) bounds it below by \(m\gamma>0\). Cancellation of the physical step gives the squared radius \(2d_\theta/(Nm)\). This is an upper bound on the difference between two finite-particle laws. It asserts neither that removing noise worsens the algorithm nor that a mean-field limit has been taken.
 
+\begin{leanbox}{Lean: \texttt{mypgdDriftMap}, \texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}markov\_\allowbreak{}transport\_\allowbreak{}sq}}
+\leansource{\texttt{mypgdDriftMap} \quad ProximalLangevin/\allowbreak{}MYPGD.lean, lines 107–109}
+\begin{leancode}
+\leanline{0}{def\ mypgdDriftMap\ \{N\ dθ\ dx\ :\ ℕ\}\ (g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (η\ γ\ :\ ℝ)}
+\leanline{4}{(z\ :\ IPLA.State\ N\ dθ\ dx)\ :\ IPLA.State\ N\ dθ\ dx\ :=}
+\leanline{2}{z-(γ/N)\ •\ gradient\ (@IPLA.potential\ N\ dθ\ dx\ (smoothedPotential\ g₁\ g₂\ η))\ z}
+\end{leancode}
+\leansource{\texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}markov\_\allowbreak{}transport\_\allowbreak{}sq} \quad ProximalLangevin/\allowbreak{}MYPGD.lean, lines 114–174}
+\begin{leancode}
+\leanline{0}{theorem\ mypgd\_myipla\_markov\_transport\_sq}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)\ \{g₁\ g₂\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(m\ η\ γ\ :\ ℝ)\ (L₁\ :\ ℝ≥0)}
+\leanline{4}{(hg₁\ :\ Differentiable\ ℝ\ g₁)\ (hsc\ :\ StrongConvexOn\ univ\ m\ g₁)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L₁\ (gradient\ g₁))}
+\leanline{4}{(hg₂\ :\ ConvexOn\ ℝ\ univ\ g₂)\ (hb\ :\ ∃\ b,\ ∀\ z,\ b\ ≤\ g₂\ z)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ (smoothingLipschitz\ L₁\ η\ :\ ℝ))}
+\leanline{4}{(hη\ :\ 0\ <\ η)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsmall\ :\ γ\ ≤\ 2/(m+(smoothingLipschitz\ L₁\ η\ :\ ℝ)))}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (fun\ x\ =>\ x)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{let\ D\ :=\ @mypgdDriftMap\ N\ dθ\ dx\ g₁\ g₂\ η\ γ}
+\leanline{4}{let\ a\ :=\ Real.sqrt\ (2*γ/N)}
+\leanline{4}{wasserstein2\ (markovLaws\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)}
+\leanline{6}{(markovLaws\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)\ ≠\ ⊤\ ∧}
+\leanline{4}{wasserstein2Real\ (markovLaws\ (latentGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)}
+\leanline{6}{(markovLaws\ (fullGaussianUpdate\ D\ a)\ (stdGaussian\ \_)\ μ\ n)\textasciicircum{}2\ ≤}
+\leanline{6}{2*(dθ\ :\ ℝ)/((N\ :\ ℝ)*m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Substitute \(a^2=2\gamma/N\) into the preceding floor. The scalar fact \texttt{hbound} is \[1-(1-m\gamma)^2=m\gamma(2-m\gamma)\ge m\gamma.\] Its denominator is positive, so \[\frac{(2\gamma/N)d_\theta}{1-(1-m\gamma)^2}\le\frac{2d_\theta}{Nm}.\] The proof controls removal of parameter noise in a finite-particle algorithm; it does not replace this floor with a mean-field limit assertion.
 
 
+
+Formal correspondence: mypgdDriftMap : The smooth Euler map used by both MYPGD and MYIPLA. mypgd\_myipla\_markov\_transport\_sq : Genuine MYPGD/\allowbreak{}MYIPLA comparison with a uniform finite-particle floor. This bound concerns the actual Gaussian Markov transitions. It is a proved replacement for, rather than an assertion of, the source's mean-field estimate.
+
+
+
+\texttt{mypgd\allowbreak{}Drift\allowbreak{}Map} is a definition with defining expression \texttt{z-\allowbreak{}(\ensuremath{\gamma}/\allowbreak{}N) \ensuremath{\bullet} gradient (@IPLA.\allowbreak{}potential N d\ensuremath{\theta} dx (smoothed\allowbreak{}Potential g\ensuremath{{}_{1}} g\ensuremath{{}_{2}} \ensuremath{\eta})) z}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{mypgd\_\allowbreak{}myipla\_\allowbreak{}markov\_\allowbreak{}transport\_\allowbreak{}sq}: the intermediate facts include \texttt{hn}, \texttt{L}, \texttt{hdiff}, \texttt{hb}, \texttt{hbound}, in source order; the source steps apply or rewrite \texttt{smoothed\_\allowbreak{}gradient\_\allowbreak{}lipschitz}, \texttt{moreau\_\allowbreak{}differentiable}, \texttt{hb'.\allowbreak{}1}, \texttt{hb'.\allowbreak{}2.\allowbreak{}trans}, \texttt{Real.\allowbreak{}sq\_\allowbreak{}sqrt}. The \texttt{calc} block checks the successive equalities or inequalities in the argument. The remaining scalar rearrangements are checked by \texttt{field\_\allowbreak{}simp}, \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.10.7]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}; \cite[Section~3.7.1]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

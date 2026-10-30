@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,71 +39,252 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The splitting is an explicit numerical map: velocity Verlet for the Hamiltonian drift, then exponential velocity damping and a supplied filtered additive increment. Its stability and local kinetic Euler defect are proved from the map algebra. The filtered increment is written by deterministic integration by parts, matching the specified Brownian segment identity proved separately.
+Let \(\mathcal X\) be a real normed space and give \(\mathcal X\times\mathcal X\) the maximum norm \(\|(v,x)\|=\max(\|v\|,\|x\|)\); phase points are written velocity first. Let \(g:\mathcal X\to\mathcal X\) be \(M\)-Lipschitz (in the application \(g=\nabla f\)), \(\gamma\ge0\) the friction and \(h\ge0\) the step. The kinetic drift is \(d_\gamma(v,x)=(\gamma v+g(x),-v)\), so that the kinetic integral equation reads \(Z_t-Z_0=-\int_0^td_\gamma(Z_s)\,ds+(B_t,0)\) for a velocity forcing \(B\), and one explicit Euler step is \(z-hd_\gamma(z)\).
 
 
 
-The deterministic splitting is driven by filtered increments of a prescribed continuous input. Its exact consistency estimates prepare a convergence theorem that later specializes to specified Brownian forcing.
+
+This module defines the Lie splitting step
 
 
-\section{\texorpdfstring{Damp velocity while retaining position}{Damp velocity while retaining position}}
+\[S_h(z,N)=\bigl(e^{-\gamma h}v'+N,\ x'\bigr),\qquad(v',x')=V_h(z),\]
 
 
-The map is \(D_\delta(v,x)=(\delta v,x)\). For \(0\le\delta\le1\), its velocity difference has norm \(\delta\|v-w\|\) and its position difference is unchanged. Each is bounded by the original maximum product norm, hence the full map is nonexpansive. One proves the two coordinate bounds and combines them using comparison with a maximum. This uses the maximum product norm specified for this estimate.
+a velocity Verlet step \(V_h\) for the Hamiltonian part followed by exact exponential damping of the velocity and an additive velocity increment \(N\in\mathcal X\). It proves that \(S_h\) is Lipschitz in \(z\) with constant \(1+(M+1)^2h\), that it differs from the kinetic Euler step \(z-hd_\gamma(z)+(N,0)\) by at most \(h^2C(\|z\|+\|g(0)\|)\) with an explicit constant \(C\), and that the filtered increment
 
 
-
-The thermostat modifies velocity but leaves position unchanged. Its deterministic damping is contractive, and its additive response is supplied separately. This separation permits a pathwise convergence proof for a prescribed continuous input before identifying that input probabilistically.
-
-
-\section{\texorpdfstring{Construct and stabilize the Verlet–OU step}{Construct and stabilize the Verlet–OU step}}
+\[N_{a,h}=B(a+h)-B(a)-\gamma\int_0^he^{-\gamma(h-s)}\bigl(B(a+s)-B(a)\bigr)\,ds\]
 
 
-The explicit step is \(S_h(z,N)=O_{e^{-\gamma h},N}(V_hz)\). Two synchronously driven steps have exactly the same additive increment, which cancels. Exponential damping lies in \((0,1]\) for nonnegative friction and step, so it is nonexpansive. The already proved Verlet stability bound gives \[\|S_h(z,N)-S_h(w,N)\|\le[1+(M+1)^2h]\|z-w\|\] for \(h\le1\). First, the argument checks the exact noise-cancellation identity and then composes these two bounds.
+of a forcing path \(B\) differs from the plain increment \(B(a+h)-B(a)\) by at most \(\gamma h\) times the oscillation of \(B\) on \([a,a+h]\). By the identities proved for Brownian segments, \(N_{a,h}\) is exactly the Ornstein–Uhlenbeck velocity response \(\int_a^{a+h}e^{-\gamma(a+h-r)}\,dB_r\) when \(B\) is the Brownian motion. These deterministic estimates are the consistency and stability ingredients of the convergence of the splitting to the kinetic diffusion, proved in the next modules.
 
 
-
-The numerical map combines a Hamiltonian Verlet update with the damped velocity response. Stagewise Lipschitz estimates give stability of the composition. The forcing increment is the filtered increment associated with the same input interval.
-
-
-\section{\texorpdfstring{Derive exponential damping errors without dividing by friction}{Derive exponential damping errors without dividing by friction}}
+\section{\texorpdfstring{Damping the velocity is nonexpansive}{Damping the velocity is nonexpansive}}
 
 
-The response balances \(\gamma\psi_1=1-e^{-\gamma h}\) and \(\gamma\psi_2=h-\psi_1\) imply \(e^{-\gamma h}-1+\gamma h=\gamma^2\psi_2\). Since \(0\le\psi_2\le h^2/2\), the absolute Euler remainder is bounded by \(\gamma^2h^2/2\). Also the exponential tangent inequality gives \(0\le1-e^{-\gamma h}\le\gamma h\). The argument obtains both estimates from exact identities and checks all sign conditions. The formulas remain valid at zero friction.
+\textbf{Definition.} For \(\delta\in\mathbb R\), \(D_\delta(v,x)=(\delta v,x)\).
 
 
 
-The bounds follow from integral representations of \(1-e^{-s}\) and its linear remainder. They remain valid at zero friction because no division by friction is used. This is useful when comparing the splitting with the deterministic Hamiltonian limit.
 
-
-\section{\texorpdfstring{Compare the damped Hamiltonian Euler stage with full kinetic Euler}{Compare the damped Hamiltonian Euler stage with full kinetic Euler}}
-
-
-Damp the Hamiltonian Euler stage and subtract full kinetic Euler. Their position components agree exactly, while their velocity difference is \((e^{-\gamma h}-1+\gamma h)v+(1-e^{-\gamma h})h\,g(x)\). The preceding scalar estimates bound this by a quadratic expression. Lipschitz force growth \(\|g(x)\|\le M\|z\|+\|g(0)\|\) yields the displayed \(h^2[\gamma^2/2+\gamma(M+1)](\|z\|+\|g(0)\|)\) bound. One proves the exact vector identity, bounds its two terms, and combines nonnegative scalar factors.
+\textbf{Claim.} If \(0\le\delta\le1\), then \(\|D_\delta z-D_\delta w\|\le\|z-w\|\) for all \(z,w\in\mathcal X\times\mathcal X\).
 
 
 
-Comparison with Euler expresses the kinetic drift as the sum of Hamiltonian transport and friction. The splitting’s damping introduces higher-order terms because these pieces are applied in succession. Those terms are kept explicitly in the local consistency estimate.
+
+\textbf{Proof.} Write \(z=(v,x)\), \(w=(v',x')\). Then \(D_\delta z-D_\delta w=(\delta(v-v'),x-x')\), and by the definition of the maximum norm \(\|D_\delta z-D_\delta w\|=\max\bigl(\delta\|v-v'\|,\|x-x'\|\bigr)\), using \(\|\delta u\|=|\delta|\|u\|=\delta\|u\|\). Since \(0\le\delta\le1\), \(\delta\|v-v'\|\le\|v-v'\|\le\|z-w\|\), and \(\|x-x'\|\le\|z-w\|\). A maximum of two numbers bounded by \(\|z-w\|\) is bounded by \(\|z-w\|\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{velocityDamping}, \texttt{velocityDamping\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}}
+\leansource{\texttt{velocityDamping} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 12–12}
+\begin{leancode}
+\leanline{0}{def\ velocityDamping\ (δ\ :\ ℝ)\ (z\ :\ E×E)\ :\ E×E\ :=\ (δ\ •\ z.1,z.2)}
+\end{leancode}
+\leansource{\texttt{velocityDamping\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 16–23}
+\begin{leancode}
+\leanline{0}{theorem\ velocityDamping\_norm\_sub\_le\ (δ\ :\ ℝ)\ (hδ0\ :\ 0≤δ)\ (hδ1\ :\ δ≤1)}
+\leanline{4}{(z\ w\ :\ E×E)\ :\ ‖velocityDamping\ δ\ z-velocityDamping\ δ\ w‖\ ≤\ ‖z-w‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{velocity\allowbreak{}Damping \ensuremath{\delta} z} is \texttt{(\ensuremath{\delta} \ensuremath{\bullet} z.\allowbreak{}1,z.\allowbreak{}2)}. In \texttt{velocity\allowbreak{}Damping\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}, \texttt{hv} and \texttt{hx} are the coordinate bounds \texttt{norm\_\allowbreak{}fst\_\allowbreak{}le}, \texttt{norm\_\allowbreak{}snd\_\allowbreak{}le} (each coordinate of a pair has norm at most the norm of the pair); \texttt{change} exposes the maximum norm of the product, \texttt{max\_\allowbreak{}le} splits the goal, and the velocity part uses \texttt{smul\_\allowbreak{}sub}, \texttt{norm\_\allowbreak{}smul} and \texttt{mul\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}left} (\(\delta a\le a\) for \(a\ge0\), \(\delta\le1\)).
+\end{leanbox}
+
+\section{\texorpdfstring{The splitting step and its stability}{The splitting step and its stability}}
 
 
-\section{\texorpdfstring{Bound the complete deterministic kinetic Euler defect}{Bound the complete deterministic kinetic Euler defect}}
-
-
-Insert the damped Hamiltonian Euler stage between the split step and full kinetic Euler. Nonexpansiveness of damping preserves the proved Verlet-versus-Hamiltonian-Euler defect. Add the damped-stage defect just established. The noise increment is retained exactly on both sides and cancels, giving \[\|S_h(z,N)-[z-hd(z)+(N,0)]\|\le h^2C(\|z\|+\|g(0)\|),\quad C=(M+1)(M+2)+\gamma^2/2+\gamma(M+1).\] The argument applies the triangle inequality through this explicit intermediate state and normalizes the coefficient algebra.
+\textbf{Definition.} With \(V_h=K_{h/2}\circ D'_h\circ K_{h/2}\) the velocity Verlet step (kick \(K_s(v,x)=(v-sg(x),x)\), drift \(D'_h(v,x)=(v,x+hv)\)), let \(S_h(z,N)=\bigl(e^{-\gamma h}v'+N,x'\bigr)\) where \((v',x')=V_h(z)\).
 
 
 
-The full defect includes the Verlet approximation error, the damping remainder, and their interaction. Each is controlled by the phase bound and a small-step factor. Summing these bounds gives a local state comparison with the kinetic Euler increment.
+
+\textbf{Claim.} Let \(g\) be \(M\)-Lipschitz, \(\gamma\ge0\) and \(0\le h\le1\). Then for all \(z,w\in\mathcal X\times\mathcal X\) and \(N\in\mathcal X\),
 
 
-\section{\texorpdfstring{Use the filtered additive increment}{Use the filtered additive increment}}
+\[\|S_h(z,N)-S_h(w,N)\|\le\bigl(1+(M+1)^2h\bigr)\|z-w\| .\]
 
 
-For a continuous additive velocity input \(B\), define \[N_{a,h}=B_{a+h}-B_a-\gamma\int_0^h e^{-\gamma(h-s)}(B_{a+s}-B_a)\,ds.\] This is the deterministic integration-by-parts representation of the exact OU response. If the input oscillation over the interval is at most \(\eta\), exponential damping is at most one, so \(\|N_{a,h}-(B_{a+h}-B_a)\|\le\gamma h\eta\). The proof subtracts the matching increment exactly, moves the scalar outside the norm, and bounds the integral by its interval length and pointwise integrand bound. The Brownian segment module independently proves precisely this identity for the constructed Gaussian source.
+\textbf{Proof.} The increment \(N\) is the same in both steps and cancels: \(S_h(z,N)-S_h(w,N)=D_\delta(V_hz)-D_\delta(V_hw)\) with \(\delta=e^{-\gamma h}\). Since \(\gamma h\ge0\), \(0<\delta\le1\), so by the previous step \(\|D_\delta(V_hz)-D_\delta(V_hw)\|\le\|V_hz-V_hw\|\). The stability of velocity Verlet, proved in the module on Hamiltonian convergence (by composing the Lipschitz bounds \(1+sM\) of the kicks and \(1+h\) of the drift), gives \(\|V_hz-V_hw\|\le(1+(M+1)^2h)\|z-w\|\) for \(0\le h\le1\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{kineticSplitStep}, \texttt{kineticSplitStep\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}}
+\leansource{\texttt{kineticSplitStep} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 27–28}
+\begin{leancode}
+\leanline{0}{def\ kineticSplitStep\ (g\ :\ E\ →\ E)\ (γ\ h\ :\ ℝ)\ (z\ :\ E×E)\ (N\ :\ E)\ :\ E×E\ :=}
+\leanline{2}{ornsteinStep\ (Real.exp\ (-γ*h))\ 1\ N\ (verletStep\ g\ h\ z)}
+\end{leancode}
+\leansource{\texttt{kineticSplitStep\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 32–43}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitStep\_norm\_sub\_le\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ (hh1\ :\ h≤1)\ (z\ w\ :\ E×E)\ (N\ :\ E)\ :}
+\leanline{4}{‖kineticSplitStep\ g\ γ\ h\ z\ N-kineticSplitStep\ g\ γ\ h\ w\ N‖\ ≤}
+\leanline{6}{(1+((M\ :\ ℝ)+1)\textasciicircum{}2*h)*‖z-w‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Split\allowbreak{}Step g \ensuremath{\gamma} h z N} is \texttt{ornstein\allowbreak{}Step (Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma}*h)) 1 N (verlet\allowbreak{}Step g h z)}: the Ornstein–Uhlenbeck substep with damping \(e^{-\gamma h}\), noise coefficient \(1\) and noise \(N\), applied after \texttt{verlet\allowbreak{}Step}. In \texttt{kinetic\allowbreak{}Split\allowbreak{}Step\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le}, \texttt{he} is the cancellation identity, checked componentwise by \texttt{ext <;> simp}; the conclusion chains \texttt{velocity\allowbreak{}Damping\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} (with \(0\le e^{-\gamma h}\le1\) from \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos} and \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff}) and \texttt{verlet\allowbreak{}Step\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} using \texttt{.\allowbreak{}trans}.
+\end{leanbox}
+
+\section{\texorpdfstring{Exponential damping errors without division by the friction}{Exponential damping errors without division by the friction}}
+
+
+\textbf{Claim.} For \(\gamma\ge0\) and \(h\ge0\),
+
+
+\[\bigl|e^{-\gamma h}-1+\gamma h\bigr|\le\frac{\gamma^2h^2}2\qquad\text{and}\qquad0\le1-e^{-\gamma h}\le\gamma h .\]
+
+
+\textbf{Proof.} Recall \(\psi_0(t)=e^{-\gamma t}\), \(\psi_1(t)=\int_0^t\psi_0\), \(\psi_2(t)=\int_0^t\psi_1\), and the identities \(\gamma\psi_1(t)=1-e^{-\gamma t}\) and \(\gamma\psi_2(t)=t-\psi_1(t)\), valid for every real \(\gamma\) and \(t\) (the second is the integral of the first). Multiplying the second by \(\gamma\) and substituting the first,
+
+
+\[\gamma^2\psi_2(h)=\gamma h-\gamma\psi_1(h)=\gamma h-1+e^{-\gamma h}.\]
+
+
+For \(h\ge0\), \(\psi_2(h)\ge0\) (integral of a nonnegative function), so the absolute value equals \(\gamma^2\psi_2(h)\). For \(\gamma\ge0\), \(\psi_0\le1\) on \([0,\infty)\), hence \(\psi_1(s)\le s\) and \(\psi_2(h)\le\int_0^hs\,ds=h^2/2\); multiplying by \(\gamma^2\ge0\) gives the first inequality. For the second, \(-\gamma h\le0\) gives \(e^{-\gamma h}\le1\), and the tangent-line inequality \(e^u\ge1+u\) with \(u=-\gamma h\) gives \(1-e^{-\gamma h}\le\gamma h\). \(\square\)
 
 
 
-The additive increment must be the filtered response to the supplied input, rather than an unrelated Gaussian with the same variance. Its exact relation to the input gives the integral equation in the limit. This identifies the splitting limit with the desired kinetic process.
 
+No division by \(\gamma\) occurs, so the estimates include \(\gamma=0\).
+
+\begin{leanbox}{Lean: \texttt{damping\_\allowbreak{}euler\_\allowbreak{}remainder}, \texttt{one\_\allowbreak{}sub\_\allowbreak{}damping\_\allowbreak{}le}}
+\leansource{\texttt{damping\_\allowbreak{}euler\_\allowbreak{}remainder} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 47–57}
+\begin{leancode}
+\leanline{0}{theorem\ damping\_euler\_remainder\ (γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ :}
+\leanline{4}{|Real.exp\ (-γ*h)-1+γ*h|\ ≤\ γ\textasciicircum{}2*h\textasciicircum{}2/2}
+\end{leancode}
+\leansource{\texttt{one\_\allowbreak{}sub\_\allowbreak{}damping\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 60–64}
+\begin{leancode}
+\leanline{0}{theorem\ one\_sub\_damping\_le\ (γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ :}
+\leanline{4}{0\ ≤\ 1-Real.exp\ (-γ*h)\ ∧\ 1-Real.exp\ (-γ*h)\ ≤\ γ*h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{damping\_\allowbreak{}euler\_\allowbreak{}remainder}: \texttt{h1} and \texttt{h2} are \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one} and \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}two}; \texttt{hid} is the identity \(e^{-\gamma h}-1+\gamma h=\gamma^2\psi_2(h)\), obtained by \texttt{nlinarith} after rewriting with \texttt{psi\_\allowbreak{}zero}; \texttt{hnon} is \texttt{psi\_\allowbreak{}nonneg} and \texttt{hbound} multiplies \texttt{psi\_\allowbreak{}two\_\allowbreak{}le} by \(\gamma^2\). The absolute value is removed with \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg}.
+
+\item \texttt{one\_\allowbreak{}sub\_\allowbreak{}damping\_\allowbreak{}le} proves the two components with \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff} and \texttt{Real.\allowbreak{}add\_\allowbreak{}one\_\allowbreak{}le\_\allowbreak{}exp}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The damped Hamiltonian Euler stage versus kinetic Euler}{The damped Hamiltonian Euler stage versus kinetic Euler}}
+
+
+\textbf{Claim.} Let \(g\) be \(M\)-Lipschitz, \(\gamma\ge0\), \(h\ge0\), \(\delta=e^{-\gamma h}\). Then for every \(z\in\mathcal X\times\mathcal X\)
+
+
+\[\bigl\|D_\delta\bigl(z-hd_0(z)\bigr)-\bigl(z-hd_\gamma(z)\bigr)\bigr\|\le h^2\Bigl(\frac{\gamma^2}2+\gamma(M+1)\Bigr)\bigl(\|z\|+\|g(0)\|\bigr).\]
+
+
+\textbf{Proof.} Write \(z=(v,x)\). Then \(z-hd_0(z)=(v-hg(x),x+hv)\), whose damped version is \((\delta v-\delta hg(x),x+hv)\), and \(z-hd_\gamma(z)=(v-\gamma hv-hg(x),x+hv)\). The position components agree, so
+
+
+\[D_\delta\bigl(z-hd_0(z)\bigr)-\bigl(z-hd_\gamma(z)\bigr)=\bigl((\delta-1+\gamma h)v+(1-\delta)h\,g(x),\ 0\bigr),\]
+
+
+and its norm is the norm of the velocity component. By the Lipschitz property and the triangle inequality, \(\|g(x)\|\le\|g(x)-g(0)\|+\|g(0)\|\le M\|x\|+\|g(0)\|\le M\|z\|+\|g(0)\|\). Using the triangle inequality, the previous step (\(|\delta-1+\gamma h|\le\gamma^2h^2/2\), \(0\le1-\delta\le\gamma h\)) and \(\|v\|\le\|z\|\),
+
+
+\[\begin{aligned}
+&\bigl\|(\delta-1+\gamma h)v+(1-\delta)hg(x)\bigr\|\\
+&\quad\le\frac{\gamma^2h^2}2\|z\|
+  +\gamma h\cdot h\bigl(M\|z\|+\|g(0)\|\bigr)\\
+&\quad=h^2\Bigl(\bigl(\tfrac{\gamma^2}2+\gamma M\bigr)\|z\|
+  +\gamma\|g(0)\|\Bigr)\\
+&\quad\le h^2\Bigl(\frac{\gamma^2}2+\gamma(M+1)\Bigr)
+  \bigl(\|z\|+\|g(0)\|\bigr).
+\end{aligned}\]
+
+
+where the last inequality holds because the difference of the two sides is \(h^2\bigl[(\frac{\gamma^2}2+\gamma M)\|g(0)\|+\gamma\|z\|\bigr]\ge0\). \(\square\)
+
+\begin{leanbox}{Lean: \texttt{damping\_\allowbreak{}hamiltonianEuler\_\allowbreak{}defect}}
+\leansource{\texttt{damping\_\allowbreak{}hamiltonianEuler\_\allowbreak{}defect} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 68–108}
+\begin{leancode}
+\leanline{0}{theorem\ damping\_hamiltonianEuler\_defect\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ (z\ :\ E×E)\ :}
+\leanline{4}{‖velocityDamping\ (Real.exp\ (-γ*h))\ (z-h\ •\ kineticNegativeDrift\ g\ 0\ 1\ z)-}
+\leanline{6}{(z-h\ •\ kineticNegativeDrift\ g\ γ\ 1\ z)‖\ ≤}
+\leanline{6}{h\textasciicircum{}2*(γ\textasciicircum{}2/2+γ*((M\ :\ ℝ)+1))*(‖z‖+‖g\ 0‖)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{damping\_\allowbreak{}hamiltonian\allowbreak{}Euler\_\allowbreak{}defect} the drift is \texttt{kinetic\allowbreak{}Negative\allowbreak{}Drift g \ensuremath{\gamma} 1}, i.e. \(d_\gamma\) with inverse mass one. \texttt{hgrowth} is the linear growth bound of \(g\); \texttt{hid} is the componentwise identity (each component checked by \texttt{module}); \texttt{Prod.\allowbreak{}norm\_\allowbreak{}mk} and \texttt{max\_\allowbreak{}eq\_\allowbreak{}left} reduce the maximum norm of \((u,0)\) to \(\|u\|\). \texttt{he} and \texttt{h\ensuremath{\delta}} are the two estimates of the previous step, \texttt{hs} the triangle inequality, and \texttt{ha}, \texttt{hb} bound its two terms with \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul}. The \texttt{calc} block carries out the displayed chain.
+\end{leanbox}
+
+\section{\texorpdfstring{The local defect of the splitting step}{The local defect of the splitting step}}
+
+
+\textbf{Claim.} Let \(g\) be \(M\)-Lipschitz, \(\gamma\ge0\) and \(0\le h\le1\). Then for all \(z\in\mathcal X\times\mathcal X\) and \(N\in\mathcal X\)
+
+
+\[\bigl\|S_h(z,N)-\bigl(z-hd_\gamma(z)+(N,0)\bigr)\bigr\|\le h^2C\bigl(\|z\|+\|g(0)\|\bigr),\qquad C=(M+1)(M+2)+\frac{\gamma^2}2+\gamma(M+1).\]
+
+
+\textbf{Proof.} The increment \(N\) appears in the velocity of both terms and cancels, so the left-hand side equals \(\|D_\delta(V_hz)-(z-hd_\gamma(z))\|\) with \(\delta=e^{-\gamma h}\). Insert the intermediate point \(D_\delta(z-hd_0(z))\) and use the triangle inequality:
+
+
+\[\bigl\|D_\delta(V_hz)-(z-hd_\gamma z)\bigr\|\le\bigl\|D_\delta(V_hz)-D_\delta(z-hd_0z)\bigr\|+\bigl\|D_\delta(z-hd_0z)-(z-hd_\gamma z)\bigr\|.\]
+
+
+By the first step and the Verlet defect estimate of the module on Hamiltonian convergence (valid for \(0\le h\le1\)), the first term is at most \(\|V_hz-(z-hd_0z)\|\le h^2(M+1)(M+2)(\|z\|+\|g(0)\|)\). The second term is bounded by the previous step. Adding the two bounds gives the claim. \(\square\)
+
+
+
+
+The increment \(N\) is kept exactly; only the deterministic part of the step is compared with Euler.
+
+\begin{leanbox}{Lean: \texttt{kineticSplitStep\_\allowbreak{}euler\_\allowbreak{}defect}}
+\leansource{\texttt{kineticSplitStep\_\allowbreak{}euler\_\allowbreak{}defect} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 112–129}
+\begin{leancode}
+\leanline{0}{theorem\ kineticSplitStep\_euler\_defect\ (g\ :\ E\ →\ E)\ (M\ :\ ℝ≥0)\ (hg\ :\ LipschitzWith\ M\ g)}
+\leanline{4}{(γ\ h\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (hh\ :\ 0≤h)\ (hh1\ :\ h≤1)\ (z\ :\ E×E)\ (N\ :\ E)\ :}
+\leanline{4}{‖kineticSplitStep\ g\ γ\ h\ z\ N-(z-h\ •\ kineticNegativeDrift\ g\ γ\ 1\ z+(N,0))‖\ ≤}
+\leanline{6}{h\textasciicircum{}2*(((M\ :\ ℝ)+1)*((M\ :\ ℝ)+2)+γ\textasciicircum{}2/2+γ*((M\ :\ ℝ)+1))*(‖z‖+‖g\ 0‖)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In \texttt{kinetic\allowbreak{}Split\allowbreak{}Step\_\allowbreak{}euler\_\allowbreak{}defect}, \texttt{he} is the cancellation of \(N\); \texttt{htri} is the triangle inequality \texttt{norm\_\allowbreak{}sub\_\allowbreak{}le\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}add\_\allowbreak{}norm\_\allowbreak{}sub} through the intermediate point; \texttt{h1} chains \texttt{velocity\allowbreak{}Damping\_\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le} with \texttt{verlet\allowbreak{}Step\_\allowbreak{}euler\_\allowbreak{}defect}; \texttt{h2} is \texttt{damping\_\allowbreak{}hamiltonian\allowbreak{}Euler\_\allowbreak{}defect}. The sum of the two bounds is identified with the stated right-hand side by \texttt{ring}.
+\end{leanbox}
+
+\section{\texorpdfstring{The filtered increment of a forcing path}{The filtered increment of a forcing path}}
+
+
+\textbf{Definition.} For a path \(B:\mathbb R\to\mathcal X\), a starting time \(a\) and a step \(h\),
+
+
+\[N_{a,h}=B(a+h)-B(a)-\gamma\int_0^he^{-\gamma(h-s)}\bigl(B(a+s)-B(a)\bigr)\,ds .\]
+
+
+(As always for the Bochner integral, the integral of a function that is not integrable is taken to be \(0\); in the applications \(B\) is continuous.) When \(B\) is the Brownian motion, the integration-by-parts identity of the module on Brownian segment equations shows that \(N_{a,h}\) equals the Ornstein–Uhlenbeck response \(\int_a^{a+h}e^{-\gamma(a+h-r)}\,dB_r\).
+
+
+
+
+\textbf{Claim.} Let \(\gamma\ge0\), \(h\ge0\), \(\varepsilon\ge0\), and suppose \(\|B(a+s)-B(a)\|\le\varepsilon\) for all \(s\in[0,h]\). Then
+
+
+\[\bigl\|N_{a,h}-\bigl(B(a+h)-B(a)\bigr)\bigr\|\le\gamma h\varepsilon .\]
+
+
+\textbf{Proof.} By definition \(N_{a,h}-(B(a+h)-B(a))=-\gamma\int_0^he^{-\gamma(h-s)}(B(a+s)-B(a))\,ds\), whose norm is \(\gamma\) times the norm of the integral, since \(\gamma\ge0\). For \(s\in(0,h]\) we have \(-\gamma(h-s)\le0\), hence \(0<e^{-\gamma(h-s)}\le1\), and the integrand has norm at most \(\|B(a+s)-B(a)\|\le\varepsilon\). The norm of an integral over an interval of length \(h\) of a function bounded in norm by \(\varepsilon\) is at most \(\varepsilon h\) (this holds also when the integral is \(0\) by convention). Therefore the left-hand side is at most \(\gamma\varepsilon h\). \(\square\)
+
+
+
+
+In the convergence proof \(\varepsilon\) is the modulus of continuity of \(B\) at scale \(h\), so the difference between the filtered and the plain increments is \(o(h)\) uniformly in \(a\) on a bounded horizon.
+
+\begin{leanbox}{Lean: \texttt{ouInputIncrement}, \texttt{ouInputIncrement\_\allowbreak{}defect}}
+\leansource{\texttt{ouInputIncrement} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 133–134}
+\begin{leancode}
+\leanline{0}{def\ ouInputIncrement\ (γ\ :\ ℝ)\ (B\ :\ ℝ\ →\ E)\ (a\ h\ :\ ℝ)\ :\ E\ :=}
+\leanline{2}{B\ (a+h)-B\ a\ -\ γ\ •\ ∫\ s\ in\ 0..h,\ Real.exp\ (-γ*(h-s))\ •\ (B\ (a+s)-B\ a)}
+\end{leancode}
+\leansource{\texttt{ouInputIncrement\_\allowbreak{}defect} \quad KineticLangevin/\allowbreak{}KineticSplitting.lean, lines 138–156}
+\begin{leancode}
+\leanline{0}{theorem\ ouInputIncrement\_defect\ (γ\ :\ ℝ)\ (hγ\ :\ 0≤γ)\ (B\ :\ ℝ\ →\ E)}
+\leanline{4}{(a\ h\ ε\ :\ ℝ)\ (hh\ :\ 0≤h)\ (hε\ :\ 0≤ε)}
+\leanline{4}{(hmod\ :\ ∀\ s\ ∈\ Icc\ 0\ h,\ ‖B\ (a+s)-B\ a‖\ ≤\ ε)\ :}
+\leanline{4}{‖ouInputIncrement\ γ\ B\ a\ h-(B\ (a+h)-B\ a)‖\ ≤\ γ*h*ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ou\allowbreak{}Input\allowbreak{}Increment \ensuremath{\gamma} B a h} is the displayed expression, written with the interval integral \texttt{\ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}h, …}. In \texttt{ou\allowbreak{}Input\allowbreak{}Increment\_\allowbreak{}defect} the hypothesis \texttt{hmod} is the oscillation bound on \texttt{Icc 0 h}. \texttt{hid} isolates the integral term (by \texttt{module}); \texttt{norm\_\allowbreak{}neg}, \texttt{norm\_\allowbreak{}smul} and \texttt{abs\_\allowbreak{}of\_\allowbreak{}nonneg h\ensuremath{\gamma}} extract the factor \(\gamma\); \texttt{interval\allowbreak{}Integral.\allowbreak{}norm\_\allowbreak{}integral\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}const} gives the bound \(\varepsilon\,|h-0|\), its pointwise hypothesis being proved on \texttt{u\allowbreak{}Ioc 0 h} \(=(0,h]\) (after \texttt{u\allowbreak{}Ioc\_\allowbreak{}of\_\allowbreak{}le}) from \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff} and \texttt{hmod}; \texttt{nlinarith} concludes.
+\end{leanbox}
 
 \end{document}

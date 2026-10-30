@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -28,7 +51,36 @@ Set \(m_\gamma=m/(1+m\gamma)>0\). The inequality \(\gamma m_\gamma=m\gamma/(1+m\
 
 More specifically, \(m\gamma/(1+m\gamma)<1\) implies \(\gamma m_\gamma+1\le2\). Since the envelope gradient constant is \(1/\gamma\), this is precisely the required Euler restriction. The contraction factor is \(1-m_\gamma\gamma=1/(1+m\gamma)>0\). These facts follow from strong convexity of the original potential and envelope regularity, without a global Lipschitz bound on the original potential’s values.
 
+\begin{leanbox}{Lean: \texttt{fullSmoothingModulus}, \texttt{fullSmoothingModulus\_\allowbreak{}pos}, \texttt{pipula\_\allowbreak{}admissible\_\allowbreak{}step}}
+\leansource{\texttt{fullSmoothingModulus} \quad ProximalLangevin/\allowbreak{}PIPULA.lean, lines 26–26}
+\begin{leancode}
+\leanline{0}{def\ fullSmoothingModulus\ (m\ γ\ :\ ℝ)\ :\ ℝ\ :=\ m\ /\ (1\ +\ m\ *\ γ)}
+\end{leancode}
+\leansource{\texttt{fullSmoothingModulus\_\allowbreak{}pos} \quad ProximalLangevin/\allowbreak{}PIPULA.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{theorem\ fullSmoothingModulus\_pos\ \{m\ γ\ :\ ℝ\}\ (hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)\ :}
+\leanline{4}{0\ <\ fullSmoothingModulus\ m\ γ}
+\end{leancode}
+\leansource{\texttt{pipula\_\allowbreak{}admissible\_\allowbreak{}step} \quad ProximalLangevin/\allowbreak{}PIPULA.lean, lines 33–43}
+\begin{leancode}
+\leanline{0}{theorem\ pipula\_admissible\_step\ \{m\ γ\ :\ ℝ\}\ (hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)\ :}
+\leanline{4}{γ\ ≤\ 2\ /\ (fullSmoothingModulus\ m\ γ\ +\ γ⁻¹)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: fullSmoothingModulus : Strong convexity after smoothing the entire potential. pipula\_admissible\_step : With smoothing equal to the time step, the envelope always meets the proved Gaussian ULA step restriction.
 
+
+
+\texttt{full\allowbreak{}Smoothing\allowbreak{}Modulus} is a definition with defining expression \texttt{m /\allowbreak{} (1 + m * \ensuremath{\gamma})}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{full\allowbreak{}Smoothing\allowbreak{}Modulus\_\allowbreak{}pos}: the proof is the application \texttt{div\_\allowbreak{}pos hm (by positivity)}. It specializes that result with the hypotheses and objects in the exact statement.
+
+
+
+\texttt{pipula\_\allowbreak{}admissible\_\allowbreak{}step}: the intermediate facts include \texttt{hd}, \texttt{hmod}, \texttt{ht}, in source order; the source steps apply or rewrite \texttt{mul\_\allowbreak{}div\_\allowbreak{}assoc}, \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}}}, \texttt{mul\_\allowbreak{}add}, \texttt{mul\_\allowbreak{}inv\_\allowbreak{}cancel\ensuremath{{}_{0}}}, \texttt{h\ensuremath{\gamma}.\allowbreak{}ne'}. The remaining scalar rearrangements are checked by \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
 
 \section{\texorpdfstring{Equality of the proximal-noise and envelope Euler laws}{Equality of the proximal-noise and envelope Euler laws}}
 
@@ -39,7 +91,40 @@ In the MYIPLA update set \(g_1=0\) and \(\eta=\gamma\). Proximal optimality give
 
 The pointwise identity \(P_\gamma(v)=v-\gamma\nabla U^\gamma(v)\), applied to every pair, gives the scaled Euler drift. Adding the same Gaussian vector after proximity gives the PIPULA update. Equality at initialization and at each successor proves equality of all finite iterates; their measurable pushforwards therefore agree as probability laws.
 
+\begin{leanbox}{Lean: \texttt{pipulaLaws}, \texttt{pipulaLaws\_\allowbreak{}eq\_\allowbreak{}iplaLaws}}
+\leansource{\texttt{pipulaLaws} \quad ProximalLangevin/\allowbreak{}PIPULA.lean, lines 46–50}
+\begin{leancode}
+\leanline{0}{def\ pipulaLaws\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (γ\ :\ ℝ)}
+\leanline{4}{(initial\ :\ Ω\ →\ IPLA.State\ N\ dθ\ dx)\ (noise\ :\ ℕ\ →\ Ω\ →\ IPLA.State\ N\ dθ\ dx)}
+\leanline{4}{(n\ :\ ℕ)\ :\ Measure\ (IPLA.State\ N\ dθ\ dx)\ :=}
+\leanline{2}{Q.map\ (fun\ ω\ ↦\ pipulaChain\ (prox\ U\ γ)\ γ\ (initial\ ω)\ (fun\ k\ ↦\ noise\ k\ ω)\ n)}
+\end{leancode}
+\leansource{\texttt{pipulaLaws\_\allowbreak{}eq\_\allowbreak{}iplaLaws} \quad ProximalLangevin/\allowbreak{}PIPULA.lean, lines 54–72}
+\begin{leancode}
+\leanline{0}{theorem\ pipulaLaws\_eq\_iplaLaws\ \{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{(Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]\ \{N\ dθ\ dx\ :\ ℕ\}\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ (hf\ :\ ConvexOn\ ℝ\ univ\ U)}
+\leanline{4}{(hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ U\ z)\ \{γ\ :\ ℝ\}\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{pipulaLaws\ Q\ U\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n\ =}
+\leanline{6}{IPLA.laws\ Q\ (moreau\ U\ γ)\ γ\ (γ⁻¹).toNNReal}
+\leanline{8}{(moreau\_differentiable\ hf\ hb\ hγ)}
+\leanline{8}{(by\ simpa\ only\ [funext\ (gradient\_moreau\ hf\ hb\ hγ)]\ using}
+\leanline{10}{residual\_lipschitz\ hf\ hb\ hγ)\ initial\ noise\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipulaLaws : The probability law defined by the paper's pairwise PIPULA recursion. pipulaLaws\_eq\_iplaLaws : Exact equality between the displayed PIPULA law and IPLA for the genuine full Moreau envelope.
 
+
+
+\texttt{pipula\allowbreak{}Laws} is a definition with defining expression \texttt{Q.\allowbreak{}map (fun \ensuremath{\omega} \ensuremath{\mapsto} pipula\allowbreak{}Chain (prox U \ensuremath{\gamma}) \ensuremath{\gamma} (initial \ensuremath{\omega}) (fun k \ensuremath{\mapsto} noise k \ensuremath{\omega}) n)}. The right-hand side specifies the object used in the mathematical statement.
+
+
+
+\texttt{pipula\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}ipla\allowbreak{}Laws}: the source steps apply or rewrite \texttt{IPLA.\allowbreak{}laws\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Chain}, \texttt{pipula\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}myipla\allowbreak{}Chain}, \texttt{zero\_\allowbreak{}add}, \texttt{myipla\allowbreak{}Chain\_\allowbreak{}eq\_\allowbreak{}scaled\allowbreak{}Chain}, \texttt{differentiable\_\allowbreak{}const}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.3.3]{LangevinLean2026IPLA}; \cite[Section~3.4.3]{LangevinLean2026IPLA}.
@@ -61,16 +146,43 @@ Write \(m_\gamma=m/(1+m\gamma)\), let \(\Pi_{N,\gamma}\) be the envelope Gibbs l
 
 The theorem uses gradient constant \(\gamma^{-1}\). For a separately denoted envelope scale, the curvature is \(m_\eta=m/(1+m\eta)\) rather than \(m\) and the gradient constant is \(1/\eta\); the required restriction is \(\gamma\le2/(m_\eta+1/\eta)\). At equal proximal and Euler scales, the preceding algebra proves it automatically. The equilibrium radius uses this reduced curvature, and the error coefficient uses \((1/\gamma)/m_\gamma\). Consequently the valid finite-step estimate is about the smoothed center and does not prove vanishing error as \(\gamma\downarrow0\). A uniform conclusion relative to the original marginal maximizer would require a stronger envelope analysis.
 
+\begin{leanbox}{Lean: \texttt{pipula\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}smoothed}}
+\leansource{\texttt{pipula\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}smoothed} \quad ProximalLangevin/\allowbreak{}PIPULA.lean, lines 79–112}
+\begin{leancode}
+\leanline{0}{theorem\ pipula\_parameter\_rms\_smoothed}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ univ\ m\ U)\ (hb\ :\ ∃\ b\ :\ ℝ,\ ∀\ z,\ b\ ≤\ U\ z)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))}
+\leanline{4}{(hmax\ :\ IPLA.IsMarginalMaximizer\ (moreau\ U\ γ)\ θStar)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ Q)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ Q\ initial\ noise)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂pipulaLaws\ Q\ U\ γ\ initial\ (fun\ k\ ↦\ noise\ k)\ n)\ ≤}
+\leanline{6}{Real.sqrt\ ((dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ fullSmoothingModulus\ m\ γ))\ +}
+\leanline{6}{(1\ -\ fullSmoothingModulus\ m\ γ\ *\ γ)\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real}
+\leanline{8}{(Q.map\ initial)\ (IPLA.gibbsTarget\ (moreau\ U\ γ))\ +}
+\leanline{6}{(33\ /\ 20\ :\ ℝ)\ *\ (γ⁻¹\ /\ fullSmoothingModulus\ m\ γ)\ *}
+\leanline{8}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ Real.sqrt\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Formal correspondence: pipula\_parameter\_rms\_smoothed : A complete finite-time bound for PIPULA around the maximizer of the smoothed marginal. The original potential may be nonsmooth and need not be globally Lipschitz. All envelope properties, the time-step restriction, normalization, finite transport moments, and equilibrium concentration are proved from the displayed assumptions and the actual Gaussian innovations.
 
+
+
+\texttt{pipula\_\allowbreak{}parameter\_\allowbreak{}rms\_\allowbreak{}smoothed}: the intermediate facts include \texttt{hf}, \texttt{he}, \texttt{heq}, \texttt{hco}, \texttt{hs}, in source order; the source steps apply or rewrite \texttt{residual\_\allowbreak{}lipschitz}, \texttt{Real.\allowbreak{}to\allowbreak{}NNReal\_\allowbreak{}of\_\allowbreak{}nonneg}, \texttt{pipula\allowbreak{}Laws\_\allowbreak{}eq\_\allowbreak{}ipla\allowbreak{}Laws}, \texttt{pipula\_\allowbreak{}admissible\_\allowbreak{}step}, \texttt{sharp\_\allowbreak{}ipla\_\allowbreak{}parameter\_\allowbreak{}rms}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \bibitem[IPLA-SC]{LangevinLean2026IPLA}
-LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision adb1d5c1c0a3. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision bfbb88fd1d79. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

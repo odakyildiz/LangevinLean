@@ -1,0 +1,337 @@
+{
+ "parts": [
+  {
+   "id": "variational",
+   "title": "Variational characterization of the evidence",
+   "body": "<p>This section proves the variational characterization of the evidence. Let \\(M\\ge1\\) be the number of data, let \\(\\mathcal A\\) be an arbitrary set of parameters and let \\(Z\\) be a measurable space of latent variables. A <em>posterior family</em> consists of a real function \\(\\ell:\\mathcal A\\to\\mathbb R\\), the log evidence, and, for each parameter \\(a\\in\\mathcal A\\) and each datum \\(m\\in\\{1,\\dots,M\\}\\), a probability measure \\(\\pi_a^m\\) on \\(Z\\), the posterior of datum \\(m\\). For a collection \\(q=(q^1,\\dots,q^M)\\) of probability measures on \\(Z\\), the free energy is</p>\n\\[F(a,q)=-\\ell(a)+\\frac1M\\sum_{m=1}^M\\mathrm{KL}(q^m\\|\\pi_a^m),\\]\n<p>where \\(\\mathrm{KL}\\) denotes relative entropy. We prove that \\(F(a,q)\\ge-\\ell(a)\\), with equality exactly when \\(q^m=\\pi_a^m\\) for every \\(m\\), and deduce the corrected form of the paper's Proposition 1: a pair \\((a_\\star,q_\\star)\\) minimizes \\(F\\) among all pairs with finite relative entropies if and only if \\(a_\\star\\) maximizes \\(\\ell\\) and \\(q_\\star^m=\\pi_{a_\\star}^m\\) for every \\(m\\). No existence of a maximizer is asserted; existence and uniqueness are proved later from strong convexity of the marginal potential.</p>\n<p>In the application \\(\\mathcal A\\) is the space of parameters \\(a=(\\theta,\\phi)\\), \\(\\pi_a^m\\) is the normalized tilted posterior \\(Z_m(a)^{-1}e^{-U_m(a,z)}\\,dz\\) of datum \\(m\\), and \\(\\ell(a)=M^{-1}\\sum_m\\log Z_m(a)\\) is the average tilted log evidence. The results hold for every parameter set and every measurable latent space, in particular for tilted models. The last step shows that a zero tilting penalty at a maximizer of the tilted evidence does not identify a maximizer of the original evidence, and gives a sufficient condition that does.</p><p><strong>Claim.</strong> Let \\(M\\ge1\\), \\(a\\in\\mathcal A\\), and let \\(q\\) be a collection of \\(M\\) probability measures on \\(Z\\). Then \\((a,q)\\) is a global minimizer of \\(F\\) if and only if</p>\n\\[\\ell(b)\\le\\ell(a)\\ \\text{ for every }b\\in\\mathcal A\\qquad\\text{and}\\qquad q^m=\\pi_a^m\\ \\text{ for every }m.\\]\n<p><strong>Proof.</strong> (\\(\\Rightarrow\\)) Let \\((a,q)\\) be a global minimizer; in particular \\(q\\) is admissible at \\(a\\). The posterior collection \\(\\pi_a\\) is admissible at \\(a\\), so minimality and the posterior identity of the second step give</p>\n\\[F(a,q)\\le F(a,\\pi_a)=-\\ell(a).\\]\n<p>The lower bound of the second step gives \\(F(a,q)\\ge-\\ell(a)\\); hence \\(F(a,q)=-\\ell(a)\\), and the previous step yields \\(q=\\pi_a\\). Now let \\(b\\in\\mathcal A\\). Since \\(\\pi_b\\) is admissible at \\(b\\), minimality gives</p>\n\\[-\\ell(a)=F(a,q)\\le F(b,\\pi_b)=-\\ell(b),\\]\n<p>that is, \\(\\ell(b)\\le\\ell(a)\\).</p>\n<p>(\\(\\Leftarrow\\)) Suppose \\(a\\) maximizes \\(\\ell\\) and \\(q=\\pi_a\\). Then \\(q\\) is admissible at \\(a\\). For every \\(b\\) and every \\(r\\) admissible at \\(b\\), the posterior identity, the maximality of \\(a\\) and the lower bound at \\(b\\) give</p>\n\\[F(a,\\pi_a)=-\\ell(a)\\le-\\ell(b)\\le F(b,r).\\]\n<p>Thus \\((a,\\pi_a)\\) is a global minimizer. \\(\\square\\)</p>\n<p>The statement asserts neither that \\(\\ell\\) has a maximizer nor that a maximizer is unique; both questions are settled later for strongly convex potentials. The normalized posterior collection is the unique optimal variational collection at each maximizer.</p>",
+   "lean": "<p><code>global_minimizers_iff</code> states the equivalence for <code>P.IsGlobalMin a q</code>; the right-hand side is the conjunction of <code>∀ b, P.logEvidence b ≤ P.logEvidence a</code> and <code>q = P.posterior a</code>.</p>\n<ol>\n<li>Forward direction: <code>rintro ⟨hq, hmin⟩</code> splits the hypothesis into admissibility and minimality. <code>he</code> is the identity \\(F(a,q)=-\\ell(a)\\), obtained by <code>le_antisymm</code> from <code>hmin a (P.posterior a) (P.posterior_admissible a)</code>, rewritten with <code>P.posterior_freeEnergy</code>, and from <code>P.lower_bound a q</code>. The second component is <code>(P.equality_iff hM a q hq).mp he</code>. For the first component, <code>hb</code> applies minimality against \\((b,\\pi_b)\\), and after rewriting with <code>he</code> and <code>P.posterior_freeEnergy</code>, <code>linarith</code> turns \\(-\\ell(a)\\le-\\ell(b)\\) into \\(\\ell(b)\\le\\ell(a)\\).</li>\n<li>Reverse direction: <code>rintro ⟨hmax, rfl⟩</code> substitutes \\(q=\\pi_a\\). Admissibility is <code>P.posterior_admissible a</code>. For an admissible pair \\((b,r)\\) the chain of the proof is <code>(neg_le_neg (hmax b)).trans (P.lower_bound b r)</code>, after rewriting \\(F(a,\\pi_a)\\) by <code>P.posterior_freeEnergy</code>.</li>\n</ol>",
+   "references": [
+    {
+     "file": "LatentDiffusion/Variational.lean",
+     "name": "global_minimizers_iff"
+    }
+   ]
+  },
+  {
+   "id": "marginal",
+   "title": "Unique maximizer of the marginal evidence",
+   "body": "<p>For each datum \\(m\\in\\{1,\\dots,M\\}\\) let \\(U_m:\\mathbb R^{d_\\theta}\\times\\mathbb R^{d_z}\\to\\mathbb R\\) be the joint potential, the negative logarithm of the tilted joint density of the parameter \\(a\\) and the latent variable \\(z\\). The pair space carries the Euclidean norm \\(\\|(a,z)\\|^2=\\|a\\|^2+\\|z\\|^2\\). Assumption A3 states that each \\(U_m\\) is differentiable and \\(\\lambda\\)-strongly convex with one constant \\(\\lambda&gt;0\\):</p>\n\\[U_m(sx+(1-s)y)\\le sU_m(x)+(1-s)U_m(y)-\\frac\\lambda2s(1-s)\\|x-y\\|^2\\qquad(x,y\\in\\mathbb R^{d_\\theta+d_z},\\ s\\in[0,1]).\\]\n<p>The normalizer and the marginal potential of datum \\(m\\) are</p>\n\\[Z_m(a)=\\int_{\\mathbb R^{d_z}}e^{-U_m(a,z)}\\,dz,\\qquad V_m(a)=-\\log Z_m(a),\\qquad V(a)=\\frac1M\\sum_{m=1}^MV_m(a)=-\\ell(a),\\]\n<p>so \\(V\\) is minus the average log evidence \\(\\ell\\). This section proves that \\(V\\) is \\(\\lambda\\)-strongly convex, tends to \\(+\\infty\\) at infinity and has exactly one minimizer \\(a_\\star\\); that for every posterior family with log evidence \\(-V\\) the free energy has exactly one global minimizer \\((a_\\star,\\pi_{a_\\star})\\); and that \\(V\\) grows quadratically away from \\(a_\\star\\). The last step quantifies the effect of the tilting on the optimizer. The unique minimizer is the target of all convergence results of this report.</p><p><strong>Claim.</strong> Let \\(M\\ge1\\), \\(\\lambda&gt;0\\), and let every \\(U_m\\) be differentiable and \\(\\lambda\\)-strongly convex. Then there is exactly one \\(a_\\star\\in\\mathbb R^{d_\\theta}\\) with \\(V(a_\\star)\\le V(a)\\) for all \\(a\\). Equivalently, the average log evidence \\(\\ell=-V\\) has exactly one maximizer.</p>\n<p><strong>Proof.</strong> <em>Continuity.</em> Each \\(V_m\\) is continuous (companion report: the normalizer is continuous and positive, and \\(\\log\\) is continuous on \\((0,\\infty)\\)); hence \\(V\\), a constant multiple of a finite sum, is continuous.</p>\n<p><em>Existence.</em> Fix \\(a_0\\). By the previous step there is \\(R\\) with \\(V(a)&gt;V(a_0)\\) for \\(\\|a\\|\\ge R\\). The closed ball \\(\\bar B_R=\\{\\|a\\|\\le R\\}\\) is compact (Heine–Borel) and nonempty, since \\(a_0\\in\\bar B_R\\). A continuous function on a nonempty compact set attains its minimum, say at \\(a_\\star\\in\\bar B_R\\). Then \\(V(a_\\star)\\le V(a)\\) for \\(a\\in\\bar B_R\\), and for \\(\\|a\\|\\ge R\\) we have \\(V(a)&gt;V(a_0)\\ge V(a_\\star)\\). Thus \\(a_\\star\\) is a global minimizer.</p>\n<p><em>Uniqueness.</em> Let \\(a\\) and \\(b\\) both be global minimizers, so \\(V(a)=V(b)=\\min V\\). Strong convexity with \\(\\alpha=\\beta=\\frac12\\) gives</p>\n\\[V\\Bigl(\\frac{a+b}2\\Bigr)\\le\\frac{V(a)+V(b)}2-\\frac\\lambda8\\|a-b\\|^2=\\min V-\\frac\\lambda8\\|a-b\\|^2.\\]\n<p>If \\(a\\ne b\\), the right side is strictly smaller than \\(\\min V\\) because \\(\\lambda&gt;0\\), which is impossible. Hence \\(a=b\\). \\(\\square\\)</p>",
+   "lean": "<p>The conclusion <code>∃! θ, ∀ θ', averageMarginalPotential U θ ≤ averageMarginalPotential U θ'</code> is “there exists a unique global minimizer”.</p>\n<ol>\n<li><code>hc</code> proves continuity from <code>IPLA.marginalPotential_continuous</code>, <code>continuous_finsetSum</code> and multiplication by a constant.</li>\n<li><code>hc.exists_forall_le</code> is Mathlib's <code>Continuous.exists_forall_le</code>: a continuous function that tends to \\(+\\infty\\) along <code>cocompact</code> has a global minimum. Its coercivity input is the previous step. This packages the compactness argument of the proof.</li>\n<li>Uniqueness: <code>StrongConvexOn.strictConvexOn</code> turns strong convexity with <code>hrho : 0 &lt; rho</code> into strict convexity, and <code>StrictConvexOn.eq_of_isMinOn</code> states that a strictly convex function has at most one minimizer on a convex set; its proof is the midpoint argument above.</li>\n</ol>",
+   "references": [
+    {
+     "file": "LatentDiffusion/Marginal.lean",
+     "name": "existsUnique_averageMarginalMinimizer"
+    }
+   ]
+  },
+  {
+   "id": "model",
+   "title": "The density model and its unique optimizer",
+   "body": "<p>This section constructs the tilted latent model from the joint potentials \\(U_1,\\dots,U_M\\) of assumption A3 and identifies its optimizer. For a parameter \\(a\\in\\mathbb R^{d_\\theta}\\) and a datum \\(m\\), the unnormalized posterior density on \\(\\mathbb R^{d_z}\\) is \\(\\rho_a^m(z)=e^{-U_m(a,z)}\\), its normalizer is \\(Z_m(a)=\\int\\rho_a^m\\,dz\\), and the posterior is the probability measure</p>\n\\[\\pi_a^m(dz)=\\frac{\\rho_a^m(z)}{Z_m(a)}\\,dz.\\]\n<p>The log evidence is \\(\\ell(a)=M^{-1}\\sum_m\\log Z_m(a)=-V(a)\\), with \\(V\\) the average marginal potential of the previous section. We show that measurability, positivity, integrability and positivity of the normalizers follow from A3, so the construction requires no further hypothesis; that the free energy \\(F(a,q)=-\\ell(a)+M^{-1}\\sum_m\\mathrm{KL}(q^m\\|\\pi_a^m)\\) of this model has exactly one global minimizer \\((a_\\star,\\pi_{a_\\star})\\); and that every posterior has a finite second moment. The last step transfers uniqueness to the paper's literal density integral</p>\n\\[\\widetilde F(a,q)=\\frac1M\\sum_{m=1}^M\\int_{\\mathbb R^{d_z}}\\tilde q^m(z)\\log\\frac{\\tilde q^m(z)}{\\rho_a^m(z)}\\,dz\\]\n<p>on the domain of collections \\(q\\) with finite relative entropies and finite second moments; here \\(\\tilde q^m\\) is the Lebesgue density of \\(q^m\\). This domain is the corrected form of the paper's \\(\\mathcal P_2\\) domain (regularity R1). The optimizer \\(a_\\star\\) is the target of both main convergence theorems.</p><p><strong>Claim.</strong> Let \\(M\\ge1\\), \\(\\lambda&gt;0\\), and let every \\(U_m\\) be differentiable and \\(\\lambda\\)-strongly convex. For the density model of the previous step there is exactly one pair \\((a,q)\\), with \\(a\\in\\mathbb R^{d_\\theta}\\) and \\(q\\) a collection of \\(M\\) probability measures on \\(\\mathbb R^{d_z}\\), that is a global minimizer of</p>\n\\[F(a,q)=-\\ell(a)+\\frac1M\\sum_{m=1}^M\\mathrm{KL}(q^m\\|\\pi_a^m)\\]\n<p>over admissible pairs (pairs with finite relative entropies). This pair is \\((a_\\star,\\pi_{a_\\star})\\), where \\(a_\\star\\) is the unique minimizer of \\(V\\).</p>\n<p><strong>Proof.</strong> The marginal section proves: if \\(M\\ge1\\), \\(\\lambda&gt;0\\), every \\(U_m\\) is differentiable and \\(\\lambda\\)-strongly convex, and \\((\\ell,\\pi)\\) is a posterior family with \\(\\ell=-V\\), then \\(F\\) has exactly one global minimizer, \\((a_\\star,\\pi_{a_\\star})\\). The posterior family of the density model satisfies \\(\\ell=-V\\) by the previous step. \\(\\square\\)</p>",
+   "lean": "<p><code>existsUnique_variationalOptimizer</code> is a one-line application of <code>LatentDiffusion.existsUnique_variationalOptimizer</code> from the marginal section to the family <code>(densityModel U m hm hdiff hsc).family</code>, with the identification <code>densityModel_logEvidence U m hm hdiff hsc</code> as the hypothesis \\(\\ell=-V\\). The strong-convexity constant is named <code>m</code> in this file.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularModel.lean",
+     "name": "existsUnique_variationalOptimizer"
+    }
+   ]
+  },
+  {
+   "id": "flowcalculus",
+   "title": "De Bruijn identity for the joint flow",
+   "body": "<p>This section proves the de Bruijn identity for the joint parameter–density flow of the paper, under explicit regularity hypotheses (R2, R3). The latent space \\(E\\) is a finite-dimensional real inner product space with Lebesgue measure, and the parameter space \\(A\\) is a complete real inner product space. For probability densities \\(q^1,\\dots,q^M\\) on \\(E\\), potentials \\(U_m:A\\times E\\to\\mathbb R\\) and a parameter \\(a\\), define the normalized density energy, the averaged parameter force and the Fisher information</p>\n\\[\\mathcal E(a,q)=\\frac1M\\sum_{m=1}^M\\int_Eq^m(\\log q^m+U_m(a,\\cdot))\\,dz,\\qquad G(a,q)=\\frac1M\\sum_{m=1}^M\\int_Eq^m\\,\\nabla_aU_m(a,\\cdot)\\,dz,\\]\n\\[I(a,q)=\\|G(a,q)\\|^2+\\frac1M\\sum_{m=1}^M\\int_Eq^m\\,\\bigl\\|\\nabla_z\\bigl(\\log q^m+U_m(a,\\cdot)\\bigr)\\bigr\\|^2\\,dz.\\]\n<p>When \\(q^m\\) is the density of a probability measure \\(Q^m\\) and the integrals are finite, \\(\\int q^m(\\log q^m+U_m(a,\\cdot))\\,dz=\\mathrm{KL}(Q^m\\|\\pi_a^m)-\\log Z_m(a)\\), so \\(\\mathcal E(a,q)\\) is the free energy \\(F(a,Q)\\) of the variational section, written as the paper's literal integral. The flow is the parameter equation \\(\\dot a_t=-G(a_t,q_t)\\) together with the Fokker–Planck equations \\(\\partial_tq_t^m=\\nabla\\cdot\\bigl(q_t^m\\nabla(\\log q_t^m+U_m(a_t,\\cdot))\\bigr)\\). The main result is</p>\n\\[\\frac{d}{dt}\\,\\mathcal E(a_t,q_t)=-I(a_t,q_t).\\]\n<p>Its proof has three ingredients: differentiation under the integral sign, justified by local domination; Lebesgue integration by parts on the unbounded space \\(E\\), justified by integrability of three explicit products; and the chain rule in the parameter. Along the way we obtain the gradient of \\(\\mathcal E\\) for the normalized product metric \\(d^2=\\|a-b\\|^2+M^{-1}\\sum_mW_2(q^m,r^m)^2\\): its parameter component is \\(G\\) and its \\(m\\)-th density component is \\(\\nabla(\\log q^m+U_m)\\), with no factor \\(1/M\\). The identity is used in the convergence theorem for the classical flow; the integration-by-parts identities are also used for the entropy tangent inequality of the transport section.</p><p>The Fokker–Planck flux of a density \\(q\\) and a potential \\(U\\) is \\(J_{q,U}=q\\,\\nabla(\\log q+U)\\). The Fisher information \\(I(a,q)\\) is defined in the summary; it is nonnegative whenever every \\(q^m\\ge0\\), since it is a squared norm plus an average of integrals of nonnegative functions.</p>\n<p><strong>Claim.</strong> Assume hypotheses (1)–(4) of the previous step. Assume further the parameter equation and the Fokker–Planck equations at time \\(t\\),</p>\n\\[\\dot p(t)=-G(p(t),q_t),\\qquad\\dot q^m_t=\\nabla\\cdot J_{q^m_t,U_m(p(t),\\cdot)}\\ \\text{ almost everywhere }(m=1,\\dots,M),\\]\n<p>and the no-boundary-flux condition for \\(\\bigl(J_{q^m_t,U_m(p(t),\\cdot)},\\mu_m+1\\bigr)\\) for every \\(m\\). Then</p>\n<ol>\n<li>every function \\(q^m_t\\,\\|\\nabla\\mu_m\\|^2\\) is integrable, and</li>\n<li>\\(u\\mapsto\\mathcal E(p(u),q_u)\\) is differentiable at \\(t\\) with derivative \\(-I(p(t),q_t)\\).</li>\n</ol>\n<p><strong>Proof.</strong> Put \\(v_m=-\\nabla\\mu_m\\). Then \\(q^m_tv_m=-J^m\\), where \\(J^m\\) is the flux of datum \\(m\\). By linearity of the divergence, \\(-\\nabla\\cdot(q^m_tv_m)=\\nabla\\cdot J^m=\\dot q^m_t\\) almost everywhere, so the continuity equation of the previous step holds. The no-boundary-flux condition is invariant under \\(V\\mapsto-V\\), so it holds for \\((q^m_tv_m,\\mu_m+1)\\). The previous step therefore gives the derivative</p>\n\\[\\Pi=\\langle\\dot p(t),G\\rangle+\\frac1M\\sum_m\\int q^m_t\\langle-\\nabla\\mu_m,\\nabla\\mu_m\\rangle\\,dz=-\\|G\\|^2-\\frac1M\\sum_m\\int q^m_t\\|\\nabla\\mu_m\\|^2\\,dz=-I,\\]\n<p>using the parameter equation in the first term. For (1), the integration-by-parts step shows that \\(\\langle J^m,\\nabla(\\mu_m+1)\\rangle\\) is integrable; since \\(\\nabla(\\mu_m+1)=\\nabla\\mu_m\\), this function is \\(q^m_t\\langle\\nabla\\mu_m,\\nabla\\mu_m\\rangle=q^m_t\\|\\nabla\\mu_m\\|^2\\). \\(\\square\\)</p>\n<p>The identity is proved from the equations; no entropy-dissipation inequality is assumed. Statement (1) shows that the Fisher information is a finite integral at every time where the hypotheses hold.</p>",
+   "lean": "<ol>\n<li><code>fokkerPlanckFlux q U</code> is <code>fun x ↦ q x • gradient (chemicalPotential q U) x</code>. <code>normalizedSlopeSquared</code> is \\(I\\), and <code>normalizedSlopeSquared_nonneg</code> proves \\(I\\ge0\\) from <code>sq_nonneg</code> and <code>integral_nonneg</code>.</li>\n<li><code>normalized_product_deBruijn</code>: <code>hode</code> is the parameter equation, <code>hpde</code> the Fokker–Planck equations and <code>htail</code> the no-boundary-flux conditions. The velocity <code>v</code> is \\(-\\nabla\\mu_m\\); <code>hvel</code> is \\(q v_m=-J^m\\), <code>hcont</code> derives the continuity equation with <code>fluxDivergence_neg</code>, and <code>htailv</code> is <code>(htail i).neg</code>.</li>\n<li><code>hd</code> applies <code>normalized_product_gradient_representation</code>, and <code>hrate</code> evaluates the pairing as \\(-I\\) by substituting <code>hode</code> and simplifying \\(\\langle-x,x\\rangle=-\\|x\\|^2\\) (<code>inner_neg_left</code>, <code>real_inner_self_eq_norm_sq</code>).</li>\n<li>Integrability (1) is <code>(htail i).integrable_flux_gradient</code>, rewritten with <code>gradient_add_one</code>, <code>inner_smul_left</code> and <code>real_inner_self_eq_norm_sq</code>.</li>\n</ol>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularFlowCalculus.lean",
+     "name": "normalized_product_deBruijn"
+    }
+   ]
+  },
+  {
+   "id": "displacement",
+   "title": "Strong displacement convexity of the free energy",
+   "body": "<p>This section proves the strong geodesic convexity of the tilted free energy along displacement interpolations, the paper's Lemma on geodesic convexity, under explicit transport regularity (R4). Let \\(Z\\) be a finite-dimensional real inner product space of dimension \\(d\\), let \\(\\mu\\) be a probability measure on \\(Z\\) (the initial law) and let \\(T:Z\\to Z\\) be a transport map. The displacement interpolation is \\(T_s(z)=(1-s)z+sT(z)\\), \\(s\\in[0,1]\\), and its law is the pushforward \\(\\mu_s=\\mu\\circ T_s^{-1}\\). For one datum, a parameter interpolation \\(p_s=(1-s)p_0+sp_1\\) and a joint potential \\(U(p,z)\\), the free energy along the interpolation is</p>\n\\[\\mathcal F(s)=H(s)+\\int_ZU(p_s,z)\\,\\mu_s(dz),\\qquad H(s)=\\int_Z\\log\\rho_s\\,d\\mu_s,\\]\n<p>where \\(\\rho_s\\) is the Lebesgue density of \\(\\mu_s\\) and \\(H\\) is the negative Boltzmann entropy. The regularity data consist of positive densities, positive eigenvalues of the Jacobian \\(DT\\) in an orthonormal eigenbasis, the change-of-variables formula \\(\\rho_s(T_s(z))=\\rho_0(z)/\\det\\bigl((1-s)I+sDT(z)\\bigr)\\), and integrable logarithms; no convexity or transport inequality is among them. If \\(U\\) is jointly \\(\\lambda\\)-strongly convex, we prove</p>\n\\[\\mathcal F(s)\\le(1-s)\\mathcal F(0)+s\\mathcal F(1)-\\frac\\lambda2s(1-s)\\bigl(\\|p_0-p_1\\|^2+W_2(\\mu_0,\\mu_1)^2\\bigr),\\]\n<p>where \\(W_2\\) is the Wasserstein distance. The entropy part follows from concavity of \\(\\log\\det\\); the potential part from joint strong convexity. Consequences are a Talagrand-type quadratic growth at a minimizer and the tangent inequality used for the extended log-Sobolev inequality in the next section.</p><p><strong>Wasserstein distance.</strong> For probability measures \\(\\mu,\\eta\\) on \\(Z\\), a coupling is a probability measure \\(\\gamma\\) on \\(Z\\times Z\\) with marginals \\(\\mu\\) and \\(\\eta\\), and</p>\n\\[W_2(\\mu,\\eta)=\\inf_\\gamma\\Bigl(\\int\\|x-y\\|^2\\,\\gamma(dx,dy)\\Bigr)^{1/2}\\in[0,\\infty].\\]\n<p><strong>Claim.</strong> Under the hypotheses of the previous step, for \\(s\\in[0,1]\\):</p>\n<ol>\n<li>\\(\\mathcal F(s)\\le(1-s)\\mathcal F(0)+s\\mathcal F(1)-\\frac\\lambda2s(1-s)\\bigl(\\|p_0-p_1\\|^2+\\|\\mathrm{id}-T\\|_{L^2(\\mu)}^2\\bigr)\\);</li>\n<li>\\(W_2(\\mu,\\mu_1)^2\\le\\|\\mathrm{id}-T\\|_{L^2(\\mu)}^2\\), and in particular \\(W_2(\\mu,\\mu_1)&lt;\\infty\\);</li>\n<li>if moreover \\(\\lambda\\ge0\\), then \\(\\mathcal F(s)\\le(1-s)\\mathcal F(0)+s\\mathcal F(1)-\\frac\\lambda2s(1-s)\\bigl(\\|p_0-p_1\\|^2+W_2(\\mu,\\mu_1)^2\\bigr)\\).</li>\n</ol>\n<p><strong>Proof.</strong> (1) Add the entropy inequality of the third step to the potential inequality of the previous step. At the endpoints, \\(\\mathcal F(0)=H(0)+\\int U(p_0,\\cdot)\\,d\\mu\\) because \\(\\mu_0=\\mu\\), and \\(\\mathcal F(1)=H(1)+\\int U(p_1,T(z))\\,\\mu(dz)\\) by the pushforward formula for \\(\\mu_1=\\mu\\circ T^{-1}\\).</p>\n<p>(2) The law of the pair \\((z,T(z))\\) under \\(\\mu\\) is a coupling of \\(\\mu\\) and \\(\\mu_1\\), and its cost is \\(\\int\\|z-T(z)\\|^2\\,\\mu(dz)\\). The infimum over couplings is at most this value, which is finite by square integrability.</p>\n<p>(3) When \\(\\lambda\\ge0\\) and \\(s\\in[0,1]\\), the coefficient \\(c=\\frac\\lambda2s(1-s)\\) is nonnegative. By (2), \\(c\\bigl(\\|p_0-p_1\\|^2+W_2(\\mu,\\mu_1)^2\\bigr)\\le c\\bigl(\\|p_0-p_1\\|^2+\\|\\mathrm{id}-T\\|_{L^2(\\mu)}^2\\bigr)\\), so the right side of (1) is at most the right side of (3), and (3) follows from (1). \\(\\square\\)</p>\n<p>The map \\(T\\) need not be optimal: the conclusion uses the genuine infimum over couplings, which can only be smaller than the cost of \\(T\\). With the normalized product distance of the paper, (3) is the strong geodesic convexity of the free energy of one datum.</p>",
+   "lean": "<ol>\n<li><code>freeEnergy_displacement_strongConvex_cost</code> adds <code>D.entropy_displacement_convex</code> and <code>potential_displacement_strongConvex</code>; <code>hmap</code> is the endpoint pushforward formula, and <code>linarith</code> combines the inequalities after <code>simp only</code> evaluates the interpolations at \\(0\\) and \\(1\\).</li>\n<li><code>wasserstein_sq_le_displacement_cost</code> applies <code>ULA.wasserstein2_le_random_cost_real</code> to the random variables \\(\\mathrm{id}\\) and \\(T\\) on \\((Z,\\mu)\\): the real Wasserstein distance between their laws is at most the \\(L^2\\) norm of their difference. Here <code>ULA.wasserstein2Real</code> is the real conversion of the coupling infimum <code>ULA.wasserstein2</code>. <code>sq_le_sq₀</code> squares the inequality.</li>\n<li><code>freeEnergy_displacement_strongConvex</code> takes <code>hrho : 0 ≤ rho</code>, chains the first result with the second, and uses <code>hc</code>, nonnegativity of \\(\\frac\\lambda2s(1-s)\\), in <code>mul_le_mul_of_nonneg_left</code> and <code>sub_le_sub_left</code>.</li>\n</ol>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularTransport.lean",
+     "name": "freeEnergy_displacement_strongConvex"
+    }
+   ]
+  },
+  {
+   "id": "lsi",
+   "title": "Extended log-Sobolev and Talagrand inequalities",
+   "body": "<p>This section proves the two functional inequalities that drive the convergence of the classical flow: the extended log-Sobolev inequality (the paper's Theorem stating that strong log-concavity implies extended LSI) and a Talagrand-type quadratic growth inequality, both for the normalized free energy of \\(M\\) data. The setting is that of the previous section, now for each datum \\(m\\): a probability law \\(Q_m\\) on \\(Z\\) with positive continuously differentiable density \\(\\rho_{m}\\), regular displacement data \\(T_m\\) from \\(Q_m\\), and a jointly \\(\\lambda\\)-strongly convex potential \\(U_m\\) on \\(P\\times Z\\). With \\(p_0\\) the current parameter, \\(p_1\\) the target parameter and \\(\\mathcal F_m\\) the free energy of datum \\(m\\) along the displacement, put \\(\\mathcal F=M^{-1}\\sum_m\\mathcal F_m\\), and define</p>\n\\[\\begin{aligned}G&=\\frac1M\\sum_m\\int\\nabla_pU_m(p_0,z)\\,Q_m(dz),\\\\ S_m&=\\nabla_z\\bigl(\\log\\rho_m+U_m(p_0,\\cdot)\\bigr),\\\\I&=\\|G\\|^2+\\frac1M\\sum_m\\int\\|S_m\\|^2\\,dQ_m.\\end{aligned}\\]\n<p>The main result is \\(2\\lambda\\bigl(\\mathcal F(0)-\\mathcal F(1)\\bigr)\\le I\\). In the convergence theorem \\(\\mathcal F(0)\\) is the free energy of the current state and \\(\\mathcal F(1)\\) that of the posterior optimizer, so this is \\(2\\lambda(F-F_\\star)\\le I\\). The proof sums two tangent inequalities, one for the entropy (from the Jacobian formula, \\(\\log x\\le x-1\\) and integration by parts) and one for the potential (from strong convexity), and then completes a square in which the parameter forces are averaged over the data before the norm is squared. The last step proves \\(\\frac\\lambda2d^2\\le\\mathcal F(0)-\\mathcal F(1)\\) when the endpoint minimizes \\(\\mathcal F\\) along the displacement, where \\(d\\) is the normalized product distance. No first-order transport inequality or log-Sobolev inequality is assumed.</p><p><strong>Claim.</strong> Let \\(M\\ge1\\), \\(\\lambda&gt;0\\), and let regularity data for the data set be given. Then</p>\n\\[2\\lambda\\bigl(\\mathcal F(0)-\\mathcal F(1)\\bigr)\\le I.\\]\n<p><strong>Proof.</strong> For each datum \\(m\\) put</p>\n\\[\\begin{aligned}\\gamma_m&=\\mathcal F_m(0)-\\mathcal F_m(1),&g_m&=\\int G_{m,P}\\,dQ_m,\\\\\\kappa_m&=\\int\\langle S_m,T_m-\\mathrm{id}\\rangle\\,dQ_m,\\\\b_m&=\\|S_m\\|_{L^2(Q_m)},&c_m&=\\|\\mathrm{id}-T_m\\|_{L^2(Q_m)}.\\end{aligned}\\]\n<p><em>Tangent inequality.</em> The free-energy tangent inequality for datum \\(m\\), with its left side rewritten by the splitting step, reads</p>\n\\[\\langle g_m,p_1-p_0\\rangle+\\kappa_m+\\frac\\lambda2\\bigl(\\|p_0-p_1\\|^2+c_m^2\\bigr)\\le\\mathcal F_m(1)-\\mathcal F_m(0),\\]\n<p>that is, \\(\\gamma_m+\\langle g_m,w\\rangle+\\kappa_m+\\frac\\lambda2(\\|w\\|^2+c_m^2)\\le0\\) with \\(w=p_1-p_0\\), since \\(\\|p_0-p_1\\|=\\|w\\|\\).</p>\n<p><em>Pairing bound.</em> By the Cauchy–Schwarz bound of the previous section applied to \\(-S_m\\) and \\(T_m-\\mathrm{id}\\), \\(-\\kappa_m=\\int\\langle-S_m,T_m-\\mathrm{id}\\rangle\\,dQ_m\\le b_mc_m\\); here \\(\\|T_m-\\mathrm{id}\\|_{L^2}=\\|\\mathrm{id}-T_m\\|_{L^2}\\).</p>\n<p><em>Completion of the square.</em> The previous step gives \\(2\\lambda M^{-1}\\sum_m\\gamma_m\\le\\|M^{-1}\\sum_mg_m\\|^2+M^{-1}\\sum_mb_m^2\\). The left side is \\(2\\lambda(\\mathcal F(0)-\\mathcal F(1))\\). On the right, \\(M^{-1}\\sum_mg_m=G\\) and \\(b_m^2=\\int\\|S_m\\|^2\\,dQ_m\\), so the right side is \\(I\\). \\(\\square\\)</p>",
+   "lean": "<p>In <code>extendedLSI</code> the local definitions <code>g</code>, <code>pair</code>, <code>b</code>, <code>c</code> and <code>gap</code> are \\(g_m\\), \\(\\kappa_m\\), \\(b_m\\), \\(c_m\\) and \\(\\gamma_m\\); <code>b</code> and <code>c</code> are real conversions of <code>eLpNorm … 2</code>.</p>\n<ol>\n<li><code>htangent</code> applies <code>freeEnergy_tangent</code> to the fields of <code>R</code> for datum <code>m</code>, rewrites its left side with <code>tangent_pairing_eq</code>, and uses <code>norm_sub_rev</code>.</li>\n<li><code>hpair</code> applies <code>integral_inner_le_secondCost</code> to <code>-(R.latentScore m)</code> and the displacement, using <code>R.latentScore_memLp</code>; <code>hvnorm</code> identifies the \\(L^2\\) norms of \\(T-\\mathrm{id}\\) and \\(\\mathrm{id}-T\\) with <code>eLpNorm_neg</code>.</li>\n<li><code>h</code> is <code>normalized_extendedLSI_of_tangents</code>, <code>hsq</code> replaces \\(b_m^2\\) by the integral through <code>secondCost_sq_eq_integral</code>, and the final <code>simpa</code> unfolds <code>freeEnergy</code>, <code>fisherInformation</code> and <code>parameterForce</code>.</li>\n</ol>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularTransportFirstOrder.lean",
+     "name": "extendedLSI"
+    }
+   ]
+  },
+  {
+   "id": "continuous",
+   "title": "Exponential convergence of the continuous flow",
+   "body": "<p>This section proves the paper's continuous-time convergence theorem (Theorem 1 and its appendix form) for classical solutions of the joint gradient flow. The flow consists of a parameter path \\(a_t\\) and positive densities \\(q_t^1,\\dots,q_t^M\\) solving</p>\n\\[\\dot a_t=-\\frac1M\\sum_{m=1}^M\\int\\nabla_aU_m(a_t,z)\\,q_t^m(z)\\,dz,\\qquad\\partial_tq_t^m=\\nabla\\cdot\\bigl(q_t^m\\nabla(\\log q_t^m+U_m(a_t,\\cdot))\\bigr),\\]\n<p>together with the regularity of R1–R4: local domination, integrable spatial tails, and, at each time, regular displacement data from the current laws to the laws of a fixed comparison state \\(a_\\star\\). Existence of such a classical solution is not constructed; the estimates hold for every solution in this class. Write \\(E(t)=\\mathcal E(a_t,q_t)-\\mathcal E(a_\\star,q_\\star)\\) for the energy gap to the comparison state and \\(d_t\\) for the normalized product distance</p>\n\\[d_t^2=\\|a_t-a_\\star\\|^2+\\frac1M\\sum_{m=1}^MW_2(q_t^m,\\pi_{a_\\star}^m)^2.\\]\n<p>When \\(a_\\star\\) maximizes the evidence and the comparison densities are the posteriors \\(\\pi_{a_\\star}^m\\), we prove</p>\n\\[d_t\\le\\sqrt{\\frac{2E(t)}\\lambda}\\le\\sqrt{\\frac{2E(0)}\\lambda}\\,e^{-\\lambda t},\\qquad\\|a_t-a_\\star\\|\\le\\sqrt{\\frac{2E(0)}\\lambda}\\,e^{-\\lambda t}\\qquad(t\\ge0).\\]\n<p>The ingredients are the de Bruijn identity \\(E'=-I\\), the extended log-Sobolev inequality \\(2\\lambda E\\le I\\), Grönwall's inequality, and the Talagrand inequality \\(\\frac\\lambda2d_t^2\\le E(t)\\), whose hypothesis (minimality of the posterior state) follows from the Gibbs variational principle. The final theorem constructs \\(a_\\star\\) as the unique maximizer of the evidence of the original potentials, so the only remaining hypotheses are the regularity of the flow.</p><p><strong>Claim (Theorem 1, corrected).</strong> Let \\(M\\ge1\\), \\(\\lambda&gt;0\\), and let \\(U_1,\\dots,U_M:\\mathbb R^{d_\\theta}\\times\\mathbb R^{d_z}\\to\\mathbb R\\) be differentiable and \\(\\lambda\\)-strongly convex (A3). Let \\(\\ell(a)=M^{-1}\\sum_m\\log\\int e^{-U_m(a,z)}dz\\). Then there is exactly one \\(a_\\star\\in\\mathbb R^{d_\\theta}\\) such that</p>\n<ol>\n<li>\\(\\ell(a)\\le\\ell(a_\\star)\\) for every \\(a\\), and</li>\n<li>for every classical flow with comparison parameter \\(a_\\star\\), constant \\(\\lambda\\) and potentials \\(U_m\\), whose comparison densities are the posteriors \\(q_\\star^m=e^{-U_m(a_\\star,\\cdot)}/\\int e^{-U_m(a_\\star,w)}dw\\), and for every \\(t\\ge0\\),\n\\[\\|a_t-a_\\star\\|\\le\\sqrt{\\frac{2(\\mathcal E(0)-\\mathcal E_\\star)}\\lambda}\\,e^{-\\lambda t}.\\]</li>\n</ol>\n<p><strong>Proof.</strong> By the density-model section, \\(\\ell=-V\\), where \\(V\\) is the average marginal potential. By the marginal section, \\(V\\) has exactly one minimizer \\(a_\\star\\); hence \\(a_\\star\\) is the unique maximizer of \\(\\ell\\), which proves (1). For (2), A3 gives integrability of \\(e^{-U_m(a,\\cdot)}\\) and positivity of its integral for all \\(a\\) (marginal section), so the hypotheses of the previous steps hold, and the parameter bound of the previous step is (2). Uniqueness: if \\(b\\) satisfies (1) and (2), then in particular \\(\\ell(a)\\le\\ell(b)\\) for all \\(a\\), so \\(V(b)\\le V(a)\\) for all \\(a\\), and \\(b=a_\\star\\) by uniqueness of the minimizer of \\(V\\). \\(\\square\\)</p>\n<p>By the second step, \\(\\mathcal E_\\star=-\\ell(a_\\star)=F_\\star\\) is the minimal free energy, so the prefactor is \\(\\sqrt{2(F(a_0,q_0)-F_\\star)/\\lambda}\\) as in the paper. The theorem contains no assumed dissipation identity, log-Sobolev inequality or transport inequality; the only hypotheses beyond A3 are the regularity conditions defining a classical flow.</p>",
+   "lean": "<p>In <code>existsUnique_optimizer_and_flow_convergence</code>, the local definitions <code>V</code> and <code>ell</code> are the slice potentials \\(U_m(a,z)\\) (written through <code>IPLA.pair</code>) and the evidence. The conclusion <code>∃! astar, (∀ a, ell a ≤ ell astar) ∧ ∀ S : ClassicalFlow M dz rho astar V, …</code> is the claim.</p>\n<ol>\n<li><code>he</code> identifies <code>ell</code> with <code>-averageMarginalPotential U</code> through <code>RegularModel.densityModel_logEvidence</code>.</li>\n<li><code>existsUnique_averageMarginalMinimizer</code> supplies <code>astar</code> and its uniqueness <code>hu</code>; <code>hmax</code> is part (1).</li>\n<li>Part (2) is <code>S.parameter_exponential_convergence</code>, with the integrability and positivity inputs <code>IPLA.integrable_marginal_weight</code> and <code>IPLA.marginalIntegral_pos</code>.</li>\n<li>Uniqueness applies <code>hu</code> to a competitor <code>b</code>, using only its first property, rewritten with <code>he</code> and closed by <code>linarith</code>.</li>\n</ol>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularConvergence.lean",
+     "name": "existsUnique_optimizer_and_flow_convergence"
+    }
+   ]
+  },
+  {
+   "id": "cloud",
+   "title": "The normalized particle-cloud force",
+   "body": "<p>Let \\(K&gt;0\\) and let \\(U_i\\) be differentiable potentials on a parameter-latent pair, each \\(m\\)-strongly convex with \\(L\\)-Lipschitz gradient. Use scaled cloud coordinates \\(z=(a,x_1/\\sqrt K,\\ldots,x_K/\\sqrt K)\\). Write \\(J_i z=(a,x_i)\\), \\(V(z)=\\sum_{i=1}^KU_i(J_i z)\\), and \\(F(z)=K^{-1}\\nabla V(z)\\). This normalization prevents an artificial deterioration of the monotonicity and smoothness constants when the particle count grows.</p><p><strong>Claim.</strong> The normalized force \\(F\\) is \\(m\\)-strongly monotone and \\(L\\)-Lipschitz.</p><p><strong>Proof.</strong> The coordinate maps satisfy \\(\\sum_i\\|J_i d\\|^2=K\\|d\\|^2\\): the common parameter square appears \\(K\\) times and each scaled latent square is multiplied by \\(K\\). Summing the strong-convexity inequalities for the potentials therefore makes \\(V\\) \\(Km\\)-strongly convex. Differentiability follows by the chain rule and finite summation. For the gradient, the chain rule gives</p>\\[\\langle\\nabla V(x)-\\nabla V(y),w\\rangle=\\sum_i\\langle\\nabla U_i(J_ix)-\\nabla U_i(J_iy),J_iw\\rangle.\\]<p>Lipschitz continuity, Cauchy–Schwarz for the finite sum, and the coordinate identity bound the absolute value by \\(KL\\|x-y\\|\\|w\\|\\). Taking the supremum over unit vectors gives \\(\\|\\nabla V(x)-\\nabla V(y)\\|\\le KL\\|x-y\\|\\). Strong convexity similarly gives \\(\\langle\\nabla V(x)-\\nabla V(y),x-y\\rangle\\ge Km\\|x-y\\|^2\\). Multiplication by \\(1/K&gt;0\\) proves both assertions for \\(F\\). The argument allows distinct potentials and arbitrary finite parameter and latent dimensions. \\(\\square\\)</p>",
+   "lean": "<p><code>joint_norm_sq_sum</code> expands the Euclidean coordinate sums. <code>meanForce_regular</code> constructs the two fields of <code>ForceRegularity</code>: it obtains monotonicity from <code>potential_strongConvex</code> and <code>ULA.strong_gradient_monotone</code>, and smoothness from <code>potential_gradient_lipschitz</code>. In each branch the proof multiplies by the nonnegative reciprocal of the particle count and cancels it using <code>inv_mul_cancel₀</code>. The hypothesis <code>hN</code> ensures this reciprocal exists.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/Cloud.lean",
+     "name": "meanForce_regular"
+    }
+   ]
+  },
+  {
+   "id": "euler",
+   "title": "Euler contraction and local consistency",
+   "body": "<p>Work in a complete real inner-product space. The positive force \\(F\\) is \\(m\\)-strongly monotone and \\(L\\)-Lipschitz: \\(\\langle F(x)-F(y),x-y\\rangle\\ge m\\|x-y\\|^2\\) and \\(\\|F(x)-F(y)\\|\\le L\\|x-y\\|\\). Take \\(m,h&gt;0\\), \\(mh\\le1\\), and \\(hL^2\\le m\\). The implemented force \\(A\\) can differ from \\(F\\). The numerical path is \\(x_{k+1}=x_k-hA(x_k)+\\xi_k\\). A reference segment solves its actual integral equation with the same noise increment; its drift and noise sizes are explicit hypotheses, rather than an assumed numerical-error recurrence.</p><p><strong>Claim.</strong> Under the force and step assumptions above, for any common increment \\(\\xi\\), \\(\\|(x-hF(x)+\\xi)-(y-hF(y)+\\xi)\\|\\le q\\|x-y\\|\\), where \\(q=1-mh/2\\in[0,1)\\).</p><p><strong>Proof.</strong> Put \\(d=x-y\\) and \\(v=F(x)-F(y)\\). The common increment cancels. Expanding the square and applying monotonicity and Lipschitz continuity gives</p>\\[\\|d-hv\\|^2=\\|d\\|^2-2h\\langle v,d\\rangle+h^2\\|v\\|^2\\le(1-2mh+h^2L^2)\\|d\\|^2\\le(1-mh)\\|d\\|^2.\\]<p>The last inequality uses \\(hL^2\\le m\\), multiplied by \\(h\\ge0\\). Since \\(1-mh\\le(1-mh/2)^2\\) and \\(q\\ge0\\), taking nonnegative square roots proves the claim. Positivity of \\(mh\\) gives \\(q&lt;1\\). \\(\\square\\)</p><p><strong>Claim.</strong> Suppose every reference segment satisfies \\(Y_k(0)=y_k\\), \\(Y_k(h)=y_{k+1}\\), \\(W_k(h)=\\xi_k\\), and</p>\\[Y_k(t)-y_k=-\\int_0^tF(Y_k(s))\\,ds+W_k(t).\\]<p>Assume the drift is interval integrable, \\(\\|F(Y_k(t))\\|\\le G\\), and \\(\\|W_k(t)\\|\\le N\\sqrt t\\) for \\(0\\le t\\le h\\), with \\(G,N\\ge0\\). Then the defect of a reference Euler step is at most \\(R=L(h^2G/2+(2/3)h^{3/2}N)\\).</p><p><strong>Proof.</strong> The integral equation and the triangle inequality give \\(\\|Y_k(t)-y_k\\|\\le tG+N\\sqrt t\\). Subtract \\(y_k-hF(y_k)+\\xi_k\\) from the endpoint equation; the noise increments cancel. The remaining vector is \\(-\\int_0^h(F(Y_k(s))-F(y_k))\\,ds\\). Its norm is at most</p>\\[L\\int_0^h\\|Y_k(s)-y_k\\|\\,ds\\le L\\int_0^h(sG+N\\sqrt s)\\,ds=L\\left(\\frac{h^2G}{2}+\\frac23h^{3/2}N\\right).\\]<p>The elementary integrals are \\(h^2/2\\) and \\(2h^{3/2}/3\\). In a random-state application the ambient norm is an \\(L^2\\) norm, so these same estimates are root-mean-square moment bounds. \\(\\square\\)</p><p><strong>Claim.</strong> With the preceding hypotheses, suppose \\(\\|A(x_k)-F(x_k)\\|\\le B\\) for every \\(k\\), where \\(B\\ge0\\). Then</p>\\[\\|x_n-y_n\\|\\le q^n\\|x_0-y_0\\|+\\frac{2B}{m}+\\frac Lm\\left(hG+\\frac43N\\sqrt h\\right).\\]<p><strong>Proof.</strong> Insert two intermediate points, namely the Euler updates with force \\(F\\) at \\(x_k\\) and \\(y_k\\). The triangle inequality, the force error, the contraction and the local defect imply \\(e_{k+1}\\le qe_k+hB+R\\), where \\(e_k=\\|x_k-y_k\\|\\). Induction yields \\(e_n\\le q^ne_0+(hB+R)\\sum_{j=0}^{n-1}q^j\\). Since \\(0\\le q&lt;1\\) and the forcing term is nonnegative, the finite sum is at most \\(1/(1-q)=2/(mh)\\). Hence</p>\\[\\frac{hB+R}{1-q}=\\frac{2B}{m}+\\frac Lm\\left(hG+\\frac43N\\sqrt h\\right).\\]<p>The division is legitimate because \\(m,h&gt;0\\). This proves the bound uniformly in the iteration count. It does not construct the reference path or establish its moment bounds for a new application. \\(\\square\\)</p>",
+   "lean": "<p>In <code>integral_reference_error_bound</code>, <code>R</code> is the displayed local defect and <code>hstep</code> is the affine scalar recurrence obtained from <code>euler_local_comparison</code>. The call to <code>ULA.affine_recurrence_bound</code> sums that recurrence. Finally <code>halgebra</code> uses <code>field_simp</code> and <code>ring</code> to replace its denominator by the three explicit error contributions.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/Numerics.lean",
+     "name": "integral_reference_error_bound"
+    }
+   ]
+  },
+  {
+   "id": "evidence",
+   "title": "First-order condition for the evidence",
+   "body": "<p>For a reference measure \\(\\nu\\), define \\(Z_i(a)=\\int e^{-U_i(a,z)}\\,d\\nu(z)\\), \\(\\pi_{i,a}(dz)=Z_i(a)^{-1}e^{-U_i(a,z)}\\nu(dz)\\), and the averaged log evidence \\(\\ell(a)=M^{-1}\\sum_i\\log Z_i(a)\\), where \\(M&gt;0\\). The normalizers must be positive. Assume the densities are measurable at the point under consideration and almost everywhere strongly measurable for every parameter in some neighbourhood of that point; at the point they are integrable and their weighted gradients are almost everywhere strongly measurable; and on one common parameter neighbourhood the potentials are differentiable almost everywhere and \\(e^{-U_i(b,z)}\\|\\nabla_bU_i(b,z)\\|\\) is bounded by an integrable function of \\(z\\). These domination hypotheses justify differentiation under the integral sign.</p><p><strong>Claim.</strong> If \\(a\\) is a local maximizer of \\(\\ell\\), then \\(\\sum_i\\int\\nabla_aU_i(a,z)\\,d\\pi_{i,a}(z)=0\\).</p><p><strong>Proof.</strong> Positivity of \\(Z_i(a)\\) permits the logarithmic chain rule. Dividing its derivative by \\(Z_i(a)\\) converts the weighted score integral into a posterior expectation, so \\(\\nabla\\ell(a)=-M^{-1}\\sum_i\\int\\nabla_aU_i(a,z)\\,d\\pi_{i,a}(z)\\). A differentiable real function on the whole parameter space has zero derivative at a local maximum: for each direction its restriction to a real line has a local maximum at zero, whose derivative is zero. Thus the averaged score vanishes. Since \\(M&gt;0\\), multiplication by \\(M\\) yields the unaveraged identity. Posterior integrability is furnished by the normalizer domination assumptions, rather than inferred from formal cancellation. \\(\\square\\)</p>",
+   "lean": "<p><code>sum_posterior_parameter_gradient_eq_zero</code> applies <code>averaged_posterior_parameter_gradient_eq_zero</code> to the differentiable evidence. Its <code>smul_eq_zero</code> step removes the scalar reciprocal; <code>inv_ne_zero</code> and <code>hM</code> rule out a zero scalar. The local-maximality input is <code>hmax</code>; a zero-score hypothesis is not assumed.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularEvidence.lean",
+     "name": "sum_posterior_parameter_gradient_eq_zero"
+    }
+   ]
+  },
+  {
+   "id": "reference",
+   "title": "Euler recursion against a stationary posterior reference",
+   "body": "<p>Use the scaled cloud with \\(K&gt;0\\), differentiable jointly \\(m\\)-strongly convex potentials, and \\(L\\)-Lipschitz gradients. Take \\(m,h&gt;0\\), \\(mh\\le1\\), \\(hL^2\\le m\\), and put \\(q=1-mh/2\\). All random states lie in \\(L^2(P)\\), whose norm is \\((\\mathbb E\\|X\\|^2)^{1/2}\\), for a probability measure \\(P\\). Supply a continuous stationary frozen-posterior integral solution \\(S_t\\), driven by the stated coordinate Brownian processes. Its parameter block at time zero is the constant \\(a_\\star\\). Assume the initial per-particle parameter scores are independent and their expectations sum to zero. These are explicit stochastic and reference assumptions.</p><p><strong>Claim.</strong> Let \\(Q\\) be extraction of the parameter block, with operator norm at most one. Put \\(V=\\sum_i\\mathbb E\\|s_i-\\mathbb Es_i\\|^2\\), \\(G=\\|F_{\\rm frozen}(S_0)\\|_{L^2}\\), and let \\(W\\) denote the physical Brownian increment scale. The coupled full-batch trajectory satisfies</p>\\[\\|QX_n-a_\\star\\|_{L^2}\\le q^n\\|X_0-S_0\\|_{L^2}+\\frac2m\\frac{\\sqrt V}{K}+\\frac Lm\\left(hG+\\frac43W\\sqrt h\\right).\\]<p><strong>Proof.</strong> Write \\(s_i=(s_i-\\mathbb Es_i)+\\mathbb Es_i\\). The sum of the means vanishes. Expanding the squared norm of their average leaves diagonal terms plus cross inner products. Independence and centring make every cross expectation zero. Consequently the mean-square residual is exactly \\(K^{-2}V\\), whose nonnegative square root is \\(\\sqrt V/K\\). Stationarity preserves this residual norm at every reference time. The frozen integral equation supplies the reference segments used in the numerical comparison; its drift norm is \\(G\\), and Brownian increments supply the square-root-time scale \\(W\\). Apply the equilibrium-reference Euler comparison with this residual bound. The parameter block of \\(S_t\\) is constant. Finally \\(\\|Q(X_n-S_{nh})\\|_{L^2}\\le\\|X_n-S_{nh}\\|_{L^2}\\) transfers the cloud estimate to the parameter estimate. \\(\\square\\)</p>",
+   "lean": "<p><code>full_batch_parameter_bound</code> defines the residual size <code>b</code>. The block <code>hres</code> uses <code>residual_norm_eq_of_law</code>, <code>lifted_meanForce_residual</code> and <code>independent_average_norm_sq</code> to prove the variance identity. It then calls <code>equilibrium_reference_error</code>. The equality <code>ht</code> identifies the reference parameter with <code>constantL2</code> of the optimizer; <code>parameterOutput_norm_le</code> proves that the projection cannot enlarge the error. The displayed norm is therefore an actual root-mean-square parameter error.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularStochastic.lean",
+     "name": "full_batch_parameter_bound"
+    }
+   ]
+  },
+  {
+   "id": "meanfield",
+   "title": "Mean-field and particle comparisons",
+   "body": "<p>Let the heterogeneous particle potentials be differentiable and jointly \\(m\\)-strongly convex, with \\(L\\)-Lipschitz gradients, and let the particle count be positive. Consider a continuous \\(L^2(P)\\) mean-field integral solution \\(Y_t\\) and a continuous stationary frozen-posterior solution \\(S_t\\) driven by the same physical Brownian path. Assume the posterior scores have zero total expectation, and the initial parameter of \\(Y\\) and the reference parameter of \\(S\\) are deterministic. The statement holds for any real \\(m\\); it gives decay when \\(m&gt;0\\). Existence of a new solution is not asserted by a comparison of supplied solutions.</p><p><strong>Claim.</strong> If the reference parameter is \\(a_\\star\\), then for every \\(t\\ge0\\), \\(\\|QY_t-a_\\star\\|_{L^2}\\le e^{-mt}\\|Y_0-S_0\\|_{L^2}\\).</p><p><strong>Proof.</strong> Apply the parameter projection to the integral equation of \\(Y\\). The physical noise has zero parameter block, so its parameter remains the deterministic initial value minus the integral of the expected parameter force. The zero-score identity makes the frozen reference an admissible mean-field solution with constant parameter \\(a_\\star\\). Subtract their two equations. Their common additive noise cancels. Strong monotonicity, including the deterministic-parameter expectation identities, gives the energy inequality \\(\\frac d{dt}\\|Y_t-S_t\\|_{L^2}^2\\le-2m\\|Y_t-S_t\\|_{L^2}^2\\). Multiply by \\(e^{2mt}\\); the derivative of the product is nonpositive. Integrating from zero to \\(t\\) gives \\(\\|Y_t-S_t\\|_{L^2}^2\\le e^{-2mt}\\|Y_0-S_0\\|_{L^2}^2\\). Nonnegative square roots and the norm-one parameter projection finish the proof. Continuity and the supplied integral equations provide the time-integrability needed for this energy argument. \\(\\square\\)</p>",
+   "lean": "<p><code>meanField_optimizer_convergence</code> first invokes <code>meanField_parameter_deterministic</code> to establish <code>hpa</code>. The block <code>hpb</code> identifies the reference parameter; <code>frozen_is_meanField</code> verifies its equation using <code>hopt</code>. The actual synchronous energy estimate is <code>meanField_contraction</code>. The final two inequalities apply <code>parameterOutput_norm_le</code> to its norm estimate. In particular the proof does not replace stochastic independence or the reference equation by an assumed error bound.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularMeanField.lean",
+     "name": "meanField_optimizer_convergence"
+    }
+   ]
+  },
+  {
+   "id": "fullbatch",
+   "title": "Root-mean-square error of the full-batch scheme",
+   "body": "<p>Let \\(K=MN&gt;0\\). Assume \\(m&gt;0\\), differentiable jointly \\(m\\)-strongly convex heterogeneous potentials with \\(L\\)-Lipschitz gradients, and a stable positive step. The optimizer \\(a_\\star\\) is the actual marginal optimizer already constructed from these potentials. Supply an \\(L^2\\) initial latent cloud with the stated frozen Gibbs law at \\(a_\\star\\), the correct individual posterior marginals, the local domination assumptions for evidence differentiation, and independent initial posterior scores. The coordinate Brownian processes have independent scalar Euler increments, independent of the initial latent cloud. Suppose each centred score has second moment at most \\(V_0\\). These initialization, independence and regularity conditions are part of the theorem.</p><p><strong>Claim.</strong> For the actual pointwise Euler recursion,</p>\\[\\left(\\mathbb E\\|a_n-a_\\star\\|^2\\right)^{1/2}\\le q^nR_0+\\frac2m\\sqrt{\\frac{V_0}{MN}}+\\frac Lm\\left(h\\sqrt{L d_z}+\\frac43\\sqrt{2d_z}\\sqrt h\\right),\\qquad q=1-mh/2,\\]<p>where \\(R_0\\) is the \\(L^2\\) distance from the initial cloud to the scaled posterior cloud at \\(a_\\star\\), and \\(d_z\\) is the dimension of one latent vector.</p><p><strong>Proof.</strong> The evidence derivative at the optimizer centres the sum of posterior scores. The stipulated Gibbs initialization and independent Brownian increments furnish the stationary frozen reference used by the preceding stochastic comparison. Its frozen drift moment is bounded by \\(\\sqrt{Ld_z}\\), and the scaled physical noise has increment norm \\(\\sqrt{2d_z}\\sqrt t\\). These facts give the three-term comparison with sampling residual \\(K^{-1}\\sqrt{\\sum_i\\operatorname{Var}(s_i)}\\). The per-score bound gives \\(\\sum_i\\operatorname{Var}(s_i)\\le KV_0\\), hence</p>\\[\\frac1K\\sqrt{\\sum_i\\operatorname{Var}(s_i)}\\le\\frac{\\sqrt{KV_0}}K=\\sqrt{\\frac{V_0}K}.\\]<p>All factors are nonnegative and \\(K&gt;0\\), so taking square roots and dividing preserves the inequality. Substitute \\(K=MN\\) and the explicit moment constants. The pointwise and lifted recursions agree in \\(L^2\\), which converts the projected norm to the displayed integral. No assertion of uniform complexity follows unless the constants stay bounded independently of particle count and step size. \\(\\square\\)</p>",
+   "lean": "<p><code>full_batch_optimizer_rms_rate</code> obtains the actual root-mean-square comparison from <code>full_batch_optimizer_rms</code>. It obtains the finite-particle square-root rate from <code>score_sampling_rate</code> and multiplies by the nonnegative factor <code>2/m</code> in <code>hv'</code>. The final <code>linarith</code> composes these estimates. The long hypothesis list explicitly identifies the posterior law, its differentiability data, the independent scores, Brownian increments, and their independence from the initial cloud; none is omitted by the short final arithmetic proof.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/RegularSourceTheorem.lean",
+     "name": "full_batch_optimizer_rms_rate"
+    }
+   ]
+  },
+  {
+   "id": "accuracy",
+   "title": "Explicit accuracy choices",
+   "body": "<p>Let \\(\\varepsilon,m,K&gt;0\\), \\(h,R_0,V,L,G,W\\ge0\\), and \\(\\sigma\\in\\mathbb R\\). Suppose \\(q=1-mh/2\\ge0\\) and an error \\(E\\) has the five-term upper bound \\(q^nR_0+(2/m)\\sqrt{V/K}+(L/m)hG+(4L/(3m))W\\sqrt h+\\sqrt{h\\sigma^2/m}\\). The following arithmetic allocates \\(\\varepsilon/5\\) to each term. It applies after the stochastic/reference theorem supplies this upper bound; the arithmetic does not establish those hypotheses.</p><p><strong>Claim.</strong> The error satisfies \\(E\\le\\varepsilon\\) if</p>\\[\\begin{gathered}\\log\\max\\{1,5R_0/\\varepsilon\\}\\le mhn/2,\\qquad 100V\\le m^2\\varepsilon^2K,\\\\5LhG\\le m\\varepsilon,\\qquad400L^2W^2h\\le9m^2\\varepsilon^2,\\qquad25h\\sigma^2\\le m\\varepsilon^2.\\end{gathered}\\]<p><strong>Proof.</strong> The inequality \\(1-u\\le e^{-u}\\), with \\(u=mh/2\\), and \\(q\\ge0\\) imply \\(q^nR_0\\le e^{-mhn/2}R_0\\). The logarithmic restriction makes this at most \\(\\varepsilon/5\\); taking a maximum with one also covers \\(R_0=0\\) and an initial error already below tolerance. For the particle term, square its desired nonnegative inequality:</p>\\[\\left(\\frac2m\\sqrt{\\frac VK}\\right)^2\\le\\frac{\\varepsilon^2}{25}\\quad\\Longleftrightarrow\\quad100V\\le m^2\\varepsilon^2K.\\]<p>The drift inequality is equivalent to its desired bound after multiplication by \\(5m&gt;0\\). Squaring the nonnegative Brownian term gives exactly \\(400L^2W^2h\\le9m^2\\varepsilon^2\\). Squaring the oracle term gives exactly \\(25h\\sigma^2\\le m\\varepsilon^2\\). Nonnegativity permits the square-root comparisons in each case. Thus the sum of all five terms is at most \\(5\\varepsilon/5=\\varepsilon\\). The division-free restrictions also make sense when variance, drift or noise constants vanish. \\(\\square\\)</p>",
+   "lean": "<p><code>budget_le_epsilon</code> names the five bounds <code>hb</code>, <code>hp</code>, <code>hd</code>, <code>hw</code> and <code>ho</code>. <code>burnin</code> proves the logarithmic estimate. <code>scaled_sqrt_le</code> handles the particle and Brownian terms by comparing squares; <code>Real.sqrt_le_left</code> handles the oracle term. Positive denominators are discharged by <code>positivity</code> and <code>field_simp</code>. The last <code>nlinarith</code> adds the five allocations to <code>hbudget</code>.</p>",
+   "references": [
+    {
+     "file": "LatentDiffusion/Accuracy.lean",
+     "name": "budget_le_epsilon"
+    }
+   ]
+  }
+ ],
+ "roadmap": [
+  {
+   "id": "variational",
+   "row": 0,
+   "col": 0,
+   "file": "LatentDiffusion/Variational.lean",
+   "declaration": "global_minimizers_iff",
+   "title": "Variational characterization of the evidence",
+   "detail": "Minimizers of \\(F\\) are evidence maximizers with their posteriors",
+   "parents": []
+  },
+  {
+   "id": "flowcalculus",
+   "row": 0,
+   "col": 1,
+   "file": "LatentDiffusion/RegularFlowCalculus.lean",
+   "declaration": "normalized_product_deBruijn",
+   "title": "De Bruijn identity for the joint flow",
+   "detail": "\\(\\frac{d}{dt}F(a_t,q_t)=-I(a_t,q_t)\\) by integration by parts",
+   "parents": []
+  },
+  {
+   "id": "euler",
+   "row": 0,
+   "col": 2,
+   "file": "LatentDiffusion/Numerics.lean",
+   "declaration": "integral_reference_error_bound",
+   "title": "Euler contraction and local consistency",
+   "detail": "Factor \\(1-\\lambda h/2\\); local defect of order \\(h^{3/2}\\)",
+   "parents": []
+  },
+  {
+   "id": "marginal",
+   "row": 1,
+   "col": 0,
+   "file": "LatentDiffusion/Marginal.lean",
+   "declaration": "existsUnique_averageMarginalMinimizer",
+   "title": "Unique maximizer of the marginal evidence",
+   "detail": "Prékopa–Leindler convexity, coercivity and a compactness argument",
+   "parents": []
+  },
+  {
+   "id": "displacement",
+   "row": 1,
+   "col": 1,
+   "file": "LatentDiffusion/RegularTransport.lean",
+   "declaration": "freeEnergy_displacement_strongConvex",
+   "title": "Strong displacement convexity of the free energy",
+   "detail": "Concavity of \\(\\log\\det\\) and joint \\(\\lambda\\)-convexity of \\(U_m\\)",
+   "parents": []
+  },
+  {
+   "id": "cloud",
+   "row": 1,
+   "col": 2,
+   "file": "LatentDiffusion/Cloud.lean",
+   "declaration": "meanForce_regular",
+   "title": "The normalized particle-cloud force",
+   "detail": "Constants \\(\\lambda\\) and \\(L\\) for every \\(M\\) and \\(N\\)",
+   "parents": []
+  },
+  {
+   "id": "model",
+   "row": 2,
+   "col": 0,
+   "file": "LatentDiffusion/RegularModel.lean",
+   "declaration": "existsUnique_variationalOptimizer",
+   "title": "The density model and its unique optimizer",
+   "detail": "Normalizers, posteriors in \\(\\mathcal P_2\\), unique \\((a_\\star,\\pi_{a_\\star})\\)",
+   "parents": [
+    "variational",
+    "marginal"
+   ]
+  },
+  {
+   "id": "lsi",
+   "row": 2,
+   "col": 1,
+   "file": "LatentDiffusion/RegularTransportFirstOrder.lean",
+   "declaration": "extendedLSI",
+   "title": "Extended log-Sobolev and Talagrand inequalities",
+   "detail": "\\(2\\lambda(F-F_\\star)\\le I\\) and \\(\\frac\\lambda2d^2\\le F-F_\\star\\)",
+   "parents": [
+    "flowcalculus",
+    "displacement"
+   ]
+  },
+  {
+   "id": "reference",
+   "row": 2,
+   "col": 2,
+   "file": "LatentDiffusion/RegularStochastic.lean",
+   "declaration": "full_batch_parameter_bound",
+   "title": "Euler recursion against a stationary posterior reference",
+   "detail": "Initialization, score variance and time-step errors separated",
+   "parents": [
+    "euler",
+    "cloud"
+   ]
+  },
+  {
+   "id": "evidence",
+   "row": 3,
+   "col": 0,
+   "file": "LatentDiffusion/RegularEvidence.lean",
+   "declaration": "sum_posterior_parameter_gradient_eq_zero",
+   "title": "First-order condition for the evidence",
+   "detail": "Posterior parameter scores sum to zero at a maximizer",
+   "parents": []
+  },
+  {
+   "id": "meanfield",
+   "row": 3,
+   "col": 2,
+   "file": "LatentDiffusion/RegularMeanField.lean",
+   "declaration": "meanField_optimizer_convergence",
+   "title": "Mean-field and particle comparisons",
+   "detail": "Mean-field contraction, finite-cloud and time-step errors",
+   "parents": [
+    "cloud",
+    "reference"
+   ]
+  },
+  {
+   "id": "continuous",
+   "row": 4,
+   "col": 0,
+   "file": "LatentDiffusion/RegularConvergence.lean",
+   "declaration": "existsUnique_optimizer_and_flow_convergence",
+   "title": "Exponential convergence of the continuous flow",
+   "detail": "\\(\\|a_t-a_\\star\\|\\le\\sqrt{2(F_0-F_\\star)/\\lambda}\\,e^{-\\lambda t}\\)",
+   "parents": [
+    "marginal",
+    "model",
+    "flowcalculus",
+    "lsi"
+   ]
+  },
+  {
+   "id": "fullbatch",
+   "row": 4,
+   "col": 1,
+   "file": "LatentDiffusion/RegularSourceTheorem.lean",
+   "declaration": "full_batch_optimizer_rms_rate",
+   "title": "Root-mean-square error of the full-batch scheme",
+   "detail": "\\(O\\bigl((1-\\lambda h/2)^n+(MN)^{-1/2}+\\sqrt h\\bigr)\\) to \\(a_\\star\\)",
+   "parents": [
+    "model",
+    "evidence",
+    "reference"
+   ]
+  },
+  {
+   "id": "accuracy",
+   "row": 4,
+   "col": 2,
+   "file": "LatentDiffusion/Accuracy.lean",
+   "declaration": "budget_le_epsilon",
+   "title": "Explicit accuracy choices",
+   "detail": "Particle count, step size and burn-in for error \\(\\varepsilon\\)",
+   "parents": [
+    "fullbatch"
+   ]
+  }
+ ]
+}

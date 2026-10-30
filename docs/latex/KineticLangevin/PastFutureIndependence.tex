@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,18 @@ The exact independent array law is the corresponding infinite product. The measu
 
 Regrouping a product family into finite prefixes and later blocks preserves its joint product law. The operation changes indexing only. It is useful because the numerical or splitting state at a grid time depends on a prefix, while the next response uses a later interval.
 
+\begin{leanbox}{Lean: \texttt{iIndepFun\_\allowbreak{}curry}}
+\leansource{\texttt{iIndepFun\_\allowbreak{}curry} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 12–29}
+\begin{leancode}
+\leanline{0}{theorem\ iIndepFun\_curry\ \{Ω\ I\ J\ :\ Type*\}\ [MeasurableSpace\ Ω]\ \{P\ :\ Measure\ Ω\}\ [IsProbabilityMeasure\ P]}
+\leanline{4}{\{E\ :\ Type*\}\ [MeasurableSpace\ E]\ (X\ :\ I\ →\ J\ →\ Ω\ →\ E)}
+\leanline{4}{(hX\ :\ ∀\ i\ j,Measurable\ (X\ i\ j))}
+\leanline{4}{(hi\ :\ iIndepFun\ (fun\ p\ :\ I×J\ =>\ X\ p.1\ p.2)\ P)\ :}
+\leanline{4}{iIndepFun\ (fun\ i\ ω\ j\ =>\ X\ i\ j\ ω)\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}curry} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hl}, \texttt{hc}, \texttt{hj} in that order. Named proof applications include \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}comp\_\allowbreak{}has\allowbreak{}Law}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Use disjoint deterministic time supports}{Use disjoint deterministic time supports}}
 
@@ -42,6 +77,35 @@ Place all past kernels in one Gaussian block and the future kernel in a second b
 
 Past and future deterministic kernels have disjoint time supports and hence zero inner product. Their isonormal images are jointly Gaussian with zero cross covariance. This proves independence of the corresponding response families.
 
+\begin{leanbox}{Lean: \texttt{scalarSegments\_\allowbreak{}future\_\allowbreak{}independent}, \texttt{vectorSegments\_\allowbreak{}future\_\allowbreak{}blocks\_\allowbreak{}independent}}
+\leansource{\texttt{scalarSegments\_\allowbreak{}future\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 32–63}
+\begin{leancode}
+\leanline{0}{theorem\ scalarSegments\_future\_independent\ \{κ\ :\ Type*\}}
+\leanline{4}{(kernels\ :\ κ\ →\ ℝ\ →\ ℝ)\ (hks\ :\ ∀\ j,Continuous\ (kernels\ j))}
+\leanline{4}{(starts\ durations\ :\ κ\ →\ ℝ≥0)\ (a\ r\ :\ ℝ≥0)\ (htimes\ :\ ∀\ j,starts\ j+durations\ j\ ≤\ a)}
+\leanline{4}{(k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ :}
+\leanline{4}{iIndepFun\ (fun\ b\ :\ Bool\ =>\ fun\ ω\ :\ Sample\ =>\ fun\ j\ :\ κ\ =>\ if\ b\ then\ segmentConvolutionLp\ k\ hk\ a\ r\ ω}
+\leanline{6}{else\ segmentConvolutionLp\ (kernels\ j)\ (hks\ j)\ (starts\ j)\ (durations\ j)\ ω)\ probability}
+\end{leancode}
+\leansource{\texttt{vectorSegments\_\allowbreak{}future\_\allowbreak{}blocks\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 66–96}
+\begin{leancode}
+\leanline{0}{theorem\ vectorSegments\_future\_blocks\_independent\ \{κ\ :\ Type*\}\ (ι\ :\ Type*)}
+\leanline{4}{(kernels\ :\ κ\ →\ ℝ\ →\ ℝ)\ (hks\ :\ ∀\ j,Continuous\ (kernels\ j))}
+\leanline{4}{(starts\ durations\ :\ κ\ →\ ℝ≥0)\ (a\ r\ :\ ℝ≥0)\ (htimes\ :\ ∀\ j,starts\ j+durations\ j\ ≤\ a)}
+\leanline{4}{(k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ :}
+\leanline{4}{iIndepFun\ (fun\ b\ :\ Bool\ =>\ fun\ ω\ :\ ULA.CanonicalBrownian.VectorSample\ ι\ =>}
+\leanline{6}{fun\ (i\ :\ ι)\ (j\ :\ κ)\ =>\ if\ b\ then\ segmentConvolutionLp\ k\ hk\ a\ r\ (ω\ i)}
+\leanline{6}{else\ segmentConvolutionLp\ (kernels\ j)\ (hks\ j)\ (starts\ j)\ (durations\ j)\ (ω\ i))}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{scalar\allowbreak{}Segments\_\allowbreak{}future\_\allowbreak{}independent} gives the formal counterpart of this step. The main intermediate facts are \texttt{K}, \texttt{hg}, \texttt{he} in that order. Named proof applications include \texttt{Is\allowbreak{}Gaussian\allowbreak{}Process.\allowbreak{}i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}of\_\allowbreak{}covariance\_\allowbreak{}eq\_\allowbreak{}zero}, \texttt{segment\allowbreak{}Convolution\allowbreak{}Lp\_\allowbreak{}covariance\_\allowbreak{}zero}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{vector\allowbreak{}Segments\_\allowbreak{}future\_\allowbreak{}blocks\_\allowbreak{}independent} gives the formal counterpart of this step. The main intermediate facts are \texttt{X}, \texttt{hm}, \texttt{hi}, \texttt{hs} in that order. Named proof applications include \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}uncurry'}, \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}comp\_\allowbreak{}has\allowbreak{}Law}, \texttt{i\allowbreak{}Indep\allowbreak{}Fun\_\allowbreak{}curry}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.6.12]{LangevinLean2026ULASC}; \cite[Section~3.6.25]{LangevinLean2026ULASC}; \cite[Section~3.7.2]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.5]{LangevinLean2026ULASC}.
@@ -55,6 +119,21 @@ Pack each spatial row with the Euclidean coordinate map and read the future resp
 
 Assembling scalar coordinates and response blocks is a separate measurable transformation on each independent family. Independence therefore survives the assembly into Euclidean convolution variables. This yields the vector law needed in the free-OU argument.
 
+\begin{leanbox}{Lean: \texttt{vectorSegments\_\allowbreak{}future\_\allowbreak{}independent}}
+\leansource{\texttt{vectorSegments\_\allowbreak{}future\_\allowbreak{}independent} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 99–125}
+\begin{leancode}
+\leanline{0}{theorem\ vectorSegments\_future\_independent\ \{κ\ :\ Type*\}\ [Countable\ κ]\ [Nonempty\ κ]}
+\leanline{4}{(ι\ :\ Type*)\ [Fintype\ ι]\ [DecidableEq\ ι]}
+\leanline{4}{(kernels\ :\ κ\ →\ ℝ\ →\ ℝ)\ (hks\ :\ ∀\ j,Continuous\ (kernels\ j))}
+\leanline{4}{(starts\ durations\ :\ κ\ →\ ℝ≥0)\ (a\ r\ :\ ℝ≥0)\ (htimes\ :\ ∀\ j,starts\ j+durations\ j\ ≤\ a)}
+\leanline{4}{(k\ :\ ℝ\ →\ ℝ)\ (hk\ :\ Continuous\ k)\ :}
+\leanline{4}{IndepFun\ (fun\ ω\ :\ ULA.CanonicalBrownian.VectorSample\ ι\ =>}
+\leanline{6}{fun\ j\ =>\ vectorSegmentLp\ ι\ (kernels\ j)\ (hks\ j)\ (starts\ j)\ (durations\ j)\ ω)\ (vectorSegmentLp\ ι\ k\ hk\ a\ r)}
+\leanline{6}{(ULA.CanonicalBrownian.vectorProbability\ ι)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{vector\allowbreak{}Segments\_\allowbreak{}future\_\allowbreak{}independent} gives the formal counterpart of this step. The main intermediate facts are \texttt{hi}, \texttt{past\allowbreak{}Pack}, \texttt{future\allowbreak{}Pack}, \texttt{hp}, \texttt{hpast}, \texttt{hfuture} in that order. Named proof applications include \texttt{Probability\allowbreak{}Theory.\allowbreak{}Indep\allowbreak{}Fun.\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}.
@@ -68,6 +147,32 @@ Measure-preserving source composition transports independence by exact pushforwa
 
 Independent initial data can be adjoined as another product factor. A measure-preserving change of source transfers the entire joint law. Thus independence holds on the coupling space where the reference process and numerical discrepancy are compared.
 
+\begin{leanbox}{Lean: \texttt{indepFun\_\allowbreak{}comp\_\allowbreak{}measurePreserving}, \texttt{indepFun\_\allowbreak{}prod\_\allowbreak{}initial\_\allowbreak{}of\_\allowbreak{}indep}}
+\leansource{\texttt{indepFun\_\allowbreak{}comp\_\allowbreak{}measurePreserving} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 132–144}
+\begin{leancode}
+\leanline{0}{theorem\ indepFun\_comp\_measurePreserving\ \{Ω\ Ξ\ A\ B\ :\ Type*\}}
+\leanline{4}{[MeasurableSpace\ Ω]\ [MeasurableSpace\ Ξ]\ [MeasurableSpace\ A]\ [MeasurableSpace\ B]}
+\leanline{4}{\{P\ :\ Measure\ Ω\}\ \{Q\ :\ Measure\ Ξ\}\ [IsProbabilityMeasure\ P]\ [IsProbabilityMeasure\ Q]}
+\leanline{4}{(X\ :\ Ξ\ →\ A)\ (Y\ :\ Ξ\ →\ B)\ (hX\ :\ Measurable\ X)\ (hY\ :\ Measurable\ Y)}
+\leanline{4}{(hXY\ :\ IndepFun\ X\ Y\ Q)\ (φ\ :\ Ω\ →\ Ξ)\ (hφ\ :\ MeasurePreserving\ φ\ P\ Q)\ :}
+\leanline{4}{IndepFun\ (X\ ∘\ φ)\ (Y\ ∘\ φ)\ P}
+\end{leancode}
+\leansource{\texttt{indepFun\_\allowbreak{}prod\_\allowbreak{}initial\_\allowbreak{}of\_\allowbreak{}indep} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 147–163}
+\begin{leancode}
+\leanline{0}{theorem\ indepFun\_prod\_initial\_of\_indep\ \{Ω\ A\ E\ F\ :\ Type*\}}
+\leanline{4}{[MeasurableSpace\ Ω]\ [MeasurableSpace\ A]\ [MeasurableSpace\ E]\ [MeasurableSpace\ F]}
+\leanline{4}{(μ\ :\ Measure\ A)\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(X\ :\ Ω\ →\ E)\ (Y\ :\ Ω\ →\ F)\ (hX\ :\ Measurable\ X)\ (hY\ :\ Measurable\ Y)\ (hi\ :\ IndepFun\ X\ Y\ P)\ :}
+\leanline{4}{IndepFun\ (fun\ p\ :\ A×Ω\ =>\ (p.1,X\ p.2))\ (fun\ p\ :\ A×Ω\ =>\ Y\ p.2)\ (μ.prod\ P)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{indep\allowbreak{}Fun\_\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{indep\allowbreak{}Fun\_\allowbreak{}prod\_\allowbreak{}initial\_\allowbreak{}of\_\allowbreak{}indep} gives the formal counterpart of this step. The main intermediate facts are \texttt{hp}, \texttt{hs}, \texttt{hz} in that order. Named proof applications include \texttt{indep\allowbreak{}Fun\_\allowbreak{}comp\_\allowbreak{}measure\allowbreak{}Preserving}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Pass independence through \(L^{2}\) limits}{Pass independence through L² limits}}
 
@@ -78,13 +183,33 @@ A continuous linear functional sends an \(L^{2}\) vector to an \(L^{2}\) scalar.
 
 If past approximants converge in second mean to a limit, bounded characteristic functions of the pairs converge as well. Factorization of the approximating joint characteristic functions passes to the limit. This proves independence of the limiting reference state from the future interval.
 
+\begin{leanbox}{Lean: \texttt{continuous\_\allowbreak{}charFunDual\_\allowbreak{}map\_\allowbreak{}Lp}, \texttt{indepFun\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}Lp}}
+\leansource{\texttt{continuous\_\allowbreak{}charFunDual\_\allowbreak{}map\_\allowbreak{}Lp} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 169–176}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_charFunDual\_map\_Lp\ (L\ :\ E\ →L[ℝ]\ ℝ)\ :}
+\leanline{4}{Continuous\ (fun\ X\ :\ Lp\ E\ 2\ P\ =>\ charFunDual\ (P.map\ X)\ L)}
+\end{leancode}
+\leansource{\texttt{indepFun\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}Lp} \quad KineticLangevin/\allowbreak{}PastFutureIndependence.lean, lines 179–191}
+\begin{leancode}
+\leanline{0}{theorem\ indepFun\_of\_tendsto\_Lp\ (Xn\ :\ ℕ\ →\ Lp\ E\ 2\ P)\ (X\ Y\ :\ Lp\ E\ 2\ P)}
+\leanline{4}{(hX\ :\ Tendsto\ Xn\ atTop\ ({\leanfallback 𝓝}\ X))\ (hi\ :\ ∀\ n,IndepFun\ (Xn\ n)\ Y\ P)\ :}
+\leanline{4}{IndepFun\ X\ Y\ P}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{continuous\_\allowbreak{}char\allowbreak{}Fun\allowbreak{}Dual\_\allowbreak{}map\_\allowbreak{}Lp} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc} in that order. Named proof applications include \texttt{Measure.\allowbreak{}map\_\allowbreak{}congr}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{indep\allowbreak{}Fun\_\allowbreak{}of\_\allowbreak{}tendsto\_\allowbreak{}Lp} gives the formal counterpart of this step. The main intermediate facts are \texttt{hpair}, \texttt{hactual}, \texttt{htarget}, \texttt{he} in that order. Named proof applications include \texttt{tendsto\_\allowbreak{}nhds\_\allowbreak{}unique}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.5.7]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

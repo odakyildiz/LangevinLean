@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ Assume \(m>0\), \(m\le M\), \(\gamma>0\), \(m+M\le\gamma^2\), \(h\ge0\), and \(5
 
 Consequently \(q=1-mh/(4\gamma)\) is nonnegative. If \(h>0\), then \(q<1\); when \(h=0\), \(q=1\). Nonnegativity justifies comparison of initial errors after multiplication by its powers. The strict bound used in geometric summation comes from the positive-step hypothesis of the subsequent result.
 
+\begin{leanbox}{Lean: \texttt{secondOrder\_\allowbreak{}contraction\_\allowbreak{}factor\_\allowbreak{}nonneg}}
+\leansource{\texttt{secondOrder\_\allowbreak{}contraction\_\allowbreak{}factor\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Bound.lean, lines 15–24}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrder\_contraction\_factor\_nonneg\ (m\ M\ γ\ h\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤M)\ (hγ\ :\ 0<γ)\ (hfriction\ :\ m+M≤γ\textasciicircum{}2)\ (hh\ :\ 0≤h)}
+\leanline{4}{(hstep\ :\ 5*γ*M*h≤m)\ :\ 0≤1-m*h/(4*γ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\_\allowbreak{}contraction\_\allowbreak{}factor\_\allowbreak{}nonneg} gives the formal counterpart of this step. The main intermediate facts are \texttt{hsmall}, \texttt{hm\ensuremath{\gamma}}, \texttt{h1}, \texttt{h2}, \texttt{h3}, \texttt{h4} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Iterate the constructed coupling error}{Iterate the constructed coupling error}}
 
@@ -50,13 +83,37 @@ The cutoff hypothesis \(M_2\sqrt\alpha\,h\le m/4\) bounds its coefficient by \(q
 
 The reference stationarity, local comparison, and Brownian independence used here have already been proved for these random variables. The estimate retains the specified coupling's cost; the subsequent Wasserstein theorem takes its infimum over all finite-cost initial couplings.
 
+\begin{leanbox}{Lean: \texttt{klmc2\_\allowbreak{}coupling\_\allowbreak{}position\_\allowbreak{}bound}}
+\leansource{\texttt{klmc2\_\allowbreak{}coupling\_\allowbreak{}position\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}CanonicalKLMC2Bound.lean, lines 27–66}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2\_coupling\_position\_bound}
+\leanline{4}{(f\ :\ H\ ι\ →\ ℝ)\ (Hess\ :\ H\ ι\ →\ H\ ι\ →L[ℝ]\ H\ ι)\ (m\ :\ ℝ)\ (M\ γ\ M2\ :\ ℝ≥0)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hHLip\ :\ LipschitzWith\ M2\ Hess)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (Hess\ x)\ x)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤(M\ :\ ℝ))\ (hγ\ :\ 0<(γ\ :\ ℝ))}
+\leanline{4}{(hfriction\ :\ m+(M\ :\ ℝ)≤(γ\ :\ ℝ)\textasciicircum{}2)}
+\leanline{4}{(h\ :\ ℝ≥0)\ (hh\ :\ 0<(h\ :\ ℝ))\ (hstep\ :\ 5*(γ\ :\ ℝ)*(M\ :\ ℝ)*(h\ :\ ℝ)≤m)}
+\leanline{4}{(α\ :\ ℝ)\ (hα\ :\ 5*(Fintype.card\ ι\ :\ ℝ)≤α)\ (hcut\ :\ (M2\ :\ ℝ)*Real.sqrt\ α*(h\ :\ ℝ)≤m/4)}
+\leanline{4}{(c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ f))\ (hc\ :\ ULA.couplingCost\ c.joint≠⊤)}
+\leanline{4}{(hπ\ :\ MemLp\ (id\ :\ H\ ι\ →\ H\ ι)\ 2\ (ULA.gibbsMeasure\ f))\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖(SecondOrderSource.numericalChain\ c\ hc\ hπ\ (gradient\ f)\ Hess\ M\ M2\ hLip\ hHLip\ hderiv\ γ\ h\ n).2-}
+\leanline{6}{(GenericCanonicalCoupling.referenceChain\ c\ hπ\ f\ M\ γ\ hLip\ h\ n).2‖≤}
+\leanline{6}{Real.sqrt\ 2*(1-m*(h\ :\ ℝ)/(4*(γ\ :\ ℝ)))\textasciicircum{}n*(ULA.couplingCost\ c.joint).toReal+}
+\leanline{6}{Real.sqrt\ 2*(h\ :\ ℝ)\textasciicircum{}2*((M2\ :\ ℝ)*Real.sqrt\ ((Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ))+}
+\leanline{8}{(M\ :\ ℝ)*Real.sqrt\ ((M\ :\ ℝ)*(Fintype.card\ ι\ :\ ℝ)))/m+}
+\leanline{6}{8*((M\ :\ ℝ)-m)*(h\ :\ ℝ)/m*Real.exp\ (-(α-(Fintype.card\ ι\ :\ ℝ))/8)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc2\_\allowbreak{}coupling\_\allowbreak{}position\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{S}, \texttt{R}, \texttt{e}, \texttt{d}, \texttt{C}, \texttt{hrec} in that order. Named proof applications include \texttt{Second\allowbreak{}Order\allowbreak{}Source.\allowbreak{}numerical\allowbreak{}Chain\_\allowbreak{}error\_\allowbreak{}recurrence}, \texttt{hb}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

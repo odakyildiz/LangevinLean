@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -9,58 +32,549 @@
 \setlength{\parindent}{0pt}
 \allowdisplaybreaks[2]
 \raggedbottom
-\title{\texorpdfstring{The exact potential and average smoothness constants}{The exact potential and average smoothness constants}}
+\title{\texorpdfstring{Coordinate smoothness constants of the potential}{Coordinate smoothness constants of the potential}}
 \author{LangevinLean Project}
 \date{}
 \begin{document}\maketitle
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The state space is \(\mathbb R^p\). Every derivative and smoothness constant is computed from one real-valued potential. Coordinate smoothness uses the literal supremum of the Taylor quotients in the coordinate definition; it is not a supplied error bound. The deterministic results assume differentiability and a Lipschitz gradient, without adding a Hessian or third derivative assumption.
+This section fixes the objects in terms of which every later estimate is stated. The state space is \(\mathbb R^p\) with the Euclidean inner product \(\langle x,y\rangle=\sum_{j=1}^px_jy_j\), the norm \(\|x\|=\langle x,x\rangle^{1/2}\) and the canonical basis \(e_1,\dots,e_p\). The potential is a function \(f:\mathbb R^p\to\mathbb R\) with gradient \(\nabla f\) and partial derivatives \(\partial_jf(x)=\langle\nabla f(x),e_j\rangle\). Following the notation section of the paper, the coordinate smoothness constants, their average and the global smoothness constant are
 
-\[M_j=\sup_{x,\ a\ne0}\frac{2(f(x+ae_j)-f(x)-a\,\partial_j f(x))}{a^2},\qquad M_{\rm av}=\frac1p\sum_jM_j.\]
+
+\[\begin{aligned}
+M_j&=\sup_{x\in\mathbb R^p,\ a\ne0}
+\frac{2\bigl(f(x+ae_j)-f(x)-a\,\partial_jf(x)\bigr)}{a^2},\\
+M_{\rm av}&=\frac1p\sum_{j=1}^pM_j,\\
+M_\infty&=\sup_{x\ne y}
+\frac{\|\nabla f(x)-\nabla f(y)\|}{\|x-y\|}.
+\end{aligned}\]
+
+
+All three are computed from the potential itself; they are not additional parameters. For a differentiable \(f\) whose gradient is \(M\)-Lipschitz we prove that both suprema are finite, that \(\nabla f\) is \(M_\infty\)-Lipschitz, and that the coordinate quadratic upper model \(f(x+ae_j)\le f(x)+a\,\partial_jf(x)+\tfrac12M_ja^2\) holds. If in addition \(f\) is \(m\)-strongly convex, then \(m\le M_j\le M_\infty\) for every \(j\) and \(m\le M_{\rm av}\le M_\infty\). No second derivative is used for these facts.
+
+
+
+
+The section also defines the Hessian matrix \(\nabla^2f(x)\), the Laplacian \(\Delta f(x)\), the third-order condition of the paper's Section 4, \(\sup_x\|\nabla\Delta f(x)\|^2\le M_\Delta^2p\) for a three times continuously differentiable potential, and the root-mean-square constant \(M_{\rm rms}\) for a finite sum of potentials, and it proves \(\operatorname{tr}\nabla^2f=\Delta f\). The coordinate upper model is the input of the Gaussian smoothing lemma, the comparisons between \(m\), \(M_{\rm av}\) and \(M_\infty\) are used when the one-step bounds are iterated, and the remaining definitions enter the Laplacian-smooth theorem and the stochastic-gradient theorem.
+
+
 
 Earlier results used here: \cite[Section~3.9]{LangevinLean2026ULASC}; \cite[Section~3.2]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Euclidean coordinates and literal Taylor quotients}{Euclidean coordinates and literal Taylor quotients}}
+\section{\texorpdfstring{Coordinates and coordinate Taylor quotients}{Coordinates and coordinate Taylor quotients}}
 
 
-The state space is \(\mathbb R^p\), and \(e_j\) is its \(j\)th unit vector. The coordinate Taylor quotient is twice the difference between \(f(x+ae_j)\) and its first order approximation at \(x\), divided by \(a^2\). The defining set ranges over every \(x\) and every nonzero real \(a\). Its supremum is exactly \(M_j\), and the average of these \(p\) constants is \(M_{\rm av}\). A displacement \(a=1\) at \(x=0\) proves that every coordinate quotient set is nonempty. The unit norm and coordinate inner-product identities connect these definitions to Euclidean calculus.
+\textbf{Definitions.} Let \(p\in\mathbb N\). Write \(e_j\in\mathbb R^p\) for the vector whose \(j\)th coordinate is \(1\) and whose other coordinates are \(0\). For a function \(f:\mathbb R^p\to\mathbb R\) the gradient \(\nabla f(x)\) is the vector representing the derivative, \(Df(x)v=\langle\nabla f(x),v\rangle\) for all \(v\), and \(\partial_jf(x)\) is its \(j\)th coordinate. For \(x\in\mathbb R^p\) and a real number \(a\ne0\) the coordinate Taylor quotient is
 
 
-\section{\texorpdfstring{The actual global gradient seminorm}{The actual global gradient seminorm}}
+\[Q_j(x,a)=\frac{2\bigl(f(x+ae_j)-f(x)-a\,\partial_jf(x)\bigr)}{a^2},\]
 
 
-The global gradient seminorm is the supremum of the gradient difference norm divided by the state difference norm over unequal states. For \(p\) positive, a pair consisting of zero and one coordinate vector witnesses nonemptiness. Any supplied gradient Lipschitz constant \(M\) bounds every quotient, so it bounds the supremum. The quotients are nonnegative, hence the supremum is nonnegative. Conversely, each quotient is at most this bounded supremum. Multiplying by the strictly positive state difference norm proves that the gradient is Lipschitz with its exact seminorm. Thus subsequent inequalities may use the literal constant in the paper instead of an arbitrary larger bound.
+that is, twice the error of the first-order approximation of \(f\) along the \(j\)th coordinate line, divided by the squared displacement. Let \(\mathcal Q_j=\{Q_j(x,a):x\in\mathbb R^p,\ a\in\mathbb R,\ a\ne0\}\). The coordinate smoothness constant is \(M_j=\sup\mathcal Q_j\), and for \(p\ge1\) the average smoothness constant is \(M_{\rm av}=\frac1p\sum_{j=1}^pM_j\). The supremum of a nonempty set of real numbers is a real number exactly when the set is bounded above; Step 3 shows that \(\mathcal Q_j\) is bounded above whenever \(\nabla f\) is Lipschitz, and \(M_j\) is used only under that hypothesis.
 
 
-\section{\texorpdfstring{Bound and attain the coordinate quadratic model}{Bound and attain the coordinate quadratic model}}
 
 
-The shared differentiable descent lemma gives an upper quadratic model with coefficient \(M/2\). At a coordinate displacement \(ae_j\), the inner product is \(a\) times the \(j\)th gradient coordinate and the squared displacement norm is \(a^2\). For nonzero \(a\), multiply the upper model by \(2\) and divide by \(a^2\) to show that every Taylor quotient is at most \(M\). This proves boundedness of the quotient set and \(M_j\) at most \(M\). Each quotient is also at most its supremum \(M_j\). Multiplication by \(a^2\) and rearrangement recover the sharper coordinate upper model with coefficient \(M_j/2\). The zero displacement follows directly. No existence of a second derivative is needed.
+\textbf{Claim.} For every \(f\), every \(j\in\{1,\dots,p\}\) and every \(x\in\mathbb R^p\):
 
+
+
+\begin{enumerate}
+
+
+\item the set \(\mathcal Q_j\) is nonempty;
+
+\item \(\|e_j\|=1\);
+
+\item \(\langle x,e_j\rangle=x_j\). In particular \(\langle\nabla f(x),e_j\rangle=\partial_jf(x)\).
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} (1) The number \(Q_j(0,1)\) is obtained from the admissible choice \(x=0\), \(a=1\ne0\), so it belongs to \(\mathcal Q_j\). (2) The only nonzero coordinate of \(e_j\) equals \(1\), so \(\|e_j\|^2=\sum_i(e_j)_i^2=1\) and \(\|e_j\|=1\). (3) By definition of the inner product, \(\langle x,e_j\rangle=\sum_ix_i(e_j)_i=x_j\), since \((e_j)_i=0\) for \(i\ne j\) and \((e_j)_j=1\). Applying this with \(x\) replaced by \(\nabla f(x)\) gives the last assertion. \(\square\)
+
+
+
+
+Identities (2) and (3) are used to evaluate the inner product and the norm of a coordinate displacement \(ae_j\): \(\langle v,ae_j\rangle=a\,v_j\) and \(\|ae_j\|^2=a^2\).
+
+\begin{leanbox}{Lean: \texttt{State}, \texttt{coordinateVector}, \texttt{coordinateTaylorQuotient} and 6 more}
+\leansource{\texttt{State} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 26–26}
+\begin{leancode}
+\leanline{0}{abbrev\ State\ (p\ :\ ℕ)\ :=\ EuclideanSpace\ ℝ\ (Fin\ p)}
+\end{leancode}
+\leansource{\texttt{coordinateVector} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 29–29}
+\begin{leancode}
+\leanline{0}{def\ coordinateVector\ \{p\ :\ ℕ\}\ (j\ :\ Fin\ p)\ :\ State\ p\ :=\ EuclideanSpace.single\ j\ 1}
+\end{leancode}
+\leansource{\texttt{coordinateTaylorQuotient} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 32–34}
+\begin{leancode}
+\leanline{0}{def\ coordinateTaylorQuotient\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (j\ :\ Fin\ p)}
+\leanline{4}{(x\ :\ State\ p)\ (a\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{2\ *\ (f\ (x\ +\ a\ •\ coordinateVector\ j)\ -\ f\ x\ -\ a\ *\ (gradient\ f\ x)\ j)\ /\ a\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{coordinateTaylorQuotients} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 37–38}
+\begin{leancode}
+\leanline{0}{def\ coordinateTaylorQuotients\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (j\ :\ Fin\ p)\ :\ Set\ ℝ\ :=}
+\leanline{2}{\{q\ |\ ∃\ x\ a,\ a\ ≠\ 0\ ∧\ q\ =\ coordinateTaylorQuotient\ f\ j\ x\ a\}}
+\end{leancode}
+\leansource{\texttt{coordinateSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 42–43}
+\begin{leancode}
+\leanline{0}{def\ coordinateSmoothness\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (j\ :\ Fin\ p)\ :\ ℝ\ :=}
+\leanline{2}{sSup\ (coordinateTaylorQuotients\ f\ j)}
+\end{leancode}
+\leansource{\texttt{averageSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 46–47}
+\begin{leancode}
+\leanline{0}{def\ averageSmoothness\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(∑\ j,\ coordinateSmoothness\ f\ j)\ /\ (p\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{coordinateTaylorQuotients\_\allowbreak{}nonempty} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 72–74}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateTaylorQuotients\_nonempty\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{(coordinateTaylorQuotients\ f\ j).Nonempty}
+\end{leancode}
+\leansource{\texttt{norm\_\allowbreak{}coordinateVector} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 76–78}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ norm\_coordinateVector\ \{p\ :\ ℕ\}\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{‖coordinateVector\ j‖\ =\ 1}
+\end{leancode}
+\leansource{\texttt{inner\_\allowbreak{}coordinateVector} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 80–82}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ inner\_coordinateVector\ \{p\ :\ ℕ\}\ (x\ :\ State\ p)\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{inner\ ℝ\ x\ (coordinateVector\ j)\ =\ x\ j}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The state space is \texttt{State p}, an abbreviation for \texttt{Euclidean\allowbreak{}Space \ensuremath{\mathbb R} (Fin p)}: real functions on the index type \texttt{Fin p} \(=\{0,\dots,p-1\}\), with the Euclidean inner product and norm. Coordinates are therefore indexed from \(0\) to \(p-1\) in the source and from \(1\) to \(p\) in the text. The definitions match the mathematics as follows.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{coordinate\allowbreak{}Vector j} is \texttt{Euclidean\allowbreak{}Space.\allowbreak{}single j 1}, the vector \(e_j\).
+
+\item \texttt{coordinate\allowbreak{}Taylor\allowbreak{}Quotient f j x a} is the expression \(2(f(x+ae_j)-f(x)-a\,\partial_jf(x))/a^2\). Here \texttt{gradient f x} is the Mathlib gradient, the vector associated with the Fréchet derivative by the inner product, and \texttt{(gradient f x) j} is its coordinate \(\partial_jf(x)\). (Mathlib assigns the derivative \(0\) at points where \(f\) is not differentiable; all results that use the quotient assume differentiability.)
+
+\item \texttt{coordinate\allowbreak{}Taylor\allowbreak{}Quotients f j} is the set \(\mathcal Q_j\), written as \texttt{\{q | \ensuremath{\exists} x a, a ≠ 0 ∧ q = coordinate\allowbreak{}Taylor\allowbreak{}Quotient f j x a\}}.
+
+\item \texttt{coordinate\allowbreak{}Smoothness f j} is \texttt{s\allowbreak{}Sup} of this set. Mathlib's \texttt{s\allowbreak{}Sup} on \(\mathbb R\) is the least upper bound for nonempty sets that are bounded above and is \(0\) by convention otherwise; the later lemmas establish boundedness before using the value, so the definition agrees with \(M_j\) wherever it is used.
+
+\item \texttt{average\allowbreak{}Smoothness f} is \texttt{(∑ j, coordinate\allowbreak{}Smoothness f j) /\allowbreak{} (p : \ensuremath{\mathbb R})}, the average \(M_{\rm av}\); \texttt{(p : \ensuremath{\mathbb R})} is the dimension cast to a real number.
+
+\end{enumerate}
+
+
+
+\texttt{coordinate\allowbreak{}Taylor\allowbreak{}Quotients\_\allowbreak{}nonempty} is proved by the explicit element \texttt{\ensuremath{\langle}coordinate\allowbreak{}Taylor\allowbreak{}Quotient f j 0 1, 0, 1, one\_\allowbreak{}ne\_\allowbreak{}zero, rfl\ensuremath{\rangle}}: the quotient \(Q_j(0,1)\), the witnesses \(x=0\), \(a=1\), the proof \texttt{one\_\allowbreak{}ne\_\allowbreak{}zero} of \(1\ne0\), and \texttt{rfl} for the defining equality. \texttt{norm\_\allowbreak{}coordinate\allowbreak{}Vector} and \texttt{inner\_\allowbreak{}coordinate\allowbreak{}Vector} are claims (2) and (3); both are closed by \texttt{simp} after unfolding \texttt{coordinate\allowbreak{}Vector}, the second with the Mathlib identity \texttt{Euclidean\allowbreak{}Space.\allowbreak{}inner\_\allowbreak{}single\_\allowbreak{}right}. They carry the \texttt{@[simp]} attribute, so later simplifications rewrite \(\|e_j\|\) to \(1\) and \(\langle x,e_j\rangle\) to \(x_j\) automatically.
+\end{leanbox}
+
+\section{\texorpdfstring{The Lipschitz seminorm of the gradient}{The Lipschitz seminorm of the gradient}}
+
+
+\textbf{Definition.} For \(f:\mathbb R^p\to\mathbb R\) let \(\mathcal G=\bigl\{\|\nabla f(x)-\nabla f(y)\|/\|x-y\|:x,y\in\mathbb R^p,\ x\ne y\bigr\}\) and \(M_\infty=\sup\mathcal G\), the Lipschitz seminorm of the gradient. A number \(M\ge0\) is a Lipschitz constant of \(\nabla f\) if \(\|\nabla f(x)-\nabla f(y)\|\le M\|x-y\|\) for all \(x,y\).
+
+
+
+
+\textbf{Claim.} Let \(p\ge1\), and let \(\nabla f\) be Lipschitz with some constant \(M\ge0\). Then
+
+
+
+\begin{enumerate}
+
+
+\item \(M_\infty\le M\);
+
+\item \(M_\infty\ge0\);
+
+\item \(\nabla f\) is Lipschitz with constant \(M_\infty\): \(\|\nabla f(x)-\nabla f(y)\|\le M_\infty\|x-y\|\) for all \(x,y\in\mathbb R^p\).
+
+\end{enumerate}
+
+
+
+Thus \(M_\infty\) is the smallest Lipschitz constant of \(\nabla f\), and later estimates may be stated with this exact constant.
+
+
+
+
+\textbf{Proof.} \emph{The set \(\mathcal G\) is nonempty.} Since \(p\ge1\), the vector \(e_1\) exists, and \(e_1\ne0\) because \(\|e_1\|=1\ne0=\|0\|\). Hence the quotient at the pair \((0,e_1)\) belongs to \(\mathcal G\).
+
+
+
+
+\emph{\(M\) is an upper bound of \(\mathcal G\).} If \(x\ne y\), then \(\|x-y\|>0\), and dividing the Lipschitz inequality \(\|\nabla f(x)-\nabla f(y)\|\le M\|x-y\|\) by \(\|x-y\|\) gives \(\|\nabla f(x)-\nabla f(y)\|/\|x-y\|\le M\).
+
+
+
+
+(1) A nonempty set of reals with an upper bound has a least upper bound, and the least upper bound is at most every upper bound; hence \(M_\infty\le M\).
+
+
+
+
+(2) Every element of \(\mathcal G\) is a quotient of two nonnegative numbers, hence nonnegative. The element at \((0,e_1)\) is therefore \(\ge0\), and it is \(\le M_\infty\) because \(M_\infty\) is an upper bound of \(\mathcal G\).
+
+
+
+
+(3) If \(x=y\), both sides of the inequality are \(0\). If \(x\ne y\), the quotient at \((x,y)\) belongs to \(\mathcal G\), so \(\|\nabla f(x)-\nabla f(y)\|/\|x-y\|\le M_\infty\); multiplying by \(\|x-y\|>0\) gives the inequality. \(\square\)
+
+
+
+
+The hypothesis \(p\ge1\) is used only to produce an element of \(\mathcal G\): for \(p=0\) the space is \(\{0\}\), \(\mathcal G\) is empty and its supremum is not defined.
+
+\begin{leanbox}{Lean: \texttt{globalSmoothness}, \texttt{globalSmoothness\_\allowbreak{}le\_\allowbreak{}bound}, \texttt{globalSmoothness\_\allowbreak{}nonneg} and 1 more}
+\leansource{\texttt{globalSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 50–52}
+\begin{leancode}
+\leanline{0}{def\ globalSmoothness\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{sSup\ \{q\ :\ ℝ\ |\ ∃\ x\ y\ :\ State\ p,\ x\ ≠\ y\ ∧}
+\leanline{4}{q\ =\ ‖gradient\ f\ x\ -\ gradient\ f\ y‖\ /\ ‖x\ -\ y‖\}}
+\end{leancode}
+\leansource{\texttt{globalSmoothness\_\allowbreak{}le\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 86–100}
+\begin{leancode}
+\leanline{0}{theorem\ globalSmoothness\_le\_bound\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{globalSmoothness\ f\ ≤\ (M\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{globalSmoothness\_\allowbreak{}nonneg} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 102–120}
+\begin{leancode}
+\leanline{0}{theorem\ globalSmoothness\_nonneg\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{0\ ≤\ globalSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}globalSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 124–140}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_lipschitz\_globalSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{LipschitzWith\ ⟨globalSmoothness\ f,\ globalSmoothness\_nonneg\ hp\ f\ M\ hLip⟩}
+\leanline{6}{(gradient\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{global\allowbreak{}Smoothness f} is \texttt{s\allowbreak{}Sup} of the set \texttt{\{q : \ensuremath{\mathbb R} | \ensuremath{\exists} x y : State p, x ≠ y ∧ q = \ensuremath{\Vert}gradient f x -\allowbreak{} gradient f y\ensuremath{\Vert} /\allowbreak{} \ensuremath{\Vert}x -\allowbreak{} y\ensuremath{\Vert}\}}, that is \(M_\infty=\sup\mathcal G\). The three theorems take \texttt{hp : 0 < p} and a Lipschitz hypothesis \texttt{h\allowbreak{}Lip : Lipschitz\allowbreak{}With M (gradient f)}, where \texttt{M : \ensuremath{\mathbb R}\ensuremath{\ge}0} is a nonnegative real; \texttt{h\allowbreak{}Lip.\allowbreak{}norm\_\allowbreak{}sub\_\allowbreak{}le x y} is the inequality \(\|\nabla f(x)-\nabla f(y)\|\le M\|x-y\|\).
+
+
+
+\begin{enumerate}
+
+
+\item In \texttt{global\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}bound}, \texttt{j : Fin p := \ensuremath{\langle}0, hp\ensuremath{\rangle}} is the first coordinate and \texttt{he} proves \(0\ne e_1\) by applying the norm to a hypothetical equality (\texttt{congr\allowbreak{}Arg norm h}) and simplifying. \texttt{cs\allowbreak{}Sup\_\allowbreak{}le} reduces claim (1) to nonemptiness, witnessed by the pair \((0,e_1)\), and to the bound \(q\le M\) for each element. For an element with \(x\ne y\), \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}}} with the positivity proof \texttt{norm\_\allowbreak{}pos\_\allowbreak{}iff.\allowbreak{}mpr (sub\_\allowbreak{}ne\_\allowbreak{}zero.\allowbreak{}mpr hxy)} of \(\|x-y\|>0\) turns the quotient bound into the Lipschitz inequality.
+
+\item \texttt{global\allowbreak{}Smoothness\_\allowbreak{}nonneg} first proves \texttt{hb}, that the set is bounded above by \(M\), then chains \texttt{div\_\allowbreak{}nonneg} (the quotient at \((0,e_1)\) is nonnegative) with \texttt{le\_\allowbreak{}cs\allowbreak{}Sup hb} (that quotient is at most the supremum). This is claim (2).
+
+\item \texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}global\allowbreak{}Smoothness} concludes \texttt{Lipschitz\allowbreak{}With \ensuremath{\langle}global\allowbreak{}Smoothness f, global\allowbreak{}Smoothness\_\allowbreak{}nonneg hp f M h\allowbreak{}Lip\ensuremath{\rangle} (gradient f)}: the constant \(M_\infty\) is packaged as an element of \texttt{\ensuremath{\mathbb R}\ensuremath{\ge}0} together with the proof of its nonnegativity. \texttt{Lipschitz\allowbreak{}With.\allowbreak{}of\_\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul} reduces the goal to \(\operatorname{dist}(\nabla f(x),\nabla f(y))\le M_\infty\operatorname{dist}(x,y)\), \texttt{dist\_\allowbreak{}eq\_\allowbreak{}norm} rewrites distances as norms, and \texttt{by\_\allowbreak{}cases hxy : x = y} separates the trivial case from the case \(x\ne y\), where \texttt{(div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} …).\allowbreak{}mp} applied to \texttt{le\_\allowbreak{}cs\allowbreak{}Sup hb \ensuremath{\langle}x, y, hxy, rfl\ensuremath{\rangle}} gives claim (3).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The coordinate quadratic upper model}{The coordinate quadratic upper model}}
+
+
+\textbf{Claim.} Let \(f:\mathbb R^p\to\mathbb R\) be differentiable and let \(\nabla f\) be Lipschitz with constant \(M\ge0\). Then for every \(j\):
+
+
+
+\begin{enumerate}
+
+
+\item \(Q_j(x,a)\le M\) for every \(x\in\mathbb R^p\) and every \(a\ne0\);
+
+\item \(\mathcal Q_j\) is bounded above, so \(M_j=\sup\mathcal Q_j\) is a real number, and \(M_j\le M\);
+
+\item for every \(x\in\mathbb R^p\) and every \(a\in\mathbb R\), including \(a=0\),
+\[f(x+ae_j)\le f(x)+a\,\partial_jf(x)+\frac{M_j}{2}\,a^2.\qquad(1)\]
+
+\end{enumerate}
+
+
+
+\textbf{Proof.} We use the descent inequality: for all \(x,y\in\mathbb R^p\),
+
+
+\[f(y)\le f(x)+\langle\nabla f(x),y-x\rangle+\frac M2\|y-x\|^2.\qquad(2)\]
+
+
+To recall its proof, put \(d=y-x\) and \(g(t)=f(x+td)\) for \(t\in[0,1]\). By the chain rule \(g'(t)=\langle\nabla f(x+td),d\rangle\), which is continuous in \(t\) because \(\nabla f\) is Lipschitz. By the fundamental theorem of calculus, the Cauchy–Schwarz inequality and the Lipschitz bound,
+
+
+\[f(y)-f(x)-\langle\nabla f(x),d\rangle=\int_0^1\langle\nabla f(x+td)-\nabla f(x),d\rangle\,dt\le\int_0^1Mt\|d\|^2\,dt=\frac M2\|d\|^2.\]
+
+
+(1) Fix \(x\) and \(a\ne0\), and apply (2) with \(y=x+ae_j\). Then \(y-x=ae_j\), \(\langle\nabla f(x),ae_j\rangle=a\,\partial_jf(x)\) and \(\|ae_j\|^2=a^2\|e_j\|^2=a^2\) by Step 1. Hence
+
+
+\[f(x+ae_j)-f(x)-a\,\partial_jf(x)\le\frac M2\,a^2.\]
+
+
+Multiplying by \(2\) and dividing by \(a^2>0\) gives \(Q_j(x,a)\le M\).
+
+
+
+
+(2) By (1), \(M\) is an upper bound of \(\mathcal Q_j\). The set is nonempty by Step 1, so its supremum \(M_j\) exists and is at most the upper bound \(M\).
+
+
+
+
+(3) If \(a=0\), both sides of (1) equal \(f(x)\). If \(a\ne0\), then \(Q_j(x,a)\in\mathcal Q_j\), so \(Q_j(x,a)\le M_j\) by definition of the supremum (which exists by (2)). Multiplying this inequality by \(a^2/2>0\) gives \(f(x+ae_j)-f(x)-a\,\partial_jf(x)\le\frac{M_j}2a^2\), which is (1). \(\square\)
+
+
+
+
+Inequality (1) has the coefficient \(M_j/2\) in place of the coefficient \(M/2\) given by (2) along the line \(x+\mathbb Re_j\); the two can differ substantially when the potential is much stiffer in some directions than along the coordinate axes. Only differentiability and a Lipschitz gradient are used; the existence of second derivatives is not needed.
+
+\begin{leanbox}{Lean: \texttt{coordinateTaylorQuotient\_\allowbreak{}le}, \texttt{coordinateTaylorQuotients\_\allowbreak{}bddAbove}, \texttt{coordinateSmoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound} and 1 more}
+\leansource{\texttt{coordinateTaylorQuotient\_\allowbreak{}le} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 142–153}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateTaylorQuotient\_le\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(j\ :\ Fin\ p)\ (x\ :\ State\ p)\ (a\ :\ ℝ)\ (ha\ :\ a\ ≠\ 0)\ :}
+\leanline{4}{coordinateTaylorQuotient\ f\ j\ x\ a\ ≤\ (M\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{coordinateTaylorQuotients\_\allowbreak{}bddAbove} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 155–160}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateTaylorQuotients\_bddAbove\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{BddAbove\ (coordinateTaylorQuotients\ f\ j)}
+\end{leancode}
+\leansource{\texttt{coordinateSmoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 162–167}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateSmoothness\_le\_global\_bound\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{coordinateSmoothness\ f\ j\ ≤\ (M\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}upper\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 171–184}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_upper\_bound\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(j\ :\ Fin\ p)\ (x\ :\ State\ p)\ (a\ :\ ℝ)\ :}
+\leanline{4}{f\ (x\ +\ a\ •\ coordinateVector\ j)\ ≤\ f\ x\ +\ a\ *\ (gradient\ f\ x)\ j\ +}
+\leanline{6}{coordinateSmoothness\ f\ j\ /\ 2\ *\ a\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{coordinate\allowbreak{}Taylor\allowbreak{}Quotient\_\allowbreak{}le} takes \texttt{hdiff : Differentiable \ensuremath{\mathbb R} f}, \texttt{h\allowbreak{}Lip} and \texttt{ha : a ≠ 0}. The descent inequality (2) is \texttt{ULA.\allowbreak{}Analysis.\allowbreak{}smooth\_\allowbreak{}upper\_\allowbreak{}bound}, proved in the unadjusted Langevin library and applied here with \texttt{y = x + a \ensuremath{\bullet} coordinate\allowbreak{}Vector j} to obtain \texttt{hu}. The \texttt{simp only} call with \texttt{add\_\allowbreak{}sub\_\allowbreak{}cancel\_\allowbreak{}left}, \texttt{inner\_\allowbreak{}smul\_\allowbreak{}right}, \texttt{inner\_\allowbreak{}coordinate\allowbreak{}Vector}, \texttt{norm\_\allowbreak{}smul}, \texttt{Real.\allowbreak{}norm\_\allowbreak{}eq\_\allowbreak{}abs}, \texttt{norm\_\allowbreak{}coordinate\allowbreak{}Vector} and \texttt{mul\_\allowbreak{}one} rewrites \(y-x\) as \(ae_j\), the inner product as \(a\,\partial_jf(x)\) and the norm as \(|a|\); \texttt{sq\_\allowbreak{}abs} replaces \(|a|^2\) by \(a^2\). After unfolding the quotient, \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} (sq\_\allowbreak{}pos\_\allowbreak{}of\_\allowbreak{}ne\_\allowbreak{}zero ha)} turns the division by \(a^2>0\) into a multiplication and \texttt{nlinarith} concludes.
+
+\item \texttt{coordinate\allowbreak{}Taylor\allowbreak{}Quotients\_\allowbreak{}bdd\allowbreak{}Above} exhibits \(M\) as an upper bound (the anonymous constructor \texttt{\ensuremath{\langle}(M : \ensuremath{\mathbb R}), ?\_\allowbreak{}\ensuremath{\rangle}}) and checks it on each element with the previous lemma. \texttt{coordinate\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound} applies \texttt{cs\allowbreak{}Sup\_\allowbreak{}le} with the nonemptiness lemma of Step 1; this is claim (2).
+
+\item \texttt{coordinate\_\allowbreak{}upper\_\allowbreak{}bound} is (1). After \texttt{by\_\allowbreak{}cases ha : a = 0}, the case \(a=0\) is closed by \texttt{simp}. Otherwise \texttt{hs} is \texttt{le\_\allowbreak{}cs\allowbreak{}Sup} applied to the bounded set and to the membership of \(Q_j(x,a)\); \texttt{change} restates it as \(Q_j(x,a)\le M_j\), \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}} (sq\_\allowbreak{}pos\_\allowbreak{}of\_\allowbreak{}ne\_\allowbreak{}zero ha)} clears the denominator, and \texttt{nlinarith} rearranges.
+
+\end{enumerate}
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.9.1]{LangevinLean2026ULASC}.
 
-\section{\texorpdfstring{Compare strong convexity, average smoothness and global smoothness}{Compare strong convexity, average smoothness and global smoothness}}
+\section{\texorpdfstring{Comparison of strong convexity, average smoothness and global smoothness}{Comparison of strong convexity, average smoothness and global smoothness}}
 
 
-The strong-convexity lower model at zero and \(e_j\) gives the same first order term as the coordinate upper model, with quadratic coefficients \(m/2\) and \(M_j/2\) respectively. Subtraction yields \(m\) at most \(M_j\). Summing the upper and lower bounds over the \(p\) coordinates and dividing by positive \(p\) proves \(m\) at most \(M_{\rm av}\) at most \(M\). Apply the upper bounds to the actual nonnegative global gradient seminorm, using its proved Lipschitz property, to obtain \(M_j\) at most \(M_\infty\) and \(M_{\rm av}\) at most \(M_\infty\) with exactly the paper's supremum constants.
+\textbf{Claim.} Let \(f:\mathbb R^p\to\mathbb R\) be differentiable with \(M\)-Lipschitz gradient, \(M\ge0\).
 
 
 
-Earlier results used here: \cite[Section~3.2.3]{LangevinLean2026ULASC}.
-
-\section{\texorpdfstring{Actual Hessian, Laplacian and finite-sum notation}{Actual Hessian, Laplacian and finite-sum notation}}
+\begin{enumerate}
 
 
-The Hessian is the second Fréchet derivative evaluated on pairs of coordinate vectors, and the Laplacian is its canonical trace. Expanding the Laplacian in the canonical orthonormal basis gives exactly the matrix trace of this Hessian. The Laplacian smoothness assumption requires three continuous derivatives and the displayed bound on the squared norm of the gradient of the Laplacian, with the factor \(p\) from (lip:2). It does not introduce a Hessian Lipschitz requirement. Finally, the root mean square component smoothness is the square root of the average of the squared exact component-gradient seminorms, as in (eq:Mtwo).
+\item If \(f\) is \(m\)-strongly convex for some \(m\in\mathbb R\), then \(m\le M_j\) for every \(j\).
 
+\item If \(p\ge1\), then \(M_{\rm av}\le M\).
+
+\item If \(p\ge1\), then \(M_j\le M_\infty\) for every \(j\), and \(M_{\rm av}\le M_\infty\).
+
+\item If \(p\ge1\) and \(f\) is \(m\)-strongly convex, then \(m\le M_{\rm av}\).
+
+\end{enumerate}
+
+
+
+Consequently, for \(p\ge1\) and an \(m\)-strongly convex \(f\), \(m\le M_{\rm av}\le M_\infty\le M\).
+
+
+
+
+Here \(f\) is \(m\)-strongly convex if \(f((1-t)x+ty)\le(1-t)f(x)+tf(y)-\frac m2t(1-t)\|x-y\|^2\) for all \(x,y\in\mathbb R^p\) and \(t\in[0,1]\).
+
+
+
+
+\textbf{Proof.} (1) For a differentiable \(m\)-strongly convex function the supporting-plane inequality holds:
+
+
+\[f(y)\ge f(x)+\langle\nabla f(x),y-x\rangle+\frac m2\|y-x\|^2\qquad\text{for all }x,y.\qquad(3)\]
+
+
+To recall why, note that \(g(v)=f(v)-\frac m2\|v\|^2\) is convex: inserting the identity \(\|(1-t)x+ty\|^2=(1-t)\|x\|^2+t\|y\|^2-t(1-t)\|x-y\|^2\) into the definition of strong convexity gives exactly the convexity inequality for \(g\). A differentiable convex function lies above its tangent planes, \(g(y)\ge g(x)+Dg(x)(y-x)\), and \(Dg(x)v=\langle\nabla f(x),v\rangle-m\langle x,v\rangle\). Since \(\|y\|^2-\|x\|^2-2\langle x,y-x\rangle=\|y-x\|^2\), this tangent-plane inequality is (3).
+
+
+
+
+Apply (3) with \(x=0\) and \(y=e_j\), and apply the coordinate upper model (1) of Step 3 with \(x=0\) and \(a=1\). Using \(\langle\nabla f(0),e_j\rangle=\partial_jf(0)\) and \(\|e_j\|=1\),
+
+
+\[f(0)+\partial_jf(0)+\frac m2\le f(e_j)\le f(0)+\partial_jf(0)+\frac{M_j}2.\]
+
+
+Cancelling \(f(0)+\partial_jf(0)\) and multiplying by \(2\) gives \(m\le M_j\).
+
+
+
+
+(2) By Step 3, \(M_j\le M\) for each of the \(p\) indices. Summing, \(\sum_jM_j\le pM\), and dividing by \(p>0\) gives \(M_{\rm av}\le M\).
+
+
+
+
+(3) By Step 2, \(M_\infty\ge0\) and \(\nabla f\) is \(M_\infty\)-Lipschitz. Applying Step 3 and part (2) with the Lipschitz constant \(M_\infty\) in place of \(M\) gives \(M_j\le M_\infty\) and \(M_{\rm av}\le M_\infty\).
+
+
+
+
+(4) Summing (1) over \(j\) gives \(pm\le\sum_jM_j\), and dividing by \(p>0\) gives \(m\le M_{\rm av}\). The final chain combines (4), (3) and Step 2. \(\square\)
+
+
+
+
+The constants \(M_j\), \(M_{\rm av}\) and \(M_\infty\) in these inequalities are the suprema defined from \(f\), not arbitrary upper bounds; this is what allows the later theorems to be stated with the constants of the paper. The inequality \(m\le M_{\rm av}\) is used, for example, to guarantee \(mh\le1\) when \(hM_\infty\le1\).
+
+\begin{leanbox}{Lean: \texttt{strongConvex\_\allowbreak{}le\_\allowbreak{}coordinateSmoothness}, \texttt{averageSmoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound}, \texttt{coordinateSmoothness\_\allowbreak{}le\_\allowbreak{}globalSmoothness} and 2 more}
+\leansource{\texttt{strongConvex\_\allowbreak{}le\_\allowbreak{}coordinateSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 186–195}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvex\_le\_coordinateSmoothness\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))}
+\leanline{4}{(j\ :\ Fin\ p)\ :\ m\ ≤\ coordinateSmoothness\ f\ j}
+\end{leancode}
+\leansource{\texttt{averageSmoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 197–203}
+\begin{leancode}
+\leanline{0}{theorem\ averageSmoothness\_le\_global\_bound\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :\ averageSmoothness\ f\ ≤\ (M\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{coordinateSmoothness\_\allowbreak{}le\_\allowbreak{}globalSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 206–212}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateSmoothness\_le\_globalSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (j\ :\ Fin\ p)\ :}
+\leanline{4}{coordinateSmoothness\ f\ j\ ≤\ globalSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{averageSmoothness\_\allowbreak{}le\_\allowbreak{}globalSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 216–222}
+\begin{leancode}
+\leanline{0}{theorem\ averageSmoothness\_le\_globalSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{averageSmoothness\ f\ ≤\ globalSmoothness\ f}
+\end{leancode}
+\leansource{\texttt{strongConvex\_\allowbreak{}le\_\allowbreak{}averageSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 224–231}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvex\_le\_averageSmoothness\ \{p\ :\ ℕ\}\ (hp\ :\ 0\ <\ p)}
+\leanline{4}{(f\ :\ State\ p\ →\ ℝ)\ (m\ :\ ℝ)\ (M\ :\ ℝ≥0)\ (hdiff\ :\ Differentiable\ ℝ\ f)}
+\leanline{4}{(hsc\ :\ StrongConvexOn\ Set.univ\ m\ f)\ (hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ :}
+\leanline{4}{m\ ≤\ averageSmoothness\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Strong convexity is the hypothesis \texttt{hsc : Strong\allowbreak{}Convex\allowbreak{}On Set.\allowbreak{}univ m f}. Mathlib defines it as uniform convexity with modulus \(r\mapsto\frac m2r^2\) on the whole space: \(f(ax+by)\le af(x)+bf(y)-ab\frac m2\|x-y\|^2\) whenever \(a,b\ge0\) and \(a+b=1\), which is the definition used above.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}coordinate\allowbreak{}Smoothness}: \texttt{hl} is (3) at \(x=0\), \(y=e_j\), supplied by \texttt{ULA.\allowbreak{}strong\_\allowbreak{}first\_\allowbreak{}order hdiff hsc (0 : State p) (coordinate\allowbreak{}Vector j)} from the unadjusted Langevin library; \texttt{hu} is \texttt{coordinate\_\allowbreak{}upper\_\allowbreak{}bound} at \(x=0\), \(a=1\). Two \texttt{simp only} calls evaluate \(\|e_j\|=1\), \(1^2=1\) and \(\langle\nabla f(0),e_j\rangle=\partial_jf(0)\), and \texttt{linarith} combines the two inequalities.
+
+\item \texttt{average\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound} unfolds the average, uses \texttt{div\_\allowbreak{}le\_\allowbreak{}iff\ensuremath{{}_{0}}} with \(p>0\) (the cast \texttt{(by exact\_\allowbreak{}mod\_\allowbreak{}cast hp : (0 : \ensuremath{\mathbb R}) < p)}) to reduce to \(\sum_jM_j\le M\,p\), and obtains this from \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum} applied to the bounds \texttt{coordinate\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}global\_\allowbreak{}bound}; \texttt{simpa [mul\_\allowbreak{}comm]} identifies the sum of the constant \(M\) over the \(p\) indices with \(pM\).
+
+\item \texttt{coordinate\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}global\allowbreak{}Smoothness} and \texttt{average\allowbreak{}Smoothness\_\allowbreak{}le\_\allowbreak{}global\allowbreak{}Smoothness} are the previous bounds instantiated with the Lipschitz constant \texttt{\ensuremath{\langle}global\allowbreak{}Smoothness f, global\allowbreak{}Smoothness\_\allowbreak{}nonneg hp f M h\allowbreak{}Lip\ensuremath{\rangle}} and the Lipschitz proof \texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}global\allowbreak{}Smoothness hp f M h\allowbreak{}Lip} of Step 2.
+
+\item \texttt{strong\allowbreak{}Convex\_\allowbreak{}le\_\allowbreak{}average\allowbreak{}Smoothness} uses \texttt{le\_\allowbreak{}div\_\allowbreak{}iff\ensuremath{{}_{0}}} and \texttt{Finset.\allowbreak{}sum\_\allowbreak{}le\_\allowbreak{}sum} over the bounds of part (1).
+
+\end{enumerate}
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.2.2]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Hessian, Laplacian and the constants of the third-order and finite-sum settings}{Hessian, Laplacian and the constants of the third-order and finite-sum settings}}
+
+
+\textbf{Definitions.} Let \(D^2f(x)\) denote the second derivative of \(f\) at \(x\), a bilinear form on \(\mathbb R^p\) (as usual for derivatives defined at every point, it is taken to be \(0\) where it does not exist).
+
+
+
+\begin{itemize}
+
+
+\item The \emph{Hessian matrix} is \(\nabla^2f(x)=\bigl(D^2f(x)(e_i,e_j)\bigr)_{i,j=1}^p\).
+
+\item The \emph{Laplacian} is the trace of \(D^2f(x)\) with respect to the inner product: \(\Delta f(x)=\sum_{i=1}^pD^2f(x)(v_i,v_i)\) for an orthonormal basis \(v_1,\dots,v_p\). The sum does not depend on the orthonormal basis, because a change of orthonormal basis is given by an orthogonal matrix \(O\) and \(\sum_iD^2f(x)(Ov_i,Ov_i)=\operatorname{tr}(O^\top AO)=\operatorname{tr}A\) for the matrix \(A\) of \(D^2f(x)\).
+
+\item For \(M_\Delta\in\mathbb R\), the potential satisfies the \emph{Laplacian smoothness condition} if \(f\) is three times continuously differentiable and \(\|\nabla\Delta f(x)\|^2\le M_\Delta^2\,p\) for every \(x\in\mathbb R^p\). No Lipschitz condition on the Hessian is part of this condition.
+
+\item For a finite family \(f_1,\dots,f_n:\mathbb R^p\to\mathbb R\), let \(M_\infty(f_i)\) be the gradient seminorm of Step 2 for \(f_i\). The root-mean-square component smoothness is \(M_{\rm rms}=\bigl(\frac1n\sum_{i=1}^nM_\infty(f_i)^2\bigr)^{1/2}\).
+
+\end{itemize}
+
+
+
+\textbf{Claim.} For every \(f:\mathbb R^p\to\mathbb R\) and every \(x\in\mathbb R^p\), \(\operatorname{tr}\nabla^2f(x)=\Delta f(x)\).
+
+
+
+
+\textbf{Proof.} The canonical basis \(e_1,\dots,e_p\) is orthonormal, so by the definition of the Laplacian with \(v_i=e_i\),
+
+
+\[\Delta f(x)=\sum_{i=1}^pD^2f(x)(e_i,e_i)=\sum_{i=1}^p\bigl(\nabla^2f(x)\bigr)_{ii}=\operatorname{tr}\nabla^2f(x).\qquad\square\]\begin{leanbox}{Lean: \texttt{hessian}, \texttt{laplacian}, \texttt{LaplacianSmooth} and 2 more}
+\leansource{\texttt{hessian} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 55–57}
+\begin{leancode}
+\leanline{0}{def\ hessian\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (x\ :\ State\ p)\ :}
+\leanline{4}{Matrix\ (Fin\ p)\ (Fin\ p)\ ℝ\ :=}
+\leanline{2}{fun\ i\ j\ ↦\ iteratedFDeriv\ ℝ\ 2\ f\ x\ ![coordinateVector\ i,\ coordinateVector\ j]}
+\end{leancode}
+\leansource{\texttt{laplacian} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 60–61}
+\begin{leancode}
+\leanline{0}{def\ laplacian\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ :\ State\ p\ →\ ℝ\ :=}
+\leanline{2}{Laplacian.laplacian\ f}
+\end{leancode}
+\leansource{\texttt{LaplacianSmooth} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 65–66}
+\begin{leancode}
+\leanline{0}{def\ LaplacianSmooth\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (Mdelta\ :\ ℝ)\ :\ Prop\ :=}
+\leanline{2}{ContDiff\ ℝ\ 3\ f\ ∧\ ∀\ x,\ ‖gradient\ (laplacian\ f)\ x‖\ \textasciicircum{}\ 2\ ≤\ Mdelta\ \textasciicircum{}\ 2\ *\ (p\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{rmsComponentSmoothness} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 69–70}
+\begin{leancode}
+\leanline{0}{def\ rmsComponentSmoothness\ \{p\ n\ :\ ℕ\}\ (f\ :\ Fin\ n\ →\ State\ p\ →\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ ((∑\ i,\ globalSmoothness\ (f\ i)\ \textasciicircum{}\ 2)\ /\ (n\ :\ ℝ))}
+\end{leancode}
+\leansource{\texttt{trace\_\allowbreak{}hessian} \quad AverageLMC/\allowbreak{}Assumptions.lean, lines 234–238}
+\begin{leancode}
+\leanline{0}{theorem\ trace\_hessian\ \{p\ :\ ℕ\}\ (f\ :\ State\ p\ →\ ℝ)\ (x\ :\ State\ p)\ :}
+\leanline{4}{Matrix.trace\ (hessian\ f\ x)\ =\ laplacian\ f\ x}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{hessian f x} is the matrix \texttt{fun i j \ensuremath{\mapsto} iterated\allowbreak{}FDeriv \ensuremath{\mathbb R} 2 f x ![coordinate\allowbreak{}Vector i, coordinate\allowbreak{}Vector j]}. Here \texttt{iterated\allowbreak{}FDeriv \ensuremath{\mathbb R} 2 f x} is the second Fréchet derivative as a multilinear map of two arguments, and \texttt{![u, v]} is the list of its two arguments.
+
+\item \texttt{laplacian f} is Mathlib's \texttt{Laplacian.\allowbreak{}laplacian f} (notation \(\Delta\)), defined without coordinates by contracting the second derivative with the canonical covariant tensor of the inner product; this is the basis-independent trace above.
+
+\item \texttt{Laplacian\allowbreak{}Smooth f Mdelta} is the conjunction \texttt{Cont\allowbreak{}Diff \ensuremath{\mathbb R} 3 f ∧ \ensuremath{\forall} x, \ensuremath{\Vert}gradient (laplacian f) x\ensuremath{\Vert} \textasciicircum{} 2 \ensuremath{\le} Mdelta \textasciicircum{} 2 * (p : \ensuremath{\mathbb R})}; \texttt{Cont\allowbreak{}Diff \ensuremath{\mathbb R} 3 f} means three times continuously differentiable, and the second conjunct is the paper's condition (lip:2).
+
+\item \texttt{rms\allowbreak{}Component\allowbreak{}Smoothness f} takes the family as \texttt{f : Fin n \ensuremath{\to} State p \ensuremath{\to} \ensuremath{\mathbb R}} and returns \texttt{Real.\allowbreak{}sqrt ((∑ i, global\allowbreak{}Smoothness (f i) \textasciicircum{} 2) /\allowbreak{} (n : \ensuremath{\mathbb R}))}, which is \(M_{\rm rms}\).
+
+\item \texttt{trace\_\allowbreak{}hessian} rewrites the Laplacian with the Mathlib identity \texttt{Inner\allowbreak{}Product\allowbreak{}Space.\allowbreak{}laplacian\_\allowbreak{}eq\_\allowbreak{}iterated\allowbreak{}FDeriv\_\allowbreak{}orthonormal\allowbreak{}Basis}, which expresses \(\Delta f(x)\) as \(\sum_iD^2f(x)(v_i,v_i)\) for any orthonormal basis, applied to the standard basis \texttt{Euclidean\allowbreak{}Space.\allowbreak{}basis\allowbreak{}Fun (Fin p) \ensuremath{\mathbb R}}. Unfolding \texttt{Matrix.\allowbreak{}trace}, \texttt{hessian} and \texttt{coordinate\allowbreak{}Vector} and evaluating the basis vectors with \texttt{Euclidean\allowbreak{}Space.\allowbreak{}basis\allowbreak{}Fun\_\allowbreak{}apply}, \texttt{simp} identifies the two sums.
+
+\end{enumerate}
+\end{leanbox}
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

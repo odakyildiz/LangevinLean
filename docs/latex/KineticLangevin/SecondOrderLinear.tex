@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -36,6 +59,28 @@ Both are quadratic-form identities obtained by the real inner-product rules. The
 
 The exact exponential response already accounts for the damping. The additional increment can therefore be estimated as an Euler correction in the transformed coordinates without replacing that damping by a positive quadratic upper bound.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}identity}, \texttt{kinetic\_\allowbreak{}euler\_\allowbreak{}energy\_\allowbreak{}identity}}
+\leansource{\texttt{kinetic\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 11–19}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_drift\_energy\_identity\ (γ\ :\ ℝ)\ (v\ x\ F\ :\ E)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (-γ\ •\ v-F,v)=}
+\leanline{6}{-γ/2*forceEnergyDerivative\ γ\ v\ x\ F+2*‖F‖\textasciicircum{}2-γ\textasciicircum{}2*{\leanfallback ⟪}x,F{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}euler\_\allowbreak{}energy\_\allowbreak{}identity} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 22–32}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_euler\_energy\_identity\ (γ\ s\ :\ ℝ)\ (v\ x\ F\ :\ E)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (v+s\ •\ (-γ\ •\ v-F),x+s\ •\ v)=}
+\leanline{6}{transformEnergy\ γ\ 0\ (v,x)+s*forceEnergyDerivative\ γ\ v\ x\ F+}
+\leanline{8}{s\textasciicircum{}2*transformEnergy\ γ\ 0\ (-γ\ •\ v-F,v)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}identity} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}euler\_\allowbreak{}energy\_\allowbreak{}identity} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Use cocoercivity before bounding the remainder}{Use cocoercivity before bounding the remainder}}
 
@@ -50,6 +95,32 @@ In the Euler energy expansion, the coefficient of \(E'\) is \(s(1-\gamma s/2)\),
 
 The square comparison retains a nonnegative square term. Applying cocoercivity before a separate norm bound is what preserves the negative curvature contribution in this calculation.
 
+\begin{leanbox}{Lean: \texttt{kinetic\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}bound}, \texttt{kinetic\_\allowbreak{}euler\_\allowbreak{}norm\_\allowbreak{}bound}}
+\leansource{\texttt{kinetic\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 35–69}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_drift\_energy\_bound\ (γ\ m\ M\ :\ ℝ)\ (hγ\ :\ 0<γ)\ (hm\ :\ 0≤m)\ (hmM\ :\ m≤M)}
+\leanline{4}{(hfriction\ :\ m+M≤γ\textasciicircum{}2)\ (v\ x\ F\ :\ E)}
+\leanline{4}{(hcoco\ :\ ‖F‖\textasciicircum{}2≤M*{\leanfallback ⟪}x,F{\leanfallback ⟫})\ (hupper\ :\ {\leanfallback ⟪}x,F{\leanfallback ⟫}≤M*‖x‖\textasciicircum{}2)\ :}
+\leanline{4}{transformEnergy\ γ\ 0\ (-γ\ •\ v-F,v)≤-γ/2*forceEnergyDerivative\ γ\ v\ x\ F+}
+\leanline{6}{(2*M*(M-m)/γ\textasciicircum{}2)*transformEnergy\ γ\ 0\ (v,x)}
+\end{leancode}
+\leansource{\texttt{kinetic\_\allowbreak{}euler\_\allowbreak{}norm\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 72–107}
+\begin{leancode}
+\leanline{0}{theorem\ kinetic\_euler\_norm\_bound\ (γ\ m\ M\ s\ :\ ℝ)\ (hγ\ :\ 0<γ)\ (hm\ :\ 0≤m)\ (hmM\ :\ m≤M)}
+\leanline{4}{(hfriction\ :\ m+M≤γ\textasciicircum{}2)\ (hs\ :\ 0≤s)\ (hsmall\ :\ γ*s≤1)}
+\leanline{4}{(v\ x\ F\ :\ E)\ (hdiss\ :\ forceEnergyDerivative\ γ\ v\ x\ F≤(-2*m/γ)*transformEnergy\ γ\ 0\ (v,x))}
+\leanline{4}{(hcoco\ :\ ‖F‖\textasciicircum{}2≤M*{\leanfallback ⟪}x,F{\leanfallback ⟫})\ (hupper\ :\ {\leanfallback ⟪}x,F{\leanfallback ⟫}≤M*‖x‖\textasciicircum{}2)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (v+s\ •\ (-γ\ •\ v-F),x+s\ •\ v)≤}
+\leanline{6}{(1-m*s/γ+(m/2+M*(M-m)/γ\textasciicircum{}2)*s\textasciicircum{}2)*transformNorm\ γ\ 0\ (v,x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\_\allowbreak{}drift\_\allowbreak{}energy\_\allowbreak{}bound} separates the cases \texttt{hzero : M=0} and its negation before combining them. The main intermediate facts are \texttt{h\allowbreak{}M}, \texttt{hpair}, \texttt{he}, \texttt{h\ensuremath{\gamma}2}, \texttt{hgap}, \texttt{hrem} in that order. Named proof applications include \texttt{norm\_\allowbreak{}eq\_\allowbreak{}zero.\allowbreak{}mp}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{kinetic\_\allowbreak{}euler\_\allowbreak{}norm\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{C}, \texttt{h\allowbreak{}M}, \texttt{hgap}, \texttt{h\allowbreak{}C}, \texttt{hms}, \texttt{hq} in that order. Named proof applications include \texttt{he.\allowbreak{}trans}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Bound the true frozen-Hessian correction}{Bound the true frozen-Hessian correction}}
 
@@ -64,6 +135,17 @@ With \(N\) denoting the initial transformed norm, the established bounds are \(\
 
 Both transformed components are included. The calculation uses the operator norm of the frozen Hessian and does not require symmetry or a common eigenbasis with any other operator.
 
+\begin{leanbox}{Lean: \texttt{secondOrder\_\allowbreak{}frozen\_\allowbreak{}correction\_\allowbreak{}bound}}
+\leansource{\texttt{secondOrder\_\allowbreak{}frozen\_\allowbreak{}correction\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 110–160}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrder\_frozen\_correction\_bound\ (γ\ M\ t\ :\ ℝ)\ (hγ\ :\ 0<γ)\ (hM\ :\ 0≤M)\ (ht\ :\ 0≤t)}
+\leanline{4}{(H\ :\ E\ →L[ℝ]\ E)\ (hH\ :\ ‖H‖≤M)\ (v\ x\ F\ :\ E)\ (hF\ :\ ‖F‖≤M*‖x‖)\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (-phi\ γ\ 2\ t\ •\ H\ v,-psi\ γ\ 2\ t\ •\ F-phi\ γ\ 3\ t\ •\ H\ v)≤}
+\leanline{6}{(3/2\ :\ ℝ)*M*t\textasciicircum{}2*transformNorm\ γ\ 0\ (v,x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\_\allowbreak{}frozen\_\allowbreak{}correction\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{N}, \texttt{B}, \texttt{h\allowbreak{}N}, \texttt{h\allowbreak{}B}, \texttt{hv}, \texttt{hx} in that order. Named proof applications include \texttt{transform\allowbreak{}Norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}energy\_\allowbreak{}le}, \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The scalar coefficient bound with exact \(\psi _{1}\)}{The scalar coefficient bound with exact ψ ₁}}
 
@@ -78,6 +160,17 @@ Using these bounds in the Euler coefficient and adding the frozen correction giv
 
 The step restriction \(5\gamma Mt\le m\) makes the final term at most \(mt/(2\gamma)\), leaving \(1-mt/(2\gamma)\). All divisions use positive friction. Keeping the exact first response \(\psi_1(t)=(1-e^{-\gamma t})/\gamma\) until these inequalities are applied retains the contraction needed in this step range.
 
+\begin{leanbox}{Lean: \texttt{secondOrder\_\allowbreak{}linear\_\allowbreak{}scalar\_\allowbreak{}bound}}
+\leansource{\texttt{secondOrder\_\allowbreak{}linear\_\allowbreak{}scalar\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 163–206}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrder\_linear\_scalar\_bound\ (γ\ m\ M\ t\ :\ ℝ)\ (hγ\ :\ 0<γ)\ (hm\ :\ 0≤m)\ (hmM\ :\ m≤M)}
+\leanline{4}{(hfriction\ :\ m+M≤γ\textasciicircum{}2)\ (ht\ :\ 0≤t)\ (hstep\ :\ 5*γ*M*t≤m)\ :}
+\leanline{4}{1-m*psi\ γ\ 1\ t/γ+(m/2+M*(M-m)/γ\textasciicircum{}2)*(psi\ γ\ 1\ t)\textasciicircum{}2+(3/2\ :\ ℝ)*M*t\textasciicircum{}2≤}
+\leanline{6}{1-m*t/(2*γ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\_\allowbreak{}linear\_\allowbreak{}scalar\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}M}, \texttt{hgap}, \texttt{h\allowbreak{}M\ensuremath{\gamma}}, \texttt{hdiv}, \texttt{C}, \texttt{h\allowbreak{}C} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Identify and contract the frozen-linear map}{Identify and contract the frozen-linear map}}
 
@@ -92,5 +185,42 @@ The identity \(\psi_0=1-\gamma\psi_1\) expresses it as the Euler phase plus the 
 
 This is the frozen force-difference and Hessian part obtained by subtracting the two defined corrected updates. Its contraction estimate can therefore be combined with the remaining stochastic Hessian-difference response in the coupled numerical comparison.
 
+\begin{leanbox}{Lean: \texttt{frozenSecondOrderStep}, \texttt{frozenSecondOrderStep\_\allowbreak{}decomposition}, \texttt{frozenSecondOrderStep\_\allowbreak{}contract}}
+\leansource{\texttt{frozenSecondOrderStep} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 209–211}
+\begin{leancode}
+\leanline{0}{def\ frozenSecondOrderStep\ (γ\ t\ :\ ℝ)\ (H\ :\ E\ →L[ℝ]\ E)\ (v\ x\ F\ :\ E)\ :\ E×E\ :=}
+\leanline{2}{(psi\ γ\ 0\ t\ •\ v-psi\ γ\ 1\ t\ •\ F-phi\ γ\ 2\ t\ •\ H\ v,}
+\leanline{3}{x+psi\ γ\ 1\ t\ •\ v-psi\ γ\ 2\ t\ •\ F-phi\ γ\ 3\ t\ •\ H\ v)}
+\end{leancode}
+\leansource{\texttt{frozenSecondOrderStep\_\allowbreak{}decomposition} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 214–220}
+\begin{leancode}
+\leanline{0}{theorem\ frozenSecondOrderStep\_decomposition\ (γ\ t\ :\ ℝ)\ (H\ :\ E\ →L[ℝ]\ E)\ (v\ x\ F\ :\ E)\ :}
+\leanline{4}{frozenSecondOrderStep\ γ\ t\ H\ v\ x\ F=}
+\leanline{6}{(v+psi\ γ\ 1\ t\ •\ (-γ\ •\ v-F),x+psi\ γ\ 1\ t\ •\ v)+}
+\leanline{8}{(-phi\ γ\ 2\ t\ •\ H\ v,-psi\ γ\ 2\ t\ •\ F-phi\ γ\ 3\ t\ •\ H\ v)}
+\end{leancode}
+\leansource{\texttt{frozenSecondOrderStep\_\allowbreak{}contract} \quad KineticLangevin/\allowbreak{}SecondOrderLinear.lean, lines 223–259}
+\begin{leancode}
+\leanline{0}{theorem\ frozenSecondOrderStep\_contract\ (γ\ m\ M\ t\ :\ ℝ)\ (hγ\ :\ 0<γ)\ (hm\ :\ 0<m)\ (hmM\ :\ m≤M)}
+\leanline{4}{(hfriction\ :\ m+M≤γ\textasciicircum{}2)\ (ht\ :\ 0≤t)\ (hstep\ :\ 5*γ*M*t≤m)}
+\leanline{4}{(H\ :\ E\ →L[ℝ]\ E)\ (hH\ :\ ‖H‖≤M)\ (v\ x\ F\ :\ E)}
+\leanline{4}{(hF\ :\ ‖F‖≤M*‖x‖)}
+\leanline{4}{(hinterp\ :\ m*M*‖x‖\textasciicircum{}2+‖F‖\textasciicircum{}2≤(m+M)*{\leanfallback ⟪}F,x{\leanfallback ⟫})\ :}
+\leanline{4}{transformNorm\ γ\ 0\ (frozenSecondOrderStep\ γ\ t\ H\ v\ x\ F)≤}
+\leanline{6}{(1-m*t/(2*γ))*transformNorm\ γ\ 0\ (v,x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{frozen\allowbreak{}Second\allowbreak{}Order\allowbreak{}Step} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{frozen\allowbreak{}Second\allowbreak{}Order\allowbreak{}Step\_\allowbreak{}decomposition} gives the formal counterpart of this step. The main intermediate facts are \texttt{hpsi} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{frozen\allowbreak{}Second\allowbreak{}Order\allowbreak{}Step\_\allowbreak{}contract} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}M}, \texttt{hupper}, \texttt{hcoco}, \texttt{hsmall}, \texttt{hpsmall}, \texttt{hdiss} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \end{document}

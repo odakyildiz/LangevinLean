@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,31 @@ Let \(A=2M_2p+M\sqrt{2Mp}\). The two printed quadratic terms add to \(A h^2/m\).
 
 The three entries of the minimum have distinct origins and cannot be discarded without an additional parameter regime. The first two guarantee analytic admissibility, while the third controls the printed quadratic bias. The separate full accuracy theorem is needed when bounding the Gaussian tail as well.
 
+\begin{leanbox}{Lean: \texttt{secondOrderTailFreeStep}, \texttt{secondOrderTailFreeStep\_\allowbreak{}spec}}
+\leansource{\texttt{secondOrderTailFreeStep} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 11–13}
+\begin{leancode}
+\leanline{0}{def\ secondOrderTailFreeStep\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{min\ (m/(5*γ*M))\ (min\ (m/(4*Real.sqrt\ (5*p)*M2))}
+\leanline{4}{(Real.sqrt\ (ε*Real.sqrt\ m/(4*M2*p+2*M*Real.sqrt\ (2*M*p)))))}
+\end{leancode}
+\leansource{\texttt{secondOrderTailFreeStep\_\allowbreak{}spec} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 21–57}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeStep\_spec\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{0<secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε\ ∧}
+\leanline{4}{5*γ*M*secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{4*Real.sqrt\ (5*p)*M2*secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε≤m\ ∧}
+\leanline{4}{2*(secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)\textasciicircum{}2*M2*p/m+}
+\leanline{6}{(secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)\textasciicircum{}2*M*Real.sqrt\ (2*M*p)/m≤ε/(2*Real.sqrt\ m)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Step} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Step\_\allowbreak{}spec} gives the formal counterpart of this step. The main intermediate facts are \texttt{B}, \texttt{h\allowbreak{}B}, \texttt{h}, \texttt{hh}, \texttt{hstable}, \texttt{hdim} in that order. Named proof applications include \texttt{hs}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Invert the minimum without losing a parameter regime}{Invert the minimum without losing a parameter regime}}
 
@@ -42,6 +90,37 @@ For two positive numbers, inversion reverses order, so \((\min(a,b))^{-1}=\max(a
 
 Order reversal under inversion is valid because every entry is strictly positive. The minimum-step prescription is therefore exactly a maximum of three reciprocal costs. This representation exposes which restriction dominates for a given collection of physical parameters.
 
+\begin{leanbox}{Lean: \texttt{secondOrderTailFreeInverse}, \texttt{inverse\_\allowbreak{}min\_\allowbreak{}of\_\allowbreak{}pos}, \texttt{secondOrderTailFreeStep\_\allowbreak{}inverse}}
+\leansource{\texttt{secondOrderTailFreeInverse} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 16–18}
+\begin{leancode}
+\leanline{0}{def\ secondOrderTailFreeInverse\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{max\ (5*γ*M/m)\ (max\ (4*Real.sqrt\ (5*p)*M2/m)}
+\leanline{4}{(Real.sqrt\ ((4*M2*p+2*M*Real.sqrt\ (2*M*p))/(ε*Real.sqrt\ m))))}
+\end{leancode}
+\leansource{\texttt{inverse\_\allowbreak{}min\_\allowbreak{}of\_\allowbreak{}pos} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 60–68}
+\begin{leancode}
+\leanline{0}{theorem\ inverse\_min\_of\_pos\ (a\ b\ :\ ℝ)\ (ha\ :\ 0<a)\ (hb\ :\ 0<b)\ :}
+\leanline{4}{(min\ a\ b)⁻¹=max\ a⁻¹\ b⁻¹}
+\end{leancode}
+\leansource{\texttt{secondOrderTailFreeStep\_\allowbreak{}inverse} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 71–77}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeStep\_inverse\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{(secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)⁻¹=secondOrderTailFreeInverse\ m\ M\ γ\ M2\ p\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Inverse} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{inverse\_\allowbreak{}min\_\allowbreak{}of\_\allowbreak{}pos} gives the formal counterpart of this step. Named proof applications include \texttt{one\_\allowbreak{}div\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}div\_\allowbreak{}of\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Step\_\allowbreak{}inverse} gives the formal counterpart of this step. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The exact reciprocal-step prefactor}{The exact reciprocal-step prefactor}}
 
@@ -52,6 +131,17 @@ Immediately before introducing its refined condition-number shorthand, the manus
 
 The equality preserves physical units: multiplying the reciprocal step by the curvature-rate prefactor gives the work scale before logarithmic iteration reduction. It is an algebraic identity for this chosen prescription, rather than a claim about every possible algorithmic step choice.
 
+\begin{leanbox}{Lean: \texttt{secondOrderTailFreeStep\_\allowbreak{}work}}
+\leansource{\texttt{secondOrderTailFreeStep\_\allowbreak{}work} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 80–85}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeStep\_work\ (m\ M\ γ\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{Real.sqrt\ M/(m*secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε)=}
+\leanline{6}{(Real.sqrt\ M/m)*secondOrderTailFreeInverse\ m\ M\ γ\ M2\ p\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Step\_\allowbreak{}work} gives the formal counterpart of this step. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Connect the exact step to the dimensionless condition-number theorem}{Connect the exact step to the dimensionless condition-number theorem}}
 
@@ -62,6 +152,17 @@ Set \(\kappa=M/m\), \(\eta=M_2/(m\sqrt m)\), and choose the least admissible sou
 
 Normalizing by the strong-convexity scale removes the physical unit of time. The ordinary and Hessian condition numbers then describe separate sources of stiffness. The exact normalization proves that the scalar refinement chapter bounds the same reciprocal-step quantity selected here.
 
+\begin{leanbox}{Lean: \texttt{secondOrderTailFreeInverse\_\allowbreak{}normalized\_\allowbreak{}work}}
+\leansource{\texttt{secondOrderTailFreeInverse\_\allowbreak{}normalized\_\allowbreak{}work} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 134–174}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeInverse\_normalized\_work\ (m\ M\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0≤M)\ (hε\ :\ ε≠0)\ :}
+\leanline{4}{(4*Real.sqrt\ (m+M)/m)*secondOrderTailFreeInverse\ m\ M\ (Real.sqrt\ (m+M))\ M2\ p\ ε=}
+\leanline{6}{secondOrderNormalizedWork\ (M/m)\ (M2/(m*Real.sqrt\ m))\ p\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Inverse\_\allowbreak{}normalized\_\allowbreak{}work} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{h\ensuremath{\gamma}}, \texttt{h\ensuremath{\kappa}}, \texttt{h\allowbreak{}Mp}, \texttt{hfirst}, \texttt{hsecond} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{Round logarithmic time to an integer count}{Round logarithmic time to an integer count}}
 
@@ -72,6 +173,29 @@ The existing iteration count is \(N(\alpha,D,\delta)=\lceil\max(0,\log(24D/\delt
 
 The ceiling produces an integer iteration count while adding less than one to the real threshold. Keeping the maximum logarithm handles very small or zero initial discrepancy. The displayed bound therefore covers both the transient-dominated and already-near-target cases.
 
+\begin{leanbox}{Lean: \texttt{firstOrderIterationCount\_\allowbreak{}lt}, \texttt{secondOrderTailFree\_\allowbreak{}iterationCount\_\allowbreak{}lt}}
+\leansource{\texttt{firstOrderIterationCount\_\allowbreak{}lt} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 88–93}
+\begin{leancode}
+\leanline{0}{theorem\ firstOrderIterationCount\_lt\ (α\ D\ ε\ :\ ℝ)\ (hα\ :\ 0<α)\ :}
+\leanline{4}{(firstOrderIterationCount\ α\ D\ ε:ℝ)<1+max\ 0\ (Real.log\ (24*D/ε))/α}
+\end{leancode}
+\leansource{\texttt{secondOrderTailFree\_\allowbreak{}iterationCount\_\allowbreak{}lt} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 96–110}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFree\_iterationCount\_lt\ (m\ M\ γ\ M2\ p\ ε\ D\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hM2\ :\ 0<M2)\ (hp\ :\ 0<p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{(firstOrderIterationCount\ (m*secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε/(4*γ))\ D}
+\leanline{6}{(ε/Real.sqrt\ m):ℝ)<}
+\leanline{6}{1+(4*γ/m)*secondOrderTailFreeInverse\ m\ M\ γ\ M2\ p\ ε*}
+\leanline{8}{max\ 0\ (Real.log\ (24*D*Real.sqrt\ m/ε))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{first\allowbreak{}Order\allowbreak{}Iteration\allowbreak{}Count\_\allowbreak{}lt} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{he} in that order. Named proof applications include \texttt{max\_\allowbreak{}div\_\allowbreak{}div\_\allowbreak{}right}, \texttt{hc}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\_\allowbreak{}iteration\allowbreak{}Count\_\allowbreak{}lt} gives the formal counterpart of this step. The main intermediate facts are \texttt{hh}, \texttt{hc}, \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The choice of friction}{The choice of friction}}
 
@@ -82,6 +206,28 @@ At fixed positive step and nonnegative initial error, increasing positive fricti
 
 At fixed admissible step, lower friction improves the geometric transient factor. Under the explicit step prescription it also weakens the friction-dependent stability restriction. These are the monotonicity facts justifying the least admissible friction in this bound.
 
+\begin{leanbox}{Lean: \texttt{secondOrderTailFreeStep\_\allowbreak{}antitone\_\allowbreak{}friction}, \texttt{secondOrder\_\allowbreak{}transient\_\allowbreak{}monotone\_\allowbreak{}friction}}
+\leansource{\texttt{secondOrderTailFreeStep\_\allowbreak{}antitone\_\allowbreak{}friction} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 113–119}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFreeStep\_antitone\_friction\ (m\ M\ γ\ γ'\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0≤m)\ (hM\ :\ 0<M)\ (hγ\ :\ 0<γ)\ (hγγ'\ :\ γ≤γ')\ :}
+\leanline{4}{secondOrderTailFreeStep\ m\ M\ γ'\ M2\ p\ ε≤secondOrderTailFreeStep\ m\ M\ γ\ M2\ p\ ε}
+\end{leancode}
+\leansource{\texttt{secondOrder\_\allowbreak{}transient\_\allowbreak{}monotone\_\allowbreak{}friction} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 122–131}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrder\_transient\_monotone\_friction\ (m\ h\ γ\ γ'\ D\ :\ ℝ)\ (n\ :\ ℕ)}
+\leanline{4}{(hm\ :\ 0≤m)\ (hh\ :\ 0≤h)\ (hγ\ :\ 0<γ)\ (hγγ'\ :\ γ≤γ')}
+\leanline{4}{(hstable\ :\ m*h≤4*γ)\ (hD\ :\ 0≤D)\ :}
+\leanline{4}{Real.sqrt\ 2*(1-m*h/(4*γ))\textasciicircum{}n*D≤Real.sqrt\ 2*(1-m*h/(4*γ'))\textasciicircum{}n*D}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\allowbreak{}Step\_\allowbreak{}antitone\_\allowbreak{}friction} gives the formal counterpart of this step. Named proof applications include \texttt{min\_\allowbreak{}le\_\allowbreak{}min}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{second\allowbreak{}Order\_\allowbreak{}transient\_\allowbreak{}monotone\_\allowbreak{}friction} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\ensuremath{\alpha}}, \texttt{h\ensuremath{\alpha}1} in that order. Named proof applications include \texttt{mul\_\allowbreak{}le\_\allowbreak{}mul\_\allowbreak{}of\_\allowbreak{}nonneg\_\allowbreak{}right}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Bound the rounded count by the corrected physical condition numbers}{Bound the rounded count by the corrected physical condition numbers}}
 
@@ -92,5 +238,20 @@ The final corollary applies to the very natural-number count selected by the exp
 
 The final expression retains the maximum of the ordinary and Hessian condition numbers. This is necessary because either may dominate the stability cost. The result bounds the rounded prescription with a universal numerical constant and an explicit initialization logarithm.
 
+\begin{leanbox}{Lean: \texttt{secondOrderTailFree\_\allowbreak{}iterationCount\_\allowbreak{}conditionNumber}}
+\leansource{\texttt{secondOrderTailFree\_\allowbreak{}iterationCount\_\allowbreak{}conditionNumber} \quad KineticLangevin/\allowbreak{}SecondOrderComplexity.lean, lines 177–191}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderTailFree\_iterationCount\_conditionNumber\ (m\ M\ M2\ p\ ε\ D\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤M)\ (hM2\ :\ 0<M2)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{(firstOrderIterationCount}
+\leanline{6}{(m*secondOrderTailFreeStep\ m\ M\ (Real.sqrt\ (m+M))\ M2\ p\ ε/(4*Real.sqrt\ (m+M)))\ D}
+\leanline{6}{(ε/Real.sqrt\ m):ℝ)<}
+\leanline{6}{1+64*secondOrderRefinement\ (max\ (kineticConditionNumber\ m\ M)}
+\leanline{8}{(sourceHessianConditionNumber\ m\ M\ M2\ p))\ p\ ε*}
+\leanline{10}{max\ 0\ (Real.log\ (24*D*Real.sqrt\ m/ε))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Tail\allowbreak{}Free\_\allowbreak{}iteration\allowbreak{}Count\_\allowbreak{}condition\allowbreak{}Number} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}M}, \texttt{hc}, \texttt{hwork} in that order. Named proof applications include \texttt{hc.\allowbreak{}trans\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

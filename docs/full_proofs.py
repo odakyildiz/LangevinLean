@@ -115,6 +115,7 @@ def _volume_plans(configurations, notes, sources):
                 "steps": [{"title": step["title"], "section": f"{section}.{i}",
                            "anchor": f"subsection.{section}.{i}",
                            "body_sha256": _digest(step["body"]),
+                           "lean_sha256": _digest(step.get("lean", "")),
                            "declarations": step["declarations"]}
                           for i, step in enumerate(note["steps"], 1)],
             }
@@ -150,10 +151,12 @@ def full_proof_inventory(configurations, notes, sources):
 
 
 def _preamble(title, heading, report=None):
+    from lean_latex import PREAMBLE as LEAN_PREAMBLE
     return "\n".join([
         r"\documentclass[11pt,a4paper]{report}",
         r"\usepackage{fontspec,amsmath,amssymb,amsthm,microtype,xcolor}",
         r"\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]",
+        LEAN_PREAMBLE.rstrip(),
         r"\usepackage[margin=25mm]{geometry}",
         r"\usepackage[unicode,hidelinks]{hyperref}",
         r"\hypersetup{pdfauthor={LangevinLean Project},bookmarksdepth=2}",
@@ -281,32 +284,63 @@ def paper_references(library):
     return ''.join(parts)
 
 
-def full_proof_documents(configurations, notes, sources, catalog=None):
+def check_commands(library):
+    """The commands that check a report's Lean proofs, typeset as code."""
+    from lean_latex import code_block
+    return code_block(['lake exe cache get', 'lake build ' + library.split('/')[0],
+                       'lake env lean ' + library + '/Check.lean'])
+
+
+def about_document(library, has_argument):
+    """How to read a report and how to check its formal proofs."""
+    argument = ('Chapter 2 proves them, following the argument from the hypotheses to the '
+                'conclusion in order. ' if has_argument else
+                'Chapter 2 describes how the supporting results combine. ')
+    return (r"\chapter*{About this document}" + "\n"
+            + r"\addcontentsline{toc}{chapter}{About this document}" + "\n"
+            + "Chapter 1 states the assumptions and the main results. " + argument
+            + "Chapter 3 proves the supporting lemmas, each before its first use. "
+            "The proofs are written for readers with an undergraduate background in "
+            "analysis, linear algebra and probability; definitions are recalled where "
+            "they are first used, and each inequality is justified.\n\n"
+            + r"\section*{Mathematics and its Lean formalization}" + "\n"
+            "Every result is followed by a grey box headed \\emph{Lean}. The box reproduces "
+            "the exact statement of the corresponding Lean declaration, read from the "
+            "source file and line range named in the box, and then explains how the Lean "
+            "proof follows the mathematical argument: which hypothesis encodes which "
+            "assumption, and which formal step carries out which step of the proof. The "
+            "mathematics can be read without the boxes; the boxes connect each claim to "
+            "the statement that Lean has checked.\n\n"
+            + r"\section*{Checking the proofs}" + "\n"
+            "The results are verified by Lean 4 with the Mathlib library, at the versions "
+            "pinned in the repository \\url{https://github.com/odakyildiz/LangevinLean}. "
+            "After installing the Lean toolchain manager elan and cloning the repository, "
+            "run from its root:\n" + check_commands(library)
+            + "The second command checks every proof in the library. The third prints the "
+            "axioms on which the main theorems depend; they are only the standard axioms "
+            "of propositional extensionality, choice and quotient soundness.\n\n"
+            "Prepared by the LangevinLean Project with AI assistance, these notes form "
+            "part of an ongoing effort to formalize Langevin algorithms comprehensively. "
+            "This is draft work and may contain mistakes.\n\n")
+
+
+def full_proof_documents(configurations, notes, sources, catalog=None, parsed=None):
     """Build one mathematical proof document for each homepage entry."""
-    from build_site import latex_heading, tex_escape, latex_prose, E
+    from build_site import latex_heading, tex_escape, latex_prose, E, latex_step_box
 
     from report_links import ReportCatalog, step_label
-    if catalog is None:
+    if parsed is None:
         from build_site import declarations
         parsed = {path: declarations(text) for path, text in sources.items()
                   if path != 'IPLA/Standalone.lean'}
+    if catalog is None:
         catalog = ReportCatalog(_volume_plans(configurations, notes, sources), notes, sources, parsed)
     outputs = {}
     for library, plan in catalog.plans.items():
         prose = lambda value: catalog.latex_prose(value, current=library)
         document = [_preamble(plan["title"], latex_heading, plan)]
-        argument_summary = ('Chapter 2 gives their proofs. '
-                            if configurations[library].get('proof')
-                            else 'Chapter 2 describes the proof organization. ')
         document += [
-            r"\chapter*{About this document}" + "\n",
-            r"\addcontentsline{toc}{chapter}{About this document}" + "\n",
-            "Chapter 1 states the assumptions and convergence estimates. "
-            + argument_summary + "Chapter 3 proves the supporting "
-            "lemmas, in an order in which each lemma precedes its applications.\n\n"
-            "Prepared by the LangevinLean Project with AI assistance, these notes form "
-            "part of an ongoing effort to formalize Langevin algorithms comprehensively. "
-            "This is draft work and may contain mistakes.\n\n",
+            about_document(library, bool(configurations[library].get('proof'))),
             paper_references(library),
             _earlier_report_notice(plan, catalog),
             r"\tableofcontents" + "\n" + r"\clearpage" + "\n",
@@ -323,6 +357,9 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
             for result in config["results"]:
                 document.append(r"\section{" + latex_heading(result["title"]) + "}\n")
                 document.append(prose(result["body"]))
+                document.append(latex_step_box(result["file"], {
+                    "references": [(result["file"], result["name"])],
+                    "lean": result.get("lean", "")}, sources, parsed))
                 document.append("\n" + r"{\small\color{gray}Supporting proof: "
                                 + r"Section~\ref{" + _module_label(result["file"]) + r"}.\par}" + "\n")
             if config.get("proof"):
@@ -332,6 +369,10 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
                     level = "subsection" if extension else "section"
                     document.append("\\" + level + "{" + latex_heading(part["title"]) + "}\n")
                     document.append(prose(part["body"]))
+                    document.append(latex_step_box(library, {
+                        "references": [(reference["file"], reference["name"])
+                                       for reference in part.get("references", [])],
+                        "lean": part.get("lean") or part.get("note", "")}, sources, parsed))
             elif config.get("diagram"):
                 document.append((r"\section{Proof organization}" if extension
                                  else r"\chapter{Proof organization}") + "\n")
@@ -355,6 +396,7 @@ def full_proof_documents(configurations, notes, sources, catalog=None):
                 document.append(r"\subsection{" + latex_heading(step["title"]) + "}\n")
                 document.append(r"\label{" + step_label(path, index) + "}\n")
                 document.append(prose(step["body"]))
+                document.append(latex_step_box(path, step, sources, parsed))
                 document.append(catalog.tex_dependencies(path, index=index, current=library))
         document.append(catalog.bibliography(''.join(document)))
         document.append("\n" + r"\end{document}" + "\n")

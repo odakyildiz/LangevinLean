@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -16,155 +39,841 @@
 Draft mathematical exposition; these notes may contain mistakes.
 
 
-The functions \(\psi_0(t)=e^{-\gamma t}\), \(\psi_{k+1}(t)=\int_0^t\psi_k(s)ds\) are the responses obtained by integrating the friction equation. The Hessian method also uses \(\varphi_{k+1}(t)=\int_0^te^{-\gamma(t-s)}\psi_k(s)ds\). Integral definitions avoid division by friction, so zero friction is handled exactly. The module proves their calculus and constructs positive semidefinite Gram covariances; it does not yet construct the corresponding Gaussian random variables.
+For a real friction \(\gamma\) define functions \(\psi_k,\varphi_k:\mathbb R\to\mathbb R\), \(k\in\mathbb N\), by
+
+
+\[\psi_0(t)=e^{-\gamma t},\qquad\psi_{k+1}(t)=\int_0^t\psi_k(s)\,ds,\qquad\varphi_0=0,\qquad\varphi_{k+1}(t)=\int_0^te^{-\gamma(t-s)}\psi_k(s)\,ds .\]
+
+
+These are the coefficients of the exponential integrators of Dalalyan and Riou-Durand: the KLMC update (KLMC) uses \(\psi_0(h),\psi_1(h),\psi_2(h)\) and the noise covariance \(\int_0^h(\psi_0,\psi_1)^\top(\psi_0,\psi_1)\,dt\); the second-order update (KLMC2) adds \(\varphi_2(h),\varphi_3(h)\) and the four-kernel covariance \(\int_0^h(\psi_0,\psi_1,\varphi_2,\varphi_3)^\top(\psi_0,\psi_1,\varphi_2,\varphi_3)\,dt\). Defining \(\psi_k\) by integrals, rather than by closed formulas with powers of \(\gamma\) in the denominator, makes every statement valid for all real \(\gamma\), including \(\gamma=0\).
 
 
 
-These kernels give the exact time-integrated friction terms. Their primitive identities and covariance relations are the common algebraic input for both the first-order and Hessian-corrected numerical schemes.
+
+We prove: continuity and the derivative rules \(\psi_0'=-\gamma\psi_0\), \(\psi_{k+1}'=\psi_k\); the division-free friction identities \(\gamma\psi_1(t)=1-\psi_0(t)\) and \(\gamma\psi_2(t)=t-\psi_1(t)\) with the resulting closed formulas for \(\gamma\neq0\); a time-scaling identity; values at \(t=0\), nonnegativity, positivity and the bounds \(\psi_0\le1\), \(\psi_1(t)\le t\), \(\psi_2(t)\le t^2/2\), \(\psi_k(t)\le t^k/k!\) for \(\gamma,t\ge0\); the corresponding facts for \(\varphi_k\), including \(\varphi_{k+1}\le\psi_{k+1}\), \(\gamma\varphi_2(t)=\psi_1(t)-t\psi_0(t)\) and the exact balance \(\varphi_2+\gamma\varphi_3=\psi_2\), which gives \(\varphi_2\le\psi_2\) (the paper prints the reverse inequality \(\psi_2\le\varphi_2\)); and, for Gram matrices \(C_{ij}=\int_0^hk_i(t)k_j(t)\,dt\) of continuous kernels, the representation of the quadratic form as an integral of a square and hence positive semidefiniteness for \(h\ge0\). For the KLMC covariance we compute the entries \(C_{11}=\int_0^he^{-2\gamma t}dt\) and \(C_{12}=\psi_1(h)^2/2\) and the variance balance \(\psi_0(h)^2+2\gamma C_{11}=1\). Gaussian random variables with these covariances are constructed in later sections.
 
 
-\section{\texorpdfstring{Definition, continuity, and derivatives of the response coefficients}{Definition, continuity, and derivatives of the response coefficients}}
+\section{\texorpdfstring{Definition, continuity and derivatives of the response coefficients}{Definition, continuity and derivatives of the response coefficients}}
 
 
-The response at index zero is the exponential, and each successor response is the time integral of the preceding one. Continuity follows by induction: exponential continuity handles zero, while continuity of the primitive handles the successor. The fundamental theorem of calculus then proves \(\psi'_{k+1}(t)=\psi_k(t)\), using interval integrability and continuity of the integrand. The separate zero-index derivative is \(\psi'_0=-\gamma\psi_0\), obtained from the exponential chain rule; algebraic rewriting and simplification reconcile its scalar expression with the recursive notation.
+\textbf{Definition.} For \(\gamma\in\mathbb R\), define \(\psi_k:\mathbb R\to\mathbb R\) recursively by \(\psi_0(t)=e^{-\gamma t}\) and \(\psi_{k+1}(t)=\int_0^t\psi_k(s)\,ds\), where for \(t<0\) the integral is oriented, \(\int_0^t=-\int_t^0\). When the dependence on the friction matters we write \(\psi_k^{(\gamma)}\).
 
 
 
-The first three responses have a direct dynamical interpretation. The exponential propagates an initial velocity, its first primitive propagates velocity into position, and its second primitive propagates a constant force into position. The recursive notation also makes all higher-order time integrations unambiguous.
 
+\textbf{Claim.} For every \(\gamma\in\mathbb R\) and \(k\in\mathbb N\): (i) \(\psi_k\) is continuous on \(\mathbb R\); (ii) \(\psi_{k+1}\) is differentiable at every \(t\in\mathbb R\) with \(\psi_{k+1}'(t)=\psi_k(t)\); (iii) \(\psi_0\) is differentiable at every \(t\) with \(\psi_0'(t)=-\gamma\psi_0(t)\).
+
+
+
+
+\textbf{Proof.} (i) By induction on \(k\). The function \(\psi_0\) is the composition of the continuous maps \(t\mapsto-\gamma t\) and \(\exp\). If \(\psi_k\) is continuous, it is integrable on every bounded interval, and a primitive \(t\mapsto\int_0^t\psi_k\) of such a function is continuous (indeed \(|\int_t^{t'}\psi_k|\le|t'-t|\sup|\psi_k|\) on bounded sets); so \(\psi_{k+1}\) is continuous.
+
+
+
+
+(ii) By (i), \(\psi_k\) is continuous, and the fundamental theorem of calculus states that \(t\mapsto\int_0^t\psi_k(s)\,ds\) is differentiable at every point where the integrand is continuous, with derivative \(\psi_k(t)\).
+
+
+
+
+(iii) By the chain rule, the derivative of \(t\mapsto e^{-\gamma t}\) is \(-\gamma e^{-\gamma t}=-\gamma\psi_0(t)\). \(\square\)
+
+
+
+
+Thus \(\psi_0\) is the solution of the friction equation \(y'=-\gamma y\), \(y(0)=1\), and \(\psi_{k}\) is its \(k\)-fold primitive vanishing at \(0\). In the frozen-force integrator, \(\psi_0(h)\) multiplies the old velocity and \(\psi_1(h)\), \(\psi_2(h)\) multiply the frozen force in the velocity and position updates.
+
+\begin{leanbox}{Lean: \texttt{psi}, \texttt{psi\_\allowbreak{}zero}, \texttt{psi\_\allowbreak{}succ} and 3 more}
+\leansource{\texttt{psi} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 22–24}
+\begin{leancode}
+\leanline{0}{def\ psi\ (γ\ :\ ℝ)\ :\ ℕ\ →\ ℝ\ →\ ℝ}
+\leanline{2}{|\ 0,\ t\ =>\ Real.exp\ (-γ\ *\ t)}
+\leanline{2}{|\ k\ +\ 1,\ t\ =>\ ∫\ s\ in\ 0..t,\ psi\ γ\ k\ s}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 26–26}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ psi\_zero\ (γ\ t\ :\ ℝ)\ :\ psi\ γ\ 0\ t\ =\ Real.exp\ (-γ\ *\ t)}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 28–29}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ psi\_succ\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{psi\ γ\ (k\ +\ 1)\ t\ =\ ∫\ s\ in\ 0..t,\ psi\ γ\ k\ s}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}psi} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 31–34}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_psi\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ :\ Continuous\ (psi\ γ\ k)}
+\end{leancode}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}psi\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 37–42}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_psi\_succ\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{HasDerivAt\ (psi\ γ\ (k\ +\ 1))\ (psi\ γ\ k\ t)\ t}
+\end{leancode}
+\leansource{\texttt{hasDerivAt\_\allowbreak{}psi\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 45–47}
+\begin{leancode}
+\leanline{0}{theorem\ hasDerivAt\_psi\_zero\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{HasDerivAt\ (psi\ γ\ 0)\ (-γ\ *\ psi\ γ\ 0\ t)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{psi \ensuremath{\gamma} : \ensuremath{\mathbb N} \ensuremath{\to} \ensuremath{\mathbb R} \ensuremath{\to} \ensuremath{\mathbb R}} is defined by recursion on the natural number: \texttt{psi \ensuremath{\gamma} 0 t = Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma} * t)} and \texttt{psi \ensuremath{\gamma} (k + 1) t = \ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}t, psi \ensuremath{\gamma} k s}, where \texttt{\ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}t, F s} is the oriented interval integral. \texttt{psi\_\allowbreak{}zero} and \texttt{psi\_\allowbreak{}succ} restate the two defining equations; both are proved by \texttt{rfl} (they hold by definition) and are marked \texttt{@[simp]} for later simplification.
+
+
+
+\begin{enumerate}
+
+
+\item \texttt{continuous\_\allowbreak{}psi} is (i), by \texttt{induction k}: in the \texttt{zero} case \texttt{Real.\allowbreak{}continuous\_\allowbreak{}exp.\allowbreak{}comp (continuous\_\allowbreak{}const.\allowbreak{}mul continuous\_\allowbreak{}id)} is the continuity of \(e^{-\gamma t}\); in the \texttt{succ} case \texttt{interval\allowbreak{}Integral.\allowbreak{}continuous\_\allowbreak{}primitive} gives continuity of the primitive of the function \texttt{ih}, which is integrable on every interval (\texttt{ih.\allowbreak{}interval\allowbreak{}Integrable}).
+
+\item \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}succ} is (ii). \texttt{Has\allowbreak{}Deriv\allowbreak{}At F c t} means that \(F\) is differentiable at \(t\) with derivative \(c\). The proof is the fundamental theorem of calculus \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}right}, whose three side conditions (integrability, measurability near \(t\), continuity at \(t\)) are all derived from \texttt{continuous\_\allowbreak{}psi}.
+
+\item \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}zero} is (iii): \texttt{((has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}id t).\allowbreak{}const\_\allowbreak{}mul (-\allowbreak{}\ensuremath{\gamma})).\allowbreak{}exp} is the chain rule for \(\exp(-\gamma t)\), and \texttt{convert … using 1} with \texttt{simp [psi, mul\_\allowbreak{}comm]} matches the form \(-\gamma\psi_0(t)\).
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Friction identities and closed formulas}{Friction identities and closed formulas}}
 
 
-Differentiate \(1-\psi_0(t)\): its derivative is \(\gamma\psi_0(t)\), and its value at zero is zero. Integrating gives \(\gamma\psi_1(t)=1-\psi_0(t)\). Integrating this identity once more gives \(\gamma\psi_2(t)=t-\psi_1(t)\). First, the argument applies the integral form of the fundamental theorem, then commutes a scalar through the integral. The second proof integrates equality of two functions, distributes the integral over subtraction with its integrability proofs, and evaluates the constant integral. Only after establishing these division-free identities do the closed formula for \(\psi_1\) and the closed formula for \(\psi_2\) use \(\gamma\ne0\) to derive the familiar quotient formulas.
+\textbf{Claim.} For all \(\gamma,t\in\mathbb R\),
+
+
+\[\gamma\,\psi_1(t)=1-\psi_0(t),\qquad(1)\]
+\[\gamma\,\psi_2(t)=t-\psi_1(t).\qquad(2)\]
+
+
+If \(\gamma\neq0\), then
+
+
+\[\psi_1(t)=\frac{1-e^{-\gamma t}}{\gamma},\qquad\psi_2(t)=\frac{t-(1-e^{-\gamma t})/\gamma}{\gamma}.\qquad(3)\]
+
+
+\textbf{Proof.} (1) By the previous step, \(s\mapsto1-\psi_0(s)\) is differentiable with derivative \(\gamma\psi_0(s)\), which is continuous. By the fundamental theorem of calculus (the integral of a continuous derivative is the increment of the function),
+
+
+\[\gamma\,\psi_1(t)=\int_0^t\gamma\,\psi_0(s)\,ds=\bigl(1-\psi_0(t)\bigr)-\bigl(1-\psi_0(0)\bigr)=1-\psi_0(t),\]
+
+
+since \(\psi_0(0)=1\); the first equality takes the constant \(\gamma\) out of the integral.
 
 
 
-For positive friction the explicit expressions are \(\psi_1(t)=(1-e^{-\gamma t})/\gamma\) and \(\psi_2(t)=t/\gamma-(1-e^{-\gamma t})/\gamma^2\). The integral identities also hold at zero friction. The quotient expressions have removable singularities there.
 
+(2) Integrate (1), viewed as an identity between continuous functions of \(s\), over \([0,t]\): by linearity of the integral,
+
+
+\[\gamma\,\psi_2(t)=\int_0^t\gamma\,\psi_1(s)\,ds=\int_0^t\bigl(1-\psi_0(s)\bigr)\,ds=t-\psi_1(t).\]
+
+
+(3) If \(\gamma\neq0\), divide (1) by \(\gamma\) to obtain the first formula; insert it into (2) and divide by \(\gamma\) again to obtain the second. \(\square\)
+
+
+
+
+Identities (1) and (2) hold for every real \(\gamma\); at \(\gamma=0\) they reduce to \(0=0\) and carry no information, while the closed formulas (3) are meaningless. This is why the integral definition is used throughout. In the frozen-force step, (1) and (2) express that the velocity and position responses to a constant force combine consistently with the friction.
+
+\begin{leanbox}{Lean: \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one}, \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}two}, \texttt{psi\_\allowbreak{}one\_\allowbreak{}closed} and 1 more}
+\leansource{\texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 50–58}
+\begin{leancode}
+\leanline{0}{theorem\ friction\_mul\_psi\_one\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{γ\ *\ psi\ γ\ 1\ t\ =\ 1\ -\ psi\ γ\ 0\ t}
+\end{leancode}
+\leansource{\texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}two} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 61–71}
+\begin{leancode}
+\leanline{0}{theorem\ friction\_mul\_psi\_two\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{γ\ *\ psi\ γ\ 2\ t\ =\ t\ -\ psi\ γ\ 1\ t}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}one\_\allowbreak{}closed} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 73–76}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_one\_closed\ \{γ\ :\ ℝ\}\ (hγ\ :\ γ\ ≠\ 0)\ (t\ :\ ℝ)\ :}
+\leanline{4}{psi\ γ\ 1\ t\ =\ (1\ -\ Real.exp\ (-γ\ *\ t))\ /\ γ}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}two\_\allowbreak{}closed} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 78–82}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_two\_closed\ \{γ\ :\ ℝ\}\ (hγ\ :\ γ\ ≠\ 0)\ (t\ :\ ℝ)\ :}
+\leanline{4}{psi\ γ\ 2\ t\ =\ (t\ -\ (1\ -\ Real.exp\ (-γ\ *\ t))\ /\ γ)\ /\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one} is (1). \texttt{hd} states that \texttt{fun s => 1 -\allowbreak{} psi \ensuremath{\gamma} 0 s} has derivative \texttt{\ensuremath{\gamma} * psi \ensuremath{\gamma} 0 s} at every point of \texttt{u\allowbreak{}Icc 0 t} (the closed interval between \(0\) and \(t\)), from \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}const} and \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}zero}. \texttt{hi} is the fundamental theorem of calculus \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}sub\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}; \texttt{simpa} with \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul} and \texttt{psi\_\allowbreak{}succ} pulls out \(\gamma\), identifies \(\int_0^t\psi_0=\psi_1(t)\) and evaluates \(\psi_0(0)=1\).
+
+\item \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}two} is (2). \texttt{he} is (1) as an equality of functions (\texttt{funext}); \texttt{hi} integrates both sides over \([0,t]\) (\texttt{congr\allowbreak{}Arg}); the rewrites \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul} and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}sub} split the integrals, and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const} evaluates \(\int_0^t1=t\).
+
+\item \texttt{psi\_\allowbreak{}one\_\allowbreak{}closed} and \texttt{psi\_\allowbreak{}two\_\allowbreak{}closed} assume \texttt{h\ensuremath{\gamma} : \ensuremath{\gamma} ≠ 0}; they use \texttt{eq\_\allowbreak{}div\_\allowbreak{}iff h\ensuremath{\gamma}} (\(a=b/c\iff ac=b\) for \(c\neq0\)) to reduce to (1) and to (2), the latter after substituting the first closed formula.
+
+\end{enumerate}
+\end{leanbox}
 
 \section{\texorpdfstring{Scaling of the response coefficients under a change of time}{Scaling of the response coefficients under a change of time}}
 
 
-For \(c\ne0\), substitution \(r=cs\) gives \(\psi_{c\gamma,k}(t)=c^{-k}\psi_{\gamma,k}(ct)\). At index zero this is the scalar identity \(-(c\gamma)t=-\gamma(ct)\). At a successor, use the induction hypothesis inside the integral, pull out \(c^{-k}\), and change variables in the remaining primitive; one additional inverse factor appears. The argument uses the time-substitution rule, so oriented interval integrals also cover negative \(c\). Substituting \(t=h/c\) yields \(\psi_{c\gamma,k}(h/c)=\psi_{\gamma,k}(h)/c^k\). This is the exact coefficient identity used in mass and particle rescalings.
+\textbf{Claim.} Let \(c,\gamma,t,h\in\mathbb R\) with \(c\neq0\), and \(k\in\mathbb N\). Then
 
 
+\[\psi_k^{(c\gamma)}(t)=c^{-k}\,\psi_k^{(\gamma)}(ct),\qquad\psi_k^{(c\gamma)}(h/c)=\frac{\psi_k^{(\gamma)}(h)}{c^k}.\]
 
-Each additional time integral contributes one factor of the inverse clock speed. This explains the power \(c^{-k}\), while the exponential itself has index zero and no such factor. The identity must scale friction and time together; changing only one does not preserve the response.
 
+\textbf{Proof.} The first identity is proved by induction on \(k\), for all \(t\) simultaneously. For \(k=0\): \(\psi_0^{(c\gamma)}(t)=e^{-c\gamma t}=e^{-\gamma(ct)}=c^0\psi_0^{(\gamma)}(ct)\). Assume it for \(k\) and all \(t\). Then, by the induction hypothesis and the substitution \(r=cs\) (\(ds=c^{-1}dr\), valid for \(c\neq0\) with either sign, the limits becoming \(0\) and \(ct\)),
 
-\section{\texorpdfstring{Initial values, nonnegativity, and polynomial bounds}{Initial values, nonnegativity, and polynomial bounds}}
 
+\[\psi_{k+1}^{(c\gamma)}(t)=\int_0^tc^{-k}\psi_k^{(\gamma)}(cs)\,ds=c^{-k}\,c^{-1}\int_0^{ct}\psi_k^{(\gamma)}(r)\,dr=c^{-(k+1)}\psi_{k+1}^{(\gamma)}(ct).\]
 
-At time zero the exponential coefficient is one and every primitive is zero. For \(t\ge0\), induction and nonnegative integration show every coefficient is nonnegative, even without a sign restriction on \(\gamma\). If also \(\gamma\ge0\), then \(e^{-\gamma t}\le1\). Integrating once gives \(\psi_1(t)\le t\), and integrating again gives \(\psi_2(t)\le t^2/2\). Continuity gives interval integrability, so the pointwise inequalities can be integrated. These elementary estimates control the local time-step error without approximating the exponential by an unproved series.
 
+For the second identity apply the first with \(t=h/c\), use \(c\cdot(h/c)=h\) and \(c^{-k}=1/c^k\). \(\square\)
 
 
-When \(\gamma\ge0\), the bound \(0<e^{-\gamma s}\le1\) on positive times is the starting point. Integrating it repeatedly gives \(0\le\psi_k(t)\le t^k/k!\). These bounds retain the correct small-step power without introducing inverse-friction constants.
 
 
-\section{\texorpdfstring{Response coefficients at zero friction}{Response coefficients at zero friction}}
+Multiplying the friction by \(c\) and dividing time by \(c\) changes \(\psi_k\) only by the factor \(c^{-k}\). This is the coefficient form of the time change of Lemma 1 of the paper, which reduces a general inverse mass \(u\) to \(u=1\) by rescaling time and friction by \(\sqrt u\).
 
+\begin{leanbox}{Lean: \texttt{psi\_\allowbreak{}scale}, \texttt{psi\_\allowbreak{}scale\_\allowbreak{}div}}
+\leansource{\texttt{psi\_\allowbreak{}scale} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 86–96}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_scale\ (c\ γ\ t\ :\ ℝ)\ (hc\ :\ c\ ≠\ 0)\ (k\ :\ ℕ)\ :}
+\leanline{4}{psi\ (c\ *\ γ)\ k\ t\ =\ (c⁻¹)\ \textasciicircum{}\ k\ *\ psi\ γ\ k\ (c\ *\ t)}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}scale\_\allowbreak{}div} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 98–103}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_scale\_div\ (c\ γ\ h\ :\ ℝ)\ (hc\ :\ c\ ≠\ 0)\ (k\ :\ ℕ)\ :}
+\leanline{4}{psi\ (c\ *\ γ)\ k\ (h\ /\ c)\ =\ psi\ γ\ k\ h\ /\ c\ \textasciicircum{}\ k}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
 
-Putting \(\gamma=0\) in the integral definition yields \(\psi_0=1\), \(\psi_1=t\), and \(\psi_2=t^2/2\). The first two proofs simplify the exponential and constant integral. The third uses the integral of the first power. These are identities at zero, not limits inferred from quotient formulas, so no removable-singularity argument is needed. They later turn the kinetic exponential step into the constant-acceleration position–velocity update.
 
+\item \texttt{psi\_\allowbreak{}scale} has the hypothesis \texttt{hc : c ≠ 0} and is proved by \texttt{induction k generalizing t}, so that the induction hypothesis \texttt{ih} holds for every \(t\). In the \texttt{zero} case \texttt{simp only} and \texttt{ring} compare the exponents. In the \texttt{succ} case \texttt{simp\_\allowbreak{}rw [ih]} inserts the induction hypothesis under the integral, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul} extracts \(c^{-k}\), and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}mul\_\allowbreak{}left} is the substitution \(\int_a^bF(cx)\,dx=c^{-1}\int_{ca}^{cb}F(x)\,dx\) for \(c\neq0\); \texttt{ring} collects the powers.
 
+\item \texttt{psi\_\allowbreak{}scale\_\allowbreak{}div} applies \texttt{psi\_\allowbreak{}scale} at \(h/c\), proves \texttt{ht : c * (h /\allowbreak{} c) = h} by \texttt{field\_\allowbreak{}simp}, and rewrites \(c^{-k}\) as \(1/c^k\) with \texttt{inv\_\allowbreak{}pow} and \texttt{div\_\allowbreak{}eq\_\allowbreak{}mul\_\allowbreak{}inv}.
 
-At zero friction the recursion begins with the constant one. Repeated integration gives \(\psi_k(t)=t^k/k!\) exactly. Thus the frictionless limits of the numerical formulas follow by evaluating the definitions, rather than by an unproved interchange of limits and integrals.
+\end{enumerate}
+\end{leanbox}
 
+\section{\texorpdfstring{Initial values, sign and elementary bounds}{Initial values, sign and elementary bounds}}
 
-\section{\texorpdfstring{Definition and factorization of the Hessian response}{Definition and factorization of the Hessian response}}
 
+\textbf{Claim.} Let \(\gamma,t\in\mathbb R\) and \(k\in\mathbb N\).
+(i) \(\psi_0(0)=1\) and \(\psi_k(0)=0\) for \(k\ge1\).
+(ii) If \(t\ge0\), then \(\psi_k(t)\ge0\).
+(iii) If \(t>0\), then \(\psi_k(t)>0\).
+(iv) If \(\gamma\ge0\) and \(t\ge0\), then \(\psi_0(t)\le1\), \(\psi_1(t)\le t\) and \(\psi_2(t)\le t^2/2\).
 
-The damped response \(\varphi\) assigns zero to index zero as an explicit convention and defines positive indices by exponential convolution. The defining formulas distinguish these cases. Nonnegativity follows from positivity of the exponential and nonnegativity of \(\psi_k\). Factoring \(e^{-\gamma t}\) out of the integral gives \(\varphi_{k+1}(t)=e^{-\gamma t}\int_0^te^{\gamma s}\psi_k(s)ds\). One proves the integrands agree by the exponential addition identity and scalar arithmetic. This factorization expresses the convolution as a product of a continuous exponential and a continuous primitive, proving continuity even though the upper limit and the kernel both depend on time. Every \(\varphi_k(0)\) is zero.
 
 
 
-The extra exponential factor represents damping after the force perturbation has acted. The distinction between \(\psi\) and \(\varphi\) matters in a Hessian correction because one response comes from integrating a prior response, while the other comes from applying friction to that response.
+Statements (i)–(iii) hold for every real \(\gamma\).
 
 
-\section{\texorpdfstring{Comparison of the damped and undamped primitives}{Comparison of the damped and undamped primitives}}
 
 
-For \(\gamma,t\ge0\), the factor \(e^{-\gamma(t-s)}\le1\) on \(0\le s\le t\), and \(\psi_k(s)\ge0\). Thus \(\varphi_{k+1}(t)\le\int_0^t\psi_k(s)ds=\psi_{k+1}(t)\). Continuity on the finite interval gives integrability of both the convolution and the primitive, so integral comparison applies. At zero friction the exponential factor is one, so equality holds. In particular \(\varphi_2\le\psi_2\), correcting the opposite ordering printed in the supplied Proposition 3; both coefficients can still be bounded above by \(t^2/2\).
+\textbf{Proof.} (i) \(\psi_0(0)=e^0=1\), and for \(k\ge1\), \(\psi_k(0)\) is an integral over the degenerate interval \([0,0]\).
 
 
 
-These comparisons use nonnegative kernels. If \(0\le k_1\le k_2\) and the response being integrated is nonnegative, then integrating against either kernel preserves the order. The sign hypotheses must be retained: convolution does not preserve such inequalities for arbitrary signed integrands.
 
+(ii) Induction on \(k\), for all \(t\ge0\): \(\psi_0(t)=e^{-\gamma t}>0\); if \(\psi_k\ge0\) on \([0,\infty)\), then \(\psi_{k+1}(t)=\int_0^t\psi_k\ge0\) as the integral of a nonnegative function over \([0,t]\) with \(t\ge0\).
 
-\section{\texorpdfstring{The Gram quadratic form as an integral of a square}{The Gram quadratic form as an integral of a square}}
 
 
-Given continuous scalar kernels \(k_i\), define \(C_{ij}=\int_0^hk_i(t)k_j(t)dt\). Commutativity proves symmetry. For a finite coefficient vector \(z\), expand the quadratic form and interchange its finite sums with integrals:
 
-\[\sum_{i,j}z_iC_{ij}z_j=\int_0^h\left(\sum_i z_ik_i(t)\right)^2dt.\]
+(iii) Induction on \(k\), for all \(t>0\). The case \(k=0\) is the positivity of the exponential. If \(\psi_k(\tau)>0\) for all \(\tau>0\), then on \([0,t]\) the function \(\psi_k\) is continuous, nonnegative by (ii), and positive at the point \(t\). A continuous nonnegative function that is positive at one point of \([0,t]\), \(t>0\), is positive on a subinterval of positive length by continuity, so its integral over \([0,t]\) is positive. Hence \(\psi_{k+1}(t)>0\).
 
-Each product of kernels is continuous on the integration interval and hence integrable. Finite summation commutes with integration; distributing the two sums and scalar coefficients gives the displayed square. For \(h\ge0\) the integral is nonnegative. Combining symmetry with this quadratic-form bound proves positive semidefiniteness. This is a matrix property, not yet an identification with Itô covariance.
 
 
 
-The covariance matrix can therefore be recognized without computing its individual entries. For any coefficient vector, its quadratic form is \(a^2\) \(L^2[0,h]\) norm. Symmetry follows from commutativity of scalar multiplication, and nonnegativity follows from the square under the integral.
+(iv) Since \(\gamma\ge0\) and \(t\ge0\), \(-\gamma t\le0\) and \(\psi_0(t)=e^{-\gamma t}\le1\). Applying this at every \(s\in[0,t]\) and integrating (monotonicity of the integral over \([0,t]\), \(t\ge0\)) gives \(\psi_1(t)\le\int_0^t1\,ds=t\). Applying the last bound at every \(s\in[0,t]\) and integrating gives \(\psi_2(t)\le\int_0^ts\,ds=t^2/2\). \(\square\)
 
 
-\section{\texorpdfstring{Covariance matrices for the two schemes}{Covariance matrices for the two schemes}}
 
 
-The first integrator uses kernels \((\psi_0,\psi_1)\); the Hessian integrator uses \((\psi_0,\psi_1,\varphi_2,\varphi_3)\). Index these respective kernel families by \(\mathrm{Fin}(2)\) and \(\mathrm{Fin}(4)\). Their covariance definitions apply the same Gram construction. Each kernel is continuous by the preceding coefficient results. The Gram identity therefore proves positive semidefiniteness for both covariance matrices. In the stochastic algorithm the noise is additionally required to be centered jointly Gaussian with these covariances, independent across time and coordinates; those law properties are not encoded by matrix positivity alone.
+The bounds (iv) use \(\gamma\ge0\): for negative friction \(\psi_0\) grows exponentially. They are the estimates \(\psi_1(h)\le h\), \(\psi_2(h)\le h^2/2\) used to control the frozen-force terms of one integrator step.
 
+\begin{leanbox}{Lean: \texttt{psi\_\allowbreak{}at\_\allowbreak{}zero}, \texttt{psi\_\allowbreak{}nonneg}, \texttt{psi\_\allowbreak{}pos} and 3 more}
+\leansource{\texttt{psi\_\allowbreak{}at\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 105–107}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ psi\_at\_zero\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{psi\ γ\ k\ 0\ =\ if\ k\ =\ 0\ then\ 1\ else\ 0}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 109–113}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_nonneg\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ \{t\ :\ ℝ\}\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{0\ ≤\ psi\ γ\ k\ t}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}pos} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 115–122}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_pos\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ \{t\ :\ ℝ\}\ (ht\ :\ 0\ <\ t)\ :\ 0\ <\ psi\ γ\ k\ t}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}zero\_\allowbreak{}le\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 124–127}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_zero\_le\_one\ \{γ\ t\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{psi\ γ\ 0\ t\ ≤\ 1}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}one\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 129–135}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_one\_le\ \{γ\ t\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{psi\ γ\ 1\ t\ ≤\ t}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}two\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 137–143}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_two\_le\ \{γ\ t\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{psi\ γ\ 2\ t\ ≤\ t\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
 
 
-Each block corresponds to one deterministic Brownian response kernel. The first-order scheme needs two kernels, while the Hessian-corrected scheme needs four on the same interval. Their off-diagonal entries encode shared Brownian forcing and generally cannot be set to zero.
+\item \texttt{psi\_\allowbreak{}at\_\allowbreak{}zero} states \texttt{psi \ensuremath{\gamma} k 0 = if k = 0 then 1 else 0}; \texttt{cases k <;> simp [psi]} treats the two cases.
 
+\item \texttt{psi\_\allowbreak{}nonneg} (hypothesis \texttt{ht : 0 \ensuremath{\le} t}) is (ii), by \texttt{induction k generalizing t}: \texttt{(Real.\allowbreak{}exp\_\allowbreak{}pos \_\allowbreak{}).\allowbreak{}le}, then \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}nonneg} with the induction hypothesis applied at each \(s\in[0,t]\).
 
-\section{\texorpdfstring{Strict positivity at positive time}{Strict positivity at positive time}}
+\item \texttt{psi\_\allowbreak{}pos} (hypothesis \texttt{ht : 0 < t}) is (iii). The successor case applies \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}pos}, whose hypotheses are continuity on \([0,t]\) (\texttt{(continuous\_\allowbreak{}psi \ensuremath{\gamma} k).\allowbreak{}continuous\allowbreak{}On}), nonnegativity on \((0,t]\) (\texttt{psi\_\allowbreak{}nonneg}) and a point of \([0,t]\) where the integrand is positive, supplied as \texttt{\ensuremath{\langle}t, \ensuremath{\langle}ht.\allowbreak{}le, le\_\allowbreak{}rfl\ensuremath{\rangle}, ih ht\ensuremath{\rangle}}.
 
+\item \texttt{psi\_\allowbreak{}zero\_\allowbreak{}le\_\allowbreak{}one} uses \texttt{Real.\allowbreak{}exp\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}iff} (\(e^x\le1\iff x\le0\)) and \texttt{mul\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonpos\_\allowbreak{}of\_\allowbreak{}nonneg} for \(-\gamma t\le0\).
 
-For \(t>0\), every response coefficient \(\psi_k(t)\) is strictly positive. The exponential base case is positive at every time. At a successor, the integrand is continuous and nonnegative on the interval, and the induction hypothesis makes it strictly positive at the right endpoint. the positive-integral theorem then gives a positive primitive. The integrand is nonnegative throughout the interval and is positive at the specified endpoint. Continuity then gives positivity on a subinterval of positive length. No positive-friction hypothesis is needed because an exponential remains positive even when its exponent grows.
+\item \texttt{psi\_\allowbreak{}one\_\allowbreak{}le} and \texttt{psi\_\allowbreak{}two\_\allowbreak{}le} are \texttt{calc} chains: \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}mono\_\allowbreak{}on} integrates the pointwise bound over \([0,t]\), and the comparison integral is evaluated by \texttt{simp} (\(\int_0^t1=t\)) and by \texttt{integral\_\allowbreak{}pow} (\(\int_a^bx^n\,dx=(b^{n+1}-a^{n+1})/(n+1)\), here with \(n=1\), \(a=0\)).
 
+\end{enumerate}
+\end{leanbox}
 
+\section{\texorpdfstring{Zero friction and the Taylor bound}{Zero friction and the Taylor bound}}
 
-Strict positivity is stronger than a nonnegative upper bound: integrating a continuous positive response over an interval of positive length gives a positive number. This fact later excludes a degenerate covariance direction and permits division by the diagonal pivots in a Cholesky factorization.
 
+\textbf{Claim.} (i) For all \(t\in\mathbb R\) and \(k\in\mathbb N\), \(\psi_k^{(0)}(t)=t^k/k!\); in particular \(\psi_0^{(0)}=1\), \(\psi_1^{(0)}(t)=t\), \(\psi_2^{(0)}(t)=t^2/2\).
+(ii) If \(\gamma\ge0\) and \(t\ge0\), then \(\psi_k^{(\gamma)}(t)\le t^k/k!\) for every \(k\in\mathbb N\).
 
-\section{\texorpdfstring{Factorial bounds for higher response coefficients}{Factorial bounds for higher response coefficients}}
 
 
-At zero friction induction gives \(\psi_{0,k}(t)=t^k/k!\). Integrating the induction hypothesis uses \(\int_0^ts^kds=t^{k+1}/(k+1)\), and the factorial recursion \((k+1)!=(k+1)k!\) matches the denominator. For nonnegative friction and time, compare each \(\psi_{\gamma,k}\) with its zero-friction counterpart. The exponential comparison starts the induction, and integral monotonicity preserves it at each successor. Substitution of the exact zero-friction identity yields \(0\le\psi_{\gamma,k}(t)\le t^k/k!\). These estimates provide every higher-order coefficient bound without a power-series expansion.
 
+\textbf{Proof.} (i) Induction on \(k\) for all \(t\). For \(k=0\), \(\psi_0^{(0)}(t)=e^{0}=1=t^0/0!\). If \(\psi_k^{(0)}(s)=s^k/k!\) for all \(s\), then
 
 
-The induction integrates the preceding polynomial upper bound: \(\int_0^t s^k/k!\,ds=t^{k+1}/(k+1)!\). This simple observation is the source of the exact factorials in local-error estimates. Replacing all responses by \(t\) would lose the order of the scheme.
+\[\psi_{k+1}^{(0)}(t)=\int_0^t\frac{s^k}{k!}\,ds=\frac{t^{k+1}}{(k+1)\,k!}=\frac{t^{k+1}}{(k+1)!}.\]
 
 
-\section{\texorpdfstring{Division-free identities for the first Hessian responses}{Division-free identities for the first Hessian responses}}
+The three special cases are \(k=0,1,2\).
 
 
-The convolution of the two exponential responses has a constant integrand: \(e^{-\gamma(t-s)}\psi_0(s)=e^{-\gamma t}\). Hence \(\varphi_1(t)=t\psi_0(t)\). Reversing the integration variable also gives \(\int_0^te^{-\gamma(t-s)}ds=\psi_1(t)\). To compute the next balance, multiply the \(\varphi_2\) integrand by \(\gamma\), substitute \(\gamma\psi_1(s)=1-\psi_0(s)\), and simplify the exponential product. Integrating yields \(\gamma\varphi_2(t)=\psi_1(t)-t\psi_0(t)\). One proves equality of the integrand functions, commutes constants through integrals, and evaluates the constant integral. These identities remain valid at zero friction.
 
 
+(ii) We show by induction on \(k\) that \(\psi_k^{(\gamma)}(t)\le\psi_k^{(0)}(t)\) for all \(t\ge0\). For \(k=0\) this is \(e^{-\gamma t}\le1\), proved in the previous step. If it holds for \(k\), then for \(t\ge0\) the inequality holds at every \(s\in[0,t]\), and integrating over \([0,t]\) gives it for \(k+1\). Combining with (i) yields (ii). \(\square\)
 
-The division-free expression is particularly useful inside integrals. It can be substituted before simplifying friction factors, so a cancellation remains valid uniformly as friction tends to zero. This avoids introducing an artificial positive-friction hypothesis into identities that hold for every real friction.
 
 
-\section{\texorpdfstring{Covariance entries and the velocity variance identity}{Covariance entries and the velocity variance identity}}
 
+Friction can only decrease the positive-time responses; the undamped responses are the Taylor coefficients \(t^k/k!\) of the free motion. Statement (ii) extends the bounds \(\psi_1(t)\le t\), \(\psi_2(t)\le t^2/2\) of the previous step to every order.
 
-The velocity variance coefficient is \(C_{00}=\int_0^he^{-2\gamma t}dt=\psi_{2\gamma,1}(h)\), proved by combining exponentials. Since \((\psi_1^2/2)'=\psi_0\psi_1\) and \(\psi_1(0)=0\), the fundamental theorem gives \(C_{01}=\psi_1(h)^2/2\). Finally the friction identity at rate \(2\gamma\) yields \(2\gamma C_{00}=1-e^{-2\gamma h}\). Therefore \(\psi_0(h)^2+2\gamma C_{00}=1\), the exact stationary velocity variance balance. One proves the exponential square identity and reduces the final expression with expansion of the scalar polynomials. An independent unit-variance input velocity and the specified Gaussian noise consequently retain unit variance after the linear thermostat part.
+\begin{leanbox}{Lean: \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}zero}, \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}one}, \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}two} and 2 more}
+\leansource{\texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 145–145}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ psi\_friction\_zero\_zero\ (t\ :\ ℝ)\ :\ psi\ 0\ 0\ t\ =\ 1}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 147–147}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ psi\_friction\_zero\_one\ (t\ :\ ℝ)\ :\ psi\ 0\ 1\ t\ =\ t}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}two} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 149–150}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ psi\_friction\_zero\_two\ (t\ :\ ℝ)\ :\ psi\ 0\ 2\ t\ =\ t\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 153–163}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_friction\_zero\ (t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{psi\ 0\ k\ t\ =\ t\ \textasciicircum{}\ k\ /\ (k.factorial\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{psi\_\allowbreak{}le\_\allowbreak{}taylor} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 166–177}
+\begin{leancode}
+\leanline{0}{theorem\ psi\_le\_taylor\ \{γ\ t\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (ht\ :\ 0\ ≤\ t)\ (k\ :\ ℕ)\ :}
+\leanline{4}{psi\ γ\ k\ t\ ≤\ t\ \textasciicircum{}\ k\ /\ (k.factorial\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
 
 
+\item \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}zero}, \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}one} and \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero\_\allowbreak{}two} are proved by \texttt{simp} from the definition, the last one with \texttt{integral\_\allowbreak{}pow}.
 
-The fluctuation–dissipation relation is a covariance identity, not an independence statement. An initial Gaussian velocity damped by \(e^{-\gamma h}\), plus an independent response of the stated variance, has exactly its original covariance. This covariance identity gives invariance of the Gaussian velocity under the thermostat when the two inputs are independent.
+\item \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero} states \texttt{psi 0 k t = t \textasciicircum{} k /\allowbreak{} (k.\allowbreak{}factorial : \ensuremath{\mathbb R})}, with \texttt{k.\allowbreak{}factorial} the factorial \(k!\) cast to a real number. The \texttt{succ} case inserts the induction hypothesis under the integral (\texttt{simp\_\allowbreak{}rw [ih]}), takes the constant \(1/k!\) out (\texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}div}), evaluates \(\int_0^ts^k\,ds\) with \texttt{integral\_\allowbreak{}pow}, and rewrites \((k+1)!=(k+1)\,k!\) with \texttt{Nat.\allowbreak{}factorial\_\allowbreak{}succ}.
 
+\item \texttt{psi\_\allowbreak{}le\_\allowbreak{}taylor} (hypotheses \texttt{h\ensuremath{\gamma} : 0 \ensuremath{\le} \ensuremath{\gamma}}, \texttt{ht : 0 \ensuremath{\le} t}) first proves \texttt{hm}, the comparison \(\psi_k^{(\gamma)}(t)\le\psi_k^{(0)}(t)\) for all \(t\ge0\), by induction: the base case is \texttt{psi\_\allowbreak{}zero\_\allowbreak{}le\_\allowbreak{}one} and the step is \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}mono\_\allowbreak{}on}. It then rewrites with \texttt{psi\_\allowbreak{}friction\_\allowbreak{}zero}.
 
-\section{\texorpdfstring{An integrated relation between second-order coefficients}{An integrated relation between second-order coefficients}}
+\end{enumerate}
+\end{leanbox}
 
+\section{\texorpdfstring{The Hessian response coefficients}{The Hessian response coefficients}}
 
-The derivative of \((t-s)\psi_1(s)+\psi_2(s)\), with \(t\) fixed, is \((t-s)\psi_0(s)\). Integrating and reversing the variable yields \(\int_0^te^{-\gamma(t-s)}s\,ds=\psi_2(t)\). Next put the defining integrals for \(\varphi_2\) and \(\varphi_3\) under one integral. The identity \(\psi_1(s)+\gamma\psi_2(s)=s\) simplifies their integrand, giving \(\varphi_2(t)+\gamma\varphi_3(t)=\psi_2(t)\). The argument explicitly supplies interval-integrability before combining the integrals. A linear combination of the coefficient identities gives equality of the scalar integrands. For nonnegative friction and time, \(\gamma\varphi_3(t)\ge0\), hence \(\varphi_2(t)\le\psi_2(t)\). This provides a direct corrected coefficient relation, rather than the reversed intermediate inequality printed in the supplied manuscript.
 
+\textbf{Definition.} For \(\gamma\in\mathbb R\) put \(\varphi_0=0\) and \(\varphi_{k+1}(t)=\int_0^te^{-\gamma(t-s)}\psi_k(s)\,ds\), the convolution of \(\psi_0\) with \(\psi_k\) on \([0,t]\).
 
 
-The integrated balance allows terms arising from different correction kernels to be combined before norms are taken. That order is important: cancellation at the level of the vector identity can be destroyed by bounding the terms separately. The later stochastic correction estimate relies on this exact relation.
 
+
+\textbf{Claim.} For all \(\gamma,t\in\mathbb R\) and \(k\in\mathbb N\):
+(i) \(\varphi_{k+1}(t)=e^{-\gamma t}\int_0^te^{\gamma s}\psi_k(s)\,ds\);
+(ii) \(\varphi_k\) is continuous;
+(iii) \(\varphi_k(0)=0\);
+(iv) if \(t\ge0\), then \(\varphi_k(t)\ge0\).
+
+
+
+
+\textbf{Proof.} (i) For each \(s\), \(e^{-\gamma(t-s)}=e^{-\gamma t}e^{\gamma s}\) by the addition formula of the exponential; the constant factor \(e^{-\gamma t}\) is taken out of the integral.
+
+
+
+
+(ii) \(\varphi_0=0\) is continuous. For \(k+1\), by (i), \(\varphi_{k+1}\) is the product of the continuous function \(e^{-\gamma t}=\psi_0(t)\) and the primitive \(t\mapsto\int_0^te^{\gamma s}\psi_k(s)\,ds\) of a continuous function, which is continuous.
+
+
+
+
+(iii) \(\varphi_0(0)=0\), and \(\varphi_{k+1}(0)\) is an integral over a degenerate interval.
+
+
+
+
+(iv) For \(k=0\) it is trivial. For \(k+1\) and \(s\in[0,t]\), the integrand \(e^{-\gamma(t-s)}\psi_k(s)\) is the product of a positive number and a number that is nonnegative by the previous steps (\(s\ge0\)); the integral over \([0,t]\), \(t\ge0\), of a nonnegative function is nonnegative. \(\square\)
+
+
+
+
+In the second-order scheme, \(\varphi_2(h)\) and \(\varphi_3(h)\) multiply the Hessian correction \(\nabla^2f(\vartheta_k)v_k\) in the velocity and position updates. The factorization (i) separates the dependence on the upper limit of integration and is the form used to prove continuity.
+
+\begin{leanbox}{Lean: \texttt{phi}, \texttt{phi\_\allowbreak{}zero}, \texttt{phi\_\allowbreak{}succ} and 4 more}
+\leansource{\texttt{phi} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 180–182}
+\begin{leancode}
+\leanline{0}{def\ phi\ (γ\ :\ ℝ)\ :\ ℕ\ →\ ℝ\ →\ ℝ}
+\leanline{2}{|\ 0,\ \_\ =>\ 0}
+\leanline{2}{|\ k\ +\ 1,\ t\ =>\ ∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ *\ psi\ γ\ k\ s}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 184–184}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ phi\_zero\ (γ\ t\ :\ ℝ)\ :\ phi\ γ\ 0\ t\ =\ 0}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}succ} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 186–187}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ phi\_succ\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{phi\ γ\ (k\ +\ 1)\ t\ =\ ∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ *\ psi\ γ\ k\ s}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}nonneg} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 189–194}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_nonneg\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ \{t\ :\ ℝ\}\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{0\ ≤\ phi\ γ\ k\ t}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}factor} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 196–205}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_factor\ (γ\ t\ :\ ℝ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{phi\ γ\ (k\ +\ 1)\ t\ =\ Real.exp\ (-γ\ *\ t)\ *}
+\leanline{6}{∫\ s\ in\ 0..t,\ Real.exp\ (γ\ *\ s)\ *\ psi\ γ\ k\ s}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}phi} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 207–216}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_phi\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ :\ Continuous\ (phi\ γ\ k)}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}at\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 218–219}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ phi\_at\_zero\ (γ\ :\ ℝ)\ (k\ :\ ℕ)\ :\ phi\ γ\ k\ 0\ =\ 0}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{phi \ensuremath{\gamma} : \ensuremath{\mathbb N} \ensuremath{\to} \ensuremath{\mathbb R} \ensuremath{\to} \ensuremath{\mathbb R}} is defined by cases: \texttt{phi \ensuremath{\gamma} 0 = 0} and \texttt{phi \ensuremath{\gamma} (k + 1) t = \ensuremath{\int} s in 0.\allowbreak{}.\allowbreak{}t, Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma} * (t -\allowbreak{} s)) * psi \ensuremath{\gamma} k s}; \texttt{phi\_\allowbreak{}zero} and \texttt{phi\_\allowbreak{}succ} restate them (\texttt{rfl}).
+
+\item \texttt{phi\_\allowbreak{}factor} is (i): after \texttt{← interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr} reduces it to the pointwise identity, proved with \texttt{← Real.\allowbreak{}exp\_\allowbreak{}add} and \texttt{ring}.
+
+\item \texttt{continuous\_\allowbreak{}phi} is (ii): in the successor case \texttt{hc} is the continuity of the factorized expression (product of \texttt{continuous\_\allowbreak{}psi \ensuremath{\gamma} 0} and \texttt{interval\allowbreak{}Integral.\allowbreak{}continuous\_\allowbreak{}primitive}), transferred to \texttt{phi \ensuremath{\gamma} (k + 1)} by \texttt{hc.\allowbreak{}congr} using \texttt{phi\_\allowbreak{}factor}.
+
+\item \texttt{phi\_\allowbreak{}at\_\allowbreak{}zero} is (iii), by \texttt{cases k <;> simp [phi]}; \texttt{phi\_\allowbreak{}nonneg} is (iv), by \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}nonneg} with \texttt{mul\_\allowbreak{}nonneg}, \texttt{Real.\allowbreak{}exp\_\allowbreak{}pos} and \texttt{psi\_\allowbreak{}nonneg}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Comparison of the convolved and plain primitives}{Comparison of the convolved and plain primitives}}
+
+
+\textbf{Claim.} (i) If \(\gamma\ge0\) and \(t\ge0\), then \(\varphi_{k+1}(t)\le\psi_{k+1}(t)\) for every \(k\in\mathbb N\).
+(ii) At zero friction, \(\varphi_{k+1}^{(0)}(t)=\psi_{k+1}^{(0)}(t)\) for all \(k\) and \(t\).
+
+
+
+
+\textbf{Proof.} (i) Let \(s\in[0,t]\). Then \(t-s\ge0\) and \(\gamma\ge0\), so \(e^{-\gamma(t-s)}=\psi_0(t-s)\le1\) by the bound of the fourth step, and \(\psi_k(s)\ge0\) because \(s\ge0\). For \(0\le b\) and \(a\le1\) we have \(ab\le b\); hence \(e^{-\gamma(t-s)}\psi_k(s)\le\psi_k(s)\). Integrating over \([0,t]\) (monotonicity of the integral, \(t\ge0\)) gives \(\varphi_{k+1}(t)\le\int_0^t\psi_k=\psi_{k+1}(t)\).
+
+
+
+
+(ii) For \(\gamma=0\) the weight \(e^{-\gamma(t-s)}\) equals \(1\), so the two integrals coincide. \(\square\)
+
+
+
+
+This is the general form of the coefficient comparison \(\varphi_{k+1}\le\psi_{k+1}\) recorded in the reference audit; for \(k=1\) it gives \(\varphi_2\le\psi_2\), the reverse of the intermediate inequality \(\psi_2\le\varphi_2\) printed in Step 2 of the proof of Proposition 3 of the paper.
+
+\begin{leanbox}{Lean: \texttt{phi\_\allowbreak{}le\_\allowbreak{}psi}, \texttt{phi\_\allowbreak{}friction\_\allowbreak{}zero}}
+\leansource{\texttt{phi\_\allowbreak{}le\_\allowbreak{}psi} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 221–229}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_le\_psi\ \{γ\ t\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (ht\ :\ 0\ ≤\ t)\ (k\ :\ ℕ)\ :}
+\leanline{4}{phi\ γ\ (k\ +\ 1)\ t\ ≤\ psi\ γ\ (k\ +\ 1)\ t}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}friction\_\allowbreak{}zero} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 231–232}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ phi\_friction\_zero\ (k\ :\ ℕ)\ (t\ :\ ℝ)\ :}
+\leanline{4}{phi\ 0\ (k\ +\ 1)\ t\ =\ psi\ 0\ (k\ +\ 1)\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{phi\_\allowbreak{}le\_\allowbreak{}psi} applies \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}mono\_\allowbreak{}on} after supplying integrability of both integrands from their continuity. The pointwise inequality is \texttt{mul\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}le\_\allowbreak{}one\_\allowbreak{}left} (\(0\le b\), \(a\le1\Rightarrow ab\le b\)) with \texttt{psi\_\allowbreak{}nonneg} for \(b=\psi_k(s)\) and \texttt{psi\_\allowbreak{}zero\_\allowbreak{}le\_\allowbreak{}one h\ensuremath{\gamma} (sub\_\allowbreak{}nonneg.\allowbreak{}mpr hs.\allowbreak{}2)} for \(a=e^{-\gamma(t-s)}\), where \texttt{sub\_\allowbreak{}nonneg.\allowbreak{}mpr hs.\allowbreak{}2} turns \(s\le t\) into \(0\le t-s\).
+
+\item \texttt{phi\_\allowbreak{}friction\_\allowbreak{}zero} is proved by \texttt{simp [phi, psi\_\allowbreak{}succ]}, which evaluates the weight \(\exp(-0\cdot(t-s))=1\).
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Division-free identities for the first convolved coefficients}{Division-free identities for the first convolved coefficients}}
+
+
+\textbf{Claim.} For all \(\gamma,t\in\mathbb R\):
+
+
+\[\varphi_1(t)=t\,\psi_0(t),\qquad\int_0^te^{-\gamma(t-s)}\,ds=\psi_1(t),\qquad\gamma\,\varphi_2(t)=\psi_1(t)-t\,\psi_0(t).\]
+
+
+\textbf{Proof.} First identity: for every \(s\), \(e^{-\gamma(t-s)}\psi_0(s)=e^{-\gamma(t-s)-\gamma s}=e^{-\gamma t}=\psi_0(t)\), so the integrand is constant and \(\varphi_1(t)=\int_0^t\psi_0(t)\,ds=t\,\psi_0(t)\).
+
+
+
+
+Second identity: the substitution \(r=t-s\) maps \([0,t]\) onto itself with reversed orientation, so \(\int_0^t\psi_0(t-s)\,ds=\int_0^t\psi_0(r)\,dr=\psi_1(t)\).
+
+
+
+
+Third identity: for every \(s\), by the friction identity \(\gamma\psi_1(s)=1-\psi_0(s)\) and the computation in the first identity,
+
+
+\[\gamma\,e^{-\gamma(t-s)}\psi_1(s)=e^{-\gamma(t-s)}\bigl(1-\psi_0(s)\bigr)=e^{-\gamma(t-s)}-\psi_0(t).\]
+
+
+Integrating over \([0,t]\) and using the second identity, \(\gamma\varphi_2(t)=\psi_1(t)-t\,\psi_0(t)\). \(\square\)
+
+
+
+
+The weight \(e^{-\gamma(t-s)}\) is the velocity response to an impulse at time \(s\), so \(\varphi_{k+1}\) is the velocity response to a forcing \(\psi_k\). The identities hold for all real \(\gamma\), without division by the friction.
+
+\begin{leanbox}{Lean: \texttt{phi\_\allowbreak{}one}, \texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential}, \texttt{friction\_\allowbreak{}mul\_\allowbreak{}phi\_\allowbreak{}two}}
+\leansource{\texttt{phi\_\allowbreak{}one} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 234–243}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_one\ (γ\ t\ :\ ℝ)\ :\ phi\ γ\ 1\ t\ =\ t\ *\ psi\ γ\ 0\ t}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 245–248}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_reverse\_exponential\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{(∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s)))\ =\ psi\ γ\ 1\ t}
+\end{leancode}
+\leansource{\texttt{friction\_\allowbreak{}mul\_\allowbreak{}phi\_\allowbreak{}two} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 250–269}
+\begin{leancode}
+\leanline{0}{theorem\ friction\_mul\_phi\_two\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{γ\ *\ phi\ γ\ 2\ t\ =\ psi\ γ\ 1\ t\ -\ t\ *\ psi\ γ\ 0\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{phi\_\allowbreak{}one}: \texttt{he} shows by \texttt{funext}, \texttt{← Real.\allowbreak{}exp\_\allowbreak{}add} and \texttt{ring} that the integrand is the constant function \(\psi_0(t)\); \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const} then gives \((t-0)\cdot\psi_0(t)\).
+
+\item \texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential} is the substitution \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}sub\_\allowbreak{}left}, \(\int_a^bF(d-x)\,dx=\int_{d-b}^{d-a}F(x)\,dx\), applied to \(F=\psi_0\) with \(d=t\).
+
+\item \texttt{friction\_\allowbreak{}mul\_\allowbreak{}phi\_\allowbreak{}two}: \texttt{he} is the displayed pointwise identity, proved by a \texttt{calc} using \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one} and \texttt{← Real.\allowbreak{}exp\_\allowbreak{}add}; \texttt{hi} integrates it, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}sub} splits the integral, and \texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential} and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const} evaluate the two pieces.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The balance between the second-order coefficients}{The balance between the second-order coefficients}}
+
+
+\textbf{Claim.} For all \(\gamma,t\in\mathbb R\),
+
+
+\[\int_0^te^{-\gamma(t-s)}\,s\,ds=\psi_2(t),\qquad(1)\]
+\[\varphi_2(t)+\gamma\,\varphi_3(t)=\psi_2(t).\qquad(2)\]
+
+
+Consequently, if \(\gamma\ge0\) and \(t\ge0\), then \(\varphi_2(t)\le\psi_2(t)\).
+
+
+
+
+\textbf{Proof.} (1) Let \(G(s)=(t-s)\psi_1(s)+\psi_2(s)\). By the product rule and \(\psi_1'=\psi_0\), \(\psi_2'=\psi_1\),
+
+
+\[G'(s)=-\psi_1(s)+(t-s)\psi_0(s)+\psi_1(s)=(t-s)\,\psi_0(s).\]
+
+
+The derivative is continuous, so by the fundamental theorem of calculus and \(\psi_1(0)=\psi_2(0)=0\),
+
+
+\[\int_0^t(t-s)\psi_0(s)\,ds=G(t)-G(0)=\psi_2(t)-\bigl(t\,\psi_1(0)+\psi_2(0)\bigr)=\psi_2(t).\]
+
+
+The substitution \(s\mapsto t-s\) turns the left-hand side into \(\int_0^ts\,\psi_0(t-s)\,ds=\int_0^te^{-\gamma(t-s)}s\,ds\), which proves (1).
+
+
+
+
+(2) By the definitions and linearity of the integral, \(\varphi_2(t)+\gamma\varphi_3(t)=\int_0^te^{-\gamma(t-s)}\bigl(\psi_1(s)+\gamma\psi_2(s)\bigr)\,ds\). By the friction identity \(\gamma\psi_2(s)=s-\psi_1(s)\), the bracket equals \(s\), and (1) gives (2).
+
+
+
+
+Finally, if \(\gamma\ge0\) and \(t\ge0\), then \(\gamma\varphi_3(t)\ge0\) by nonnegativity of \(\varphi_3\), and (2) gives \(\varphi_2(t)\le\psi_2(t)\). \(\square\)
+
+
+
+
+The paper computes \(\varphi_2+\gamma\varphi_3\) in Step 1 of the proof of Proposition 3 and bounds it by \(t^2/2\); identity (2) shows that it equals \(\psi_2\) exactly. The chain of inequalities in Step 2 of that proof, \(0\le\psi_2\le\varphi_2\le\varphi_2+\gamma\varphi_3\le t^2/2\), has its second inequality reversed; the correct chain is \(0\le\varphi_2\le\varphi_2+\gamma\varphi_3=\psi_2\le t^2/2\), which serves the same purpose in the paper's spectral-norm bound.
+
+\begin{leanbox}{Lean: \texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential\_\allowbreak{}mul}, \texttt{phi\_\allowbreak{}two\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}phi\_\allowbreak{}three}, \texttt{phi\_\allowbreak{}two\_\allowbreak{}le\_\allowbreak{}psi\_\allowbreak{}two}}
+\leansource{\texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential\_\allowbreak{}mul} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 271–291}
+\begin{leancode}
+\leanline{0}{theorem\ integral\_reverse\_exponential\_mul\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{(∫\ s\ in\ 0..t,\ Real.exp\ (-γ\ *\ (t\ -\ s))\ *\ s)\ =\ psi\ γ\ 2\ t}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}two\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}phi\_\allowbreak{}three} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 295–311}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_two\_add\_friction\_phi\_three\ (γ\ t\ :\ ℝ)\ :}
+\leanline{4}{phi\ γ\ 2\ t\ +\ γ\ *\ phi\ γ\ 3\ t\ =\ psi\ γ\ 2\ t}
+\end{leancode}
+\leansource{\texttt{phi\_\allowbreak{}two\_\allowbreak{}le\_\allowbreak{}psi\_\allowbreak{}two} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 313–317}
+\begin{leancode}
+\leanline{0}{theorem\ phi\_two\_le\_psi\_two\ \{γ\ t\ :\ ℝ\}\ (hγ\ :\ 0\ ≤\ γ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{phi\ γ\ 2\ t\ ≤\ psi\ γ\ 2\ t}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{integral\_\allowbreak{}reverse\_\allowbreak{}exponential\_\allowbreak{}mul} is (1). \texttt{hd} is the derivative of \(G\), assembled from \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}const}, \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}id} and \texttt{has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}succ} by the product and sum rules and simplified with \texttt{ring}; \texttt{hi} is the fundamental theorem of calculus \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}sub\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}; \texttt{hr} is the substitution \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}comp\_\allowbreak{}sub\_\allowbreak{}left}, rewritten into \texttt{hi}; the final \texttt{simpa} evaluates \(G(t)\) and \(G(0)\) using \texttt{psi\_\allowbreak{}at\_\allowbreak{}zero}.
+
+\item \texttt{phi\_\allowbreak{}two\_\allowbreak{}add\_\allowbreak{}friction\_\allowbreak{}phi\_\allowbreak{}three} is (2): \texttt{h1} and \texttt{h2} give interval integrability, \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}add} merges the two integrals, and the \texttt{calc} block rewrites the integrand pointwise via \texttt{linear\_\allowbreak{}combination Real.\allowbreak{}exp (-\allowbreak{}\ensuremath{\gamma} * (t -\allowbreak{} s)) * hi}, where \texttt{hi} is \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}two} at \(s\); this is the substitution \(\psi_1(s)+\gamma\psi_2(s)=s\) multiplied by the weight. The last line is (1).
+
+\item \texttt{phi\_\allowbreak{}two\_\allowbreak{}le\_\allowbreak{}psi\_\allowbreak{}two} combines (2) with \texttt{hp}, the nonnegativity of \(\gamma\varphi_3(t)\) (\texttt{mul\_\allowbreak{}nonneg h\ensuremath{\gamma} (phi\_\allowbreak{}nonneg \ensuremath{\gamma} 3 ht)}), by \texttt{linarith}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Gram matrices of continuous kernels}{Gram matrices of continuous kernels}}
+
+
+\textbf{Definition.} Let \(\iota\) be an index set, \((k_i)_{i\in\iota}\) real functions on \(\mathbb R\) and \(h\in\mathbb R\). The Gram matrix of the kernels on \([0,h]\) is \(C_{ij}=\int_0^hk_i(t)k_j(t)\,dt\). If \(W\) is a standard Brownian motion and the \(k_i\) are continuous, the Wiener integrals \(\int_0^hk_i(t)\,dW_t\) are jointly Gaussian with covariance matrix \(C\) by the Itô isometry; this is the origin of the noise covariances of the paper.
+
+
+
+
+\textbf{Claim.} (i) \(C\) is symmetric. (ii) If \(\iota\) is finite and every \(k_i\) is continuous, then for every \(z\in\mathbb R^\iota\)
+
+
+\[\sum_{i}\sum_{j}z_iC_{ij}z_j=\int_0^h\Bigl(\sum_iz_ik_i(t)\Bigr)^2dt .\]
+
+
+(iii) If in addition \(h\ge0\), then \(C\) is positive semidefinite: \(\sum_{i,j}z_iC_{ij}z_j\ge0\) for all \(z\).
+
+
+
+
+\textbf{Proof.} (i) \(k_i(t)k_j(t)=k_j(t)k_i(t)\) for every \(t\), so \(C_{ij}=C_{ji}\).
+
+
+
+
+(ii) Each function \(t\mapsto z_ik_i(t)k_j(t)z_j\) is continuous, hence integrable on \([0,h]\). By linearity of the integral (finitely many terms),
+
+
+\[\sum_{i,j}z_iC_{ij}z_j=\int_0^h\sum_{i,j}z_ik_i(t)k_j(t)z_j\,dt=\int_0^h\Bigl(\sum_iz_ik_i(t)\Bigr)\Bigl(\sum_jz_jk_j(t)\Bigr)dt,\]
+
+
+and the last integrand is the square in the claim.
+
+
+
+
+(iii) By (ii) the quadratic form is the integral over \([0,h]\), \(h\ge0\), of a nonnegative function, hence nonnegative; together with (i) this is positive semidefiniteness. \(\square\)
+
+
+
+
+The continuity hypothesis is used only to justify the integrability of the products and the exchange of the finite sum with the integral. Positive semidefiniteness guarantees that a centred Gaussian vector with covariance \(C\) exists.
+
+\begin{leanbox}{Lean: \texttt{gramCovariance}, \texttt{gramCovariance\_\allowbreak{}symmetric}, \texttt{gramCovariance\_\allowbreak{}quadratic} and 1 more}
+\leansource{\texttt{gramCovariance} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 320–321}
+\begin{leancode}
+\leanline{0}{def\ gramCovariance\ \{ι\ :\ Type*\}\ (kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (h\ :\ ℝ)\ :\ Matrix\ ι\ ι\ ℝ\ :=}
+\leanline{2}{fun\ i\ j\ =>\ ∫\ t\ in\ 0..h,\ kernels\ i\ t\ *\ kernels\ j\ t}
+\end{leancode}
+\leansource{\texttt{gramCovariance\_\allowbreak{}symmetric} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 323–326}
+\begin{leancode}
+\leanline{0}{theorem\ gramCovariance\_symmetric\ \{ι\ :\ Type*\}\ (kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (h\ :\ ℝ)\ :}
+\leanline{4}{(gramCovariance\ kernels\ h).IsSymm}
+\end{leancode}
+\leansource{\texttt{gramCovariance\_\allowbreak{}quadratic} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 330–356}
+\begin{leancode}
+\leanline{0}{theorem\ gramCovariance\_quadratic\ \{ι\ :\ Type*\}\ [Fintype\ ι]}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))}
+\leanline{4}{(h\ :\ ℝ)\ (z\ :\ ι\ →\ ℝ)\ :}
+\leanline{4}{(∑\ i,\ ∑\ j,\ z\ i\ *\ gramCovariance\ kernels\ h\ i\ j\ *\ z\ j)\ =}
+\leanline{6}{∫\ t\ in\ 0..h,\ (∑\ i,\ z\ i\ *\ kernels\ i\ t)\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{gramCovariance\_\allowbreak{}posSemidef} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 358–373}
+\begin{leancode}
+\leanline{0}{theorem\ gramCovariance\_posSemidef\ \{ι\ :\ Type*\}\ [Fintype\ ι]}
+\leanline{4}{(kernels\ :\ ι\ →\ ℝ\ →\ ℝ)\ (hc\ :\ ∀\ i,\ Continuous\ (kernels\ i))}
+\leanline{4}{\{h\ :\ ℝ\}\ (hh\ :\ 0\ ≤\ h)\ :\ (gramCovariance\ kernels\ h).PosSemidef}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{gram\allowbreak{}Covariance kernels h : Matrix \ensuremath{\iota} \ensuremath{\iota} \ensuremath{\mathbb R}} is the matrix with entries \texttt{\ensuremath{\int} t in 0.\allowbreak{}.\allowbreak{}h, kernels i t * kernels j t}. \texttt{gram\allowbreak{}Covariance\_\allowbreak{}symmetric} states \texttt{Is\allowbreak{}Symm} (equality with the transpose), proved entrywise by \texttt{ext} and \texttt{mul\_\allowbreak{}comm}.
+
+\item \texttt{gram\allowbreak{}Covariance\_\allowbreak{}quadratic} assumes \texttt{[Fintype \ensuremath{\iota}]} (finite index set) and \texttt{hc : \ensuremath{\forall} i, Continuous (kernels i)}. \texttt{hi} is the integrability of each term; \texttt{simp\_\allowbreak{}rw} moves the constants \(z_i,z_j\) inside the integrals (\texttt{← interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}const\_\allowbreak{}mul}, \texttt{← interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}mul\_\allowbreak{}const}); \texttt{hs} and \texttt{← interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}finset\allowbreak{}Sum} exchange the two finite sums with the integral; the remaining pointwise identity \(\sum_{i,j}z_ik_ik_jz_j=(\sum_iz_ik_i)^2\) is proved with \texttt{pow\_\allowbreak{}two}, \texttt{Finset.\allowbreak{}sum\_\allowbreak{}mul}, \texttt{Finset.\allowbreak{}mul\_\allowbreak{}sum} and \texttt{ring}.
+
+\item \texttt{gram\allowbreak{}Covariance\_\allowbreak{}pos\allowbreak{}Semidef} (hypothesis \texttt{hh : 0 \ensuremath{\le} h}) concludes \texttt{Pos\allowbreak{}Semidef}. Through \texttt{Matrix.\allowbreak{}pos\allowbreak{}Semidef\_\allowbreak{}iff\_\allowbreak{}dot\allowbreak{}Product\_\allowbreak{}mul\allowbreak{}Vec} this amounts to the matrix being Hermitian (for real matrices, symmetric: \texttt{Matrix.\allowbreak{}is\allowbreak{}Hermitian\_\allowbreak{}iff\_\allowbreak{}is\allowbreak{}Symm}) and the quadratic form \(z\cdot(Cz)\) being nonnegative; \texttt{he} rearranges the double sum, \texttt{gram\allowbreak{}Covariance\_\allowbreak{}quadratic} rewrites it as an integral of a square, and \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}nonneg\_\allowbreak{}of\_\allowbreak{}forall} with \texttt{sq\_\allowbreak{}nonneg} concludes.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{The covariance matrices of the two schemes}{The covariance matrices of the two schemes}}
+
+
+\textbf{Definitions.} The KLMC kernels are \((\psi_0,\psi_1)\) and the KLMC2 kernels are \((\psi_0,\psi_1,\varphi_2,\varphi_3)\). Their Gram matrices on \([0,h]\),
+
+
+\[C=\int_0^h(\psi_0,\psi_1)^\top(\psi_0,\psi_1)\,dt,\qquad\bar C=\int_0^h(\psi_0,\psi_1,\varphi_2,\varphi_3)^\top(\psi_0,\psi_1,\varphi_2,\varphi_3)\,dt,\]
+
+
+are the covariance matrices \(\mathbf C\) and \(\bar{\mathbf C}\) of the paper, which describe the joint law of one coordinate of the (unscaled) noise vector in the KLMC and KLMC2 updates.
+
+
+
+
+\textbf{Claim.} For every \(\gamma\in\mathbb R\) all six kernels are continuous, and for every \(h\ge0\) the matrices \(C\) and \(\bar C\) are positive semidefinite.
+
+
+
+
+\textbf{Proof.} The functions \(\psi_0,\psi_1\) are continuous by the first step and \(\varphi_2,\varphi_3\) by the sixth step. The previous step applies to both finite families. \(\square\)
+
+
+
+
+Positive definiteness for \(h>0\), which requires linear independence of the kernels on \([0,h]\), is proved in a later section; semidefiniteness suffices for the existence of the Gaussian innovations.
+
+\begin{leanbox}{Lean: \texttt{klmcKernels}, \texttt{klmc2Kernels}, \texttt{klmcCovariance} and 5 more}
+\leansource{\texttt{klmcKernels} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 376–376}
+\begin{leancode}
+\leanline{0}{def\ klmcKernels\ (γ\ :\ ℝ)\ :\ Fin\ 2\ →\ ℝ\ →\ ℝ\ :=\ ![psi\ γ\ 0,\ psi\ γ\ 1]}
+\end{leancode}
+\leansource{\texttt{klmc2Kernels} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 379–380}
+\begin{leancode}
+\leanline{0}{def\ klmc2Kernels\ (γ\ :\ ℝ)\ :\ Fin\ 4\ →\ ℝ\ →\ ℝ\ :=}
+\leanline{2}{![psi\ γ\ 0,\ psi\ γ\ 1,\ phi\ γ\ 2,\ phi\ γ\ 3]}
+\end{leancode}
+\leansource{\texttt{klmcCovariance} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 383–384}
+\begin{leancode}
+\leanline{0}{def\ klmcCovariance\ (γ\ h\ :\ ℝ)\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ\ :=}
+\leanline{2}{gramCovariance\ (klmcKernels\ γ)\ h}
+\end{leancode}
+\leansource{\texttt{klmc2Covariance} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 387–388}
+\begin{leancode}
+\leanline{0}{def\ klmc2Covariance\ (γ\ h\ :\ ℝ)\ :\ Matrix\ (Fin\ 4)\ (Fin\ 4)\ ℝ\ :=}
+\leanline{2}{gramCovariance\ (klmc2Kernels\ γ)\ h}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}klmcKernels} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 390–392}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_klmcKernels\ (γ\ :\ ℝ)\ (i\ :\ Fin\ 2)\ :}
+\leanline{4}{Continuous\ (klmcKernels\ γ\ i)}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}klmc2Kernels} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 394–396}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_klmc2Kernels\ (γ\ :\ ℝ)\ (i\ :\ Fin\ 4)\ :}
+\leanline{4}{Continuous\ (klmc2Kernels\ γ\ i)}
+\end{leancode}
+\leansource{\texttt{klmcCovariance\_\allowbreak{}posSemidef} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 398–400}
+\begin{leancode}
+\leanline{0}{theorem\ klmcCovariance\_posSemidef\ (γ\ :\ ℝ)\ \{h\ :\ ℝ\}\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{(klmcCovariance\ γ\ h).PosSemidef}
+\end{leancode}
+\leansource{\texttt{klmc2Covariance\_\allowbreak{}posSemidef} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 402–404}
+\begin{leancode}
+\leanline{0}{theorem\ klmc2Covariance\_posSemidef\ (γ\ :\ ℝ)\ \{h\ :\ ℝ\}\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{(klmc2Covariance\ γ\ h).PosSemidef}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{klmc\allowbreak{}Kernels \ensuremath{\gamma} : Fin 2 \ensuremath{\to} \ensuremath{\mathbb R} \ensuremath{\to} \ensuremath{\mathbb R}} is \texttt{![psi \ensuremath{\gamma} 0, psi \ensuremath{\gamma} 1]} and \texttt{klmc2\allowbreak{}Kernels \ensuremath{\gamma} : Fin 4 \ensuremath{\to} \ensuremath{\mathbb R} \ensuremath{\to} \ensuremath{\mathbb R}} is \texttt{![psi \ensuremath{\gamma} 0, psi \ensuremath{\gamma} 1, phi \ensuremath{\gamma} 2, phi \ensuremath{\gamma} 3]}; \texttt{Fin n} is the index set \(\{0,\dots,n-1\}\) and \texttt{![…]} is Mathlib's notation for a finite vector. \texttt{klmc\allowbreak{}Covariance \ensuremath{\gamma} h} and \texttt{klmc2\allowbreak{}Covariance \ensuremath{\gamma} h} are the corresponding \texttt{gram\allowbreak{}Covariance} matrices.
+
+\item \texttt{continuous\_\allowbreak{}klmc\allowbreak{}Kernels} and \texttt{continuous\_\allowbreak{}klmc2\allowbreak{}Kernels} check each index separately (\texttt{fin\_\allowbreak{}cases i}) using \texttt{continuous\_\allowbreak{}psi} and \texttt{continuous\_\allowbreak{}phi}.
+
+\item \texttt{klmc\allowbreak{}Covariance\_\allowbreak{}pos\allowbreak{}Semidef} and \texttt{klmc2\allowbreak{}Covariance\_\allowbreak{}pos\allowbreak{}Semidef} (hypothesis \texttt{hh : 0 \ensuremath{\le} h}) are direct applications of \texttt{gram\allowbreak{}Covariance\_\allowbreak{}pos\allowbreak{}Semidef}.
+
+\end{enumerate}
+\end{leanbox}
+
+\section{\texorpdfstring{Entries of the KLMC covariance and the velocity variance balance}{Entries of the KLMC covariance and the velocity variance balance}}
+
+
+\textbf{Claim.} For all \(\gamma,h\in\mathbb R\), the KLMC Gram matrix \(C\) satisfies
+
+
+\[C_{11}=\int_0^he^{-2\gamma t}\,dt=\psi_1^{(2\gamma)}(h),\qquad C_{12}=\int_0^h\psi_0\psi_1\,dt=\frac{\psi_1(h)^2}{2},\qquad\psi_0(h)^2+2\gamma\,C_{11}=1 .\]
+
+
+\textbf{Proof.} First, \(\psi_0(t)^2=e^{-2\gamma t}=\psi_0^{(2\gamma)}(t)\) by the addition formula, so \(C_{11}=\int_0^h\psi_0^{(2\gamma)}=\psi_1^{(2\gamma)}(h)\).
+
+
+
+
+Second, \(s\mapsto\psi_1(s)^2/2\) has derivative \(\psi_1(s)\psi_1'(s)=\psi_0(s)\psi_1(s)\), which is continuous; by the fundamental theorem of calculus and \(\psi_1(0)=0\), \(C_{12}=\psi_1(h)^2/2-0\).
+
+
+
+
+Third, the friction identity with friction \(2\gamma\) gives \(2\gamma\,\psi_1^{(2\gamma)}(h)=1-\psi_0^{(2\gamma)}(h)=1-\psi_0(h)^2\). Hence \(\psi_0(h)^2+2\gamma C_{11}=\psi_0(h)^2+1-\psi_0(h)^2=1\). \(\square\)
+
+
+
+
+The last identity is the stationarity of the velocity update: if \(v\) has identity covariance and \(\xi\) is independent with covariance \(C_{11}I\), then \(\psi_0(h)v+\sqrt{2\gamma}\,\xi\) again has covariance \((\psi_0(h)^2+2\gamma C_{11})I=I\). It holds for every real \(\gamma\) and \(h\).
+
+\begin{leanbox}{Lean: \texttt{klmcCovariance\_\allowbreak{}velocity}, \texttt{klmcCovariance\_\allowbreak{}cross}, \texttt{velocity\_\allowbreak{}variance\_\allowbreak{}balance}}
+\leansource{\texttt{klmcCovariance\_\allowbreak{}velocity} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 406–415}
+\begin{leancode}
+\leanline{0}{theorem\ klmcCovariance\_velocity\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{klmcCovariance\ γ\ h\ 0\ 0\ =\ psi\ (2\ *\ γ)\ 1\ h}
+\end{leancode}
+\leansource{\texttt{klmcCovariance\_\allowbreak{}cross} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 417–427}
+\begin{leancode}
+\leanline{0}{theorem\ klmcCovariance\_cross\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{klmcCovariance\ γ\ h\ 0\ 1\ =\ (psi\ γ\ 1\ h)\ \textasciicircum{}\ 2\ /\ 2}
+\end{leancode}
+\leansource{\texttt{velocity\_\allowbreak{}variance\_\allowbreak{}balance} \quad KineticLangevin/\allowbreak{}Coefficients.lean, lines 430–438}
+\begin{leancode}
+\leanline{0}{theorem\ velocity\_variance\_balance\ (γ\ h\ :\ ℝ)\ :}
+\leanline{4}{(psi\ γ\ 0\ h)\ \textasciicircum{}\ 2\ +\ 2\ *\ γ\ *\ klmcCovariance\ γ\ h\ 0\ 0\ =\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\begin{enumerate}
+
+
+\item \texttt{klmc\allowbreak{}Covariance\_\allowbreak{}velocity} uses \texttt{change} to expose the entry \texttt{klmc\allowbreak{}Covariance \ensuremath{\gamma} h 0 0} as \(\int_0^he^{-\gamma t}e^{-\gamma t}dt\), then \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr} and \texttt{← Real.\allowbreak{}exp\_\allowbreak{}add} identify the integrand with \(\psi_0^{(2\gamma)}\).
+
+\item \texttt{klmc\allowbreak{}Covariance\_\allowbreak{}cross}: \texttt{hd} is the derivative of \(\psi_1^2/2\), from \texttt{(has\allowbreak{}Deriv\allowbreak{}At\_\allowbreak{}psi\_\allowbreak{}succ \ensuremath{\gamma} s 0).\allowbreak{}pow 2} and \texttt{div\_\allowbreak{}const}; \texttt{hi} is \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}eq\_\allowbreak{}sub\_\allowbreak{}of\_\allowbreak{}has\allowbreak{}Deriv\allowbreak{}At}; \texttt{simpa} with \texttt{psi\_\allowbreak{}at\_\allowbreak{}zero} removes the value at \(0\).
+
+\item \texttt{velocity\_\allowbreak{}variance\_\allowbreak{}balance} rewrites with \texttt{klmc\allowbreak{}Covariance\_\allowbreak{}velocity} and \texttt{friction\_\allowbreak{}mul\_\allowbreak{}psi\_\allowbreak{}one} (at friction \(2\gamma\)), proves \texttt{he}, \(\psi_0^{(2\gamma)}(h)=\psi_0(h)^2\), and concludes with \texttt{ring}. The indices \texttt{0} and \texttt{1} of \texttt{Fin 2} correspond to the indices \(1\) and \(2\) of the text.
+
+\end{enumerate}
+\end{leanbox}
 
 \end{document}

@@ -685,7 +685,7 @@ _attach(KINETIC_PROOF, {
     'noise': ([('KineticLangevin/BrownianConvolution.lean','klmc_jointLaw'),('KineticLangevin/CanonicalVectorSegments.lean','canonicalKLMCInnovation_independent'),('KineticLangevin/Gaussian.lean','kernelNoisePath_independent')], r'''The Brownian convolutions have the specified joint Gaussian Gram law, with independent spatial and time blocks. The sampler law is identified through the joint response construction.'''),
     'first-local-defect': ([('KineticLangevin/LocalError.lean','velocityDefect_bound'),('KineticLangevin/LocalError.lean','positionDefect_bound'),('KineticLangevin/CanonicalKLMC.lean','globalReferenceFlow_stationary')], r'''The local integrals are bounded in \(L^2\), and the constructed reference supplies the required stationary Gaussian velocity moments.'''),
     'first-recurrence': ([('KineticLangevin/Recurrence.lean','firstOrder_coupling_recurrence_bound'),('KineticLangevin/CanonicalKLMC.lean','klmc_wasserstein_bound')], r'''The sampler theorem constructs the reference, derives the numerical local inequality, identifies both output laws, and takes the initial-coupling infimum internally.'''),
-    'second-order-method': ([('KineticLangevin/Integrator.lean','klmc2Step'),('KineticLangevin/BrownianConvolution.lean','klmc2_jointLaw')], r'''The four-kernel Hessian update and its exact Brownian Gaussian innovation law are constructed. The separate completion audit tracks the chain error bound.'''),
+    'second-order-method': ([('KineticLangevin/Integrator.lean','klmc2Step'),('KineticLangevin/BrownianConvolution.lean','klmc2_jointLaw')], r'''The four-kernel Hessian update and its exact Brownian Gaussian innovation law are constructed. The chain error bound itself is <code>klmc2_wasserstein_bound_exact</code>.'''),
     'second-order-estimates': ([('KineticLangevin/GaussianFourth.lean','stdGaussian_norm_fourth_moment'),('KineticLangevin/SecondOrderOneStep.lean','klmc2Step_stationary_local_bound'),('KineticLangevin/SecondOrderComparison.lean','klmc2SourceStep_comparison_bound'),('KineticLangevin/CanonicalFreeOU.lean','referenceChain_freeOUResponse_hasLaw')], r'''The four-kernel local error and repaired synchronous comparison are proved. Both fresh stochastic Hessian terms are retained through the complete free Ornstein–Uhlenbeck response, whose Gaussian marginals follow from the constructed past/future law.'''),
     'second-order-tail': ([('KineticLangevin/GaussianTail.lean','gaussian_norm_square_positivePart_le'),('KineticLangevin/GaussianTruncation.lean','gaussian_truncation_Lp'),('KineticLangevin/SecondOrderRecurrence.lean','secondOrderCutoff_tail'),('KineticLangevin/CanonicalKLMC2.lean','klmc2_wasserstein_bound_exact'),('KineticLangevin/CanonicalKLMC2.lean','klmc2_wasserstein_bound')], r'''The exact-dimensional theorem is proved for the KLMC2 Gaussian Markov chain, with all reference laws, noise laws, local errors, and coupling infima derived from the stated hypotheses. The printed coefficient is provided with its necessary dimension restriction \(p\ge2\); the one-dimensional exact-moment bound is retained.'''),
     'complexity': ([('KineticLangevin/Accuracy.lean','klmc_accuracy_explicit'),('KineticLangevin/Complexity.lean','firstOrderIterationCount_spec')], r'''The first-order sampler has a proved positive minimum step, \(0.94\varepsilon\) bias allocation, and rounded natural logarithmic iteration count giving error at most \(\varepsilon\).'''),
@@ -737,3 +737,100 @@ for _item in KINETIC_PROOF:
             dict(file='KineticLangevin/ConditionNumber.lean',name='secondOrderNormalizedWork_physical_regime'),
             dict(file='KineticLangevin/ConditionNumber.lean',name='secondOrderSourceRefinement_no_uniform_constant')]
         _item['note'] += r''' The source paragraph that omits the Gaussian tail is also audited: its exact step and natural count are proved, the corrected condition-number envelope has constant \(64\), and a formal natural-dimension counterexample rules out the unrestricted printed bound.'''
+
+# Sequential correspondence for the mathematical argument.
+_KINETIC_PROOF_CORRESPONDENCE = {
+    'target': r'''
+<p><code>phaseFlow_gibbs_stationary</code> first installs the normalized Gibbs probability instance and its second-moment bound. The local objects <code>Q</code>, <code>V</code>, <code>B</code> and <code>Y</code> specify the independent Gaussian/Brownian source, initial velocity, forcing and integral solution. <code>hs</code> supplies the integral equation and continuity; <code>hjoint</code> supplies the complete initial-phase/OU-increment law. These are the inputs of <code>kinetic_integral_stationary_of_jointNoise</code>. Thus invariance is obtained for the constructed solution. <code>positionLaw_gibbs</code> composes the resulting <code>HasLaw</code> with the second-coordinate projection to recover the Gibbs position marginal.</p>
+''',
+    'time-scale': r'''
+<p><code>kinetic_mass_integral</code> checks the velocity and position integral equations after the deterministic clock and velocity transformations. <code>kinetic_mass_noise_amplitude</code> checks the resulting square-root coefficient. <code>clockBrownian_isPreBrownian</code> separately verifies the Brownian law at the changed clock; it supplies the probabilistic justification that cannot be obtained by algebraically substituting time in a stochastic differential notation.</p>
+''',
+    'synchronous': r'''
+<p><code>kinetic_integral_position_decay</code> subtracts the two common-input integral equations, so the additive forcing disappears before differentiation and the transformed energy inequality is used. <code>wasserstein2_gibbs_general</code> applies the corresponding two-initial-law coupling theorem and rewrites the stationary comparator using <code>positionLaw_gibbs</code>. The initial coupling is arbitrary; the transport theorem passes its cost to the infimum defining Wasserstein distance.</p>
+''',
+    'twisted-energy': r'''
+<p><code>transform</code> is exactly the two-coordinate linear change of variables in the argument; its energy is a sum of squared norms, rather than the default maximum norm of a product type. <code>spectral_identity</code> expands the inner products in the quadratic dissipation. <code>potential_general_force_dissipativity</code> uses strong convexity and gradient Lipschitz continuity to bound that quadratic form for the actual force difference. The two scalar spectral bounds correspond to the two entries of the maximum in the displayed exponent.</p>
+''',
+    'friction': r'''
+<p><code>contractionExponent_low_optimal</code>, <code>contractionExponent_middle_optimal</code> and <code>contractionExponent_high_optimal</code> are the three scalar comparisons for the admissible shift. Their case hypotheses select the active branch of the maximum. Each conclusion compares the candidate exponent with every admissible shift; the nonsingularity condition keeps the transformation denominator positive. The full shifted Brownian theorem is retained when a simple-friction specialization is unavailable.</p>
+''',
+    'exponential-step': r'''
+<p><code>exponentialStep</code> records the integrated deterministic friction and frozen-force responses, together with the supplied innovation pair. <code>klmcStep</code> substitutes the coefficient functions into that same expression. Their definitions match the two update equations term by term: the first coordinate is velocity and the second is position. Independence and covariance are properties of the innovation law established in the following section, rather than extra terms in this deterministic map.</p>
+''',
+    'noise': r'''
+<p><code>klmc_jointLaw</code> identifies the joint Gaussian law of the two Brownian convolutions, including their off-diagonal covariance. <code>canonicalKLMCInnovation_independent</code> and <code>kernelNoisePath_independent</code> establish independence across the specified source blocks. <code>klmc_cholesky_independent_normals</code> then gives the same law as an explicit linear image of two independent standard normals. Equality of the complete joint law is what permits replacement of the Brownian-derived innovations by the implemented correlated Gaussian vectors.</p>
+''',
+    'first-local-defect': r'''
+<p><code>velocityDefect_bound</code> and <code>positionDefect_bound</code> bound the two frozen-force remainder integrals in the order in which the two update equations are compared. Gradient Lipschitz continuity bounds force differences by position displacements; integration and the stationary velocity second moment supply the powers of the step. <code>globalReferenceFlow_stationary</code> proves that the constructed comparator has the Gaussian-times-Gibbs phase law at each time, so the moment used here is derived for that comparator.</p>
+''',
+    'first-recurrence': r'''
+<p><code>firstOrder_coupling_recurrence_bound</code> combines one-step contraction and local error, iterates the scalar affine recurrence and projects its transformed phase norm to position. <code>klmc_wasserstein_bound</code> obtains the Gibbs second moment as <code>hπ</code>, then applies <code>klmc_wasserstein_bound_of_globalStationarity</code> with the stationarity function proved for every initial coupling. The helper theorem identifies both output marginals and takes the initial-coupling infimum. The displayed transient and bias are therefore conclusions for the actual sampler law.</p>
+''',
+    'second-order-method': r'''
+<p><code>klmc2Step</code> defines the complete Hessian-corrected update. <code>klmc2_jointLaw</code> identifies all four Brownian response coordinates jointly. This includes the stochastic responses acted on by the frozen Hessian, as well as the initial-velocity response. The final theorem <code>klmc2_wasserstein_bound_exact</code> concerns this complete update, so removing one of its stochastic Hessian contributions would change the algorithm and invalidate the correspondence.</p>
+''',
+    'second-order-estimates': r'''
+<p><code>stdGaussian_norm_fourth_moment</code> supplies the exact dimension factor in the Hessian remainder. <code>klmc2Step_stationary_local_bound</code> uses it in the one-step approximation of the stationary flow. <code>klmc2SourceStep_comparison_bound</code> handles the comparison of two numerical states with the complete stochastic Hessian responses. <code>referenceChain_freeOUResponse_hasLaw</code> supplies the Gaussian marginal used in that comparison from the proved joint past/future source law; it does not assume independence of the current discrepancy and velocity.</p>
+''',
+    'second-order-tail': r'''
+<p><code>gaussian_norm_square_positivePart_le</code> gives the Gaussian excess-moment bound, and <code>gaussian_truncation_Lp</code> converts it into the norm estimate needed by the cutoff comparison. <code>secondOrderCutoff_tail</code> evaluates the chosen cutoff and gives both the dimension and inverse-step-square tail bounds. <code>klmc2_wasserstein_bound_exact</code> retains the exact fourth moment. <code>klmc2_wasserstein_bound</code> subsequently enlarges it to the printed coefficient under its explicit dimension hypothesis; the exact theorem remains available in dimension one.</p>
+''',
+    'complexity': r'''
+<p><code>klmc_accuracy_explicit</code> applies the proved sampler estimate to a positive minimum step and a rounded logarithmic count. <code>firstOrderIterationCount_spec</code> verifies the count's transient budget. For the second-order method, <code>secondOrderAccuracyStep_spec</code> verifies the algebraic and tail allocations at the chosen step, and <code>klmc2_accuracy_explicit</code> combines those with its rounded iteration count. Each allocation is checked before the final real-arithmetic addition of the error budgets.</p>
+''',
+}
+for _part in KINETIC_PROOF:
+    _part["lean"] = _KINETIC_PROOF_CORRESPONDENCE[_part["id"]]
+_KIPLMC_PROOF_CORRESPONDENCE = {
+    'statistical-objective': r'''
+<p><code>existsUnique_mmle</code> supplies the existence and uniqueness of the marginal maximizer under the stated joint assumptions. <code>gibbsPhaseTarget_parameter</code> identifies the parameter projection of the normalized phase target with the powered marginal. The proof uses the normalized measure, so the probabilistic parameter error is measured against an actual probability distribution.</p>
+''',
+    'joint-geometry': r'''
+<p><code>averagePotential_strongConvex</code> divides the lifted sum-potential curvature by the positive particle count. <code>force_lipschitz</code> performs the same normalization for the gradient Lipschitz constant. Both use the shared particle geometry, whose squared joint-coordinate norms sum to the particle count times the scaled state norm. Positivity of particle count is needed for cancelling this factor.</p>
+''',
+    'particle-sde': r'''
+<p><code>kipldBrownianFlow_integral</code> is the physical-time integral equation of the constructed particle flow. <code>kipldBrownianFlow_initial_hasLaw</code> verifies the initial thermal phase law on its product source. The position and velocity coordinates in the integral equation are therefore those of the same random process used later in the transport bound.</p>
+''',
+    'rescaling': r'''
+<p><code>kinetic_integral_clock</code> transforms the full integral equation, including both drift coordinates. <code>clockBrownian_isPreBrownian</code> checks the transformed Brownian law. <code>kipldBrownianPositionLaw_eq_canonical</code> identifies the resulting position output measure with the unit-temperature kinetic output. This measure identity is the point at which the shared kinetic sampling theorem becomes applicable.</p>
+''',
+    'lifted-geometry': r'''
+<p><code>gradient_averagePotential</code> identifies the normalized gradient with the physical particle force. <code>averagePotential_strongConvex</code> and <code>force_lipschitz</code> verify the curvature and Lipschitz inputs for that potential. Each theorem retains the same joint-potential assumptions, so no particle-dependent regularity constant is introduced when the kinetic theory is applied.</p>
+''',
+    'powered-marginal': r'''
+<p><code>gibbsPhaseTarget_probability</code> verifies normalization and <code>gibbsPhaseTarget_parameter</code> computes the parameter marginal by integrating out velocities and latent coordinates. <code>phaseFlow_gibbs_stationary</code> supplies invariance of the unit-temperature kinetic flow. The clock and law identities from the preceding part transfer this invariant distribution to the physical particle coordinates.</p>
+''',
+    'concentration': r'''
+<p><code>existsUnique_mmle</code> identifies the center. <code>parameter_secondMoment_le</code> gives the dimension-sharp second moment about that center under the powered marginal; <code>parameter_concentration</code> takes its square root and expresses the result in the projected root-mean-square form used by the transport triangle inequality.</p>
+''',
+    'error-split': r'''
+<p><code>kipld_parameter_RMS_bound</code>, <code>kiplmc1_parameter_bound</code> and <code>kiplmc2_parameter_bound</code> each apply the nonexpansive parameter projection and add <code>parameter_concentration</code>. The coupling term is controlled in the complete scaled particle state before projection. Finiteness is proved before converting the extended transport and projected second moments to real square-root integrals.</p>
+''',
+    'first-integrator': r'''
+<p><code>kiplmc1Step</code> is the deterministic particle step. <code>kiplmc1Step_parameter_position</code> and <code>kiplmc1Step_particle_velocity</code> identify its coordinate blocks with the displayed physical equations. <code>kiplmc1GaussianPositionLaws_eq_canonical</code> transfers the complete Gaussian Markov law, including initialization and correlated innovations, to the canonical kinetic sampler at the changed clock.</p>
+''',
+    'first-bound': r'''
+<p><code>kiplmc1_parameter_bound_independent</code> uses the canonical first-order bound, the exact scaled rate and bias identities, parameter projection, and equilibrium concentration. The independent initial-position coupling supplies the displayed initial constant. <code>kiplmc1_accuracy</code> then bounds the transient, discretization and concentration contributions separately and adds the three budgets.</p>
+''',
+    'obabo-subflows': r'''
+<p><code>obaboStep_expanded</code> expands the thermostat, half-kick, drift, half-kick and thermostat composition. <code>kiplmc2Step</code> uses that same map with the particle force and thermal amplitude. Consequently the second force is evaluated at the updated position and the two Gaussian thermostat arguments stay distinct.</p>
+''',
+    'obabo-expanded': r'''
+<p><code>halfVelocity_parameter</code> and <code>halfVelocity_particle</code> evaluate the scaled phase coordinates after the first thermostat and kick. <code>kiplmc2Step_velocity</code> checks the second force and final thermostat in the expanded velocity formula. <code>kiplmc2Laws_probability</code> verifies that iteration of this measurable map against the prescribed Gaussian source yields probability laws.</p>
+''',
+    'discrete-equilibrium': r'''
+<p><code>exactObaboStep_preserves_target</code> proves invariance for the exact thermostat/Hamiltonian comparison step. <code>obabo_wasserstein_bound</code> applies the contractive random-map perturbation argument to the numerical map and that exact comparator. The common-noise local cost is accumulated along this comparison; no premise asserting a numerical invariant law is passed to the sampling theorem.</p>
+''',
+    'obabo-scaling': r'''
+<p><code>kiplmc2Laws_unitTemperature</code> identifies the entire numerical law under velocity rescaling. <code>obaboBias_unitTemperature</code> cancels the powers of the clock factor in the bias. <code>kiplmc2_paper_envelope</code> bounds the remaining step-dependent coefficient uniformly on the admissible step range and enlarges the thermal dimension factor to the printed particle dependence.</p>
+''',
+    'obabo-bound': r'''
+<p><code>kiplmc2_parameter_paper_bound</code> follows from the stronger direct position sampling estimate, the uniform envelope and the sharp equilibrium concentration bound. Both transient terms of the printed theorem are retained as nonnegative upper bounds. <code>kiplmc2_accuracy</code> then applies the chosen positive step, particle-count lower bound and rounded iteration requirement to the corresponding separate budgets.</p>
+''',
+    'complexity-and-experiments': r'''
+<p><code>accuracyParticleCount_spec</code> proves the statistical radius bound for the rounded natural particle count. <code>accuracyStep_spec</code> verifies positivity and the step upper bounds. <code>complexity_dimension_identity</code> checks the dimension algebra in the resulting count, while <code>kiplmc2_accuracy</code> supplies the finite error guarantee. Timing traces and empirical predictive performance are not conclusions of these declarations.</p>
+''',
+}
+for _part in KIPLMC_PROOF:
+    _part["lean"] = _KIPLMC_PROOF_CORRESPONDENCE[_part["id"]]

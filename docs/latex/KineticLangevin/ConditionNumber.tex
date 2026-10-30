@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,45 @@ The ordinary gradient condition number is \(\kappa=M/m\). The supplied source pr
 
 The normalized Hessian ratio removes the strong-convexity unit before taking fractional powers. This makes the identity between the proposed refined condition number and its two summands exact. Comparing those summands is a separate question and cannot be inferred from their notation.
 
+\begin{leanbox}{Lean: \texttt{kineticConditionNumber}, \texttt{sourceHessianConditionNumber}, \texttt{normalizedHessianConditionNumber} and 1 more}
+\leansource{\texttt{kineticConditionNumber} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 16–16}
+\begin{leancode}
+\leanline{0}{def\ kineticConditionNumber\ (m\ M\ :\ ℝ)\ :\ ℝ\ :=\ M/m}
+\end{leancode}
+\leansource{\texttt{sourceHessianConditionNumber} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 19–20}
+\begin{leancode}
+\leanline{0}{def\ sourceHessianConditionNumber\ (m\ M\ M2\ p\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{(M2\ \textasciicircum{}\ (2/3\ :\ ℝ)\ +\ M*p\ \textasciicircum{}\ (-1/3\ :\ ℝ))/m}
+\end{leancode}
+\leansource{\texttt{normalizedHessianConditionNumber} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 23–24}
+\begin{leancode}
+\leanline{0}{def\ normalizedHessianConditionNumber\ (κ\ η\ p\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{η\ \textasciicircum{}\ (2/3\ :\ ℝ)\ +\ κ*p\ \textasciicircum{}\ (-1/3\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{sourceHessianConditionNumber\_\allowbreak{}normalize} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 28–39}
+\begin{leancode}
+\leanline{0}{theorem\ sourceHessianConditionNumber\_normalize\ (m\ M\ M2\ p\ :\ ℝ)\ (hm\ :\ 0<m)\ (hM2\ :\ 0≤M2)\ :}
+\leanline{4}{sourceHessianConditionNumber\ m\ M\ M2\ p\ =}
+\leanline{6}{normalizedHessianConditionNumber\ (M/m)\ (M2/(m*Real.sqrt\ m))\ p}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kinetic\allowbreak{}Condition\allowbreak{}Number} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{source\allowbreak{}Hessian\allowbreak{}Condition\allowbreak{}Number} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{normalized\allowbreak{}Hessian\allowbreak{}Condition\allowbreak{}Number} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{source\allowbreak{}Hessian\allowbreak{}Condition\allowbreak{}Number\_\allowbreak{}normalize} gives the formal counterpart of this step. The main intermediate facts are \texttt{hden} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+\end{leanbox}
 
 \section{\texorpdfstring{The useful cubic inequalities from the definition}{The useful cubic inequalities from the definition}}
 
@@ -42,6 +104,18 @@ For \(\kappa>0\), \(\eta\ge0\), and \(p>0\), the source quantity \(\rho\) is pos
 
 Each summand is controlled by their positive sum, so cubing yields the two useful inequalities. However the dimension factor remains in the ordinary-condition-number inequality. Removing it would create the invalid comparison that the later counterexample rules out.
 
+\begin{leanbox}{Lean: \texttt{normalizedHessianConditionNumber\_\allowbreak{}cubes}}
+\leansource{\texttt{normalizedHessianConditionNumber\_\allowbreak{}cubes} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 43–68}
+\begin{leancode}
+\leanline{0}{theorem\ normalizedHessianConditionNumber\_cubes\ (κ\ η\ p\ :\ ℝ)}
+\leanline{4}{(hκ\ :\ 0<κ)\ (hη\ :\ 0≤η)\ (hp\ :\ 0<p)\ :}
+\leanline{4}{0<normalizedHessianConditionNumber\ κ\ η\ p\ ∧}
+\leanline{6}{η\textasciicircum{}2≤(normalizedHessianConditionNumber\ κ\ η\ p)\textasciicircum{}3\ ∧}
+\leanline{6}{κ\textasciicircum{}3≤p*(normalizedHessianConditionNumber\ κ\ η\ p)\textasciicircum{}3}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{normalized\allowbreak{}Hessian\allowbreak{}Condition\allowbreak{}Number\_\allowbreak{}cubes} gives the formal counterpart of this step. The main intermediate facts are \texttt{\ensuremath{\rho}}, \texttt{hpw}, \texttt{h\ensuremath{\rho}}, \texttt{h1}, \texttt{h2}, \texttt{he1} in that order. Named proof applications include \texttt{pow\_\allowbreak{}le\_\allowbreak{}pow\_\allowbreak{}left\ensuremath{{}_{0}}}, \texttt{\ensuremath{\langle}h\ensuremath{\rho}}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The exact reciprocal-step coefficient before simplifying it}{The exact reciprocal-step coefficient before simplifying it}}
 
@@ -56,6 +130,27 @@ The transient count has coefficient \(4\sqrt{1+\kappa}/s\), before its logarithm
 
 The work expression contains the stability and accuracy branches of the exact selected step. A proposed asymptotic simplification must bound all of them uniformly. Looking only at the accuracy branch would miss a possible dominant ordinary-stability cost.
 
+\begin{leanbox}{Lean: \texttt{secondOrderNormalizedWork}, \texttt{secondOrderRefinement}}
+\leansource{\texttt{secondOrderNormalizedWork} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 73–76}
+\begin{leancode}
+\leanline{0}{def\ secondOrderNormalizedWork\ (κ\ η\ p\ ε\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{4*Real.sqrt\ (1+κ)*max\ (5*κ*Real.sqrt\ (1+κ))}
+\leanline{4}{(max\ (4*Real.sqrt\ (5*p)*η)}
+\leanline{6}{(Real.sqrt\ ((4*η*p+2*Real.sqrt\ 2*κ*Real.sqrt\ κ*Real.sqrt\ p)/ε)))}
+\end{leancode}
+\leansource{\texttt{secondOrderRefinement} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 79–80}
+\begin{leancode}
+\leanline{0}{def\ secondOrderRefinement\ (ρ\ p\ ε\ :\ ℝ)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ p*ρ\textasciicircum{}2+Real.sqrt\ (p/ε)*ρ\ \textasciicircum{}\ (5/4\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Refinement} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+\end{leanbox}
 
 \section{\texorpdfstring{Bound the three branches with one explicit universal constant}{Bound the three branches with one explicit universal constant}}
 
@@ -70,6 +165,17 @@ After multiplying by the common count factor, the ordinary stability branch is a
 
 Bounding nonnegative squares avoids fractional-power sign issues. The common upper parameter controls both curvature stiffness and Hessian variation. Comparing each branch separately and then taking the maximum gives a valid universal bound on the full work expression.
 
+\begin{leanbox}{Lean: \texttt{secondOrderNormalizedWork\_\allowbreak{}le}}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}le} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 84–178}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_le\ (κ\ η\ p\ ε\ R\ :\ ℝ)}
+\leanline{4}{(hκ\ :\ 1≤κ)\ (hη\ :\ 0≤η)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)}
+\leanline{4}{(hκR\ :\ κ≤R)\ (hηR\ :\ η\textasciicircum{}2≤R\textasciicircum{}3)\ :}
+\leanline{4}{secondOrderNormalizedWork\ κ\ η\ p\ ε≤64*secondOrderRefinement\ R\ p\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}le} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\ensuremath{\kappa}0}, \texttt{h\allowbreak{}R}, \texttt{hp0}, \texttt{hs\allowbreak{}R}, \texttt{hsp}, \texttt{hsk} in that order. Named proof applications include \texttt{h\ensuremath{\eta}\allowbreak{}R}, \texttt{max\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Apply the bound to the source parameters without adding a false comparison}{Apply the bound to the source parameters without adding a false comparison}}
 
@@ -84,6 +190,30 @@ The physical-parameter specialization substitutes \(\kappa=M/m\), \(\eta=M_2/(m\
 
 The maximum supplies both hypotheses needed by the branchwise theorem. The refined condition number controls Hessian variation through its cubic inequality, while the ordinary condition number controls the remaining stability factor. Their distinct roles explain why both appear in the corrected result.
 
+\begin{leanbox}{Lean: \texttt{secondOrderNormalizedWork\_\allowbreak{}source\_\allowbreak{}bound}, \texttt{secondOrderNormalizedWork\_\allowbreak{}physical\_\allowbreak{}bound}}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}source\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 182–188}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_source\_bound\ (κ\ η\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hκ\ :\ 1≤κ)\ (hη\ :\ 0≤η)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{secondOrderNormalizedWork\ κ\ η\ p\ ε≤}
+\leanline{6}{64*secondOrderRefinement\ (max\ κ\ (normalizedHessianConditionNumber\ κ\ η\ p))\ p\ ε}
+\end{leancode}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}physical\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 201–208}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_physical\_bound\ (m\ M\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤M)\ (hM2\ :\ 0≤M2)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)\ :}
+\leanline{4}{secondOrderNormalizedWork\ (M/m)\ (M2/(m*Real.sqrt\ m))\ p\ ε≤}
+\leanline{6}{64*secondOrderRefinement\ (max\ (kineticConditionNumber\ m\ M)}
+\leanline{8}{(sourceHessianConditionNumber\ m\ M\ M2\ p))\ p\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}source\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc} in that order. Named proof applications include \texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}le}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}physical\_\allowbreak{}bound} gives the formal counterpart of this step. Named proof applications include \texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}source\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{The additional regime in which the printed shape is valid}{The additional regime in which the printed shape is valid}}
 
@@ -98,6 +228,42 @@ The equivalence follows by multiplying the original condition-number inequality 
 
 The additional physical inequality specifies exactly when the refined condition number already dominates the ordinary one. In that regime the maximum simplifies to the source quantity. Stating the regime explicitly preserves the scope of the printed work shape.
 
+\begin{leanbox}{Lean: \texttt{secondOrderNormalizedWork\_\allowbreak{}source\_\allowbreak{}regime}, \texttt{sourceHessianConditionNumber\_\allowbreak{}ge\_\allowbreak{}iff}, \texttt{secondOrderNormalizedWork\_\allowbreak{}physical\_\allowbreak{}regime}}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}source\_\allowbreak{}regime} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 192–197}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_source\_regime\ (κ\ η\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hκ\ :\ 1≤κ)\ (hη\ :\ 0≤η)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)}
+\leanline{4}{(hregime\ :\ κ≤normalizedHessianConditionNumber\ κ\ η\ p)\ :}
+\leanline{4}{secondOrderNormalizedWork\ κ\ η\ p\ ε≤}
+\leanline{6}{64*secondOrderRefinement\ (normalizedHessianConditionNumber\ κ\ η\ p)\ p\ ε}
+\end{leancode}
+\leansource{\texttt{sourceHessianConditionNumber\_\allowbreak{}ge\_\allowbreak{}iff} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 278–283}
+\begin{leancode}
+\leanline{0}{theorem\ sourceHessianConditionNumber\_ge\_iff\ (m\ M\ M2\ p\ :\ ℝ)\ (hm\ :\ 0<m)\ :}
+\leanline{4}{kineticConditionNumber\ m\ M≤sourceHessianConditionNumber\ m\ M\ M2\ p\ ↔}
+\leanline{6}{M*(1-p\ \textasciicircum{}\ (-1/3\ :\ ℝ))≤M2\ \textasciicircum{}\ (2/3\ :\ ℝ)}
+\end{leancode}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}physical\_\allowbreak{}regime} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 287–293}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_physical\_regime\ (m\ M\ M2\ p\ ε\ :\ ℝ)}
+\leanline{4}{(hm\ :\ 0<m)\ (hmM\ :\ m≤M)\ (hM2\ :\ 0≤M2)\ (hp\ :\ 1≤p)\ (hε\ :\ 0<ε)}
+\leanline{4}{(hregime\ :\ M*(1-p\ \textasciicircum{}\ (-1/3\ :\ ℝ))≤M2\ \textasciicircum{}\ (2/3\ :\ ℝ))\ :}
+\leanline{4}{secondOrderNormalizedWork\ (M/m)\ (M2/(m*Real.sqrt\ m))\ p\ ε≤}
+\leanline{6}{64*secondOrderRefinement\ (sourceHessianConditionNumber\ m\ M\ M2\ p)\ p\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}source\_\allowbreak{}regime} gives the formal counterpart of this step. Named proof applications include \texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}source\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{source\allowbreak{}Hessian\allowbreak{}Condition\allowbreak{}Number\_\allowbreak{}ge\_\allowbreak{}iff} gives the formal counterpart of this step. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}physical\_\allowbreak{}regime} gives the formal counterpart of this step. The main intermediate facts are \texttt{hr} in that order. Named proof applications include \texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}physical\_\allowbreak{}bound}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Construct an exact family exposing the missing ordinary condition number}{Construct an exact family exposing the missing ordinary condition number}}
 
@@ -112,6 +278,35 @@ The proof therefore compares exact finite expressions, without relying on inform
 
 The counterexample keeps the refined quantity fixed while allowing the ordinary stiffness to grow. The stability branch then grows by an additional power of the family parameter. This isolates the algebraic obstruction to the proposed uniform simplification.
 
+\begin{leanbox}{Lean: \texttt{normalizedHessianConditionNumber\_\allowbreak{}family}, \texttt{secondOrderNormalizedWork\_\allowbreak{}stability\_\allowbreak{}lower}, \texttt{secondOrderRefinement\_\allowbreak{}family\_\allowbreak{}upper}}
+\leansource{\texttt{normalizedHessianConditionNumber\_\allowbreak{}family} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 213–221}
+\begin{leancode}
+\leanline{0}{theorem\ normalizedHessianConditionNumber\_family\ (t\ :\ ℝ)\ (ht\ :\ 0<t)\ :}
+\leanline{4}{normalizedHessianConditionNumber\ (t\textasciicircum{}2)\ 1\ (t\textasciicircum{}6)=2}
+\end{leancode}
+\leansource{\texttt{secondOrderNormalizedWork\_\allowbreak{}stability\_\allowbreak{}lower} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 225–238}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderNormalizedWork\_stability\_lower\ (κ\ η\ p\ ε\ :\ ℝ)\ (hκ\ :\ 0≤κ)\ :}
+\leanline{4}{20*κ\textasciicircum{}2≤secondOrderNormalizedWork\ κ\ η\ p\ ε}
+\end{leancode}
+\leansource{\texttt{secondOrderRefinement\_\allowbreak{}family\_\allowbreak{}upper} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 242–252}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderRefinement\_family\_upper\ (t\ :\ ℝ)\ (ht\ :\ 0<t)\ :}
+\leanline{4}{secondOrderRefinement\ (normalizedHessianConditionNumber\ (t\textasciicircum{}2)\ 1\ (t\textasciicircum{}6))\ (t\textasciicircum{}6)\ 1≤8*t\textasciicircum{}3}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{normalized\allowbreak{}Hessian\allowbreak{}Condition\allowbreak{}Number\_\allowbreak{}family} gives the formal counterpart of this step. The main intermediate facts are \texttt{he} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Normalized\allowbreak{}Work\_\allowbreak{}stability\_\allowbreak{}lower} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{he}, \texttt{hid} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Refinement\_\allowbreak{}family\_\allowbreak{}upper} gives the formal counterpart of this step. The main intermediate facts are \texttt{hs}, \texttt{hr} in that order. Named proof applications include \texttt{hh}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Rule out every uniform multiplicative repair of the printed formula}{Rule out every uniform multiplicative repair of the printed formula}}
 
@@ -126,5 +321,30 @@ The last theorem states the same contradiction with the literal physical definit
 
 Choosing a natural parameter gives an integer spatial dimension. Its arbitrarily large value defeats every fixed multiplicative constant in the proposed expression. The conclusion concerns the selected sufficient step/\allowbreak{}count formula, not an impossibility result for stochastic sampling itself.
 
+\begin{leanbox}{Lean: \texttt{secondOrderRefinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant}, \texttt{secondOrderSourceRefinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant}}
+\leansource{\texttt{secondOrderRefinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 258–273}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderRefinement\_no\_uniform\_constant\ (C\ :\ ℝ)\ (hC\ :\ 0<C)\ :}
+\leanline{4}{∃\ n\ :\ ℕ,\ 1≤n\ ∧}
+\leanline{6}{C*secondOrderRefinement}
+\leanline{8}{(normalizedHessianConditionNumber\ ((n:ℝ)\textasciicircum{}2)\ 1\ ((n:ℝ)\textasciicircum{}6))\ ((n:ℝ)\textasciicircum{}6)\ 1\ <}
+\leanline{6}{secondOrderNormalizedWork\ ((n:ℝ)\textasciicircum{}2)\ 1\ ((n:ℝ)\textasciicircum{}6)\ 1}
+\end{leancode}
+\leansource{\texttt{secondOrderSourceRefinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant} \quad KineticLangevin/\allowbreak{}ConditionNumber.lean, lines 297–305}
+\begin{leancode}
+\leanline{0}{theorem\ secondOrderSourceRefinement\_no\_uniform\_constant\ (C\ :\ ℝ)\ (hC\ :\ 0<C)\ :}
+\leanline{4}{∃\ n\ :\ ℕ,\ 1≤n\ ∧}
+\leanline{6}{C*secondOrderRefinement}
+\leanline{8}{(sourceHessianConditionNumber\ 1\ ((n:ℝ)\textasciicircum{}2)\ 1\ ((n:ℝ)\textasciicircum{}6))\ ((n:ℝ)\textasciicircum{}6)\ 1\ <}
+\leanline{6}{secondOrderNormalizedWork\ ((n:ℝ)\textasciicircum{}2)\ 1\ ((n:ℝ)\textasciicircum{}6)\ 1}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{second\allowbreak{}Order\allowbreak{}Refinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant} gives the formal counterpart of this step. The main intermediate facts are \texttt{ht}, \texttt{hn1}, \texttt{hu}, \texttt{hl}, \texttt{hc}, \texttt{hh} in that order. The final step is the algebraic normalization or ordered arithmetic displayed in the proof.
+
+
+
+
+\texttt{second\allowbreak{}Order\allowbreak{}Source\allowbreak{}Refinement\_\allowbreak{}no\_\allowbreak{}uniform\_\allowbreak{}constant} gives the formal counterpart of this step. Named proof applications include \texttt{hbad}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}

@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,16 @@ If \(AA^\mathsf T=S\), then applying \(A\) to a standard Gaussian gives a center
 
 A deterministic linear image of independent standard normals is jointly Gaussian. Its covariance is the factor times its transpose. Equality of centered Gaussian covariances determines equality of measures, which is why any verified covariance factor gives the exact response law.
 
+\begin{leanbox}{Lean: \texttt{gaussian\_\allowbreak{}factor\_\allowbreak{}hasLaw}}
+\leansource{\texttt{gaussian\_\allowbreak{}factor\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 12–32}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_factor\_hasLaw\ (S\ A\ :\ Matrix\ ι\ ι\ ℝ)\ (hS\ :\ S.PosSemidef)\ (hA\ :\ A*Aᴴ=S)\ :}
+\leanline{4}{HasLaw\ (toEuclideanCLM\ ({\leanfallback 𝕜}:=ℝ)\ A)\ (multivariateGaussian\ 0\ S)}
+\leanline{6}{(stdGaussian\ (EuclideanSpace\ ℝ\ ι))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gaussian\_\allowbreak{}factor\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step. The main intermediate facts are \texttt{L} in that order. Named proof applications include \texttt{Is\allowbreak{}Gaussian.\allowbreak{}ext}, \texttt{hi}, \texttt{congr\allowbreak{}Arg}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Construct and verify the positive-diagonal Cholesky factor}{Construct and verify the positive-diagonal Cholesky factor}}
 
@@ -42,6 +75,56 @@ For a positive definite symmetric \(2\times2\) matrix with entries \(a=S_{00}\),
 
 The first pivot is positive by positive definiteness. The determinant condition makes the Schur complement positive, so both diagonal square roots are real and nonzero. Expanding the lower-triangular product verifies each matrix entry without an implicit numerical factorization assumption.
 
+\begin{leanbox}{Lean: \texttt{choleskyTwo}, \texttt{choleskyTwo\_\allowbreak{}schur\_\allowbreak{}pos}, \texttt{choleskyTwo\_\allowbreak{}triangular} and 2 more}
+\leansource{\texttt{choleskyTwo} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 35–36}
+\begin{leancode}
+\leanline{0}{def\ choleskyTwo\ (S\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ)\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ\ :=}
+\leanline{2}{!![Real.sqrt\ (S\ 0\ 0),0;S\ 1\ 0/Real.sqrt\ (S\ 0\ 0),Real.sqrt\ (S\ 1\ 1-(S\ 1\ 0)\textasciicircum{}2/S\ 0\ 0)]}
+\end{leancode}
+\leansource{\texttt{choleskyTwo\_\allowbreak{}schur\_\allowbreak{}pos} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 39–47}
+\begin{leancode}
+\leanline{0}{theorem\ choleskyTwo\_schur\_pos\ (S\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ)\ (hS\ :\ S.PosDef)\ :}
+\leanline{4}{0<S\ 1\ 1-(S\ 1\ 0)\textasciicircum{}2/S\ 0\ 0}
+\end{leancode}
+\leansource{\texttt{choleskyTwo\_\allowbreak{}triangular} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 50–59}
+\begin{leancode}
+\leanline{0}{theorem\ choleskyTwo\_triangular\ (S\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ)\ (hS\ :\ S.PosDef)\ :}
+\leanline{4}{(choleskyTwo\ S).IsLowerTriangular\ ∧\ ∀\ i,0<choleskyTwo\ S\ i\ i}
+\end{leancode}
+\leansource{\texttt{choleskyTwo\_\allowbreak{}factor} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 62–78}
+\begin{leancode}
+\leanline{0}{theorem\ choleskyTwo\_factor\ (S\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ)\ (hS\ :\ S.PosDef)\ :}
+\leanline{4}{choleskyTwo\ S*(choleskyTwo\ S)ᴴ=S}
+\end{leancode}
+\leansource{\texttt{choleskyTwo\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 81–84}
+\begin{leancode}
+\leanline{0}{theorem\ choleskyTwo\_hasLaw\ (S\ :\ Matrix\ (Fin\ 2)\ (Fin\ 2)\ ℝ)\ (hS\ :\ S.PosDef)\ :}
+\leanline{4}{HasLaw\ (toEuclideanCLM\ ({\leanfallback 𝕜}:=ℝ)\ (choleskyTwo\ S))\ (multivariateGaussian\ 0\ S)}
+\leanline{6}{(stdGaussian\ (EuclideanSpace\ ℝ\ (Fin\ 2)))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{cholesky\allowbreak{}Two} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{cholesky\allowbreak{}Two\_\allowbreak{}schur\_\allowbreak{}pos} gives the formal counterpart of this step. The main intermediate facts are \texttt{ha}, \texttt{hd}, \texttt{hsym} in that order. Its remaining equalities are discharged by the simplifications displayed in the proof.
+
+
+
+
+\texttt{cholesky\allowbreak{}Two\_\allowbreak{}triangular} gives the formal counterpart of this step.
+
+
+
+
+\texttt{cholesky\allowbreak{}Two\_\allowbreak{}factor} gives the formal counterpart of this step. The main intermediate facts are \texttt{ha}, \texttt{hs}, \texttt{hq}, \texttt{hsq}, \texttt{hsym}, \texttt{he} in that order. Named proof applications include \texttt{hqeq}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{cholesky\allowbreak{}Two\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step.
+\end{leanbox}
 
 \section{\texorpdfstring{Generate the exponential innovation from independent normals}{Generate the exponential innovation from independent normals}}
 
@@ -52,5 +135,26 @@ The two response kernels \(\psi_0,\psi_1\) have a strictly positive Gram covaria
 
 The response Gram matrix is strictly positive for positive step length. Its explicit triangular factor therefore transforms two independent scalar standard normals into the velocity–position innovation pair. This gives an exact realization of the same law used by the Brownian coupling proof.
 
+\begin{leanbox}{Lean: \texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}hasLaw}, \texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}independent\_\allowbreak{}normals}}
+\leansource{\texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}hasLaw} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 87–90}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_cholesky\_hasLaw\ (γ\ h\ :\ ℝ)\ (hh\ :\ 0<h)\ :}
+\leanline{4}{HasLaw\ (toEuclideanCLM\ ({\leanfallback 𝕜}:=ℝ)\ (choleskyTwo\ (klmcCovariance\ γ\ h)))\ (klmcGaussian\ γ\ h)}
+\leanline{6}{(stdGaussian\ (EuclideanSpace\ ℝ\ (Fin\ 2)))}
+\end{leancode}
+\leansource{\texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}independent\_\allowbreak{}normals} \quad KineticLangevin/\allowbreak{}GaussianFactor.lean, lines 93–99}
+\begin{leancode}
+\leanline{0}{theorem\ klmc\_cholesky\_independent\_normals\ (γ\ h\ :\ ℝ)\ (hh\ :\ 0<h)\ :}
+\leanline{4}{HasLaw\ (fun\ z\ :\ Fin\ 2→ℝ\ =>\ toEuclideanCLM\ ({\leanfallback 𝕜}:=ℝ)\ (choleskyTwo\ (klmcCovariance\ γ\ h))\ (WithLp.toLp\ 2\ z))}
+\leanline{6}{(klmcGaussian\ γ\ h)\ (Measure.pi\ (fun\ \_\ :\ Fin\ 2\ =>\ gaussianReal\ 0\ 1))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}has\allowbreak{}Law} gives the formal counterpart of this step.
+
+
+
+
+\texttt{klmc\_\allowbreak{}cholesky\_\allowbreak{}independent\_\allowbreak{}normals} gives the formal counterpart of this step. The main intermediate facts are \texttt{hl} in that order.
+\end{leanbox}
 
 \end{document}

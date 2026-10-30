@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -31,7 +54,23 @@ Let \(c\) have marginals \(\mu,\nu\), and assume \(\int\|x-y\|^2dc<\infty\) and 
 
 The right-hand side is integrable under \(c\). Measurability and domination imply integrability of the first-coordinate gradient square, hence of \(\|\nabla U\|^2\) under \(\mu\). Integration and the marginal identities give
 
-\[\int\|\nabla U\|^2d\mu\le2L^2\int\|x-y\|^2dc(x,y)+2\int\|\nabla U\|^2d\nu.\]
+\[\int\|\nabla U\|^2d\mu\le2L^2\int\|x-y\|^2dc(x,y)+2\int\|\nabla U\|^2d\nu.\]\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling}}
+\leansource{\texttt{gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GradientMoment.lean, lines 28–80}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_moment\_bound\_of\_coupling}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(μ\ ν\ :\ Measure\ E)\ (c\ :\ ULA.Coupling\ μ\ ν)}
+\leanline{4}{(hcost\ :\ Integrable\ (fun\ p\ :\ E\ ×\ E\ ↦\ ‖p.1\ -\ p.2‖\ \textasciicircum{}\ 2)\ c.joint)}
+\leanline{4}{(htarget\ :\ Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ ν)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ\ ∧}
+\leanline{6}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ ≤}
+\leanline{8}{2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ (∫\ p\ :\ E\ ×\ E,\ ‖p.1\ -\ p.2‖\ \textasciicircum{}\ 2\ ∂c.joint)\ +}
+\leanline{10}{2\ *\ (∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂ν)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling}: the intermediate facts include \texttt{hgmeas}, \texttt{hsecond}, \texttt{htarget}, \texttt{hsecond\_\allowbreak{}marginal}, \texttt{h}, in source order; the source steps apply or rewrite \texttt{integrable\_\allowbreak{}map\_\allowbreak{}measure}, \texttt{hgmeas.\allowbreak{}aestrongly\allowbreak{}Measurable}, \texttt{integral\_\allowbreak{}add}, \texttt{hcost.\allowbreak{}const\_\allowbreak{}mul}, \texttt{hsecond.\allowbreak{}const\_\allowbreak{}mul}. The remaining scalar rearrangements are checked by \texttt{linarith}, \texttt{nlinarith}.
+\end{leanbox}
+
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}.
 
@@ -44,6 +83,23 @@ Let \(\nu=Z^{-1}e^{-U}dx\) be a Gibbs probability measure, with differentiable \
 
 The same argument proves gradient square-integrability under \(\mu\); it is not assumed before this conclusion.
 
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling}}
+\leansource{\texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GradientMoment.lean, lines 84–100}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_gradient\_moment\_bound\_of\_coupling}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(μ\ :\ Measure\ E)\ (c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ U))}
+\leanline{4}{(hcost\ :\ Integrable\ (fun\ p\ :\ E\ ×\ E\ ↦\ ‖p.1\ -\ p.2‖\ \textasciicircum{}\ 2)\ c.joint)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ\ ∧}
+\leanline{6}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ ≤}
+\leanline{8}{2\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ (∫\ p\ :\ E\ ×\ E,\ ‖p.1\ -\ p.2‖\ \textasciicircum{}\ 2\ ∂c.joint)\ +}
+\leanline{10}{2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}coupling}: the intermediate facts include \texttt{h\allowbreak{}Z}, \texttt{ht}, \texttt{htarget}, in source order. The remaining scalar rearrangements are checked by \texttt{nlinarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.27.6]{LangevinLean2026ULASC}; \cite[Section~3.27.7]{LangevinLean2026ULASC}.
@@ -61,13 +117,34 @@ Multiply this inequality by \(2L^2\ge0\) and substitute it in the preceding grad
 
 The cost-to-entropy estimate is an explicit hypothesis for the supplied coupling. This result does not prove a transport inequality from LSI.
 
+\begin{leanbox}{Lean: \texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}entropy\_\allowbreak{}coupling}}
+\leansource{\texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}entropy\_\allowbreak{}coupling} \quad UnadjustedLangevin/\allowbreak{}LSI/\allowbreak{}GradientMoment.lean, lines 105–128}
+\begin{leancode}
+\leanline{0}{theorem\ gibbs\_gradient\_moment\_bound\_of\_entropy\_coupling}
+\leanline{4}{(U\ :\ E\ →\ ℝ)\ (L\ :\ ℝ≥0)\ (hU\ :\ Differentiable\ ℝ\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ U)]}
+\leanline{4}{(μ\ :\ Measure\ E)\ (c\ :\ ULA.Coupling\ μ\ (ULA.gibbsMeasure\ U))}
+\leanline{4}{(hcost\ :\ Integrable\ (fun\ p\ :\ E\ ×\ E\ ↦\ ‖p.1\ -\ p.2‖\ \textasciicircum{}\ 2)\ c.joint)}
+\leanline{4}{(α\ :\ ℝ)\ (\_hα\ :\ 0\ <\ α)}
+\leanline{4}{(\_hKL\ :\ InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)\ ≠\ ⊤)}
+\leanline{4}{(htransport\ :\ (∫\ p\ :\ E\ ×\ E,\ ‖p.1\ -\ p.2‖\ \textasciicircum{}\ 2\ ∂c.joint)\ ≤}
+\leanline{6}{(2\ /\ α)\ *\ (InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal)\ :}
+\leanline{4}{Integrable\ (fun\ x\ ↦\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2)\ μ\ ∧}
+\leanline{6}{(∫\ x,\ ‖gradient\ U\ x‖\ \textasciicircum{}\ 2\ ∂μ)\ ≤}
+\leanline{8}{(4\ *\ (L\ :\ ℝ)\ \textasciicircum{}\ 2\ /\ α)\ *\ (InformationTheory.klDiv\ μ\ (ULA.gibbsMeasure\ U)).toReal\ +}
+\leanline{10}{2\ *\ (Module.finrank\ ℝ\ E\ :\ ℝ)\ *\ (L\ :\ ℝ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\_\allowbreak{}gradient\_\allowbreak{}moment\_\allowbreak{}bound\_\allowbreak{}of\_\allowbreak{}entropy\_\allowbreak{}coupling}: the intermediate facts include \texttt{htransport}, \texttt{heq}, in source order; the source steps apply or rewrite \texttt{hbound.\allowbreak{}trans}. The remaining scalar rearrangements are checked by \texttt{ring}, \texttt{linarith}.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

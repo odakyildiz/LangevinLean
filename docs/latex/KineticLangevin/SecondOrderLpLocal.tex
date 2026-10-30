@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,13 +55,40 @@ Project the phase pushforward law to obtain the standard Gaussian velocity margi
 
 The stationary Gaussian velocity provides its exact fourth moment, while the Gibbs position controls the force moment. The Taylor remainder and corrected local equations then supply the cubic transformed defect. Each coefficient is derived from these marginals, establishing the stochastic local-error estimate used in the second-order recurrence.
 
+\begin{leanbox}{Lean: \texttt{lp\_\allowbreak{}secondOrder\_\allowbreak{}stationary\_\allowbreak{}local\_\allowbreak{}bound}}
+\leansource{\texttt{lp\_\allowbreak{}secondOrder\_\allowbreak{}stationary\_\allowbreak{}local\_\allowbreak{}bound} \quad KineticLangevin/\allowbreak{}SecondOrderLpLocal.lean, lines 14–65}
+\begin{leancode}
+\leanline{0}{theorem\ lp\_secondOrder\_stationary\_local\_bound}
+\leanline{4}{(f\ :\ EuclideanSpace\ ℝ\ ι\ →\ ℝ)}
+\leanline{4}{(H\ :\ EuclideanSpace\ ℝ\ ι\ →\ EuclideanSpace\ ℝ\ ι\ →L[ℝ]\ EuclideanSpace\ ℝ\ ι)}
+\leanline{4}{(m\ γ\ T\ :\ ℝ)\ (M\ M2\ :\ ℝ≥0)\ (hm\ :\ 0<m)\ (hγ\ :\ 0≤γ)\ (hT\ :\ 0≤T)}
+\leanline{4}{(hf\ :\ Differentiable\ ℝ\ f)\ (hsc\ :\ StrongConvexOn\ univ\ m\ f)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ M\ (gradient\ f))\ (hH\ :\ LipschitzWith\ M2\ H)}
+\leanline{4}{(hderiv\ :\ ∀\ x,HasFDerivAt\ (gradient\ f)\ (H\ x)\ x)}
+\leanline{4}{(V\ X\ U\ :\ ℝ\ →\ Lp\ (EuclideanSpace\ ℝ\ ι)\ 2\ P)}
+\leanline{4}{(hV\ :\ Continuous\ V)\ (hX\ :\ Continuous\ X)\ (hU\ :\ Continuous\ U)}
+\leanline{4}{(hlaw\ :\ ∀\ t∈Icc\ 0\ T,P.map\ (lpPhaseCoe\ P\ (V\ t,X\ t))=kineticGibbsTarget\ f)}
+\leanline{4}{(hmild\ :\ ∀\ t∈Icc\ 0\ T,V\ t=U\ t-dampedIntegral\ γ\ (fun\ s\ ↦\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (X\ s))\ t)}
+\leanline{4}{(hkin\ :\ ∀\ t∈Icc\ 0\ T,X\ t-X\ 0=∫\ r\ in\ 0..t,V\ r)\ :}
+\leanline{4}{let\ G\ :=\ fun\ s\ ↦\ ULA.lpDrift\ P\ (gradient\ f)\ hLip\ (X\ s)}
+\leanline{4}{let\ H0\ :=\ lpHessian\ P\ (gradient\ f)\ H\ M\ M2\ hLip\ hH\ hderiv\ (X\ 0)}
+\leanline{4}{let\ C\ :=\ (M2\ :\ ℝ)*Real.sqrt\ ((Fintype.card\ ι\ :\ ℝ)\textasciicircum{}2+2*(Fintype.card\ ι\ :\ ℝ))+}
+\leanline{6}{(M\ :\ ℝ)*Real.sqrt\ ((M\ :\ ℝ)*(Fintype.card\ ι\ :\ ℝ))}
+\leanline{4}{‖correctedVelocity\ γ\ U\ (G\ 0)\ H0\ T-V\ T‖≤C*T\textasciicircum{}3/6\ ∧}
+\leanline{4}{‖correctedPosition\ γ\ U\ (X\ 0)\ (G\ 0)\ H0\ T-X\ T‖≤C*T\textasciicircum{}4/24\ ∧}
+\leanline{4}{(γ*T≤1/5\ →\ transformNorm\ γ\ 0\ (correctedVelocity\ γ\ U\ (G\ 0)\ H0\ T-V\ T,}
+\leanline{6}{correctedPosition\ γ\ U\ (X\ 0)\ (G\ 0)\ H0\ T-X\ T)≤C*T\textasciicircum{}3/4)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{lp\_\allowbreak{}second\allowbreak{}Order\_\allowbreak{}stationary\_\allowbreak{}local\_\allowbreak{}bound} gives the formal counterpart of this step. The main intermediate facts are \texttt{h\allowbreak{}G}, \texttt{h\allowbreak{}Vlaw}, \texttt{hscore}, \texttt{R}, \texttt{h\allowbreak{}R}, \texttt{h\allowbreak{}Taylor} in that order. Named proof applications include \texttt{ULA.\allowbreak{}lp\allowbreak{}Drift\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}strong\allowbreak{}Convex\_\allowbreak{}gibbs\_\allowbreak{}law}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 
 Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.28.2]{LangevinLean2026ULASC}.
 
 \begin{thebibliography}{ULA-LSI}
 \bibitem[ULA-SC]{LangevinLean2026ULASC}
-LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision 263fb89cdbf0. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d50c0f64815b. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
 \end{thebibliography}
 
 \end{document}

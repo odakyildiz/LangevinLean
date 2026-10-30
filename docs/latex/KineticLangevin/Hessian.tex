@@ -1,6 +1,29 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
 \setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
 \usepackage[margin=25mm]{geometry}
 \usepackage[unicode,hidelinks]{hyperref}
 \hypersetup{pdfauthor={LangevinLean Project}}
@@ -32,6 +55,27 @@ Set \(\bar H(x,y)=\int_0^1H(y+t(x-y))dt\). Continuity of \(H\) makes the operato
 
 The average is taken along the straight line joining the two positions. Pairing with fixed vectors turns the operator-valued integral into an ordinary scalar integral. This permits both symmetry and quadratic-form bounds to be through scalar identities on the segment.
 
+\begin{leanbox}{Lean: \texttt{averagedHessian}, \texttt{averagedHessian\_\allowbreak{}pairing}}
+\leansource{\texttt{averagedHessian} \quad KineticLangevin/\allowbreak{}Hessian.lean, lines 21–22}
+\begin{leancode}
+\leanline{0}{def\ averagedHessian\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (x\ y\ :\ E)\ :\ E\ →L[ℝ]\ E\ :=}
+\leanline{2}{∫\ t\ in\ (0\ :\ ℝ)..1,\ H\ (y\ +\ t\ •\ (x\ -\ y))}
+\end{leancode}
+\leansource{\texttt{averagedHessian\_\allowbreak{}pairing} \quad KineticLangevin/\allowbreak{}Hessian.lean, lines 24–31}
+\begin{leancode}
+\leanline{0}{theorem\ averagedHessian\_pairing\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (hH\ :\ Continuous\ H)}
+\leanline{4}{(x\ y\ z\ w\ :\ E)\ :}
+\leanline{4}{{\leanfallback ⟪}z,\ averagedHessian\ H\ x\ y\ w{\leanfallback ⟫}\ =}
+\leanline{6}{∫\ t\ in\ (0\ :\ ℝ)..1,\ {\leanfallback ⟪}z,\ H\ (y\ +\ t\ •\ (x\ -\ y))\ w{\leanfallback ⟫}}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{averaged\allowbreak{}Hessian} names the mathematical object defined above. Its defining expression appears in the adjacent statement; subsequent identities may unfold this definition directly.
+
+
+
+
+\texttt{averaged\allowbreak{}Hessian\_\allowbreak{}pairing} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc} in that order.
+\end{leanbox}
 
 \section{\texorpdfstring{Symmetry and curvature bounds of the average}{Symmetry and curvature bounds of the average}}
 
@@ -42,6 +86,38 @@ If every \(H(p)\) is self-adjoint, the pairing identity moves both sides into sc
 
 For every vector \(u\), integrate \(m\|u\|^2\le\langle H_su,u\rangle\le M\|u\|^2\) over an interval of length one. The bounds remain \(m\) and \(M\). Symmetry is preserved because the equality of the two mixed pairings holds at each segment point.
 
+\begin{leanbox}{Lean: \texttt{averagedHessian\_\allowbreak{}symmetric}, \texttt{averagedHessian\_\allowbreak{}lower}, \texttt{averagedHessian\_\allowbreak{}upper}}
+\leansource{\texttt{averagedHessian\_\allowbreak{}symmetric} \quad KineticLangevin/\allowbreak{}Hessian.lean, lines 34–40}
+\begin{leancode}
+\leanline{0}{theorem\ averagedHessian\_symmetric\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (hH\ :\ Continuous\ H)}
+\leanline{4}{(hSym\ :\ ∀\ p\ z\ w,\ {\leanfallback ⟪}z,\ H\ p\ w{\leanfallback ⟫}\ =\ {\leanfallback ⟪}w,\ H\ p\ z{\leanfallback ⟫})\ (x\ y\ z\ w\ :\ E)\ :}
+\leanline{4}{{\leanfallback ⟪}z,\ averagedHessian\ H\ x\ y\ w{\leanfallback ⟫}\ =\ {\leanfallback ⟪}w,\ averagedHessian\ H\ x\ y\ z{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{averagedHessian\_\allowbreak{}lower} \quad KineticLangevin/\allowbreak{}Hessian.lean, lines 43–51}
+\begin{leancode}
+\leanline{0}{theorem\ averagedHessian\_lower\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (hH\ :\ Continuous\ H)}
+\leanline{4}{(m\ :\ ℝ)\ (hLower\ :\ ∀\ p\ z,\ m\ *\ ‖z‖\ \textasciicircum{}\ 2\ ≤\ {\leanfallback ⟪}z,\ H\ p\ z{\leanfallback ⟫})\ (x\ y\ z\ :\ E)\ :}
+\leanline{4}{m\ *\ ‖z‖\ \textasciicircum{}\ 2\ ≤\ {\leanfallback ⟪}z,\ averagedHessian\ H\ x\ y\ z{\leanfallback ⟫}}
+\end{leancode}
+\leansource{\texttt{averagedHessian\_\allowbreak{}upper} \quad KineticLangevin/\allowbreak{}Hessian.lean, lines 54–62}
+\begin{leancode}
+\leanline{0}{theorem\ averagedHessian\_upper\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)\ (hH\ :\ Continuous\ H)}
+\leanline{4}{(M\ :\ ℝ)\ (hUpper\ :\ ∀\ p\ z,\ {\leanfallback ⟪}z,\ H\ p\ z{\leanfallback ⟫}\ ≤\ M\ *\ ‖z‖\ \textasciicircum{}\ 2)\ (x\ y\ z\ :\ E)\ :}
+\leanline{4}{{\leanfallback ⟪}z,\ averagedHessian\ H\ x\ y\ z{\leanfallback ⟫}\ ≤\ M\ *\ ‖z‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{averaged\allowbreak{}Hessian\_\allowbreak{}symmetric} gives the formal counterpart of this step. Named proof applications include \texttt{interval\allowbreak{}Integral.\allowbreak{}integral\_\allowbreak{}congr}, \texttt{h\allowbreak{}Sym}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{averaged\allowbreak{}Hessian\_\allowbreak{}lower} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hi} in that order. Named proof applications include \texttt{hi}; the adjacent proof shows their hypotheses and order of use.
+
+
+
+
+\texttt{averaged\allowbreak{}Hessian\_\allowbreak{}upper} gives the formal counterpart of this step. The main intermediate facts are \texttt{hc}, \texttt{hi} in that order. Named proof applications include \texttt{hi}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \section{\texorpdfstring{Representation of the force difference}{Representation of the force difference}}
 
@@ -52,5 +128,15 @@ Assume \(Dg(p)=H(p)\). The affine path \(\ell(t)=y+t(x-y)\) has derivative \(x-y
 
 Apply the fundamental theorem of calculus to \(s\mapsto\nabla f(y+s(x-y))\). Its derivative is \(\nabla^2f(y+s(x-y))(x-y)\). Integrating from zero to one gives the force difference, proving that the averaged operator is the coefficient in the synchronous difference equation.
 
+\begin{leanbox}{Lean: \texttt{averagedHessian\_\allowbreak{}force\_\allowbreak{}difference}}
+\leansource{\texttt{averagedHessian\_\allowbreak{}force\_\allowbreak{}difference} \quad KineticLangevin/\allowbreak{}Hessian.lean, lines 66–78}
+\begin{leancode}
+\leanline{0}{theorem\ averagedHessian\_force\_difference\ (g\ :\ E\ →\ E)\ (H\ :\ E\ →\ E\ →L[ℝ]\ E)}
+\leanline{4}{(hH\ :\ Continuous\ H)\ (hg\ :\ ∀\ p,\ HasFDerivAt\ g\ (H\ p)\ p)\ (x\ y\ :\ E)\ :}
+\leanline{4}{averagedHessian\ H\ x\ y\ (x\ -\ y)\ =\ g\ x\ -\ g\ y}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{averaged\allowbreak{}Hessian\_\allowbreak{}force\_\allowbreak{}difference} gives the formal counterpart of this step. The main intermediate facts are \texttt{hpath}, \texttt{hc}, \texttt{he} in that order. Named proof applications include \texttt{he}; the adjacent proof shows their hypotheses and order of use.
+\end{leanbox}
 
 \end{document}
