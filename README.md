@@ -13,7 +13,7 @@ KIPLMC, PBGSO, latent diffusion, or average-smoothness LMC. The established over
 verification commands, and proof diagrams linking to detailed HTML proof pages.
 They have module pages and downloadable LaTeX expositions. PBGSO's main page
 pairs its four main paper theorems and final discretisation bounds New A and
-New B with exact Lean statements. A1–A5, added R1–R3 and numerical N1–N3 are
+New B with exact Lean statements. A1–A5, Extra A1–Extra A5 and the numerical initialization conditions are
 stated separately using the paper’s notation. The page expands all numerical
 constants, colours added conditions, provides readable standalone declarations
 and ends with a linked roadmap. Its separate technical catalog retains the
@@ -147,7 +147,7 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   The development proves variational identities, marginal optimizer results,
   interacting-particle error estimates and explicit accuracy choices. All 19
   corrected source statements are proved under the explicit extra assumptions
-  R1–R7; continuous decay holds for every classical solution in the R1–R4 class.
+  Extra A1–Extra A7; continuous decay holds for every classical solution satisfying Extra A1–Extra A4.
   The printed originals are tracked separately, and the audit records corrected
   minibatch scaling and the refutation of universal time-zero density differentiability.
 - **Average smoothness LMC:** [sampling proofs](AverageLMC/exposition/index.html).

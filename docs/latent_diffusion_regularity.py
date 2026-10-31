@@ -14,7 +14,7 @@ EXTRA_ASSUMPTION_PANELS = [
         \[0<Z_m(a):=\int\rho_a^m\,d\nu<\infty,\qquad
           \pi_a^m(dz):=Z_m(a)^{-1}\rho_a^m(z)\,\nu(dz).\]
         For a trial family \(q=(q^m)_{m=1}^M\), the domain condition is
-        \(\mathrm{KL}(q^m\|\pi_a^m)<\infty\) for every \(m\). If minimization is restricted to a law domain \(\mathcal D\), assume \((\pi_a^m)_m\in\mathcal D\) for every \(a\). For the paper's domain take \(\mathcal D=\mathcal P_2(Z)^M\), so \(\int\|z\|^2\,d\pi_a^m<\infty\) is required. The real Radon–Nikodym density \(f_m=dq^m/d\pi_a^m\), its normalization and \(f_m\log f_m\in L^1(\pi_a^m)\) follow from finite KL. The literal density \(q_m=f_m\rho_a^m/Z_m(a)\) and the energy identity are then derived. This variational domain does not impose smoothness on arbitrary trial laws. The classical-flow statements additionally require the positive differentiable initial density specified in R2–R3; a Dirac initial law does not satisfy it.""",
+        \(\mathrm{KL}(q^m\|\pi_a^m)<\infty\) for every \(m\). If minimization is restricted to a law domain \(\mathcal D\), assume \((\pi_a^m)_m\in\mathcal D\) for every \(a\). For the paper's domain take \(\mathcal D=\mathcal P_2(Z)^M\), so \(\int\|z\|^2\,d\pi_a^m<\infty\) is required. The real Radon–Nikodym density \(f_m=dq^m/d\pi_a^m\), its normalization and \(f_m\log f_m\in L^1(\pi_a^m)\) follow from finite KL. The literal density \(q_m=f_m\rho_a^m/Z_m(a)\) and the energy identity are then derived. This variational domain does not impose smoothness on arbitrary trial laws. The classical-flow statements additionally require the positive differentiable initial density specified in Extra A2–Extra A3; a Dirac initial law does not satisfy it.""",
         "refs": [
             ("LatentDiffusion/RegularVariational.lean", "DensityModel"),
             ("LatentDiffusion/RegularVariational.lean", "DensityModel.literal_integral"),
@@ -30,7 +30,7 @@ EXTRA_ASSUMPTION_PANELS = [
         <p>For an energy derivative at \(t_0\), write \(U_t(z)=U_m(a(t),z)\), \(\dot U_t(z)=D_aU_m(a(t),z)[\dot a(t)]\), and
         \[H_t(z)=q_t(z)(\log q_t(z)+U_t(z)),\qquad
           D_t(z)=\dot q_t(z)(\log q_t(z)+U_t(z)+1)+q_t(z)\dot U_t(z).\]
-        Assume one neighbourhood \(J\ni t_0\) and \(g\in L^1(\nu)\) such that, outside one null set and for every \(t\in J\), \(q_t>0\), \(\partial_tq_t=\dot q_t\), and \(|D_t|\le g\). Require \(H_{t_0}\in L^1(\nu)\), almost-everywhere strong measurability of \(D_{t_0}\), and of \(H_t\) for all \(t\) in a neighbourhood of \(t_0\). For a direct potential derivative require, outside one null set, \(\partial_tU_t(z)=\dot U_t(z)\) for every \(t\in J\); the chain-rule constructor instead uses differentiability of \(a\) at every such time and of \(U_m(\cdot,z)\) at the corresponding parameter. In the flow and directional statements also require \(q_t\nabla_aU_m(a(t),\cdot)\in L^1(\nu)\). These quantified conditions, rather than an assumed derivative of an integral, define R2.""",
+        Assume one neighbourhood \(J\ni t_0\) and \(g\in L^1(\nu)\) such that, outside one null set and for every \(t\in J\), \(q_t>0\), \(\partial_tq_t=\dot q_t\), and \(|D_t|\le g\). Require \(H_{t_0}\in L^1(\nu)\), almost-everywhere strong measurability of \(D_{t_0}\), and of \(H_t\) for all \(t\) in a neighbourhood of \(t_0\). For a direct potential derivative require, outside one null set, \(\partial_tU_t(z)=\dot U_t(z)\) for every \(t\in J\); the chain-rule constructor instead uses differentiability of \(a\) at every such time and of \(U_m(\cdot,z)\) at the corresponding parameter. In the flow and directional statements also require \(q_t\nabla_aU_m(a(t),\cdot)\in L^1(\nu)\). These quantified conditions, rather than an assumed derivative of an integral, define Extra A2.""",
         "refs": [
             ("LatentDiffusion/RegularFlowCalculus.lean", "LocalEnergyDomination"),
             ("LatentDiffusion/RegularFlowCalculus.lean", "LocalEnergyDomination.along_parameter_path"),
@@ -41,14 +41,14 @@ EXTRA_ASSUMPTION_PANELS = [
     {
         "id": "R3",
         "title": "Classical equations, differentiability and spatial integrability",
-        "prose": r"""On the Euclidean latent space \(Z=\mathbb R^{d_z}\), put \(\psi_t^m=\log q_t^m+U_m(a(t),\cdot)\) and \(J_t^m=q_t^m\nabla_z\psi_t^m\). The density-dynamics contract requires, for every \(t\in\mathbb R\) and \(m\), \(q_t^m(z)>0\) for every \(z\), \(q_t^m,U_m(a(t),\cdot)\in C^1(Z)\), differentiability of \(a\), differentiability of \(U_m(\cdot,z)\) at every parameter, the R2 energy domination, and \(q_t^m\nabla_aU_m(a(t),\cdot)\in L^1(dz)\). For \(t\ge0\), impose
+        "prose": r"""On the Euclidean latent space \(Z=\mathbb R^{d_z}\), put \(\psi_t^m=\log q_t^m+U_m(a(t),\cdot)\) and \(J_t^m=q_t^m\nabla_z\psi_t^m\). The density-dynamics contract requires, for every \(t\in\mathbb R\) and \(m\), \(q_t^m(z)>0\) for every \(z\), \(q_t^m,U_m(a(t),\cdot)\in C^1(Z)\), differentiability of \(a\), differentiability of \(U_m(\cdot,z)\) at every parameter, the Extra A2 energy domination, and \(q_t^m\nabla_aU_m(a(t),\cdot)\in L^1(dz)\). For \(t\ge0\), impose
         \[\dot a(t)=-\frac1M\sum_m\int q_t^m(z)\nabla_aU_m(a(t),z)\,dz,
           \qquad \partial_tq_t^m=\nabla_z\!\cdot J_t^m\quad\text{a.e.}\]
         For every spatial coordinate \(j\), require \(J_{t,j}^m\) differentiable and all three functions
         \[J_{t,j}^m(\psi_t^m+1),\qquad
           (\partial_jJ_{t,j}^m)(\psi_t^m+1),\qquad
           J_{t,j}^m\partial_j\psi_t^m\]
-        in \(L^1(dz)\). This is the precise no-boundary-term hypothesis. For a first variation along \(a_s=(1-s)a+sb\), \(T_s=(1-s)\mathrm{id}+sT\), impose the same R2 domination at \(s=0\), the equation \(\dot q_0=-\nabla\cdot(q_0(T-\mathrm{id}))\), differentiability of every component of \(q_0(T-\mathrm{id})\), and these three integrability conditions with flux \(q_0(T-\mathrm{id})\) and test \(\log q_0+U_m(a,\cdot)+1\). Require also \(U_m(a_s,\cdot)\in L^1(q_s^m)\) for every \(s\in[0,1]\). The gradient-pairing statement imposes the corresponding continuity equation and three integrable products for each velocity under consideration. Fisher integrability and de Bruijn are conclusions of these equations and hypotheses.""",
+        in \(L^1(dz)\). This is the precise no-boundary-term hypothesis. For a first variation along \(a_s=(1-s)a+sb\), \(T_s=(1-s)\mathrm{id}+sT\), impose the same Extra A2 domination at \(s=0\), the equation \(\dot q_0=-\nabla\cdot(q_0(T-\mathrm{id}))\), differentiability of every component of \(q_0(T-\mathrm{id})\), and these three integrability conditions with flux \(q_0(T-\mathrm{id})\) and test \(\log q_0+U_m(a,\cdot)+1\). Require also \(U_m(a_s,\cdot)\in L^1(q_s^m)\) for every \(s\in[0,1]\). The gradient-pairing statement imposes the corresponding continuity equation and three integrable products for each velocity under consideration. Fisher integrability and de Bruijn are conclusions of these equations and hypotheses.""",
         "refs": [
             ("LatentDiffusion/RegularFlowCalculus.lean", "NoBoundaryFlux"),
             ("LatentDiffusion/RegularFlowCalculus.lean", "integral_divergence_mul"),
@@ -65,11 +65,11 @@ EXTRA_ASSUMPTION_PANELS = [
         \[(T_s)_\#\mu=q_s\,dz,\qquad
           q_s(T_s z)=\frac{q_0(z)}{\prod_{j=1}^{d_z}(1-s+s\lambda_j(z))},\qquad
           \log(q_s\circ T_s)\in L^1(\mu).\]
-        For each datum the tangent dataset contract further requires \(q_0\in C^1(Z)\), \(\nabla\log q_0\in L^2(\mu)\), \(\mathrm{id}-T\in L^2(\mu)\), and \(z\mapsto\nabla_{(a,z)}U_m(a,z)\in L^2(\mu)\). With \(a_s=(1-s)a+sb\), require \(U_m(a_s,T_s\cdot)\in L^1(\mu)\) for every \(s\in[0,1]\). For \(w=T-\mathrm{id}\), every \(w_j\) is differentiable and \(w_jq_0\), \((\partial_jw_j)q_0\), \(w_j\partial_jq_0\) belong to \(L^1(dz)\). These are the transport-score integration-by-parts inputs, distinct from the flux/test pair in R3.</p>
+        For each datum the tangent dataset contract further requires \(q_0\in C^1(Z)\), \(\nabla\log q_0\in L^2(\mu)\), \(\mathrm{id}-T\in L^2(\mu)\), and \(z\mapsto\nabla_{(a,z)}U_m(a,z)\in L^2(\mu)\). With \(a_s=(1-s)a+sb\), require \(U_m(a_s,T_s\cdot)\in L^1(\mu)\) for every \(s\in[0,1]\). For \(w=T-\mathrm{id}\), every \(w_j\) is differentiable and \(w_jq_0\), \((\partial_jw_j)q_0\), \(w_j\partial_jq_0\) belong to \(L^1(dz)\). These are the transport-score integration-by-parts inputs, distinct from the flux/test pair in Extra A3.</p>
         <p>Whenever a map from \(\mu\) to \(\eta\) is used to identify an exact Wasserstein distance, require \(T_\#\mu=\eta\), \(z\mapsto z-Tz\in L^2(\mu)\), and, for every probability coupling \(\gamma\in\Gamma(\mu,\eta)\),
         \[\left(\int\|z-Tz\|^2\,d\mu\right)^{1/2}
           \le\left(\int\|x-y\|^2\,d\gamma(x,y)\right)^{1/2}.\]
-        Here coupling costs use the extended nonnegative integral, allowing \(+\infty\). The constant-speed geodesic statements additionally require such an optimal map between \(q_s\) and \(q_t\) for every \(s,t\in[0,1]\). Their converse assumes endpoint uniqueness: every optimal \(S:q_0\to q_1\) satisfies \(S=T\), \(q_0\)-a.e. The gradient-map version also supplies a convex function \(\Phi:Z\to\mathbb R\) with \(\nabla\Phi(z)=T(z)\) at every \(z\). These are assumptions on the chosen transport data. Entropy displacement convexity and the score tangent inequality are derived from them and R3.""",
+        Here coupling costs use the extended nonnegative integral, allowing \(+\infty\). The constant-speed geodesic statements additionally require such an optimal map between \(q_s\) and \(q_t\) for every \(s,t\in[0,1]\). Their converse assumes endpoint uniqueness: every optimal \(S:q_0\to q_1\) satisfies \(S=T\), \(q_0\)-a.e. The gradient-map version also supplies a convex function \(\Phi:Z\to\mathbb R\) with \(\nabla\Phi(z)=T(z)\) at every \(z\). These are assumptions on the chosen transport data. Entropy displacement convexity and the score tangent inequality are derived from them and Extra A3.""",
         "refs": [
             ("LatentDiffusion/RegularTransport.lean", "RegularDisplacement"),
             ("LatentDiffusion/RegularTransportFirstOrder.lean", "DatasetRegularity"),
@@ -82,11 +82,11 @@ EXTRA_ASSUMPTION_PANELS = [
     {
         "id": "R5",
         "title": "Differentiable characteristics and optimal coupling anchors",
-        "prose": r"""For each datum choose a probability space \((\Omega_m,P_m)\), maps \(Y_m,v_m:\mathbb R\to L^2(P_m;Z)\), and a curve \(x:\mathbb R\to X\), continuous on \([0,\infty)\), in the R6 chart. For every \(t\in\mathbb R\), require
+        "prose": r"""For each datum choose a probability space \((\Omega_m,P_m)\), maps \(Y_m,v_m:\mathbb R\to L^2(P_m;Z)\), and a curve \(x:\mathbb R\to X\), continuous on \([0,\infty)\), in the Extra A6 chart. For every \(t\in\mathbb R\), require
         \[\operatorname{Law}(Y_m(t))=q_{x(t)}^m\,dz,\qquad
           \frac{d}{dt}Y_m(t)=v_m(t)\text{ in }L^2(P_m;Z),\qquad
           v_m(t)=-\nabla_z(\log q_t^m+U_m(a(t),\cdot))(Y_m(t))\quad P_m\text{-a.s.}\]
-        Match the chart parameter and density exactly to those of the R3 dynamics: \(a(x(t))=a(t)\), \(q_{x(t)}^m=q_t^m\). For every \(s,t\in\mathbb R\) and \(m\), supply \(A_{s,t}^m\in L^2(P_m;Z)\) with law \(q_{x(s)}^m\,dz\), such that for every \(\gamma\in\Gamma(\operatorname{Law}(Y_m(t)),q_{x(s)}^m dz)\),
+        Match the chart parameter and density exactly to those of the Extra A3 dynamics: \(a(x(t))=a(t)\), \(q_{x(t)}^m=q_t^m\). For every \(s,t\in\mathbb R\) and \(m\), supply \(A_{s,t}^m\in L^2(P_m;Z)\) with law \(q_{x(s)}^m\,dz\), such that for every \(\gamma\in\Gamma(\operatorname{Law}(Y_m(t)),q_{x(s)}^m dz)\),
         \[\|Y_m(t)-A_{s,t}^m\|_{L^2(P_m)}
           \le\left(\int\|z-w\|^2\,d\gamma(z,w)\right)^{1/2}.\]
         The coupling cost on the right is an extended nonnegative integral. The scalar integrated-speed lemma additionally assumes Bochner interval integrability \(v_m\in L^1([s,t];L^2(P_m;Z))\). The product statement requires the entire lifted velocity \(u\mapsto(\dot a(u),(v_m(u)/\sqrt M)_m)\) Bochner interval integrable on \([s,t]\). The product-space realization uses \(Y_m/\sqrt M\). Distance increments, upper-right slopes and integrated speed bounds follow from these hypotheses; an ordinary distance derivative at a target crossing is not required.""",
@@ -121,7 +121,7 @@ EXTRA_ASSUMPTION_PANELS = [
         \[\operatorname{Law}(Z_0)(dz)=
           \frac{\exp(-\sum_{i=1}^K U_i(a_\star,z_i))}{\int_{Z^K}\exp(-\sum_{i=1}^K U_i(a_\star,w_i))\,dw}\,dz,\qquad
           \operatorname{Law}(Z_{0,i})=\pi_{a_\star}^i.\]
-        Here \(a_\star\) is the proved evidence optimizer, the datum potentials are repeated across their \(N\) copies, and R2 normalizer domination holds at \(a_\star\). Require the parameter scores \(S_i=\nabla_aU_i(a_\star,Z_{0,i})\) to be independent across all \(i\). For the explicit particle-count rate assume
+        Here \(a_\star\) is the proved evidence optimizer, the datum potentials are repeated across their \(N\) copies, and Extra A2 normalizer domination holds at \(a_\star\). Require the parameter scores \(S_i=\nabla_aU_i(a_\star,Z_{0,i})\) to be independent across all \(i\). For the explicit particle-count rate assume
         \[\mathbb E\|S_i-\mathbb ES_i\|^2\le V_0\quad(1\le i\le K).\]
         The hypotheses of the rate theorem supply one \(V_0\); a claim uniform in \(N\) requires that same bound for every \(N\).</p>
         <p>Supply real coordinate processes \(B_{i,j}(t)\), \(t\ge0\), whose every finite-dimensional law is centered Gaussian with covariance \(\mathbb E[B_{i,j}(s)B_{i,j}(t)]=\min(s,t)\). In particular, \(B_{i,j}(0)=0\) almost surely and \(B_{i,j}(t)-B_{i,j}(s)\sim N(0,t-s)\) for \(0\le s\le t\). For every \(s>0\), the entire family \(\Delta B_{n,i,j}^{(s)}=B_{i,j}((n+1)s)-B_{i,j}(ns)\), indexed by \((n,i,j)\), must be independent, and \(Z_0\) must be independent of the complete sequence \((\Delta B_{n,i,j}^{(s)})_{n,i,j}\). The continuous comparisons use \(L^2(P)\)-continuous curves solving the actual Bochner integral equations for their displayed forces and these same Brownian inputs. For example, the full particle curve satisfies

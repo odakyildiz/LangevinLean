@@ -54,7 +54,7 @@ def statements(library, sources, parsed):
         if missing:
             raise ValueError(f'PBGSO statements without a report section: {missing}')
         return [(heading, [(r['title'], r['content'], r['refs']) for r in group]) for heading, group in groups]
-    from build_latent_diffusion import panels, paper_audit, source_endpoint_refs
+    from build_latent_diffusion import panels, paper_audit, source_endpoint_refs, result_label, source_status
     from latent_diffusion_paper import PAPER_RESULTS
     panel_list = panels()
 
@@ -67,13 +67,14 @@ def statements(library, sources, parsed):
         text = entry.get('statement', '')
         if entry.get('correction'):
             text += '<p><strong>Correction.</strong> ' + entry['correction'] + '</p>'
-        results.append((entry['title'], text, source_endpoint_refs(record)))
+        text = '<p><strong>' + source_status(record) + '.</strong></p>' + text
+        results.append((result_label(record) + ' — ' + entry['title'], text, source_endpoint_refs(record)))
     return [('Assumptions of the paper', section('assumptions')),
             ('Extra assumptions', section('source-regularity')),
             ('Density model and analytic chain', section('source-contracts')),
             ('Results of the paper in corrected form', results),
-            ('New assumptions', section('new-assumptions')),
-            ('New theorems', section('new-theorems'))]
+            ('Extra assumptions for the additional results', section('new-assumptions')),
+            ('Additional results — not statements of the paper', section('new-theorems'))]
 
 
 def paper_content(value):

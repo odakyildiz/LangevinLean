@@ -17,7 +17,7 @@ analogue is also linked as a footnote from IPLA:
 Latent diffusion has a source-derived overview and complete declaration pages,
 with variational identities, marginal optimizers, particle error bounds and
 explicit accuracy choices. Its 19 corrected source results are proved under
-explicit extra assumptions R1–R7. The [source audit](../LatentDiffusion/exposition/source_audit.md)
+Extra A1–Extra A7. The [source audit](../LatentDiffusion/exposition/source_audit.md)
 records each correction, the corrected minibatch scaling and the time-zero density obstruction.
 
 PBGSO is a separate source-based development with all eight source results
@@ -35,9 +35,9 @@ parameter bounds for every iteration under an explicit positive small-step
 threshold. Source A3 constructs their contracting empirical metric; physical
 noise, Gaussian coupling, raw/$L^2$ coordinates, uniform reference moments and
 local errors are derived. Constants may depend on the fixed particle count.
-The numerical assumptions N1–N3 separately state a global force Lipschitz
-bound, the original initial/A3/A5 data, and an actual canonical $L^2$ frozen
-target trajectory. No numerical contraction or uniform moment bound is
+The numerical results state Extra A4 (global force Lipschitz bounds), the
+original initialization/A3/A5 data, and Extra A5 (an actual canonical $L^2$
+frozen target trajectory). No numerical contraction or uniform moment bound is
 assumed. The explicit endpoints are `FullyUniformMomentum.explicit_parameter_bound`
 and `FullyUniformHigherOrder.explicit_parameter_bound`; each also has an
 `explicit_discretization_bound` for the full raw state. Their metric constants
@@ -94,8 +94,8 @@ have their own directories and detailed mathematical arguments. PBGSO's main
 page states four main paper theorems and the two final numerical bounds as
 Theorem New A and Theorem New B. Each mathematical row sits beside its exact
 Lean statement, with expandable shared context. The paper’s state/gradient
-notation is retained. A1–A5, added R1–R3, and numerical N1–N3 have their own
-paired statements; orange marks added conditions and blue marks explicit
+notation is retained. A1–A5 retain the paper’s labels. Extra A1–Extra A3 for paper-result
+branches and Extra A4–Extra A5 for additional numerical results have paired statements; orange marks added conditions and blue marks explicit
 solution interpretations. Each theorem states which conditions it uses.
 All numerical constants are expanded mathematically, including both positive
 and zero position-dimension cloud constants and the proved primitive zero-force
@@ -162,6 +162,22 @@ and IPLA. Old section anchors are redirected from their overview automatically.
 
 ## Edit and regenerate
 
+Every project main page follows the same order: paper correspondence, assumptions
+from the paper, extra assumptions, and paper results. Restated assumptions retain
+the source's labels and cite that source beside each statement. If the paper has
+no numbered assumptions, cite its equation, theorem or section without inventing
+an assumption label. Added hypotheses are numbered `Extra A1`, `Extra A2`, and so
+on within each project, using the shared orange style.
+
+Paper result headings retain the printed `Theorem`, `Proposition` or `Lemma`
+number. Each has a source citation, proof status, and explicit changes to the
+paper's hypotheses or conclusion. A corrected result is not certified as the
+literal printed statement. Auxiliary definitions and new results belong after
+the paper results and are identified as additional material. The shared metadata
+is in `paper_sources_classical.py` and `paper_sources_kinetic.py`; the dedicated
+PBGSO and latent builders enforce the same convention. Run
+`python3 docs/test_paper_standardization.py --site` after regeneration.
+
 The authored module statements and proofs live in each library's
 `exposition/module_notes.json`. Each step names the local declarations it explains;
 Lean code is read from the source at generation time. `site_content.py` contains
@@ -193,8 +209,7 @@ broader extended-negative interpretation is outside that correspondence.
 `build_latent_diffusion.py` generates the latent-diffusion overview, complete
 proof pages, verbatim line-numbered manuscript views, exact source inventory
 and imported theorem checks. Its first part states all 19 paper results and
-their corrections; its second part separately lists New Assumptions and New
-Theorems. Each source result records its formal status. It is integrated
+their corrections; its second part separately lists the assumptions and results added beyond the paper. Each source result records its formal status. It is integrated
 into `build_site.py` and its input/output manifest. Run
 `python3 docs/build_latent_diffusion.py --check` to check regeneration, exact source
 excerpts, complete theorem headers, local links and mathematical typesetting;

@@ -20,6 +20,21 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "LatentDiffusion/exposition/index.html"
 AUDIT = ROOT / "LatentDiffusion/exposition/reference_audit.json"
+# Independent expected printed labels: definitions C.1/C.7 and remark C.13
+# consume the shared manuscript counter, even though they are not result cards.
+PAPER_LABELS = dict(zip((
+    "prop:ftildemins", "thm:exp_convg_informal", "thrm:error-bound",
+    "app:lemma_1st_var", "unlabelled-product-gradient", "prop:de_bruijin",
+    "lem:geodesic", "lem:geodesic_convexity", "lem:lower_deriv",
+    "thm:sLC_implies_xLSI", "lem:distance_deriv", "lem:lower_semi_continuous",
+    "lem:cauchy", "thm:xLSI_implies_xTalagrand", "thm:exp_convg_appendix",
+    "lem:cont-time-convg", "lem:spatial_discretization",
+    "lem:temporal_discretization", "thrm_app:error-bound"), (
+    "Proposition 2.1", "Theorem 3.1", "Theorem 3.2", "Lemma A.1",
+    "Proposition A.2", "Proposition C.2", "Lemma C.3", "Lemma C.4",
+    "Lemma C.5", "Theorem C.6", "Lemma C.8", "Lemma C.9", "Lemma C.10",
+    "Theorem C.11", "Theorem C.12", "Lemma C.14", "Lemma C.15",
+    "Lemma C.16", "Theorem C.17")))
 NEW_THEOREMS = {
     "batch-corrections", "tilted-model-bias", "euler-contraction",
     "particle-normalized-geometry", "robust-euler", "integral-euler",
@@ -100,6 +115,10 @@ def normalized(text):
 
 def validate_landing(source, audit):
     """Validate the page without importing its generator or trusting its panels."""
+    require("a reference force Extra A" not in source and
+            "identification of Extra A" not in source and
+            not re.search(r"Extra A\d+(?:–Extra A\d+)? is the particle count per datum", source),
+            "Extra-assumption labels cannot replace mathematical symbols R or N")
     document = Document(source)
     nodes = list(document.root.elements())
 
@@ -115,16 +134,20 @@ def validate_landing(source, audit):
     new = unique("new-theory")
     new_assumptions = unique("new-assumptions")
     new_theorems = unique("new-theorems")
-    require(assumptions.order < regularity.order < contracts.order < paper.order < new.order,
-            "Paper assumptions, extra assumptions and source results must precede new theory")
+    ledger = unique("paper-correspondence")
+    rows = [node for node in ledger.elements() if "data-paper-correspondence" in node.attrs]
+    require(len(rows) == 19 and {node.attrs["data-paper-correspondence"] for node in rows} == set(PAPER_LABELS.values()),
+            "Paper correspondence must list all 19 exact printed result numbers")
+    require(assumptions.order < regularity.order < paper.order < contracts.order < new.order,
+            "Paper assumptions, extra assumptions and source results must precede supporting definitions and additional results")
     require(new.attrs.get("data-new-theory") == "true",
             "The new-theory block must be explicitly identified")
     require(new.contains(new_assumptions) and new.contains(new_theorems),
             "New Assumptions and New Theorems must be inside New theory")
     require(new_assumptions.order < new_theorems.order,
             "New Assumptions must precede New Theorems")
-    for section, heading in ((new_assumptions, "New Assumptions"),
-                             (new_theorems, "New Theorems")):
+    for section, heading in ((new_assumptions, "Extra assumptions"),
+                             (new_theorems, "New results")):
         headings = [node.text() for node in section.elements()
                     if node.tag in {"h2", "h3"}]
         require(any(heading.lower() in text.lower() for text in headings),
@@ -143,20 +166,27 @@ def validate_landing(source, audit):
         if node.tag in {"h3", "h4"}:
             require(not re.match(r"\s*(?:N\d+|V1|C1)\b", node.text()),
                     "Added domains and analytic bridges need their own section")
+    for node in nodes:
+        if node.tag in {"h2", "h3"}:
+            require(not re.match(r"\s*(?:V|R|N|C)\d+\b", node.text()),
+                    "Public headings must use paper labels or Extra A labels")
+        if node.tag == "annotation" and node.attrs.get("encoding") == "application/x-tex":
+            require(not re.search(r"\bExtra\s+A\d+\b", node.text()),
+                    "Extra-assumption labels cannot replace a mathematical expression")
     require(source_assumption_ids == ["A1", "A2", "A3", "A4"],
             "The source-assumptions section must state A1–A4 explicitly and in order")
 
-    regularity_ids = {f"R{i}" for i in range(1, 8)}
+    regularity_ids = {f"Extra A{i}" for i in range(1, 8)}
     regularity_cards = [node for node in nodes
                         if node.attrs.get("data-assumption-id") in regularity_ids]
     require(len(regularity_cards) == 7 and
             {node.attrs["data-assumption-id"] for node in regularity_cards} == regularity_ids,
-            "Source extra assumptions must include R1–R7 exactly once")
+            "Source extra assumptions must include Extra A1–Extra A7 exactly once")
     for node in regularity_cards:
-        require(regularity.contains(node), "R extra assumptions must precede the source results in its own section")
-        require(node.has_class("category-extra-assumption"), "R extra assumptions must be explicitly classified")
+        require(regularity.contains(node), "Extra assumptions must precede the source results in its own section")
+        require(node.has_class("category-extra-assumption"), "Extra assumptions must be explicitly classified")
         require(any(child.tag == "pre" for child in node.elements()),
-                "R extra assumptions must show its exact Lean hypotheses")
+                "Extra assumptions must show its exact Lean hypotheses")
     require(re.search(r"\.category-original\s*\{[^}]*border-top-color:\s*#28734a", source, re.I),
             "Paper assumptions must retain their green source colour")
     compact_source = re.sub(r"\s+", "", source)
@@ -171,12 +201,12 @@ def validate_landing(source, audit):
     require(not re.search(r"\b(?:added|source)\s+regularity\b", public_labels, re.I),
             "Public labels must call additional premises extra assumptions")
 
-    required_assumptions = {f"N{i}" for i in range(1, 8)}
+    required_assumptions = {f"Extra A{i}" for i in range(8, 15)}
     numerical_assumptions = [node for node in nodes
                              if node.attrs.get("data-assumption-id") in required_assumptions]
     require(len(numerical_assumptions) == 7 and
             {node.attrs["data-assumption-id"] for node in numerical_assumptions} == required_assumptions,
-            "New Assumptions must include N1–N7 exactly once")
+            "New Assumptions must include Extra A8–Extra A14 exactly once")
     for node in numerical_assumptions:
         require(new_assumptions.contains(node),
                 f"{node.attrs['data-assumption-id']} lies outside New Assumptions")
@@ -189,7 +219,7 @@ def validate_landing(source, audit):
                 "Every extra-assumption statement must use the shared orange treatment")
         if node in regularity_cards:
             require(any(child.has_class("katex-display") for child in math_panes[0].elements()),
-                    "Every R extra-assumption card must state its mathematical conditions explicitly")
+                    "Every source extra-assumption card must state its mathematical conditions explicitly")
 
     records = {record["id"]: record for record in audit["results"]}
     require(len(records) == 19, "The source ledger must retain all 19 paper results")
@@ -202,6 +232,11 @@ def validate_landing(source, audit):
         record = records[identifier]
         require(paper.contains(card), f"Source result is outside the source section: {identifier}")
         descendants = list(card.elements())
+        label = PAPER_LABELS[identifier]
+        require(card.attrs.get("data-paper-result") == label and
+                card.attrs.get("data-source-label") == label and
+                any(node.tag == "h3" and node.text().startswith(label + " — ") for node in descendants),
+                f"Source result must retain its exact printed paper number: {identifier}")
         references = [node for node in [card] + descendants
                       if node.attrs.get("data-source-path") == record["source"] and
                       node.attrs.get("data-source-start") == str(record["start_line"]) and
@@ -225,14 +260,17 @@ def validate_landing(source, audit):
                                   visible, re.I),
                     f"A source result with unresolved premises claims full reconstruction: {identifier}")
         if record.get("corrected_statement_fully_proved") is True:
-            require(status == "proved" and card.attrs.get("data-corrected-complete") == "true",
+            require(status == "corrected-proved" and card.attrs.get("data-corrected-complete") == "true",
                     f"Completed corrected source proof is not shown as proved: {identifier}")
-        expected_added = set(record.get("added_assumptions", []))
+        if record.get("original_statement_fully_reconstructed") is False:
+            require("not been formalized as stated" in visible.lower(),
+                    f"A corrected proof must explicitly say the printed statement is not formalized: {identifier}")
+        expected_added = {"Extra A" + item[1:] for item in record.get("added_assumptions", [])}
         actual_added = {node.text().strip() for node in descendants
                         if node.has_class("extra-assumption-link") and
                         node.attrs.get("href", "").startswith("#regularity-r")}
         require(actual_added == expected_added,
-                f"Source card must link its own added R assumptions: {identifier}")
+                f"Source card must link its own added Extra A assumptions: {identifier}")
         if card.attrs.get("data-original-complete") == "false":
             require("the original statement is reconstructed" not in visible.lower(),
                     "A corrected theorem cannot claim fidelity to a false printed original")
@@ -269,14 +307,16 @@ class LandingContractTests(unittest.TestCase):
         paper = []
         for record in self.audit["results"]:
             complete = record.get("corrected_statement_fully_proved") is True
+            label = PAPER_LABELS[record["id"]]
             added = ('<p class="added-assumption">' + ''.join(
-                '<a class="extra-assumption-link" href="#regularity-' + item.lower() + '">' + item + '</a>'
+                '<a class="extra-assumption-link" href="#regularity-' + item.lower() + '">' + "Extra A" + item[1:] + '</a>'
                 for item in record.get("added_assumptions", [])) + '</p>')
             paper.append('<article data-source-result="' + escape(record["id"]) +
-                         '" data-formal-status="' + ('proved' if complete else 'partial') +
+                         '" data-formal-status="' + ('corrected-proved' if complete else 'partial') +
+                         '" data-paper-result="' + label + '" data-source-label="' + label +
                          '" data-corrected-complete="' + str(complete).lower() +
-                         '" data-original-complete="false">' + pair(
-                             '<p>Formal status: the stated conclusion is conditional on explicit analytic premises.</p>' + added) +
+                         '" data-original-complete="false"><h3>' + label + ' — Paper statement</h3>' + pair(
+                             '<p>Formal status: the stated conclusion is conditional on explicit analytic premises. The printed statement has not been formalized as stated.</p>' + added) +
                          '<a data-source-path="' + record["source"] +
                          '" data-source-start="' + str(record["start_line"]) +
                          '" data-source-end="' + str(record["end_line"]) + '">Source</a>' +
@@ -284,25 +324,28 @@ class LandingContractTests(unittest.TestCase):
                          escape(record["exact_tex"]) + '</pre></details></article>')
         assumptions = ''.join(f'<article class="category-original"><h3>A{i} — Source condition</h3></article>'
                               for i in range(1, 5))
-        regularity = ''.join(f'<article data-assumption-id="R{i}" class="category-extra-assumption">' +
+        regularity = ''.join(f'<article data-assumption-id="Extra A{i}" class="category-extra-assumption">' +
                              pair('<span class="katex-display">Quantified mathematical assumptions.</span>', extra=True) + '</article>'
                              for i in range(1, 8))
-        new_assumptions = ''.join(f'<article data-assumption-id="N{i}" class="category-new">' +
+        new_assumptions = ''.join(f'<article data-assumption-id="Extra A{i}" class="category-new">' +
                                  pair('<span class="katex-display">The explicit primitive force premise.</span>', extra=True) + '</article>'
-                                 for i in range(1, 8))
+                                 for i in range(8, 15))
         new_theorems = ''.join(f'<article id="{identifier}" class="category-new">' +
                               pair('The quantitative conclusion and its contribution to the paper.') + '</article>'
                               for identifier in sorted(NEW_THEOREMS))
         return ('<style>.category-original{border-top-color:#28734a}'
                 '.category-new,.latent-page .category-extra-assumption{border-top-color:var(--extra-assumption-border)}'
                 '.category-new>.result-badge,.latent-page .category-extra-assumption>.result-badge{background:var(--extra-assumption-bg);color:var(--extra-assumption-ink)}</style>'
-                '<main><section id="assumptions">' + assumptions + '</section>' +
-                '<section id="source-regularity"><h2>Extra assumptions R1–R7</h2>' + regularity + '</section>' +
-                '<section id="source-contracts"><h2>Additional formalization premises</h2></section>' +
+                '<main><section id="paper-correspondence"><table>' + ''.join(
+                    '<tr data-paper-correspondence="' + label + '"><td>' + label + '</td></tr>'
+                    for label in PAPER_LABELS.values()) + '</table></section>' +
+                '<section id="assumptions">' + assumptions + '</section>' +
+                '<section id="source-regularity"><h2>Extra assumptions Extra A1–Extra A7</h2>' + regularity + '</section>' +
                 '<section id="source-results">' + ''.join(paper) + '</section>' +
+                '<section id="source-contracts"><h2>Additional formalization premises</h2></section>' +
                 '<section id="new-theory" data-new-theory="true">' +
-                '<section id="new-assumptions"><h2>New Assumptions</h2>' + new_assumptions + '</section>' +
-                '<section id="new-theorems"><h2>New Theorems</h2>' + new_theorems + '</section>' +
+                '<section id="new-assumptions"><h2>Extra assumptions for additional results</h2>' + new_assumptions + '</section>' +
+                '<section id="new-theorems"><h2>New results</h2>' + new_theorems + '</section>' +
                 '</section></main>')
 
     def check(self, source):
@@ -310,6 +353,19 @@ class LandingContractTests(unittest.TestCase):
 
     def test_generated_page_meets_reader_contract(self):
         self.check(PAGE.read_text())
+
+    def test_source_line_links_do_not_inherit_publication_card_layout(self):
+        from build_latent_diffusion import EXTRA_CSS, paper_reference
+        record = self.audit["results"][0]
+        source = paper_reference(record["source"], record["start_line"],
+                                 record["end_line"], PAPER_LABELS[record["id"]])
+        link = next(node for node in Document(source).root.elements() if node.tag == "a")
+        self.assertTrue(link.has_class("paper-line-reference"))
+        self.assertTrue(link.has_class("source-citation"))
+        self.assertFalse(link.has_class("paper-reference"),
+                         "Inline manuscript links must not receive publication-card boxes")
+        self.assertEqual(link.attrs["data-source-path"], record["source"])
+        self.assertIn("a.paper-line-reference{display:inline;margin:0;padding:0;border:0", EXTRA_CSS)
 
     def test_complete_source_first_fixture_passes(self):
         self.check(self.fixture())
@@ -345,7 +401,7 @@ class LandingContractTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "claims full reconstruction"):
             source = re.sub(r'data-formal-status="[^"]+"', 'data-formal-status="partial"',
                             self.fixture(), count=1)
-            self.check(source.replace('Formal status:', 'Fully reconstructed. Formal status:', 1))
+            self.check(source.replace('Formal status:', '. Fully reconstructed. Formal status:', 1))
 
     def test_new_theory_cannot_precede_paper_results(self):
         source = self.fixture().replace('id="source-results"', 'id="swap"')
@@ -359,16 +415,16 @@ class LandingContractTests(unittest.TestCase):
             self.check(self.fixture().replace('A4 — Source condition', 'N1 — Added force condition'))
 
     def test_new_assumptions_must_be_separate_and_complete(self):
-        with self.assertRaisesRegex(AssertionError, "N1–N7"):
-            self.check(self.fixture().replace('data-assumption-id="N7"', ''))
+        with self.assertRaisesRegex(AssertionError, "Extra A8–Extra A14"):
+            self.check(self.fixture().replace('data-assumption-id="Extra A14"', ''))
 
     def test_extra_source_assumptions_must_be_complete(self):
-        with self.assertRaisesRegex(AssertionError, "R1–R7"):
-            self.check(self.fixture().replace('data-assumption-id="R7"', ''))
+        with self.assertRaisesRegex(AssertionError, "Extra A1–Extra A7"):
+            self.check(self.fixture().replace('data-assumption-id="Extra A7"', ''))
 
     def test_extra_source_assumptions_cannot_be_relabelled_original(self):
-        source = self.fixture().replace('data-assumption-id="R3" class="category-extra-assumption"',
-                                        'data-assumption-id="R3" class="category-original"')
+        source = self.fixture().replace('data-assumption-id="Extra A3" class="category-extra-assumption"',
+                                        'data-assumption-id="Extra A3" class="category-original"')
         with self.assertRaisesRegex(AssertionError, "explicitly classified"):
             self.check(source)
 
@@ -377,7 +433,7 @@ class LandingContractTests(unittest.TestCase):
             self.check(self.fixture().replace('border-top-color:var(--extra-assumption-border)', 'border-top-color:#245fa3'))
 
     def test_each_source_card_must_link_its_own_added_assumptions(self):
-        with self.assertRaisesRegex(AssertionError, "own added R assumptions"):
+        with self.assertRaisesRegex(AssertionError, "own added Extra A assumptions"):
             self.check(self.fixture().replace('href="#regularity-r1"', 'href="#missing"', 1))
 
     def test_exact_lean_cannot_be_replaced_by_a_proof_link(self):
@@ -388,7 +444,32 @@ class LandingContractTests(unittest.TestCase):
 
     def test_new_theorems_require_their_own_explicit_heading(self):
         with self.assertRaisesRegex(AssertionError, "explicit heading"):
-            self.check(self.fixture().replace('<h2>New Theorems</h2>', '<h2>Further details</h2>'))
+            self.check(self.fixture().replace('<h2>New results</h2>', '<h2>Further details</h2>'))
+
+    def test_wrong_paper_theorem_number_is_rejected(self):
+        source = self.fixture().replace('<h3>Theorem 3.2 — Paper statement</h3>',
+                                        '<h3>Theorem 3.3 — Paper statement</h3>')
+        with self.assertRaisesRegex(AssertionError, "exact printed paper number"):
+            self.check(source)
+
+    def test_internal_assumption_numbering_is_rejected(self):
+        source = self.fixture().replace('<h2>Additional formalization premises</h2>',
+                                        '<h2>V1 — Variational domain</h2>')
+        with self.assertRaisesRegex(AssertionError, "Public headings"):
+            self.check(source)
+
+    def test_corrected_status_cannot_hide_changed_statement(self):
+        source = self.fixture().replace(' The printed statement has not been formalized as stated.', '', 1)
+        with self.assertRaisesRegex(AssertionError, "printed statement is not formalized"):
+            self.check(source)
+
+    def test_mathematical_symbols_cannot_be_replaced_by_assumption_labels(self):
+        for corrupted in ("a reference force Extra A1–Extra A7 is Lipschitz",
+                          "identification of Extra A1–Extra A7 with a conditional KL",
+                          "Extra A8–Extra A14 is the particle count per datum"):
+            with self.subTest(corrupted=corrupted):
+                with self.assertRaisesRegex(AssertionError, "mathematical symbols R or N"):
+                    self.check(self.fixture().replace('<main>', '<main><p>' + corrupted + '</p>'))
 
     def test_authoring_placeholders_are_rejected(self):
         with self.assertRaisesRegex(AssertionError, "placeholder"):

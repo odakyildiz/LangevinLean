@@ -6,11 +6,14 @@ exposes the exact assumptions; the [source audit](exposition/source_audit.md)
 and [coverage ledger](exposition/reference_audit.json) distinguish proved,
 conditional, corrected and unverified manuscript claims.
 
-The main page follows the PBGSO statement/Lean layout. Part I states A1–A4,
-the additional formalization domains, all 19 main and supplementary source
-results, and the corrections. Every result links to a verbatim, line-numbered
-view of the supplied paper. Part II separately lists **New Assumptions N1–N7**
-and **New Theorems**, with their exact Lean contracts and contributions.
+The main page starts with a source correspondence table. The main-text results
+are **Proposition 2.1**, **Theorem 3.1** and **Theorem 3.2**; the 16 appendix
+results retain their printed numbers. Each result cites a verbatim source
+statement and its Lean endpoint. **All 19 corrected versions are proved; none
+is certified as printed.** Paper assumptions retain **A1–A4**. The added
+hypotheses are **Extra A1–Extra A7**, shown in orange. Supporting definitions
+and the separate additional results, with **Extra A8–Extra A14**, are collapsed
+below the paper results.
 
 The finite-dimensional theory proves existence and uniqueness of the actual
 heterogeneous marginal optimizer from differentiable jointly strongly convex
@@ -18,10 +21,10 @@ potentials, sharp parameter quadratic growth, and variational optimality on the
 finite-KL domain. `Density.lean` proves the actual log-density integral/KL
 identity from explicit normalization and entropy-integrability hypotheses.
 Continuous-time free-energy, posterior-KL and parameter decay are proved from
-the classical equations under the extra assumptions R1–R4, for every classical
+the classical equations under the extra assumptions Extra A1–Extra A4, for every classical
 solution in that class; existence of such a density flow is not constructed.
 All 19 corrected source statements are proved under explicit extra assumptions
-R1–R7, while the printed originals are tracked separately. The literal
+Extra A1–Extra A7, while the printed originals are tracked separately. The literal
 all-initial-laws density requirement at time zero is refuted for nonatomic
 reference measures. The experimental neural-network assumptions are not claimed.
 

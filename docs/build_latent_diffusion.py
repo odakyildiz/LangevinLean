@@ -34,6 +34,49 @@ def paper_audit():
     return json.loads((ROOT / AUDIT).read_text())
 
 
+def paper_labels():
+    """Resolve printed numbers using the manuscript's shared theorem counter.
+
+    Definitions and remarks consume that counter too; counting only the 19
+    audited results would give wrong appendix theorem numbers. A1--A4 use the
+    independent assumption_app counter declared in includes/includes.tex.
+    """
+    include = (ROOT / "papers/Latent_diffusion/includes/includes.tex").read_text()
+    for declaration in (r"\newtheorem{theorem}{Theorem}[section]",
+                        r"\newtheorem{definition}[theorem]{Definition}",
+                        r"\newtheorem{remark}[theorem]{Remark}",
+                        r"\newtheorem{assumption_app}{\textbf{A}\hspace{-0.12cm}}"):
+        if declaration not in include:
+            raise ValueError("Manuscript theorem-counter declaration changed: " + declaration)
+    result = {}
+    for path, appendix in (("papers/Latent_diffusion/main_aistats.tex", False),
+                           ("papers/Latent_diffusion/supp_aistats.tex", True)):
+        section, counter = 0, 0
+        for number, line in enumerate((ROOT / path).read_text().splitlines(), 1):
+            # Remove source comments before looking for structural commands.
+            line = re.split(r"(?<!\\)%", line, maxsplit=1)[0]
+            if re.search(r"\\section\{", line):
+                section, counter = section + 1, 0
+            match = re.search(r"\\begin\{(theorem|proposition|corollary|lemma|assumption|definition|example|remark|notation)\}", line)
+            if match:
+                counter += 1
+                prefix = chr(64 + section) if appendix else str(section)
+                result[(path, number)] = match[1].title() + " " + prefix + "." + str(counter)
+    return result
+
+
+def result_label(record):
+    return paper_labels()[(record["source"], record["start_line"])]
+
+
+def source_status(record):
+    if record.get("original_statement_fully_reconstructed") is True:
+        return "Paper statement proved"
+    if record.get("corrected_statement_fully_proved") is True:
+        return "Corrected statement proved"
+    return "Partial formalization" if source_endpoint_refs(record) else "Not formalized"
+
+
 def paper_page(path):
     return "LatentDiffusion/exposition/paper/" + Path(path).stem + ".html"
 
@@ -44,7 +87,7 @@ def paper_reference(path, start, end, label):
         raise ValueError("Untracked manuscript reference: " + path)
     if not 1 <= start <= end <= len((ROOT / path).read_text().splitlines()):
         raise ValueError(f"Invalid manuscript line range: {path}:{start}-{end}")
-    return (f'<a class="paper-reference" data-source-path="{E(path)}" '
+    return (f'<a class="paper-line-reference source-citation" data-source-path="{E(path)}" '
             f'data-source-start="{start}" data-source-end="{end}" '
             f'href="{relative(paper_page(path), PAGE)}#L{start}">'
             f'{E(label)} · {E(Path(path).name)}:{start}–{end}</a>')
@@ -186,12 +229,12 @@ def panels():
         + eq(r"\|\nabla U_m(a,z)-\nabla U_m(a',z')\|\le L\|(a,z)-(a',z')\|.")
         + "<p>Negating the log tilted density leaves the Lipschitz constant unchanged. The source's discretization theorem additionally assumes Lipschitz gradients of the tilting penalty \\(\\mathcal R\\); the numerical results below instead expose the complete force and its approximation error directly.</p>",
         ref("SourceAssumptions", "LipschitzGradient"))
-    add("variational-domain", "assumptions", "bridge", "V1 — Normalized free energy and finite KL domain", r'''
+    add("variational-domain", "assumptions", "bridge", "Definition — Normalized free energy and finite KL domain", r'''
 <p>Let \(M>0\), let \(\ell(a)\) be the average tilted log evidence, and let \(\pi_a^m\) be the actual normalized posterior probability laws. Set</p>'''
         + eq(r'\mathcal F(a,q)=-\ell(a)+\frac1M\sum_{m=1}^M\mathrm{KL}(q^m\|\pi_a^m),.')
         + r'''<p class="added-assumption">For every datum require \(\mathrm{KL}(q^m\|\pi_a^m)<\infty\) before conversion to real numbers.</p><p>KL here is the actual measure-theoretic divergence. The density-normalization result below proves the log-density integral identity under explicit normalization and entropy-integrability conditions. Those conditions are not inferred from pointwise smoothness.</p>''',
         ref("Variational", "PosteriorFamily", "Admissible", "freeEnergy", "IsGlobalMin"))
-    add("flow-analytic-bridges", "assumptions", "bridge", "Classical flow — Extra assumptions and equations with proved entropy calculus", '\n<p class="added-assumption">The orange \\(R\\) extra assumptions specify positive density paths, their actual time derivatives, common-neighbourhood integral domination, regular transport charts and integrable spatial tails. The parameter and density equations are</p>'
+    add("flow-analytic-bridges", "assumptions", "bridge", "Classical flow — Extra assumptions and equations with proved entropy calculus", '\n<p class="added-assumption">Extra A1–Extra A4 specify positive density paths, their actual time derivatives, common-neighbourhood integral domination, regular transport charts and integrable spatial tails. The parameter and density equations are</p>'
         + eq(r'\dot a_t=-\frac1M\sum_m\int\nabla_a U_m(a_t,z)q_t^m(z)\,dz,\qquad\partial_tq_t^m=\nabla\!\cdot\!\bigl(q_t^m\nabla_z(\log q_t^m+U_m(a_t,\cdot))\bigr).')
         + r'''<p><code>ClassicalFlow</code> records these primitive equations and extra-assumption data. The displayed theorems derive the actual energy derivative, normalized extended LSI and exponential energy decay. For the source xLSI-to-Talagrand implication, the separate bare <code>RegularDensityDynamics</code> omits A3 entirely: actual characteristics and coupling anchors derive its metric speed, and xLSI is the sole functional-inequality premise. Dissipation and speed are conclusions of the connected theorem.</p>''',
         ref("RegularConvergence", "ClassicalFlow", "deBruijn", "extendedLSI", "energy_decay")
@@ -202,8 +245,8 @@ def panels():
         + eq(r'\int q_\nu\log\!\left(\frac{q_\nu}{\rho}\right)\,\mathrm d\nu=\int\log\!\left(\frac{q_\nu}{\rho}\right)\,\mathrm dq=\mathrm{KL}(q\|\pi)-\log Z.')
         + r'''<p>The theorem constructs both actual probability measures, proves that KL is finite, and proves integrability of the log ratio and this identity. It permits the relative density to vanish. The regular variational module additionally realizes every finite-KL trial law by its actual Radon–Nikodym density.</p>''',
         ref("Density", "density_freeEnergy_eq_kl", "density_weighted_freeEnergy_eq_kl"))
-    add("variational-optimality", "source-results", "original", "Source proposition prop:ftildemins — Exact variational optimality", r'''
-<p>Under V1,</p>'''
+    add("variational-optimality", "source-results", "original", "Proposition 2.1 — Exact variational optimality", r'''
+<p>On the finite-KL domain of Extra A1,</p>'''
         + eq(r'(a_\star,q_\star)\in\operatorname*{argmin}\mathcal F\quad\Longleftrightarrow\quad a_\star\in\operatorname*{argmax}\ell\ \text{ and }\ q_\star^m=\pi_{a_\star}^m\ \ (m\in[M]).')
         + r'''<p>Thus \(a_\star\) maximizes the tilted evidence if and only if some variational collection completes it to a free-energy minimizer. This statement proves the equivalence and identifies the posterior; it does not assert that an evidence maximizer exists.</p>''',
         ref("Variational", "global_minimizers_iff", "maximizer_iff_exists_minimizer"))
@@ -221,12 +264,12 @@ def panels():
             "existsUnique_averageMarginalMinimizer")
         + ref("RegularModel", "existsUnique_variationalOptimizer", "posterior_memLp")
         + ref("RegularConvergence", "existsUnique_optimizer_and_flow_convergence"))
-    add("continuous-energy-decay", "source-results", "bridge", "Continuous theorem, decay component — Parameter and product-state convergence", '\n<p>Let \\(E(t)\\) be the energy gap from the flow state to the target state of its regular transport data, and \\(I(t)\\) the source Fisher information. Under the orange \\(R\\) extra assumptions, the classical equations prove de Bruijn; regular transport and A3 prove extended LSI. Grönwall therefore gives</p>'
+    add("continuous-energy-decay", "source-results", "bridge", "Continuous theorem, decay component — Parameter and product-state convergence", '\n<p>Let \\(E(t)\\) be the energy gap from the flow state to the target state of its regular transport data, and \\(I(t)\\) the source Fisher information. Under Extra A1–Extra A4, the classical equations prove de Bruijn; regular transport and A3 prove extended LSI. Grönwall therefore gives</p>'
         + eq(r'2\lambda E(t)\le I(t),\qquad E(t)\le E(0)e^{-2\lambda t}\qquad(t\ge0).')
         + r'''<p>Under the marginal optimizer hypotheses above, put \(F_\star=\mathcal F(a_\star,\pi_{a_\star})\). The actual normalized product distance and parameter error obey</p>'''
         + eq(r'd((a_t,q_t),(a_\star,\pi_{a_\star}))\le\sqrt{2E(t)/\lambda}\le\sqrt{2E(0)/\lambda}\,e^{-\lambda t},')
         + eq(r'\|a_t-a_\star\|\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t}.')
-        + "<p>The sharp prefactor follows from quadratic growth and the actual transport inequality. The chain uses the proved density energy derivative and entropy/transport calculus. R1–R4 identify the additional analytic domain; A1–A4 retain the paper's original colour and provenance. The estimates hold for every classical solution in this domain; existence of a classical density solution is not constructed.</p>",
+        + "<p>The sharp prefactor follows from quadratic growth and the actual transport inequality. The chain uses the proved density energy derivative and entropy/transport calculus. Extra A1–Extra A4 identify the additional analytic domain; A1–A4 retain the paper's original colour and provenance. The estimates hold for every classical solution in this domain; existence of a classical density solution is not constructed.</p>",
         ref("RegularConvergence", "ClassicalFlow", "deBruijn", "extendedLSI", "energy_decay",
             "full_product_exponential_convergence", "parameter_exponential_convergence")
         + ref("RegularProductMetricFlow", "distance_right_slope", "kinetic_energy_eq_fisher")
@@ -258,79 +301,79 @@ def panels():
         + eq(r'\ell(a_\star)-\ell(\hat a)\le\delta+\varepsilon,\qquad\|\hat a-a_\star\|\le\sqrt{\frac{2(\delta+\varepsilon)}\lambda}.')
         + "<p>This quantifies the source's expressiveness discussion with an explicit model-bias assumption; it does not infer a uniform evidence gap from a pointwise training penalty.</p>",
         ref("Marginal", "tilted_objective_bias", "tilted_parameter_bias"))
-    add("force-regularity", "assumptions", "new", "N1 — Monotone, Lipschitz force", r'''
+    add("force-regularity", "assumptions", "new", "Extra A8 — Monotone, Lipschitz force", r'''
 <p>Let \(H\) be a real inner-product space. The positive force \(F\), equal to minus the drift, satisfies for every \(x,y\in H\)</p>'''
         + eq(r'\lambda\|x-y\|^2\le\langle F(x)-F(y),x-y\rangle,\qquad \|F(x)-F(y)\|\le L\|x-y\|,\quad L\ge0.')
         + r'''<p>This is an explicit assumption on the complete force of the parameter and particle system in the chosen norm. Applying a per-datapoint hypothesis to that complete system requires its own lifting argument.</p>''',
         ref("Numerics", "ForceRegularity"))
-    add("stable-step", "assumptions", "new", "N2 — Stable step size", r'''
+    add("stable-step", "assumptions", "new", "Extra A9 — Stable step size", r'''
 <p>Require</p>''' + eq(r'\lambda>0,\qquad h>0,\qquad\lambda h\le1,\qquad hL^2\le\lambda.')
         + r'''<p>For \(L>0\), the familiar sufficient condition is \(0<h\le\min\{1/\lambda,\lambda/L^2\}\). These restrictions depend on the complete force constants.</p>''',
         ref("Numerics", "StableStep", "stableStep_of_min"))
-    add("reference-consistency", "assumptions", "new", "N3 — Force error and reference consistency", r'''
+    add("reference-consistency", "assumptions", "new", "Extra A10 — Force error and reference consistency", r'''
 <p>Write \(E_F(x,\xi)=x-hF(x)+\xi\), and let \(X_{n+1}=E_G(X_n,\xi_n)\) be the implemented scheme. A reference path \(y_n\) uses the same additive increments. For every step require</p>'''
         + eq(r'\|G(X_n)-F(X_n)\|\le B,\qquad \|y_{n+1}-E_F(y_n,\xi_n)\|\le D h\sqrt h,\qquad B,D\ge0.')
         + r'''<p>The numerical theorem is pathwise. An application to an exact SDE skeleton must establish the displayed local defect bound. Brownian increments, stochastic independence, moment estimates and propagation of chaos are not inferred from this premise.</p>''',
         [("LatentDiffusion/Numerics.lean", "trajectory_error_bound", "hforce"),
          ("LatentDiffusion/Numerics.lean", "trajectory_error_bound", "hdefect")])
-    add("integral-reference", "assumptions", "new", "N4 — Primitive integral-path bounds", r'''
+    add("integral-reference", "assumptions", "new", "Extra A11 — Primitive integral-path bounds", r'''
 <p>Let \(H\) be complete. On each step, an exact segment \(Y_n(t)\), \(0\le t\le h\), starts at \(y_n\), ends at \(y_{n+1}\), and satisfies</p>'''
         + eq(r'Y_n(t)-Y_n(0)=-\int_0^t F(Y_n(s))\,\mathrm ds+W_n(t),\qquad W_n(h)=\xi_n.')
         + r'''<p>Assume the drift is integrable on each segment and, uniformly in \(n\),</p>'''
         + eq(r'\|F(Y_n(t))\|\le G,\qquad\|W_n(t)\|\le N\sqrt t,\qquad G,N\ge0.')
-        + r'''<p>These are primitive integral and moment bounds. In an \(L^2\) realization, the norms are root mean squares. An application must supply the SDE reference and verify these uniform estimates. The pointwise-force lift below establishes the required \(L^2\) force monotonicity and Lipschitz bounds from N1.</p>''',
+        + r'''<p>These are primitive integral and moment bounds. In an \(L^2\) realization, the norms are root mean squares. An application must supply the SDE reference and verify these uniform estimates. The pointwise-force lift below establishes the required \(L^2\) force monotonicity and Lipschitz bounds from Extra A8.</p>''',
         ref("Numerics", "IntegralReference"))
-    add("centered-innovation", "assumptions", "new", "N5 — Centered stochastic force innovations", r'''
+    add("centered-innovation", "assumptions", "new", "Extra A12 — Centered stochastic force innovations", r'''
 <p>Compare \(X_{n+1}=E_F(X_n,\xi_n)+h\zeta_n\) with \(Y_{n+1}=E_F(Y_n,\xi_n)\), and put \(A_n=E_F(X_n,\xi_n)-E_F(Y_n,\xi_n)\). In the chosen Hilbert space require</p>'''
         + eq(r'\langle A_n,\zeta_n\rangle=0,\qquad\|\zeta_n\|^2\le\sigma^2\quad(n\ge0).')
         + r'''<p>In \(L^2(\Omega,P;E)\), these are precisely a zero expected cross term and a second-moment bound. Conditional centering given the states and shared increment suffices when justified. The premise states the needed orthogonality explicitly.</p>''',
         ref("Numerics", "HilbertInnovationControl"))
-    add("frozen-reference", "assumptions", "new", "N6 — Frozen reference and empirical-force residual", "\n<p>In the genuine space \\(L^2(\\Omega;\\text{scaled cloud})\\), a reference force \\(R\\) is \\(L\\)-Lipschitz and admits actual segments satisfying N4, with nonnegative drift radius \\(G\\) and noise bound \\(W\\sqrt t\\). It need not contract in the fixed parameter coordinate.</p>\n<p>The actual physical parameter projection \\(C\\) has norm at most one and satisfies \\(Cy_n=a_\\star\\) almost surely for every \\(n\\). The norms in N4 are root mean squares. The construction and stationarity of a frozen posterior process, and its uniform drift/noise moment bounds, must be supplied by the application. The theorem accepts any such fixed reference parameter. An inference guarantee to the paper's tilted maximizer additionally identifies this \\(a_\\star\\) with the optimizer proved in Part I.</p>",
+    add("frozen-reference", "assumptions", "new", "Extra A13 — Frozen reference and empirical-force residual", "\n<p>In the genuine space \\(L^2(\\Omega;\\text{scaled cloud})\\), a reference force \\(R\\) is \\(L\\)-Lipschitz and admits actual segments satisfying Extra A11, with nonnegative drift radius \\(G\\) and noise bound \\(W\\sqrt t\\). It need not contract in the fixed parameter coordinate.</p>\n<p>The actual physical parameter projection \\(C\\) has norm at most one and satisfies \\(Cy_n=a_\\star\\) almost surely for every \\(n\\). The norms in Extra A11 are root mean squares. The construction and stationarity of a frozen posterior process, and its uniform drift/noise moment bounds, must be supplied by the application. The theorem accepts any such fixed reference parameter. An inference guarantee to the paper's tilted maximizer additionally identifies this \\(a_\\star\\) with the optimizer proved in Part I.</p>",
         [("LatentDiffusion/MainResults.lean", "particle_oracle_parameter_bound", field)
          for field in ("hR", "hr", "htarget")])
-    add("empirical-reference-residual", "assumptions", "new", "N7 — Primitive centered-copy residual and variance", r'''
+    add("empirical-reference-residual", "assumptions", "new", "Extra A14 — Primitive centered-copy residual and variance", r'''
 <p>Let \(K=MN>0\). The difference between the actual interacting force \(F_K\) and the reference force along \(y_n\) is represented by actual square-integrable fluctuations:</p>'''
         + eq(r'F_K(y_n)-R(y_n)=\frac1K\sum_{i=1}^K g_{n,i},\quad\langle g_{n,i},g_{n,j}\rangle_{L^2}=0\ (i\ne j),\quad\|g_{n,i}\|_{L^2}^2\le V,\quad V\ge0.')
         + r'''<p>These are a residual identity and primitive cross-moment and variance conditions. They permit heterogeneous data. A posterior-cloud application must prove that its chosen independent-copy reference has this representation and these moments. The \(K^{-1/2}\) force-residual bound is derived below.</p>''',
         [("LatentDiffusion/MainResults.lean", "particle_oracle_parameter_bound", field)
          for field in ("hres", "horth", "hvariance")])
     add("euler-contraction", "numerics", "new", "New result — Sharp Euler contraction", r'''
-<p>Under N1 and \(h\ge0\), the same increment cancels in two Euler updates:</p>'''
+<p>Under Extra A8 and \(h\ge0\), the same increment cancels in two Euler updates:</p>'''
         + eq(r'\|E_F(x,\xi)-E_F(y,\xi)\|^2\le(1-2\lambda h+L^2h^2)\|x-y\|^2.')
-        + r'''<p>Under N2 this gives, with \(q=1-\lambda h/2\in[0,1)\),</p>'''
+        + r'''<p>Under Extra A9 this gives, with \(q=1-\lambda h/2\in[0,1)\),</p>'''
         + eq(r'\|E_F(x,\xi)-E_F(y,\xi)\|\le q\|x-y\|.')
         + r'''<p>The result holds for arbitrary common increments and the actual update map.</p>''',
         ref("Numerics", "euler_sq_contraction", "euler_contraction"))
     add("particle-normalized-geometry", "numerics", "new", "New result — Count-independent full-batch contraction", r'''
 <p>Let \(K=MN>0\) count all datum–particle pairs. Give every coordinate its own datum potential \(U_i\), each satisfying A3–A4 with the same \(\lambda,L\). Use scaled state \(s=(a,z_1/\sqrt K,\ldots,z_K/\sqrt K)\), and put</p>'''
         + eq(r'F_K(s)=\frac1K\nabla_s\sum_{i=1}^K U_i(a,\sqrt K\,s_i),\qquad\|s-\bar s\|^2=\|a-\bar a\|^2+\frac1K\sum_i\|z_i-\bar z_i\|^2.')
-        + r'''<p>The full force \(F_K\) is \(\lambda\)-strongly monotone and \(L\)-Lipschitz with exactly the original pair constants. Thus, under N2, the actual Euler map contracts synchronously:</p>'''
+        + r'''<p>The full force \(F_K\) is \(\lambda\)-strongly monotone and \(L\)-Lipschitz with exactly the original pair constants. Thus, under Extra A9, the actual Euler map contracts synchronously:</p>'''
         + eq(r'\|E_{F_K}(s,\xi)-E_{F_K}(\bar s,\xi)\|\le(1-\lambda h/2)\|s-\bar s\|.')
         + r'''<p>The step restriction and contraction constant are independent of both data and particle counts. The coordinate-gradient identities are checked from the full lifted potential.</p>''',
         ref("Cloud", "meanForce_regular", "full_batch_contraction"))
     add("robust-euler", "numerics", "new", "New result — Uniform discretization and model-bias budget", r'''
-<p>Under N1–N3, for every integer \(n\ge0\),</p>'''
+<p>Under Extra A8–Extra A10, for every integer \(n\ge0\),</p>'''
         + eq(r'\begin{aligned}\|X_n-y_n\|&\le q^n\|X_0-y_0\|+(hB+Dh\sqrt h)\frac{1-q^n}{1-q}\\&\le q^n\|X_0-y_0\|+\frac2\lambda(B+D\sqrt h).\end{aligned}')
         + r'''<p>The bound separates the initial error, implemented-force bias and temporal consistency. Its constants are explicit and the error floor is uniform in the number of steps. Particle-count or dimension dependence can enter through \(\lambda,L,B,D\).</p>''',
         ref("Numerics", "trajectory_error_exact", "trajectory_error_bound"))
     add("integral-euler", "numerics", "new", "New result — Local consistency derived from integral dynamics", r'''
-<p>Under N1 and N4 with \(h\ge0\), the local Euler defect is derived, rather than assumed:</p>'''
+<p>Under Extra A8 and Extra A11 with \(h\ge0\), the local Euler defect is derived, rather than assumed:</p>'''
         + eq(r'\|y_{n+1}-E_F(y_n,\xi_n)\|\le L\left(\frac{h^2G}{2}+\frac23h\sqrt h\,N\right).')
-        + r'''<p>Under N2 and an implemented-force error \(\|A(X_n)-F(X_n)\|\le B\), \(B\ge0\), this yields the uniform bound</p>'''
+        + r'''<p>Under Extra A9 and an implemented-force error \(\|A(X_n)-F(X_n)\|\le B\), \(B\ge0\), this yields the uniform bound</p>'''
         + eq(r'\|X_n-y_n\|\le q^n\|X_0-y_0\|+\frac{2B}{\lambda}+\frac L\lambda\left(hG+\frac43N\sqrt h\right).')
         + r'''<p>The same theorem applies in any complete real Hilbert space. Its \(O(h+\sqrt h)\) term follows from the displayed integral equation and uniform drift and noise bounds.</p>''',
         ref("Numerics", "integral_reference_local_defect", "integral_reference_error_bound"))
     add("stochastic-oracle", "numerics", "new", "New result — Stochastic-oracle mean-square error floor", r'''
-<p>Under N1, N2 and N5,</p>'''
+<p>Under Extra A8, Extra A9 and Extra A12,</p>'''
         + eq(r'\|X_n-Y_n\|^2\le(1-\lambda h)^n\|X_0-Y_0\|^2+\frac{h\sigma^2}{\lambda}.')
         + r'''<p>For the actual Hilbert space \(L^2(\Omega,P;E)\) of square-integrable random variables on an arbitrary probability space, this is the genuine expectation bound</p>'''
         + eq(r'\mathbb E\|X_n-Y_n\|^2\le(1-\lambda h)^n\mathbb E\|X_0-Y_0\|^2+\frac{h\sigma^2}{\lambda}.')
         + r'''<p>The force monotonicity and Lipschitz bounds in this version are explicit \(L^2\) premise. The theorem accepts Gaussian innovations and does not replace nonintegrable expectations by totalized real values.</p>''',
         ref("Numerics", "hilbert_innovation_sq_bound", "l2_innovation_mean_square_bound"))
     add("pointwise-probability-lift", "numerics", "new", "New result — Genuine probability-space lift of the pointwise force", r'''
-<p>On any probability space, a pointwise force \(F:E\to E\) satisfying N1 induces a genuine operator \(\mathscr F:L^2(\Omega;E)\to L^2(\Omega;E)\) with</p>'''
+<p>On any probability space, a pointwise force \(F:E\to E\) satisfying Extra A8 induces a genuine operator \(\mathscr F:L^2(\Omega;E)\to L^2(\Omega;E)\) with</p>'''
         + eq(r'(\mathscr F X)(\omega)=F(X(\omega))\quad\text{almost surely}.')
-        + r'''<p>The lifted force inherits the same monotonicity and Lipschitz constants. Its Euler iterates agree almost surely with the pointwise recursion. Therefore the stochastic-oracle expectation bound holds from the monotonicity and Lipschitz bounds of the original pointwise force, together with N2 and the explicit innovation condition N5:</p>'''
+        + r'''<p>The lifted force inherits the same monotonicity and Lipschitz constants. Its Euler iterates agree almost surely with the pointwise recursion. Therefore the stochastic-oracle expectation bound holds from the monotonicity and Lipschitz bounds of the original pointwise force, together with Extra A9 and the explicit innovation condition Extra A12:</p>'''
         + eq(r'\mathbb E\|X_n-Y_n\|^2\le(1-\lambda h)^n\mathbb E\|X_0-Y_0\|^2+\frac{h\sigma^2}{\lambda}.')
         + r'''<p>No separate lifted-force monotonicity or Lipschitz assumption or condition \(F(0)=0\) is needed.</p>''',
         ref("Lift", "liftedForce_coe", "liftedForce_regular", "lifted_eulerTrajectory_coe", "pointwise_force_mean_square_bound"))
@@ -347,9 +390,9 @@ def panels():
         + r'''<p>For \(b\le M\), a population dispersion bound \(M^{-1}\sum_i\|g_i-\bar g\|^2\le V\) therefore gives the derived oracle variance \(\sigma^2\le (M-b)V/[b(M-1)]\). The theorem derives this from the primitive first and pair inclusion laws, including zero sampling variance at full batch. Applying this identity to the whole-cloud stochastic force requires its actual scaled blocks and inverse-inclusion factors: the dispersion \(V\) may depend on both \(M\) and \(N\), so a count-independent \(\sigma^2\) bound does not follow automatically.</p>''',
         ref("MiniBatchVariance", "BatchInclusionLaw", "minibatch_gradient_variance", "minibatch_oracle_variance_bound"))
     add("complete-numerical-budget", "numerics", "new", "New main bound — Uniform inference error with a stochastic oracle", r'''
-<p>Let \(K=MN>0\), and impose A3–A4 on each actual datum potential and N2, N5–N7 on the reference and innovations. Construct the complete interacting force \(F_K\) from those potentials, and use its actual noisy Euler update \(X_{n+1}=X_n-hF_K(X_n)+\xi_n+h\zeta_n\). Write \(a_n=CX_n\) for the physical parameter and \(q=1-\lambda h/2\). For every \(n\ge0\),</p>'''
+<p>Let \(K=MN>0\), and impose A3–A4 on each actual datum potential and Extra A9, Extra A12–Extra A14 on the reference and innovations. Construct the complete interacting force \(F_K\) from those potentials, and use its actual noisy Euler update \(X_{n+1}=X_n-hF_K(X_n)+\xi_n+h\zeta_n\). Write \(a_n=CX_n\) for the physical parameter and \(q=1-\lambda h/2\). For every \(n\ge0\),</p>'''
         + eq(r'\begin{aligned}\left(\mathbb E\|a_n-a_\star\|^2\right)^{1/2}\le{}&q^n\|X_0-y_0\|_{L^2}+\frac2\lambda\sqrt{\frac VK}\\&+\frac L\lambda\left(hG+\frac43W\sqrt h\right)+\sqrt{\frac{h\sigma^2}{\lambda}}.\end{aligned}')
-        + "<p>The force monotonicity and Lipschitz bounds are derived from the original per-datum potentials, including the exact pointwise-to-\\(L^2\\) lift. The output norm is proved equal to the physical parameter root mean-square error. The four explicit terms quantify initialization, finite-particle averaging, temporal discretization and the centered stochastic oracle. The finite-population identity below calibrates oracle variance from batch dispersion.</p>\n<p>The bound is uniform in the number of steps. Its target \\(a_\\star\\) is the fixed reference parameter specified in N6; interpreting it as convergence to the paper's optimizer requires that identification and a corresponding frozen posterior reference. It retains explicit reference existence, moment and innovation premises; it does not claim convergence of the unrestricted Adam/preconditioned implementation.</p>",
+        + "<p>The force monotonicity and Lipschitz bounds are derived from the original per-datum potentials, including the exact pointwise-to-\\(L^2\\) lift. The output norm is proved equal to the physical parameter root mean-square error. The four explicit terms quantify initialization, finite-particle averaging, temporal discretization and the centered stochastic oracle. The finite-population identity below calibrates oracle variance from batch dispersion.</p>\n<p>The bound is uniform in the number of steps. Its target \\(a_\\star\\) is the fixed reference parameter specified in Extra A13; interpreting it as convergence to the paper's optimizer requires that identification and a corresponding frozen posterior reference. It retains explicit reference existence, moment and innovation premises; it does not claim convergence of the unrestricted Adam/preconditioned implementation.</p>",
         ref("MainResults", "particle_oracle_parameter_bound", "parameterOutput_rms"))
     add("explicit-accuracy", "numerics", "new", "New result — Explicit choices for any target accuracy", r'''
 <p>Let \(\varepsilon>0\) and \(R_0=\|X_0-y_0\|_{L^2}\). Under the preceding main bound, the following explicit conditions suffice for parameter RMS error at most \(\varepsilon\):</p>'''
@@ -380,7 +423,7 @@ def panels():
             panel["category"] = "proved"
     from latent_diffusion_regularity import EXTRA_ASSUMPTION_PANELS
     result.extend(dict(id="regularity-" + item["id"].lower(), section="source-regularity",
-                       category="extra-assumption", title=item["id"] + " — " + item["title"],
+                       category="extra-assumption", title="Extra A" + item["id"][1:] + " — " + item["title"],
                        prose="<p>" + item["prose"] + "</p>", refs=item["refs"])
                   for item in EXTRA_ASSUMPTION_PANELS)
     return result
@@ -404,9 +447,9 @@ def premise(path, name, binder, sources, parsed):
 
 def render_panel(panel, sources, parsed, math):
     category = panel["category"]
-    labels = {"original": "Paper assumption / source result", "bridge": "Analytic domain and proved consequences",
-              "extra-assumption": 'Extra assumptions — \\(R\\) hypothesis',
-              "corrected": "Corrected source claim", "new": "New theory",
+    labels = {"original": "Paper assumption / source result", "bridge": "Supporting definition / proved consequence",
+              "extra-assumption": 'Extra assumption',
+              "corrected": "Corrected source claim", "new": "New result",
               "proved": "Proved on the stated domain", "conditional": "Proved with additional analytic premises"}
     formal = []
     for index, reference in enumerate(panel["refs"]):
@@ -429,15 +472,20 @@ def render_panel(panel, sources, parsed, math):
     # A source theorem and its appendix restatement may cite the same proof.
     formal_html = re.sub(r'\b(id|data-copy)="([^"]+)"',
                          lambda match: f'{match[1]}="{panel["id"]}-{match[2]}"', formal_html)
-    assumption = re.match(r"([ANR][1-7]) —", panel["title"])
+    assumption = re.match(r"(A[1-4]|Extra A(?:[1-9]|1[0-4])) —", panel["title"])
     attrs = f' data-assumption-id="{assumption[1]}"' if assumption else ""
+    if assumption and assumption[1].startswith("A"):
+        attrs += f' data-paper-assumption="{assumption[1]}" data-source-label="{assumption[1]}"'
+    elif assumption:
+        attrs += ' data-assumption-kind="extra"'
     status = panel.get("status", "")
     extra = category == "extra-assumption" or panel["section"] == "new-assumptions"
+    badge = "Extra assumption" if extra else labels[category]
     math_class = "statement-math added-assumption" if extra else "statement-math"
     attrs += ' ' + panel.get("attrs", "")
     return (f'<article class="theorem-statement paired-statement category-{category}" '
             f'id="{panel["id"]}" data-category="{category}"{attrs}>'
-            f'<span class="result-badge">{labels[category]}</span><h3>{E(panel["title"])}</h3>'
+            f'<span class="result-badge">{badge}</span><h3>{E(panel["title"])}</h3>'
             + panel.get("source_reference", "") + status +
             '<div class="statement-pair"><div class="' + math_class + '"><div class="pane-label">Mathematical statement</div>'
             + math(panel["prose"]) + '</div><aside class="statement-lean"><div class="pane-label">Exact Lean contract</div>'
@@ -461,43 +509,36 @@ def render_source_result(record, sources, parsed, math):
     refs = source_endpoint_refs(record)
     original_complete = record.get("original_statement_fully_reconstructed") is True
     corrected_complete = record.get("corrected_statement_fully_proved") is True
-    complete = original_complete or corrected_complete
-    formal_status = "proved" if complete else ("partial" if refs else "open")
+    formal_status = ("paper-proved" if original_complete else "corrected-proved"
+                     if corrected_complete else "partial" if refs else "open")
     prose = description["statement"]
     added = record.get("added_assumptions", [])
     if added:
         prose += ('<p class="added-assumption"><strong>Extra assumptions for this result:</strong> '
                   + ' · '.join('<a class="extra-assumption-link" href="#regularity-' + E(identifier.lower()) + '">'
-                               + E(identifier) + '</a>' for identifier in added) + '.</p>')
+                               + E('Extra A' + identifier[1:]) + '</a>' for identifier in added) + '.</p>')
     if description.get("correction"):
         prose += '<div class="source-correction"><strong>Correction / required qualification.</strong>' + description["correction"] + '</div>'
     prose += '<p><strong>Formal scope.</strong> ' + description["scope"] + '</p>'
-    # The supplemental formalization has its own exact, independently checked domain.
-    counterpart = {
-        "prop:ftildemins": ["variational-optimality"],
-        "thm:exp_convg_informal": ["marginal-optimizer", "continuous-energy-decay"],
-        "thm:exp_convg_appendix": ["continuous-energy-decay"],
-    }.get(record["id"], [])
-    for panel in panels():
-        if panel["id"] in counterpart:
-            prose += '<div class="formal-endpoint"><h4>Checked endpoint — ' + E(panel["title"]) + '</h4>' + panel["prose"] + '</div>'
     if record["id"] in ("thrm:error-bound", "thrm_app:error-bound"):
-        prose += ('<p>The source proof uses actual full-batch Brownian dynamics, posterior initialization and the orange \\(R\\) moment/domain extra assumptions. '
-                  '<a href="#complete-numerical-budget">Theorem New 1</a> then gives the separate extension to a centered noisy oracle.</p>')
-    panel = dict(id="paper-" + anchor(record["id"]), category="original", title=description["title"],
+        prose += ('<p>The source proof uses actual full-batch Brownian dynamics, posterior initialization and Extra A1, Extra A2 and Extra A7. '
+                  '<a href="#complete-numerical-budget">New result 1</a> then gives the separate extension to a centered noisy oracle.</p>')
+    label = result_label(record)
+    panel = dict(id="paper-" + anchor(record["id"]), category="original", title=label + " — " + description["title"],
                  section="source-results", prose=prose, refs=refs,
                  attrs=f'data-source-result="{E(record["id"])}" data-formal-status="{formal_status}" '
+                   f'data-paper-result="{E(label)}" data-source-label="{E(label)}" '
                    f'data-original-complete="{str(original_complete).lower()}" '
                    f'data-corrected-complete="{str(corrected_complete).lower()}"',
                  source_reference='<p class="statement-source">' + paper_reference(record["source"],
-                     record["start_line"], record["end_line"], record["id"]) + '</p>',
+                     record["start_line"], record["end_line"], label) + '</p>',
                  printed_source=exact_paper_statement(record))
-    status = ("Proved: the original statement is reconstructed on its stated domain." if original_complete else
-              'Proved corrected statement under the explicitly stated orange \\(R\\) extra assumptions. The precise corrections to the printed source are stated below.'
+    status = ("Paper statement proved as stated." if original_complete else
+              'Corrected statement proved under the listed Extra A assumptions. The printed statement has not been formalized as stated; its changed hypotheses or conclusion are identified below.'
               if corrected_complete else
               "Partial formalization: the Lean code proves the stated endpoint or supporting component; the complete source statement remains unproved."
               if refs else "Open formalization: this source statement does not yet have a complete Lean proof.")
-    panel["status"] = '<p class="formal-status"><strong>' + status + '</strong></p>'
+    panel["status"] = '<p class="formal-status paper-status"><strong>' + status + '</strong></p>'
     return render_panel(panel, sources, parsed, math)
 
 
@@ -532,7 +573,7 @@ EXTRA_CSS = """
 .latent-page .category-corrected {border-top-color:#a1364f}.latent-page .category-corrected>.result-badge {background:#fff0f3;color:#87283e}
 .latent-page .statement-equation {overflow-x:auto}.latent-page .jump-nav{flex-wrap:wrap}
 .latent-page .paper-tex{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.65 var(--font-code);padding:18px;background:var(--white);border:1px solid var(--line)}
-.latent-page .paper-reference{font:13px/1.6 var(--font-code);overflow-wrap:anywhere}
+.latent-page a.paper-line-reference{display:inline;margin:0;padding:0;border:0;border-radius:0;background:transparent;font:13px/1.6 var(--font-code);overflow-wrap:anywhere}
 .latent-page .formal-status,.latent-page .formal-gap{padding:12px 16px;border-left:3px solid #32718c;background:var(--white)}
 .latent-page .source-correction{border-left:3px solid #a1364f;padding:8px 16px;background:var(--white)}
 .latent-page .extra-assumption-link{font-weight:700;color:inherit}
@@ -541,6 +582,7 @@ EXTRA_CSS = """
 .latent-page .part-heading{margin-top:60px;padding-top:25px;border-top:3px solid var(--ink)}
 .latent-page .new-contributions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:24px 0}
 .latent-page .new-contributions>div{border:1px solid var(--line);padding:16px;min-width:0}
+.latent-page .paper-correspondence{overflow-x:auto}.latent-page .paper-correspondence table{width:100%;border-collapse:collapse;font-size:14px}.latent-page .paper-correspondence th,.latent-page .paper-correspondence td{padding:12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}.latent-page .supporting-details>summary{cursor:pointer;font-size:19px;font-weight:700;padding:20px 0}.latent-page .paper-main-results{border-left:3px solid #28734a;padding-left:20px}
 @media(max-width:760px){.latent-page .paper-contents{columns:1}.latent-page .new-contributions{grid-template-columns:1fr}}
 .reading-math .latent-page .statement-lean,.reading-lean .latent-page .statement-math{display:none}
 .reading-math .latent-page .statement-pair,.reading-lean .latent-page .statement-pair{grid-template-columns:minmax(0,1fr)}
@@ -554,9 +596,9 @@ def overview(sources, parsed, math):
     from latent_diffusion_paper import PAPER_RESULTS, PAPER_CORRECTIONS
     audit = paper_audit()
     body = ('<div class="pbgso-overview latent-page"><header class="hero">'
-            '<div class="eyebrow">Part I · Paper results and corrections &nbsp; / &nbsp; Part II · New theory</div>'
+            '<div class="eyebrow">Paper correspondence · Exact source numbering</div>'
             '<h1>Training Latent Diffusion Models with Interacting Particle Algorithms</h1>'
-            '<p class="subtitle">The paper’s statements first; additional assumptions and new theorems second. Mathematics and exact Lean code appear side by side.</p>'
+            '<p class="subtitle">A1–A4 are the paper’s assumptions. Extra A1–Extra A7 are added hypotheses. Every result keeps its printed proposition, theorem or lemma number.</p>'
             + reference_notice('LatentDiffusion') + '<p>'
             '<a href="paper/main_aistats.html">Main text with line numbers</a> · '
             '<a href="paper/supp_aistats.html">Supplement with line numbers</a> · '
@@ -564,63 +606,77 @@ def overview(sources, parsed, math):
             '<a href="source_inventory.json">Exact source inventory</a></p></header>'
             '<p class="proof-download"><a href="' + relative('docs/pdf/LatentDiffusion/FullProof.pdf', PAGE) + '" download>Download full proof (PDF)</a> · '
             '<a href="' + relative('docs/latex/LatentDiffusion/FullProof.tex', PAGE) + '" download>Download full proof (LaTeX)</a></p>'
-            '<nav class="jump-nav" aria-label="Report contents"><a href="#assumptions">Paper assumptions</a>'
-            '<a href="#source-regularity">Extra assumptions R1–R7</a><a href="#source-results">Paper results</a><a href="#source-corrections">Corrections</a>'
-            '<a href="#new-assumptions">New assumptions</a><a href="#new-theorems">New theorems</a>'
-            '<a href="#complete-numerical-budget">Main numerical bound</a>'
+            '<nav class="jump-nav" aria-label="Report contents"><a href="#paper-correspondence">Paper correspondence</a><a href="#assumptions">Paper assumptions</a>'
+            '<a href="#source-regularity">Extra assumptions</a><a href="#source-results">Paper results</a><a href="#source-corrections">Corrections</a>'
+            '<a href="#source-contracts">Supporting definitions</a><a href="#new-theory">Additional results</a>'
             '<a href="#verification">Check the proofs</a>'
             + ('<a href="#proof-roadmap">Proof roadmap</a>' if argument_data()["roadmap"] else '')
             + ('<a href="#mathematical-proof">Mathematical argument</a>' if argument_data()["parts"] else '')
             + '<a href="#modules">Supporting proofs</a></nav>'
-            '<p class="formal-status"><strong>Formalization status.</strong> All 19 source result statements are stated below, '
-            'including appendix restatements, with their corrected mathematical statements, precise source references and Lean proofs. '
-            'The orange R1–R7 panels state the extra assumptions used to prove those corrections. '
-            'The exact original TeX is retained in each card so a corrected theorem is never confused with the printed statement.</p>'
+            '<p class="formal-status paper-status"><strong>What is formalized?</strong> '
+            'Corrected versions of Proposition 2.1, Theorems 3.1 and 3.2, and their 16 supporting appendix results. '
+            '<strong>0 of the 19 statements are certified as printed; all 19 corrected statements are proved under the explicitly listed extra assumptions.</strong> '
+            'Some corrections restrict the domain; others change a formula or conclusion. Each row below identifies the exact paper statement, '
+            'its Lean endpoint and its extra assumptions. The printed statement is expandable in its result card. '
+            'Additional results are collected separately at the end.</p>'
             '<p>Green identifies the paper’s original A1–A4. Orange identifies every extra assumption in both parts; rose identifies corrections. '
             'Lean signatures are extracted from the current source; '
             'declaration links open complete proofs. “New” means added relative to this manuscript. '
             'Lean uses <code>m</code> or <code>rho</code> for \\(\\lambda\\); <code>N</code> in the cloud modules counts the paper’s total <code>M × N</code>.</p>'
             + toolbar())
     all_panels = panels()
+    body += ('<section class="section paper-correspondence" id="paper-correspondence"><h2>Paper correspondence</h2>'
+             '<p>Source numbers follow the manuscript’s shared theorem counter, including definitions and remarks. '
+             'The first three rows are the main-text results. “Corrected statement proved” does not certify the printed statement.</p>'
+             '<table><thead><tr><th>Paper statement and source</th><th>Formalization status</th><th>Extra assumptions</th><th>Lean proof</th></tr></thead><tbody>')
+    for record in audit["results"]:
+        label = result_label(record)
+        extra = ' · '.join('<a class="extra-assumption-link" href="#regularity-' + item.lower() + '">Extra A' + item[1:] + '</a>'
+                           for item in record.get("added_assumptions", [])) or "None"
+        endpoints = ' · '.join('<a href="' + relative(proof_page(path), PAGE) + '#' + anchor(name) + '"><code>' + E(name) + '</code></a>'
+                               for path, name in source_endpoint_refs(record))
+        body += ('<tr data-paper-correspondence="' + E(label) + '"><td><a href="#paper-' + anchor(record["id"]) + '"><strong>' + E(label) + '</strong></a><br>'
+                 + paper_reference(record["source"], record["start_line"], record["end_line"], label) + '</td>'
+                 '<td class="paper-status">' + source_status(record) + '<br>Not formalized as printed</td>'
+                 '<td class="added-assumption">' + extra + '</td><td>' + endpoints + '</td></tr>')
+    body += '</tbody></table></section>'
     body += '<div class="part-heading"><h2>Part I — Results from the paper</h2></div>'
     setting = r'''<p>Write \(a=(\theta,\phi)\), \(U_m(a,z)=-\log\tilde p_a(x^m,z)\), \(Z_m(a)=\int e^{-U_m(a,z)}\,dz\), and \(\pi_a^m=Z_m(a)^{-1}e^{-U_m(a,\cdot)}dz\). The evidence and energy are</p>'''
     setting += eq(r'\ell(a)=\frac1M\sum_m\log Z_m(a),\qquad F(a,q)=-\ell(a)+\frac1M\sum_m\mathrm{KL}(q^m\|\pi_a^m).')
     setting += "<p>Here \\(\\ell\\) and \\(F\\) abbreviate the paper's tilted evidence \\(\\widetilde\\ell\\) and energy \\(\\widetilde F\\). The source cards below retain tildes. In the model-bias theorem in Part II, \\(\\ell\\) explicitly denotes the original, untilted evidence.</p><p>The paper uses the normalized product distance \\(d((a,q),(b,r))^2=\\|a-b\\|^2+M^{-1}\\sum_m W_2(q^m,r^m)^2\\), with \\(M>0\\). The law \\(q^m\\) is the latent posterior approximation for datum \\(m\\); \\(N\\) is the particle count per datum. The optimizer targets tilted evidence, not automatically the original likelihood.</p>"
     for section, title in (("assumptions", "Paper assumptions — A1–A4"),
-                           ("source-regularity", "Extra assumptions — R1–R7"),
-                           ("source-contracts", "Actual density model and proved analytic chain")):
-        body += '<section class="section" id="' + section + '"><h2>' + title + '</h2>'
+                           ("source-regularity", "Extra assumptions — Extra A1–Extra A7")):
+        standard_id = "paper-assumptions" if section == "assumptions" else "extra-assumptions"
+        body += '<section class="section" id="' + section + '"><span id="' + standard_id + '"></span><h2>' + title + '</h2>'
         if section == "assumptions":
             body += math(setting)
         elif section == "source-regularity":
             body += ('<p class="added-assumption">These orange extra assumptions are additions to the paper’s green A1–A4. '
                      'They state quantified differentiability, integrability, domain and initialization conditions for the corrected source proofs. '
                      'They contain no assumed entropy-dissipation identity, desired transport inequality or numerical error bound. '
-                     'The orange \\(N\\) assumptions belong only to the later new theory.</p>')
-        else:
-            body += ('<p>The normalized finite-KL domain and actual density identity are defined below. '
-                     'Classical flow records the differential equations and \\(R\\) extra assumptions; its entropy calculus and transport inequalities are proved.</p>')
+                     'Extra A8–Extra A14 belong only to the later additional results.</p>')
         selected = [p.copy() for p in all_panels if p["section"] == section]
-        if section == "source-contracts":
-            order = ["tilted-density-decomposition", "variational-domain", "density-normalization", "flow-analytic-bridges"]
-            selected.sort(key=lambda p: order.index(p["id"]))
         for panel in selected:
             if section == "assumptions":
                 record = audit["assumptions"][int(panel["title"][1]) - 1]
                 panel["source_reference"] = '<p class="statement-source">' + paper_reference(
-                    record["source"], record["start_line"], record["end_line"], record["id"]) + '</p>'
+                    record["source"], record["start_line"], record["end_line"], panel["title"].split(" — ")[0]) + '</p>'
                 panel["printed_source"] = exact_paper_statement(record)
             body += render_panel(panel, sources, parsed, math)
         body += '</section>'
-    body += ('<section class="section" id="source-results"><h2>Paper results — all 19 source statements</h2>'
-             '<p>Each card states the corrected source claim, identifies its \\(R\\) hypotheses and precise correction, and shows its Lean theorem. '
+    body += ('<section class="section" id="source-results"><span id="main-results"></span><h2>Paper results — original paper numbers</h2>'
+             '<p>Each card names the exact paper result, states the proved corrected version, identifies its extra assumptions and precise correction, and shows its Lean theorem. '
              'The exact original TeX is expandable for direct comparison.</p><ol class="paper-contents">')
     for record in audit["results"]:
-        body += '<li><a href="#paper-' + anchor(record["id"]) + '">' + E(PAPER_RESULTS[record["id"]]["title"]) + '</a></li>'
+        body += '<li><a href="#paper-' + anchor(record["id"]) + '">' + E(result_label(record) + " — " + PAPER_RESULTS[record["id"]]["title"]) + '</a></li>'
     body += '</ol>'
-    for record in audit["results"]:
+    body += '<div class="paper-main-results"><h3>Main-text results</h3>'
+    for record in audit["results"][:3]:
         body += render_source_result(record, sources, parsed, math)
-    body += '</section><section class="section" id="source-corrections"><h2>Corrections to the paper’s formulas and arguments</h2>'
+    body += '</div><details class="supporting-details"><summary>Appendix results — Lemma A.1 through Theorem C.17 (16 statements)</summary>'
+    for record in audit["results"][3:]:
+        body += render_source_result(record, sources, parsed, math)
+    body += '</details></section><section class="section" id="source-corrections"><h2>Corrections to the paper’s formulas and arguments</h2>'
     body += '<p>Each correction names the exact local source location. An algebraic repair and a completed proof of the corresponding flow or algorithm are separate claims.</p>'
     for correction in PAPER_CORRECTIONS:
         panel = dict(id=correction["id"], section="source-corrections", category="corrected",
@@ -631,23 +687,33 @@ def overview(sources, parsed, math):
         panel["status"] = '<p class="formal-status">' + E(correction["status"]) + '</p>'
         body += render_panel(panel, sources, parsed, math)
     body += '</section>'
-    body += ('<section class="section part-heading" id="new-theory" data-new-theory="true"><h2>Part II — New theory</h2>'
-             '<p>The paper already gives a full-batch error rate with implicit constants. These additions make the force geometry, '
+    body += ('<details class="supporting-details"><summary>Supporting definitions and proof interfaces</summary>'
+             '<section class="section" id="source-contracts"><h2>Supporting definitions and proof interfaces</h2>'
+             '<p>These definitions implement the paper results above. They do not introduce a separate public assumption numbering system. '
+             'Their extra hypotheses are listed in Extra A1–Extra A7.</p>')
+    order = ["tilted-density-decomposition", "variational-domain", "density-normalization", "flow-analytic-bridges"]
+    for panel in sorted((p for p in all_panels if p["section"] == "source-contracts"), key=lambda p: order.index(p["id"])):
+        body += render_panel(panel, sources, parsed, math)
+    body += '</section></details>'
+    body += ('<section class="section part-heading" id="new-theory" data-new-theory="true"><span id="additional-results"></span><h2>Additional results beyond the paper</h2>'
+             '<p>These are new results, separate from the numbered paper statements above. '
+             'The paper already gives a full-batch error rate with implicit constants. These additions make the force geometry, '
              'particle variance, discretization and oracle contributions explicit. Their hypotheses are listed first.</p>'
+             '<details class="supporting-details"><summary>Show additional results and their extra assumptions</summary>'
              '<div class="new-contributions"><div><strong>What changes for inference?</strong><p>The final bound separates initialization, '
              'particle count, step size and oracle noise, so each source of parameter error can be budgeted.</p></div>'
              '<div><strong>What changes for minibatches?</strong><p>Exact variance and scalar temperature calculations distinguish '
              'sampling error from a change of target caused by the printed noise scaling.</p></div>'
              '<div><strong>What changes for model bias?</strong><p>A one-sided evidence gap turns approximate tilted optimization '
              'into an explicit distance from the original model’s optimizer.</p></div></div>'
-             '<section id="new-assumptions"><h3>New Assumptions — N1–N7</h3>'
-             '<p>N1 is the force interface, derived from A3–A4 for the scaled cloud. N2 is the step restriction. '
-             'N3–N4 describe alternative reference formulations; N5–N7 supply the probabilistic inputs for the main bound. '
+             '<section id="new-assumptions"><h3>Extra assumptions for additional results — Extra A8–Extra A14</h3>'
+             '<p>Extra A8 is the force interface, derived from A3–A4 for the scaled cloud. Extra A9 is the step restriction. '
+             'Extra A10–Extra A11 describe alternative reference formulations; Extra A12–Extra A14 supply the probabilistic inputs for the main bound. '
              'Each theorem below names the subset it uses; these premises are not asserted to follow from A1–A4.</p>')
     for panel in all_panels:
         if panel["section"] == "new-assumptions":
             body += render_panel(panel, sources, parsed, math)
-    body += '</section><section id="new-theorems"><h3>New Theorems — statements, contributions and Lean code</h3>'
+    body += '</section><section id="new-theorems"><h3>New results — statements and Lean code</h3>'
     new_panels = [p for p in all_panels if p["section"] == "new-theorems"]
     new_panels.sort(key=lambda p: p["id"] != "complete-numerical-budget")
     contributions = {
@@ -666,10 +732,11 @@ def overview(sources, parsed, math):
     }
     for number, panel in enumerate(new_panels, 1):
         panel = panel.copy()
-        panel["title"] = "Theorem New " + str(number) + " — " + panel["title"].split(" — ", 1)[-1]
+        panel["title"] = "New result " + str(number) + " — " + panel["title"].split(" — ", 1)[-1]
+        panel["status"] = '<p class="paper-status"><strong>New result.</strong> This statement has no paper theorem number.</p>'
         panel["prose"] += '<p class="contribution"><strong>What this adds to the paper.</strong> ' + contributions[panel["id"]] + '</p>'
         body += render_panel(panel, sources, parsed, math)
-    body += '</section></section>'
+    body += '</section></details></section>'
     body += ('<section class="section" id="verification"><h2>Check the proofs</h2>'
              '<p>From the repository root, fetch the pinned Mathlib cache, compile the development and print the axioms '
              'of its main theorems; then check that every displayed statement is the imported Lean theorem and that '

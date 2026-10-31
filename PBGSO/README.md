@@ -15,7 +15,7 @@ Read the [mathematical overview](exposition/index.html), the
 The overview pairs each mathematical assumption and theorem with its exact
 Lean statement. It uses the paper’s optimiser state $\vartheta$, sampler $Z$,
 mean observation $G_\nu$, and numerical coordinates. A1–A5, extra assumptions
-R1–R3, and numerical assumptions N1–N3 are stated separately, with additions
+Extra A1–Extra A5 and the numerical initialization conditions are stated separately, with additions
 and solution interpretations marked before the theorems. Shared Lean context
 is available beside each statement. Each proof page retains the full source.
 
@@ -91,14 +91,14 @@ reference-law identity or final recurrence is an assumption.
 
 The main page states the numerical assumptions before the bounds:
 
-- **N1:** independent globally jointly Lipschitz forces on the paper’s
+- **Extra A4:** independent globally jointly Lipschitz forces on the paper’s
   finite-dimensional optimiser and Euclidean sampler spaces. Write $F_x$ for
   the sampler force, to preserve the paper’s $G_\nu$ for the population mean
   observation; Lean calls these two independent forces `D.F` and `D.G`.
-- **N2:** positive population, deterministic optimiser initial state, an
+- **Numerical initialization:** positive population, deterministic optimiser initial state, an
   independent i.i.d. $\mathcal P_2$ sampler cloud and physical Brownian drivers, source
   A3 with positive rate, A5, and zero mean observation at the target.
-- **N3:** an actual norm-continuous $L^2$ frozen invariant trajectory on the
+- **Extra A5:** an actual norm-continuous $L^2$ frozen invariant trajectory on the
   target law times the canonical Brownian source. It starts at the initial
   projection, solves the physical frozen integral equation and preserves its
   law at every time. This is stronger than the weak frozen-SDE interpretation
