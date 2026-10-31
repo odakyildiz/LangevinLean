@@ -291,20 +291,29 @@ def project_document(notes, catalog=None):
             'Zhang and Akyildiz (2026)'),
            ('LatentDiffusion','Latent diffusion and inference',
             'Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.',
-            'All 19 source results proved in corrected form under explicit added regularity; corrections and new bounds are unpublished.',
+            'All 19 source results proved in corrected form under explicit extra assumptions; corrections and new bounds are unpublished.',
             'Wang, Kuntz and Akyildiz (2026)'),
            ('AverageLMC','Average-smoothness sampling',
             'LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.',
             'Main sampling theorems with the source hypotheses and constants.',
             'Dalalyan and Karagulyan (2026)')]
+    extra_assumptions = {
+        'IPLA': 'Entropy extension: lifted-target LSI and finite initial joint entropy; the specialization assumes linear scaling of the LSI constant.',
+        'KineticLangevin': 'A dimension restriction for the simplified KLMC2 bound, and a curvature condition for the printed tail-free iteration bound.',
+        'PBGSO': 'R1–R3 for the stated theorem branches; N1 and N3 for the new numerical bounds.',
+        'LatentDiffusion': 'R1–R7, as specified for each corrected source result.',
+    }
     for number,(key,label,description,scope,source_label) in enumerate(cards,1):
         paper=PAPERS[DEVELOPMENTS[key]['papers'][0]]
+        extra_notice = ('<p class="card-extra-assumptions added-assumption" data-assumption-kind="added"><strong>Extra assumptions:</strong> '
+                        + extra_assumptions[key] + '</p>') if key in extra_assumptions else ''
         body+=(f'<article class="landing-card"><span class="entry-index" aria-hidden="true">{number:02}</span>'
                f'<div class="entry-main"><div class="eyebrow">{E(label)}</div>'
                f'<h2><a href="{key}/exposition/index.html">{E(development_title(key))}</a></h2>'
                f'<p>{E(description)}</p></div><div class="entry-meta">'
                f'<p class="entry-source">Source: <a href="{E(paper["url"])}">{E(source_label)}</a>.</p>'
                f'<p class="card-scope">{E(scope)}</p>'
+               + extra_notice +
                f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
                '</div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'

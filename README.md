@@ -143,13 +143,13 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   exports each complete Mathlib-only proof closure with the readable contracts
   first, then compiles it with this project’s compiled modules excluded.
 - **Latent diffusion:** [assumptions, mathematical results and exact Lean statements](LatentDiffusion/exposition/index.html),
-  with [source coverage, added regularity and corrections](LatentDiffusion/exposition/source_audit.md).
+  with [source coverage, extra assumptions and corrections](LatentDiffusion/exposition/source_audit.md).
   The development proves variational identities, marginal optimizer results,
   interacting-particle error estimates and explicit accuracy choices. All 19
-  corrected source statements are proved under the explicit added regularity
+  corrected source statements are proved under the explicit extra assumptions
   R1–R7; continuous decay holds for every classical solution in the R1–R4 class.
   The printed originals are tracked separately, and the audit records corrected
-  minibatch scaling and the refutation of universal time-zero density regularity.
+  minibatch scaling and the refutation of universal time-zero density differentiability.
 - **Average smoothness LMC:** [sampling proofs](AverageLMC/exposition/index.html).
   LMC, decreasing-step, Laplacian LMC
   and control-variate SGLD bounds retain the source hypotheses and constants.
@@ -224,7 +224,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`ProximalLangevin/`](ProximalLangevin/README.md) | Proximal minimizers, corrected MYIPLA/PIPGLA/MYPGD convergence, constructed mean-field limits, and a version-specific audit of arXiv:2406.14292v3. |
 | [`KineticLangevin/`](KineticLangevin/exposition/README.md) | Kinetic convergence and Gibbs stationarity, Cholesky Gaussian sampling, KLMC/KLMC2 Wasserstein bounds, iteration counts for a specified accuracy, and comparison with the source paper. |
 | [`KIPLMC/`](KIPLMC/exposition/README.md) | KIPLD convergence, KIPLMC1/KIPLMC2 parameter root-mean-square error bounds, changes of variables for the diffusion and algorithms, target concentration, and the analytic logistic example. |
-| [`LatentDiffusion/`](LatentDiffusion/README.md) | All 19 corrected source results under explicit added regularity: actual density/KL identities, product transport and entropy calculus, classical-flow convergence, constructed mean-field and particle equations, and full-batch RMS error; separate new theory and accuracy choices. |
+| [`LatentDiffusion/`](LatentDiffusion/README.md) | All 19 corrected source results under explicit extra assumptions: actual density/KL identities, product transport and entropy calculus, classical-flow convergence, constructed mean-field and particle equations, and full-batch RMS error; separate new theory and accuracy choices. |
 | [`PBGSO/`](PBGSO/README.md) | General optimiser/sampler framework, actual predictable Brownian integration and continuous adapted modifications, stationary product laws and optimal law contraction, source appendix criteria and fully constructed additive particle numerical bounds; original raw stationarity via actual Wiener-path transfer and primitive linear-growth optimal law contraction across sources; constant-diffusion contraction uses the explicit ordinary finite signed-work A3 convention; actual independent reference clouds and physical particle/reference pairing are constructed. |
 | [`AverageLMC/`](AverageLMC/README.md) | Average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD proofs with exact source hypotheses and constants. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |

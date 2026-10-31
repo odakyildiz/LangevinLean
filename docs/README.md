@@ -17,7 +17,7 @@ analogue is also linked as a footnote from IPLA:
 Latent diffusion has a source-derived overview and complete declaration pages,
 with variational identities, marginal optimizers, particle error bounds and
 explicit accuracy choices. Its 19 corrected source results are proved under
-explicit added regularity R1–R7. The [source audit](../LatentDiffusion/exposition/source_audit.md)
+explicit extra assumptions R1–R7. The [source audit](../LatentDiffusion/exposition/source_audit.md)
 records each correction, the corrected minibatch scaling and the time-zero density obstruction.
 
 PBGSO is a separate source-based development with all eight source results
@@ -35,8 +35,8 @@ parameter bounds for every iteration under an explicit positive small-step
 threshold. Source A3 constructs their contracting empirical metric; physical
 noise, Gaussian coupling, raw/$L^2$ coordinates, uniform reference moments and
 local errors are derived. Constants may depend on the fixed particle count.
-The numerical assumptions N1–N3 separately state global force Lipschitz
-regularity, the original initial/A3/A5 data, and an actual canonical $L^2$ frozen
+The numerical assumptions N1–N3 separately state a global force Lipschitz
+bound, the original initial/A3/A5 data, and an actual canonical $L^2$ frozen
 target trajectory. No numerical contraction or uniform moment bound is
 assumed. The explicit endpoints are `FullyUniformMomentum.explicit_parameter_bound`
 and `FullyUniformHigherOrder.explicit_parameter_bound`; each also has an
@@ -205,8 +205,8 @@ and unresolved coverage statuses, and runs
 `python3 docs/test_latent_diffusion_landing.py` to check all 19 source cards,
 exact citations, original TeX, and separation/order of the two parts.
 `python3 scripts/verify-latent-diffusion.py --lean --require-source-complete`
-certifies all 19 corrected statements with their added regularity. These checks
-do not certify the literal printed statements. Its complete proof report (LL08) includes those corrections and added regularity explicitly.
+certifies all 19 corrected statements with their extra assumptions. These checks
+do not certify the literal printed statements. Its complete proof report (LL08) includes those corrections and extra assumptions explicitly.
 
 `AverageLMC` is contribution 09 after latent diffusion. Its paired overview,
 module atlas and source audit are authored in

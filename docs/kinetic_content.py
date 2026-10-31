@@ -281,8 +281,9 @@ independence, Gaussian-innovation or optimal-coupling premise is supplied to
 this final sampler theorem.</p>
 <p>The cutoff gives both \(e^{-(a-p)/8}\le e^{-p/2}\) and the stronger
 \(e^{-(a-p)/8}\le e^{-m^2/(160M_2^2h^2)}\). The printed simplification
-of the first bias term uses \(p^2+2p\le2p^2\), which requires
-\(p\ge2\). Under that explicit restriction the bound implies</p>
+of the first bias term uses \(p^2+2p\le2p^2\).</p>
+<p class="added-assumption" data-assumption-kind="added"><strong>Extra assumption for that simplification:</strong> \(p\ge2\).</p>
+<p>Under this condition the bound implies</p>
 \[W_2(\nu_n^{\rm KLMC2},\pi)\le
 \sqrt2q^n W_2(\nu_0,\pi)
 +\frac{2h^2M_2p}{m}+\frac{h^2M\sqrt{2Mp}}m
@@ -342,9 +343,9 @@ A convenient uniform upper bound uses
 \sqrt{p/\varepsilon}\,\widehat\kappa_2^{5/4}\right],\]
 <p>Here \(\mathcal C=(4\gamma/m)Q\) is the exact count coefficient
 above. The natural count is therefore less than one plus this bound times
-the visible nonnegative logarithm. If \(\rho\ge\kappa\), the maximum
-is simply \(\rho\), so the printed shape follows with the same explicit
-constant.</p>
+the visible nonnegative logarithm.</p>
+<p class="added-assumption" data-assumption-kind="added"><strong>Extra assumption for the printed shape:</strong> \(\rho\ge\kappa\), equivalently \(M(1-p^{-1/3})\le M_2^{2/3}\).</p>
+<p>Then the maximum is simply \(\rho\), so the printed shape follows with the same explicit constant.</p>
 <p>The distinction matters because the modified number discounts gradient
 curvature by \(p^{-1/3}\), while the stability restriction still
 contains \(M/m\). Take a natural \(t\ge2\), dimension \(p=t^6\),

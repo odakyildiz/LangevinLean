@@ -113,6 +113,25 @@ async function theme(page, expected, preference, print = false) {
   check(colors.errors.length === 0, 'Body and diagram labels retain readable text contrast', colors.errors);
   check(expected==='dark'&&!print?colors.bodyLuminance<.15:colors.bodyLuminance>.7,
     'The active theme changes the actual page background',colors);
+  const assumptionColors = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    document.body.append(probe);
+    const expected = {};
+    for (const [property, token] of [['color','ink'], ['backgroundColor','bg'], ['borderLeftColor','border']]) {
+      probe.style[property] = `var(--extra-assumption-${token})`;
+      expected[property] = getComputedStyle(probe)[property];
+    }
+    probe.remove();
+    return [...document.querySelectorAll('.added-assumption, [data-assumption-kind="added"]')]
+      .flatMap(element => {
+        const style = getComputedStyle(element);
+        const errors = Object.entries(expected).filter(([property, value]) => style[property] !== value)
+          .map(([property, value]) => ({property, expected:value, actual:style[property]}));
+        return errors.length ? [{text:element.textContent.slice(0,100), errors}] : [];
+      });
+  });
+  check(assumptionColors.length === 0,
+    'Every extra assumption uses the shared orange text, background and border', assumptionColors);
 }
 async function layout(page) {
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));

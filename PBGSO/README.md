@@ -14,7 +14,7 @@ Read the [mathematical overview](exposition/index.html), the
 [exact assumption inventory](exposition/assumption_inventory.json).
 The overview pairs each mathematical assumption and theorem with its exact
 Lean statement. It uses the paper’s optimiser state $\vartheta$, sampler $Z$,
-mean observation $G_\nu$, and numerical coordinates. A1–A5, added regularity
+mean observation $G_\nu$, and numerical coordinates. A1–A5, extra assumptions
 R1–R3, and numerical assumptions N1–N3 are stated separately, with additions
 and solution interpretations marked before the theorems. Shared Lean context
 is available beside each statement. Each proof page retains the full source.
