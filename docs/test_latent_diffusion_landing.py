@@ -116,7 +116,7 @@ def validate_landing(source, audit):
     new_assumptions = unique("new-assumptions")
     new_theorems = unique("new-theorems")
     require(assumptions.order < regularity.order < contracts.order < paper.order < new.order,
-            "Paper assumptions, added regularity and source results must precede new theory")
+            "Paper assumptions, extra assumptions and source results must precede new theory")
     require(new.attrs.get("data-new-theory") == "true",
             "The new-theory block must be explicitly identified")
     require(new.contains(new_assumptions) and new.contains(new_theorems),
@@ -139,7 +139,7 @@ def validate_landing(source, audit):
         require(not node.attrs.get("data-assumption-id", "").startswith("N"),
                 "New assumptions cannot appear among paper assumptions")
         require(not node.attrs.get("data-assumption-id", "").startswith("R"),
-                "Added regularity cannot appear among paper assumptions")
+                "Extra assumptions cannot appear among paper assumptions")
         if node.tag in {"h3", "h4"}:
             require(not re.match(r"\s*(?:N\d+|V1|C1)\b", node.text()),
                     "Added domains and analytic bridges need their own section")
@@ -151,16 +151,25 @@ def validate_landing(source, audit):
                         if node.attrs.get("data-assumption-id") in regularity_ids]
     require(len(regularity_cards) == 7 and
             {node.attrs["data-assumption-id"] for node in regularity_cards} == regularity_ids,
-            "Added source regularity must include R1–R7 exactly once")
+            "Source extra assumptions must include R1–R7 exactly once")
     for node in regularity_cards:
-        require(regularity.contains(node), "R regularity must precede the source results in its own section")
-        require(node.has_class("category-regularity"), "R regularity must retain its separate blue category")
+        require(regularity.contains(node), "R extra assumptions must precede the source results in its own section")
+        require(node.has_class("category-extra-assumption"), "R extra assumptions must be explicitly classified")
         require(any(child.tag == "pre" for child in node.elements()),
-                "R regularity must show its exact Lean hypotheses")
-    for name, colour in (("original", "28734a"), ("regularity", "245fa3"), ("new", "a65d00")):
-        require(re.search(r"\.category-" + name + r"\s*\{[^}]*border-top-color:\s*#" + colour,
-                          source, re.I),
-                "Original, added regularity and new theory must have distinct green, blue and orange colours")
+                "R extra assumptions must show its exact Lean hypotheses")
+    require(re.search(r"\.category-original\s*\{[^}]*border-top-color:\s*#28734a", source, re.I),
+            "Paper assumptions must retain their green source colour")
+    compact_source = re.sub(r"\s+", "", source)
+    require(".category-new,.latent-page.category-extra-assumption{border-top-color:var(--extra-assumption-border)}"
+            in compact_source,
+            "Both groups of extra assumptions must use the shared orange border")
+    require(".category-new>.result-badge,.latent-page.category-extra-assumption>.result-badge{background:var(--extra-assumption-bg);color:var(--extra-assumption-ink)}"
+            in compact_source,
+            "Both groups of extra assumptions must use the shared orange badge palette")
+    public_labels = " ".join(node.text() for node in nodes
+                            if node.tag in {"h1", "h2", "h3", "h4"} or node.has_class("added-assumption"))
+    require(not re.search(r"\b(?:added|source)\s+regularity\b", public_labels, re.I),
+            "Public labels must call additional premises extra assumptions")
 
     required_assumptions = {f"N{i}" for i in range(1, 8)}
     numerical_assumptions = [node for node in nodes
@@ -173,6 +182,14 @@ def validate_landing(source, audit):
                 f"{node.attrs['data-assumption-id']} lies outside New Assumptions")
         require(any(child.tag == "pre" for child in node.elements()),
                 f"{node.attrs['data-assumption-id']} is missing its exact Lean premise")
+
+    for node in regularity_cards + numerical_assumptions:
+        math_panes = [child for child in node.elements() if child.has_class("statement-math")]
+        require(len(math_panes) == 1 and math_panes[0].has_class("added-assumption"),
+                "Every extra-assumption statement must use the shared orange treatment")
+        if node in regularity_cards:
+            require(any(child.has_class("katex-display") for child in math_panes[0].elements()),
+                    "Every R extra-assumption card must state its mathematical conditions explicitly")
 
     records = {record["id"]: record for record in audit["results"]}
     require(len(records) == 19, "The source ledger must retain all 19 paper results")
@@ -212,7 +229,7 @@ def validate_landing(source, audit):
                     f"Completed corrected source proof is not shown as proved: {identifier}")
         expected_added = set(record.get("added_assumptions", []))
         actual_added = {node.text().strip() for node in descendants
-                        if node.has_class("regularity-link") and
+                        if node.has_class("extra-assumption-link") and
                         node.attrs.get("href", "").startswith("#regularity-r")}
         require(actual_added == expected_added,
                 f"Source card must link its own added R assumptions: {identifier}")
@@ -243,16 +260,17 @@ class LandingContractTests(unittest.TestCase):
         cls.audit = json.loads(AUDIT.read_text())
 
     def fixture(self):
-        def pair(prose):
-            return ('<div class="statement-pair"><div class="statement-math">' + prose +
+        def pair(prose, extra=False):
+            math_class = "statement-math added-assumption" if extra else "statement-math"
+            return ('<div class="statement-pair"><div class="' + math_class + '">' + prose +
                     '</div><aside class="statement-lean"><pre data-role="statement">'
                     'theorem example : 0 ≤ 1</pre></aside></div>')
 
         paper = []
         for record in self.audit["results"]:
             complete = record.get("corrected_statement_fully_proved") is True
-            added = ('<p class="added-regularity">' + ''.join(
-                '<a class="regularity-link" href="#regularity-' + item.lower() + '">' + item + '</a>'
+            added = ('<p class="added-assumption">' + ''.join(
+                '<a class="extra-assumption-link" href="#regularity-' + item.lower() + '">' + item + '</a>'
                 for item in record.get("added_assumptions", [])) + '</p>')
             paper.append('<article data-source-result="' + escape(record["id"]) +
                          '" data-formal-status="' + ('proved' if complete else 'partial') +
@@ -266,20 +284,20 @@ class LandingContractTests(unittest.TestCase):
                          escape(record["exact_tex"]) + '</pre></details></article>')
         assumptions = ''.join(f'<article class="category-original"><h3>A{i} — Source condition</h3></article>'
                               for i in range(1, 5))
-        regularity = ''.join(f'<article data-assumption-id="R{i}" class="category-regularity">' +
-                             pair('Explicit added regularity and its primitive Lean fields.') + '</article>'
+        regularity = ''.join(f'<article data-assumption-id="R{i}" class="category-extra-assumption">' +
+                             pair('<span class="katex-display">Quantified mathematical assumptions.</span>', extra=True) + '</article>'
                              for i in range(1, 8))
         new_assumptions = ''.join(f'<article data-assumption-id="N{i}" class="category-new">' +
-                                 pair('The explicit primitive force premise.') + '</article>'
+                                 pair('<span class="katex-display">The explicit primitive force premise.</span>', extra=True) + '</article>'
                                  for i in range(1, 8))
         new_theorems = ''.join(f'<article id="{identifier}" class="category-new">' +
                               pair('The quantitative conclusion and its contribution to the paper.') + '</article>'
                               for identifier in sorted(NEW_THEOREMS))
         return ('<style>.category-original{border-top-color:#28734a}'
-                '.category-regularity{border-top-color:#245fa3}'
-                '.category-new{border-top-color:#a65d00}</style>'
+                '.category-new,.latent-page .category-extra-assumption{border-top-color:var(--extra-assumption-border)}'
+                '.category-new>.result-badge,.latent-page .category-extra-assumption>.result-badge{background:var(--extra-assumption-bg);color:var(--extra-assumption-ink)}</style>'
                 '<main><section id="assumptions">' + assumptions + '</section>' +
-                '<section id="source-regularity"><h2>Added regularity R1–R7</h2>' + regularity + '</section>' +
+                '<section id="source-regularity"><h2>Extra assumptions R1–R7</h2>' + regularity + '</section>' +
                 '<section id="source-contracts"><h2>Additional formalization premises</h2></section>' +
                 '<section id="source-results">' + ''.join(paper) + '</section>' +
                 '<section id="new-theory" data-new-theory="true">' +
@@ -344,19 +362,19 @@ class LandingContractTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "N1–N7"):
             self.check(self.fixture().replace('data-assumption-id="N7"', ''))
 
-    def test_added_source_regularity_must_be_complete(self):
+    def test_extra_source_assumptions_must_be_complete(self):
         with self.assertRaisesRegex(AssertionError, "R1–R7"):
             self.check(self.fixture().replace('data-assumption-id="R7"', ''))
 
-    def test_added_source_regularity_cannot_be_relabelled_original(self):
-        source = self.fixture().replace('data-assumption-id="R3" class="category-regularity"',
+    def test_extra_source_assumptions_cannot_be_relabelled_original(self):
+        source = self.fixture().replace('data-assumption-id="R3" class="category-extra-assumption"',
                                         'data-assumption-id="R3" class="category-original"')
-        with self.assertRaisesRegex(AssertionError, "blue category"):
+        with self.assertRaisesRegex(AssertionError, "explicitly classified"):
             self.check(source)
 
-    def test_assumption_colours_must_distinguish_all_three_origins(self):
-        with self.assertRaisesRegex(AssertionError, "distinct green, blue and orange"):
-            self.check(self.fixture().replace('border-top-color:#245fa3', 'border-top-color:#a65d00'))
+    def test_extra_assumptions_must_share_the_orange_palette(self):
+        with self.assertRaisesRegex(AssertionError, "shared orange border"):
+            self.check(self.fixture().replace('border-top-color:var(--extra-assumption-border)', 'border-top-color:#245fa3'))
 
     def test_each_source_card_must_link_its_own_added_assumptions(self):
         with self.assertRaisesRegex(AssertionError, "own added R assumptions"):

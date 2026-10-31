@@ -40,7 +40,7 @@
 \raggedbottom
 \title{\texorpdfstring{Training Latent Diffusion Models with Interacting Particle Algorithms}{Training Latent Diffusion Models with Interacting Particle Algorithms}\\[0.6em]\large Mathematical proofs}
 \author{LangevinLean Project}
-\date{Draft report LL-08\\[0.4em]\small Content revision e8705dd15a79}
+\date{Draft report LL-08\\[0.4em]\small Content revision e7fa56ba1732}
 \begin{document}
 \pagenumbering{roman}
 \maketitle
@@ -71,7 +71,7 @@ Prepared by the LangevinLean Project with AI assistance, these notes form part o
 \pagenumbering{arabic}
 \chapter{Assumptions and main results}
 \section{Assumptions of the paper}
-\subsection{\texorpdfstring{A1 — Model regularity}{A1 — Model regularity}}
+\subsection{\texorpdfstring{A1 — Model differentiability}{A1 — Model differentiability}}
 
 
 
@@ -80,7 +80,7 @@ Put \(a=(\theta,\phi)\), \(\tilde\rho_a(z)=\tilde p_a(x,z)\), and \(\tilde\pi_a(
 
 
 
-Here \(A_a\) is the model's normalizing constant. The regularity contract records these conditions; it does not establish differentiation under integrals or boundary integration by parts.
+Here \(A_a\) is the model's normalizing constant. The source contract records these conditions; it does not establish differentiation under integrals or boundary integration by parts.
 
 \begin{leanbox}{Lean: \texttt{normalizedPosterior}, \texttt{ModelRegularity}}
 \leansource{\texttt{normalizedPosterior} \quad LatentDiffusion/\allowbreak{}SourceAssumptions.lean, lines 31–32}
@@ -199,20 +199,15 @@ Negating the log tilted density leaves the Lipschitz constant unchanged. The sou
 \leanline{2}{lipschitz\ :\ ∀\ i,\ LipschitzWith\ L\ (gradient\ (U\ i))}
 \end{leancode}
 \end{leanbox}
-\section{Added regularity}
-\subsection{\texorpdfstring{R1 — Admissible density laws and finite energies}{R1 — Admissible density laws and finite energies}}
+\section{Extra assumptions}
+\subsection{\texorpdfstring{R1 — Positive normalized densities and the finite-KL domain}{R1 — Positive normalized densities and the finite-KL domain}}
 
 
-Use \(M\ge1\), actual positive finite normalizers, and the
-        probability posteriors obtained by dividing the supplied tilted density
-        by its integral. Work on the finite-KL energy domain, and require the
-        posterior comparison laws to belong to the chosen finite-second-moment
-        domain. The initial laws must have the regularity used by the proof;
-        arbitrary Dirac initial laws cannot simultaneously have positive smooth
-        densities at time zero. Positive-time smoothing is an alternative when
-        the initial energy is defined by its right limit. Normalization and the
-        variational identity are proved from the densities, rather than added
-        as assumptions.
+Let \(M\in\mathbb N\), \(M>0\), let \(\nu\) be the reference measure on the latent space, and let \(a\) range over the parameter domain. For every datum \(m\), assume that \(\rho_a^m:Z\to(0,\infty)\) is measurable, \(\rho_a^m\in L^1(\nu)\), and
+        \[0<Z_m(a):=\int\rho_a^m\,d\nu<\infty,\qquad
+          \pi_a^m(dz):=Z_m(a)^{-1}\rho_a^m(z)\,\nu(dz).\]
+        For a trial family \(q=(q^m)_{m=1}^M\), the domain condition is
+        \(\mathrm{KL}(q^m\|\pi_a^m)<\infty\) for every \(m\). If minimization is restricted to a law domain \(\mathcal D\), assume \((\pi_a^m)_m\in\mathcal D\) for every \(a\). For the paper's domain take \(\mathcal D=\mathcal P_2(Z)^M\), so \(\int\|z\|^2\,d\pi_a^m<\infty\) is required. The real Radon–Nikodym density \(f_m=dq^m/d\pi_a^m\), its normalization and \(f_m\log f_m\in L^1(\pi_a^m)\) follow from finite KL. The literal density \(q_m=f_m\rho_a^m/Z_m(a)\) and the energy identity are then derived. This variational domain does not impose smoothness on arbitrary trial laws. The classical-flow statements additionally require the positive differentiable initial density specified in R2–R3; a Dirac initial law does not satisfy it.
 
 \begin{leanbox}{Lean: \texttt{DensityModel}, \texttt{DensityModel.\allowbreak{}literal\_\allowbreak{}integral}, \texttt{DensityModel.\allowbreak{}literal\_\allowbreak{}minimizers\_\allowbreak{}on\_\allowbreak{}iff}}
 \leansource{\texttt{DensityModel} \quad LatentDiffusion/\allowbreak{}RegularVariational.lean, lines 24–29}
@@ -245,19 +240,20 @@ Use \(M\ge1\), actual positive finite normalizers, and the
 \leanline{4}{(∀\ b,\ D.family.logEvidence\ b\ ≤\ D.family.logEvidence\ a)\ ∧\ q\ =\ D.posterior\ a}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{R2 — Local domination for differentiation of actual integrals}{R2 — Local domination for differentiation of actual integrals}}
+\subsection{\texorpdfstring{R2 — Quantified domination for differentiation under the integral}{R2 — Quantified domination for differentiation under the integral}}
 
 
-On one common neighbourhood of the time or parameter in
-        question, require measurable positive densities, pointwise density and
-        potential derivatives, finite base energy, and an integrable bound for
-        the differentiated integrand. For normalizers the bound is on
-        \(e^{-U_u(z)}\|\nabla_uU_u(z)\|\); for the evolving energy it is on
-        \(\dot q(\log q+U+1)+q\dot U\). Require the weighted parameter
-        gradient to be integrable. These are ordinary sufficient conditions for
-        differentiating under the integral sign. The potential time derivative
-        is derived by the chain rule, and evidence optimality then proves that
-        the average posterior parameter score is zero.
+For each differentiated normalizer at a parameter \(a_0\), assume a single neighbourhood \(V\ni a_0\) and \(g\in L^1(\nu)\) such that, outside one \(\nu\)-null set, for every \(b\in V\), \(U_m(\cdot,z)\) is differentiable at \(b\) and
+        \[e^{-U_m(b,z)}\|\nabla_aU_m(b,z)\|\le g(z).\]
+        Require \(e^{-U_m(a_0,\cdot)}\in L^1(\nu)\), almost-everywhere strong measurability of \(z\mapsto e^{-U_m(b,z)}\) for all \(b\) in a neighbourhood of \(a_0\), and of \(z\mapsto e^{-U_m(a_0,z)}\nabla_aU_m(a_0,z)\). These are the exact domination inputs for the normalizing integral.
+
+
+
+
+For an energy derivative at \(t_0\), write \(U_t(z)=U_m(a(t),z)\), \(\dot U_t(z)=D_aU_m(a(t),z)[\dot a(t)]\), and
+        \[H_t(z)=q_t(z)(\log q_t(z)+U_t(z)),\qquad
+          D_t(z)=\dot q_t(z)(\log q_t(z)+U_t(z)+1)+q_t(z)\dot U_t(z).\]
+        Assume one neighbourhood \(J\ni t_0\) and \(g\in L^1(\nu)\) such that, outside one null set and for every \(t\in J\), \(q_t>0\), \(\partial_tq_t=\dot q_t\), and \(|D_t|\le g\). Require \(H_{t_0}\in L^1(\nu)\), almost-everywhere strong measurability of \(D_{t_0}\), and of \(H_t\) for all \(t\) in a neighbourhood of \(t_0\). For a direct potential derivative require, outside one null set, \(\partial_tU_t(z)=\dot U_t(z)\) for every \(t\in J\); the chain-rule constructor instead uses differentiability of \(a\) at every such time and of \(U_m(\cdot,z)\) at the corresponding parameter. In the flow and directional statements also require \(q_t\nabla_aU_m(a(t),\cdot)\in L^1(\nu)\). These quantified conditions, rather than an assumed derivative of an integral, define R2.
 
 \begin{leanbox}{Lean: \texttt{LocalEnergyDomination}, \texttt{LocalEnergyDomination.\allowbreak{}along\_\allowbreak{}parameter\_\allowbreak{}path}, \texttt{LocalNormalizerRegularity} and 1 more}
 \leansource{\texttt{LocalEnergyDomination} \quad LatentDiffusion/\allowbreak{}RegularFlowCalculus.lean, lines 45–60}
@@ -321,20 +317,17 @@ On one common neighbourhood of the time or parameter in
 \leanline{4}{∑\ i,\ (∫\ z,\ gradient\ (fun\ b\ ↦\ U\ i\ b\ z)\ a\ ∂posterior\ ν\ (U\ i)\ a)\ =\ 0}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{R3 — Classical flow equations and integrable spatial tails}{R3 — Classical flow equations and integrable spatial tails}}
+\subsection{\texorpdfstring{R3 — Classical equations, differentiability and spatial integrability}{R3 — Classical equations, differentiability and spatial integrability}}
 
 
-Use the parameter gradient ODE and the actual classical
-        Fokker–Planck equation
-        \(\partial_tq^m=\nabla\!\cdot(q^m\nabla(\log q^m+U_m))\).
-        To integrate by parts, require differentiable flux components and
-        absolute integrability of each component times the test, its derivative
-        times the test, and the component times the test derivative. These are
-        the explicit hypotheses of ordinary Lebesgue integration by parts on
-        the unbounded latent domain. Applying them to the chemical potential
-        proves Fisher integrability and the full de Bruijn identity. Applying
-        them to arbitrary admissible continuity-equation velocities proves the
-        normalized product-gradient pairing. Neither conclusion is assumed.
+On the Euclidean latent space \(Z=\mathbb R^{d_z}\), put \(\psi_t^m=\log q_t^m+U_m(a(t),\cdot)\) and \(J_t^m=q_t^m\nabla_z\psi_t^m\). The density-dynamics contract requires, for every \(t\in\mathbb R\) and \(m\), \(q_t^m(z)>0\) for every \(z\), \(q_t^m,U_m(a(t),\cdot)\in C^1(Z)\), differentiability of \(a\), differentiability of \(U_m(\cdot,z)\) at every parameter, the R2 energy domination, and \(q_t^m\nabla_aU_m(a(t),\cdot)\in L^1(dz)\). For \(t\ge0\), impose
+        \[\dot a(t)=-\frac1M\sum_m\int q_t^m(z)\nabla_aU_m(a(t),z)\,dz,
+          \qquad \partial_tq_t^m=\nabla_z\!\cdot J_t^m\quad\text{a.e.}\]
+        For every spatial coordinate \(j\), require \(J_{t,j}^m\) differentiable and all three functions
+        \[J_{t,j}^m(\psi_t^m+1),\qquad
+          (\partial_jJ_{t,j}^m)(\psi_t^m+1),\qquad
+          J_{t,j}^m\partial_j\psi_t^m\]
+        in \(L^1(dz)\). This is the precise no-boundary-term hypothesis. For a first variation along \(a_s=(1-s)a+sb\), \(T_s=(1-s)\mathrm{id}+sT\), impose the same R2 domination at \(s=0\), the equation \(\dot q_0=-\nabla\cdot(q_0(T-\mathrm{id}))\), differentiability of every component of \(q_0(T-\mathrm{id})\), and these three integrability conditions with flux \(q_0(T-\mathrm{id})\) and test \(\log q_0+U_m(a,\cdot)+1\). Require also \(U_m(a_s,\cdot)\in L^1(q_s^m)\) for every \(s\in[0,1]\). The gradient-pairing statement imposes the corresponding continuity equation and three integrable products for each velocity under consideration. Fisher integrability and de Bruijn are conclusions of these equations and hypotheses.
 
 \begin{leanbox}{Lean: \texttt{NoBoundaryFlux}, \texttt{integral\_\allowbreak{}divergence\_\allowbreak{}mul}, \texttt{normalized\_\allowbreak{}product\_\allowbreak{}gradient\_\allowbreak{}representation} and 3 more}
 \leansource{\texttt{NoBoundaryFlux} \quad LatentDiffusion/\allowbreak{}RegularFlowCalculus.lean, lines 199–207}
@@ -449,26 +442,24 @@ Use the parameter gradient ODE and the actual classical
 \leanline{4}{Integrable\ (U\ i\ (parameterInterpolate\ a\ b\ s))\ ((D\ i).law\ s)}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{R4 — Regular displacement charts and actual optimal transports}{R4 — Regular displacement charts and actual optimal transports}}
+\subsection{\texorpdfstring{R4 — Density change of variables and certified optimal maps}{R4 — Density change of variables and certified optimal maps}}
 
 
-For the transport arguments, use smooth displacement
-        maps with positive Jacobian eigenvalues, actual pushforward density
-        laws, the density/\allowbreak{}Jacobian change-of-variables equation, and integrable
-        logarithms and quadratic transport costs. When an exact Wasserstein
-        distance is needed, supply an optimal map by its pushforward and
-        minimality against every genuine coupling. For the geodesic
-        equivalence, require optimal maps between all intermediate laws and
-        endpoint-map uniqueness up to source-law null sets. Its gradient-map
-        version uses an actual convex potential and its gradient certificate.
-        This is explicit regular
-        transport data; arbitrary probability laws are not asserted to possess
-        a smooth positive-Jacobian map. Entropy displacement convexity and its
-        score tangent inequality are proved from the Jacobian formula and
-        spatial integration by parts. No entropy-convexity, first-order
-        transport or log-Sobolev inequality is an assumption in these data.
+For each displacement argument supply a measurable map \(T:Z\to Z\), differentiable at every point, and \(T_s=(1-s)\mathrm{id}+sT\). For every \(z\), require an orthonormal eigenbasis of \(DT(z)\) with eigenvalues \(\lambda_j(z)>0\). For every \(s\in[0,1]\), supply a measurable everywhere positive density \(q_s\) satisfying
+        \[(T_s)_\#\mu=q_s\,dz,\qquad
+          q_s(T_s z)=\frac{q_0(z)}{\prod_{j=1}^{d_z}(1-s+s\lambda_j(z))},\qquad
+          \log(q_s\circ T_s)\in L^1(\mu).\]
+        For each datum the tangent dataset contract further requires \(q_0\in C^1(Z)\), \(\nabla\log q_0\in L^2(\mu)\), \(\mathrm{id}-T\in L^2(\mu)\), and \(z\mapsto\nabla_{(a,z)}U_m(a,z)\in L^2(\mu)\). With \(a_s=(1-s)a+sb\), require \(U_m(a_s,T_s\cdot)\in L^1(\mu)\) for every \(s\in[0,1]\). For \(w=T-\mathrm{id}\), every \(w_j\) is differentiable and \(w_jq_0\), \((\partial_jw_j)q_0\), \(w_j\partial_jq_0\) belong to \(L^1(dz)\). These are the transport-score integration-by-parts inputs, distinct from the flux/\allowbreak{}test pair in R3.
 
-\begin{leanbox}{Lean: \texttt{RegularDisplacement}, \texttt{OptimalMap}, \texttt{RegularBrenierMap} and 2 more}
+
+
+
+Whenever a map from \(\mu\) to \(\eta\) is used to identify an exact Wasserstein distance, require \(T_\#\mu=\eta\), \(z\mapsto z-Tz\in L^2(\mu)\), and, for every probability coupling \(\gamma\in\Gamma(\mu,\eta)\),
+        \[\left(\int\|z-Tz\|^2\,d\mu\right)^{1/2}
+          \le\left(\int\|x-y\|^2\,d\gamma(x,y)\right)^{1/2}.\]
+        Here coupling costs use the extended nonnegative integral, allowing \(+\infty\). The constant-speed geodesic statements additionally require such an optimal map between \(q_s\) and \(q_t\) for every \(s,t\in[0,1]\). Their converse assumes endpoint uniqueness: every optimal \(S:q_0\to q_1\) satisfies \(S=T\), \(q_0\)-a.e. The gradient-map version also supplies a convex function \(\Phi:Z\to\mathbb R\) with \(\nabla\Phi(z)=T(z)\) at every \(z\). These are assumptions on the chosen transport data. Entropy displacement convexity and the score tangent inequality are derived from them and R3.
+
+\begin{leanbox}{Lean: \texttt{RegularDisplacement}, \texttt{DatasetRegularity}, \texttt{OptimalMap} and 3 more}
 \leansource{\texttt{RegularDisplacement} \quad LatentDiffusion/\allowbreak{}RegularTransport.lean, lines 100–119}
 \begin{leancode}
 \leanline{0}{structure\ RegularDisplacement\ (ν\ μ\ :\ Measure\ Z)\ (d\ :\ ℕ)\ where}
@@ -491,6 +482,35 @@ For the transport arguments, use smooth displacement
 \leanline{6}{density\ 0\ z\ /\ spectralJacobian\ (eigenvalue\ z)\ s}
 \leanline{2}{integrable\_log\ :\ ∀\ s\ ∈\ Icc\ (0\ :\ ℝ)\ 1,}
 \leanline{4}{Integrable\ (fun\ z\ ↦\ Real.log\ (density\ s\ (interpolate\ transport\ s\ z)))\ μ}
+\end{leancode}
+\leansource{\texttt{DatasetRegularity} \quad LatentDiffusion/\allowbreak{}RegularTransportFirstOrder.lean, lines 528–553}
+\begin{leancode}
+\leanline{0}{structure\ DatasetRegularity\ (M\ d\ :\ ℕ)\ (p₀\ p₁\ :\ P)\ (rho\ :\ ℝ)\ where}
+\leanline{2}{law\ :\ Fin\ M\ →\ ProbabilityMeasure\ Z}
+\leanline{2}{displacement\ :\ (m\ :\ Fin\ M)\ →\ RegularDisplacement\ volume\ (law\ m\ :\ Measure\ Z)\ d}
+\leanline{2}{potential\ :\ Fin\ M\ →\ P\ →\ Z\ →\ ℝ}
+\leanline{2}{potential\_strong\ :\ ∀\ m,\ StrongConvexOn\ univ\ rho}
+\leanline{4}{(fun\ w\ :\ PBGSO.ProductTransport.Joint\ P\ Z\ ↦\ potential\ m\ w.fst\ w.snd)}
+\leanline{2}{potential\_measurable\ :\ ∀\ m\ p,\ Measurable\ (potential\ m\ p)}
+\leanline{2}{potential\_integrable\_initial\ :\ ∀\ m,\ Integrable\ (potential\ m\ p₀)\ (law\ m\ :\ Measure\ Z)}
+\leanline{2}{potential\_integrable\_final\ :\ ∀\ m,}
+\leanline{4}{Integrable\ (fun\ z\ ↦\ potential\ m\ p₁\ ((displacement\ m).transport\ z))\ (law\ m\ :\ Measure\ Z)}
+\leanline{2}{potential\_integrable\_path\ :\ ∀\ m\ s,\ s\ ∈\ Icc\ (0\ :\ ℝ)\ 1\ →}
+\leanline{4}{Integrable\ (fun\ z\ ↦\ potential\ m\ (parameterInterpolate\ p₀\ p₁\ s)}
+\leanline{6}{(interpolate\ (displacement\ m).transport\ s\ z))\ (law\ m\ :\ Measure\ Z)}
+\leanline{2}{potential\_gradient\ :\ Fin\ M\ →\ Z\ →\ PBGSO.ProductTransport.Joint\ P\ Z}
+\leanline{2}{potential\_hasGradientAt\ :\ ∀\ m\ z,\ HasGradientAt}
+\leanline{4}{(fun\ w\ :\ PBGSO.ProductTransport.Joint\ P\ Z\ ↦\ potential\ m\ w.fst\ w.snd)}
+\leanline{4}{(potential\_gradient\ m\ z)\ (PBGSO.ProductTransport.embed\ p₀\ z)}
+\leanline{2}{potential\_gradient\_memLp\ :\ ∀\ m,\ MemLp\ (potential\_gradient\ m)\ 2\ (law\ m\ :\ Measure\ Z)}
+\leanline{2}{displacement\_memLp\ :\ ∀\ m,}
+\leanline{4}{MemLp\ (fun\ z\ ↦\ z\ -\ (displacement\ m).transport\ z)\ 2\ (law\ m\ :\ Measure\ Z)}
+\leanline{2}{score\_memLp\ :\ ∀\ m,}
+\leanline{4}{MemLp\ (fun\ z\ ↦\ gradient\ (fun\ z\ ↦\ Real.log\ ((displacement\ m).density\ 0\ z))\ z)}
+\leanline{6}{2\ (law\ m\ :\ Measure\ Z)}
+\leanline{2}{density\_C1\ :\ ∀\ m,\ ContDiff\ ℝ\ 1\ ((displacement\ m).density\ 0)}
+\leanline{2}{integrable\_tails\ :\ ∀\ m,\ RegularFlowCalculus.NoBoundaryFlux}
+\leanline{4}{(fun\ z\ ↦\ (displacement\ m).transport\ z\ -\ z)\ ((displacement\ m).density\ 0)}
 \end{leancode}
 \leansource{\texttt{OptimalMap} \quad LatentDiffusion/\allowbreak{}RegularTransport.lean, lines 427–433}
 \begin{leancode}
@@ -523,20 +543,19 @@ For the transport arguments, use smooth displacement
 \leanline{6}{D.entropy\ 1\ -\ D.entropy\ 0}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{R5 — Square-integrable characteristic curves for metric bounds}{R5 — Square-integrable characteristic curves for metric bounds}}
+\subsection{\texorpdfstring{R5 — Differentiable characteristics and optimal coupling anchors}{R5 — Differentiable characteristics and optimal coupling anchors}}
 
 
-Realize the evolving law by an actual
-        square-integrable characteristic curve with its stated time derivative.
-        Require the characteristic velocity to be integrable on finite time
-        intervals. Represent transport to a fixed target by an optimal anchor
-        whose law is that target and whose cost is minimal among all couplings.
-        The law-distance increment and integrated speed bounds are then proved
-        from the characteristic curve and coupling costs. At a crossing of the
-        target, use the upper-right-slope statement; an ordinary distance
-        derivative need not exist there.
+For each datum choose a probability space \((\Omega_m,P_m)\), maps \(Y_m,v_m:\mathbb R\to L^2(P_m;Z)\), and a curve \(x:\mathbb R\to X\), continuous on \([0,\infty)\), in the R6 chart. For every \(t\in\mathbb R\), require
+        \[\operatorname{Law}(Y_m(t))=q_{x(t)}^m\,dz,\qquad
+          \frac{d}{dt}Y_m(t)=v_m(t)\text{ in }L^2(P_m;Z),\qquad
+          v_m(t)=-\nabla_z(\log q_t^m+U_m(a(t),\cdot))(Y_m(t))\quad P_m\text{-a.s.}\]
+        Match the chart parameter and density exactly to those of the R3 dynamics: \(a(x(t))=a(t)\), \(q_{x(t)}^m=q_t^m\). For every \(s,t\in\mathbb R\) and \(m\), supply \(A_{s,t}^m\in L^2(P_m;Z)\) with law \(q_{x(s)}^m\,dz\), such that for every \(\gamma\in\Gamma(\operatorname{Law}(Y_m(t)),q_{x(s)}^m dz)\),
+        \[\|Y_m(t)-A_{s,t}^m\|_{L^2(P_m)}
+          \le\left(\int\|z-w\|^2\,d\gamma(z,w)\right)^{1/2}.\]
+        The coupling cost on the right is an extended nonnegative integral. The scalar integrated-speed lemma additionally assumes Bochner interval integrability \(v_m\in L^1([s,t];L^2(P_m;Z))\). The product statement requires the entire lifted velocity \(u\mapsto(\dot a(u),(v_m(u)/\sqrt M)_m)\) Bochner interval integrable on \([s,t]\). The product-space realization uses \(Y_m/\sqrt M\). Distance increments, upper-right slopes and integrated speed bounds follow from these hypotheses; an ordinary distance derivative at a target crossing is not required.
 
-\begin{leanbox}{Lean: \texttt{OptimalAnchor}, \texttt{distance\_\allowbreak{}right\_\allowbreak{}slope}, \texttt{kinetic\_\allowbreak{}energy\_\allowbreak{}eq\_\allowbreak{}fisher} and 1 more}
+\begin{leanbox}{Lean: \texttt{OptimalAnchor}, \texttt{distance\_\allowbreak{}integral\_\allowbreak{}bound}, \texttt{distance\_\allowbreak{}right\_\allowbreak{}slope} and 2 more}
 \leansource{\texttt{OptimalAnchor} \quad LatentDiffusion/\allowbreak{}RegularMetricFlow.lean, lines 21–25}
 \begin{leancode}
 \leanline{0}{structure\ OptimalAnchor\ (Y\ :\ Lp\ E\ 2\ P)\ (target\ :\ Measure\ E)\ where}
@@ -544,6 +563,19 @@ Realize the evolving law by an actual
 \leanline{2}{law\ :\ P.map\ value\ =\ target}
 \leanline{2}{minimal\ :\ ∀\ c\ :\ ULA.Coupling\ (P.map\ Y)\ target,}
 \leanline{4}{ENNReal.ofReal\ ‖Y\ -\ value‖\ ≤\ ULA.couplingCost\ c.joint}
+\end{leancode}
+\leansource{\texttt{distance\_\allowbreak{}integral\_\allowbreak{}bound} \quad LatentDiffusion/\allowbreak{}RegularProductMetricFlow.lean, lines 176–199}
+\begin{leancode}
+\leanline{0}{theorem\ distance\_integral\_bound}
+\leanline{4}{(a\ adot\ :\ ℝ\ →\ P)\ (Y\ v\ :\ ℝ\ →\ ∀\ m,\ Lp\ Z\ 2\ (Q\ m))\ (astar\ :\ P)}
+\leanline{4}{(target\ :\ Fin\ M\ →\ Measure\ Z)}
+\leanline{4}{(anchor\ :\ ∀\ t\ m,\ RegularMetricFlow.OptimalAnchor\ (Q\ m)\ (Y\ t\ m)\ (target\ m))}
+\leanline{4}{(s\ t\ :\ ℝ)\ (hst\ :\ s\ ≤\ t)}
+\leanline{4}{(ha\ :\ ∀\ u\ ∈\ uIcc\ s\ t,\ HasDerivAt\ a\ (adot\ u)\ u)}
+\leanline{4}{(hY\ :\ ∀\ u\ ∈\ uIcc\ s\ t,\ ∀\ m,\ HasDerivAt\ (fun\ r\ ↦\ Y\ r\ m)\ (v\ u\ m)\ u)}
+\leanline{4}{(hv\ :\ IntervalIntegrable\ (fun\ u\ ↦\ lift\ Q\ (adot\ u)\ (v\ u))\ volume\ s\ t)\ :}
+\leanline{4}{|distance\ Q\ a\ Y\ astar\ target\ t\ -\ distance\ Q\ a\ Y\ astar\ target\ s|\ ≤}
+\leanline{6}{∫\ u\ in\ s..t,\ Real.sqrt\ (‖adot\ u‖\ \textasciicircum{}\ 2\ +\ (M\ :\ ℝ)⁻¹\ *\ ∑\ m,\ ‖v\ u\ m‖\ \textasciicircum{}\ 2)}
 \end{leancode}
 \leansource{\texttt{distance\_\allowbreak{}right\_\allowbreak{}slope} \quad LatentDiffusion/\allowbreak{}RegularProductMetricFlow.lean, lines 149–170}
 \begin{leancode}
@@ -585,19 +617,15 @@ Realize the evolving law by an actual
 \leanline{4}{(D.law\ (state\ s)\ i\ :\ Measure\ Z)}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{R6 — A complete dominated density domain for the limit argument}{R6 — A complete dominated density domain for the limit argument}}
+\subsection{\texorpdfstring{R6 — A complete density chart with the exact transport metric}{R6 — A complete density chart with the exact transport metric}}
 
 
-For compactness in the regular density domain, require a
-        complete metric chart with pointwise continuous densities and potentials
-        and a common local integrable envelope for \(q\log q+qU\). When this
-        chart carries the source product transport metric, pointwise density
-        continuity is an additional regular-domain requirement; it does not
-        follow from Wasserstein convergence alone. Dominated convergence proves
-        continuity, hence lower semicontinuity, of the actual energy. A Cauchy
-        sequence of flow states whose energies approach the infimum then has an
-        admissible minimizing limit. Completeness is not attributed to the
-        unrestricted subspace of smooth densities.
+Let \((X,d_X)\) be a complete metric space with a parameter map \(a:X\to A\), positive measurable densities \(q_x^m\), and laws \(\mu_x^m=q_x^m dz\in\mathcal P_2(Z)\). For every \(x,y\in X\), require the exact identity
+        \[d_X(x,y)^2=\|a(x)-a(y)\|^2+
+          \frac1M\sum_m W_2(\mu_x^m,\mu_y^m)^2.\]
+        For every \(m,z\), assume both \(x\mapsto q_x^m(z)\) and \(x\mapsto U_m(a(x),z)\) continuous. Require spatial measurability of each density and potential. For every \(x\in X\) and \(m\), assume a neighbourhood \(V_{x,m}\) and \(g_{x,m}\in L^1(dz)\) such that for every \(y\in V_{x,m}\), almost every \(z\),
+        \[\left|q_y^m(z)\log q_y^m(z)+q_y^m(z)U_m(a(y),z)\right|\le g_{x,m}(z).\]
+        These assumptions imply continuity of \(F(x)=M^{-1}\sum_m\int(q_x^m\log q_x^m+q_x^mU_m(a(x),\cdot))\,dz\). For the minimizing-limit statement, assume a finite lower bound \(F_\star\le F(x)\) for every \(x\), a Cauchy sequence \(x_n\) in this same chart, and \(F(x_n)\to F_\star\). A minimizing limit in \(X\) is then proved. The flow application constructs the Cauchy sequence from \(x(t_n)\), \(t_n\to\infty\). Pointwise density continuity and completeness of this chosen chart are extra assumptions; neither is inferred from membership in \(\mathcal P_2\).
 
 \begin{leanbox}{Lean: \texttt{ProductDensityChart}, \texttt{ProductDensityChart.\allowbreak{}continuous\_\allowbreak{}energy}, \texttt{ProductDensityChart.\allowbreak{}lowerSemicontinuous\_\allowbreak{}energy} and 1 more}
 \leansource{\texttt{ProductDensityChart} \quad LatentDiffusion/\allowbreak{}RegularDensityDomain.lean, lines 32–45}
@@ -634,32 +662,33 @@ For compactness in the regular density domain, require a
 \leanline{6}{∀\ y,\ D.energy\ xstar\ ≤\ D.energy\ y}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{R7 — Stochastic initialization and uniform moment control}{R7 — Stochastic initialization and uniform moment control}}
+\subsection{\texorpdfstring{R7 — Brownian inputs, posterior initialization and score moments}{R7 — Brownian inputs, posterior initialization and score moments}}
 
 
-Use square-integrable initial clouds, the actual
-        continuous \(L^2\) Brownian integral equation, Brownian increments independent
-        across their declared particle coordinates and independent of the
-        initial state, and compatible coupled initializations. Initialize the
-        frozen posterior comparison with its actual Gibbs law. The Gibbs
-        stationarity theorem then constructs the stationary frozen reference;
-        independence and the evidence-optimum score identity control its
-        empirical parameter-force fluctuation. Explicitly require one fixed
-        per-copy bound \(\mathbb E\|S_i-\mathbb ES_i\|^2\le V_0\),
-        with \(V_0\) independent of the particle count, and a uniform normalized
-        initialization radius when quoting a count-independent transient.
-        These are sampling/\allowbreak{}initialization and moment assumptions in addition
-        to analytic regularity. The solution class is continuous in \(L^2\) and
-        solves the actual Brownian integral equation; a separate progressively
-        measurable, almost-sure continuous-path realization is not asserted.
-        Numerical errors and their
-        recurrences are proved from these inputs, rather than assumed.
-        Count-independent temporal constants also require a uniform bound on
-        the normalized force at the origin, as well as the state moment bound.
-        For Euler discretization use the explicit additional restriction
-        \(0<h,\;\lambda h\le1,\;hL^2\le\lambda\).
+Write \(K=MN>0\) and use the normalized cloud norm \(\|(a,z)\|_K^2=\|a\|^2+K^{-1}\sum_{i=1}^K\|z_i\|^2\). On a probability space \((\Omega,P)\), supply \(Z_0\in L^2(P;Z^K)\) whose law is the actual Gibbs law
+        \[\operatorname{Law}(Z_0)(dz)=
+          \frac{\exp(-\sum_{i=1}^K U_i(a_\star,z_i))}{\int_{Z^K}\exp(-\sum_{i=1}^K U_i(a_\star,w_i))\,dw}\,dz,\qquad
+          \operatorname{Law}(Z_{0,i})=\pi_{a_\star}^i.\]
+        Here \(a_\star\) is the proved evidence optimizer, the datum potentials are repeated across their \(N\) copies, and R2 normalizer domination holds at \(a_\star\). Require the parameter scores \(S_i=\nabla_aU_i(a_\star,Z_{0,i})\) to be independent across all \(i\). For the explicit particle-count rate assume
+        \[\mathbb E\|S_i-\mathbb ES_i\|^2\le V_0\quad(1\le i\le K).\]
+        The hypotheses of the rate theorem supply one \(V_0\); a claim uniform in \(N\) requires that same bound for every \(N\).
 
-\begin{leanbox}{Lean: \texttt{sourceReference}, \texttt{independent\_\allowbreak{}average\_\allowbreak{}norm\_\allowbreak{}sq}, \texttt{full\_\allowbreak{}batch\_\allowbreak{}parameter\_\allowbreak{}bound} and 3 more}
+
+
+
+Supply real coordinate processes \(B_{i,j}(t)\), \(t\ge0\), whose every finite-dimensional law is centered Gaussian with covariance \(\mathbb E[B_{i,j}(s)B_{i,j}(t)]=\min(s,t)\). In particular, \(B_{i,j}(0)=0\) almost surely and \(B_{i,j}(t)-B_{i,j}(s)\sim N(0,t-s)\) for \(0\le s\le t\). For every \(s>0\), the entire family \(\Delta B_{n,i,j}^{(s)}=B_{i,j}((n+1)s)-B_{i,j}(ns)\), indexed by \((n,i,j)\), must be independent, and \(Z_0\) must be independent of the complete sequence \((\Delta B_{n,i,j}^{(s)})_{n,i,j}\). The continuous comparisons use \(L^2(P)\)-continuous curves solving the actual Bochner integral equations for their displayed forces and these same Brownian inputs. For example, the full particle curve satisfies
+        \[X_t-X_0=-\int_0^t F(X_r)\,dr+
+          (0,\sqrt2(B_t-B_0)),\qquad t\ge0,\]
+        The force components are \[F_a(a,z)=K^{-1}\sum_i\nabla_aU_i(a,z_i),\qquad F_{z_i}(a,z)=\nabla_zU_i(a,z_i),\] and norms are measured by \(\|\cdot\|_K\). The frozen curve starts at \((a_\star,Z_0)\); its existence and stationarity are derived from the Gibbs initialization and independent increments. A spatial comparison that omits an initial-error term assumes identical coupled initial states; otherwise it retains that term. The nonstationary mean-field comparison separately requires independent parameter-score copies at every \(t\ge0\) and \(\mathbb E\|S_i(t)-\mathbb ES_i(t)\|^2\le V_0\) for every such \(t\) and \(i\). The direct temporal comparison assumes \(\|X_t\|_{L^2(P;\|\cdot\|_K)}\le R_K\) for every \(t\ge0\). Constants uniform in the particle count require \(\sup_KR_K<\infty\) and \(\sup_K\|F_K(0)\|_K<\infty\) in that branch.
+
+
+
+
+For the full-batch Euler bound require an arbitrary \(X_0\in L^2(P)\) and the exact stable-step restrictions
+        \[h>0,\qquad \lambda>0,\qquad L\ge0,\qquad \lambda h\le1,\qquad hL^2\le\lambda.\]
+        A count-independent transient requires \(\sup_N\|X_0-(a_\star,Z_0)\|_{L^2(P;\|\cdot\|_K)}<\infty\). The endpoint derives its frozen-force moment bound from A3–A4 and the Gibbs law; it does not assume a temporal error recurrence. The asserted continuous solution class is continuity in \(L^2(P)\) with the displayed integral identity.
+
+\begin{leanbox}{Lean: \texttt{sourceReference}, \texttt{exists\_\allowbreak{}spatial\_\allowbreak{}comparison}, \texttt{temporal\_\allowbreak{}comparison} and 5 more}
 \leansource{\texttt{sourceReference} \quad LatentDiffusion/\allowbreak{}RegularStochastic.lean, lines 861–884}
 \begin{leancode}
 \leanline{0}{def\ sourceReference}
@@ -686,6 +715,46 @@ Use square-integrable initial clouds, the actual
 \leanline{4}{(frozenPotential\_differentiable\ U\ hdiff\ astar)\ (frozenPotential\_strongConvex\ hK\ U\ m\ hsc\ astar)}
 \leanline{4}{hv\ astar\ (frozenPotential\_force\_identity\ hK\ U\ hdiff\ astar)\ B\ hB\ Z\ hs.1\ hs.2.2}
 \leanline{4}{(by\ rw\ [hzero];\ exact\ hinitial)\ hscalar\ (by\ rw\ [hzero];\ exact\ hind)}
+\end{leancode}
+\leansource{\texttt{exists\_\allowbreak{}spatial\_\allowbreak{}comparison} \quad LatentDiffusion/\allowbreak{}RegularMeanField.lean, lines 189–234}
+\begin{leancode}
+\leanline{0}{theorem\ exists\_spatial\_comparison}
+\leanline{4}{(hK\ :\ 0\ <\ K)\ (U\ :\ Fin\ K\ →\ Cloud.Joint\ dθ\ dz\ →\ ℝ)}
+\leanline{4}{(m\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hdiff\ :\ ∀\ i,\ Differentiable\ ℝ\ (U\ i))}
+\leanline{4}{(hsc\ :\ ∀\ i,\ StrongConvexOn\ Set.univ\ m\ (U\ i))}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ L\ (gradient\ (U\ i)))}
+\leanline{4}{(Y\ :\ ℝ\ →\ Lp\ (Cloud.State\ K\ dθ\ dz)\ 2\ P)\ (hY\ :\ Continuous\ Y)}
+\leanline{4}{(B\ :\ ℝ\ →\ Lp\ (Cloud.State\ K\ dθ\ dz)\ 2\ P)\ (hB\ :\ Continuous\ B)\ (hB0\ :\ B\ 0=0)}
+\leanline{4}{(hYe\ :\ ∀\ t,\ 0\ ≤\ t\ →\ Y\ t-Y\ 0\ =}
+\leanline{6}{-(∫\ r\ in\ 0..t,\ force\ P\ (Cloud.meanForce\_regular\ hK\ U\ m\ L\ hdiff\ hsc\ hLip)\ (Y\ r))+B\ t)}
+\leanline{4}{(V\ :\ ℝ)\ (\_hV\ :\ 0\ ≤\ V)}
+\leanline{4}{(hind\ :\ ∀\ t,\ 0\ ≤\ t\ →\ iIndepFun\ (fun\ i\ ω\ =>\ scoreLp\ P\ U\ L\ hLip\ (Y\ t)\ i\ ω)\ P)}
+\leanline{4}{(hvar\ :\ ∀\ t,\ 0\ ≤\ t\ →\ ∀\ i,\ ‖scoreLp\ P\ U\ L\ hLip\ (Y\ t)\ i\ -}
+\leanline{6}{constantL2\ P\ (∫\ ω,\ scoreLp\ P\ U\ L\ hLip\ (Y\ t)\ i\ ω\ ∂P)‖\textasciicircum{}2\ ≤\ V)\ :}
+\leanline{4}{∃\ X\ :\ ℝ\ →\ Lp\ (Cloud.State\ K\ dθ\ dz)\ 2\ P,\ Continuous\ X\ ∧\ X\ 0=Y\ 0\ ∧}
+\leanline{6}{(∀\ t,\ 0\ ≤\ t\ →\ X\ t-X\ 0\ =}
+\leanline{8}{-(∫\ r\ in\ 0..t,\ particleForce\ P\ hK\ U\ m\ L\ hdiff\ hsc\ hLip\ (X\ r))+B\ t)\ ∧}
+\leanline{6}{∀\ t,\ 0\ ≤\ t\ →\ ‖X\ t-Y\ t‖\ ≤\ Real.sqrt\ (V/K)/m*(1-Real.exp\ (-m*t))}
+\end{leancode}
+\leansource{\texttt{temporal\_\allowbreak{}comparison} \quad LatentDiffusion/\allowbreak{}RegularMeanField.lean, lines 253–301}
+\begin{leancode}
+\leanline{0}{theorem\ temporal\_comparison}
+\leanline{4}{(hK\ :\ 0\ <\ K)\ (U\ :\ Fin\ K\ →\ Cloud.Joint\ dθ\ dz\ →\ ℝ)}
+\leanline{4}{(m\ h\ R\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hR\ :\ 0\ ≤\ R)}
+\leanline{4}{(hdiff\ :\ ∀\ i,\ Differentiable\ ℝ\ (U\ i))}
+\leanline{4}{(hsc\ :\ ∀\ i,\ StrongConvexOn\ Set.univ\ m\ (U\ i))}
+\leanline{4}{(hLip\ :\ ∀\ i,\ LipschitzWith\ L\ (gradient\ (U\ i)))\ (hs\ :\ StableStep\ m\ L\ h)}
+\leanline{4}{(B\ :\ (Fin\ K\ ×\ Fin\ dz)\ →\ ℝ≥0\ →\ Ω\ →\ ℝ)}
+\leanline{4}{(hB\ :\ ∀\ i,\ IsPreBrownianReal\ (B\ i)\ P)}
+\leanline{4}{(X\ :\ ℝ\ →\ Lp\ (Cloud.State\ K\ dθ\ dz)\ 2\ P)\ (hX\ :\ Continuous\ X)}
+\leanline{4}{(hXe\ :\ ∀\ t,\ 0\ ≤\ t\ →\ X\ t-X\ 0\ =}
+\leanline{6}{-(∫\ r\ in\ 0..t,\ particleForce\ P\ hK\ U\ m\ L\ hdiff\ hsc\ hLip\ (X\ r))+physicalNoise\ P\ B\ hB\ t)}
+\leanline{4}{(hMoment\ :\ ∀\ t,\ 0\ ≤\ t\ →\ ‖X\ t‖\ ≤\ R)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖eulerTrajectory\ (particleForce\ P\ hK\ U\ m\ L\ hdiff\ hsc\ hLip)\ h}
+\leanline{6}{(fun\ k\ =>\ physicalNoise\ P\ B\ hB\ ((k\ :\ ℝ)*h+h)-physicalNoise\ P\ B\ hB\ ((k\ :\ ℝ)*h))\ (X\ 0)\ n-}
+\leanline{6}{X\ ((n\ :\ ℝ)*h)‖\ ≤}
+\leanline{6}{(L\ :\ ℝ)/m\ *\ (h*(‖particleForce\ P\ hK\ U\ m\ L\ hdiff\ hsc\ hLip\ 0‖+(L\ :\ ℝ)*R)+}
+\leanline{8}{(4/3\ :\ ℝ)*Real.sqrt\ (2*(dz\ :\ ℝ))*Real.sqrt\ h)}
 \end{leancode}
 \leansource{\texttt{independent\_\allowbreak{}average\_\allowbreak{}norm\_\allowbreak{}sq} \quad LatentDiffusion/\allowbreak{}RegularStochastic.lean, lines 214–256}
 \begin{leancode}
@@ -791,11 +860,15 @@ Let \(M>0\), let \(\ell(a)\) be the average tilted log evidence, and let \(\pi_a
 
 
 
-\[\mathcal F(a,q)=-\ell(a)+\frac1M\sum_{m=1}^M\mathrm{KL}(q^m\|\pi_a^m),\qquad\mathrm{KL}(q^m\|\pi_a^m)<\infty.\]
+\[\mathcal F(a,q)=-\ell(a)+\frac1M\sum_{m=1}^M\mathrm{KL}(q^m\|\pi_a^m),.\]
 
 
 
-KL here is the actual measure-theoretic divergence. Finite KL is required before conversion to real numbers. The density-normalization result below proves the log-density integral identity under explicit normalization and entropy-integrability conditions. Those conditions are not inferred from pointwise smoothness.
+For every datum require \(\mathrm{KL}(q^m\|\pi_a^m)<\infty\) before conversion to real numbers.
+
+
+
+KL here is the actual measure-theoretic divergence. The density-normalization result below proves the log-density integral identity under explicit normalization and entropy-integrability conditions. Those conditions are not inferred from pointwise smoothness.
 
 \begin{leanbox}{Lean: \texttt{PosteriorFamily}, \texttt{Admissible}, \texttt{freeEnergy} and 1 more}
 \leansource{\texttt{PosteriorFamily} \quad LatentDiffusion/\allowbreak{}Variational.lean, lines 22–24}
@@ -821,11 +894,11 @@ KL here is the actual measure-theoretic divergence. Finite KL is required before
 \leanline{2}{P.Admissible\ a\ q\ ∧\ ∀\ b\ r,\ P.Admissible\ b\ r\ →\ P.freeEnergy\ a\ q\ ≤\ P.freeEnergy\ b\ r}
 \end{leancode}
 \end{leanbox}
-\subsection{\texorpdfstring{Classical flow — Regularity and equations with proved entropy calculus}{Classical flow — Regularity and equations with proved entropy calculus}}
+\subsection{\texorpdfstring{Classical flow — Extra assumptions and equations with proved entropy calculus}{Classical flow — Extra assumptions and equations with proved entropy calculus}}
 
 
 
-The blue \(R\) assumptions specify positive density paths, their actual time derivatives, common-neighbourhood integral domination, regular transport charts and integrable spatial tails. The parameter and density equations are
+The orange \(R\) extra assumptions specify positive density paths, their actual time derivatives, common-neighbourhood integral domination, regular transport charts and integrable spatial tails. The parameter and density equations are
 
 
 
@@ -936,7 +1009,7 @@ The blue \(R\) assumptions specify positive density paths, their actual time der
 \leanline{8}{2\ *\ (D.energy\ (R.state\ t)-Fstar)}
 \end{leancode}
 \leanlabel{How the Lean proof follows the argument}
-\texttt{Classical\allowbreak{}Flow} records these primitive equations and regularity data. The displayed theorems derive the actual energy derivative, normalized extended LSI and exponential energy decay. For the source xLSI-to-Talagrand implication, the separate bare \texttt{Regular\allowbreak{}Density\allowbreak{}Dynamics} omits A3 entirely: actual characteristics and coupling anchors derive its metric speed, and xLSI is the sole functional-inequality premise. Dissipation and speed are conclusions of the connected theorem.
+\texttt{Classical\allowbreak{}Flow} records these primitive equations and extra-assumption data. The displayed theorems derive the actual energy derivative, normalized extended LSI and exponential energy decay. For the source xLSI-to-Talagrand implication, the separate bare \texttt{Regular\allowbreak{}Density\allowbreak{}Dynamics} omits A3 entirely: actual characteristics and coupling anchors derive its metric speed, and xLSI is the sole functional-inequality premise. Dissipation and speed are conclusions of the connected theorem.
 \end{leanbox}
 \subsection{\texorpdfstring{Density bridge — The actual log-density integral equals KL minus log evidence}{Density bridge — The actual log-density integral equals KL minus log evidence}}
 
@@ -1110,13 +1183,13 @@ Consequently \((u_\star,q_\star)\) is a global minimizer exactly when
 \subsection{\texorpdfstring{Unique tilted optimizer and exponential parameter convergence}{Unique tilted optimizer and exponential parameter convergence}}
 
 
-Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) be differentiable and satisfy A3. On the explicitly added regular density and transport domain R1–R4, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/\allowbreak{}density equations satisfy
+Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) be differentiable and satisfy A3. Under the explicitly stated extra assumptions R1–R4, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/\allowbreak{}density equations satisfy
 
 
  \[\|u_t-u_\star\|\le\sqrt{\frac{2[\widetilde F(u_0,q_0)-\widetilde F_\star]}{\lambda}}e^{-\lambda t},\qquad t\ge0.\]
 
 
-The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the blue regularity hypotheses.
+The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the orange extra assumptions.
 
 
 
@@ -1307,8 +1380,8 @@ Equivalently \(D_q\widetilde F[r]=\int(\log q+V_u)r\,dz\).
 Equip the product state with
         \(d^2((u,q),(v,r))=\|u-v\|^2+M^{-1}\sum_mW_2(q^m,r^m)^2\), and let
         \(V_u^m=\mathcal L_D(\theta,\cdot)-\log p_\phi(x^m\mid\cdot)\).
-        Under the explicit R2–R3 first-variation and continuity-equation
-        regularity, the parameter and density gradients are
+        Under the explicit first-variation and continuity-equation
+        extra assumptions R2–R3, the parameter and density gradients are
 
 
         \[\nabla_u\widetilde F=\frac1M\sum_m\int\nabla_u V_u^m\,dq^m,
@@ -1522,7 +1595,7 @@ Sum the actual entropy and potential tangent pairings first. Completing one squa
 
 
 
-\textbf{Correction.} The proof chooses an admissible minimizer at supplement line 587 before its existence has been established in that chain. The checked marginal/\allowbreak{}posterior construction supplies it first. The entropy and potential tangent inequalities are then proved from the explicit regularity data.
+\textbf{Correction.} The proof chooses an admissible minimizer at supplement line 587 before its existence has been established in that chain. The checked marginal/\allowbreak{}posterior construction supplies it first. The entropy and potential tangent inequalities are then proved from the explicit extra assumptions.
 
 \begin{leanbox}{Lean: \texttt{existsUnique\_\allowbreak{}variationalOptimizer}, \texttt{extendedLSI}}
 \leansource{\texttt{existsUnique\_\allowbreak{}variationalOptimizer} \quad LatentDiffusion/\allowbreak{}RegularModel.lean, lines 66–74}
@@ -2183,7 +2256,7 @@ Assume the drift is integrable on each segment and, uniformly in \(n\),
 
 
 
-These are primitive integral and moment bounds. In an \(L^2\) realization, the norms are root mean squares. An application must supply the SDE reference and verify these uniform estimates. The pointwise-force lift below establishes the required \(L^2\) force regularity from N1.
+These are primitive integral and moment bounds. In an \(L^2\) realization, the norms are root mean squares. An application must supply the SDE reference and verify these uniform estimates. The pointwise-force lift below establishes the required \(L^2\) force monotonicity and Lipschitz bounds from N1.
 
 \begin{leanbox}{Lean: \texttt{IntegralReference}}
 \leansource{\texttt{IntegralReference} \quad LatentDiffusion/\allowbreak{}Numerics.lean, lines 273–282}
@@ -2714,7 +2787,7 @@ For the actual Hilbert space \(L^2(\Omega,P;E)\) of square-integrable random var
 
 
 
-The force regularity in this version is an explicit \(L^2\) premise. The theorem accepts Gaussian innovations and does not replace nonintegrable expectations by totalized real values.
+The force monotonicity and Lipschitz bounds in this version are explicit \(L^2\) premise. The theorem accepts Gaussian innovations and does not replace nonintegrable expectations by totalized real values.
 
 \begin{leanbox}{Lean: \texttt{hilbert\_\allowbreak{}innovation\_\allowbreak{}sq\_\allowbreak{}bound}, \texttt{l2\_\allowbreak{}innovation\_\allowbreak{}mean\_\allowbreak{}square\_\allowbreak{}bound}}
 \leansource{\texttt{hilbert\_\allowbreak{}innovation\_\allowbreak{}sq\_\allowbreak{}bound} \quad LatentDiffusion/\allowbreak{}Numerics.lean, lines 357–383}
@@ -2750,7 +2823,7 @@ On any probability space, a pointwise force \(F:E\to E\) satisfying N1 induces a
 
 
 
-The lifted force inherits the same monotonicity and Lipschitz constants. Its Euler iterates agree almost surely with the pointwise recursion. Therefore the stochastic-oracle expectation bound holds from regularity of the original pointwise force, together with N2 and the explicit innovation condition N5:
+The lifted force inherits the same monotonicity and Lipschitz constants. Its Euler iterates agree almost surely with the pointwise recursion. Therefore the stochastic-oracle expectation bound holds from the monotonicity and Lipschitz bounds of the original pointwise force, together with N2 and the explicit innovation condition N5:
 
 
 
@@ -2758,7 +2831,7 @@ The lifted force inherits the same monotonicity and Lipschitz constants. Its Eul
 
 
 
-No separate lifted-force regularity assumption or condition \(F(0)=0\) is needed.
+No separate lifted-force monotonicity or Lipschitz assumption or condition \(F(0)=0\) is needed.
 
 \begin{leanbox}{Lean: \texttt{liftedForce\_\allowbreak{}coe}, \texttt{liftedForce\_\allowbreak{}regular}, \texttt{lifted\_\allowbreak{}eulerTrajectory\_\allowbreak{}coe} and 1 more}
 \leansource{\texttt{liftedForce\_\allowbreak{}coe} \quad LatentDiffusion/\allowbreak{}Lift.lean, lines 48–58}
@@ -2885,7 +2958,7 @@ Let \(K=MN>0\), and impose A3–A4 on each actual datum potential and N2, N5–N
 
 
 
-The force regularity is derived from the original per-datum potentials, including the exact pointwise-to-\(L^2\) lift. The output norm is proved equal to the physical parameter root mean-square error. The four explicit terms quantify initialization, finite-particle averaging, temporal discretization and the centered stochastic oracle. The finite-population identity below calibrates oracle variance from batch dispersion.
+The force monotonicity and Lipschitz bounds are derived from the original per-datum potentials, including the exact pointwise-to-\(L^2\) lift. The output norm is proved equal to the physical parameter root mean-square error. The four explicit terms quantify initialization, finite-particle averaging, temporal discretization and the centered stochastic oracle. The finite-population identity below calibrates oracle variance from batch dispersion.
 
 
 
@@ -3130,7 +3203,17 @@ The log evidence is \(\ell(a)=M^{-1}\sum_m\log Z_m(a)=-V(a)\), with \(V\) the av
 \[\widetilde F(a,q)=\frac1M\sum_{m=1}^M\int_{\mathbb R^{d_z}}\tilde q^m(z)\log\frac{\tilde q^m(z)}{\rho_a^m(z)}\,dz\]
 
 
-on the domain of collections \(q\) with finite relative entropies and finite second moments; here \(\tilde q^m\) is the Lebesgue density of \(q^m\). This domain is the corrected form of the paper's \(\mathcal P_2\) domain (regularity R1). The optimizer \(a_\star\) is the target of both main convergence theorems.
+on the domain of collections \(q\) with finite relative entropies and finite second moments; here \(\tilde q^m\) is the Lebesgue density of \(q^m\).
+
+
+
+
+This domain is the corrected form of the paper's \(\mathcal P_2\) domain (extra assumption R1).
+
+
+
+
+The optimizer \(a_\star\) is the target of both main convergence theorems.
 
 
 
@@ -3164,7 +3247,17 @@ over admissible pairs (pairs with finite relative entropies). This pair is \((a_
 \section{\texorpdfstring{De Bruijn identity for the joint flow}{De Bruijn identity for the joint flow}}
 
 
-This section proves the de Bruijn identity for the joint parameter–density flow of the paper, under explicit regularity hypotheses (R2, R3). The latent space \(E\) is a finite-dimensional real inner product space with Lebesgue measure, and the parameter space \(A\) is a complete real inner product space. For probability densities \(q^1,\dots,q^M\) on \(E\), potentials \(U_m:A\times E\to\mathbb R\) and a parameter \(a\), define the normalized density energy, the averaged parameter force and the Fisher information
+This section proves the de Bruijn identity for the joint parameter–density flow of the paper,.
+
+
+
+
+The extra assumptions are R2 and R3.
+
+
+
+
+The latent space \(E\) is a finite-dimensional real inner product space with Lebesgue measure, and the parameter space \(A\) is a complete real inner product space. For probability densities \(q^1,\dots,q^M\) on \(E\), potentials \(U_m:A\times E\to\mathbb R\) and a parameter \(a\), define the normalized density energy, the averaged parameter force and the Fisher information
 
 
 \[\mathcal E(a,q)=\frac1M\sum_{m=1}^M\int_Eq^m(\log q^m+U_m(a,\cdot))\,dz,\qquad G(a,q)=\frac1M\sum_{m=1}^M\int_Eq^m\,\nabla_aU_m(a,\cdot)\,dz,\]
@@ -3262,13 +3355,33 @@ The identity is proved from the equations; no entropy-dissipation inequality is 
 \section{\texorpdfstring{Strong displacement convexity of the free energy}{Strong displacement convexity of the free energy}}
 
 
-This section proves the strong geodesic convexity of the tilted free energy along displacement interpolations, the paper's Lemma on geodesic convexity, under explicit transport regularity (R4). Let \(Z\) be a finite-dimensional real inner product space of dimension \(d\), let \(\mu\) be a probability measure on \(Z\) (the initial law) and let \(T:Z\to Z\) be a transport map. The displacement interpolation is \(T_s(z)=(1-s)z+sT(z)\), \(s\in[0,1]\), and its law is the pushforward \(\mu_s=\mu\circ T_s^{-1}\). For one datum, a parameter interpolation \(p_s=(1-s)p_0+sp_1\) and a joint potential \(U(p,z)\), the free energy along the interpolation is
+This section proves the strong geodesic convexity of the tilted free energy along displacement interpolations, the paper's Lemma on geodesic convexity,.
+
+
+
+
+The extra transport assumptions are R4.
+
+
+
+
+Let \(Z\) be a finite-dimensional real inner product space of dimension \(d\), let \(\mu\) be a probability measure on \(Z\) (the initial law) and let \(T:Z\to Z\) be a transport map. The displacement interpolation is \(T_s(z)=(1-s)z+sT(z)\), \(s\in[0,1]\), and its law is the pushforward \(\mu_s=\mu\circ T_s^{-1}\). For one datum, a parameter interpolation \(p_s=(1-s)p_0+sp_1\) and a joint potential \(U(p,z)\), the free energy along the interpolation is
 
 
 \[\mathcal F(s)=H(s)+\int_ZU(p_s,z)\,\mu_s(dz),\qquad H(s)=\int_Z\log\rho_s\,d\mu_s,\]
 
 
-where \(\rho_s\) is the Lebesgue density of \(\mu_s\) and \(H\) is the negative Boltzmann entropy. The regularity data consist of positive densities, positive eigenvalues of the Jacobian \(DT\) in an orthonormal eigenbasis, the change-of-variables formula \(\rho_s(T_s(z))=\rho_0(z)/\det\bigl((1-s)I+sDT(z)\bigr)\), and integrable logarithms; no convexity or transport inequality is among them. If \(U\) is jointly \(\lambda\)-strongly convex, we prove
+where \(\rho_s\) is the Lebesgue density of \(\mu_s\) and \(H\) is the negative Boltzmann entropy.
+
+
+
+
+The extra transport assumptions are positive densities, positive eigenvalues of the Jacobian \(DT\) in an orthonormal eigenbasis, the change-of-variables formula \(\rho_s(T_s(z))=\rho_0(z)/\det\bigl((1-s)I+sDT(z)\bigr)\), and integrable logarithms; no convexity or transport inequality is among them.
+
+
+
+
+If \(U\) is jointly \(\lambda\)-strongly convex, we prove
 
 
 \[\mathcal F(s)\le(1-s)\mathcal F(0)+s\mathcal F(1)-\frac\lambda2s(1-s)\bigl(\|p_0-p_1\|^2+W_2(\mu_0,\mu_1)^2\bigr),\]
@@ -3360,7 +3473,7 @@ The main result is \(2\lambda\bigl(\mathcal F(0)-\mathcal F(1)\bigr)\le I\). In 
 
 
 
-\textbf{Claim.} Let \(M\ge1\), \(\lambda>0\), and let regularity data for the data set be given. Then
+\textbf{Claim.} Let \(M\ge1\), \(\lambda>0\), and assume the transport hypotheses for the data set. Then
 
 
 \[2\lambda\bigl(\mathcal F(0)-\mathcal F(1)\bigr)\le I.\]
@@ -3421,7 +3534,12 @@ This section proves the paper's continuous-time convergence theorem (Theorem 1 a
 \[\dot a_t=-\frac1M\sum_{m=1}^M\int\nabla_aU_m(a_t,z)\,q_t^m(z)\,dz,\qquad\partial_tq_t^m=\nabla\cdot\bigl(q_t^m\nabla(\log q_t^m+U_m(a_t,\cdot))\bigr),\]
 
 
-together with the regularity of R1–R4: local domination, integrable spatial tails, and, at each time, regular displacement data from the current laws to the laws of a fixed comparison state \(a_\star\). Existence of such a classical solution is not constructed; the estimates hold for every solution in this class. Write \(E(t)=\mathcal E(a_t,q_t)-\mathcal E(a_\star,q_\star)\) for the energy gap to the comparison state and \(d_t\) for the normalized product distance
+The flow also satisfies extra assumptions R1–R4: local domination, integrable spatial tails, and, at each time, regular displacement data from the current laws to the laws of a fixed comparison state \(a_\star\).
+
+
+
+
+Existence of such a classical solution is not constructed; the estimates hold for every solution in this class. Write \(E(t)=\mathcal E(a_t,q_t)-\mathcal E(a_\star,q_\star)\) for the energy gap to the comparison state and \(d_t\) for the normalized product distance
 
 
 \[d_t^2=\|a_t-a_\star\|^2+\frac1M\sum_{m=1}^MW_2(q_t^m,\pi_{a_\star}^m)^2.\]
@@ -3433,7 +3551,7 @@ When \(a_\star\) maximizes the evidence and the comparison densities are the pos
 \[d_t\le\sqrt{\frac{2E(t)}\lambda}\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t},\qquad\|a_t-a_\star\|\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t}\qquad(t\ge0).\]
 
 
-The ingredients are the de Bruijn identity \(E'=-I\), the extended log-Sobolev inequality \(2\lambda E\le I\), Grönwall's inequality, and the Talagrand inequality \(\frac\lambda2d_t^2\le E(t)\), whose hypothesis (minimality of the posterior state) follows from the Gibbs variational principle. The final theorem constructs \(a_\star\) as the unique maximizer of the evidence of the original potentials, so the only remaining hypotheses are the regularity of the flow.
+The ingredients are the de Bruijn identity \(E'=-I\), the extended log-Sobolev inequality \(2\lambda E\le I\), Grönwall's inequality, and the Talagrand inequality \(\frac\lambda2d_t^2\le E(t)\), whose hypothesis (minimality of the posterior state) follows from the Gibbs variational principle. The final theorem constructs \(a_\star\) as the unique maximizer of the evidence of the original potentials, so the only remaining hypotheses are the extra assumptions defining the flow.
 
 
 
@@ -3458,7 +3576,7 @@ The ingredients are the de Bruijn identity \(E'=-I\), the extended log-Sobolev i
 
 
 
-By the second step, \(\mathcal E_\star=-\ell(a_\star)=F_\star\) is the minimal free energy, so the prefactor is \(\sqrt{2(F(a_0,q_0)-F_\star)/\lambda}\) as in the paper. The theorem contains no assumed dissipation identity, log-Sobolev inequality or transport inequality; the only hypotheses beyond A3 are the regularity conditions defining a classical flow.
+By the second step, \(\mathcal E_\star=-\ell(a_\star)=F_\star\) is the minimal free energy, so the prefactor is \(\sqrt{2(F(a_0,q_0)-F_\star)/\lambda}\) as in the paper. The theorem contains no assumed dissipation identity, log-Sobolev inequality or transport inequality; the only hypotheses beyond A3 are the extra assumptions defining a classical flow.
 
 \begin{leanbox}{Lean: \texttt{existsUnique\_\allowbreak{}optimizer\_\allowbreak{}and\_\allowbreak{}flow\_\allowbreak{}convergence}}
 \leansource{\texttt{existsUnique\_\allowbreak{}optimizer\_\allowbreak{}and\_\allowbreak{}flow\_\allowbreak{}convergence} \quad LatentDiffusion/\allowbreak{}RegularConvergence.lean, lines 478–517}
@@ -3695,7 +3813,12 @@ Let the heterogeneous particle potentials be differentiable and jointly \(m\)-st
 \section{\texorpdfstring{Root-mean-square error of the full-batch scheme}{Root-mean-square error of the full-batch scheme}}
 
 
-Let \(K=MN>0\). Assume \(m>0\), differentiable jointly \(m\)-strongly convex heterogeneous potentials with \(L\)-Lipschitz gradients, and a stable positive step. The optimizer \(a_\star\) is the actual marginal optimizer already constructed from these potentials. Supply an \(L^2\) initial latent cloud with the stated frozen Gibbs law at \(a_\star\), the correct individual posterior marginals, the local domination assumptions for evidence differentiation, and independent initial posterior scores. The coordinate Brownian processes have independent scalar Euler increments, independent of the initial latent cloud. Suppose each centred score has second moment at most \(V_0\). These initialization, independence and regularity conditions are part of the theorem.
+Let \(K=MN>0\). Assume \(m>0\), differentiable jointly \(m\)-strongly convex heterogeneous potentials with \(L\)-Lipschitz gradients, and a stable positive step. The optimizer \(a_\star\) is the actual marginal optimizer already constructed from these potentials.
+
+
+
+
+Supply an \(L^2\) initial latent cloud with the stated frozen Gibbs law at \(a_\star\), the correct individual posterior marginals, the local domination assumptions for evidence differentiation, and independent initial posterior scores. The coordinate Brownian processes have independent scalar Euler increments, independent of the initial latent cloud. Suppose each centred score has second moment at most \(V_0\). These extra initialization, independence and differentiation assumptions are part of the theorem.
 
 
 
@@ -4139,7 +4262,17 @@ Thus a zero penalty at the tilted maximizer itself does not imply that it maximi
 \section{\texorpdfstring{Differentiation of the free energy along the classical flow}{Differentiation of the free energy along the classical flow}}
 
 
-This section proves the de Bruijn identity for the joint parameter–density flow of the paper, under explicit regularity hypotheses (R2, R3). The latent space \(E\) is a finite-dimensional real inner product space with Lebesgue measure, and the parameter space \(A\) is a complete real inner product space. For probability densities \(q^1,\dots,q^M\) on \(E\), potentials \(U_m:A\times E\to\mathbb R\) and a parameter \(a\), define the normalized density energy, the averaged parameter force and the Fisher information
+This section proves the de Bruijn identity for the joint parameter–density flow of the paper,.
+
+
+
+
+The extra assumptions are R2 and R3.
+
+
+
+
+The latent space \(E\) is a finite-dimensional real inner product space with Lebesgue measure, and the parameter space \(A\) is a complete real inner product space. For probability densities \(q^1,\dots,q^M\) on \(E\), potentials \(U_m:A\times E\to\mathbb R\) and a parameter \(a\), define the normalized density energy, the averaged parameter force and the Fisher information
 
 
 \[\mathcal E(a,q)=\frac1M\sum_{m=1}^M\int_Eq^m(\log q^m+U_m(a,\cdot))\,dz,\qquad G(a,q)=\frac1M\sum_{m=1}^M\int_Eq^m\,\nabla_aU_m(a,\cdot)\,dz,\]
@@ -4197,7 +4330,14 @@ The term \(+1\) comes from differentiating \(q\log q\). It does not appear in th
 \[\mathcal E(u)=\int_Xq_u(x)\bigl(\log q_u(x)+U_u(x)\bigr)\,\nu(dx),\]
 
 
-and the candidate derivative integrand is \(\varphi_u(x)=\dot q_u(x)\bigl(\log q_u(x)+U_u(x)+1\bigr)+q_u(x)\dot U_u(x)\). Local domination at \(t\) consists of a neighbourhood \(N\) of \(t\) and a function \(g:X\to\mathbb R\) such that
+and the candidate derivative integrand is \(\varphi_u(x)=\dot q_u(x)\bigl(\log q_u(x)+U_u(x)+1\bigr)+q_u(x)\dot U_u(x)\).
+
+
+
+
+
+
+Local domination at \(t\) consists of a neighbourhood \(N\) of \(t\) and a function \(g:X\to\mathbb R\) such that
 
 
 
@@ -4216,12 +4356,14 @@ and the candidate derivative integrand is \(\varphi_u(x)=\dot q_u(x)\bigl(\log q
 
 
 
-Local regularity adds: (5) for \(\nu\)-almost every \(x\) and all \(u\in N\), \(u\mapsto U_u(x)\) has derivative \(\dot U_u(x)\) at \(u\). Measurability is understood up to \(\nu\)-null sets.
+
+
+The local differentiation assumptions additionally require: (5) for \(\nu\)-almost every \(x\) and all \(u\in N\), \(u\mapsto U_u(x)\) has derivative \(\dot U_u(x)\) at \(u\). Measurability is understood up to \(\nu\)-null sets.
 
 
 
 
-\textbf{Claim.} Under local regularity at \(t\), \(\varphi_t\) is \(\nu\)-integrable and \(\mathcal E\) is differentiable at \(t\) with
+\textbf{Claim.} Under the local differentiation assumptions at \(t\), \(\varphi_t\) is \(\nu\)-integrable and \(\mathcal E\) is differentiable at \(t\) with
 
 
 \[\mathcal E'(t)=\int_X\varphi_t\,d\nu.\]
@@ -4480,7 +4622,7 @@ The \emph{chemical potential} of a density \(q>0\) and a potential \(U\) is \(\m
 
 
 
-\textbf{Claim 2.} Let \(q,\dot q,U,\dot U:\mathbb R\times E\to\mathbb R\) satisfy local regularity at \(t\) for Lebesgue measure (second step). Assume moreover that \(q_t(x)>0\) for every \(x\), that \(q_t\) and \(U_t\) are continuously differentiable, that \(q_t\dot U_t\) is integrable, that \(\dot q_t=-\nabla\cdot(q_tv)\) almost everywhere for a vector field \(v\), and that \((q_tv,\mu_t+1)\) satisfies the no-boundary-flux condition, where \(\mu_t=\log q_t+U_t\). Then
+\textbf{Claim 2.} Let \(q,\dot q,U,\dot U:\mathbb R\times E\to\mathbb R\) satisfy the local differentiation assumptions at \(t\) for Lebesgue measure (second step). Assume moreover that \(q_t(x)>0\) for every \(x\), that \(q_t\) and \(U_t\) are continuously differentiable, that \(q_t\dot U_t\) is integrable, that \(\dot q_t=-\nabla\cdot(q_tv)\) almost everywhere for a vector field \(v\), and that \((q_tv,\mu_t+1)\) satisfies the no-boundary-flux condition, where \(\mu_t=\log q_t+U_t\). Then
 
 
 \[\mathcal E'(t)=\int_Eq_t\,\langle v,\nabla\mu_t\rangle\,dx+\int_Eq_t\,\dot U_t\,dx.\]
@@ -4564,7 +4706,7 @@ where \(\nabla_aU(a,x)\in A\) is the gradient of \(b\mapsto U(b,x)\) at \(a\), d
 
 
 
-\textbf{Claim 2 (chain rule along a parameter path).} Let \(p:\mathbb R\to A\) and put \(U_u(x)=U(p(u),x)\) and \(\dot U_u(x)=D_aU(p(u),x)[\dot p(u)]\). Suppose local domination at \(t\) holds for \((q,\dot q,U_\cdot,\dot U_\cdot)\) with neighbourhood \(N\), that \(p\) has derivative \(\dot p(u)\) at every \(u\in N\), and that \(b\mapsto U(b,x)\) is differentiable at \(p(u)\) for every \(x\) and every \(u\in N\). Then local regularity holds at \(t\).
+\textbf{Claim 2 (chain rule along a parameter path).} Let \(p:\mathbb R\to A\) and put \(U_u(x)=U(p(u),x)\) and \(\dot U_u(x)=D_aU(p(u),x)[\dot p(u)]\). Suppose local domination at \(t\) holds for \((q,\dot q,U_\cdot,\dot U_\cdot)\) with neighbourhood \(N\), that \(p\) has derivative \(\dot p(u)\) at every \(u\in N\), and that \(b\mapsto U(b,x)\) is differentiable at \(p(u)\) for every \(x\) and every \(u\in N\). Then all local differentiation assumptions hold at \(t\).
 
 
 
@@ -4653,7 +4795,7 @@ Then \(u\mapsto\mathcal E(p(u),q_u)\) is differentiable at \(t\) with derivative
 
 
 
-\textbf{Proof.} Fix \(m\). Claim 2 of the previous step upgrades hypothesis (1) to local regularity, using (2) and the differentiability of \(p\). Claim 1 of the previous step and (4) give integrability of \(q^m_t\,D_aU_m(p(t),\cdot)[\dot p(t)]\), which is the term \(q_t\dot U_t\). The second claim of the first-variation step therefore applies and gives the derivative of the \(m\)-th energy:
+\textbf{Proof.} Fix \(m\). Claim 2 of the previous step proves all local differentiation assumptions from hypothesis (1), using (2) and the differentiability of \(p\). Claim 1 of the previous step and (4) give integrability of \(q^m_t\,D_aU_m(p(t),\cdot)[\dot p(t)]\), which is the term \(q_t\dot U_t\). The second claim of the first-variation step therefore applies and gives the derivative of the \(m\)-th energy:
 
 
 \[\int_Eq^m_t\langle v_m,\nabla\mu_m\rangle\,dz+\int_Eq^m_t\,D_aU_m(p(t),\cdot)[\dot p(t)]\,dz.\]
@@ -5335,13 +5477,33 @@ The target here is a maximizer of the original evidence, not of the tilted one; 
 \section{\texorpdfstring{Displacement convexity of the free energy}{Displacement convexity of the free energy}}
 
 
-This section proves the strong geodesic convexity of the tilted free energy along displacement interpolations, the paper's Lemma on geodesic convexity, under explicit transport regularity (R4). Let \(Z\) be a finite-dimensional real inner product space of dimension \(d\), let \(\mu\) be a probability measure on \(Z\) (the initial law) and let \(T:Z\to Z\) be a transport map. The displacement interpolation is \(T_s(z)=(1-s)z+sT(z)\), \(s\in[0,1]\), and its law is the pushforward \(\mu_s=\mu\circ T_s^{-1}\). For one datum, a parameter interpolation \(p_s=(1-s)p_0+sp_1\) and a joint potential \(U(p,z)\), the free energy along the interpolation is
+This section proves the strong geodesic convexity of the tilted free energy along displacement interpolations, the paper's Lemma on geodesic convexity,.
+
+
+
+
+The extra transport assumptions are R4.
+
+
+
+
+Let \(Z\) be a finite-dimensional real inner product space of dimension \(d\), let \(\mu\) be a probability measure on \(Z\) (the initial law) and let \(T:Z\to Z\) be a transport map. The displacement interpolation is \(T_s(z)=(1-s)z+sT(z)\), \(s\in[0,1]\), and its law is the pushforward \(\mu_s=\mu\circ T_s^{-1}\). For one datum, a parameter interpolation \(p_s=(1-s)p_0+sp_1\) and a joint potential \(U(p,z)\), the free energy along the interpolation is
 
 
 \[\mathcal F(s)=H(s)+\int_ZU(p_s,z)\,\mu_s(dz),\qquad H(s)=\int_Z\log\rho_s\,d\mu_s,\]
 
 
-where \(\rho_s\) is the Lebesgue density of \(\mu_s\) and \(H\) is the negative Boltzmann entropy. The regularity data consist of positive densities, positive eigenvalues of the Jacobian \(DT\) in an orthonormal eigenbasis, the change-of-variables formula \(\rho_s(T_s(z))=\rho_0(z)/\det\bigl((1-s)I+sDT(z)\bigr)\), and integrable logarithms; no convexity or transport inequality is among them. If \(U\) is jointly \(\lambda\)-strongly convex, we prove
+where \(\rho_s\) is the Lebesgue density of \(\mu_s\) and \(H\) is the negative Boltzmann entropy.
+
+
+
+
+The extra transport assumptions are positive densities, positive eigenvalues of the Jacobian \(DT\) in an orthonormal eigenbasis, the change-of-variables formula \(\rho_s(T_s(z))=\rho_0(z)/\det\bigl((1-s)I+sDT(z)\bigr)\), and integrable logarithms; no convexity or transport inequality is among them.
+
+
+
+
+If \(U\) is jointly \(\lambda\)-strongly convex, we prove
 
 
 \[\mathcal F(s)\le(1-s)\mathcal F(0)+s\mathcal F(1)-\frac\lambda2s(1-s)\bigl(\|p_0-p_1\|^2+W_2(\mu_0,\mu_1)^2\bigr),\]
@@ -5944,7 +6106,17 @@ The log evidence is \(\ell(a)=M^{-1}\sum_m\log Z_m(a)=-V(a)\), with \(V\) the av
 \[\widetilde F(a,q)=\frac1M\sum_{m=1}^M\int_{\mathbb R^{d_z}}\tilde q^m(z)\log\frac{\tilde q^m(z)}{\rho_a^m(z)}\,dz\]
 
 
-on the domain of collections \(q\) with finite relative entropies and finite second moments; here \(\tilde q^m\) is the Lebesgue density of \(q^m\). This domain is the corrected form of the paper's \(\mathcal P_2\) domain (regularity R1). The optimizer \(a_\star\) is the target of both main convergence theorems.
+on the domain of collections \(q\) with finite relative entropies and finite second moments; here \(\tilde q^m\) is the Lebesgue density of \(q^m\).
+
+
+
+
+This domain is the corrected form of the paper's \(\mathcal P_2\) domain (extra assumption R1).
+
+
+
+
+The optimizer \(a_\star\) is the target of both main convergence theorems.
 
 \subsection{\texorpdfstring{Latent slices of the joint potentials}{Latent slices of the joint potentials}}
 
@@ -6269,7 +6441,7 @@ Let \(D\) be regular displacement data from a probability law \(\mu\) on \(Z\), 
 \[\int\langle T(z)-z,\nabla\log\rho_0(z)\rangle\,\mu(dz)=-\int\nabla\cdot V\,d\mu=-\int\sum_i(\lambda_i-1)\,d\mu,\]
 
 
-using (2). The functions \(\log\rho_0\) and \(\log\rho_1\circ T\) are \(\mu\)-integrable by the regularity data. Integrating (3) against \(\mu\) gives \(H(0)-\int\sum_i(\lambda_i-1)\,d\mu\le H(1)\), which is (4) after substituting the displayed identity. \(\square\)
+using (2). The functions \(\log\rho_0\) and \(\log\rho_1\circ T\) are \(\mu\)-integrable by the extra transport assumptions. Integrating (3) against \(\mu\) gives \(H(0)-\int\sum_i(\lambda_i-1)\,d\mu\le H(1)\), which is (4) after substituting the displayed identity. \(\square\)
 
 \begin{leanbox}{Lean: \texttt{initial\_\allowbreak{}density\_\allowbreak{}law}, \texttt{displacement\_\allowbreak{}divergence}, \texttt{log\_\allowbreak{}density\_\allowbreak{}tangent} and 1 more}
 \leansource{\texttt{initial\_\allowbreak{}density\_\allowbreak{}law} \quad LatentDiffusion/\allowbreak{}RegularTransportFirstOrder.lean, lines 34–35}
@@ -6526,10 +6698,15 @@ The parameter vectors are averaged before the square is completed. Averaging \(M
 \leanlabel{How the Lean proof follows the argument}
 In \texttt{normalized\_\allowbreak{}extended\allowbreak{}LSI\_\allowbreak{}of\_\allowbreak{}tangents} the variables \texttt{gap}, \texttt{pair}, \texttt{b}, \texttt{c}, \texttt{g} and \texttt{dp} are \(\gamma\), \(\kappa\), \(b\), \(c\), \(g\) and \(w\). \texttt{hpoint} is the per-datum inequality, proved by \texttt{nlinarith} from the two hypotheses and \texttt{sq\_\allowbreak{}nonneg (b m -\allowbreak{} rho * c m)}. \texttt{hsum} sums and multiplies by \(w=M^{-1}\), \texttt{hmean} moves the average inside the inner product, \texttt{hquad} is \(\|\bar g+\lambda w\|^2\ge0\) expanded with \texttt{norm\_\allowbreak{}add\_\allowbreak{}sq\_\allowbreak{}real}, and \texttt{hconst} is \(M^{-1}\cdot M\lambda^2\|w\|^2=\lambda^2\|w\|^2\). The final \texttt{nlinarith} combines them.
 \end{leanbox}
-\subsection{\texorpdfstring{Regularity data for the data set}{Regularity data for the data set}}
+\subsection{\texorpdfstring{Transport assumptions for the data set}{Transport assumptions for the data set}}
 
 
-\textbf{Definition.} Fix parameters \(p_0,p_1\in P\), \(\lambda\in\mathbb R\) and \(M\) data. Regularity data for the data set consist, for each datum \(m\), of
+\textbf{Definition.} Fix parameters \(p_0,p_1\in P\), \(\lambda\in\mathbb R\) and \(M\) data. The transport hypotheses combine the paper's strong convexity assumption with the extra density, integrability and map assumptions R4.
+
+
+
+
+For each datum \(m\), the extra conditions are the density/\allowbreak{}map data and integrability requirements below; strong convexity is assumption A3. Supply:
 
 
 
@@ -6631,7 +6808,7 @@ Since \(G_{m,Z}(z)\) is the latent component of the gradient of \(U_m\) at \((p_
 \subsection{\texorpdfstring{The extended log-Sobolev inequality}{The extended log-Sobolev inequality}}
 
 
-\textbf{Claim.} Let \(M\ge1\), \(\lambda>0\), and let regularity data for the data set be given. Then
+\textbf{Claim.} Let \(M\ge1\), \(\lambda>0\), and assume the transport hypotheses for the data set. Then
 
 
 \[2\lambda\bigl(\mathcal F(0)-\mathcal F(1)\bigr)\le I.\]
@@ -6894,7 +7071,12 @@ This section proves the paper's continuous-time convergence theorem (Theorem 1 a
 \[\dot a_t=-\frac1M\sum_{m=1}^M\int\nabla_aU_m(a_t,z)\,q_t^m(z)\,dz,\qquad\partial_tq_t^m=\nabla\cdot\bigl(q_t^m\nabla(\log q_t^m+U_m(a_t,\cdot))\bigr),\]
 
 
-together with the regularity of R1–R4: local domination, integrable spatial tails, and, at each time, regular displacement data from the current laws to the laws of a fixed comparison state \(a_\star\). Existence of such a classical solution is not constructed; the estimates hold for every solution in this class. Write \(E(t)=\mathcal E(a_t,q_t)-\mathcal E(a_\star,q_\star)\) for the energy gap to the comparison state and \(d_t\) for the normalized product distance
+The flow also satisfies extra assumptions R1–R4: local domination, integrable spatial tails, and, at each time, regular displacement data from the current laws to the laws of a fixed comparison state \(a_\star\).
+
+
+
+
+Existence of such a classical solution is not constructed; the estimates hold for every solution in this class. Write \(E(t)=\mathcal E(a_t,q_t)-\mathcal E(a_\star,q_\star)\) for the energy gap to the comparison state and \(d_t\) for the normalized product distance
 
 
 \[d_t^2=\|a_t-a_\star\|^2+\frac1M\sum_{m=1}^MW_2(q_t^m,\pi_{a_\star}^m)^2.\]
@@ -6906,7 +7088,7 @@ When \(a_\star\) maximizes the evidence and the comparison densities are the pos
 \[d_t\le\sqrt{\frac{2E(t)}\lambda}\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t},\qquad\|a_t-a_\star\|\le\sqrt{\frac{2E(0)}\lambda}\,e^{-\lambda t}\qquad(t\ge0).\]
 
 
-The ingredients are the de Bruijn identity \(E'=-I\), the extended log-Sobolev inequality \(2\lambda E\le I\), Grönwall's inequality, and the Talagrand inequality \(\frac\lambda2d_t^2\le E(t)\), whose hypothesis (minimality of the posterior state) follows from the Gibbs variational principle. The final theorem constructs \(a_\star\) as the unique maximizer of the evidence of the original potentials, so the only remaining hypotheses are the regularity of the flow.
+The ingredients are the de Bruijn identity \(E'=-I\), the extended log-Sobolev inequality \(2\lambda E\le I\), Grönwall's inequality, and the Talagrand inequality \(\frac\lambda2d_t^2\le E(t)\), whose hypothesis (minimality of the posterior state) follows from the Gibbs variational principle. The final theorem constructs \(a_\star\) as the unique maximizer of the evidence of the original potentials, so the only remaining hypotheses are the extra assumptions defining the flow.
 
 \subsection{\texorpdfstring{The Gibbs variational lower bound}{The Gibbs variational lower bound}}
 
@@ -6973,7 +7155,7 @@ Claim 2 is the nonnegativity of the relative entropy of \(Q\) with respect to th
 \subsection{\texorpdfstring{Minimality of the posterior state along a displacement}{Minimality of the posterior state along a displacement}}
 
 
-Let \(R\) be regularity data for the data set (previous section) from \((p_0,(Q_m)_m)=(a,(Q_m)_m)\) to the parameter \(p_1=b\), with potentials \(U_m(p,z)\), displacement laws \(\mu_{m,s}\) with densities \(\rho_{m,s}\), and averaged free energy \(\mathcal F(s)\). Define the evidence \(\ell(p)=M^{-1}\sum_m\log\int e^{-U_m(p,z)}dz\).
+Let \(R\) collect the transport assumptions for the data set (previous section) from \((p_0,(Q_m)_m)=(a,(Q_m)_m)\) to the parameter \(p_1=b\), with potentials \(U_m(p,z)\), displacement laws \(\mu_{m,s}\) with densities \(\rho_{m,s}\), and averaged free energy \(\mathcal F(s)\). Define the evidence \(\ell(p)=M^{-1}\sum_m\log\int e^{-U_m(p,z)}dz\).
 
 
 
@@ -6983,7 +7165,7 @@ Let \(R\) be regularity data for the data set (previous section) from \((p_0,(Q_
 
 
 
-\textbf{Proof.} (1) By the pushforward formula, integrability of \(f\) under \(\mu_{m,s}=Q_m\circ T_{m,s}^{-1}\) is integrability of \(f\circ T_{m,s}\) under \(Q_m\); for \(f=\log\rho_{m,s}\) and \(f=U_m(p_s,\cdot)\) this is part of the regularity data.
+\textbf{Proof.} (1) By the pushforward formula, integrability of \(f\) under \(\mu_{m,s}=Q_m\circ T_{m,s}^{-1}\) is integrability of \(f\circ T_{m,s}\) under \(Q_m\); for \(f=\log\rho_{m,s}\) and \(f=U_m(p_s,\cdot)\) this is one of the extra transport assumptions.
 
 
 
@@ -7066,7 +7248,9 @@ Averaging over \(m\) gives \(-\ell(p_s)\le\mathcal F(s)\).
 \subsection{\texorpdfstring{Classical flows}{Classical flows}}
 
 
-\textbf{Definition.} Let \(A\) be a complete real inner product space of parameters, \(Z\) a finite-dimensional latent space, \(U_m:A\times Z\to\mathbb R\) potentials, \(\lambda\in\mathbb R\) and \(a_\star\in A\) a comparison parameter. A classical flow consists of a parameter path \(a_t\) with derivatives \(\dot a_t\), densities \(q_t^m\) with rates \(\dot q_t^m\), comparison densities \(q_\star^m\), and, for every time \(t\), regularity data for the data set from \((a_t,(q_t^m\,dz)_m)\) to \(a_\star\), such that:
+
+
+\textbf{Definition.} Let \(A\) be a complete real inner product space of parameters, \(Z\) a finite-dimensional latent space, \(U_m:A\times Z\to\mathbb R\) potentials, \(\lambda\in\mathbb R\) and \(a_\star\in A\) a comparison parameter. A classical flow consists of a parameter path \(a_t\) with derivatives \(\dot a_t\), densities \(q_t^m\) with rates \(\dot q_t^m\), comparison densities \(q_\star^m\), and, for every time \(t\), the transport assumptions for the data set from \((a_t,(q_t^m\,dz)_m)\) to \(a_\star\), such that:
 
 
 
@@ -7079,7 +7263,7 @@ Averaging over \(m\) gives \(-\ell(p_s)\le\mathcal F(s)\).
 
 \item \(q_t^m>0\), and \(q_t^m\) and \(U_m(a_t,\cdot)\) are continuously differentiable;
 
-\item the gradient fields of the regularity data at time \(t\) are the actual gradients: parameter component \(\nabla_aU_m(a_t,z)\) and latent component \(\nabla_zU_m(a_t,z)\);
+\item the gradient fields supplied by the extra transport assumptions at time \(t\) are the actual gradients: parameter component \(\nabla_aU_m(a_t,z)\) and latent component \(\nabla_zU_m(a_t,z)\);
 
 \item \(q_t^m\nabla_aU_m(a_t,\cdot)\) is integrable, and local domination holds at every \(t\) for the energy integrand;
 
@@ -7088,6 +7272,8 @@ Averaging over \(m\) gives \(-\ell(p_s)\le\mathcal F(s)\).
 \item the no-boundary-flux condition for the Fokker–Planck flux and the test \(\log q_t^m+U_m(a_t,\cdot)+1\), at every \(t\).
 
 \end{enumerate}
+
+
 
 
 
@@ -7159,7 +7345,7 @@ All conditions concern densities, derivatives, integrability and the equations t
 \subsection{\texorpdfstring{Identification of energies and Fisher information}{Identification of energies and Fisher information}}
 
 
-For a classical flow and a time \(t\), let \(\mathcal F^{(t)}\), \(G^{(t)}\), \(S^{(t)}_m\), \(I^{(t)}\) and \(d_t^2\) denote the averaged free energy, parameter force, latent scores, Fisher information and squared distance of the regularity data at time \(t\) (previous section).
+For a classical flow and a time \(t\), let \(\mathcal F^{(t)}\), \(G^{(t)}\), \(S^{(t)}_m\), \(I^{(t)}\) and \(d_t^2\) denote the averaged free energy, parameter force, latent scores, Fisher information and squared distance under the extra transport assumptions at time \(t\) (previous section).
 
 
 
@@ -7181,7 +7367,7 @@ For a classical flow and a time \(t\), let \(\mathcal F^{(t)}\), \(G^{(t)}\), \(
 
 
 
-\textbf{Proof.} (1) At \(s=0\) the law of datum \(m\) is \(q_t^m\,dz\) and the parameter is \(a_t\). Hence \(\mathcal F^{(t)}_m(0)=\int\log q_t^m\,dQ_m+\int U_m(a_t,\cdot)\,dQ_m\); both functions are integrable by the regularity data, so the sum of the integrals is the integral of the sum, and by Claim 1 of the first step it equals \(\int q_t^m(\log q_t^m+U_m(a_t,\cdot))\,dz\). Averaging gives \(\mathcal E(t)\). The same computation at \(s=1\), with the law \(q_\star^m\,dz\) and the parameter \(a_\star\), gives \(\mathcal E_\star\).
+\textbf{Proof.} (1) At \(s=0\) the law of datum \(m\) is \(q_t^m\,dz\) and the parameter is \(a_t\). Hence \(\mathcal F^{(t)}_m(0)=\int\log q_t^m\,dQ_m+\int U_m(a_t,\cdot)\,dQ_m\); both functions are integrable by the extra transport assumptions, so the sum of the integrals is the integral of the sum, and by Claim 1 of the first step it equals \(\int q_t^m(\log q_t^m+U_m(a_t,\cdot))\,dz\). Averaging gives \(\mathcal E(t)\). The same computation at \(s=1\), with the law \(q_\star^m\,dz\) and the parameter \(a_\star\), gives \(\mathcal E_\star\).
 
 
 
@@ -7267,7 +7453,7 @@ For a classical flow and a time \(t\), let \(\mathcal F^{(t)}\), \(G^{(t)}\), \(
 
 
 
-(2) The extended log-Sobolev inequality of the previous section, for the regularity data at time \(t\), gives \(2\lambda(\mathcal F^{(t)}(0)-\mathcal F^{(t)}(1))\le I^{(t)}\). By the previous step, \(\mathcal F^{(t)}(0)=\mathcal E(t)\) and \(I^{(t)}=I(t)\). \(\square\)
+(2) The extended log-Sobolev inequality of the previous section, under the extra transport assumptions at time \(t\), gives \(2\lambda(\mathcal F^{(t)}(0)-\mathcal F^{(t)}(1))\le I^{(t)}\). By the previous step, \(\mathcal F^{(t)}(0)=\mathcal E(t)\) and \(I^{(t)}=I(t)\). \(\square\)
 
 \begin{leanbox}{Lean: \texttt{deBruijn}, \texttt{extendedLSI}}
 \leansource{\texttt{deBruijn} \quad LatentDiffusion/\allowbreak{}RegularConvergence.lean, lines 349–355}
@@ -7325,7 +7511,7 @@ We use Grönwall's inequality in the following form: if \(f\) is continuous on \
 \[\frac\lambda2\,d_t^2\le\mathcal E(t)-\mathcal E_\star.\]
 
 
-\textbf{Proof.} (1) is part (4) of the second step, applied to the regularity data at time \(t\), whose endpoint parameter is \(a_\star\) and whose endpoint densities are the posteriors. (2) By the Talagrand inequality of the previous section, (1) implies \(\frac\lambda2d_t^2\le\mathcal F^{(t)}(0)-\mathcal F^{(t)}(1)\), and the identification step gives \(\mathcal F^{(t)}(0)=\mathcal E(t)\) and \(\mathcal F^{(t)}(1)=\mathcal E_\star\). \(\square\)
+\textbf{Proof.} (1) is part (4) of the second step, applied under the extra transport assumptions at time \(t\), whose endpoint parameter is \(a_\star\) and whose endpoint densities are the posteriors. (2) By the Talagrand inequality of the previous section, (1) implies \(\frac\lambda2d_t^2\le\mathcal F^{(t)}(0)-\mathcal F^{(t)}(1)\), and the identification step gives \(\mathcal F^{(t)}(0)=\mathcal E(t)\) and \(\mathcal F^{(t)}(1)=\mathcal E_\star\). \(\square\)
 
 \begin{leanbox}{Lean: \texttt{target\_\allowbreak{}minimal}, \texttt{distance\_\allowbreak{}control}}
 \leansource{\texttt{target\_\allowbreak{}minimal} \quad LatentDiffusion/\allowbreak{}RegularConvergence.lean, lines 386–397}
@@ -7440,7 +7626,7 @@ and taking square roots of these nonnegative numbers gives the bound. Finally \(
 
 
 
-By the second step, \(\mathcal E_\star=-\ell(a_\star)=F_\star\) is the minimal free energy, so the prefactor is \(\sqrt{2(F(a_0,q_0)-F_\star)/\lambda}\) as in the paper. The theorem contains no assumed dissipation identity, log-Sobolev inequality or transport inequality; the only hypotheses beyond A3 are the regularity conditions defining a classical flow.
+By the second step, \(\mathcal E_\star=-\ell(a_\star)=F_\star\) is the minimal free energy, so the prefactor is \(\sqrt{2(F(a_0,q_0)-F_\star)/\lambda}\) as in the paper. The theorem contains no assumed dissipation identity, log-Sobolev inequality or transport inequality; the only hypotheses beyond A3 are the extra assumptions defining a classical flow.
 
 \begin{leanbox}{Lean: \texttt{existsUnique\_\allowbreak{}optimizer\_\allowbreak{}and\_\allowbreak{}flow\_\allowbreak{}convergence}}
 \leansource{\texttt{existsUnique\_\allowbreak{}optimizer\_\allowbreak{}and\_\allowbreak{}flow\_\allowbreak{}convergence} \quad LatentDiffusion/\allowbreak{}RegularConvergence.lean, lines 478–517}
@@ -7481,7 +7667,12 @@ In \texttt{exists\allowbreak{}Unique\_\allowbreak{}optimizer\_\allowbreak{}and\_
 \section{\texorpdfstring{A full-batch root-mean-square rate to the actual optimizer}{A full-batch root-mean-square rate to the actual optimizer}}
 
 
-Let \(K=MN>0\). Assume \(m>0\), differentiable jointly \(m\)-strongly convex heterogeneous potentials with \(L\)-Lipschitz gradients, and a stable positive step. The optimizer \(a_\star\) is the actual marginal optimizer already constructed from these potentials. Supply an \(L^2\) initial latent cloud with the stated frozen Gibbs law at \(a_\star\), the correct individual posterior marginals, the local domination assumptions for evidence differentiation, and independent initial posterior scores. The coordinate Brownian processes have independent scalar Euler increments, independent of the initial latent cloud. Suppose each centred score has second moment at most \(V_0\). These initialization, independence and regularity conditions are part of the theorem.
+Let \(K=MN>0\). Assume \(m>0\), differentiable jointly \(m\)-strongly convex heterogeneous potentials with \(L\)-Lipschitz gradients, and a stable positive step. The optimizer \(a_\star\) is the actual marginal optimizer already constructed from these potentials.
+
+
+
+
+Supply an \(L^2\) initial latent cloud with the stated frozen Gibbs law at \(a_\star\), the correct individual posterior marginals, the local domination assumptions for evidence differentiation, and independent initial posterior scores. The coordinate Brownian processes have independent scalar Euler increments, independent of the initial latent cloud. Suppose each centred score has second moment at most \(V_0\). These extra initialization, independence and differentiation assumptions are part of the theorem.
 
 \subsection{\texorpdfstring{Identify the optimizer, then insert explicit variance and Brownian constants}{Identify the optimizer, then insert explicit variance and Brownian constants}}
 

@@ -42,9 +42,9 @@ PAPER_RESULTS = {
     },
     "thm:exp_convg_informal": {
         "title": "Unique tilted optimizer and exponential parameter convergence",
-        "statement": r"""<p>Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) be differentiable and satisfy A3. On the explicitly added regular density and transport domain R1–R4, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/density equations satisfy</p>
+        "statement": r"""<p>Let \(M\ge1\), and let the actual tilted potentials \(U_m=-\log\rho^m\) be differentiable and satisfy A3. Under the explicitly stated extra assumptions R1–R4, the average tilted evidence has a unique maximizer \(u_\star=(\theta_\star,\phi_\star)\). The classical parameter/density equations satisfy</p>
  \[\|u_t-u_\star\|\le\sqrt{\frac{2[\widetilde F(u_0,q_0)-\widetilde F_\star]}{\lambda}}e^{-\lambda t},\qquad t\ge0.\]
- <p>The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the blue regularity hypotheses.</p>""",
+ <p>The potential normalizers and finite-second-moment posteriors are constructed from their actual integrals. Energy dissipation, the entropy transport tangent, extended LSI and the decay estimate are proved from the equations and the orange extra assumptions.</p>""",
         "correction": r"""A2 must be interpreted on an admissible initial class,
         or require smooth densities only for positive time. Its literal
         quantification over all \(\mathcal P_2\) initial laws is contradicted by
@@ -103,8 +103,8 @@ PAPER_RESULTS = {
         "statement": r"""<p>Equip the product state with
         \(d^2((u,q),(v,r))=\|u-v\|^2+M^{-1}\sum_mW_2(q^m,r^m)^2\), and let
         \(V_u^m=\mathcal L_D(\theta,\cdot)-\log p_\phi(x^m\mid\cdot)\).
-        Under the explicit R2–R3 first-variation and continuity-equation
-        regularity, the parameter and density gradients are</p>
+        Under the explicit first-variation and continuity-equation
+        extra assumptions R2–R3, the parameter and density gradients are</p>
         \[\nabla_u\widetilde F=\frac1M\sum_m\int\nabla_u V_u^m\,dq^m,
         \qquad
         \nabla_{q^m}\widetilde F=-\nabla_z\!\cdot
@@ -183,7 +183,7 @@ PAPER_RESULTS = {
         "statement": r"""<p>For \(M\ge1\), jointly \(\lambda\)-strongly convex tilted potentials with \(\lambda>0\), and the finite-energy density/transport domain R1, R3 and R4,</p>
  \[2\lambda[\widetilde F(u,q)-\widetilde F_\star]\le I(u,q).\]
  <p>Sum the actual entropy and potential tangent pairings first. Completing one square for the averaged parameter force and the normalized latent squares proves the inequality with exactly the source Fisher information. The posterior optimizer is independently constructed before it is used.</p>""",
-        "correction": "The proof chooses an admissible minimizer at supplement line 587 before its existence has been established in that chain. The checked marginal/posterior construction supplies it first. The entropy and potential tangent inequalities are then proved from the explicit regularity data.",
+        "correction": "The proof chooses an admissible minimizer at supplement line 587 before its existence has been established in that chain. The checked marginal/posterior construction supplies it first. The entropy and potential tangent inequalities are then proved from the explicit extra assumptions.",
         "scope": 'Under A3, R1, R3 and R4, sum the actual entropy and potential tangent pairings toward the constructed posterior optimizer and complete the normalized parameter and latent squares. This proves extended LSI for the exact source Fisher information without assuming a first-order inequality.',
     },
     "lem:distance_deriv": {
@@ -358,7 +358,7 @@ def reference(file, start_line, end_line, label):
 PAPER_CORRECTIONS = [
     {
         "id": "C-A2",
-        "title": "Universal time-zero density regularity is impossible",
+        "title": "Universal time-zero density existence is impossible",
         "prose": r"""A2 includes every finite-second-moment initial law and
         requires a smooth density at \(t=0\). A Dirac law has finite second
         moment but cannot have a density relative to nonatomic Lebesgue measure.
@@ -369,7 +369,7 @@ PAPER_CORRECTIONS = [
         for the particle and mean-field equations in the continuous \(L^2\)
         Brownian integral solution class under R7. The corrected density
         calculus and decay estimates apply to every classical solution in the
-        explicitly regular class R1–R4; existence of such a classical density
+        class specified by extra assumptions R1–R4; existence of such a classical density
         solution is not constructed.""",
         "references": [reference(MAIN, 151, 154, "assump:solution_reg"), reference(SUPP, 436, 455, "eq:multi_datapoint_prodmetric")],
         "refs": [("LatentDiffusion/SourceObstruction.lean", "not_solutionRegularity_of_null_singleton"), ("LatentDiffusion/SourceObstruction.lean", "not_solutionRegularity_of_noAtoms")],

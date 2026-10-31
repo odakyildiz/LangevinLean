@@ -204,11 +204,20 @@ def check_LatentDiffusion_RegularTransport_RegularDisplacement_entropy_displacem
 -- LatentDiffusion/RegularTransportFirstOrder.lean:70
 def check_LatentDiffusion_RegularTransport_RegularDisplacement_entropy_tangent := @LatentDiffusion.RegularTransport.RegularDisplacement.entropy_tangent
 
+-- LatentDiffusion/RegularProductMetricFlow.lean:176
+def check_LatentDiffusion_RegularProductMetricFlow_distance_integral_bound := @LatentDiffusion.RegularProductMetricFlow.distance_integral_bound
+
 -- LatentDiffusion/RegularDensityDomain.lean:66
 def check_LatentDiffusion_RegularDensityDomain_ProductDensityChart_continuous_energy := @LatentDiffusion.RegularDensityDomain.ProductDensityChart.continuous_energy
 
 -- LatentDiffusion/RegularDensityDomain.lean:79
 def check_LatentDiffusion_RegularDensityDomain_ProductDensityChart_cauchy_minimizer := @LatentDiffusion.RegularDensityDomain.ProductDensityChart.cauchy_minimizer
+
+-- LatentDiffusion/RegularMeanField.lean:189
+def check_LatentDiffusion_RegularMeanField_exists_spatial_comparison := @LatentDiffusion.RegularMeanField.exists_spatial_comparison
+
+-- LatentDiffusion/RegularMeanField.lean:253
+def check_LatentDiffusion_RegularMeanField_temporal_comparison := @LatentDiffusion.RegularMeanField.temporal_comparison
 
 -- LatentDiffusion/RegularStochastic.lean:214
 def check_LatentDiffusion_RegularStochastic_independent_average_norm_sq := @LatentDiffusion.RegularStochastic.independent_average_norm_sq
@@ -246,9 +255,6 @@ def check_LatentDiffusion_RegularDirectional_lower_directional_liminf_law_pairin
 -- LatentDiffusion/RegularTransportFirstOrder.lean:661
 def check_LatentDiffusion_RegularTransport_DatasetRegularity_extendedLSI := @LatentDiffusion.RegularTransport.DatasetRegularity.extendedLSI
 
--- LatentDiffusion/RegularProductMetricFlow.lean:176
-def check_LatentDiffusion_RegularProductMetricFlow_distance_integral_bound := @LatentDiffusion.RegularProductMetricFlow.distance_integral_bound
-
 -- LatentDiffusion/RegularTalagrand.lean:203
 def check_LatentDiffusion_RegularTalagrand_metric_flow_talagrand := @LatentDiffusion.RegularTalagrand.metric_flow_talagrand
 
@@ -263,12 +269,6 @@ def check_LatentDiffusion_RegularSourceTheorem_meanField_actual_empirical_conver
 
 -- LatentDiffusion/RegularSourceTheorem.lean:404
 def check_LatentDiffusion_RegularSourceTheorem_empiricalProduct_rms_le_l2 := @LatentDiffusion.RegularSourceTheorem.empiricalProduct_rms_le_l2
-
--- LatentDiffusion/RegularMeanField.lean:189
-def check_LatentDiffusion_RegularMeanField_exists_spatial_comparison := @LatentDiffusion.RegularMeanField.exists_spatial_comparison
-
--- LatentDiffusion/RegularMeanField.lean:253
-def check_LatentDiffusion_RegularMeanField_temporal_comparison := @LatentDiffusion.RegularMeanField.temporal_comparison
 
 -- LatentDiffusion/BatchAudit.lean:226
 def check_LatentDiffusion_BatchAudit_randomScanConditionalSecondMoment_eq := @LatentDiffusion.BatchAudit.randomScanConditionalSecondMoment_eq

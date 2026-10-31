@@ -69,7 +69,7 @@ def statements(library, sources, parsed):
             text += '<p><strong>Correction.</strong> ' + entry['correction'] + '</p>'
         results.append((entry['title'], text, source_endpoint_refs(record)))
     return [('Assumptions of the paper', section('assumptions')),
-            ('Added regularity', section('source-regularity')),
+            ('Extra assumptions', section('source-regularity')),
             ('Density model and analytic chain', section('source-contracts')),
             ('Results of the paper in corrected form', results),
             ('New assumptions', section('new-assumptions')),
@@ -91,7 +91,8 @@ def report_revision(library):
     sources, parsed = inventory(library)
     authored = notes(library)
     overview_inputs = (['docs/pbgso_overview.py'] if library == 'PBGSO' else
-                       ['docs/build_latent_diffusion.py', 'docs/latent_diffusion_paper.py'])
+                       ['docs/build_latent_diffusion.py', 'docs/latent_diffusion_paper.py',
+                        'docs/latent_diffusion_regularity.py'])
     content = {'notes': authored, 'argument': argument(library),
                'overview': {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
                             for path in overview_inputs + ['docs/references.py', 'docs/separate_reports.py', 'docs/lean_latex.py']},

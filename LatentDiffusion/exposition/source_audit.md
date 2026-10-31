@@ -1,8 +1,8 @@
-# Latent diffusion: corrected source results and explicit regularity
+# Latent diffusion: corrected source results and extra assumptions
 
 The source is **Training Latent Diffusion Models with Interacting Particle Algorithms**, Tim Y. J. Wang, Juan Kuntz and O. Deniz Akyildiz, in `papers/Latent_diffusion/main_aistats.tex` and `supp_aistats.tex`. The machine-readable `reference_audit.json` preserves exact TeX, line locations and source hashes for all **19 named theorem/proposition/lemma statements**, including appendix repetitions. The main webpage presents the corrected mathematical statements, precise corrections and extracted Lean contracts before the separate new theory.
 
-The source theorem statements are proved on an explicit regular domain. This does not assert that false or inconsistent printed statements are literally true. The ledger distinguishes `corrected_statement_fully_proved` from `original_statement_fully_reconstructed`; a correction can have a complete proof while its exact printed predecessor remains false. Original assumptions A1–A4 are green, added source regularity R1–R7 is blue, formula corrections are rose, and independent new-theory assumptions N1–N7 are orange.
+The source theorem statements are proved on a domain satisfying explicit extra assumptions. This does not assert that false or inconsistent printed statements are literally true. The ledger distinguishes `corrected_statement_fully_proved` from `original_statement_fully_reconstructed`; a correction can have a complete proof while its exact printed predecessor remains false. Original assumptions A1–A4 are green, extra assumptions R1–R7 are orange, formula corrections are rose, and independent new-theory assumptions N1–N7 are orange.
 
 ## Source setting and assumptions
 
@@ -17,19 +17,21 @@ $$
 
 Finite KL is established before conversion to real arithmetic. Normalizers, posterior probability laws and their finite second moments are constructed from actual density integrals. The normalized geometry retains the source strong-convexity constant independently of the number of data or particle replicas.
 
-- **A1: model regularity**, main lines 143–150: differentiable parameter-dependent normalizers and posterior densities, positive tilted density, and spatial $C^2$ posterior regularity.
-- **A2: classical solution regularity**, main lines 151–154: a $C^1$ parameter path and positive $C^{1,2}$ density paths. The literal time-zero claim for *every* $\mathcal P_2$ initial law is false: a Dirac law cannot have a Lebesgue density. The proved correction uses an admissible regular initial class (R1). The continuous estimates apply to every classical solution in the R1–R4 class; existence of such a classical density solution is not constructed.
+- **A1: model differentiability**, main lines 143–150: differentiable parameter-dependent normalizers and posterior densities, positive tilted density, and spatial $C^2$ posterior differentiability.
+- **A2: classical solutions**, main lines 151–154: a $C^1$ parameter path and positive $C^{1,2}$ density paths. The literal time-zero claim for *every* $\mathcal P_2$ initial law is false: a Dirac law cannot have a Lebesgue density. The proved correction uses an initial density class specified by the extra assumptions (R1). The continuous estimates apply to every classical solution in the R1–R4 class; existence of such a classical density solution is not constructed.
 - **A3: joint strong log-concavity**, main lines 155–157: each $U_m$ is jointly $\lambda$-strongly convex, with $\lambda>0$.
 - **A4: joint gradient Lipschitz continuity**, main lines 200–207 and supplement 753–759: the gradient bound concerns the tilted potential, including the tilt penalty.
 
-## Added regularity, visibly separate from A1–A4
+## Extra assumptions, visibly separate from A1–A4
+
+The quantified mathematical contracts and their exact Lean definitions are paired in [R1–R7 on the statement page](index.html#source-regularity). The following is an index of those contracts.
 
 1. **R1, admissible density domain:** positive finite normalizers, actual probability laws, finite KL/energy and posterior membership in the chosen finite-second-moment comparison domain. `RegularModel` derives normalizers and posterior moments from joint strong convexity; `RegularVariational` realizes arbitrary finite-KL trials by their actual Radon–Nikodym densities.
 2. **R2, local dominated differentiation:** measurable integrands, pointwise derivatives on a common neighbourhood, finite base energy and an integrable bound for the differentiated integrand. `RegularEvidence` differentiates actual normalizers and derives posterior-score centering at the evidence optimizer. The parameter time chain rule is proved.
-3. **R3, classical equations and integrable tails:** the actual parameter ODE and Fokker–Planck PDE, differentiable flux components, and the three absolutely integrable products required by ordinary spatial integration by parts. `RegularFlowCalculus` proves the normalized product-gradient pairing, Fisher integrability and full de Bruijn identity. None is a regularity field.
-4. **R4, regular transport domain:** actual pushforward density laws, smooth positive-Jacobian displacement maps, their density/Jacobian conservation equation and integrable logarithms/quadratic costs. Exact transport distance uses minimality against every genuine coupling. The geodesic equivalence uses intermediate optimal maps and endpoint-map uniqueness; its gradient form uses a convex-potential gradient certificate. Entropy displacement convexity, entropy tangents and the normalized first-order inequality are proved from these data.
+3. **R3, classical equations and integrable tails:** the actual parameter ODE and Fokker–Planck PDE, differentiable flux components, and the three absolutely integrable products required by ordinary spatial integration by parts. `RegularFlowCalculus` proves the normalized product-gradient pairing, Fisher integrability and full de Bruijn identity. None is an assumed conclusion.
+4. **R4, transport domain:** actual pushforward density laws, smooth positive-Jacobian displacement maps, their density/Jacobian conservation equation and integrable logarithms/quadratic costs. Exact transport distance uses minimality against every genuine coupling. The geodesic equivalence uses intermediate optimal maps and endpoint-map uniqueness; its gradient form uses a convex-potential gradient certificate. Entropy displacement convexity, entropy tangents and the normalized first-order inequality are proved from these data.
 5. **R5, characteristic metric realization:** square-integrable characteristic curves, their actual velocities, and optimal target anchors. `RegularProductMetricFlow` proves normalized product-distance slopes and identifies kinetic energy with the actual source Fisher information. The corrected slope statement also covers target crossings.
-6. **R6, complete regular density domain:** `ProductDensityChart` explicitly identifies its metric with the source normalized parameter/$W_2$ metric of its actual laws. Pointwise continuous densities/potentials and local integrable energy envelopes prove energy continuity and lower semicontinuity. Completeness is required of this chosen domain; it is not attributed to all smooth densities.
+6. **R6, complete density domain:** `ProductDensityChart` explicitly identifies its metric with the source normalized parameter/$W_2$ metric of its actual laws. Pointwise continuous densities/potentials and local integrable energy envelopes prove energy continuity and lower semicontinuity. Completeness is required of this chosen domain; it is not attributed to all smooth densities.
 7. **R7, stochastic initialization and moments:** actual square-integrable initial clouds, posterior/Gibbs comparison initialization, declared Brownian independence and uniform normalized state/score moments, including a fixed per-copy centered-score variance $V_0$. Count-independent temporal constants also require a uniform normalized force-at-origin bound. The checked Euler restriction is $0<h$, $\lambda h\le1$, $hL^2\le\lambda$. Unique continuous $L^2$ Brownian integral paths are constructed by Picard; Gibbs stationarity, score residuals, local Euler defects and final errors are proved. This is the solution class used by the RMS bounds. Sampling and initialization law conditions are explicit assumptions. Reference existence, stationarity, desired-error recurrences and zero-score identities are conclusions of the final source optimizer theorem.
 
 ## Proof correspondence for all 19 source statements
@@ -58,7 +60,7 @@ The exact source line ranges and declaration names are maintained in `reference_
 | `lem:temporal_discretization` | Actual Brownian integral equation and Euler comparison, with the corrected $O(\sqrt h)$ order: `RegularMeanField.temporal_comparison`. |
 | `thrm_app:error-bound` | Appendix restatement of the same actual full-batch optimizer theorem: `RegularSourceTheorem.full_batch_optimizer_rms_rate`. |
 
-The full chain does not assume entropy dissipation, entropy displacement convexity, the desired first-order transport inequality or the desired numerical recurrence. Abstract comparison theorems retain their natural inputs; the source-level wrappers discharge those inputs from the actual model, equations and blue regularity data.
+The full chain does not assume entropy dissipation, entropy displacement convexity, the desired first-order transport inequality or the desired numerical recurrence. Abstract comparison theorems retain their natural inputs; the source-level wrappers discharge those inputs from the actual model, equations and orange extra assumptions.
 
 ## Precise source corrections
 
@@ -83,7 +85,7 @@ The full chain does not assume entropy dissipation, entropy displacement convexi
 
 Part II retains explicit N1–N7 and theorems for oracle noise, finite-population minibatch variance, tilt-model bias and concrete accuracy allocations. These are additions relative to the supplied manuscript. The practical Adam/preconditioned/momentum algorithm is not silently identified with the proved fixed-step full-batch recursion.
 
-`MainResults.particle_oracle_parameter_bound` bounds the actual lifted Euler parameter error by initialization, finite-cloud fluctuation, drift consistency, Brownian modulus and centered oracle terms. `Accuracy.budget_le_epsilon` gives division-free sufficient particle/step/burn-in choices. The centered oracle hypotheses specify the extension's sampling interface; they are not source assumptions A1–A4 or blue regularity needed to repair the paper results.
+`MainResults.particle_oracle_parameter_bound` bounds the actual lifted Euler parameter error by initialization, finite-cloud fluctuation, drift consistency, Brownian modulus and centered oracle terms. `Accuracy.budget_le_epsilon` gives division-free sufficient particle/step/burn-in choices. The centered oracle hypotheses specify the extension's sampling interface; they are not source assumptions A1–A4 or extra assumptions needed to repair the paper results.
 
 ## Verification
 

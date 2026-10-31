@@ -18,9 +18,9 @@ potentials, sharp parameter quadratic growth, and variational optimality on the
 finite-KL domain. `Density.lean` proves the actual log-density integral/KL
 identity from explicit normalization and entropy-integrability hypotheses.
 Continuous-time free-energy, posterior-KL and parameter decay are proved from
-the classical equations under the added regularity R1–R4, for every classical
+the classical equations under the extra assumptions R1–R4, for every classical
 solution in that class; existence of such a density flow is not constructed.
-All 19 corrected source statements are proved under explicit added regularity
+All 19 corrected source statements are proved under explicit extra assumptions
 R1–R7, while the printed originals are tracked separately. The literal
 all-initial-laws density requirement at time zero is refuted for nonatomic
 reference measures. The experimental neural-network assumptions are not claimed.
@@ -31,7 +31,7 @@ domination and integrability. `SourceResults.lean` proves the corrected Cauchy
 minimizing-sequence argument, normalized-metric cancellation, scalar geodesic
 first-order/quadratic-growth steps, tilted-density penalty/evidence identities,
 and the corrected finite uniform-time estimator. Each source card states the
-added regularity its corrected statement uses.
+extra assumptions its corrected statement uses.
 
 `LatentDiffusion.particle_oracle_parameter_bound` in `MainResults.lean`
 bounds the actual parameter RMS error of the lifted pointwise Euler recursion:
@@ -79,6 +79,6 @@ logical axioms. It permits only `propext`, `Classical.choice`, and `Quot.sound`.
 python3 scripts/verify-latent-diffusion.py --require-source-complete
 ```
 
-This certifies all 19 corrected statements, their regularity provenance, exact
+This certifies all 19 corrected statements, their extra-assumption provenance, exact
 source references and Lean proof chains. It does not assert the unrestricted
 literal manuscript statements; the source audit records each correction.
