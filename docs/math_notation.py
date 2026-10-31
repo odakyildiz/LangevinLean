@@ -232,7 +232,7 @@ class VisibleProse(HTMLParser):
         attrs = dict(attrs)
         classes = set(attrs.get("class", "").split())
         skip = (any(self.stack) or tag in {"script", "style", "pre", "code", "textarea", "title", "svg"}
-                or bool(classes & {"katex", "lean-pane", "code-meta", "diagram-node-file"}))
+                or bool(classes & {"katex", "lean-pane", "code-meta", "diagram-node-file", "paper-label"}))
         if tag not in {"br", "hr", "img", "input", "meta", "link", "source", "wbr"}:
             self.stack.append(skip)
 

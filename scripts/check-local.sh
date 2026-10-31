@@ -56,6 +56,7 @@ python3 -B docs/test_paper_prose.py
 python3 -B docs/test_math_notation.py
 python3 -B docs/test_atlas_headers.py
 python3 -B docs/test_extra_assumptions.py
+python3 -B docs/test_paper_standardization.py --site
 python3 -B docs/verify_exposition.py
 python3 -B docs/verify_report_citations.py --self-test
 python3 -B docs/verify_report_citations.py

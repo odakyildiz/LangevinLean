@@ -570,9 +570,11 @@ def main():
     from report_citations import bib_outputs
     catalog = ReportCatalog(full_proof_inventory(CONFIG, notes, sources), notes, sources, parsed)
     from references import PAPERS, DEVELOPMENTS
+    from paper_sources import source_metadata
     prose = list(authored_strings(notes)) + list(authored_strings(CONFIG))
     prose += list(authored_strings(AVERAGE_PAGES))
     prose += list(authored_strings(PAPERS)) + list(authored_strings(DEVELOPMENTS))
+    prose += list(authored_strings(source_metadata()))
     math = HELPERS.render_mathematics(prose)
     outputs = {'docs/assets/katex.css':HELPERS.katex_css(), 'docs/assets/references.css':REFERENCE_CSS}
     for path,note in notes.items():
@@ -609,6 +611,7 @@ def main():
         outputs[page] = supplement_document(page, config, sources, parsed, math, catalog)
     inputs = ['docs/math_notation.py','docs/report_citations.py','docs/report_links.py','docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
               'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/references.py',
+              'docs/paper_sources.py','docs/paper_sources_classical.py','docs/paper_sources_kinetic.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']
     inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC', 'AverageLMC')]

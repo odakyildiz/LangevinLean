@@ -167,29 +167,55 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     proof_library=lib
     body+=('<p class="proof-download"><a href="'+relative('docs/pdf/'+proof_library+'/FullProof.pdf',page)+'" download>Download full proof (PDF)</a> · '
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
-    body+=('<nav class="jump-nav" aria-label="On this page"><a href="#main-results">Theorems</a>'
+    body+=('<nav class="jump-nav" aria-label="On this page"><a href="#paper-correspondence">Paper correspondence</a>'
+           '<a href="#paper-assumptions">Paper assumptions</a><a href="#extra-assumptions">Extra assumptions</a>'
+           '<a href="#main-results">Paper results</a>'
            '<a href="#verification">Check the proofs</a><a href="#proof-map">Proof roadmap</a>')
     if config.get('proof'):body+='<a href="#mathematical-proof">Mathematical argument</a>'
-    body+='<a href="#modules">Supporting proofs</a></nav>'+toolbar()
-    body+='<section class="section" id="main-results"><h2>Theorems</h2>'
-    for i,result in enumerate(config['results'],1):
-        target=module_page(result['file'])
-        namespace=result.get('namespace',config.get('namespace','ULA.Hilbert' if lib=='UnadjustedLangevin' else lib))
-        context='import '+result['file'].removesuffix('.lean').replace('/','.')+'\nopen MeasureTheory Set\nopen scoped NNReal ENNReal\nnamespace '+namespace
-        if lib=='UnadjustedLangevin':context+='\nvariable {ι : Type*} [Fintype ι]'
-        if lib=='UnadjustedLangevin/LSI':
-            context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]'
-        if lib=='KineticLangevin':
-            context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E]\nlocal instance (T : ℝ) : MeasurableSpace (VelocityForcing (E := E) T) := borel _\nlocal instance (T : ℝ) : BorelSpace (VelocityForcing (E := E) T) := ⟨rfl⟩'
-        if result.get('context'):context+='\n'+result['context']
-        body+=(f'<article id="result-{i}"><h3>{result["title"]}</h3><div class="pair">'
-               '<div class="math-pane"><div class="pane-label">Mathematical statement</div>'+math(result['body'])
-               +'</div><div class="lean-pane"><div class="pane-label">Lean statement</div>'
-               +('<p class="correspondence-note">'+config['formal_note']+'</p>' if config.get('formal_note') else '')
-               +'<details class="statement-context"><summary>Imports and notation</summary>'+commands(context,f'statement-context-{i}','Copy Lean')+'</details>'
-               +declaration_header(result['file'],result['name'],sources,parsed,page)
-               +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
-    body+='</section>'+verification_section(lib,page)
+    body+='<a href="#additional-results">Additional results</a><a href="#modules">Supporting proofs</a></nav>'+toolbar()
+    from paper_sources import (assumption_sections, correspondence_section, result_metadata,
+                               result_notice, proof_status)
+    body += correspondence_section(lib, config['results'], math) + assumption_sections(lib, math)
+    numbered = list(enumerate(config['results'], 1))
+    paper_results = [(i, result) for i, result in numbered
+                     if result_metadata(lib, result['name'])['status'] in {'proved', 'corrected'}]
+    additional_results = [(i, result) for i, result in numbered
+                          if result_metadata(lib, result['name'])['status'] in {'new', 'auxiliary'}]
+    for section_id, heading, entries in [('main-results', 'Paper results', paper_results),
+                                         ('additional-results', 'Additional results — not statements of the paper', additional_results)]:
+        body += '<section class="section" id="' + section_id + '"><h2>' + heading + '</h2>'
+        if section_id == 'additional-results':
+            body += '<details' + (' open' if not paper_results else '') + '><summary>Show additional results and supporting statements</summary>'
+        if not entries:
+            body += ('<p>No numbered paper result is claimed by this extension.</p>'
+                     if section_id == 'main-results' else '<p>No additional results are presented on this page.</p>')
+        for i,result in entries:
+            correspondence = result_metadata(lib, result['name'])
+            label = correspondence.get('label') if correspondence['status'] in {'proved', 'corrected'} else proof_status(correspondence) + ' — ' + result['title']
+            source_attribute = (' data-source-label="' + E(label) + '"' if correspondence['status'] in {'proved', 'corrected'}
+                                else ' data-result-kind="' + correspondence['status'] + '"')
+            target=module_page(result['file'])
+            namespace=result.get('namespace',config.get('namespace','ULA.Hilbert' if lib=='UnadjustedLangevin' else lib))
+            context='import '+result['file'].removesuffix('.lean').replace('/','.')+'\nopen MeasureTheory Set\nopen scoped NNReal ENNReal\nnamespace '+namespace
+            if lib=='UnadjustedLangevin':context+='\nvariable {ι : Type*} [Fintype ι]'
+            if lib=='UnadjustedLangevin/LSI':
+                context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [FiniteDimensional ℝ E] [MeasurableSpace E] [BorelSpace E]'
+            if lib=='KineticLangevin':
+                context+='\nvariable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]\n  [CompleteSpace E] [MeasurableSpace E] [BorelSpace E] [SecondCountableTopology E]\nlocal instance (T : ℝ) : MeasurableSpace (VelocityForcing (E := E) T) := borel _\nlocal instance (T : ℝ) : BorelSpace (VelocityForcing (E := E) T) := ⟨rfl⟩'
+            if result.get('context'):context+='\n'+result['context']
+            body+=(f'<article id="result-{i}"{source_attribute}><h3>{E(label)}</h3>'
+                   + f'<p class="result-description">{E(result["title"])}</p>'
+                   + result_notice(lib, result, math) + '<div class="pair">'
+                   '<div class="math-pane"><div class="pane-label">Mathematical statement</div>'+math(result['body'])
+                   +'</div><div class="lean-pane"><div class="pane-label">Lean statement</div>'
+                   +('<p class="correspondence-note">'+config['formal_note']+'</p>' if config.get('formal_note') else '')
+                   +'<details class="statement-context"><summary>Imports and notation</summary>'+commands(context,f'statement-context-{i}','Copy Lean')+'</details>'
+                   +declaration_header(result['file'],result['name'],sources,parsed,page)
+                   +f'<p class="small"><a href="{relative(target,page)}#{anchor(result["name"])}">Full Lean proof and mathematical commentary →</a></p></div></div></article>')
+        if section_id == 'additional-results':
+            body += '</details>'
+        body += '</section>'
+    body+=verification_section(lib,page)
     body+='<section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
     body+=proof_diagram(config['diagram'],page,math,config['title']+' proof roadmap')+'</section>'
     if config.get('proof'):
@@ -291,7 +317,7 @@ def project_document(notes, catalog=None):
             'Zhang and Akyildiz (2026)'),
            ('LatentDiffusion','Latent diffusion and inference',
             'Variational identities, marginal optimizers, interacting-particle error bounds and explicit accuracy choices.',
-            'All 19 source results proved in corrected form under explicit extra assumptions; corrections and new bounds are unpublished.',
+            '19 corrected statements proved under extra assumptions; the literal printed statements are not certified as stated.',
             'Wang, Kuntz and Akyildiz (2026)'),
            ('AverageLMC','Average-smoothness sampling',
             'LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.',
@@ -300,8 +326,8 @@ def project_document(notes, catalog=None):
     extra_assumptions = {
         'IPLA': 'Entropy extension: lifted-target LSI and finite initial joint entropy; the specialization assumes linear scaling of the LSI constant.',
         'KineticLangevin': 'A dimension restriction for the simplified KLMC2 bound, and a curvature condition for the printed tail-free iteration bound.',
-        'PBGSO': 'R1–R3 for the stated theorem branches; N1 and N3 for the new numerical bounds.',
-        'LatentDiffusion': 'R1–R7, as specified for each corrected source result.',
+        'PBGSO': 'Extra A1–Extra A3 for the stated theorem branches; Extra A4–Extra A5 for the additional numerical bounds.',
+        'LatentDiffusion': 'Extra A1–Extra A7, as specified for each corrected paper result.',
     }
     for number,(key,label,description,scope,source_label) in enumerate(cards,1):
         paper=PAPERS[DEVELOPMENTS[key]['papers'][0]]

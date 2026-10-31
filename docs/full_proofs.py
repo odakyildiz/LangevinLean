@@ -128,6 +128,8 @@ def _volume_plans(configurations, notes, sources):
         content = {"title": config["title"], "results": config["results"],
                    "proof": config.get("proof", []), "modules": details,
                    "earlier_reports": {earlier: plans[earlier]["revision"] for earlier in dependencies}}
+        from paper_sources import source_metadata
+        content['paper_correspondence'] = source_metadata()[library]
         revision = _digest(json.dumps(content, sort_keys=True, ensure_ascii=False))[:12]
         report_external = sorted({dependency.removesuffix('.lean').replace('/', '.')
                                   for path in closure for dependency in imports(sources[path])
@@ -329,6 +331,7 @@ def full_proof_documents(configurations, notes, sources, catalog=None, parsed=No
     from build_site import latex_heading, tex_escape, latex_prose, E, latex_step_box
 
     from report_links import ReportCatalog, step_label
+    from paper_sources import result_metadata, source_metadata, source_citation, proof_status
     if parsed is None:
         from build_site import declarations
         parsed = {path: declarations(text) for path, text in sources.items()
@@ -355,7 +358,14 @@ def full_proof_documents(configurations, notes, sources, catalog=None, parsed=No
             else:
                 document.append(r"\chapter{Assumptions and main results}" + "\n")
             for result in config["results"]:
-                document.append(r"\section{" + latex_heading(result["title"]) + "}\n")
+                correspondence = result_metadata(key, result['name'])
+                label = (correspondence['label'] if correspondence['status'] in {'proved', 'corrected'}
+                         else proof_status(correspondence))
+                document.append(r"\section{" + latex_heading(label + ' — ' + result["title"]) + "}\n")
+                if correspondence['status'] in {'proved', 'corrected'}:
+                    document.append(prose(source_citation(correspondence.get('paper', source_metadata()[key]['paper']),
+                                                         correspondence.get('location', label), correspondence.get('url'))))
+                document.append(prose('<p><strong>' + proof_status(correspondence) + '.</strong></p>'))
                 document.append(prose(result["body"]))
                 document.append(latex_step_box(result["file"], {
                     "references": [(result["file"], result["name"])],

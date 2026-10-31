@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+import json
 import re
 from pathlib import Path
 from math_notation import render_prose_math
@@ -15,8 +16,32 @@ def overview_document(sources, parsed, math, record=None):
     from build_pbgso import OVERVIEW, CATALOG, proof_page, exact_header, context_text, load_notes, step_anchor, statement_code
     from references import reference_notice
     from separate_reports import argument
+    from paper_sources import source_citation
 
     page = OVERVIEW
+    audit = json.loads((Path(__file__).resolve().parents[1] / 'PBGSO/exposition/reference_audit.json').read_text())
+    paper_assumptions = {item['number']: item for item in audit['assumptions']}
+    paper_results = {item['id']: item for item in audit['results']}
+    extra_labels = {'R1': 'Extra A1', 'R2': 'Extra A2', 'R3': 'Extra A3',
+                    'N1': 'Extra A4', 'N3': 'Extra A5'}
+
+    def extra_names(text):
+        text = text.replace('N1–N3', 'Extra A4, Extra A5 and the numerical initialization below')
+        text = re.sub(r'\bN2\b', 'the numerical initialization', text)
+        return re.sub(r'\b(?:R[1-3]|N[13])\b', lambda match: extra_labels[match[0]], text)
+
+    ledger = ('<section class="section paper-correspondence" id="paper-correspondence"><h2>Paper correspondence</h2>'
+              '<p>A1–A5 and Theorems 1–4 retain the paper’s labels. The listed solution interpretations '
+              'and extra assumptions are explicit; the two numerical bounds below are additional results.</p>'
+              '<div class="table-wrap"><table><thead><tr><th>Paper result</th><th>Proof status</th>'
+              '<th>Extra assumptions</th><th>Formalized statement</th></tr></thead><tbody>')
+    for index, additions in enumerate(('None; A2 is interpreted as an actual stationary weak SDE.',
+                                       'Extra A1 and Extra A2 for constant diffusion; Extra A3 for linear growth.',
+                                       'Extra A1.', 'Extra A1; Extra A3 in the linear-growth branch.'), 1):
+        ledger += ('<tr data-paper-result="Theorem ' + str(index) + '"><td>'
+                   + source_citation('pbgso', 'Theorem ' + str(index)) + '</td><td>' + ('Paper statement proved; A2 interpretation stated' if index == 1 else 'Paper result proved with extra assumptions') + '</td><td>'
+                   + additions + '</td><td><a href="#theorem-' + str(index) + '">Statement and Lean proof</a></td></tr>')
+    ledger += '</tbody></table></div></section>'
 
     def proof(path, name, label):
         if path not in parsed or name not in parsed[path]:
@@ -70,6 +95,26 @@ def overview_document(sources, parsed, math, record=None):
         return '<aside class="statement-lean" aria-label="Lean formalization"><div class="pane-label">Lean formalization</div>' + ''.join(chunks) + '</aside>'
 
     def row(identifier, title, content, refs, *, source=None, new=None, assumption=None, added=False, interpretation=False):
+        content = extra_names(content)
+        title = extra_names(title)
+        if assumption in extra_labels:
+            title = title.replace(' — Extra assumption:', ' —').replace(' — Extra assumptions:', ' —')
+        citation = ''
+        source_label = None
+        if assumption in paper_assumptions and assumption.startswith('A'):
+            item = paper_assumptions[assumption]
+            title = assumption + (' — ' + item['title'] if item['title'] else '')
+            source_label = assumption
+            citation = source_citation('pbgso', assumption + (' (' + item['title'] + ')' if item['title'] else ''))
+        elif interpretation:
+            title = 'Interpretation of A2 — Actual stationary weak SDE'
+            citation = source_citation('pbgso', 'A2 (the frozen invariant law)')
+        elif source:
+            item = paper_results[source]
+            source_label = item['kind'].capitalize() + ' ' + item['number']
+            title = source_label + (' — ' + item['title'] if item.get('title') else '')
+            citation = source_citation('pbgso', source_label)
+        content = citation + content
         if record is not None:
             record.append(dict(id=identifier, title=title, content=content,
                                refs=[(ref[0], ref[1]) for ref in refs],
@@ -77,15 +122,22 @@ def overview_document(sources, parsed, math, record=None):
         attrs = (f' data-source-result="{source}"' if source else '')
         attrs += (f' data-new-theory="{new}"' if new else '')
         attrs += (f' data-assumption-id="{assumption}"' if assumption else '')
+        attrs += (f' data-source-label="{source_label}"' if source_label else '')
+        attrs += (f' data-paper-assumption="{source_label}"' if source_label and assumption else '')
+        attrs += (f' data-extra-assumption="{extra_labels[assumption]}"' if assumption in extra_labels else '')
         kind = 'added' if added else 'interpretation' if interpretation else None
         if kind:
             attrs += f' data-assumption-kind="{kind}"'
         classes = 'theorem-statement paired-statement'
         if assumption:
             classes += ' assumption-statement'
+        if source_label and assumption:
+            classes += ' paper-assumption'
         if kind:
             classes += ' added-assumption' if added else ' interpretation-assumption'
-        return (f'<article class="{classes}" id="{identifier}"{attrs}><h3>{E(title)}</h3>'
+        alias = ('<span id="extra-a' + extra_labels[assumption].split('A')[-1] + '"></span>'
+                 if assumption in extra_labels else '')
+        return (f'<article class="{classes}" id="{identifier}"{attrs}>' + alias + f'<h3>{E(title)}</h3>'
                 '<div class="statement-pair"><div class="statement-math"><div class="pane-label">Mathematical statement</div>'
                 + math(content) + '</div>' + formal(identifier, refs) + '</div></article>')
 
@@ -103,12 +155,13 @@ def overview_document(sources, parsed, math, record=None):
             + reference_notice('PBGSO') + '</header>'
             '<p class="proof-download"><a href="' + relative('docs/pdf/PBGSO/FullProof.pdf', page) + '" download>Download full proof (PDF)</a> · '
             '<a href="' + relative('docs/latex/PBGSO/FullProof.tex', page) + '" download>Download full proof (LaTeX)</a></p>'
-            '<nav class="jump-nav" aria-label="PBGSO contents"><a href="#assumptions">Assumptions</a>'
+            '<nav class="jump-nav" aria-label="PBGSO contents"><a href="#paper-correspondence">Paper correspondence</a>'
+            '<a href="#assumptions">Paper assumptions</a><a href="#extra-assumptions">Extra assumptions</a>'
             '<a href="#paper-theorems">Paper theorems</a><a href="#new-theory">New bounds</a>'
             '<a href="#verification">Check the proofs</a><a href="#proof-roadmap">Proof roadmap</a>'
             + ('<a href="#mathematical-proof">Mathematical argument</a>' if argument('PBGSO')['parts'] else '')
-            + '<a href="#modules">Supporting proofs</a></nav>'
-            '<section class="section" id="assumptions"><h2>Framework and explicit assumptions</h2>'
+            + '<a href="#modules">Supporting proofs</a></nav>' + ledger +
+            '<section class="section" id="assumptions"><span id="paper-assumptions"></span><h2>Assumptions from the paper</h2>'
             '<div class="assumption-legend"><span class="source-assumption-key">Paper assumption</span>'
             '<span class="added-assumption" data-assumption-kind="added">Extra assumption</span>'
             '<span class="interpretation-assumption" data-assumption-kind="interpretation">Explicit solution interpretation</span></div>'
@@ -179,6 +232,7 @@ def overview_document(sources, parsed, math, record=None):
              r'\begin{gathered}\sup_{t\ge0}\mathbb E\bigl\|F(\Pi_\theta\bar\vartheta_t,\Pi_x\bar Z_t)\\-G_{\bar\nu_t}(\bar\vartheta_t)\bigr\|^2\le V_F<\infty.\end{gathered}'),
         [(source3,source3name,'Observation domain','hF'),(source3,source3name,'Exact variance hypothesis (\\(V=V_F\\))','hVar')], assumption='A5')
 
+    body += '</section><section class="section" id="extra-assumptions"><h2>Extra assumptions</h2>'
     body += row('regularity-r1', 'R1 — Extra assumption: joint Borel measurability', r'''
 <p>The following maps are jointly Borel:</p>'''
         + eq(r'(\vartheta,z)\mapsto F(\Pi_\theta\vartheta,\Pi_xz),\qquad (\vartheta,z)\mapsto b_{\Pi_\theta\vartheta}(z),\qquad(t,\vartheta,g)\mapsto\Psi_t(\vartheta,g).',
@@ -197,7 +251,7 @@ def overview_document(sources, parsed, math, record=None):
              '\\begin{gathered}(r,\\omega)\\mapsto b_{\\Pi_\\theta\\vartheta_r}(Z_r(\\omega)),\\\\(r,\\omega)\\mapsto\\sigma_{\\Pi_\\theta\\vartheta_r}(Z_r(\\omega))e_i\\end{gathered}')
         + '<p>are jointly strongly measurable, and the drift is progressively strongly measurable with respect to the driver filtration. The linear-growth inequality is exactly A1(ii). These are extra measurability assumptions; the proof derives the moment and energy estimates.</p>',
         declarations('PBGSO/RawSamplerGrowth.lean','Regularity'), assumption='R3', added=True)
-    body += '</section><section class="section" id="paper-theorems"><h2>Main theorems of the paper — proved</h2>'
+    body += '<p class="added-assumption" data-assumption-kind="added"><a href="#numerical-n1">Extra A4</a> and <a href="#numerical-n3">Extra A5</a> apply only to the additional numerical results below.</p></section><section class="section" id="paper-theorems"><h2>Paper results</h2>'
 
     body += row('theorem-1','Theorem 1 — Invariant measure',
         '<p><strong>Assumptions:</strong> A1, A2, with the actual weak-SDE meaning stated above. Initialise the optimiser at the target and the sampler independently of Brownian motion with its frozen invariant law.</p>'
@@ -243,7 +297,7 @@ def overview_document(sources, parsed, math, record=None):
         [('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_constant','Constant-diffusion parameter theorem'),
          ('PBGSO/RawConstructedParticleParameter.lean','original_parameter_bound_linearGrowth','Linear-growth parameter theorem'),
          ('PBGSO/RawConstructedParticleJointLimit.lean','parameter_joint_limit','Joint limit consequence')], source='thm:parameter_error_full')
-    body += '</section><section class="section" id="new-theory"><h2>Numerics — explicit assumptions and time-uniform bounds</h2>'
+    body += '</section><section class="section" id="new-theory"><h2>Additional results — not statements of the paper</h2><details class="supporting-details"><summary>Show additional numerical bounds and their assumptions</summary>'
     body += math('<p>Theorem New A and Theorem New B are new results for the paper’s actual numerical updates. We keep the paper’s \\(\\hat\\theta_n\\), \\(\\hat X_n^i\\), \\(\\hat U_n^i\\), \\(\\hat V_n^i\\) and \\(t_n=nh\\). All constants below are defined mathematically; no coefficient is specified only by a Lean function name.</p>')
 
     body += row('numerical-n1','N1 — Extra assumption: global force Lipschitz bounds', '\n<p>Let \\(F_x(\\theta,x)\\) denote the sampler force: in the paper it is \\(\\nabla_xE(\\theta,x)\\) for M-MFPO and \\(\\nabla_xE^\\lambda(\\theta,x)\\) for HOL-MYPGD. This additional notation avoids reusing the paper’s \\(G_\\nu\\), which denotes the population gradient. The verified theorem also permits independent, nonconservative forces \\(F,F_x\\).</p>\n<p>On the paper’s finite-dimensional optimiser and Euclidean sampler spaces, take \\(\\ell_F,\\ell_x\\ge0\\), with</p>'
@@ -253,7 +307,7 @@ def overview_document(sources, parsed, math, record=None):
              r'\begin{gathered}\|F_x(\theta,x)-F_x(\tilde\theta,\tilde x)\|\\\le\ell_x(\|\theta-\tilde\theta\|+\|x-\tilde x\|).\end{gathered}')
         + '<p>Force values may grow linearly. No second derivative, Hessian bound or common potential is required. In Lean, <code>D.F</code> is the observation and <code>D.G</code> is the sampler force.</p>',
         declarations('PBGSO/ParticleMethodLp.lean','ParticleForceData'), assumption='N1', added=True)
-    body += row('numerical-n2','N2 — Initial laws, contraction and reference variance', '\n<p>Take \\(N\\ge1\\), deterministic initial optimiser state, and i.i.d. initial sampler states with common law \\(\\nu_0\\in\\mathcal P_2\\), independently of the independent Brownian drivers. Assume A3 with \\(\\rho&gt;0\\), A5 with \\(V_F\\ge0\\), and target zero mean observation \\(G_{\\nu_{\\theta_\\star}}(\\vartheta_\\star)=0\\) for the chosen complete-state model.</p>\n<p>Use the physical noise from the paper: \\(\\sqrt{2\\gamma}\\,\\mathrm dB^i\\) for M-MFPO, and \\(\\sqrt{2\\alpha}\\,\\mathrm dB^i\\) in the final HOL auxiliary coordinate. The optimiser receives no thermal noise.</p>',
+    body += row('numerical-n2','Numerical initialization — Paper data for the additional results', '\n<p>Take \\(N\\ge1\\), deterministic initial optimiser state, and i.i.d. initial sampler states with common law \\(\\nu_0\\in\\mathcal P_2\\), independently of the independent Brownian drivers. Assume A3 with \\(\\rho&gt;0\\), A5 with \\(V_F\\ge0\\), and target zero mean observation \\(G_{\\nu_{\\theta_\\star}}(\\vartheta_\\star)=0\\) for the chosen complete-state model.</p>\n<p>Use the physical noise from the paper: \\(\\sqrt{2\\gamma}\\,\\mathrm dB^i\\) for M-MFPO, and \\(\\sqrt{2\\alpha}\\,\\mathrm dB^i\\) in the final HOL auxiliary coordinate. The optimiser receives no thermal noise.</p>',
         [('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Source A3 premise','hmono'),
          ('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Zero mean target premise','hg'),
          ('PBGSO/FullyUniformMomentum.lean','explicit_parameter_bound','Initial second moment','*','hμ'),
@@ -288,7 +342,7 @@ def overview_document(sources, parsed, math, record=None):
         + '</div><p>The full-state raw maximum-component \\(L^2\\) error has the same uniform discretisation coefficient. This is the stationary zero-observation target of the forces actually implemented; a smoothed sampler may have a different target from the original unsmoothed objective. No uniformity in particle count is claimed.</p>',
         [('PBGSO/FullyUniformHigherOrder.lean','explicit_parameter_bound','Explicit proved parameter bound'),
          ('PBGSO/FullyUniformHigherOrder.lean','explicit_discretization_bound','Explicit full-state discretisation bound')], new='B')
-    body += '</section>'
+    body += '</details></section>'
     # Verification commands are authored separately so each file can be checked directly.
     body += ('<section class="section" id="verification"><h2>Check the proofs</h2>'
              '<p>Use the repository’s pinned Lean and Mathlib versions. From the repository root, '
@@ -401,7 +455,7 @@ ROADMAP = [
     node('heavy-ball', 1, 1, 'HypocoerciveCriterion', 'heavyBall_source_criterion', 'Heavy-ball hypocoercivity',
          'A sufficient condition for A3 with momentum', ('metric',)),
     node('force', 1, 2, 'ParticleMethodLp', 'meanForce_lipschitz', 'Lipschitz empirical mean force',
-         'Global Lipschitz bound from N1', ('hol-coefficients',)),
+         'Global Lipschitz bound from Extra A4', ('hol-coefficients',)),
     node('theorem-1', 2, 0, 'RawPathSolutionTransfer', 'stationary_product_law_of_weak_frozen',
          'Theorem 1: stationary product law', 'Weak frozen invariance of the sampler', ('integral',)),
     node('absorption', 2, 1, 'UniformDiscrete', 'one_step_same_initial_uniform_norm', 'Absorption of accumulated errors',

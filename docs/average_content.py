@@ -21,13 +21,14 @@ formula is stated for finite quadratic transport, so every signed energy term
 is defined. The nonnegative global estimates below also cover infinite
 initial transport.</p>'''
 
-LMC_CONSTANT = r'''<p>For finite \(W_2(\nu_0,\pi)\) and \(0\le h\le1/M_\infty\), the score correction
-is nonpositive. Iterating the actual Gaussian transition gives</p>
+LMC_CONSTANT = r'''<p>For every initial probability law \(\nu_0\) and \(0\le h\le1/M_\infty\),
+iteration of the actual Gaussian transition satisfies</p>
 \[W_2^2(\nu_k,\pi)\le e^{-2mkh}W_2^2(\nu_0,\pi)
 +\frac{(M_{\rm av}+m)hp}{2m}.\]
-<p>The proof propagates finite moments and discharges the recurrence for each
-actual marginal law. An extended-nonnegative version proves the same bound
-for every probability initialization, without adding a moment hypothesis.</p>'''
+<p>The inequality is stated in \([0,\infty]\), so it includes infinite
+initial quadratic transport. For finite initial transport, the proof propagates
+finite moments and derives the recurrence for every actual marginal law. If
+initial transport is infinite, the nonnegative right-hand side is infinite.</p>'''
 
 LMC_VARIABLE = r'''<p>Write \(\kappa_\infty=M_\infty/m\),
 \(\kappa_{\rm av}=M_{\rm av}/m\), and suppose
@@ -65,8 +66,8 @@ initialization.</p>'''
 LAPLACIAN = r'''<p>Let \(f\in C^3(\mathbb R^p)\) be \(m\)-strongly
 convex with \(M_\infty\)-Lipschitz gradient, \(m&gt;0\), and assume exactly</p>
 \[\|\nabla\Delta f(x)\|^2\le M_\Delta^2p\qquad(x\in\mathbb R^p),\quad M_\Delta\ge0.\]
-<p>For the actual Gaussian LMC chain with finite \(W_2(\nu_0,\pi)\) and
-\(0&lt;h&lt;1/M_\infty\),</p>
+<p>For the actual Gaussian LMC chain, every initial probability law \(\nu_0\)
+and \(0&lt;h&lt;1/M_\infty\),</p>
 \[W_2(\nu_k,\pi)\le(1-mh)^kW_2(\nu_0,\pi)
 +\frac{(2M_\infty\sqrt{M_{\rm av}}+M_\Delta)h\sqrt p}{m}.\]
 <p>The proof derives a weighted Dynkin identity for the constructed stationary
@@ -74,8 +75,9 @@ Brownian diffusion from fresh Gaussian Euler steps. Compact \(C^2\) approximatio
 of its score preserve precisely the source \(C^3\) assumption; the Gibbs score
 moment and gradient-generator bound retain the exact average smoothness.
 Clipping and the transport infimum give the displayed constant without an
-optimal-coupling premise. An extended version covers arbitrary probability
-initializations. No Hessian Lipschitz condition or fourth derivative is used.</p>'''
+optimal-coupling premise. The inequality is stated in \([0,\infty]\), so
+it covers every probability initialization, including infinite initial quadratic
+transport. No Hessian Lipschitz condition or fourth derivative is used.</p>'''
 
 GRADIENT = r'''<p>Let \(H\) be a complete real inner product space, and let
 \(f:H\to\mathbb R\) be differentiable and \(m\)-strongly convex. For every
@@ -259,15 +261,15 @@ AVERAGE_CONFIG = {
         extra=[('AverageLMC/README.md', 'Scope and build commands'),
                ('AverageLMC/exposition/README.md', 'Source correspondence and coverage')],
         results=[
-            dict(title='Theorem 1: the actual one-step average-smoothness bound',
+            dict(title='The one-step average-smoothness inequality',
                  file='AverageLMC/GaussianLMC.lean', name='lmc_one_step', body=LMC_LOCAL),
-            dict(title='Theorem 1: constant-step convergence',
-                 file='AverageLMC/Theorem.lean', name='lmc_constant_step', body=LMC_CONSTANT),
-            dict(title='Proposition 1: the exact decreasing-step schedule',
+            dict(title='Constant-step LMC convergence',
+                 file='AverageLMC/Theorem.lean', name='lmc_constant_step_extended', body=LMC_CONSTANT),
+            dict(title='The decreasing-step schedule',
                  file='AverageLMC/Theorem.lean', name='lmc_variable_step', body=LMC_VARIABLE),
-            dict(title='Theorem 2 (th:3): LMC with the exact Laplacian condition',
-                 file='AverageLMC/LaplacianTheorem.lean', name='lmc_laplacian', body=LAPLACIAN),
-            dict(title='The SGLD main theorem with exact component RMS smoothness',
+            dict(title="LMC under the paper's Laplacian condition",
+                 file='AverageLMC/LaplacianTheorem.lean', name='lmc_laplacian_extended', body=LAPLACIAN),
+            dict(title='Fixed-point control-variate SGLD convergence',
                  file='AverageLMC/SGLDTheorem.lean', name='sgld_constant_step_paper', body=SGLD)],
         proof=AVERAGE_PROOF,
         diagram=[

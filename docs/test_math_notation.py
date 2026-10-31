@@ -52,6 +52,10 @@ class MathNotationTests(unittest.TestCase):
             with self.subTest(formula=formula):
                 self.assertTrue(notation_issues("<p>Use " + formula + ".</p>"))
 
+    def test_printed_paper_labels_are_not_differentiability_classes(self):
+        self.assertEqual(notation_issues('<h3><span class="paper-label">C1</span> — Source premise</h3>'), [])
+        self.assertTrue(notation_issues('<p>Assume C1 differentiability.</p>'))
+
     def test_comment_formulas_are_formatted_as_complete_expressions(self):
         self.assertEqual(display_docstring("Use T_t(Y_t) for n+1 particles."),
                          r"Use \(T_t(Y_t)\) for \(n+1\) particles.")

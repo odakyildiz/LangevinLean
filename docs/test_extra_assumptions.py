@@ -97,8 +97,8 @@ class ExtraAssumptionTests(unittest.TestCase):
     def test_homepage_extra_assumptions_have_the_shared_marker(self):
         body = project_document({})
         marked = AssumptionText(body).text
-        self.assertIn('R1–R7', marked)
-        self.assertIn('R1–R3', marked)
+        self.assertIn('Extra A1–Extra A7', marked)
+        self.assertIn('Extra A1–Extra A3', marked)
         self.assertIn('Entropy extension', marked)
         self.assertIn('simplified KLMC2', marked)
         self.assertNotIn('added regularity', body.lower())
