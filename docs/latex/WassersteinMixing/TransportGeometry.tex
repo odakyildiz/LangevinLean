@@ -1,0 +1,208 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Transport symmetry and the triangle inequality from actual coupling disintegration}{Transport symmetry and the triangle inequality from actual coupling disintegration}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The quadratic Wasserstein distance is the infimum of root-mean-square displacement over actual couplings. Symmetry follows by swapping coordinates. The triangle inequality is proved by disintegrating one coupling over its shared marginal, constructing a triple law, and applying the \(L^2\) triangle inequality. No optimal coupling or assumed metric triangle inequality is required.
+
+
+
+Earlier results used here: \cite[Section~3.22]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Swapping the endpoints of a coupling}{Swapping the endpoints of a coupling}}
+
+
+\textbf{Claim.} Swapping the two coordinates of a coupling of \(\mu,\nu\) produces a coupling of \(\nu,\mu\) with the same cost. Consequently \(W_2(\mu,\nu)=W_2(\nu,\mu)\), both as an extended distance and under the ordinary real convention.
+
+
+
+
+\textbf{Proof.} The coordinate-swap map interchanges the two marginal projections. The displacement changes from \(x-y\) to \(y-x\), preserving its norm and its quadratic cost. Every coupling therefore supplies an equal-cost coupling in the reverse direction. Taking the infimum in each direction gives the two inequalities required for equality. Applying the real-value operation preserves that equality.
+
+\begin{leanbox}{Lean: \texttt{couplingSwap}, \texttt{couplingCost\_\allowbreak{}swap}, \texttt{wasserstein2\_\allowbreak{}symm} and 1 more}
+\leansource{\texttt{couplingSwap} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 23–26}
+\begin{leancode}
+\leanline{0}{def\ couplingSwap\ \{μ\ ν\ :\ Measure\ H\}\ (c\ :\ ULA.Coupling\ μ\ ν)\ :\ ULA.Coupling\ ν\ μ\ where}
+\leanline{2}{joint\ :=\ c.joint.map\ Prod.swap}
+\leanline{2}{fst\ :=\ by\ rw\ [Measure.map\_map\ measurable\_fst\ measurable\_swap];\ exact\ c.snd}
+\leanline{2}{snd\ :=\ by\ rw\ [Measure.map\_map\ measurable\_snd\ measurable\_swap];\ exact\ c.fst}
+\end{leancode}
+\leansource{\texttt{couplingCost\_\allowbreak{}swap} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 29–35}
+\begin{leancode}
+\leanline{0}{theorem\ couplingCost\_swap\ \{μ\ ν\ :\ Measure\ H\}\ (c\ :\ ULA.Coupling\ μ\ ν)\ :}
+\leanline{4}{ULA.couplingCost\ (couplingSwap\ c).joint\ =\ ULA.couplingCost\ c.joint}
+\end{leancode}
+\leansource{\texttt{wasserstein2\_\allowbreak{}symm} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 38–45}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_symm\ (μ\ ν\ :\ Measure\ H)\ :\ ULA.wasserstein2\ μ\ ν\ =\ ULA.wasserstein2\ ν\ μ}
+\end{leancode}
+\leansource{\texttt{wasserstein2Real\_\allowbreak{}symm} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 48–53}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2Real\_symm\ (μ\ ν\ :\ Measure\ H)\ :}
+\leanline{4}{ULA.wasserstein2Real\ μ\ ν\ =\ ULA.wasserstein2Real\ ν\ μ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coupling\allowbreak{}Swap} pushes the actual joint measure through \texttt{Prod.\allowbreak{}swap} and proves its marginals. \texttt{coupling\allowbreak{}Cost\_\allowbreak{}swap} uses invariance of the norm of a reversed difference. \texttt{wasserstein2\_\allowbreak{}symm} passes these coupling-cost bounds to the two infima, and \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}symm} rewrites the equal extended values.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.17.5]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Constructing the glued triple and checking both pair marginals}{Constructing the glued triple and checking both pair marginals}}
+
+
+\textbf{Construction.} In a standard Borel space, let \(\gamma_{XY}\) couple \(\mu,\nu\), and let \(\gamma_{YZ}\) couple \(\nu,\xi\). Disintegrate the second coupling as \(\gamma_{YZ}(dy,dz)=\nu(dy)K(y,dz)\). Define
+
+\[R(dx,dy,dz)=\gamma_{XY}(dx,dy)K(y,dz).\]
+
+
+\textbf{Claim.} This is a probability law with \((X,Y)\)-marginal \(\gamma_{XY}\) and \((Y,Z)\)-marginal \(\gamma_{YZ}\).
+
+
+
+
+\textbf{Proof.} Integrating out \(z\) leaves \(\gamma_{XY}\), since the conditional kernel has mass one. Integrating a measurable function of \((y,z)\) first in \(K(y,dz)\) and then in \(\gamma_{XY}\) is the same as integrating it against \(\nu(dy)K(y,dz)\), because the second marginal of \(\gamma_{XY}\) is \(\nu\). The disintegration identity makes the latter measure \(\gamma_{YZ}\). Applying the first marginal equality to the entire space proves total mass one.
+
+\begin{leanbox}{Lean: \texttt{glueCouplings}, \texttt{glueCouplings\_\allowbreak{}left}, \texttt{glueCouplings\_\allowbreak{}right} and 1 more}
+\leansource{\texttt{glueCouplings} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 60–62}
+\begin{leancode}
+\leanline{0}{def\ glueCouplings\ (cXY\ :\ ULA.Coupling\ μ\ ν)\ (cYZ\ :\ ULA.Coupling\ ν\ ξ)\ :\ Measure\ ((H\ ×\ H)\ ×\ H)\ :=\ by}
+\leanline{2}{have\ :=\ cYZ.isProbabilityMeasure}
+\leanline{2}{exact\ cXY.joint\ ⊗ₘ\ (cYZ.joint.condKernel.comap\ Prod.snd\ measurable\_snd)}
+\end{leancode}
+\leansource{\texttt{glueCouplings\_\allowbreak{}left} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 66–70}
+\begin{leancode}
+\leanline{0}{theorem\ glueCouplings\_left\ (cXY\ :\ ULA.Coupling\ μ\ ν)\ (cYZ\ :\ ULA.Coupling\ ν\ ξ)\ :}
+\leanline{4}{(glueCouplings\ cXY\ cYZ).map\ Prod.fst\ =\ cXY.joint}
+\end{leancode}
+\leansource{\texttt{glueCouplings\_\allowbreak{}right} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 75–95}
+\begin{leancode}
+\leanline{0}{theorem\ glueCouplings\_right\ (cXY\ :\ ULA.Coupling\ μ\ ν)\ (cYZ\ :\ ULA.Coupling\ ν\ ξ)\ :}
+\leanline{4}{(glueCouplings\ cXY\ cYZ).map\ (fun\ p\ ↦\ (p.1.2,\ p.2))\ =\ cYZ.joint}
+\end{leancode}
+\leansource{\texttt{glueCouplings\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 99–104}
+\begin{leancode}
+\leanline{0}{theorem\ glueCouplings\_isProbability\ (cXY\ :\ ULA.Coupling\ μ\ ν)\ (cYZ\ :\ ULA.Coupling\ ν\ ξ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (glueCouplings\ cXY\ cYZ)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{glue\allowbreak{}Couplings} uses the actual conditional kernel of the second joint measure and pulls it back along the shared coordinate. \texttt{glue\allowbreak{}Couplings\_\allowbreak{}left} applies the composition-product marginal identity. \texttt{glue\allowbreak{}Couplings\_\allowbreak{}right} proves the projection by disintegration and the shared marginal, using equality of the relevant nonnegative integrals. \texttt{glue\allowbreak{}Couplings\_\allowbreak{}is\allowbreak{}Probability} checks the total mass.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Minkowski and the two coupling infima}{Minkowski and the two coupling infima}}
+
+
+\textbf{Claim.} For probability laws on the stated measurable normed space,
+
+\[W_2(\mu,\xi)\le W_2(\mu,\nu)+W_2(\nu,\xi),\]
+
+
+including infinite values.
+
+
+
+
+\textbf{Proof.} On the constructed triple law, \(X-Z=(X-Y)+(Y-Z)\). The extended \(L^2\) triangle inequality bounds its cost by the sum of the two pair costs, which equal the costs of the supplied couplings by the marginal identities. The \((X,Z)\)-projection is an actual coupling of \(\mu,\xi\), hence
+
+\[W_2(\mu,\xi)\le\operatorname{cost}(\gamma_{XY})+\operatorname{cost}(\gamma_{YZ}).\]
+
+
+This holds for every pair of couplings. Taking the infimum over each one gives the desired inequality. The argument neither selects an optimal coupling nor replaces an infinite cost by a real number.
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}couplingCost\_\allowbreak{}add}, \texttt{wasserstein2\_\allowbreak{}triangle}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}couplingCost\_\allowbreak{}add} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 109–148}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_le\_couplingCost\_add}
+\leanline{4}{(cXY\ :\ ULA.Coupling\ μ\ ν)\ (cYZ\ :\ ULA.Coupling\ ν\ ξ)\ :}
+\leanline{4}{ULA.wasserstein2\ μ\ ξ\ ≤\ ULA.couplingCost\ cXY.joint\ +\ ULA.couplingCost\ cYZ.joint}
+\end{leancode}
+\leansource{\texttt{wasserstein2\_\allowbreak{}triangle} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 152–162}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_triangle\ (μ\ ν\ ξ\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ [IsProbabilityMeasure\ ξ]\ :}
+\leanline{4}{ULA.wasserstein2\ μ\ ξ\ ≤\ ULA.wasserstein2\ μ\ ν\ +\ ULA.wasserstein2\ ν\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}le\_\allowbreak{}coupling\allowbreak{}Cost\_\allowbreak{}add} verifies both endpoint laws and both pair costs of the glued triple, then applies \texttt{e\allowbreak{}Lp\allowbreak{}Norm\_\allowbreak{}add\_\allowbreak{}le}. \texttt{wasserstein2\_\allowbreak{}triangle} distributes the extended infima over addition and passes the arbitrary-coupling inequality through both infima.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.9]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Finiteness and the ordinary real triangle inequality}{Finiteness and the ordinary real triangle inequality}}
+
+
+\textbf{Claim.} If \(W_2(\mu,\nu)\) and \(W_2(\nu,\xi)\) are finite, then \(W_2(\mu,\xi)\) is finite and the same triangle inequality holds for their ordinary real values.
+
+
+
+
+\textbf{Proof.} The two finite distances have finite sum. The proved extended triangle inequality bounds the endpoint distance by that sum, proving its finiteness. Conversion of an extended inequality with finite upper side preserves order; the real value of the finite sum is the sum of the real values. These facts give the ordinary real triangle inequality with every required finiteness premise explicit.
+
+\begin{leanbox}{Lean: \texttt{wasserstein2\_\allowbreak{}triangle\_\allowbreak{}finite}, \texttt{wasserstein2Real\_\allowbreak{}triangle}}
+\leansource{\texttt{wasserstein2\_\allowbreak{}triangle\_\allowbreak{}finite} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 166–171}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_triangle\_finite\ (μ\ ν\ ξ\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ [IsProbabilityMeasure\ ξ]}
+\leanline{4}{(hμν\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (hνξ\ :\ ULA.wasserstein2\ ν\ ξ\ ≠\ ⊤)\ :}
+\leanline{4}{ULA.wasserstein2\ μ\ ξ\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{wasserstein2Real\_\allowbreak{}triangle} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 175–181}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2Real\_triangle\ (μ\ ν\ ξ\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ [IsProbabilityMeasure\ ξ]}
+\leanline{4}{(hμν\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (hνξ\ :\ ULA.wasserstein2\ ν\ ξ\ ≠\ ⊤)\ :}
+\leanline{4}{ULA.wasserstein2Real\ μ\ ξ\ ≤\ ULA.wasserstein2Real\ μ\ ν\ +\ ULA.wasserstein2Real\ ν\ ξ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{wasserstein2\_\allowbreak{}triangle\_\allowbreak{}finite} combines the extended bound with finiteness of the sum. \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}triangle} applies \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} to that finite upper bound and uses \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}add} with both finite premises.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,211 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Coordinate independence of Gibbs targets, Gaussian ULA and transport}{Coordinate independence of Gibbs targets, Gaussian ULA and transport}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Let \(e:H\to F\) be a linear isometric equivalence of finite-dimensional real inner product spaces with their Borel structures. The normalized Gibbs law for \(V\) pushes forward to the Gibbs law for \(V\circ e^{-1}\); standard Gaussian ULA and all its iterates commute with the same coordinate change; and the exact quadratic transport distance is unchanged. These proved identities identify the IPLA coordinates with the Euclidean coordinates of the sharp theorem.
+
+
+\section{\texorpdfstring{The true gradient in the new coordinates}{The true gradient in the new coordinates}}
+
+
+\textbf{Claim.} For differentiable \(V\),
+
+\[\nabla(V\circ e^{-1})(y)=e\,\nabla V(e^{-1}y).\]
+
+
+\textbf{Proof.} The chain rule gives \(D(V\circ e^{-1})(y)[w]=DV(e^{-1}y)[e^{-1}w]\). Identifying derivatives with gradients and using the inner-product identity for the linear isometry gives the inner product of \(w\) with the asserted right side. Equality of all such pairings proves equality of the gradients.
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}comp\_\allowbreak{}isometry}}
+\leansource{\texttt{gradient\_\allowbreak{}comp\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 29–40}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_comp\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ Differentiable\ ℝ\ V)\ (y\ :\ F)\ :}
+\leanline{4}{gradient\ (V\ ∘\ e.symm)\ y\ =\ e\ (gradient\ V\ (e.symm\ y))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}comp\_\allowbreak{}isometry} combines the Fréchet derivative chain rule with inner-product extensionality and \texttt{inner\_\allowbreak{}map\_\allowbreak{}map}. Its differentiability hypothesis is exactly what the chain rule needs; no regularity of a separate coordinate gradient is postulated.
+\end{leanbox}
+
+\section{\texorpdfstring{Volume preservation gives the exact normalized Gibbs law}{Volume preservation gives the exact normalized Gibbs law}}
+
+
+\textbf{Claim.} Write \(Z_V=\int e^{-V}\) and \(\pi_V=Z_V^{-1}e^{-V}\,dx\), using the library's extended-valued normalization convention. Then
+
+\[Z_{V\circ e^{-1}}=Z_V,\qquad e_\#\pi_V=\pi_{V\circ e^{-1}}.\]
+
+
+\textbf{Proof.} A linear isometric equivalence preserves finite-dimensional volume. Change variables through \(e\) in the nonnegative integral defining the partition function. For a measurable set, the same change of variables identifies the weighted-volume measures before normalization. The equality of partition functions then identifies their scalar normalizations. These identities hold at the defining measure level; they do not assume that the Gibbs law is invariant or even separately assume a positive finite partition function.
+
+\begin{leanbox}{Lean: \texttt{gibbsPartition\_\allowbreak{}comp\_\allowbreak{}isometry}, \texttt{gibbsMeasure\_\allowbreak{}map\_\allowbreak{}isometry}}
+\leansource{\texttt{gibbsPartition\_\allowbreak{}comp\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 44–49}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsPartition\_comp\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (V\ :\ H\ →\ ℝ)\ :}
+\leanline{4}{ULA.gibbsPartition\ (V\ ∘\ e.symm)\ =\ ULA.gibbsPartition\ V}
+\end{leancode}
+\leansource{\texttt{gibbsMeasure\_\allowbreak{}map\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 54–66}
+\begin{leancode}
+\leanline{0}{theorem\ gibbsMeasure\_map\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (V\ :\ H\ →\ ℝ)\ :}
+\leanline{4}{(ULA.gibbsMeasure\ V).map\ e\ =\ ULA.gibbsMeasure\ (V\ ∘\ e.symm)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gibbs\allowbreak{}Partition\_\allowbreak{}comp\_\allowbreak{}isometry} uses \texttt{measure\allowbreak{}Preserving} and the nonnegative change-of-variables formula. \texttt{gibbs\allowbreak{}Measure\_\allowbreak{}map\_\allowbreak{}isometry} proves equality on measurable sets after pushing the normalized density forward, applying the same measure-preserving embedding identity. Later potential assumptions establish the probability and moment properties independently.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.1]{LangevinLean2026ULASC}; \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Transporting actual couplings in both directions}{Transporting actual couplings in both directions}}
+
+
+\textbf{Claim.} Every coupling \(c\) of \(\mu,\nu\) pushes forward through \((x,y)\mapsto(e x,e y)\) to a coupling of \(e_\#\mu,e_\#\nu\) with the same root-mean-square cost. Consequently, including possibly infinite distances,
+
+\[W_2(e_\#\mu,e_\#\nu)=W_2(\mu,\nu).\]
+
+
+\textbf{Proof.} Composing each coordinate projection with the pair map proves the two marginal identities. Since \(e(x-y)=e x-e y\) and \(e\) preserves norms, the nonnegative quadratic displacement integral and its square root are unchanged. Taking the infimum over original couplings gives one inequality. Apply the same construction using \(e^{-1}\) to the pushed-forward laws to get the reverse inequality. Converting the resulting equality of extended distances to the library's real-distance convention preserves equality; no order argument through an infinite-to-real conversion is used.
+
+\begin{leanbox}{Lean: \texttt{isometryCoupling}, \texttt{isometryCoupling\_\allowbreak{}cost}, \texttt{wasserstein2\_\allowbreak{}map\_\allowbreak{}isometry\_\allowbreak{}le} and 2 more}
+\leansource{\texttt{isometryCoupling} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 69–81}
+\begin{leancode}
+\leanline{0}{def\ isometryCoupling\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ \{μ\ ν\ :\ Measure\ H\}\ (c\ :\ ULA.Coupling\ μ\ ν)\ :}
+\leanline{4}{ULA.Coupling\ (μ.map\ e)\ (ν.map\ e)\ where}
+\leanline{2}{joint\ :=\ c.joint.map\ (Prod.map\ e\ e)}
+\leanline{2}{fst\ :=\ by}
+\leanline{4}{rw\ [Measure.map\_map\ measurable\_fst\ (by\ fun\_prop)]}
+\leanline{4}{have\ h\ :=\ congrArg\ (Measure.map\ e)\ c.fst}
+\leanline{4}{rw\ [Measure.map\_map\ e.continuous.measurable\ measurable\_fst]\ at\ h}
+\leanline{4}{exact\ h}
+\leanline{2}{snd\ :=\ by}
+\leanline{4}{rw\ [Measure.map\_map\ measurable\_snd\ (by\ fun\_prop)]}
+\leanline{4}{have\ h\ :=\ congrArg\ (Measure.map\ e)\ c.snd}
+\leanline{4}{rw\ [Measure.map\_map\ e.continuous.measurable\ measurable\_snd]\ at\ h}
+\leanline{4}{exact\ h}
+\end{leancode}
+\leansource{\texttt{isometryCoupling\_\allowbreak{}cost} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 85–91}
+\begin{leancode}
+\leanline{0}{theorem\ isometryCoupling\_cost\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ \{μ\ ν\ :\ Measure\ H\}}
+\leanline{4}{(c\ :\ ULA.Coupling\ μ\ ν)\ :}
+\leanline{4}{ULA.couplingCost\ (isometryCoupling\ e\ c).joint\ =\ ULA.couplingCost\ c.joint}
+\end{leancode}
+\leansource{\texttt{wasserstein2\_\allowbreak{}map\_\allowbreak{}isometry\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 95–100}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_map\_isometry\_le\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (μ\ ν\ :\ Measure\ H)\ :}
+\leanline{4}{ULA.wasserstein2\ (μ.map\ e)\ (ν.map\ e)\ ≤\ ULA.wasserstein2\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{wasserstein2\_\allowbreak{}map\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 105–110}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2\_map\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (μ\ ν\ :\ Measure\ H)\ :}
+\leanline{4}{ULA.wasserstein2\ (μ.map\ e)\ (ν.map\ e)\ =\ ULA.wasserstein2\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{wasserstein2Real\_\allowbreak{}map\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 114–116}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2Real\_map\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (μ\ ν\ :\ Measure\ H)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (μ.map\ e)\ (ν.map\ e)\ =\ ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{isometry\allowbreak{}Coupling} constructs the pushed joint measure and proves both marginals by composition of measure maps. \texttt{isometry\allowbreak{}Coupling\_\allowbreak{}cost} uses the exact norm equality in the \texttt{e\allowbreak{}Lp\allowbreak{}Norm} change-of-variables formula. \texttt{wasserstein2\_\allowbreak{}map\_\allowbreak{}isometry\_\allowbreak{}le} passes this cost through the coupling infimum; \texttt{wasserstein2\_\allowbreak{}map\_\allowbreak{}isometry} uses the inverse map for equality. \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}map\_\allowbreak{}isometry} applies the real-value operation only to this established equality.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.17.5]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The actual independent-Gaussian transition commutes with reindexing}{The actual independent-Gaussian transition commutes with reindexing}}
+
+
+\textbf{Claim.} If \(V\) is differentiable with a globally Lipschitz gradient and \(\mu\) is an s-finite measure, the actual Gaussian ULA transition satisfies
+
+\[e_\#K_{V,h}\mu=K_{V\circ e^{-1},h}(e_\#\mu).\]
+
+
+\textbf{Proof.} Its deterministic proposal is \(x-h\nabla V(x)+\sqrt{2h}\,\xi\). The gradient identity and linearity show that applying \(e\) to this proposal equals the proposal in the new coordinates using \(e x,e\xi\). A standard isotropic Gaussian law is preserved by the linear isometry. Therefore the image of the product of the initial law and the independent Gaussian law is exactly the product measure used by the transformed transition. Pushing this identity through the measurable proposal proves the equality of the actual update laws.
+
+\begin{leanbox}{Lean: \texttt{ulaLawStep\_\allowbreak{}map\_\allowbreak{}isometry}}
+\leansource{\texttt{ulaLawStep\_\allowbreak{}map\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 120–143}
+\begin{leancode}
+\leanline{0}{theorem\ ulaLawStep\_map\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ Differentiable\ ℝ\ V)\ (L\ :\ ℝ≥0)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(h\ :\ ℝ)\ (μ\ :\ Measure\ H)\ [SFinite\ μ]\ :}
+\leanline{4}{(ULA.ulaLawStep\ V\ h\ μ).map\ e\ =}
+\leanline{6}{ULA.ulaLawStep\ (V\ ∘\ e.symm)\ h\ (μ.map\ e)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}map\_\allowbreak{}isometry} first proves the pointwise proposal identity, then rewrites the standard Gaussian pushforward with \texttt{std\allowbreak{}Gaussian\_\allowbreak{}map}. \texttt{Measure.\allowbreak{}map\_\allowbreak{}prod\_\allowbreak{}map} and composition of measure maps turn it into the desired transition identity. The Lipschitz assumption establishes measurability of the true gradient and proposal.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Finite second moments and every Gaussian iterate}{Finite second moments and every Gaussian iterate}}
+
+
+\textbf{Claim.} A finite second moment is preserved by \(e\). Under the potential contract, for every probability initialization and every nonnegative integer \(k\),
+
+\[e_\#K_{V,h}^{\,k}\mu=K_{V\circ e^{-1},h}^{\,k}(e_\#\mu).\]
+
+
+\textbf{Proof.} The coordinate map preserves the pointwise norm, so its image has the same square-integrability as the original random vector. For the iterate identity, the case \(k=0\) is the initial law. If the equality holds at \(k\), apply the proved one-step covariance to that iterate and then substitute the induction hypothesis. The already constructed Gaussian transition preserves probability, supplying the measure-finiteness hypothesis needed at every induction step.
+
+\begin{leanbox}{Lean: \texttt{memLp\_\allowbreak{}id\_\allowbreak{}map\_\allowbreak{}isometry}, \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}map\_\allowbreak{}isometry}}
+\leansource{\texttt{memLp\_\allowbreak{}id\_\allowbreak{}map\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 147–151}
+\begin{leancode}
+\leanline{0}{theorem\ memLp\_id\_map\_isometry\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (μ\ :\ Measure\ H)}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ :\ MemLp\ (id\ :\ F\ →\ F)\ 2\ (μ.map\ e)}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}map\_\allowbreak{}isometry} \quad WassersteinMixing/\allowbreak{}IsometryTransport.lean, lines 154–165}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_iterate\_map\_isometry\ (P\ :\ Parameters)\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ).map\ e\ =}
+\leanline{6}{(ULA.ulaLawStep\ (V\ ∘\ e.symm)\ P.step)\textasciicircum{}[n]\ (μ.map\ e)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}map\_\allowbreak{}isometry} uses the mapped-measure characterization of \texttt{Mem\allowbreak{}Lp} and composition with the continuous linear map of the isometry. \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}map\_\allowbreak{}isometry} inducts on the actual update count, supplies the proved probability instance for each iterate, and invokes \texttt{ula\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}map\_\allowbreak{}isometry}. These are distributional identities, so the application does not replace the IPLA recursion with a different sampler.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

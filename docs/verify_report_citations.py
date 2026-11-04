@@ -335,7 +335,9 @@ def generated_checks(plans, catalog, root=ROOT):
     source_for_page = {module_page(path): path for path in catalog.notes}
     overview_for_page = {library + '/exposition/index.html': library for library in plans}
     from average_content import AVERAGE_PAGES
-    overview_for_page.update({page: config['library'] for page, config in AVERAGE_PAGES.items()})
+    from ipla_application_content import IPLA_APPLICATION_PAGES
+    supplements = {**AVERAGE_PAGES, **IPLA_APPLICATION_PAGES}
+    overview_for_page.update({page: config['library'] for page, config in supplements.items()})
     for relative in coverage['outputs']:
         if relative.endswith('.tex'):
             tex_citations += validate_tex_content((root / relative).read_text(), relative, registry)

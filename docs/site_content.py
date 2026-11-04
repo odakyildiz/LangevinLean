@@ -169,8 +169,10 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
            '<a href="'+relative('docs/latex/'+proof_library+'/FullProof.tex',page)+'" download>Download full proof (LaTeX)</a></p>')
     body+=('<nav class="jump-nav" aria-label="On this page"><a href="#paper-correspondence">Paper correspondence</a>'
            '<a href="#paper-assumptions">Paper assumptions</a><a href="#extra-assumptions">Extra assumptions</a>'
-           '<a href="#main-results">Paper results</a>'
-           '<a href="#verification">Check the proofs</a><a href="#proof-map">Proof roadmap</a>')
+           '<a href="#main-results">Paper results</a>')
+    if config.get('proof_difference'):
+        body+='<a href="#proof-difference">Proof differences</a>'
+    body+='<a href="#verification">Check the proofs</a><a href="#proof-map">Proof roadmap</a>'
     if config.get('proof'):body+='<a href="#mathematical-proof">Mathematical argument</a>'
     body+='<a href="#additional-results">Additional results</a><a href="#modules">Supporting proofs</a></nav>'+toolbar()
     from paper_sources import (assumption_sections, correspondence_section, result_metadata,
@@ -178,7 +180,7 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
     body += correspondence_section(lib, config['results'], math) + assumption_sections(lib, math)
     numbered = list(enumerate(config['results'], 1))
     paper_results = [(i, result) for i, result in numbered
-                     if result_metadata(lib, result['name'])['status'] in {'proved', 'corrected'}]
+                     if result_metadata(lib, result['name'])['status'] in {'proved', 'corrected', 'conditional'}]
     additional_results = [(i, result) for i, result in numbered
                           if result_metadata(lib, result['name'])['status'] in {'new', 'auxiliary'}]
     for section_id, heading, entries in [('main-results', 'Paper results', paper_results),
@@ -191,8 +193,8 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
                      if section_id == 'main-results' else '<p>No additional results are presented on this page.</p>')
         for i,result in entries:
             correspondence = result_metadata(lib, result['name'])
-            label = correspondence.get('label') if correspondence['status'] in {'proved', 'corrected'} else proof_status(correspondence) + ' — ' + result['title']
-            source_attribute = (' data-source-label="' + E(label) + '"' if correspondence['status'] in {'proved', 'corrected'}
+            label = correspondence.get('label') if correspondence['status'] in {'proved', 'corrected', 'conditional'} else proof_status(correspondence) + ' — ' + result['title']
+            source_attribute = (' data-source-label="' + E(label) + '"' if correspondence['status'] in {'proved', 'corrected', 'conditional'}
                                 else ' data-result-kind="' + correspondence['status'] + '"')
             target=module_page(result['file'])
             namespace=result.get('namespace',config.get('namespace','ULA.Hilbert' if lib=='UnadjustedLangevin' else lib))
@@ -215,6 +217,10 @@ def home_document(lib, config, notes, sources, parsed, math, catalog=None):
         if section_id == 'additional-results':
             body += '</details>'
         body += '</section>'
+        if section_id == 'main-results' and config.get('proof_difference'):
+            body += ('<section class="section" id="proof-difference">'
+                     '<h2>Same results, modified proof</h2>'
+                     + math(config['proof_difference']) + '</section>')
     body+=verification_section(lib,page)
     body+='<section class="section" id="proof-map"><h2>Proof roadmap</h2><p class="section-intro">Each box opens a supporting proof, with its mathematical argument and Lean implementation. Follow the arrows to see how the conclusions are assembled.</p>'
     body+=proof_diagram(config['diagram'],page,math,config['title']+' proof roadmap')+'</section>'
@@ -322,7 +328,11 @@ def project_document(notes, catalog=None):
            ('AverageLMC','Average-smoothness sampling',
             'LMC, decreasing-step, Laplacian LMC and control-variate SGLD bounds with exact smoothness constants.',
             'Main sampling theorems with the source hypotheses and constants.',
-            'Dalalyan and Karagulyan (2026)')]
+            'Dalalyan and Karagulyan (2026)'),
+           ('WassersteinMixing','Wasserstein mixing time',
+            'Constructed Langevin dynamics, Poisson correctors and exact ULA bias and accuracy bounds.',
+            'The source results are proved under the original Hessian assumptions.',
+            'Pedrotti and Whalley (2026)')]
     extra_assumptions = {
         'IPLA': 'Entropy extension: lifted-target LSI and finite initial joint entropy; the specialization assumes linear scaling of the LSI constant.',
         'KineticLangevin': 'A dimension restriction for the simplified KLMC2 bound, and a curvature condition for the printed tail-free iteration bound.',
@@ -341,6 +351,8 @@ def project_document(notes, catalog=None):
                f'<p class="card-scope">{E(scope)}</p>'
                + extra_notice +
                f'<p><a href="docs/pdf/{key}/FullProof.pdf">Full proof (PDF)</a></p>'
+               + ('<p><a href="WassersteinMixing/exposition/ipla.html">Application to IPLA</a></p>'
+                  if key == 'WassersteinMixing' else '') +
                '</div></article>')
     body+=('</section><section class="section reading-guide" aria-label="Reading and verification">'
            '<div class="reading-note"><h2>Read the proofs</h2><p>Each development has one PDF with its theorem statements, the mathematical argument and the supporting proofs. After every step, the PDF gives the exact Lean statement and explains how the Lean proof follows the mathematics. On the web pages, each step of the proof roadmap opens the same mathematics beside the complete Lean code.</p></div>'
@@ -366,3 +378,6 @@ CONFIG.update(KINETIC_CONFIG)
 
 from average_content import AVERAGE_CONFIG
 CONFIG.update(AVERAGE_CONFIG)
+
+from wasserstein_mixing_content import WASSERSTEIN_CONFIG
+CONFIG.update(WASSERSTEIN_CONFIG)

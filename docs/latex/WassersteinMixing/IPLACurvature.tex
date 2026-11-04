@@ -1,0 +1,187 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The exact IPLA curvature, time and coordinate scaling}{The exact IPLA curvature, time and coordinate scaling}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+For \(N>0\) particles, let the joint potential \(U(\theta,x)\) be twice continuously differentiable, \(m\)-strongly convex and have an \(L\)-Lipschitz gradient, with \(0<m\le L\). For a positive IPLA step \(\gamma\) satisfying \(\gamma L\le1\), the scaled state has dimension \(d_N=d_\theta+Nd_x\), potential \(V_N(z)=\sum_{i=1}^NU(\theta,\sqrt N z_i)\), curvature constants \(Nm,NL\), and ULA step \(\gamma/N\). Every lifted potential hypothesis and every coordinate-change identity is proved from these assumptions.
+
+
+
+Earlier results used here: \cite[Section~3.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Deriving the lifted numerical parameters and regularity}{Deriving the lifted numerical parameters and regularity}}
+
+
+\textbf{Claim.} The scaled IPLA parameters are
+
+\[\alpha_N=Nm,\qquad\beta_N=NL,\qquad h_N=\frac{\gamma}{N},\qquad d_N=d_\theta+Nd_x.\]
+
+
+They satisfy \(0<\alpha_N\le\beta_N\), \(h_N>0\), and \(h_N\beta_N\le1\). The finite-sum potential \(V_N\) belongs to \(C^2\).
+
+
+
+
+\textbf{Proof.} Positivity of the particle number and of \(m,\gamma\) gives the strict positive parameters. Multiplying \(m\le L\) by \(N\) gives the curvature ordering. Exact cancellation yields \(h_N\beta_N=\gamma L\le1\). Each map \(z\mapsto(\theta,\sqrt N z_i)\) is continuous linear, so composition with \(U\in C^2\) is twice continuously differentiable; a finite sum preserves this regularity.
+
+\begin{leanbox}{Lean: \texttt{iplaParameters}, \texttt{ipla\_\allowbreak{}potential\_\allowbreak{}contDiff}}
+\leansource{\texttt{iplaParameters} \quad WassersteinMixing/\allowbreak{}IPLACurvature.lean, lines 19–32}
+\begin{leancode}
+\leanline{0}{def\ iplaParameters\ (N\ dθ\ dx\ :\ ℕ)\ (m\ L\ γ\ :\ ℝ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ L)\ (hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)\ :\ Parameters\ where}
+\leanline{2}{alpha\ :=\ N\ *\ m}
+\leanline{2}{beta\ :=\ N\ *\ L}
+\leanline{2}{step\ :=\ γ\ /\ N}
+\leanline{2}{dimension\ :=\ dθ\ +\ N\ *\ dx}
+\leanline{2}{alpha\_pos\ :=\ mul\_pos\ (by\ exact\_mod\_cast\ hN)\ hm}
+\leanline{2}{alpha\_le\_beta\ :=\ mul\_le\_mul\_of\_nonneg\_left\ hmL\ (Nat.cast\_nonneg\ N)}
+\leanline{2}{step\_pos\ :=\ div\_pos\ hγ\ (by\ exact\_mod\_cast\ hN)}
+\leanline{2}{step\_beta\_le\ :=\ by}
+\leanline{4}{have\ hn\ :\ (N\ :\ ℝ)\ ≠\ 0\ :=\ ne\_of\_gt\ (by\ exact\_mod\_cast\ hN)}
+\leanline{4}{have\ heq\ :\ γ\ /\ (N\ :\ ℝ)\ *\ ((N\ :\ ℝ)\ *\ L)\ =\ γ\ *\ L\ :=\ by\ field\_simp\ [hn]}
+\leanline{4}{rw\ [heq]}
+\leanline{4}{exact\ hγL}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}potential\_\allowbreak{}contDiff} \quad WassersteinMixing/\allowbreak{}IPLACurvature.lean, lines 36–38}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_potential\_contDiff\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ U)\ :\ ContDiff\ ℝ\ 2\ (@IPLA.potential\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\allowbreak{}Parameters} constructs the existing numerical structure with the displayed constants and proves all its fields, including exact cancellation of the positive particle number. \texttt{ipla\_\allowbreak{}potential\_\allowbreak{}cont\allowbreak{}Diff} composes \texttt{Cont\allowbreak{}Diff} with each actual \texttt{IPLA.\allowbreak{}joint\allowbreak{}CLM} and applies finite-sum regularity.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Transporting the actual gradient through an orthogonal coordinate map}{Transporting the actual gradient through an orthogonal coordinate map}}
+
+
+\textbf{Claim.} For a linear isometric equivalence \(e:H\to F\) and a differentiable potential \(V:H\to\mathbb R\),
+
+\[\nabla(V\circ e^{-1})(y)=e\,\nabla V(e^{-1}y).\]
+
+
+\textbf{Proof.} Pair each side with an arbitrary vector \(w\in F\). The derivative chain rule identifies the pairing on the left as \(DV(e^{-1}y)[e^{-1}w]\). The gradient identity turns it into \(\langle\nabla V(e^{-1}y),e^{-1}w\rangle\). Preservation of the inner product by \(e\) gives the pairing with the right side. Equality against every vector proves the vector identity.
+
+\begin{leanbox}{Lean: \texttt{gradient\_\allowbreak{}reindex}}
+\leansource{\texttt{gradient\_\allowbreak{}reindex} \quad WassersteinMixing/\allowbreak{}IPLACurvature.lean, lines 41–51}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_reindex}
+\leanline{4}{\{H\ F\ :\ Type*\}\ [NormedAddCommGroup\ H]\ [InnerProductSpace\ ℝ\ H]\ [CompleteSpace\ H]}
+\leanline{4}{[NormedAddCommGroup\ F]\ [InnerProductSpace\ ℝ\ F]\ [CompleteSpace\ F]}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (V\ :\ H\ →\ ℝ)\ (hV\ :\ Differentiable\ ℝ\ V)\ (x\ :\ F)\ :}
+\leanline{4}{gradient\ (V\ ∘\ e.symm)\ x\ =\ e\ (gradient\ V\ (e.symm\ x))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{gradient\_\allowbreak{}reindex} uses extensionality by the real inner product, the exact \texttt{Has\allowbreak{}FDeriv\allowbreak{}At.\allowbreak{}comp} chain rule, and \texttt{Linear\allowbreak{}Isometry\allowbreak{}Equiv.\allowbreak{}inner\_\allowbreak{}map\_\allowbreak{}eq\_\allowbreak{}flip}. This proves an identity for the actual gradient rather than introducing a transformed gradient as a separate assumption.
+\end{leanbox}
+
+\section{\texorpdfstring{Preserving the potential contract under reindexing}{Preserving the potential contract under reindexing}}
+
+
+\textbf{Claim.} A linear isometric coordinate change preserves \(C^2\) regularity, the same strong-convexity constant \(\alpha\), and the same gradient-Lipschitz constant \(\beta\).
+
+
+
+
+\textbf{Proof.} Smoothness follows by composition with the inverse linear isometry. For strong convexity, apply the original convex-combination inequality to \(e^{-1}x,e^{-1}y\). Linearity preserves their convex combination and the isometry preserves \(\|x-y\|\), giving the same quadratic correction. For smoothness of the gradient, use the proved gradient identity and the isometric distance equalities on both sides of the original \(\beta\)-Lipschitz estimate. None of the numerical constants changes.
+
+\begin{leanbox}{Lean: \texttt{potentialAssumptions\_\allowbreak{}reindex}}
+\leansource{\texttt{potentialAssumptions\_\allowbreak{}reindex} \quad WassersteinMixing/\allowbreak{}IPLACurvature.lean, lines 55–71}
+\begin{leancode}
+\leanline{0}{theorem\ potentialAssumptions\_reindex}
+\leanline{4}{\{H\ F\ :\ Type*\}\ [NormedAddCommGroup\ H]\ [InnerProductSpace\ ℝ\ H]\ [CompleteSpace\ H]}
+\leanline{4}{[NormedAddCommGroup\ F]\ [InnerProductSpace\ ℝ\ F]\ [CompleteSpace\ F]}
+\leanline{4}{(P\ :\ Parameters)\ (e\ :\ H\ ≃ₗᵢ[ℝ]\ F)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ PotentialAssumptions\ P\ (V\ ∘\ e.symm)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{potential\allowbreak{}Assumptions\_\allowbreak{}reindex} assembles all three fields of \texttt{Potential\allowbreak{}Assumptions}. It transports the original \texttt{Strong\allowbreak{}Convex\allowbreak{}On} inequality directly and rewrites the Lipschitz estimate using \texttt{gradient\_\allowbreak{}reindex}. The result is valid for arbitrary complete real inner product spaces related by the given linear isometric equivalence.
+\end{leanbox}
+
+\section{\texorpdfstring{Discharging the lifted assumptions from the joint potential}{Discharging the lifted assumptions from the joint potential}}
+
+
+\textbf{Claim.} The joint assumptions \(U\in C^2\), \(m\)-strong convexity and an \(L\)-Lipschitz gradient imply the entire lifted contract with constants \(Nm,NL\). In particular, the literal joint Hessian bounds
+
+\[mI\preccurlyeq\nabla^2U\preccurlyeq LI\]
+
+
+suffice, with the same constants.
+
+
+
+
+\textbf{Proof.} The exact identity \(\sum_i\|(\delta\theta,\sqrt N\,\delta z_i)\|^2=N\|\delta z\|^2\) makes the sum of the strong-convexity inequalities have constant \(Nm\). The lifted gradient chain rule, followed by Cauchy–Schwarz over the replicated pair coordinates, gives Lipschitz constant \(NL\). The preceding finite-sum argument supplies \(C^2\) regularity. When joint Hessian bounds are the input, the already proved Hessian-to-potential theorem first derives joint strong convexity and gradient Lipschitzness. Thus no semigroup, invariant measure, stationary process or comparison estimate is an input here.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}potentialAssumptions}, \texttt{ipla\_\allowbreak{}potentialAssumptions\_\allowbreak{}of\_\allowbreak{}hessian}}
+\leansource{\texttt{ipla\_\allowbreak{}potentialAssumptions} \quad WassersteinMixing/\allowbreak{}IPLACurvature.lean, lines 75–86}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_potentialAssumptions}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{m\ γ\ :\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hN\ :\ 0\ <\ N)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ L)\ (hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :}
+\leanline{4}{PotentialAssumptions\ (iplaParameters\ N\ dθ\ dx\ m\ L\ γ\ hN\ hm\ hmL\ hγ\ hγL)}
+\leanline{6}{(@IPLA.potential\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}potentialAssumptions\_\allowbreak{}of\_\allowbreak{}hessian} \quad WassersteinMixing/\allowbreak{}IPLACurvature.lean, lines 90–100}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_potentialAssumptions\_of\_hessian}
+\leanline{4}{(Q\ :\ Parameters)\ \{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}}
+\leanline{4}{(hU\ :\ HessianAssumptions\ Q\ U)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{γ\ :\ ℝ\}\ (hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ Q.beta\ ≤\ 1)\ :}
+\leanline{4}{PotentialAssumptions}
+\leanline{6}{(iplaParameters\ N\ dθ\ dx\ Q.alpha\ Q.beta\ γ\ hN\ Q.alpha\_pos\ Q.alpha\_le\_beta\ hγ\ hγL)}
+\leanline{6}{(@IPLA.potential\ N\ dθ\ dx\ U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}potential\allowbreak{}Assumptions} combines \texttt{ipla\_\allowbreak{}potential\_\allowbreak{}cont\allowbreak{}Diff} with \texttt{IPLA.\allowbreak{}potential\_\allowbreak{}strong\allowbreak{}Convex} and \texttt{IPLA.\allowbreak{}potential\_\allowbreak{}gradient\_\allowbreak{}lipschitz}; these earlier IPLA lemmas prove the sharp factor of the particle number. \texttt{ipla\_\allowbreak{}potential\allowbreak{}Assumptions\_\allowbreak{}of\_\allowbreak{}hessian} applies \texttt{Hessian\allowbreak{}Assumptions.\allowbreak{}to\allowbreak{}Potential\allowbreak{}Assumptions} before this lift. Both return the complete potential contract needed by the constructed Wasserstein comparison.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.3]{LangevinLean2026IPLA}; \cite[Section~3.1.4]{LangevinLean2026IPLA}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[IPLA-SC]{LangevinLean2026IPLA}
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ec0201df2207. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

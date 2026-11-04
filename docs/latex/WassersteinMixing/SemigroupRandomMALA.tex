@@ -1,0 +1,139 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{An actual common-randomness Euler and Metropolis update}{An actual common-randomness Euler and Metropolis update}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Independent Gaussian proposals and independent uniform decisions are combined into a single innovation law. A deterministic paired update advances Euler and MALA states with common Gaussian input, and its actual law is the established coupled-step law.
+
+
+
+Earlier results used here: \cite[Section~3.33]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The paired actual sampling map}{The paired actual sampling map}}
+
+
+\textbf{Construction.} At paired states \((x,y)\), update the Euler coordinate by \(x-h\nabla V(x)+\sqrt{2h}\,\xi\). In the second coordinate use the actual Gaussian proposal from \(y\), accepted by an independent uniform threshold and otherwise leave \(y\) unchanged. The map is measurable and its first coordinate is exactly the Euler update, including along the full recursion.
+
+
+
+\textbf{Proof.} The innovation measure is the product of standard Gaussian and unit-interval probability. Continuity of the actual proposal and measurability of its acceptance event give measurable branches; projection to the first coordinate removes the acceptance decision.
+
+\begin{leanbox}{Lean: \texttt{innovationLaw}, \texttt{innovationLaw\_\allowbreak{}isProbability}, \texttt{update} and 3 more}
+\leansource{\texttt{innovationLaw} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 25–25}
+\begin{leancode}
+\leanline{0}{def\ innovationLaw\ :\ Measure\ (E\ ×\ I)\ :=\ (stdGaussian\ E).prod\ volume}
+\end{leancode}
+\leansource{\texttt{innovationLaw\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 27–29}
+\begin{leancode}
+\leanline{0}{instance\ innovationLaw\_isProbability\ :\ IsProbabilityMeasure\ (innovationLaw\ (E\ :=\ E))\ :=\ by}
+\leanline{2}{unfold\ innovationLaw}
+\leanline{2}{infer\_instance}
+\end{leancode}
+\leansource{\texttt{update} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 32–36}
+\begin{leancode}
+\leanline{0}{def\ update\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ :\ E\ ×\ E)\ (z\ :\ E\ ×\ I)\ :\ E\ ×\ E\ :=}
+\leanline{2}{uniformDecision}
+\leanline{4}{(fun\ p\ :\ (E\ ×\ E)\ ×\ E\ ↦\ ULA.malaProposalAcceptance\ V\ h\ (p.1.2,\ p.2))}
+\leanline{4}{(fun\ p\ ↦\ (ULA.malaProposal\ V\ h\ p.1.1\ p.2,\ ULA.malaProposal\ V\ h\ p.1.2\ p.2))}
+\leanline{4}{(fun\ p\ ↦\ (ULA.malaProposal\ V\ h\ p.1.1\ p.2,\ p.1.2))\ ((x,\ z.1),\ z.2)}
+\end{leancode}
+\leansource{\texttt{update\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 38–41}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ update\_fst\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ :\ E\ ×\ E)\ (z\ :\ E\ ×\ I)\ :}
+\leanline{4}{(update\ V\ h\ x\ z).1\ =\ ULA.malaProposal\ V\ h\ x.1\ z.1}
+\end{leancode}
+\leansource{\texttt{chain\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 44–50}
+\begin{leancode}
+\leanline{0}{theorem\ chain\_fst\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (x\ :\ E\ ×\ E)\ (w\ :\ ℕ\ →\ E\ ×\ I)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(ULA.noiseDrivenChain\ (update\ V\ h)\ x\ w\ n).1\ =}
+\leanline{6}{ULA.noiseDrivenChain\ (fun\ x\ z\ ↦\ ULA.malaProposal\ V\ h\ x\ z)\ x.1}
+\leanline{8}{(fun\ k\ ↦\ (w\ k).1)\ n}
+\end{leancode}
+\leansource{\texttt{update\_\allowbreak{}measurable} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 52–62}
+\begin{leancode}
+\leanline{0}{theorem\ update\_measurable\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{Measurable\ (Function.uncurry\ (update\ V\ h))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{innovation\allowbreak{}Law} is the actual Gaussian/\allowbreak{}uniform product. \texttt{update} is the paired threshold update. \texttt{update\_\allowbreak{}fst} and \texttt{chain\_\allowbreak{}fst} identify the actual Euler coordinate; \texttt{update\_\allowbreak{}measurable} combines proposal and threshold measurability.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.20.1]{LangevinLean2026ULASC}; \cite[Section~3.20.3]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.2]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.6]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Identifying every actual paired Markov law}{Identifying every actual paired Markov law}}
+
+
+\textbf{Claim.} The sampled paired update has exactly the coupled Euler/\allowbreak{}MALA law, and its iterated laws agree at every finite time.
+
+
+
+\textbf{Proof.} Integrate the uniform decision using the proved acceptance/\allowbreak{}rejection identity. The resulting weighted Gaussian maps are precisely the coupled-step construction. Starting from the same paired initial law, substitute that exact one-step equality at each recursion step to obtain equality of all iterated laws.
+
+\begin{leanbox}{Lean: \texttt{markovStep\_\allowbreak{}eq\_\allowbreak{}coupledStep}, \texttt{chainLaw\_\allowbreak{}eq\_\allowbreak{}coupledChain}}
+\leansource{\texttt{markovStep\_\allowbreak{}eq\_\allowbreak{}coupledStep} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 66–81}
+\begin{leancode}
+\leanline{0}{theorem\ markovStep\_eq\_coupledStep\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(ρ\ :\ Measure\ (E\ ×\ E))\ [IsProbabilityMeasure\ ρ]\ :}
+\leanline{4}{ULA.markovStep\ (update\ V\ h)\ innovationLaw\ ρ\ =\ ULA.malaCoupledStep\ V\ h\ ρ}
+\end{leancode}
+\leansource{\texttt{chainLaw\_\allowbreak{}eq\_\allowbreak{}coupledChain} \quad WassersteinMixing/\allowbreak{}SemigroupRandomMALA.lean, lines 84–100}
+\begin{leancode}
+\leanline{0}{theorem\ chainLaw\_eq\_coupledChain\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.chainLaw\ (update\ V\ h)\ (μ.map\ (fun\ x\ ↦\ (x,\ x)))}
+\leanline{6}{(Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ innovationLaw))\ n\ =}
+\leanline{8}{ULA.malaCoupledChain\ V\ h\ μ\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{markov\allowbreak{}Step\_\allowbreak{}eq\_\allowbreak{}coupled\allowbreak{}Step} invokes \texttt{uniform\allowbreak{}Decision\_\allowbreak{}law} for the actual acceptance and proposal functions. \texttt{chain\allowbreak{}Law\_\allowbreak{}eq\_\allowbreak{}coupled\allowbreak{}Chain} inducts on the actual Markov-law recursion.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.20.5]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.33.9]{LangevinLean2026ULASC}; \cite[Section~3.36.14]{LangevinLean2026ULASC}; \cite[Section~3.36.15]{LangevinLean2026ULASC}; \cite[Section~3.36.3]{LangevinLean2026ULASC}; \cite[Section~3.36.4]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.6]{LangevinLean2026ULASC}; \cite[Section~3.36.9]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

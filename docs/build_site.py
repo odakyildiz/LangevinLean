@@ -25,7 +25,7 @@ from lean_latex import (FALLBACK as LEAN_FALLBACK, PREAMBLE as LEAN_PREAMBLE,
 ROOT = Path(__file__).resolve().parents[1]
 HERE = ROOT / "docs"
 SITE_CSS = (HERE / "assets/site.css").read_text()
-LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC", "AverageLMC"]
+LIBRARIES = ["UnadjustedLangevin", "IPLA", "ProximalLangevin", "KineticLangevin", "KIPLMC", "AverageLMC", "WassersteinMixing"]
 SPEC = importlib.util.spec_from_file_location("proof_helpers", ROOT / "UnadjustedLangevin/exposition/build_document.py")
 HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
@@ -356,11 +356,21 @@ def supplement_document(page, config, sources, parsed, math, catalog=None):
             f'<h1>{E(config["title"])}</h1>' + reference_notice(library) +
             math(config['intro']) + '</header>' + toolbar())
     for index, section in enumerate(config['sections'], 1):
+        # Statement sections pair a theorem with its exact Lean header, as on
+        # the overview pages; proof sections show complete declarations.
+        statement = section.get('statement', False)
         body += (f'<section class="section" id="section-{index}"><h2>{E(section["title"])}</h2>'
-                 '<div class="pair"><div class="math-pane">' + math(section['body']) +
-                 '</div><div class="lean-pane">')
+                 '<div class="pair"><div class="math-pane">'
+                 + ('<div class="pane-label">Mathematical statement</div>' if statement else '')
+                 + math(section['body']) + '</div><div class="lean-pane">'
+                 + ('<div class="pane-label">Lean statement</div>' if statement else ''))
         for reference in section.get('references', []):
             path, name = reference['file'], reference['name']
+            if statement:
+                body += declaration_header(path, name, sources, parsed, page)
+                body += (f'<p class="small"><a href="{relative(module_page(path),page)}#{anchor(name)}">'
+                         'Full Lean proof and mathematical commentary →</a></p>')
+                continue
             decl = parsed[path][name]
             body += code(path, decl['start'], decl['end'], sources, page,
                          name=name, identifier=anchor(name))
@@ -565,6 +575,8 @@ def main():
     sources, parsed, notes = load()
     from site_content import CONFIG, home_document, project_document
     from average_content import AVERAGE_PAGES
+    from ipla_application_content import IPLA_APPLICATION_PAGES
+    supplement_pages = {**AVERAGE_PAGES, **IPLA_APPLICATION_PAGES}
     from full_proofs import full_proof_inventory
     from report_links import ReportCatalog
     from report_citations import bib_outputs
@@ -572,7 +584,7 @@ def main():
     from references import PAPERS, DEVELOPMENTS
     from paper_sources import source_metadata
     prose = list(authored_strings(notes)) + list(authored_strings(CONFIG))
-    prose += list(authored_strings(AVERAGE_PAGES))
+    prose += list(authored_strings(supplement_pages))
     prose += list(authored_strings(PAPERS)) + list(authored_strings(DEVELOPMENTS))
     prose += list(authored_strings(source_metadata()))
     math = HELPERS.render_mathematics(prose)
@@ -607,14 +619,14 @@ def main():
     outputs.update(bib_outputs({**catalog.plans, **separate_reports.plans()}))
     outputs['docs/full_proofs.json'] = json.dumps(
         catalog.plans, indent=2, ensure_ascii=False) + '\n'
-    for page, config in AVERAGE_PAGES.items():
+    for page, config in supplement_pages.items():
         outputs[page] = supplement_document(page, config, sources, parsed, math, catalog)
     inputs = ['docs/math_notation.py','docs/report_citations.py','docs/report_links.py','docs/build_site.py','docs/full_proofs.py','docs/site_content.py','docs/classical_proofs.py','docs/entropy_content.py',
-              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/references.py',
-              'docs/paper_sources.py','docs/paper_sources_classical.py','docs/paper_sources_kinetic.py',
+              'docs/kinetic_content.py','docs/kinetic_overviews.py','docs/average_content.py','docs/wasserstein_mixing_content.py','docs/ipla_application_content.py','docs/references.py',
+              'docs/paper_sources.py','docs/paper_sources_classical.py','docs/paper_sources_kinetic.py','docs/paper_sources_wasserstein.py',
               'docs/assets/site.css','docs/assets/site.js','docs/assets/diagrams.js',
               'docs/theme.py','docs/assets/theme.css','docs/assets/theme.js']
-    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC', 'AverageLMC')]
+    inputs += [lib+'/exposition/reference_audit.json' for lib in ('KineticLangevin', 'KIPLMC', 'AverageLMC', 'WassersteinMixing')]
     inputs += [lib+'/exposition/module_notes.json' for lib in LIBRARIES]
     inputs += ['lean-toolchain','lakefile.toml','lake-manifest.json']
     inputs += pbgso_inputs()

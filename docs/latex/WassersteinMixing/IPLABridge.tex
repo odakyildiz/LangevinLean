@@ -1,0 +1,286 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The sharp actual-law Wasserstein bound in the scaled IPLA coordinates}{The sharp actual-law Wasserstein bound in the scaled IPLA coordinates}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The scaled IPLA state is a finite Euclidean space indexed by a parameter block and a particle/\allowbreak{}latent block. A proved linear isometry identifies it with the coordinate convention of the sharp Wasserstein theorem. Pulling the constructed invariant law back through that isometry gives a genuine invariant probability measure with a finite second moment. The actual Gaussian transition, Gibbs target and transport distance all respect this change of coordinates, so the sharp bias and convergence estimates apply to the actual lifted particle law.
+
+
+
+Earlier results used here: \cite[Section~3.16]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Constructing the invariant law in the original coordinate type}{Constructing the invariant law in the original coordinate type}}
+
+
+\textbf{Construction.} Let \(V\) satisfy the potential contract with parameters \(\alpha,\beta,h,d\), and let \(e:H\to\mathbb R^d\) be a linear isometric equivalence. For \(W=V\circ e^{-1}\), let \(\widehat\pi_W\) be the invariant law already constructed from the actual Gaussian ULA transition. Define
+
+\[\widehat\pi_V=(e^{-1})_\#\widehat\pi_W.\]
+
+
+\textbf{Claim.} It is a probability law with finite second moment, \(e_\#\widehat\pi_V=\widehat\pi_W\), and \(K_{V,h}\widehat\pi_V=\widehat\pi_V\).
+
+
+
+
+\textbf{Proof.} The measurable inverse coordinate map preserves total mass, and its norm preservation transfers the constructed finite second moment. Composing its pushforward with the forward map gives the exact recovery identity. Gaussian-transition covariance then gives \(e_\#K_{V,h}\widehat\pi_V=K_{W,h}\widehat\pi_W=\widehat\pi_W=e_\#\widehat\pi_V\). Injectivity of pushforward through the measurable equivalence proves invariance in the original coordinates. Thus invariance is derived for the same transition used by the particle algorithm.
+
+\begin{leanbox}{Lean: \texttt{coordinateInvariantLaw}, \texttt{coordinateInvariantLaw\_\allowbreak{}map}, \texttt{coordinateInvariantLaw\_\allowbreak{}isProbability} and 2 more}
+\leansource{\texttt{coordinateInvariantLaw} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 25–28}
+\begin{leancode}
+\leanline{0}{def\ coordinateInvariantLaw\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :\ Measure\ H\ :=}
+\leanline{2}{(invariantLaw\ P\ (V\ ∘\ e.symm)\ (potentialAssumptions\_reindex\ P\ e\ V\ hV)).map\ e.symm}
+\end{leancode}
+\leansource{\texttt{coordinateInvariantLaw\_\allowbreak{}map} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 33–39}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateInvariantLaw\_map\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{(coordinateInvariantLaw\ P\ e\ V\ hV).map\ e\ =}
+\leanline{6}{invariantLaw\ P\ (V\ ∘\ e.symm)\ (potentialAssumptions\_reindex\ P\ e\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{coordinateInvariantLaw\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 43–48}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateInvariantLaw\_isProbability\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{IsProbabilityMeasure\ (coordinateInvariantLaw\ P\ e\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{coordinateInvariantLaw\_\allowbreak{}memLp} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 51–56}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateInvariantLaw\_memLp\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{MemLp\ (id\ :\ H\ →\ H)\ 2\ (coordinateInvariantLaw\ P\ e\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{coordinateInvariantLaw\_\allowbreak{}invariant} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 59–70}
+\begin{leancode}
+\leanline{0}{theorem\ coordinateInvariantLaw\_invariant\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{ULA.ulaLawStep\ V\ P.step\ (coordinateInvariantLaw\ P\ e\ V\ hV)\ =}
+\leanline{6}{coordinateInvariantLaw\ P\ e\ V\ hV}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coordinate\allowbreak{}Invariant\allowbreak{}Law} maps the existing \texttt{invariant\allowbreak{}Law} back through the inverse isometry using \texttt{potential\allowbreak{}Assumptions\_\allowbreak{}reindex}. \texttt{coordinate\allowbreak{}Invariant\allowbreak{}Law\_\allowbreak{}map} proves recovery by composition of measure maps. The probability and moment lemmas transfer the corresponding established properties of \texttt{invariant\allowbreak{}Law}. \texttt{coordinate\allowbreak{}Invariant\allowbreak{}Law\_\allowbreak{}invariant} applies \texttt{ula\allowbreak{}Law\allowbreak{}Step\_\allowbreak{}map\_\allowbreak{}isometry} and the original invariant-law theorem, then uses injectivity of the mapped measure.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Transferring the sharp bias and finite-time comparison}{Transferring the sharp bias and finite-time comparison}}
+
+
+\textbf{Claim.} Set \(\pi_V=Z_V^{-1}e^{-V}\), \(q=1-\alpha h\) and \(B=6h\sqrt{(\beta/\alpha)\beta d}\). Then
+
+\[W_2(\pi_V,\widehat\pi_V)\le B,\qquad W_2(K_{V,h}^{\,k}\mu,\pi_V)\le q^kW_2(\mu,\widehat\pi_V)+B,\]
+
+
+for probability initializations with finite second moment.
+
+
+
+
+\textbf{Proof.} Push both measures through \(e\). The exact Gibbs pushforward, invariant-law recovery and transport-isometry identities reduce the first inequality to the already constructed sharp bias theorem for \(W\). For the second inequality, the Gaussian-iterate covariance also identifies the pushed-forward iterate with the actual ULA iterate for \(W\). Finite second moments pass to the mapped initialization. The constructed comparison theorem in the Euclidean coordinates then gives precisely the displayed bound, with all constants unchanged.
+
+\begin{leanbox}{Lean: \texttt{coordinate\_\allowbreak{}bias\_\allowbreak{}bound}, \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}bound}}
+\leansource{\texttt{coordinate\_\allowbreak{}bias\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 73–80}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_bias\_bound\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (ULA.gibbsMeasure\ V)\ (coordinateInvariantLaw\ P\ e\ V\ hV)\ ≤\ P.bias}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 83–94}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_convergence\_bound\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ μ\ (coordinateInvariantLaw\ P\ e\ V\ hV)\ +\ P.bias}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coordinate\_\allowbreak{}bias\_\allowbreak{}bound} rewrites both distances through \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}map\_\allowbreak{}isometry}, identifies the two laws, and applies \texttt{bias\_\allowbreak{}from\_\allowbreak{}comparison} to \texttt{actual\allowbreak{}ULAComparison}. \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}bound} additionally uses \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}map\_\allowbreak{}isometry} and \texttt{mem\allowbreak{}Lp\_\allowbreak{}id\_\allowbreak{}map\_\allowbreak{}isometry} before applying \texttt{convergence\_\allowbreak{}from\_\allowbreak{}comparison}. The actual comparison is constructed from the potential contract rather than passed in as an extra theorem hypothesis.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Establishing finite output transport before taking real values}{Establishing finite output transport before taking real values}}
+
+
+\textbf{Claim.} The extended distance \(W_2(K_{V,h}^{\,k}\mu,\pi_V)\) is finite for every finite update count and every finite-second-moment probability initialization under the potential contract.
+
+
+
+
+\textbf{Proof.} The mapped initialization has finite second moment. Positive strong convexity gives the Gibbs probability law and its finite second moment, so their initial transport distance is finite. The established Gaussian ULA output-finiteness theorem gives finite distance from every Euclidean-coordinate iterate to that target. Rewrite its iterate and Gibbs target through the isometry; the exact equality of extended transport distances transfers finiteness back to the original coordinate space. This supplies a genuine finite extended distance before later parameter-projection statements use its ordinary real value.
+
+\begin{leanbox}{Lean: \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}finite}}
+\leansource{\texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}finite} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 97–112}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_convergence\_finite\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}finite} first applies \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp} and \texttt{ULA.\allowbreak{}Hilbert.\allowbreak{}dalalyan\_\allowbreak{}output\_\allowbreak{}finite} in the standard coordinates. It then rewrites by the Gaussian iterate, Gibbs pushforward and extended-distance isometry lemmas. This use of the earlier ULA theorem only establishes finiteness; the improved numerical rate still comes from the new sharp comparison.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.45.6]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Keeping the sharp bias with exact Gibbs-based initialization}{Keeping the sharp bias with exact Gibbs-based initialization}}
+
+
+\textbf{Claim.} The actual Gaussian chain started from the exact Gibbs target has finite transport distance from that target at every update count, and
+
+\[W_2(\pi_V,K_{V,h}^{\,k}\pi_V)\le B.\]
+
+
+For any finite-second-moment initialization this gives the sharp target-based estimate
+
+\[W_2(K_{V,h}^{\,k}\mu,\pi_V)\le q^kW_2(\mu,\pi_V)+B.\]
+
+
+\textbf{Proof.} The constructed Poisson comparison already couples a stationary Langevin process to the actual ULA chain started with the same Gibbs state. Its uniform shifted-energy estimate bounds this stationary-start displacement by \(B\), with finite extended transport proved separately. The coordinate isometry transfers both facts exactly to the original space. The contraction theorem for the same Gaussian transition compares its two actual iterates:
+
+\[W_2(K_{V,h}^{\,k}\mu,K_{V,h}^{\,k}\pi_V)\le q^kW_2(\mu,\pi_V).\]
+
+
+Apply the proved finite real transport triangle inequality through the intermediate law \(K_{V,h}^{\,k}\pi_V\). The displayed contraction bounds the first term and the stationary-start comparison bounds the second by \(B\). This retains the same exact-Gibbs initialization distance as Project 03 with a single copy of the sharp bias. The weaker bound with \((1+q^k)B\) also follows by adding the nonnegative term \(q^kB\); it remains available as a supporting corollary.
+
+\begin{leanbox}{Lean: \texttt{coordinate\_\allowbreak{}stationary\_\allowbreak{}start\_\allowbreak{}bound}, \texttt{coordinate\_\allowbreak{}stationary\_\allowbreak{}start\_\allowbreak{}finite}, \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}target\_\allowbreak{}bound\_\allowbreak{}sharp} and 1 more}
+\leansource{\texttt{coordinate\_\allowbreak{}stationary\_\allowbreak{}start\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 116–126}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_stationary\_start\_bound\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (ULA.gibbsMeasure\ V)}
+\leanline{6}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ (ULA.gibbsMeasure\ V))\ ≤\ P.bias}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}stationary\_\allowbreak{}start\_\allowbreak{}finite} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 130–140}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_stationary\_start\_finite\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ (ULA.gibbsMeasure\ V)}
+\leanline{6}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ (ULA.gibbsMeasure\ V))\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}target\_\allowbreak{}bound\_\allowbreak{}sharp} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 145–169}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_convergence\_target\_bound\_sharp\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ V)\ +}
+\leanline{8}{P.bias}
+\end{leancode}
+\leansource{\texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}target\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 173–182}
+\begin{leancode}
+\leanline{0}{theorem\ coordinate\_convergence\_target\_bound\ (P\ :\ Parameters)}
+\leanline{4}{(e\ :\ H\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ P.dimension))}
+\leanline{4}{(V\ :\ H\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(μ\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ (hμ\ :\ MemLp\ (id\ :\ H\ →\ H)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ μ\ (ULA.gibbsMeasure\ V)\ +}
+\leanline{8}{(1\ +\ P.contraction\ \textasciicircum{}\ n)\ *\ P.bias}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{coordinate\_\allowbreak{}stationary\_\allowbreak{}start\_\allowbreak{}bound} and \texttt{coordinate\_\allowbreak{}stationary\_\allowbreak{}start\_\allowbreak{}finite} transport the corresponding consequences of \texttt{actual\allowbreak{}ULAComparison} through the exact coordinate identities. \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}target\_\allowbreak{}bound\_\allowbreak{}sharp} proves initial transport finiteness from moments, supplies probability for both iterates, and combines \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}le} with \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}triangle} and the stationary-start bound. \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}target\_\allowbreak{}bound} is an algebraic weakening of that sharp theorem using nonnegativity of the contraction power and the bias. No invariant-triangle loss is needed by the primary target-based result.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Applying the coordinate theorem with the exact IPLA constants}{Applying the coordinate theorem with the exact IPLA constants}}
+
+
+\textbf{Claim.} For \(N>0\), let \(U\in C^2\) be \(m\)-strongly convex with an \(L\)-Lipschitz gradient, \(0<m\le L\), and \(0<\gamma\) with \(\gamma L\le1\). Define \(V_N=\sum_iU(\theta,\sqrt N z_i)\), \(d_N=d_\theta+Nd_x\), and \(D=d_x+d_\theta/N\). Then for the actual lifted Gaussian updates,
+
+\[W_2(K_{V_N,\gamma/N}^{\,k}\mu,\pi_{V_N})\le(1-m\gamma)^kW_2(\mu,\widehat\pi_{V_N})+6\gamma\sqrt{(L/m)LD}.\]
+
+
+\textbf{Proof.} The index set of the scaled state has exactly \(d_\theta+Nd_x\) elements, so an index equivalence gives a linear isometry to the required standard coordinate space. The joint-potential lifting theorem proves the potential contract with \(\alpha=Nm\), \(\beta=NL\), and \(h=\gamma/N\). Apply the coordinate convergence theorem. Exact cancellation gives \(1-\alpha h=1-m\gamma\), and the proved bias-scaling identity reduces the sharp bias to the displayed linear-step expression. No relation between the parameter and latent dimensions is assumed.
+
+\begin{leanbox}{Lean: \texttt{iplaCoordinates}, \texttt{ipla\_\allowbreak{}wasserstein\_\allowbreak{}bound}}
+\leansource{\texttt{iplaCoordinates} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 186–189}
+\begin{leancode}
+\leanline{0}{def\ iplaCoordinates\ (N\ dθ\ dx\ :\ ℕ)\ :}
+\leanline{4}{IPLA.State\ N\ dθ\ dx\ ≃ₗᵢ[ℝ]\ EuclideanSpace\ ℝ\ (Fin\ (dθ\ +\ N\ *\ dx))\ :=}
+\leanline{2}{LinearIsometryEquiv.piLpCongrLeft\ 2\ ℝ\ ℝ}
+\leanline{4}{(Fintype.equivFinOfCardEq\ (by\ simp))}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}wasserstein\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}IPLABridge.lean, lines 194–215}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_wasserstein\_bound}
+\leanline{4}{\{N\ dθ\ dx\ :\ ℕ\}\ \{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{m\ γ\ :\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hN\ :\ 0\ <\ N)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ L)\ (hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ N\ dθ\ dx\ →\ IPLA.State\ N\ dθ\ dx)\ 2\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ (@IPLA.potential\ N\ dθ\ dx\ U)\ (γ\ /\ N))\textasciicircum{}[k]\ μ)}
+\leanline{6}{(ULA.gibbsMeasure\ (@IPLA.potential\ N\ dθ\ dx\ U))\ ≤}
+\leanline{6}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ μ}
+\leanline{8}{(coordinateInvariantLaw\ (iplaParameters\ N\ dθ\ dx\ m\ L\ γ\ hN\ hm\ hmL\ hγ\ hγL)}
+\leanline{10}{(iplaCoordinates\ N\ dθ\ dx)\ (IPLA.potential\ U)}
+\leanline{10}{(ipla\_potentialAssumptions\ hN\ hm\ hmL\ hγ\ hγL\ hU\ hsc\ hLip))\ +}
+\leanline{8}{iplaLinearBias\ m\ L\ γ\ (iplaEffectiveDimension\ N\ dθ\ dx)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\allowbreak{}Coordinates} uses the actual finite index equivalence of the sum/\allowbreak{}product coordinate set. \texttt{ipla\_\allowbreak{}wasserstein\_\allowbreak{}bound} supplies \texttt{ipla\allowbreak{}Parameters} and \texttt{ipla\_\allowbreak{}potential\allowbreak{}Assumptions} to \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}bound}, then uses \texttt{ipla\_\allowbreak{}lifted\_\allowbreak{}bias\_\allowbreak{}eq} to simplify the numerical constant. The law is the actual ULA law of the scaled IPLA potential; the final application identifies it with the noise-driven IPLA recursion before parameter projection.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\bibitem[IPLA-SC]{LangevinLean2026IPLA}
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ec0201df2207. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

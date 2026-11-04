@@ -8,6 +8,13 @@ from html import escape
 
 
 PAPERS = {
+    'wasserstein-mixing': dict(
+        authors="Francesco Pedrotti and Peter A. Whalley", year="2026",
+        title="Wasserstein mixing time of the unadjusted Langevin algorithm",
+        venue="arXiv preprint arXiv:2608.02430, version 1 (3 August 2026)",
+        url="https://arxiv.org/abs/2608.02430v1",
+        links=[("Paper HTML", "https://arxiv.org/html/2608.02430v1"),
+               ("Full paper", "https://arxiv.org/pdf/2608.02430v1")]),
     'average-lmc': dict(
         authors="Arnak S. Dalalyan and Avetik Karagulyan", year="2026",
         title="Improved Guarantees for Langevin Monte Carlo with Average Smoothness",
@@ -78,6 +85,11 @@ PAPERS = {
 
 
 DEVELOPMENTS = {
+    'WassersteinMixing': dict(
+        label="Preprint source; original statements proved by a modified argument",
+        status="extended", papers=["wasserstein-mixing"],
+        scope=r"The supplied manuscript is audited by exact source hashes and compared with arXiv:2608.02430v1. Theorem 1 and Corollary 1.1 are proved under their original \(C^2\) Hessian assumptions, with the same constants, using a modified proof. The actual Langevin dynamics, reversible semigroup, corrector, Gaussian ULA invariant law and comparison estimates are constructed. The paper's generator/eigenbasis construction and Gaussian-smoothing passage are not formalized. The separate IPLA application derives new bounds by combining this result with Project 03's particle geometry and parameter concentration.",
+        card="Original theorem statements and constants proved by a modified argument; a separate application improves the IPLA discretization rate."),
     'AverageLMC': dict(
         label="Preprint source; checked main sampling proofs",
         status="corrected", papers=["average-lmc"],

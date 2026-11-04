@@ -1,0 +1,258 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Actual MALA approximations converge to the Langevin operators}{Actual MALA approximations converge to the Langevin operators}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+On the genuine Brownian/\allowbreak{}uniform extension, Euler converges strongly to the lifted actual diffusion, while the mean MALA/\allowbreak{}Euler discrepancy is bounded by accumulated rejections. Stationary observable continuity then upgrades actual MALA convergence in measure to strong convergence of all \(L^2\) transition orbits.
+
+
+\section{\texorpdfstring{The actual lifted diffusion and Euler limit}{The actual lifted diffusion and Euler limit}}
+
+
+\textbf{Claim.} The actual diffusion lifted to the uniform extension retains its Gibbs law and continuity. The Euler path from the same Brownian innovations converges strongly to it along any bounded moving mesh with \(r_i\to0\) and \(n_ir_i\to t\).
+
+
+
+\textbf{Proof.} The source-lifting isometry preserves laws and continuity. Identify the actual Gaussian innovations with the normalized Brownian increments, then identify the Euler recursion with the actual additive-noise Euler construction. Apply its moving-step convergence theorem and lift the result through the isometry. The auxiliary mean-norm bound follows from Cauchy–Schwarz on a probability space.
+
+\begin{leanbox}{Lean: \texttt{stateLift}, \texttt{diffusion}, \texttt{integral\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}lp\_\allowbreak{}norm} and 6 more}
+\leansource{\texttt{stateLift} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 25–28}
+\begin{leancode}
+\leanline{0}{def\ stateLift\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ :}
+\leanline{4}{Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ →ₗᵢ[ℝ]}
+\leanline{6}{Lp\ (E\ P.dimension)\ 2\ (probability\ P\ V)\ :=}
+\leanline{2}{Lp.compMeasurePreservingₗᵢ\ ℝ\ Prod.fst\ measurePreserving\_fst}
+\end{leancode}
+\leansource{\texttt{diffusion} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 31–33}
+\begin{leancode}
+\leanline{0}{def\ diffusion\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(t\ :\ ℝ)\ :\ Lp\ (E\ P.dimension)\ 2\ (probability\ P\ V)\ :=}
+\leanline{2}{stateLift\ P\ V\ (CanonicalSemigroup.state\ P\ V\ hV\ t)}
+\end{leancode}
+\leansource{\texttt{integral\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}lp\_\allowbreak{}norm} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 35–46}
+\begin{leancode}
+\leanline{0}{private\ theorem\ integral\_norm\_le\_lp\_norm\ \{Ω\ H\ :\ Type*\}\ [MeasurableSpace\ Ω]}
+\leanline{4}{[NormedAddCommGroup\ H]\ (Q\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ Q]\ (Z\ :\ Lp\ H\ 2\ Q)\ :}
+\leanline{4}{(∫\ ω,\ ‖Z\ ω‖\ ∂Q)\ ≤\ ‖Z‖}
+\end{leancode}
+\leansource{\texttt{diffusion\_\allowbreak{}law} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 48–55}
+\begin{leancode}
+\leanline{0}{theorem\ diffusion\_law\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ :}
+\leanline{4}{(probability\ P\ V).map\ (diffusion\ P\ V\ hV\ t)\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}diffusion} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 57–59}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_diffusion\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ Continuous\ (diffusion\ P\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{gaussian\_\allowbreak{}eq\_\allowbreak{}brownian} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 62–71}
+\begin{leancode}
+\leanline{0}{theorem\ gaussian\_eq\_brownian\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (r\ :\ ℝ)\ :}
+\leanline{4}{gaussian\ P\ V\ hV\ r\ =\ ULA.Hilbert.brownianEulerNoise\ (actualProbability\ P\ V)}
+\leanline{6}{(CanonicalSemigroup.brownian\ P)\ (CanonicalSemigroup.brownian\_preBrownian\ P\ V\ hV)\ r}
+\end{leancode}
+\leansource{\texttt{euler\_\allowbreak{}eq\_\allowbreak{}additive} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 75–88}
+\begin{leancode}
+\leanline{0}{theorem\ euler\_eq\_additive\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (r\ :\ ℝ)\ (hr\ :\ 0\ <\ r)\ (n\ :\ ℕ)\ :}
+\leanline{4}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{4}{euler\ P\ V\ hV\ r\ n\ =\ ULA.additiveEulerChain}
+\leanline{6}{(ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)\ hV.gradientLipschitz)\ r}
+\leanline{6}{(CanonicalSemigroup.initial\ P\ V\ hV)}
+\leanline{6}{(ULA.brownianLangevinNoise\ (actualProbability\ P\ V)\ (CanonicalSemigroup.brownian\ P)}
+\leanline{8}{(CanonicalSemigroup.brownian\_preBrownian\ P\ V\ hV)\ 0)\ n}
+\end{leancode}
+\leansource{\texttt{euler\_\allowbreak{}variable\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 92–104}
+\begin{leancode}
+\leanline{0}{theorem\ euler\_variable\_tendsto\ \{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (count\ :\ I\ →\ ℕ)\ (hstep\ :\ ∀\ i,\ 0\ <\ step\ i)}
+\leanline{4}{(hmesh\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hbound\ :\ ∀\ i,\ (count\ i\ :\ ℝ)\ *\ step\ i\ ≤\ T)}
+\leanline{4}{(t\ :\ ℝ)\ (htime\ :\ Tendsto\ (fun\ i\ ↦\ (count\ i\ :\ ℝ)\ *\ step\ i)\ l\ ({\leanfallback 𝓝}\ t))\ :}
+\leanline{4}{Tendsto\ (fun\ i\ ↦\ euler\ P\ V\ hV\ (step\ i)\ (count\ i))\ l}
+\leanline{6}{({\leanfallback 𝓝}\ (CanonicalSemigroup.state\ P\ V\ hV\ t))}
+\end{leancode}
+\leansource{\texttt{liftedEuler\_\allowbreak{}variable\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 107–116}
+\begin{leancode}
+\leanline{0}{theorem\ liftedEuler\_variable\_tendsto\ \{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (count\ :\ I\ →\ ℕ)\ (hstep\ :\ ∀\ i,\ 0\ <\ step\ i)}
+\leanline{4}{(hmesh\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hbound\ :\ ∀\ i,\ (count\ i\ :\ ℝ)\ *\ step\ i\ ≤\ T)}
+\leanline{4}{(t\ :\ ℝ)\ (htime\ :\ Tendsto\ (fun\ i\ ↦\ (count\ i\ :\ ℝ)\ *\ step\ i)\ l\ ({\leanfallback 𝓝}\ t))\ :}
+\leanline{4}{Tendsto\ (fun\ i\ ↦\ stateLift\ P\ V\ (euler\ P\ V\ hV\ (step\ i)\ (count\ i)))\ l}
+\leanline{6}{({\leanfallback 𝓝}\ (diffusion\ P\ V\ hV\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{state\allowbreak{}Lift} is actual product-projection pullback and \texttt{diffusion} lifts the canonical global state. The Gaussian/\allowbreak{}Brownian and Euler/\allowbreak{}additive identities identify the concrete recursions before invoking moving-step Euler convergence.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.16.1]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.32.13]{LangevinLean2026ULASC}; \cite[Section~3.42.5]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.14.1]{LangevinLean2026Kinetic}.
+
+\section{\texorpdfstring{Rejections vanish on a bounded elapsed horizon}{Rejections vanish on a bounded elapsed horizon}}
+
+
+\textbf{Claim.} The expected MALA/\allowbreak{}Euler distance is at most \(nCr\sqrt r\). For bounded elapsed time \(nr\le T\), it tends to zero as \(r\to0\), so the actual MALA endpoint converges in measure to the actual diffusion endpoint.
+
+
+
+\textbf{Proof.} Transfer the proved cumulative rejection bound to the genuine canonical random coupling. Its upper bound is at most \(TC\sqrt r\). The actual Euler endpoint converges strongly, hence in mean and in measure, to the diffusion. Add the two mean-distance estimates and use the integral criterion for convergence in measure. Required small-step restrictions hold eventually as the mesh tends to zero.
+
+\begin{leanbox}{Lean: \texttt{mala\_\allowbreak{}euler\_\allowbreak{}integral\_\allowbreak{}le}, \texttt{mala\_\allowbreak{}variable\_\allowbreak{}tendstoInMeasure}}
+\leansource{\texttt{mala\_\allowbreak{}euler\_\allowbreak{}integral\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 119–136}
+\begin{leancode}
+\leanline{0}{theorem\ mala\_euler\_integral\_le\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (r\ :\ ℝ)\ (hr\ :\ 0\ <\ r)\ (hr1\ :\ r\ ≤\ 1)}
+\leanline{4}{(hsmall\ :\ r\ ≤\ 2\ /\ (P.alpha\ +\ P.beta))\ (n\ :\ ℕ)\ :}
+\leanline{4}{(∫\ ω,\ ‖mala\ P\ V\ hV\ r\ hr\ n\ ω\ -\ stateLift\ P\ V\ (euler\ P\ V\ hV\ r\ n)\ ω‖}
+\leanline{6}{∂probability\ P\ V)\ ≤}
+\leanline{6}{(n\ :\ ℝ)\ *\ ULA.malaRejectionConstant\ V\ ⟨P.beta,\ P.beta\_pos.le⟩\ *\ r\ *\ Real.sqrt\ r}
+\end{leancode}
+\leansource{\texttt{mala\_\allowbreak{}variable\_\allowbreak{}tendstoInMeasure} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 141–196}
+\begin{leancode}
+\leanline{0}{theorem\ mala\_variable\_tendstoInMeasure\ \{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (count\ :\ I\ →\ ℕ)\ (hstep\ :\ ∀\ i,\ 0\ <\ step\ i)}
+\leanline{4}{(hmesh\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hbound\ :\ ∀\ i,\ (count\ i\ :\ ℝ)\ *\ step\ i\ ≤\ T)}
+\leanline{4}{(t\ :\ ℝ)\ (htime\ :\ Tendsto\ (fun\ i\ ↦\ (count\ i\ :\ ℝ)\ *\ step\ i)\ l\ ({\leanfallback 𝓝}\ t))\ :}
+\leanline{4}{TendstoInMeasure\ (probability\ P\ V)}
+\leanline{6}{(fun\ i\ ω\ ↦\ mala\ P\ V\ hV\ (step\ i)\ (hstep\ i)\ (count\ i)\ ω)\ l}
+\leanline{6}{(diffusion\ P\ V\ hV\ t)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\_\allowbreak{}euler\_\allowbreak{}integral\_\allowbreak{}le} specializes the actual random-coupling estimate. \texttt{mala\_\allowbreak{}variable\_\allowbreak{}tendsto\allowbreak{}In\allowbreak{}Measure} proves eventual step restrictions, controls cumulative rejections by the elapsed horizon, combines the Euler limit and applies the mean-norm convergence criterion.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.34.22]{LangevinLean2026ULASC}; \cite[Section~3.34.23]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Strong convergence of the actual observable operators}{Strong convergence of the actual observable operators}}
+
+
+\textbf{Claim.} For every square-integrable Gibbs observable \(f\), actual MALA evaluations converge in \(L^2\) to diffusion evaluation; their compressed operators converge strongly to \(P_tf\).
+
+
+
+\textbf{Proof.} Every MALA endpoint has the exact Gibbs law. The actual diffusion limit has that same law, so stationary-observable convergence upgrades convergence in measure of states to strong convergence of every evaluated observable. Diffusion evaluation on the extension is exactly the source-lift of original evaluation. The common lift is an isometry, so compression removes it. Boundedness of the fixed initial adjoint then passes evaluation convergence to the actual compressed operators.
+
+\begin{leanbox}{Lean: \texttt{malaEvaluation}, \texttt{diffusionEvaluation}, \texttt{malaEvaluation\_\allowbreak{}variable\_\allowbreak{}tendsto} and 4 more}
+\leansource{\texttt{malaEvaluation} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 202–205}
+\begin{leancode}
+\leanline{0}{def\ malaEvaluation\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (r\ :\ ℝ)\ (hr\ :\ 0\ <\ r)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →ₗᵢ[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (probability\ P\ V)\ :=}
+\leanline{2}{StationaryObservables.evaluation\ \_\ \_\ (mala\ P\ V\ hV\ r\ hr\ n)\ (mala\_law\ P\ V\ hV\ r\ hr\ n)}
+\end{leancode}
+\leansource{\texttt{diffusionEvaluation} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 208–211}
+\begin{leancode}
+\leanline{0}{def\ diffusionEvaluation\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →ₗᵢ[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (probability\ P\ V)\ :=}
+\leanline{2}{StationaryObservables.evaluation\ \_\ \_\ (diffusion\ P\ V\ hV\ t)\ (diffusion\_law\ P\ V\ hV\ t)}
+\end{leancode}
+\leansource{\texttt{malaEvaluation\_\allowbreak{}variable\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 216–231}
+\begin{leancode}
+\leanline{0}{theorem\ malaEvaluation\_variable\_tendsto\ [NormedSpace\ ℝ\ F]}
+\leanline{4}{\{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}\ [l.IsCountablyGenerated]}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (count\ :\ I\ →\ ℕ)\ (hstep\ :\ ∀\ i,\ 0\ <\ step\ i)}
+\leanline{4}{(hmesh\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hbound\ :\ ∀\ i,\ (count\ i\ :\ ℝ)\ *\ step\ i\ ≤\ T)}
+\leanline{4}{(t\ :\ ℝ)\ (htime\ :\ Tendsto\ (fun\ i\ ↦\ (count\ i\ :\ ℝ)\ *\ step\ i)\ l\ ({\leanfallback 𝓝}\ t))}
+\leanline{4}{(f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{Tendsto\ (fun\ i\ ↦\ malaEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ (step\ i)\ (hstep\ i)\ (count\ i)\ f)\ l}
+\leanline{6}{({\leanfallback 𝓝}\ (diffusionEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ t\ f))}
+\end{leancode}
+\leansource{\texttt{diffusionEvaluation\_\allowbreak{}eq\_\allowbreak{}lift} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 235–247}
+\begin{leancode}
+\leanline{0}{theorem\ diffusionEvaluation\_eq\_lift\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ :}
+\leanline{4}{diffusionEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ P\ V\ hV\ t\ =}
+\leanline{6}{(Lp.compMeasurePreservingₗᵢ\ {\leanfallback 𝕜}\ Prod.fst}
+\leanline{8}{(measurePreserving\_fst\ (μ\ :=\ actualProbability\ P\ V)\ (ν\ :=\ uniformPath))).comp}
+\leanline{8}{(CanonicalSemigroup.evaluation\ P\ V\ hV\ t)}
+\end{leancode}
+\leansource{\texttt{diffusion\_\allowbreak{}compression} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 251–256}
+\begin{leancode}
+\leanline{0}{theorem\ diffusion\_compression\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ :}
+\leanline{4}{ObservableTransition.compression\ (diffusionEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ P\ V\ hV\ 0)}
+\leanline{6}{(diffusionEvaluation\ P\ V\ hV\ t)\ =\ CanonicalSemigroup.op\ P\ V\ hV\ t}
+\end{leancode}
+\leansource{\texttt{malaOp} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 259–263}
+\begin{leancode}
+\leanline{0}{def\ malaOp\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (r\ :\ ℝ)\ (hr\ :\ 0\ <\ r)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →L[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ :=}
+\leanline{2}{ObservableTransition.compression\ (diffusionEvaluation\ P\ V\ hV\ 0)}
+\leanline{4}{(malaEvaluation\ P\ V\ hV\ r\ hr\ n)}
+\end{leancode}
+\leansource{\texttt{malaOp\_\allowbreak{}variable\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupApproximation.lean, lines 266–279}
+\begin{leancode}
+\leanline{0}{theorem\ malaOp\_variable\_tendsto\ [NormedSpace\ ℝ\ F]}
+\leanline{4}{\{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}\ [l.IsCountablyGenerated]}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (count\ :\ I\ →\ ℕ)\ (hstep\ :\ ∀\ i,\ 0\ <\ step\ i)}
+\leanline{4}{(hmesh\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))\ (T\ :\ ℝ)\ (hT\ :\ 0\ ≤\ T)}
+\leanline{4}{(hbound\ :\ ∀\ i,\ (count\ i\ :\ ℝ)\ *\ step\ i\ ≤\ T)}
+\leanline{4}{(t\ :\ ℝ)\ (htime\ :\ Tendsto\ (fun\ i\ ↦\ (count\ i\ :\ ℝ)\ *\ step\ i)\ l\ ({\leanfallback 𝓝}\ t))}
+\leanline{4}{(f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{Tendsto\ (fun\ i\ ↦\ malaOp\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ (step\ i)\ (hstep\ i)\ (count\ i)\ f)\ l}
+\leanline{6}{({\leanfallback 𝓝}\ (CanonicalSemigroup.op\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ t\ f))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mala\allowbreak{}Evaluation} and \texttt{diffusion\allowbreak{}Evaluation} are actual stationary pullbacks. The evaluation-limit theorem applies the proved stationary convergence result. \texttt{diffusion\allowbreak{}Evaluation\_\allowbreak{}eq\_\allowbreak{}lift} and \texttt{diffusion\_\allowbreak{}compression} remove the independent extension. \texttt{mala\allowbreak{}Op\_\allowbreak{}variable\_\allowbreak{}tendsto} passes the limit through the fixed adjoint compression.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\bibitem[Kinetic]{LangevinLean2026Kinetic}
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b2fee42a9593. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

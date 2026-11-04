@@ -1,0 +1,181 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Stationary evaluation of the constructed Poisson corrector}{Stationary evaluation of the constructed Poisson corrector}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+A real observable transition and its genuine bounded Poisson corrector can be evaluated along a stationary Markov process. The resulting corrector increments, exact coboundary decomposition and centered martingale residual inherit the same constants, including the residual coefficient \(18\).
+
+
+\section{\texorpdfstring{The stationary Markov evaluation identity}{The stationary Markov evaluation identity}}
+
+
+\textbf{Claim.} For stationary isometric evaluations \(U_n\) and transition \(P\), with \(\mathbb E[U_{n+1}f\mid\mathcal F_n]=U_nPf\),
+
+\[\|U_{n+1}f-U_nf\|_2^2=2\langle f,(I-P)f\rangle.\]
+
+\textbf{Proof.} Adaptation makes current evaluation fixed by conditional expectation. Its orthogonal-projection pairing identity replaces the two-time cross term by \(\langle U_nf,U_nPf\rangle\). The evaluation isometry transfers this pairing and both square norms to the observable space. Expanding the square gives the formula.
+
+\begin{leanbox}{Lean: \texttt{PoissonProcess}, \texttt{condExp\_\allowbreak{}eval\_\allowbreak{}self}, \texttt{eval\_\allowbreak{}increment\_\allowbreak{}norm\_\allowbreak{}sq}}
+\leansource{\texttt{PoissonProcess} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 29–43}
+\begin{leancode}
+\leanline{0}{structure\ PoissonProcess\ (Q\ :\ Measure\ Ω)\ (h\ :\ ℝ)\ (hh\ :\ 0\ <\ h)\ where}
+\leanline{2}{transition\ :\ H\ →L[ℝ]\ H}
+\leanline{2}{corrector\ :\ H\ →L[ℝ]\ H}
+\leanline{2}{poissonSource\ :\ H\ →L[ℝ]\ H}
+\leanline{2}{corrector\_norm\ :\ ∀\ f,\ ‖corrector\ f‖\ ≤\ h\ *\ ‖f‖}
+\leanline{2}{corrector\_energy\ :\ ∀\ f,}
+\leanline{4}{inner\ ℝ\ (corrector\ f)\ (corrector\ f\ -\ transition\ (corrector\ f))\ ≤}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ inner\ ℝ\ f\ (f\ -\ transition\ f)}
+\leanline{2}{poisson\_identity\ :\ ∀\ f,\ corrector\ f\ -\ transition\ (corrector\ f)\ =\ poissonSource\ f}
+\leanline{2}{filtration\ :\ Filtration\ ℕ\ ‹MeasurableSpace\ Ω›}
+\leanline{2}{eval\ :\ ℕ\ →\ H\ →ₗᵢ[ℝ]\ Lp\ E\ 2\ Q}
+\leanline{2}{adapted\ :\ ∀\ n\ f,\ AEStronglyMeasurable[filtration\ n]\ (eval\ n\ f)\ Q}
+\leanline{2}{markov\ :\ ∀\ n\ f,}
+\leanline{4}{(condExpL2\ E\ ℝ\ (filtration.le\ n)\ (eval\ (n\ +\ 1)\ f)\ :\ Lp\ E\ 2\ Q)\ =}
+\leanline{6}{eval\ n\ (transition\ f)}
+\end{leancode}
+\leansource{\texttt{condExp\_\allowbreak{}eval\_\allowbreak{}self} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 52–57}
+\begin{leancode}
+\leanline{0}{theorem\ condExp\_eval\_self\ (f\ :\ H)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(condExpL2\ E\ ℝ\ (S.filtration.le\ n)\ (S.eval\ n\ f)\ :\ Lp\ E\ 2\ Q)\ =\ S.eval\ n\ f}
+\end{leancode}
+\leansource{\texttt{eval\_\allowbreak{}increment\_\allowbreak{}norm\_\allowbreak{}sq} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 61–70}
+\begin{leancode}
+\leanline{0}{theorem\ eval\_increment\_norm\_sq\ (f\ :\ H)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.eval\ (n\ +\ 1)\ f\ -\ S.eval\ n\ f‖\ \textasciicircum{}\ 2\ =}
+\leanline{6}{2\ *\ inner\ ℝ\ f\ (f\ -\ S.transition\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Poisson\allowbreak{}Process} packages a transition, the constructed-corrector properties and actual evaluation/\allowbreak{}Markov data for reuse. \texttt{cond\allowbreak{}Exp\_\allowbreak{}eval\_\allowbreak{}self} uses measurability of current evaluations. \texttt{eval\_\allowbreak{}increment\_\allowbreak{}norm\_\allowbreak{}sq} applies the actual conditional-expectation inner-product identity.
+\end{leanbox}
+
+\section{\texorpdfstring{The evaluated corrector and its increment energy}{The evaluated corrector and its increment energy}}
+
+
+\textbf{Claim.} For \(g_n=U_nG_hf\),
+
+\[\|g_n\|_2\le h\|f\|,\qquad \|g_{n+1}-g_n\|_2^2\le h^2\|U_{n+1}f-U_nf\|_2^2.\]
+
+\textbf{Proof.} The norm bound is the corrector operator bound transported through the isometry. For the increment, use the preceding stationary increment formula for \(G_hf\), then apply the proved corrector Dirichlet estimate and the same formula for \(f\). Thus an actual score-increment bound \(6h\beta^2d\) implies the corrector-increment bound \(6h^3\beta^2d\). Adaptation follows from the actual evaluation property.
+
+\begin{leanbox}{Lean: \texttt{correctorAt}, \texttt{correctorAt\_\allowbreak{}adapted}, \texttt{correctorAt\_\allowbreak{}norm\_\allowbreak{}le} and 3 more}
+\leansource{\texttt{correctorAt} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 73–74}
+\begin{leancode}
+\leanline{0}{def\ correctorAt\ (f\ :\ H)\ (n\ :\ ℕ)\ :\ Lp\ E\ 2\ Q\ :=}
+\leanline{2}{S.eval\ n\ (S.corrector\ f)}
+\end{leancode}
+\leansource{\texttt{correctorAt\_\allowbreak{}adapted} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 78–80}
+\begin{leancode}
+\leanline{0}{theorem\ correctorAt\_adapted\ (f\ :\ H)\ (n\ :\ ℕ)\ :}
+\leanline{4}{AEStronglyMeasurable[S.filtration\ n]\ (S.correctorAt\ f\ n)\ Q}
+\end{leancode}
+\leansource{\texttt{correctorAt\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 83–86}
+\begin{leancode}
+\leanline{0}{theorem\ correctorAt\_norm\_le\ (f\ :\ H)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.correctorAt\ f\ n‖\ ≤\ h\ *\ ‖f‖}
+\end{leancode}
+\leansource{\texttt{correctorAt\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 89–94}
+\begin{leancode}
+\leanline{0}{theorem\ correctorAt\_norm\_sq\_le\ (f\ :\ H)\ (B\ :\ ℝ)\ (hscore\ :\ ‖f‖\ \textasciicircum{}\ 2\ ≤\ B)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.correctorAt\ f\ n‖\ \textasciicircum{}\ 2\ ≤\ h\ \textasciicircum{}\ 2\ *\ B}
+\end{leancode}
+\leansource{\texttt{correctorAt\_\allowbreak{}increment\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 98–105}
+\begin{leancode}
+\leanline{0}{theorem\ correctorAt\_increment\_norm\_sq\_le\ (f\ :\ H)\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.correctorAt\ f\ n\ -\ S.correctorAt\ f\ (n\ +\ 1)‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ ‖S.eval\ (n\ +\ 1)\ f\ -\ S.eval\ n\ f‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{correctorAt\_\allowbreak{}increment\_\allowbreak{}energy\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 108–112}
+\begin{leancode}
+\leanline{0}{theorem\ correctorAt\_increment\_energy\_le\ (f\ :\ H)\ (β\ d\ :\ ℝ)\ (n\ :\ ℕ)}
+\leanline{4}{(hincrement\ :\ ‖S.eval\ (n\ +\ 1)\ f\ -\ S.eval\ n\ f‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ h\ *\ β\ \textasciicircum{}\ 2\ *\ d)\ :}
+\leanline{4}{‖S.correctorAt\ f\ n\ -\ S.correctorAt\ f\ (n\ +\ 1)‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ h\ \textasciicircum{}\ 3\ *\ β\ \textasciicircum{}\ 2\ *\ d}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrector\allowbreak{}At} evaluates the existing corrector. Its norm and adaptation lemmas use the corresponding constructed properties. \texttt{corrector\allowbreak{}At\_\allowbreak{}increment\_\allowbreak{}norm\_\allowbreak{}sq\_\allowbreak{}le} rewrites both increments as energy pairings; the final energy lemma inserts the primitive score increment estimate.
+\end{leanbox}
+
+\section{\texorpdfstring{The true centered residual and coefficient eighteen}{The true centered residual and coefficient eighteen}}
+
+
+\textbf{Claim.} For a local defect \(D_n\), define \(M_n=D_n-(g_n-g_{n+1})\). Then \(D_n=g_n-g_{n+1}+M_n\). If its conditional mean is the evaluated Poisson source, \(\mathbb E[M_n\mid\mathcal F_n]=0\), and \(M_n\) is orthogonal to every current adapted square-integrable vector. If \(\|D_n\|_2^2\le3h^3\beta^2d\), then \(\|M_n\|_2^2\le18h^3\beta^2d\).
+
+
+
+\textbf{Proof.} The decomposition is algebraic. Conditional expectation of the corrector difference is the Poisson source by the Markov and Poisson identities, giving cancellation. Orthogonality follows from the conditional-expectation projection. Finally \(\|a-b\|^2\le2\|a\|^2+2\|b\|^2\) combines the independent constants \(3\) and \(6\).
+
+\begin{leanbox}{Lean: \texttt{martingaleAt}, \texttt{defect\_\allowbreak{}decomposition}, \texttt{martingaleAt\_\allowbreak{}condExp\_\allowbreak{}zero} and 2 more}
+\leansource{\texttt{martingaleAt} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 115–116}
+\begin{leancode}
+\leanline{0}{def\ martingaleAt\ (f\ :\ H)\ (D\ :\ ℕ\ →\ Lp\ E\ 2\ Q)\ (n\ :\ ℕ)\ :\ Lp\ E\ 2\ Q\ :=}
+\leanline{2}{D\ n\ -\ (S.correctorAt\ f\ n\ -\ S.correctorAt\ f\ (n\ +\ 1))}
+\end{leancode}
+\leansource{\texttt{defect\_\allowbreak{}decomposition} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 119–122}
+\begin{leancode}
+\leanline{0}{theorem\ defect\_decomposition\ (f\ :\ H)\ (D\ :\ ℕ\ →\ Lp\ E\ 2\ Q)\ (n\ :\ ℕ)\ :}
+\leanline{4}{D\ n\ =\ S.correctorAt\ f\ n\ -\ S.correctorAt\ f\ (n\ +\ 1)\ +\ S.martingaleAt\ f\ D\ n}
+\end{leancode}
+\leansource{\texttt{martingaleAt\_\allowbreak{}condExp\_\allowbreak{}zero} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 126–132}
+\begin{leancode}
+\leanline{0}{theorem\ martingaleAt\_condExp\_zero\ (f\ :\ H)\ (D\ :\ ℕ\ →\ Lp\ E\ 2\ Q)\ (n\ :\ ℕ)}
+\leanline{4}{(hmean\ :\ (condExpL2\ E\ ℝ\ (S.filtration.le\ n)\ (D\ n)\ :\ Lp\ E\ 2\ Q)\ =}
+\leanline{6}{S.eval\ n\ (S.poissonSource\ f))\ :}
+\leanline{4}{(condExpL2\ E\ ℝ\ (S.filtration.le\ n)\ (S.martingaleAt\ f\ D\ n)\ :\ Lp\ E\ 2\ Q)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{martingaleAt\_\allowbreak{}inner\_\allowbreak{}eq\_\allowbreak{}zero} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 135–144}
+\begin{leancode}
+\leanline{0}{theorem\ martingaleAt\_inner\_eq\_zero\ (f\ :\ H)\ (D\ :\ ℕ\ →\ Lp\ E\ 2\ Q)\ (n\ :\ ℕ)}
+\leanline{4}{(hmean\ :\ (condExpL2\ E\ ℝ\ (S.filtration.le\ n)\ (D\ n)\ :\ Lp\ E\ 2\ Q)\ =}
+\leanline{6}{S.eval\ n\ (S.poissonSource\ f))}
+\leanline{4}{(predictable\ :\ Lp\ E\ 2\ Q)}
+\leanline{4}{(hadapted\ :\ AEStronglyMeasurable[S.filtration\ n]\ predictable\ Q)\ :}
+\leanline{4}{inner\ ℝ\ predictable\ (S.martingaleAt\ f\ D\ n)\ =\ 0}
+\end{leancode}
+\leansource{\texttt{martingaleAt\_\allowbreak{}energy\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 148–156}
+\begin{leancode}
+\leanline{0}{theorem\ martingaleAt\_energy\_le\ (f\ :\ H)\ (D\ :\ ℕ\ →\ Lp\ E\ 2\ Q)\ (β\ d\ :\ ℝ)\ (n\ :\ ℕ)}
+\leanline{4}{(hdefect\ :\ ‖D\ n‖\ \textasciicircum{}\ 2\ ≤\ 3\ *\ h\ \textasciicircum{}\ 3\ *\ β\ \textasciicircum{}\ 2\ *\ d)}
+\leanline{4}{(hincrement\ :\ ‖S.eval\ (n\ +\ 1)\ f\ -\ S.eval\ n\ f‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ h\ *\ β\ \textasciicircum{}\ 2\ *\ d)\ :}
+\leanline{4}{‖S.martingaleAt\ f\ D\ n‖\ \textasciicircum{}\ 2\ ≤\ 18\ *\ h\ \textasciicircum{}\ 3\ *\ β\ \textasciicircum{}\ 2\ *\ d}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{martingale\allowbreak{}At} defines the actual residual. The centering proof uses linearity of \texttt{cond\allowbreak{}Exp\allowbreak{}L2}, adaptation, the Markov identity and the proved Poisson equation. The energy theorem combines the previously proved defect and corrector-increment bounds; no residual-energy conclusion is a primitive input.
+\end{leanbox}
+
+\end{document}

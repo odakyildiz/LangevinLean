@@ -15,7 +15,7 @@ const {chromium, webkit} = require('playwright');
 const ROOT = path.resolve(process.env.THEME_QA_ROOT || path.join(__dirname, '..'));
 const VIEWPORTS = [320, 375, 768, 1024, 1440];
 const HOMES = ['UnadjustedLangevin', 'IPLA', 'UnadjustedLangevin/LSI', 'IPLA/LSI',
-  'ProximalLangevin', 'KineticLangevin', 'KIPLMC', 'PBGSO', 'LatentDiffusion', 'AverageLMC'].map(key => key + '/exposition/index.html');
+  'ProximalLangevin', 'KineticLangevin', 'KIPLMC', 'PBGSO', 'LatentDiffusion', 'AverageLMC', 'WassersteinMixing'].map(key => key + '/exposition/index.html');
 const ARCHIVES = ['UnadjustedLangevin/exposition/dist/index.html', 'IPLA/exposition/proof.html',
   'UnadjustedLangevin/LSI/exposition/proof.html', 'IPLA/LSI/exposition/proof.html',
   'ProximalLangevin/exposition/proof.html'];

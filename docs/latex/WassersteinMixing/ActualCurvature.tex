@@ -1,0 +1,122 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The actual synchronous curvature operator}{The actual synchronous curvature operator}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Evaluate the previously constructed random segment Hessian between the actual reference \(Y_{nh}\) and Euler state \(X_n\). Its secant identity turns the true gradient difference in the error update into an actual symmetric bounded operator, retaining the original curvature bounds.
+
+
+\section{\texorpdfstring{Identifying the true error operator}{Identifying the true error operator}}
+
+
+\textbf{Claim.} With \(A_n(\omega)=\overline A(Y_{nh}(\omega),X_n(\omega))\), the exact error recursion is
+
+\[e_{n+1}=e_n-hA_ne_n+D_n.\]
+
+\textbf{Proof.} The actual random-curvature construction gives a bounded operator on the common \(L^2\) space. Its secant identity is precisely \(A_ne_n=\nabla V(Y_{nh})-\nabla V(X_n)\). Substitution into the previously derived synchronous update gives the displayed equality.
+
+\begin{leanbox}{Lean: \texttt{actualCurvature}, \texttt{actual\_\allowbreak{}curvature\_\allowbreak{}error\_\allowbreak{}step}}
+\leansource{\texttt{actualCurvature} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 18–22}
+\begin{leancode}
+\leanline{0}{def\ actualCurvature\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ →L[ℝ]}
+\leanline{6}{Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=}
+\leanline{2}{randomCurvature\ (actualProbability\ P\ V)\ P\ V\ hV}
+\leanline{4}{(actualReference\ P\ V\ hV\ n)\ (actualChain\ P\ V\ hV\ n)}
+\end{leancode}
+\leansource{\texttt{actual\_\allowbreak{}curvature\_\allowbreak{}error\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 25–37}
+\begin{leancode}
+\leanline{0}{theorem\ actual\_curvature\_error\_step\ (n\ :\ ℕ)\ :}
+\leanline{4}{actualReference\ P\ V\ hV\ (n\ +\ 1)\ -\ actualChain\ P\ V\ hV\ (n\ +\ 1)\ =}
+\leanline{6}{(actualReference\ P\ V\ hV\ n\ -\ actualChain\ P\ V\ hV\ n)\ -}
+\leanline{8}{P.step\ •\ actualCurvature\ P\ V\ hV\ n\ (actualReference\ P\ V\ hV\ n\ -\ actualChain\ P\ V\ hV\ n)\ +}
+\leanline{10}{actualDefect\ P\ V\ hV\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Curvature} specializes \texttt{random\allowbreak{}Curvature} to the actual two states. \texttt{actual\_\allowbreak{}curvature\_\allowbreak{}error\_\allowbreak{}step} rewrites the genuine gradient difference using \texttt{random\allowbreak{}Curvature\_\allowbreak{}secant}.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Curvature and measurable-past properties}{Curvature and measurable-past properties}}
+
+
+\textbf{Claim.} The actual operator is symmetric, \(\alpha\|U\|_2^2\le\langle U,A_nU\rangle\le\beta\|U\|_2^2\), and it preserves measurability with respect to any sub-sigma-algebra that contains both current states.
+
+
+
+\textbf{Proof.} These are the integrated properties of the true averaged Hessian. For adaptation, the field depends continuously on the two current states; evaluating it on a measurable vector therefore remains measurable with respect to the same information.
+
+\begin{leanbox}{Lean: \texttt{actualCurvature\_\allowbreak{}symmetric}, \texttt{actualCurvature\_\allowbreak{}lower}, \texttt{actualCurvature\_\allowbreak{}upper} and 1 more}
+\leansource{\texttt{actualCurvature\_\allowbreak{}symmetric} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 39–42}
+\begin{leancode}
+\leanline{0}{theorem\ actualCurvature\_symmetric\ (n\ :\ ℕ)}
+\leanline{4}{(u\ v\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V))\ :}
+\leanline{4}{inner\ ℝ\ (actualCurvature\ P\ V\ hV\ n\ u)\ v\ =\ inner\ ℝ\ u\ (actualCurvature\ P\ V\ hV\ n\ v)}
+\end{leancode}
+\leansource{\texttt{actualCurvature\_\allowbreak{}lower} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 44–46}
+\begin{leancode}
+\leanline{0}{theorem\ actualCurvature\_lower\ (n\ :\ ℕ)\ (u\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V))\ :}
+\leanline{4}{P.alpha\ *\ ‖u‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ u\ (actualCurvature\ P\ V\ hV\ n\ u)}
+\end{leancode}
+\leansource{\texttt{actualCurvature\_\allowbreak{}upper} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 48–50}
+\begin{leancode}
+\leanline{0}{theorem\ actualCurvature\_upper\ (n\ :\ ℕ)\ (u\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V))\ :}
+\leanline{4}{inner\ ℝ\ u\ (actualCurvature\ P\ V\ hV\ n\ u)\ ≤\ P.beta\ *\ ‖u‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{actualCurvature\_\allowbreak{}adapted} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 54–61}
+\begin{leancode}
+\leanline{0}{theorem\ actualCurvature\_adapted\ (m\ :\ MeasurableSpace\ (ActualSpace\ P))\ (n\ :\ ℕ)}
+\leanline{4}{(u\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V))}
+\leanline{4}{(hX\ :\ AEStronglyMeasurable[m]\ (actualReference\ P\ V\ hV\ n)\ (actualProbability\ P\ V))}
+\leanline{4}{(hY\ :\ AEStronglyMeasurable[m]\ (actualChain\ P\ V\ hV\ n)\ (actualProbability\ P\ V))}
+\leanline{4}{(hu\ :\ AEStronglyMeasurable[m]\ u\ (actualProbability\ P\ V))\ :}
+\leanline{4}{AEStronglyMeasurable[m]\ (actualCurvature\ P\ V\ hV\ n\ u)\ (actualProbability\ P\ V)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The symmetry and form estimates specialize the proved random-curvature theorems. \texttt{actual\allowbreak{}Curvature\_\allowbreak{}adapted} applies their sub-sigma-algebra measurability result to the actual reference and chain.
+\end{leanbox}
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

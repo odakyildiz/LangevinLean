@@ -1,0 +1,174 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Curvature, shifted errors and genuine conditional centering}{Curvature, shifted errors and genuine conditional centering}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+This section derives the deterministic weighted interpolation inequality and uses the actual conditional-expectation projection in \(L^2\) to remove the martingale cross term. These general inequalities take an exact error recursion, curvature bounds and conditional centering as hypotheses. The actual averaged-Hessian construction, conditional defect mean and realized stationary comparison prove all those hypotheses for the genuine Langevin and ULA processes.
+
+
+\section{\texorpdfstring{Positive contractions and weighted interpolation}{Positive contractions and weighted interpolation}}
+
+
+\textbf{Claim.} Let \(T\) be a self-adjoint linear operator on a real inner product space with \(0\le\langle x,Tx\rangle\le\|x\|^2\). Then \(\|Tx\|^2\le\langle x,Tx\rangle\). If additionally \(a\|x\|^2\le\langle x,Tx\rangle\le b\|x\|^2\), then
+
+\[\|u-Tu+Tv\|^2\le(1-a)\|u\|^2+b\|v\|^2.\]
+
+
+\textbf{Proof.} The quadratic function \(F(x)=\langle x,Tx\rangle/2\) has gradient \(Tx\). Positivity and the upper quadratic bound give its convex lower model and unit-smooth upper model. The resulting gradient inequality yields \(\|Tx\|^2\le\langle x,Tx\rangle\). Expanding \(\|u+T(v-u)\|^2\), applying this inequality to \(v-u\), and using symmetry gives the sharper upper bound \(\|u\|^2-\langle u,Tu\rangle+\langle v,Tv\rangle\). The two quadratic-form bounds finish the proof.
+
+
+
+
+For \(T=hA\), where \(A\) is self-adjoint with \(\alpha I\preceq A\preceq\beta I\), the restriction \(h\beta\le1\) supplies \(0\preceq T\preceq I\). Taking \(a=\alpha h\), \(b=\beta h\) gives
+
+\[\|u-hAu+hAv\|^2\le(1-\alpha h)\|u\|^2+h\beta\|v\|^2.\]\begin{leanbox}{Lean: \texttt{positive\_\allowbreak{}contraction\_\allowbreak{}cocoercive}, \texttt{weighted\_\allowbreak{}interpolation}, \texttt{curvature\_\allowbreak{}weighted\_\allowbreak{}interpolation}}
+\leansource{\texttt{positive\_\allowbreak{}contraction\_\allowbreak{}cocoercive} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 23–50}
+\begin{leancode}
+\leanline{0}{theorem\ positive\_contraction\_cocoercive\ (T\ :\ H\ →L[ℝ]\ H)}
+\leanline{4}{(hsym\ :\ ∀\ x\ y,\ inner\ ℝ\ (T\ x)\ y\ =\ inner\ ℝ\ x\ (T\ y))}
+\leanline{4}{(hpos\ :\ ∀\ x,\ 0\ ≤\ inner\ ℝ\ x\ (T\ x))}
+\leanline{4}{(hupper\ :\ ∀\ x,\ inner\ ℝ\ x\ (T\ x)\ ≤\ ‖x‖\ \textasciicircum{}\ 2)\ (x\ :\ H)\ :}
+\leanline{4}{‖T\ x‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ x\ (T\ x)}
+\end{leancode}
+\leansource{\texttt{weighted\_\allowbreak{}interpolation} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 53–69}
+\begin{leancode}
+\leanline{0}{theorem\ weighted\_interpolation\ (T\ :\ H\ →L[ℝ]\ H)\ (a\ b\ :\ ℝ)}
+\leanline{4}{(hsym\ :\ ∀\ x\ y,\ inner\ ℝ\ (T\ x)\ y\ =\ inner\ ℝ\ x\ (T\ y))}
+\leanline{4}{(hpos\ :\ ∀\ x,\ 0\ ≤\ inner\ ℝ\ x\ (T\ x))}
+\leanline{4}{(hupper\ :\ ∀\ x,\ inner\ ℝ\ x\ (T\ x)\ ≤\ ‖x‖\ \textasciicircum{}\ 2)}
+\leanline{4}{(hlower\ :\ ∀\ x,\ a\ *\ ‖x‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ x\ (T\ x))}
+\leanline{4}{(hbound\ :\ ∀\ x,\ inner\ ℝ\ x\ (T\ x)\ ≤\ b\ *\ ‖x‖\ \textasciicircum{}\ 2)\ (u\ v\ :\ H)\ :}
+\leanline{4}{‖u\ -\ T\ u\ +\ T\ v‖\ \textasciicircum{}\ 2\ ≤\ (1\ -\ a)\ *\ ‖u‖\ \textasciicircum{}\ 2\ +\ b\ *\ ‖v‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{curvature\_\allowbreak{}weighted\_\allowbreak{}interpolation} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 72–93}
+\begin{leancode}
+\leanline{0}{theorem\ curvature\_weighted\_interpolation\ (P\ :\ Parameters)\ (A\ :\ H\ →L[ℝ]\ H)}
+\leanline{4}{(hsym\ :\ ∀\ x\ y,\ inner\ ℝ\ (A\ x)\ y\ =\ inner\ ℝ\ x\ (A\ y))}
+\leanline{4}{(hlower\ :\ ∀\ x,\ P.alpha\ *\ ‖x‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ x\ (A\ x))}
+\leanline{4}{(hupper\ :\ ∀\ x,\ inner\ ℝ\ x\ (A\ x)\ ≤\ P.beta\ *\ ‖x‖\ \textasciicircum{}\ 2)\ (u\ v\ :\ H)\ :}
+\leanline{4}{‖u\ -\ P.step\ •\ A\ u\ +\ P.step\ •\ A\ v‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{P.contraction\ *\ ‖u‖\ \textasciicircum{}\ 2\ +\ P.step\ *\ P.beta\ *\ ‖v‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{positive\_\allowbreak{}contraction\_\allowbreak{}cocoercive} derives the gradient inequality from explicit quadratic models using the shared ULA result. \texttt{weighted\_\allowbreak{}interpolation} expands the squared norm and applies the two quadratic-form estimates. \texttt{curvature\_\allowbreak{}weighted\_\allowbreak{}interpolation} constructs the scaled operator and checks all required signs from \texttt{Parameters}.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.10.1]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The shifted identity and the martingale residual constant}{The shifted identity and the martingale residual constant}}
+
+
+\textbf{Claim.} If \(z^+=z-hAz+D\) and \(D=g-g^++M\), then
+
+\[z^++g^+=(z+g)-hA(z+g)+hAg+M.\]
+
+
+This follows by substituting the two equalities and cancelling the added terms. If \(\langle U,M\rangle=0\), expanding the square gives \(\|U+M\|^2=\|U\|^2+\|M\|^2\).
+
+
+
+
+For any real \(c\), if \(\|D\|^2\le3c\) and \(\|J\|^2\le6c\), then
+
+\[\|D-J\|^2\le18c.\]
+
+
+Indeed the triangle inequality and \(2ab\le a^2+b^2\) give \(\|D-J\|^2\le2\|D\|^2+2\|J\|^2\le18c\). This is the source's residual constant, derived from its two separate estimates.
+
+\begin{leanbox}{Lean: \texttt{shifted\_\allowbreak{}error\_\allowbreak{}identity}, \texttt{centered\_\allowbreak{}energy\_\allowbreak{}identity}, \texttt{martingale\_\allowbreak{}residual\_\allowbreak{}bound}}
+\leansource{\texttt{shifted\_\allowbreak{}error\_\allowbreak{}identity} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 96–102}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_error\_identity\ (A\ :\ H\ →L[ℝ]\ H)\ (h\ :\ ℝ)}
+\leanline{4}{(z\ znext\ g\ gnext\ defect\ martingale\ :\ H)}
+\leanline{4}{(hstep\ :\ znext\ =\ z\ -\ h\ •\ A\ z\ +\ defect)}
+\leanline{4}{(hdefect\ :\ defect\ =\ g\ -\ gnext\ +\ martingale)\ :}
+\leanline{4}{znext\ +\ gnext\ =\ (z\ +\ g)\ -\ h\ •\ A\ (z\ +\ g)\ +\ h\ •\ A\ g\ +\ martingale}
+\end{leancode}
+\leansource{\texttt{centered\_\allowbreak{}energy\_\allowbreak{}identity} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 105–109}
+\begin{leancode}
+\leanline{0}{theorem\ centered\_energy\_identity\ (predictable\ martingale\ :\ H)}
+\leanline{4}{(horthogonal\ :\ inner\ ℝ\ predictable\ martingale\ =\ 0)\ :}
+\leanline{4}{‖predictable\ +\ martingale‖\ \textasciicircum{}\ 2\ =\ ‖predictable‖\ \textasciicircum{}\ 2\ +\ ‖martingale‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{martingale\_\allowbreak{}residual\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 113–119}
+\begin{leancode}
+\leanline{0}{theorem\ martingale\_residual\_bound\ (D\ increment\ :\ H)\ (c\ :\ ℝ)}
+\leanline{4}{(hD\ :\ ‖D‖\ \textasciicircum{}\ 2\ ≤\ 3\ *\ c)\ (hg\ :\ ‖increment‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ c)\ :}
+\leanline{4}{‖D\ -\ increment‖\ \textasciicircum{}\ 2\ ≤\ 18\ *\ c}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{shifted\_\allowbreak{}error\_\allowbreak{}identity} proves the vector identity by linearity and module arithmetic. \texttt{centered\_\allowbreak{}energy\_\allowbreak{}identity} expands the actual Hilbert norm. \texttt{martingale\_\allowbreak{}residual\_\allowbreak{}bound} squares the triangle inequality and combines it with the nonnegative square of the difference of the two norms.
+\end{leanbox}
+
+\section{\texorpdfstring{Conditional expectation supplies the orthogonality}{Conditional expectation supplies the orthogonality}}
+
+
+\textbf{Claim.} Let \(U,M\in L^2(Q;H)\), let \(\mathcal G\) be a sub-\(\sigma\)-algebra, suppose \(U\) is \(\mathcal G\)-measurable and \(\mathbb E[M\mid\mathcal G]=0\). Then \(\langle U,M\rangle_{L^2}=0\). In particular, if \(\|U\|_{L^2}^2\le qE+\ell\), then
+
+\[\|U+M\|_{L^2}^2\le qE+\ell+\|M\|_{L^2}^2.\]
+
+
+\textbf{Proof.} Conditional expectation is the orthogonal projection onto the closed subspace of \(\mathcal G\)-measurable square-integrable vectors. Hence \(\langle M,U\rangle=\langle\mathbb E[M\mid\mathcal G],U\rangle=0\). Symmetry of the real inner product gives the claimed orientation. Substitute this equality into the squared-norm expansion and apply the predictable energy bound.
+
+\begin{leanbox}{Lean: \texttt{conditional\_\allowbreak{}centering\_\allowbreak{}orthogonal}, \texttt{conditional\_\allowbreak{}shifted\_\allowbreak{}energy}}
+\leansource{\texttt{conditional\_\allowbreak{}centering\_\allowbreak{}orthogonal} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 130–135}
+\begin{leancode}
+\leanline{0}{theorem\ conditional\_centering\_orthogonal\ \{m\ :\ MeasurableSpace\ Ω\}\ (hm\ :\ m\ ≤\ m0)}
+\leanline{4}{(M\ U\ :\ Lp\ H\ 2\ Q)\ (hU\ :\ AEStronglyMeasurable[m]\ U\ Q)}
+\leanline{4}{(hM\ :\ (condExpL2\ H\ ℝ\ hm\ M\ :\ Lp\ H\ 2\ Q)\ =\ 0)\ :\ inner\ ℝ\ U\ M\ =\ 0}
+\end{leancode}
+\leansource{\texttt{conditional\_\allowbreak{}shifted\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 139–146}
+\begin{leancode}
+\leanline{0}{theorem\ conditional\_shifted\_energy\ \{m\ :\ MeasurableSpace\ Ω\}\ (hm\ :\ m\ ≤\ m0)}
+\leanline{4}{(U\ M\ :\ Lp\ H\ 2\ Q)\ (hU\ :\ AEStronglyMeasurable[m]\ U\ Q)}
+\leanline{4}{(hM\ :\ (condExpL2\ H\ ℝ\ hm\ M\ :\ Lp\ H\ 2\ Q)\ =\ 0)}
+\leanline{4}{(q\ current\ forcing\ :\ ℝ)\ (hpredictable\ :\ ‖U‖\ \textasciicircum{}\ 2\ ≤\ q\ *\ current\ +\ forcing)\ :}
+\leanline{4}{‖U\ +\ M‖\ \textasciicircum{}\ 2\ ≤\ q\ *\ current\ +\ forcing\ +\ ‖M‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{conditional\_\allowbreak{}centering\_\allowbreak{}orthogonal} uses \texttt{inner\_\allowbreak{}cond\allowbreak{}Exp\allowbreak{}L2\_\allowbreak{}eq\_\allowbreak{}inner\_\allowbreak{}fun} for the actual conditional-expectation projection. \texttt{conditional\_\allowbreak{}shifted\_\allowbreak{}energy} applies this orthogonality and the exact energy identity before using the predictable estimate. It introduces no new axiom or substitute conditional-expectation operation.
+\end{leanbox}
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,223 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The stationary comparison and the sharp shifted-energy constants}{The stationary comparison and the sharp shifted-energy constants}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Combine a stationary evaluated Poisson corrector with a synchronous error update, an actual curvature operator and primitive score increments. The defect, martingale, shifted energy and transport bounds are all derived. The constants \(3\), \(18\), \(19\) and \(6\) appear as conclusions.
+
+
+
+Earlier results used here: \cite[Section~3.17]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The primitive comparison and shifted drift}{The primitive comparison and shifted drift}}
+
+
+\textbf{Set-up.} Let \(e_n=Y_n-X_n\), \(D_n=\int_0^h I_n(s)\,ds\), and let \(g_n\) be the evaluated corrector. Assume the exact update \(e_{n+1}=e_n-hA_ne_n+D_n\), stationary reference laws and equal initial states. The primitive score bounds are \(\|f\|^2\le\beta d\), \(\|I_n(s)\|^2\le6s\beta^2d\); the defect conditional mean is its evaluated Poisson source. Define
+
+\[Z_n=(e_n+g_n)-hA_n(e_n+g_n)+hA_ng_n.\]
+
+The symmetric curvature bounds and adaptation refer to the genuine \(L^2\) operator and current filtration.
+
+\begin{leanbox}{Lean: \texttt{PoissonComparison}, \texttt{error}, \texttt{defect} and 1 more}
+\leansource{\texttt{PoissonComparison} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 33–67}
+\begin{leancode}
+\leanline{0}{structure\ PoissonComparison\ (S\ :\ PoissonProcess\ H\ E\ Q\ P.step\ P.step\_pos)\ (score\ :\ H)\ where}
+\leanline{2}{reference\ :\ ℕ\ →\ Lp\ E\ 2\ Q}
+\leanline{2}{chain\ :\ ℕ\ →\ Lp\ E\ 2\ Q}
+\leanline{2}{increment\ :\ ℕ\ →\ ℝ\ →\ Lp\ E\ 2\ Q}
+\leanline{2}{curvature\ :\ ℕ\ →\ Lp\ E\ 2\ Q\ →L[ℝ]\ Lp\ E\ 2\ Q}
+\leanline{2}{score\_bound\ :\ ‖score‖\ \textasciicircum{}\ 2\ ≤\ P.beta\ *\ P.dimension}
+\leanline{2}{reference\_stationary\ :\ ∀\ n,\ Q.map\ (reference\ n)\ =\ Q.map\ (reference\ 0)}
+\leanline{2}{initial\_equal\ :\ reference\ 0\ =\ chain\ 0}
+\leanline{2}{increment\_memLp\ :\ ∀\ n,}
+\leanline{4}{MemLp\ (increment\ n)\ 2\ (volume.restrict\ (Set.Ioc\ 0\ P.step))}
+\leanline{2}{increment\_bound\ :\ ∀\ n,\ ∀\ s\ ∈\ Set.Ioc\ 0\ P.step,}
+\leanline{4}{‖increment\ n\ s‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ s\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\leanline{2}{increment\_endpoint\ :\ ∀\ n,}
+\leanline{4}{increment\ n\ P.step\ =\ S.eval\ n\ score\ -\ S.eval\ (n\ +\ 1)\ score}
+\leanline{2}{defect\_mean\ :\ ∀\ n,}
+\leanline{4}{(condExpL2\ E\ ℝ\ (S.filtration.le\ n)}
+\leanline{6}{(stationaryLocalDefect\ (increment\ n)\ P.step)\ :\ Lp\ E\ 2\ Q)\ =}
+\leanline{6}{S.eval\ n\ (S.poissonSource\ score)}
+\leanline{2}{error\_step\ :\ ∀\ n,}
+\leanline{4}{reference\ (n\ +\ 1)\ -\ chain\ (n\ +\ 1)\ =}
+\leanline{6}{(reference\ n\ -\ chain\ n)\ -\ P.step\ •\ curvature\ n\ (reference\ n\ -\ chain\ n)\ +}
+\leanline{8}{stationaryLocalDefect\ (increment\ n)\ P.step}
+\leanline{2}{error\_adapted\ :\ ∀\ n,}
+\leanline{4}{AEStronglyMeasurable[S.filtration\ n]\ (reference\ n\ -\ chain\ n)\ Q}
+\leanline{2}{curvature\_adapted\ :\ ∀\ n\ (U\ :\ Lp\ E\ 2\ Q),}
+\leanline{4}{AEStronglyMeasurable[S.filtration\ n]\ U\ Q\ →}
+\leanline{6}{AEStronglyMeasurable[S.filtration\ n]\ (curvature\ n\ U)\ Q}
+\leanline{2}{curvature\_symmetric\ :\ ∀\ n\ u\ v,}
+\leanline{4}{inner\ ℝ\ (curvature\ n\ u)\ v\ =\ inner\ ℝ\ u\ (curvature\ n\ v)}
+\leanline{2}{curvature\_lower\ :\ ∀\ n\ u,}
+\leanline{4}{P.alpha\ *\ ‖u‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ u\ (curvature\ n\ u)}
+\leanline{2}{curvature\_upper\ :\ ∀\ n\ u,}
+\leanline{4}{inner\ ℝ\ u\ (curvature\ n\ u)\ ≤\ P.beta\ *\ ‖u‖\ \textasciicircum{}\ 2}
+\leanline{0}{\strut}
+\leanline{0}{namespace\ PoissonComparison}
+\end{leancode}
+\leansource{\texttt{error} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 72–72}
+\begin{leancode}
+\leanline{0}{def\ error\ (n\ :\ ℕ)\ :\ Lp\ E\ 2\ Q\ :=\ C.reference\ n\ -\ C.chain\ n}
+\end{leancode}
+\leansource{\texttt{defect} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 75–75}
+\begin{leancode}
+\leanline{0}{def\ defect\ (n\ :\ ℕ)\ :\ Lp\ E\ 2\ Q\ :=\ stationaryLocalDefect\ (C.increment\ n)\ P.step}
+\end{leancode}
+\leansource{\texttt{predictable} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 78–83}
+\begin{leancode}
+\leanline{0}{def\ predictable\ (n\ :\ ℕ)\ :\ Lp\ E\ 2\ Q\ :=}
+\leanline{2}{(C.error\ n\ +\ S.correctorAt\ score\ n)\ -}
+\leanline{4}{P.step\ •\ C.curvature\ n\ (C.error\ n\ +\ S.correctorAt\ score\ n)\ +}
+\leanline{6}{P.step\ •\ C.curvature\ n\ (S.correctorAt\ score\ n)}
+\leanline{0}{\strut}
+\leanline{0}{include\ C\ in}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Poisson\allowbreak{}Comparison} contains the primitive random variables, integral increments, exact equation, moment/\allowbreak{}conditional-mean data, and curvature/\allowbreak{}adaptation facts. \texttt{error}, \texttt{defect} and \texttt{predictable} are their literal expressions. No corrector, martingale or final transport bound is a field.
+\end{leanbox}
+
+\section{\texorpdfstring{Deriving the component bounds and adaptation}{Deriving the component bounds and adaptation}}
+
+
+\textbf{Claim.}
+
+\[\|g_n\|^2\le h^2\beta d,\quad\|D_n\|^2\le3h^3\beta^2d,\quad\|M_n\|^2\le18h^3\beta^2d.\]
+
+\textbf{Proof.} Use the corrector norm bound and score moment for the first estimate. Time Cauchy–Schwarz and integration of the primitive increment bound give the second. The endpoint increment identifies the actual score difference, so the process corrector-increment bound and squared triangle inequality give the third. The shifted drift is adapted because the error and corrector are adapted and the actual curvature preserves the current measurable subspace.
+
+\begin{leanbox}{Lean: \texttt{corrector\_\allowbreak{}energy}, \texttt{defect\_\allowbreak{}energy}, \texttt{score\_\allowbreak{}increment\_\allowbreak{}energy} and 2 more}
+\leansource{\texttt{corrector\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 84–87}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_energy\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.correctorAt\ score\ n‖\ \textasciicircum{}\ 2\ ≤\ P.correctorBudget}
+\end{leancode}
+\leansource{\texttt{defect\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 89–93}
+\begin{leancode}
+\leanline{0}{theorem\ defect\_energy\ (n\ :\ ℕ)\ :\ ‖C.defect\ n‖\ \textasciicircum{}\ 2\ ≤\ 3\ *\ P.step\ \textasciicircum{}\ 3\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{score\_\allowbreak{}increment\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 94–99}
+\begin{leancode}
+\leanline{0}{theorem\ score\_increment\_energy\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.eval\ (n\ +\ 1)\ score\ -\ S.eval\ n\ score‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{6\ *\ P.step\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{martingale\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 101–104}
+\begin{leancode}
+\leanline{0}{theorem\ martingale\_energy\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖S.martingaleAt\ score\ C.defect\ n‖\ \textasciicircum{}\ 2\ ≤\ 18\ *\ P.step\ \textasciicircum{}\ 3\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{predictable\_\allowbreak{}adapted} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 106–122}
+\begin{leancode}
+\leanline{0}{theorem\ predictable\_adapted\ (n\ :\ ℕ)\ :}
+\leanline{4}{AEStronglyMeasurable[S.filtration\ n]\ (C.predictable\ n)\ Q}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The component energy theorems invoke the constructed process and local integral estimates. \texttt{score\_\allowbreak{}increment\_\allowbreak{}energy} uses the exact endpoint identity. \texttt{predictable\_\allowbreak{}adapted} proves closure inside the measurable submodule under the actual curvature action, sums and scalar multiplication.
+\end{leanbox}
+
+\section{\texorpdfstring{The coefficient nineteen and the final constant six}{The coefficient nineteen and the final constant six}}
+
+
+\textbf{Claim.} With \(u_n=\|e_n+g_n\|^2\),
+
+\[u_{n+1}\le(1-\alpha h)u_n+19h^3\beta^2d,\qquad \|e_n\|\le6h\sqrt{(\beta/\alpha)\beta d}.\]
+
+\textbf{Proof.} The exact coboundary decomposition gives \(e_{n+1}+g_{n+1}=Z_n+M_n\). Conditional centering makes their cross term zero. Weighted curvature interpolation bounds \(\|Z_n\|^2\) by \((1-\alpha h)u_n+h\beta\|g_n\|^2\). Adding the martingale bound gives the coefficient \(1+18=19\). Equal initial states bound \(u_0\) by the corrector budget. The scalar affine recurrence gives a uniform energy floor. Removing the corrector by triangle inequality and the proved numerical comparison gives the final constant \(6\).
+
+\begin{leanbox}{Lean: \texttt{shifted\_\allowbreak{}equation}, \texttt{shifted\_\allowbreak{}energy\_\allowbreak{}step}, \texttt{shifted\_\allowbreak{}energy\_\allowbreak{}bound} and 1 more}
+\leansource{\texttt{shifted\_\allowbreak{}equation} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 125–131}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_equation\ (n\ :\ ℕ)\ :}
+\leanline{4}{C.error\ (n\ +\ 1)\ +\ S.correctorAt\ score\ (n\ +\ 1)\ =}
+\leanline{6}{C.predictable\ n\ +\ S.martingaleAt\ score\ C.defect\ n}
+\end{leancode}
+\leansource{\texttt{shifted\_\allowbreak{}energy\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 134–148}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_energy\_step\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖C.error\ (n\ +\ 1)\ +\ S.correctorAt\ score\ (n\ +\ 1)‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{P.contraction\ *\ ‖C.error\ n\ +\ S.correctorAt\ score\ n‖\ \textasciicircum{}\ 2\ +\ P.energyForcing}
+\end{leancode}
+\leansource{\texttt{shifted\_\allowbreak{}energy\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 150–154}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_energy\_bound\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖C.error\ n\ +\ S.correctorAt\ score\ n‖\ \textasciicircum{}\ 2\ ≤\ P.energyFloor}
+\end{leancode}
+\leansource{\texttt{error\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}bias} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 157–159}
+\begin{leancode}
+\leanline{0}{theorem\ error\_norm\_le\_bias\ (n\ :\ ℕ)\ :\ ‖C.error\ n‖\ ≤\ P.bias}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{shifted\_\allowbreak{}equation} applies the exact algebraic shifted identity. \texttt{shifted\_\allowbreak{}energy\_\allowbreak{}step} combines weighted interpolation and actual martingale orthogonality. The recurrence and final norm theorems use the independently proved scalar recurrence results.
+\end{leanbox}
+
+\section{\texorpdfstring{Actual pushforward transport from the synchronous coupling}{Actual pushforward transport from the synchronous coupling}}
+
+
+\textbf{Claim.} The reference initial law and the actual chain law satisfy \(W_2(\operatorname{Law}(Y_0),\operatorname{Law}(X_n))\le6h\sqrt{(\beta/\alpha)\beta d}\), and this transport distance is finite.
+
+
+
+\textbf{Proof.} Stationarity replaces the initial reference law by the current reference law. The actual joint random variables \((Y_n,X_n)\) are an admissible coupling. Their \(L^2\) difference bounds its transport cost by the preceding error estimate. The same actual coupling proves finiteness before converting the extended-valued distance to a real number.
+
+\begin{leanbox}{Lean: \texttt{stationary\_\allowbreak{}transport\_\allowbreak{}bound}, \texttt{stationary\_\allowbreak{}transport\_\allowbreak{}finite}}
+\leansource{\texttt{stationary\_\allowbreak{}transport\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 163–167}
+\begin{leancode}
+\leanline{0}{theorem\ stationary\_transport\_bound\ [BorelSpace\ E]\ [SecondCountableTopology\ E]\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (Q.map\ (C.reference\ 0))\ (Q.map\ (C.chain\ n))\ ≤\ P.bias}
+\end{leancode}
+\leansource{\texttt{stationary\_\allowbreak{}transport\_\allowbreak{}finite} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 170–174}
+\begin{leancode}
+\leanline{0}{theorem\ stationary\_transport\_finite\ [BorelSpace\ E]\ [SecondCountableTopology\ E]\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ (Q.map\ (C.reference\ 0))\ (Q.map\ (C.chain\ n))\ ≠\ ⊤}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{stationary\_\allowbreak{}transport\_\allowbreak{}bound} uses the actual pushforward coupling cost theorem. \texttt{stationary\_\allowbreak{}transport\_\allowbreak{}finite} obtains a finite extended-valued bound from the same \(L^2\) coupling, preventing loss of information during real conversion.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.12]{LangevinLean2026ULASC}; \cite[Section~3.17.13]{LangevinLean2026ULASC}; \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

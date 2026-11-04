@@ -3,13 +3,15 @@
 Lean formalizations of unadjusted Langevin (ULA), interacting particle Langevin
 (IPLA), proximal particle algorithms, kinetic Langevin, kinetic interacting
 particle Langevin Monte Carlo (KIPLMC), and a general particle-based stochastic
-optimisation framework (PBGSO), latent diffusion, and average-smoothness LMC. Mathematical statements and proofs are
+optimisation framework (PBGSO), latent diffusion, average-smoothness LMC, and a
+Wasserstein mixing theory under the original Hessian assumptions. Mathematical statements and proofs are
 paired with the exact Lean declarations, including every supporting subfile.
 The shared theory is organized for reuse by further methods.
 
 Open the [documentation homepage](index.html), then choose strongly convex ULA,
 ULA under LSI, strongly convex IPLA, proximal algorithms, kinetic Langevin,
-KIPLMC, PBGSO, latent diffusion, or average-smoothness LMC. The established overviews pair mathematical results with Lean,
+KIPLMC, PBGSO, latent diffusion, average-smoothness LMC, or Wasserstein mixing.
+The ten contribution overviews pair mathematical results with Lean,
 verification commands, and proof diagrams linking to detailed HTML proof pages.
 They have module pages and downloadable LaTeX expositions. PBGSO's main page
 pairs its four main paper theorems and final discretisation bounds New A and
@@ -51,6 +53,8 @@ lake env lean KIPLMC/Check.lean
 lake env lean PBGSO/Check.lean
 lake env lean LatentDiffusion/Check.lean
 lake env lean AverageLMC/Check.lean
+lake env lean WassersteinMixing/Check.lean
+python3 scripts/verify-wasserstein-mixing.py
 lake env lean IPLA/Standalone.lean
 ```
 
@@ -155,6 +159,15 @@ HTML includes the offline fonts, formula rendering, and source viewers.
   and control-variate SGLD bounds retain the source hypotheses and constants.
   The [source audit](AverageLMC/exposition/reference_audit.json) distinguishes
   this main sampling theorem scope from broader auxiliary coverage.
+- **Wasserstein mixing (contribution 10):** [bias and mixing bounds under the original assumptions](WassersteinMixing/exposition/index.html).
+  Theorem 1 and Corollary 1.1 are proved for the actual Gibbs target and
+  independent-Gaussian ULA laws under the paper's $C^2$ Hessian bounds. The
+  proof constructs the stationary Brownian diffusion, reversible Markov
+  semigroup, bounded Poisson corrector, averaged Hessian comparison and ULA
+  invariant law. It retains the exact bias, convergence and accuracy constants.
+  The [source audit](WassersteinMixing/exposition/reference_audit.json) and
+  `python3 scripts/verify-wasserstein-mixing.py --require-complete` verify
+  clients that apply all three endpoints using only the original assumptions.
 
 The two kinetic developments prove convergence of the continuous processes
 and the Gaussian samplers under the displayed assumptions. The supplied Dalalyan–Riou-Durand draft needs explicit corrections:
@@ -227,6 +240,7 @@ hypothesis, and parameter KL is controlled by the full joint entropy.
 | [`LatentDiffusion/`](LatentDiffusion/README.md) | All 19 corrected source results under explicit extra assumptions: actual density/KL identities, product transport and entropy calculus, classical-flow convergence, constructed mean-field and particle equations, and full-batch RMS error; separate new theory and accuracy choices. |
 | [`PBGSO/`](PBGSO/README.md) | General optimiser/sampler framework, actual predictable Brownian integration and continuous adapted modifications, stationary product laws and optimal law contraction, source appendix criteria and fully constructed additive particle numerical bounds; original raw stationarity via actual Wiener-path transfer and primitive linear-growth optimal law contraction across sources; constant-diffusion contraction uses the explicit ordinary finite signed-work A3 convention; actual independent reference clouds and physical particle/reference pairing are constructed. |
 | [`AverageLMC/`](AverageLMC/README.md) | Average-smoothness LMC, decreasing-step, Laplacian LMC and control-variate SGLD proofs with exact source hypotheses and constants. |
+| [`WassersteinMixing/`](WassersteinMixing/README.md) | The exact Wasserstein bias, convergence and accuracy bounds from the original Hessian assumptions, with constructed Brownian dynamics, reversible semigroup, Poisson corrector, Gaussian ULA invariant law and transport geometry. |
 | `papers/` | Reference manuscripts retained on `main`; excluded from all publication exports and from `gh-pages`. |
 | [`IPLA/Standalone.lean`](IPLA/Standalone.lean) | Generated single-file version of the IPLA theorem and its dependencies, importing only Mathlib. |
 | [`UnadjustedLangevin/exposition/`](UnadjustedLangevin/exposition/index.html), [`IPLA/exposition/`](IPLA/exposition/index.html), [`ProximalLangevin/exposition/`](ProximalLangevin/exposition/index.html) | Standard overviews, theorem statements, verification commands, and linked proof diagrams. |
@@ -253,7 +267,7 @@ bash scripts/check-local.sh
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 
-This builds all eight Lean libraries, runs the ten theorem dependency audits,
+This builds all configured Lean libraries and runs their theorem dependency audits,
 checks the four archived proof documents and the complete module proof atlas, and compiles
 the IPLA standalone in isolation with only Mathlib available. The standalone verifier refreshes its committed
 diagnostic reports; review any changes before committing.

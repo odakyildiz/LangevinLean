@@ -341,9 +341,14 @@ def full_proof_documents(configurations, notes, sources, catalog=None, parsed=No
     outputs = {}
     for library, plan in catalog.plans.items():
         prose = lambda value: catalog.latex_prose(value, current=library)
+        config = configurations[library]
         document = [_preamble(plan["title"], latex_heading, plan)]
+        document.append(about_document(library, bool(config.get('proof'))))
+        if config.get('include_report_assumptions'):
+            document.append(r"\section*{Scope of the checked statements}" + "\n")
+            document.append(prose('<p><strong>' + E(config['top_notice']) + '</strong></p>'))
+            document.append(prose('<p>' + source_metadata()[library]['scope'] + '</p>'))
         document += [
-            about_document(library, bool(configurations[library].get('proof'))),
             paper_references(library),
             _earlier_report_notice(plan, catalog),
             r"\tableofcontents" + "\n" + r"\clearpage" + "\n",
@@ -357,12 +362,30 @@ def full_proof_documents(configurations, notes, sources, catalog=None, parsed=No
                 document.append(paper_references(key))
             else:
                 document.append(r"\chapter{Assumptions and main results}" + "\n")
+            if config.get('include_report_assumptions'):
+                metadata = source_metadata()[key]
+                document.append(r"\section*{Assumptions and notation from the source}" + "\n")
+                for assumption in metadata['assumptions']:
+                    heading = assumption['label'] + ' — ' + assumption.get('title', '')
+                    document.append(r"\subsection*{" + latex_heading(heading) + "}\n")
+                    document.append(prose(source_citation(
+                        assumption.get('paper', metadata['paper']),
+                        assumption.get('location', assumption['label']), assumption.get('url'))))
+                    document.append(prose(assumption['body']))
+                if metadata.get('extras'):
+                    document.append(r"\section*{Extra assumptions retained in the checked statements}" + "\n")
+                    document.append(prose('<p>The following additional hypotheses are retained '
+                        'in these statements.</p>'))
+                    for assumption in metadata['extras']:
+                        heading = assumption['label'] + ' — ' + assumption.get('title', '')
+                        document.append(r"\subsection*{" + latex_heading(heading) + "}\n")
+                        document.append(prose(assumption['body']))
             for result in config["results"]:
                 correspondence = result_metadata(key, result['name'])
-                label = (correspondence['label'] if correspondence['status'] in {'proved', 'corrected'}
+                label = (correspondence['label'] if correspondence['status'] in {'proved', 'corrected', 'conditional'}
                          else proof_status(correspondence))
                 document.append(r"\section{" + latex_heading(label + ' — ' + result["title"]) + "}\n")
-                if correspondence['status'] in {'proved', 'corrected'}:
+                if correspondence['status'] in {'proved', 'corrected', 'conditional'}:
                     document.append(prose(source_citation(correspondence.get('paper', source_metadata()[key]['paper']),
                                                          correspondence.get('location', label), correspondence.get('url'))))
                 document.append(prose('<p><strong>' + proof_status(correspondence) + '.</strong></p>'))
