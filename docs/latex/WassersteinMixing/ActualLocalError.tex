@@ -1,0 +1,210 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The actual score increments and local defect constants}{The actual score increments and local defect constants}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+All quantities in this section come from the constructed stationary Langevin path. The estimates \(6s\beta^2d\) for score increments and \(3h^3\beta^2d\) for the integrated defect are derived, and subtracting the actual diffusion and Euler updates gives the exact synchronous error equation.
+
+
+\section{\texorpdfstring{Deriving the primitive score-increment estimate}{Deriving the primitive score-increment estimate}}
+
+
+\textbf{Claim.} On a stationary reference segment,
+
+\[\mathbb E\|Y_{nh+s}-Y_{nh}\|^2\le d(2\beta s^2+4s),\qquad \mathbb E\|\nabla V(Y_{nh+s})-\nabla V(Y_{nh})\|^2\le6s\beta^2d\]
+
+for \(0\le s\le h\), \(h\beta\le1\).
+
+
+
+\textbf{Proof.} The integral equation splits the displacement into integrated drift and Brownian noise. Squared triangle and time Cauchy–Schwarz, the stationary score moment and exact Brownian variance give the displacement polynomial. Gradient Lipschitzness multiplies it by \(\beta^2\). Since \(\beta s\le1\), the polynomial is at most \(6s\). Continuity follows from the continuous reference segment and Lipschitz drift map.
+
+\begin{leanbox}{Lean: \texttt{referenceScoreIncrement}, \texttt{reference\_\allowbreak{}displacement\_\allowbreak{}energy}, \texttt{reference\_\allowbreak{}score\_\allowbreak{}increment\_\allowbreak{}polynomial} and 2 more}
+\leansource{\texttt{referenceScoreIncrement} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 26–28}
+\begin{leancode}
+\leanline{0}{def\ referenceScoreIncrement\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ :\ Lp\ H\ 2\ Q\ :=}
+\leanline{2}{ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ (R.segment\ n\ 0)\ -}
+\leanline{4}{ULA.lpDrift\ Q\ (gradient\ V)\ hLip\ (R.segment\ n\ s)}
+\end{leancode}
+\leansource{\texttt{reference\_\allowbreak{}displacement\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 32–45}
+\begin{leancode}
+\leanline{0}{theorem\ reference\_displacement\_energy\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ (hs\ :\ s\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{‖R.segment\ n\ s\ -\ R.segment\ n\ 0‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(d\ :\ ℝ)\ *\ (2\ *\ s\ \textasciicircum{}\ 2\ *\ (β\ :\ ℝ)\ +\ 4\ *\ s)}
+\end{leancode}
+\leansource{\texttt{reference\_\allowbreak{}score\_\allowbreak{}increment\_\allowbreak{}polynomial} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 49–59}
+\begin{leancode}
+\leanline{0}{theorem\ reference\_score\_increment\_polynomial\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ (hs\ :\ s\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{‖referenceScoreIncrement\ Q\ d\ V\ h\ β\ hLip\ noise\ π\ R\ n\ s‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{(β\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ d\ *\ (2\ *\ s\ \textasciicircum{}\ 2\ *\ (β\ :\ ℝ)\ +\ 4\ *\ s)}
+\end{leancode}
+\leansource{\texttt{reference\_\allowbreak{}score\_\allowbreak{}increment\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 62–70}
+\begin{leancode}
+\leanline{0}{theorem\ reference\_score\_increment\_energy\ (hstep\ :\ h\ *\ (β\ :\ ℝ)\ ≤\ 1)}
+\leanline{4}{(n\ :\ ℕ)\ (s\ :\ ℝ)\ (hs\ :\ s\ ∈\ Icc\ 0\ h)\ :}
+\leanline{4}{‖referenceScoreIncrement\ Q\ d\ V\ h\ β\ hLip\ noise\ π\ R\ n\ s‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{6\ *\ s\ *\ (β\ :\ ℝ)\ \textasciicircum{}\ 2\ *\ d}
+\end{leancode}
+\leansource{\texttt{referenceScoreIncrement\_\allowbreak{}continuous} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 74–77}
+\begin{leancode}
+\leanline{0}{theorem\ referenceScoreIncrement\_continuous\ (n\ :\ ℕ)\ :}
+\leanline{4}{Continuous\ (referenceScoreIncrement\ Q\ d\ V\ h\ β\ hLip\ noise\ π\ R\ n)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The generic reference lemmas use the actual reference integral equation and noise moment. \texttt{reference\_\allowbreak{}score\_\allowbreak{}increment\_\allowbreak{}energy} applies \texttt{displacement\_\allowbreak{}polynomial\_\allowbreak{}le} to the proved polynomial estimate. The increment is defined by the true Lipschitz gradient applied to the reference states.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.11.6]{LangevinLean2026ULASC}; \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Actual scores and the constant-three defect}{Actual scores and the constant-three defect}}
+
+
+\textbf{Construction and bounds.} Set \(F_n=\nabla V(Y_{nh})\), \(I_n(s)=F_n-\nabla V(Y_{nh+s})\) and \(D_n=\int_0^h I_n(s)\,ds\). Then
+
+\[\|F_n\|_2^2\le\beta d,\quad\|I_n(s)\|_2^2\le6s\beta^2d,\quad\|D_n\|_2^2\le3h^3\beta^2d.\]
+
+\textbf{Proof.} Gibbs stationarity supplies the score moment. Specializing the preceding increment estimate gives the second bound. The time curve is continuous and hence square integrable on the compact interval. Applying time Cauchy–Schwarz and integrating \(6s\beta^2d\) gives the last constant. The endpoint increment is exactly \(F_n-F_{n+1}\).
+
+\begin{leanbox}{Lean: \texttt{actualScore}, \texttt{actualScoreIncrement}, \texttt{actualDefect} and 6 more}
+\leansource{\texttt{actualScore} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 85–88}
+\begin{leancode}
+\leanline{0}{def\ actualScore\ (n\ :\ ℕ)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{2}{exact\ ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)\ hV.gradientLipschitz}
+\leanline{4}{(actualReference\ P\ V\ hV\ n)}
+\end{leancode}
+\leansource{\texttt{actualScoreIncrement} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 91–95}
+\begin{leancode}
+\leanline{0}{def\ actualScoreIncrement\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{2}{exact\ actualScore\ P\ V\ hV\ n\ -}
+\leanline{4}{ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)\ hV.gradientLipschitz}
+\leanline{6}{(actualSegment\ P\ V\ hV\ n\ s)}
+\end{leancode}
+\leansource{\texttt{actualDefect} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 98–99}
+\begin{leancode}
+\leanline{0}{def\ actualDefect\ (n\ :\ ℕ)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=}
+\leanline{2}{stationaryLocalDefect\ (actualScoreIncrement\ P\ V\ hV\ n)\ P.step}
+\end{leancode}
+\leansource{\texttt{actualScore\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 102–114}
+\begin{leancode}
+\leanline{0}{theorem\ actualScore\_energy\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖actualScore\ P\ V\ hV\ n‖\ \textasciicircum{}\ 2\ ≤\ P.beta\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{actualScoreIncrement\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 117–126}
+\begin{leancode}
+\leanline{0}{theorem\ actualScoreIncrement\_energy\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ (hs\ :\ s\ ∈\ Icc\ 0\ P.step)\ :}
+\leanline{4}{‖actualScoreIncrement\ P\ V\ hV\ n\ s‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ s\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{actualScoreIncrement\_\allowbreak{}continuous} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 129–134}
+\begin{leancode}
+\leanline{0}{theorem\ actualScoreIncrement\_continuous\ (n\ :\ ℕ)\ :\ Continuous\ (actualScoreIncrement\ P\ V\ hV\ n)}
+\end{leancode}
+\leansource{\texttt{actualScoreIncrement\_\allowbreak{}memLp} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 137–143}
+\begin{leancode}
+\leanline{0}{theorem\ actualScoreIncrement\_memLp\ (n\ :\ ℕ)\ :}
+\leanline{4}{MemLp\ (actualScoreIncrement\ P\ V\ hV\ n)\ 2\ (volume.restrict\ (Ioc\ 0\ P.step))}
+\end{leancode}
+\leansource{\texttt{actualScoreIncrement\_\allowbreak{}endpoint} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 146–151}
+\begin{leancode}
+\leanline{0}{theorem\ actualScoreIncrement\_endpoint\ (n\ :\ ℕ)\ :}
+\leanline{4}{actualScoreIncrement\ P\ V\ hV\ n\ P.step\ =\ actualScore\ P\ V\ hV\ n\ -\ actualScore\ P\ V\ hV\ (n\ +\ 1)}
+\end{leancode}
+\leansource{\texttt{actualDefect\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 154–158}
+\begin{leancode}
+\leanline{0}{theorem\ actualDefect\_energy\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖actualDefect\ P\ V\ hV\ n‖\ \textasciicircum{}\ 2\ ≤\ 3\ *\ P.step\ \textasciicircum{}\ 3\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Score}, \texttt{actual\allowbreak{}Score\allowbreak{}Increment} and \texttt{actual\allowbreak{}Defect} use the constructed diffusion. Their moment, continuity and endpoint theorems discharge the generic local-defect estimate directly; none of these bounds is a primitive comparison field.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.28.2]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Subtracting the true updates}{Subtracting the true updates}}
+
+
+\textbf{Claim.} The reference endpoint satisfies
+
+\[Y_{(n+1)h}=Y_{nh}-hF_n+\sqrt{2h}\,\xi_n+D_n.\]
+
+\textbf{Proof.} Integrating the definition of \(I_n\) gives \(D_n=hF_n-\int_0^h\nabla V(Y_{nh+s})\,ds\). Substitute this into the actual Langevin integral equation and use its exact Brownian endpoint. Subtracting the Euler update cancels the shared innovation and gives
+
+\[e_{n+1}=e_n-h\bigl(\nabla V(Y_{nh})-\nabla V(X_n)\bigr)+D_n,\qquad e_n=Y_{nh}-X_n.\]\begin{leanbox}{Lean: \texttt{actualDefect\_\allowbreak{}eq}, \texttt{actualReference\_\allowbreak{}step}, \texttt{actual\_\allowbreak{}error\_\allowbreak{}step}}
+\leansource{\texttt{actualDefect\_\allowbreak{}eq} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 161–175}
+\begin{leancode}
+\leanline{0}{theorem\ actualDefect\_eq\ (n\ :\ ℕ)\ :}
+\leanline{4}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{4}{actualDefect\ P\ V\ hV\ n\ =\ P.step\ •\ actualScore\ P\ V\ hV\ n\ -}
+\leanline{6}{∫\ s\ in\ (0\ :\ ℝ)..P.step,}
+\leanline{8}{ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)\ hV.gradientLipschitz}
+\leanline{10}{(actualSegment\ P\ V\ hV\ n\ s)}
+\end{leancode}
+\leansource{\texttt{actualReference\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 179–193}
+\begin{leancode}
+\leanline{0}{theorem\ actualReference\_step\ (n\ :\ ℕ)\ :}
+\leanline{4}{actualReference\ P\ V\ hV\ (n\ +\ 1)\ =\ actualReference\ P\ V\ hV\ n\ -}
+\leanline{6}{P.step\ •\ actualScore\ P\ V\ hV\ n\ +\ Real.sqrt\ (2\ *\ P.step)\ •\ actualNoise\ P\ V\ hV\ n\ +}
+\leanline{8}{actualDefect\ P\ V\ hV\ n}
+\end{leancode}
+\leansource{\texttt{actual\_\allowbreak{}error\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 197–209}
+\begin{leancode}
+\leanline{0}{theorem\ actual\_error\_step\ (n\ :\ ℕ)\ :}
+\leanline{4}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{4}{actualReference\ P\ V\ hV\ (n\ +\ 1)\ -\ actualChain\ P\ V\ hV\ (n\ +\ 1)\ =}
+\leanline{6}{(actualReference\ P\ V\ hV\ n\ -\ actualChain\ P\ V\ hV\ n)\ -}
+\leanline{8}{P.step\ •\ (actualScore\ P\ V\ hV\ n\ -}
+\leanline{10}{ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)\ hV.gradientLipschitz}
+\leanline{12}{(actualChain\ P\ V\ hV\ n))\ +\ actualDefect\ P\ V\ hV\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Defect\_\allowbreak{}eq} uses integrability before subtracting interval integrals. \texttt{actual\allowbreak{}Reference\_\allowbreak{}step} uses the proved reference equation and endpoint noise identity. \texttt{actual\_\allowbreak{}error\_\allowbreak{}step} is then algebraic subtraction of the two actual updates.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

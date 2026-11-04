@@ -1,0 +1,98 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Actual floor meshes and elapsed-time limits}{Actual floor meshes and elapsed-time limits}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The integer mesh count \(N_r(t)=\lfloor t/r\rfloor\) gives actual finite-step approximants at elapsed times tending to \(t\). Its sum at two target times has the analogous bound and converges to their sum.
+
+
+\section{\texorpdfstring{The true integer count and vanishing remainder}{The true integer count and vanishing remainder}}
+
+
+\textbf{Claim.} For \(r>0\) and \(t\ge0\),
+
+\[N_r(t)r\le t,\qquad 0\le t-N_r(t)r<r.\]
+
+Hence \(N_r(t)r\to t\) as \(r\downarrow0\). For two nonnegative times, \((N_r(s)+N_r(t))r\le s+t\) and these elapsed sums tend to \(s+t\).
+
+
+
+\textbf{Proof.} The defining floor inequalities bound the ratio \(t/r\) between its natural integer floor and the next integer. Multiply by the positive step to get the elapsed-time and remainder estimates. Squeeze the remainder between zero and the step, then add the two convergent elapsed times.
+
+\begin{leanbox}{Lean: \texttt{meshCount}, \texttt{meshCount\_\allowbreak{}elapsed\_\allowbreak{}le}, \texttt{meshCount\_\allowbreak{}remainder\_\allowbreak{}lt} and 3 more}
+\leansource{\texttt{meshCount} \quad WassersteinMixing/\allowbreak{}SemigroupMesh.lean, lines 19–19}
+\begin{leancode}
+\leanline{0}{def\ meshCount\ (step\ time\ :\ ℝ)\ :\ ℕ\ :=\ ⌊time\ /\ step⌋₊}
+\end{leancode}
+\leansource{\texttt{meshCount\_\allowbreak{}elapsed\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupMesh.lean, lines 21–24}
+\begin{leancode}
+\leanline{0}{theorem\ meshCount\_elapsed\_le\ (step\ time\ :\ ℝ)\ (hs\ :\ 0\ <\ step)\ (ht\ :\ 0\ ≤\ time)\ :}
+\leanline{4}{(meshCount\ step\ time\ :\ ℝ)\ *\ step\ ≤\ time}
+\end{leancode}
+\leansource{\texttt{meshCount\_\allowbreak{}remainder\_\allowbreak{}lt} \quad WassersteinMixing/\allowbreak{}SemigroupMesh.lean, lines 26–31}
+\begin{leancode}
+\leanline{0}{theorem\ meshCount\_remainder\_lt\ (step\ time\ :\ ℝ)\ (hs\ :\ 0\ <\ step)\ :}
+\leanline{4}{time\ -\ (meshCount\ step\ time\ :\ ℝ)\ *\ step\ <\ step}
+\end{leancode}
+\leansource{\texttt{meshCount\_\allowbreak{}elapsed\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupMesh.lean, lines 34–42}
+\begin{leancode}
+\leanline{0}{theorem\ meshCount\_elapsed\_tendsto\ \{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (hs\ :\ ∀\ i,\ 0\ <\ step\ i)\ (hlim\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))}
+\leanline{4}{(time\ :\ ℝ)\ (ht\ :\ 0\ ≤\ time)\ :}
+\leanline{4}{Tendsto\ (fun\ i\ ↦\ (meshCount\ (step\ i)\ time\ :\ ℝ)\ *\ step\ i)\ l\ ({\leanfallback 𝓝}\ time)}
+\end{leancode}
+\leansource{\texttt{meshCount\_\allowbreak{}sum\_\allowbreak{}elapsed\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupMesh.lean, lines 44–48}
+\begin{leancode}
+\leanline{0}{theorem\ meshCount\_sum\_elapsed\_le\ (step\ s\ t\ :\ ℝ)\ (hs\ :\ 0\ <\ step)}
+\leanline{4}{(hs0\ :\ 0\ ≤\ s)\ (ht0\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{((meshCount\ step\ s\ +\ meshCount\ step\ t\ :\ ℕ)\ :\ ℝ)\ *\ step\ ≤\ s\ +\ t}
+\end{leancode}
+\leansource{\texttt{meshCount\_\allowbreak{}sum\_\allowbreak{}elapsed\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupMesh.lean, lines 52–62}
+\begin{leancode}
+\leanline{0}{theorem\ meshCount\_sum\_elapsed\_tendsto\ \{I\ :\ Type*\}\ \{l\ :\ Filter\ I\}}
+\leanline{4}{(step\ :\ I\ →\ ℝ)\ (hs\ :\ ∀\ i,\ 0\ <\ step\ i)\ (hlim\ :\ Tendsto\ step\ l\ ({\leanfallback 𝓝}\ 0))}
+\leanline{4}{(s\ t\ :\ ℝ)\ (hs0\ :\ 0\ ≤\ s)\ (ht0\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{Tendsto\ (fun\ i\ ↦\ ((meshCount\ (step\ i)\ s\ +\ meshCount\ (step\ i)\ t\ :\ ℕ)\ :\ ℝ)\ *\ step\ i)}
+\leanline{6}{l\ ({\leanfallback 𝓝}\ (s\ +\ t))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{mesh\allowbreak{}Count} is the actual natural floor of the time/\allowbreak{}step ratio. The floor lower and strict upper inequalities prove the bounds. The elapsed-time limit is a squeeze argument; the sum lemmas combine the exact count arithmetic and the two limits.
+\end{leanbox}
+
+\end{document}

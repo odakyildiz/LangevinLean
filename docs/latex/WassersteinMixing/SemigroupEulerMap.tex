@@ -1,0 +1,100 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{A finite Euler endpoint as a measurable function of actual inputs}{A finite Euler endpoint as a measurable function of actual inputs}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+A finite Euler endpoint is a measurable function of its starting state and the whole future coordinate path. This exact pointwise description links the actual \(L^2\) recursion to whole-path independence and conditional averaging.
+
+
+\section{\texorpdfstring{The actual pointwise recursion and its representative}{The actual pointwise recursion and its representative}}
+
+
+\textbf{Construction.} Starting from \(x\) and a future path \(w\), recursively add the true gradient Euler drift and consecutive increments of \(\sqrt2w\). The resulting endpoint map is measurable.
+
+
+
+\textbf{Claim and proof.} The actual shifted Euler \(L^2\) variable equals this map applied to \((Y_a,W_a)\) almost surely. The actual Brownian increment has the explicit raw future-coordinate representative. Induction on the Euler recursion combines this identity with the almost-everywhere true gradient representative and the preceding endpoint representative. Thus only actual state and future-path evaluations occur.
+
+\begin{leanbox}{Lean: \texttt{pointwiseEulerMap}, \texttt{pointwiseEulerMap\_\allowbreak{}measurable}, \texttt{shiftedNoise\_\allowbreak{}coe} and 1 more}
+\leansource{\texttt{pointwiseEulerMap} \quad WassersteinMixing/\allowbreak{}SemigroupEulerMap.lean, lines 20–23}
+\begin{leancode}
+\leanline{0}{def\ pointwiseEulerMap\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (h\ :\ ℝ)\ (n\ :\ ℕ)}
+\leanline{4}{(p\ :\ E\ P.dimension\ ×\ (Fin\ P.dimension\ →\ ℝ≥0\ →\ ℝ))\ :\ E\ P.dimension\ :=}
+\leanline{2}{ULA.additiveEulerChain\ (gradient\ V)\ h\ p.1}
+\leanline{4}{(fun\ s\ ↦\ Real.sqrt\ 2\ •\ WithLp.toLp\ 2\ (fun\ i\ ↦\ p.2\ i\ s.toNNReal))\ n}
+\end{leancode}
+\leansource{\texttt{pointwiseEulerMap\_\allowbreak{}measurable} \quad WassersteinMixing/\allowbreak{}SemigroupEulerMap.lean, lines 26–43}
+\begin{leancode}
+\leanline{0}{theorem\ pointwiseEulerMap\_measurable\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (h\ :\ ℝ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Measurable\ (pointwiseEulerMap\ P\ V\ h\ n)}
+\end{leancode}
+\leansource{\texttt{shiftedNoise\_\allowbreak{}coe} \quad WassersteinMixing/\allowbreak{}SemigroupEulerMap.lean, lines 47–75}
+\begin{leancode}
+\leanline{0}{theorem\ shiftedNoise\_coe\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (a\ :\ ℝ≥0)\ (s\ :\ ℝ)\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{ULA.brownianLangevinNoise\ (actualProbability\ P\ V)\ (brownian\ P)}
+\leanline{6}{(brownian\_preBrownian\ P\ V\ hV)\ a\ s\ =ᵐ[actualProbability\ P\ V]}
+\leanline{6}{fun\ ω\ ↦\ Real.sqrt\ 2\ •\ WithLp.toLp\ 2\ (fun\ i\ ↦\ actualBrownianFuture\ P\ a\ ω\ i\ s.toNNReal)}
+\end{leancode}
+\leansource{\texttt{shiftedEuler\_\allowbreak{}coe} \quad WassersteinMixing/\allowbreak{}SemigroupEulerMap.lean, lines 79–127}
+\begin{leancode}
+\leanline{0}{theorem\ shiftedEuler\_coe\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (a\ :\ ℝ≥0)\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (n\ :\ ℕ)\ :}
+\leanline{4}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{4}{ULA.additiveEulerChain}
+\leanline{6}{(ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)\ hV.gradientLipschitz)\ h}
+\leanline{6}{(state\ P\ V\ hV\ a)}
+\leanline{6}{(ULA.brownianLangevinNoise\ (actualProbability\ P\ V)\ (brownian\ P)}
+\leanline{8}{(brownian\_preBrownian\ P\ V\ hV)\ a)\ n\ =ᵐ[actualProbability\ P\ V]}
+\leanline{6}{fun\ ω\ ↦\ pointwiseEulerMap\ P\ V\ h\ n\ (state\ P\ V\ hV\ a\ ω,\ actualBrownianFuture\ P\ a\ ω)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{pointwise\allowbreak{}Euler\allowbreak{}Map\_\allowbreak{}measurable} inducts through the true measurable proposal update. \texttt{shifted\allowbreak{}Noise\_\allowbreak{}coe} identifies the actual additive Brownian increment. \texttt{shifted\allowbreak{}Euler\_\allowbreak{}coe} proves equality of the actual recursion and measurable input map by almost-everywhere induction.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}; \cite[Section~3.16.1]{LangevinLean2026ULASC}; \cite[Section~3.24.14]{LangevinLean2026ULASC}; \cite[Section~3.24.15]{LangevinLean2026ULASC}; \cite[Section~3.24.21]{LangevinLean2026ULASC}; \cite[Section~3.25.1]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

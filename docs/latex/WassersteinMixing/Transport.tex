@@ -1,0 +1,184 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Actual Gaussian ULA contraction and transport to an invariant law}{Actual Gaussian ULA contraction and transport to an invariant law}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Let \(V\) satisfy the stated differentiability, \(\alpha\)-strong convexity and \(\beta\)-Lipschitz gradient conditions, with \(0<h\le1/\beta\). The actual ULA update is \(x\mapsto x-h\nabla V(x)+\sqrt{2h}\,\xi\), with independent Gaussian innovations. This section proves its transport contraction from the potential conditions. The separate Gaussian-past fixed-point construction proves existence, finite second moment and exact invariance of the actual invariant law, discharging the invariant-law hypothesis of the general contraction result.
+
+
+
+Earlier results used here: \cite[Section~3.9]{LangevinLean2026Kinetic}; \cite[Section~3.36]{LangevinLean2026ULASC}; \cite[Section~3.33]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Common noise gives the exact pathwise factor}{Common noise gives the exact pathwise factor}}
+
+
+\textbf{Claim.} For all \(x,y,z\), the two updates using the same innovation satisfy
+
+\[\|(x-h\nabla V(x)+\sqrt{2h}z)-(y-h\nabla V(y)+\sqrt{2h}z)\|
+\le(1-\alpha h)\|x-y\|.\]
+
+
+\textbf{Proof.} The common noise cancels. The strong-convexity and smoothness gradient-step estimate applies for \(h\le2/(\alpha+\beta)\). This restriction follows from \(h\beta\le1\) and \(\alpha\le\beta\), since \(h(\alpha+\beta)\le2h\beta\le2\). Its exact contraction factor is \(1-\alpha h\ge0\), giving the claim.
+
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contraction}}
+\leansource{\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contraction} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 27–39}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_shared\_noise\_contraction\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (x\ y\ z\ :\ H)\ :}
+\leanline{4}{‖ULA.malaProposal\ V\ P.step\ x\ z\ -\ ULA.malaProposal\ V\ P.step\ y\ z‖\ ≤}
+\leanline{6}{P.contraction\ *\ ‖x\ -\ y‖}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}shared\_\allowbreak{}noise\_\allowbreak{}contraction} verifies the admissible shared ULA step range and invokes \texttt{ULA.\allowbreak{}strong\_\allowbreak{}smooth\_\allowbreak{}gradient\_\allowbreak{}step\_\allowbreak{}contract}. Unfolding \texttt{ULA.\allowbreak{}mala\allowbreak{}Proposal} cancels the identical noise terms. The contraction is derived from the potential contract rather than assumed as a coupling field.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.10.7]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Transport contraction of the actual Markov laws}{Transport contraction of the actual Markov laws}}
+
+
+\textbf{Claim.} Let \(T\) be the independent-innovation Markov transition and let \(\mu,\nu\) be probability laws. Then, in extended nonnegative transport distance,
+
+\[W_2(T\mu,T\nu)\le qW_2(\mu,\nu),\qquad
+W_2(T^k\mu,T^k\nu)\le q^kW_2(\mu,\nu),\quad q=1-\alpha h.\]
+
+
+\textbf{Proof.} Extend any initial coupling by an independent innovation and use that same innovation for both updates. The proved pathwise bound multiplies the coupling's root-mean-square cost by at most \(q\). Passing to the infimum over couplings proves the one-step estimate. Induction gives the iterated estimate because \(q\ge0\). For standard Gaussian innovations, the independent-product transition is exactly the existing Gaussian ULA law transition; induction identifies their iterated laws.
+
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}markovStep\_\allowbreak{}wasserstein2\_\allowbreak{}le}, \texttt{ula\_\allowbreak{}markovLaws\_\allowbreak{}wasserstein2\_\allowbreak{}le}, \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}eq\_\allowbreak{}markovLaws} and 1 more}
+\leansource{\texttt{ula\_\allowbreak{}markovStep\_\allowbreak{}wasserstein2\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 43–57}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_markovStep\_wasserstein2\_le\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (η\ :\ Measure\ H)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(μ\ ν\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ :}
+\leanline{4}{ULA.wasserstein2\ (ULA.markovStep\ (ULA.malaProposal\ V\ P.step)\ η\ μ)}
+\leanline{6}{(ULA.markovStep\ (ULA.malaProposal\ V\ P.step)\ η\ ν)\ ≤}
+\leanline{6}{ENNReal.ofReal\ P.contraction\ *\ ULA.wasserstein2\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}markovLaws\_\allowbreak{}wasserstein2\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 60–82}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_markovLaws\_wasserstein2\_le\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (η\ :\ Measure\ H)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(μ\ ν\ :\ Measure\ H)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ (ULA.markovLaws\ (ULA.malaProposal\ V\ P.step)\ η\ μ\ k)}
+\leanline{6}{(ULA.markovLaws\ (ULA.malaProposal\ V\ P.step)\ η\ ν\ k)\ ≤}
+\leanline{6}{(ENNReal.ofReal\ P.contraction)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}eq\_\allowbreak{}markovLaws} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 87–94}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_iterate\_eq\_markovLaws\ (V\ :\ H\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ H)\ (k\ :\ ℕ)\ :}
+\leanline{4}{(ULA.ulaLawStep\ V\ h)\textasciicircum{}[k]\ μ\ =}
+\leanline{6}{ULA.markovLaws\ (ULA.malaProposal\ V\ h)\ (stdGaussian\ H)\ μ\ k}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 98–105}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_iterate\_wasserstein2\_le\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ ν\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)}
+\leanline{6}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ ν)\ ≤}
+\leanline{6}{(ENNReal.ofReal\ P.contraction)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}markov\allowbreak{}Step\_\allowbreak{}wasserstein2\_\allowbreak{}le} applies the shared random-map transport theorem to the actual measurable update. \texttt{ula\_\allowbreak{}markov\allowbreak{}Laws\_\allowbreak{}wasserstein2\_\allowbreak{}le} iterates it with probability preservation checked. \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}eq\_\allowbreak{}markov\allowbreak{}Laws} proves equality with the Gaussian ULA implementation, and \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2\_\allowbreak{}le} substitutes that identity into the extended-distance estimate.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.33.11]{LangevinLean2026ULASC}; \cite[Section~3.33.5]{LangevinLean2026ULASC}; \cite[Section~3.33.6]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.9.2]{LangevinLean2026Kinetic}.
+
+\section{\texorpdfstring{Finite transport and convergence to the constructed invariant law}{Finite transport and convergence to the constructed invariant law}}
+
+
+\textbf{Claim.} If \(W_2(\mu,\nu)<\infty\), then the iterated transport distance is finite and its ordinary real value obeys the same geometric estimate. If additionally \(T\nu=\nu\), then
+
+\[W_2(T^k\mu,\nu)\le q^kW_2(\mu,\nu).\]
+
+
+\textbf{Proof.} The extended upper bound is a finite product, so the distance it bounds is finite. Converting a finite extended inequality to real values preserves it. The stationarity equality implies \(T^k\nu=\nu\) by induction; substitute this into the two-law estimate. The independent Gaussian-past fixed-point argument constructs this invariant probability law and proves its finite second moment and exact stationarity, so the final bounds apply to that actual law.
+
+\begin{leanbox}{Lean: \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2Real\_\allowbreak{}le}, \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}transport\_\allowbreak{}finite}, \texttt{ula\_\allowbreak{}to\_\allowbreak{}invariant\_\allowbreak{}wasserstein2Real\_\allowbreak{}le}}
+\leansource{\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2Real\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 109–121}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_iterate\_wasserstein2Real\_le\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ ν\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)}
+\leanline{6}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ ν)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}transport\_\allowbreak{}finite} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 124–132}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_iterate\_transport\_finite\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ ν\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)}
+\leanline{6}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ ν)\ ≠\ ⊤}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}to\_\allowbreak{}invariant\_\allowbreak{}wasserstein2Real\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 136–145}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_to\_invariant\_wasserstein2Real\_le\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ ν\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hν\ :\ ULA.ulaLawStep\ V\ P.step\ ν\ =\ ν)}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)\ ν\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}transport\_\allowbreak{}finite} bounds the output by a finite extended product. \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}le} applies \texttt{ENNReal.\allowbreak{}to\allowbreak{}Real\_\allowbreak{}mono} only after finiteness is proved. \texttt{ula\_\allowbreak{}to\_\allowbreak{}invariant\_\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}le} uses the supplied invariance equality through \texttt{Function.\allowbreak{}iterate\_\allowbreak{}fixed}.
+
+
+
+The separate invariant-law construction proves the invariance equality and finite second moment required here, and the final comparison theorems apply this generic result to that constructed law.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.3]{LangevinLean2026ULASC}; \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\bibitem[Kinetic]{LangevinLean2026Kinetic}
+LangevinLean Project. \emph{Kinetic Langevin Monte Carlo}. LL-06, 2026. Draft report, content revision b2fee42a9593. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/KineticLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

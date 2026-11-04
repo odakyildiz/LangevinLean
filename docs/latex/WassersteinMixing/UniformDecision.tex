@@ -1,0 +1,80 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Uniform randomization realizes exact Metropolis weights}{Uniform randomization realizes exact Metropolis weights}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+An independent uniform variable on \([0,1]\) realizes acceptance probability \(a(x)\) exactly. This connects a concrete random Metropolis update with the weighted accepted and rejected measures used in detailed balance.
+
+
+\section{\texorpdfstring{The actual acceptance decision and its law}{The actual acceptance decision and its law}}
+
+
+\textbf{Claim.} Let \(0\le a\le1\), and let \(U\) be independent and uniform on \([0,1]\). Output \(f(x)\) when \(U\le a(x)\), and \(g(x)\) otherwise. Its law under \(\mu\otimes\operatorname{Unif}[0,1]\) is
+
+\[f_*(a\mu)+g_*((1-a)\mu).\]
+
+\textbf{Proof.} The threshold event is measurable. For a target event, integrate first over the uniform coordinate. Depending on whether each output lies in the event, its section is the entire interval, an initial interval of length \(a(x)\), a terminal interval of length \(1-a(x)\), or empty. These four masses give precisely the displayed sum after integrating over \(x\).
+
+\begin{leanbox}{Lean: \texttt{uniformDecision}, \texttt{uniformDecision\_\allowbreak{}measurable}, \texttt{uniformDecision\_\allowbreak{}law}}
+\leansource{\texttt{uniformDecision} \quad WassersteinMixing/\allowbreak{}UniformDecision.lean, lines 23–24}
+\begin{leancode}
+\leanline{0}{def\ uniformDecision\ (a\ :\ A\ →\ ℝ)\ (f\ g\ :\ A\ →\ B)\ (p\ :\ A\ ×\ I)\ :\ B\ :=}
+\leanline{2}{if\ (p.2\ :\ ℝ)\ ≤\ a\ p.1\ then\ f\ p.1\ else\ g\ p.1}
+\end{leancode}
+\leansource{\texttt{uniformDecision\_\allowbreak{}measurable} \quad WassersteinMixing/\allowbreak{}UniformDecision.lean, lines 26–31}
+\begin{leancode}
+\leanline{0}{theorem\ uniformDecision\_measurable\ (a\ :\ A\ →\ ℝ)\ (f\ g\ :\ A\ →\ B)}
+\leanline{4}{(ha\ :\ Measurable\ a)\ (hf\ :\ Measurable\ f)\ (hg\ :\ Measurable\ g)\ :}
+\leanline{4}{Measurable\ (uniformDecision\ a\ f\ g)}
+\end{leancode}
+\leansource{\texttt{uniformDecision\_\allowbreak{}law} \quad WassersteinMixing/\allowbreak{}UniformDecision.lean, lines 34–79}
+\begin{leancode}
+\leanline{0}{theorem\ uniformDecision\_law\ (μ\ :\ Measure\ A)\ [SFinite\ μ]}
+\leanline{4}{(a\ :\ A\ →\ ℝ)\ (f\ g\ :\ A\ →\ B)}
+\leanline{4}{(ha\ :\ Measurable\ a)\ (ha0\ :\ ∀\ x,\ 0\ ≤\ a\ x)\ (ha1\ :\ ∀\ x,\ a\ x\ ≤\ 1)}
+\leanline{4}{(hf\ :\ Measurable\ f)\ (hg\ :\ Measurable\ g)\ :}
+\leanline{4}{(μ.prod\ (volume\ :\ Measure\ I)).map\ (uniformDecision\ a\ f\ g)\ =}
+\leanline{6}{(μ.withDensity\ (fun\ x\ ↦\ ENNReal.ofReal\ (a\ x))).map\ f\ +}
+\leanline{8}{(μ.withDensity\ (fun\ x\ ↦\ ENNReal.ofReal\ (1\ -\ a\ x))).map\ g}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{uniform\allowbreak{}Decision} is the actual threshold conditional. \texttt{uniform\allowbreak{}Decision\_\allowbreak{}measurable} checks its measurable branches and decision event. \texttt{uniform\allowbreak{}Decision\_\allowbreak{}law} proves equality on measurable events using the exact unit-interval masses and the weighted-measure formulas.
+\end{leanbox}
+
+\end{document}

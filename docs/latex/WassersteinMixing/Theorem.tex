@@ -1,0 +1,139 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The source Wasserstein estimates from the original Hessian bounds}{The source Wasserstein estimates from the original Hessian bounds}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The displayed endpoints concern the actual normalized Gibbs law, the constructed invariant law of ordinary independent-Gaussian ULA and its true finite-time iterates. Their potential input is exactly a twice continuously differentiable potential with the source Hessian bounds; the analytic comparison is constructed internally.
+
+
+\section{\texorpdfstring{The exact invariant bias estimate}{The exact invariant bias estimate}}
+
+
+\textbf{Claim.} For \(V\in C^2(\mathbb R^d)\), \(\alpha I\preceq\nabla^2V\preceq\beta I\), \(0<\alpha\le\beta\), \(0<h\le1/\beta\), and \(\kappa=\beta/\alpha\),
+
+\[W_2(\pi,\pi_h)\le6h\sqrt{\kappa\beta d}.\]
+
+\textbf{Proof.} The original Hessian bounds imply the first-order potential contract with unchanged constants. From that contract the actual reversible Langevin semigroup, bounded corrector, score and synchronous comparison are constructed. Apply the proved comparison-to-invariant theorem to this constructed comparison and the genuinely constructed Gaussian ULA invariant law. No spectral representation, conditional mean, curvature operator or comparison estimate is an additional input.
+
+\begin{leanbox}{Lean: \texttt{bias\_\allowbreak{}bound}}
+\leansource{\texttt{bias\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}Theorem.lean, lines 21–27}
+\begin{leancode}
+\leanline{0}{theorem\ bias\_bound\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hA\ :\ HessianAssumptions\ P\ V)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (ULA.gibbsMeasure\ V)}
+\leanline{6}{(invariantLaw\ P\ V\ hA.toPotentialAssumptions)\ ≤}
+\leanline{8}{6\ *\ P.step\ *\ Real.sqrt\ (P.condition\ *\ P.beta\ *\ P.dimension)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{bias\_\allowbreak{}bound} invokes \texttt{bias\_\allowbreak{}from\_\allowbreak{}comparison} on \texttt{actual\allowbreak{}ULAComparison}, using only \texttt{to\allowbreak{}Potential\allowbreak{}Assumptions}. Its conclusion is the actual transport distance from \texttt{gibbs\allowbreak{}Measure} to the constructed \texttt{invariant\allowbreak{}Law}.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The actual finite-time Gaussian ULA estimate}{The actual finite-time Gaussian ULA estimate}}
+
+
+\textbf{Claim.} For an initial probability law \(\mu\) with finite second moment,
+
+\[W_2(K_h^n\mu,\pi)\le(1-\alpha h)^nW_2(\mu,\pi_h)+6h\sqrt{\kappa\beta d}.\]
+
+\textbf{Proof.} Instantiate the general convergence theorem with the constructed actual comparison. The invariant law exists and attracts Gaussian ULA iterates by its own contraction construction. The true transport triangle, actual ULA contraction and preceding bias estimate yield the displayed two-term bound. The initial moment hypothesis supplies finiteness of every transport distance used in this argument.
+
+\begin{leanbox}{Lean: \texttt{convergence\_\allowbreak{}bound}}
+\leansource{\texttt{convergence\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}Theorem.lean, lines 31–39}
+\begin{leancode}
+\leanline{0}{theorem\ convergence\_bound\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hA\ :\ HessianAssumptions\ P\ V)\ (μ\ :\ Measure\ (E\ P.dimension))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ E\ P.dimension\ →\ E\ P.dimension)\ 2\ μ)\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ n\ *\ ULA.wasserstein2Real\ μ}
+\leanline{8}{(invariantLaw\ P\ V\ hA.toPotentialAssumptions)\ +}
+\leanline{10}{6\ *\ P.step\ *\ Real.sqrt\ (P.condition\ *\ P.beta\ *\ P.dimension)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{convergence\_\allowbreak{}bound} supplies the constructed comparison to \texttt{convergence\_\allowbreak{}from\_\allowbreak{}comparison}. Its iterate is the actual independent-Gaussian law step, and its only distributional premise is the source finite-second-moment initial law.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The source scale-invariant mixing complexity}{The source scale-invariant mixing complexity}}
+
+
+\textbf{Claim.} With the source step size
+
+\[h=\beta^{-1}\min\left\{1,\frac{\varepsilon}{12\sqrt d}\right\}\]
+
+and an integer iteration count at least
+
+\[\kappa\max\left\{1,\frac{12\sqrt d}{\varepsilon}\right\}\log\left(1+\frac{2\sqrt\alpha\,W_2(\mu,\pi_h)}{\varepsilon}\right),\]
+
+one has \(\sqrt\alpha\,W_2(K_h^n\mu,\pi)\le\varepsilon\).
+
+
+
+\textbf{Proof.} Apply the proved exact complexity arithmetic to the actual finite-time convergence bound. The chosen step reduces the scaled bias to at most half the tolerance, and the logarithmic threshold controls the scaled geometric transient by the other half. Positive step and this formula imply the positive-dimension condition needed for its displayed numerical form.
+
+\begin{leanbox}{Lean: \texttt{accuracy\_\allowbreak{}bound}}
+\leansource{\texttt{accuracy\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}Theorem.lean, lines 44–54}
+\begin{leancode}
+\leanline{0}{theorem\ accuracy\_bound\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hA\ :\ HessianAssumptions\ P\ V)\ (μ\ :\ Measure\ (E\ P.dimension))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ E\ P.dimension\ →\ E\ P.dimension)\ 2\ μ)\ (ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hstep\ :\ P.step\ =\ paperStep\ P.beta\ P.dimension\ ε)\ (n\ :\ ℕ)}
+\leanline{4}{(hn\ :\ iterationPrefactor\ P.alpha\ P.beta\ P.dimension\ ε\ *}
+\leanline{6}{Real.log\ (1\ +\ 2\ *\ Real.sqrt\ P.alpha\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ (invariantLaw\ P\ V\ hA.toPotentialAssumptions)\ /\ ε)\ ≤\ (n\ :\ ℝ))\ :}
+\leanline{4}{Real.sqrt\ P.alpha\ *}
+\leanline{6}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≤\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{accuracy\_\allowbreak{}bound} invokes \texttt{accuracy\_\allowbreak{}from\_\allowbreak{}comparison} with the actual constructed comparison and original Hessian assumptions. The source step and prefactor are the literal functions \texttt{paper\allowbreak{}Step} and \texttt{iteration\allowbreak{}Prefactor}, whose exact arithmetic was proved separately.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

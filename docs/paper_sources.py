@@ -11,7 +11,8 @@ from references import PAPERS
 def source_metadata():
     from paper_sources_classical import PAPER_SOURCES as classical
     from paper_sources_kinetic import PAPER_SOURCES as kinetic
-    return {**classical, **kinetic}
+    from paper_sources_wasserstein import PAPER_SOURCES as wasserstein
+    return {**classical, **kinetic, **wasserstein}
 
 
 def source_citation(paper, location, url=None):
@@ -26,14 +27,16 @@ def result_metadata(library, name):
     if name not in data['results']:
         raise ValueError(f'Missing paper correspondence: {library}:{name}')
     result = data['results'][name]
-    if result['status'] not in {'proved', 'corrected', 'new', 'auxiliary'}:
+    if result['status'] not in {'proved', 'corrected', 'conditional', 'new', 'auxiliary'}:
         raise ValueError(f'Unknown paper proof status: {library}:{name}')
-    if result['status'] in {'proved', 'corrected'} and not result.get('label'):
+    if result['status'] in {'proved', 'corrected', 'conditional'} and not result.get('label'):
         raise ValueError(f'Missing original printed result label: {library}:{name}')
     return result
 
 
 def proof_status(record):
+    if record['status'] == 'conditional':
+        return 'Conditional result proved; source realization pending'
     if record['status'] == 'corrected':
         return 'Corrected statement proved'
     if record['status'] == 'proved':
@@ -47,7 +50,7 @@ def result_notice(library, result, math):
     record = result_metadata(library, result['name'])
     text = '<p class="paper-status" data-proof-status="' + record['status'] + '"><strong>'
     text += escape(proof_status(record)) + '.</strong> ' + math(record.get('note', '')) + '</p>'
-    if record['status'] in {'proved', 'corrected'} or record.get('label', '').startswith('Algorithm '):
+    if record['status'] in {'proved', 'corrected', 'conditional'} or record.get('label', '').startswith('Algorithm '):
         text = source_citation(record.get('paper', data['paper']), record.get('location', record['label']),
                                record.get('url')) + text
     if record['status'] == 'new':
@@ -66,14 +69,16 @@ def correspondence_section(library, results, math):
     data = source_metadata()[library]
     body = ('<section class="section paper-correspondence" id="paper-correspondence">'
             '<h2>Paper correspondence</h2><p>The labels in the first column are the paper’s '
-            'original labels. A corrected statement has a checked Lean proof, but its '
-            'changed hypotheses or conclusion must not be read as the literal printed result.</p>')
+            'original labels. A corrected statement has a checked Lean proof with '
+            'changed hypotheses or conclusion. A conditional result retains extra '
+            'realization inputs. Neither status certifies the literal printed result '
+            'from its original hypotheses alone.</p>')
     if data.get('scope'):
         body += math('<p>' + data['scope'] + '</p>')
     rows = []
     for index, result in enumerate(results, 1):
         record = result_metadata(library, result['name'])
-        if record['status'] not in {'proved', 'corrected'}:
+        if record['status'] not in {'proved', 'corrected', 'conditional'}:
             continue
         paper = PAPERS[record.get('paper', data['paper'])]
         rows.append('<tr data-paper-result="' + escape(record['label'], quote=True) + '"><td><a href="'

@@ -1,5 +1,5 @@
-# GitHub Pages review snapshot
+# GitHub Pages publication snapshot
 
-Source commit: `d7e3922aaf29c250c4617c6aa551f7216ffdac95`.
+Source commit: `ffd2309dad2be1bd55953143814c37f6403fd59e`.
 
-The main-only `papers/` directory is excluded. This export has not been published. Run the local proof and documentation checks before export, and obtain the repository owner's approval before updating `gh-pages`.
+The main-only `papers/` directory is excluded. This snapshot passed the local proof and documentation checks and was published at the repository owner's request.

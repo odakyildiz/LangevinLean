@@ -13,6 +13,16 @@ analogue is also linked as a footnote from IPLA:
 - [PBGSO: paper theorems and new discretisation bounds](../PBGSO/exposition/index.html)
 - [Latent diffusion: assumptions, results and exact Lean statements](../LatentDiffusion/exposition/index.html)
 - [Langevin Monte Carlo with average smoothness](../AverageLMC/exposition/index.html)
+- [Wasserstein mixing under the original Hessian assumptions](../WassersteinMixing/exposition/index.html)
+
+Wasserstein mixing is contribution 10. Theorem 1 and Corollary 1.1 are proved
+from the paper's original $C^2$ Hessian bounds. The actual stationary diffusion,
+reversible Markov semigroup, Poisson corrector, score increments, conditional
+mean, averaged Hessian and Gaussian ULA laws are constructed. The direct
+semigroup proof yields the source bias, finite-time convergence and accuracy
+bounds with their exact constants. The
+[source audit](../WassersteinMixing/exposition/reference_audit.json) records
+independent original-assumption Lean clients and transitive axiom checks.
 
 Latent diffusion has a source-derived overview and complete declaration pages,
 with variational identities, marginal optimizers, particle error bounds and
@@ -131,13 +141,13 @@ links to imported proofs and users, the complete module context, and a downloada
 LaTeX exposition under `latex/`. The generated IPLA standalone bundle links to the
 proof of each included source module in HTML; its LaTeX export gathers all those
 mathematical statements and proofs into one document in dependency order.
-All nine homepage entries link to a mathematical proof report at
+All ten homepage entries link to a mathematical proof report at
 `pdf/<library>/FullProof.pdf`. IPLA's strongly convex and LSI treatments have
-separate reports, making ten reports in total. Each report contains its theorem statements, detailed argument,
+separate reports, making eleven reports in total. Each report contains its theorem statements, detailed argument,
 and its own supporting proofs in dependency order. Shared results are proved once
 in their owning report and cited by exact section or subsection at their use sites.
 The report order is ULA-SC, ULA-LSI, IPLA-SC, IPLA-LSI, Proximal, Kinetic, KIPLMC,
-AverageLMC. The separate PBGSO and latent-diffusion reports use the same three-chapter structure and cover every box in their respective roadmaps.
+AverageLMC, WassersteinMixing. The separate PBGSO and latent-diffusion reports use the same three-chapter structure and cover every box in their respective roadmaps.
 The corresponding complete LaTeX source is at `latex/<library>/FullProof.tex`.
 Every overview and module page offers a corporate-author BibTeX citation, with
 copy and download controls. Individual entries and `all-reports.bib` are generated
@@ -190,7 +200,7 @@ statements, and diagrams; their source correspondence is recorded in each
 development's `exposition/reference_audit.json`. `assets/site.css` and
 `assets/site.js` provide the common layout and reading controls.
 
-`separate_reports.py` builds the PBGSO and latent-diffusion reports from their `exposition/module_notes.json` and `exposition/argument.json`. It requires a mathematical proof and Lean correspondence for every roadmap target. `lean_latex.py` typesets exact source statements and the corresponding explanation in all ten reports.
+`separate_reports.py` builds the PBGSO and latent-diffusion reports from their `exposition/module_notes.json` and `exposition/argument.json`. It requires a mathematical proof and Lean correspondence for every roadmap target. `lean_latex.py` typesets exact source statements and the corresponding explanation in all eleven reports.
 
 `pbgso_overview.py` authors PBGSO's theorem overview, sequential argument and roadmap;
 `assets/pbgso.css` supplies its assumption colours and responsive roadmap layout.
@@ -229,6 +239,17 @@ module atlas and source audit are authored in
 `--require-resolved` coverage gate checks the main sampling theorems; the audit
 records broader auxiliary coverage separately. It does not assert literal full-paper coverage. Its
 PDF report is built with the shared report catalog and cites shared proofs.
+
+`WassersteinMixing` follows as contribution 10, with report identity LL-11
+(LL-10 already identifies PBGSO). Its paired overview is authored in
+`wasserstein_mixing_content.py`, its original source hypotheses in
+`paper_sources_wasserstein.py`, and its complete declaration explanations in
+`WassersteinMixing/exposition/module_notes.json`. The source audit and
+`scripts/verify-wasserstein-mixing.py --require-complete` check the exact
+source conclusions through independently compiled original-assumption clients.
+The direct $C^2$ argument proves the source results without needing the
+manuscript's temporary smoothing passage. The report uses the
+same shared mathematical and exact-Lean template as AverageLMC.
 
 Write mathematical expressions, variables, norms, regularity classes and bounds
 inside LaTeX math delimiters, including headings, diagram labels, tables and
@@ -305,7 +326,9 @@ lake env lean KIPLMC/Check.lean
 lake env lean PBGSO/Check.lean
 lake env lean LatentDiffusion/Check.lean
 lake env lean AverageLMC/Check.lean
+lake env lean WassersteinMixing/Check.lean
 python3 scripts/verify-average-lmc-coverage.py --require-resolved
+python3 scripts/verify-wasserstein-mixing.py
 python3 scripts/verify-kinetic-coverage.py --require-complete
 ```
 

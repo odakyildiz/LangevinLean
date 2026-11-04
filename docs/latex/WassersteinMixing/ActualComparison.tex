@@ -1,0 +1,220 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Constructing the actual synchronous Gibbs comparison}{Constructing the actual synchronous Gibbs comparison}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+A diagonal Gibbs initialization and an independent canonical Brownian path provide one probability space for the stationary Langevin diffusion and its Gaussian Euler chain. Both random processes, their common initial state and their actual laws are constructed.
+
+
+
+Earlier results used here: \cite[Section~3.45]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The concrete probability space and initial moments}{The concrete probability space and initial moments}}
+
+
+\textbf{Construction.} Couple a Gibbs variable with itself on the diagonal, then take its independent product with the coordinate Brownian source. The diagonal coupling has zero transport cost. Strong convexity gives a finite, positive Gibbs partition function and a finite second moment, so both the target and extended law are probability measures and the initialization belongs to \(L^2\).
+
+\begin{leanbox}{Lean: \texttt{ActualSpace}, \texttt{diagonalGibbsCoupling}, \texttt{diagonalGibbsCoupling\_\allowbreak{}cost} and 4 more}
+\leansource{\texttt{ActualSpace} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 19–20}
+\begin{leancode}
+\leanline{0}{abbrev\ ActualSpace\ (P\ :\ Parameters)\ :=}
+\leanline{2}{(E\ P.dimension\ ×\ E\ P.dimension)\ ×\ ULA.CanonicalBrownian.VectorSample\ (Fin\ P.dimension)}
+\end{leancode}
+\leansource{\texttt{diagonalGibbsCoupling} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 23–27}
+\begin{leancode}
+\leanline{0}{def\ diagonalGibbsCoupling\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ :}
+\leanline{4}{ULA.Coupling\ (ULA.gibbsMeasure\ V)\ (ULA.gibbsMeasure\ V)\ where}
+\leanline{2}{joint\ :=\ (ULA.gibbsMeasure\ V).map\ (fun\ x\ ↦\ (x,\ x))}
+\leanline{2}{fst\ :=\ by\ rw\ [Measure.map\_map\ measurable\_fst\ (by\ fun\_prop)];\ exact\ Measure.map\_id}
+\leanline{2}{snd\ :=\ by\ rw\ [Measure.map\_map\ measurable\_snd\ (by\ fun\_prop)];\ exact\ Measure.map\_id}
+\end{leancode}
+\leansource{\texttt{diagonalGibbsCoupling\_\allowbreak{}cost} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 29–33}
+\begin{leancode}
+\leanline{0}{theorem\ diagonalGibbsCoupling\_cost\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ :}
+\leanline{4}{ULA.couplingCost\ (diagonalGibbsCoupling\ P\ V).joint\ =\ 0}
+\end{leancode}
+\leansource{\texttt{actualProbability} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 36–38}
+\begin{leancode}
+\leanline{0}{def\ actualProbability\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ :\ Measure\ (ActualSpace\ P)\ :=}
+\leanline{2}{ULA.initialExtension\ (diagonalGibbsCoupling\ P\ V)}
+\leanline{4}{(ULA.CanonicalBrownian.vectorProbability\ (Fin\ P.dimension))}
+\end{leancode}
+\leansource{\texttt{actualTarget\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 41–44}
+\begin{leancode}
+\leanline{0}{theorem\ actualTarget\_isProbability\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)}
+\end{leancode}
+\leansource{\texttt{actualProbability\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 47–50}
+\begin{leancode}
+\leanline{0}{theorem\ actualProbability\_isProbability\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ IsProbabilityMeasure\ (actualProbability\ P\ V)}
+\end{leancode}
+\leansource{\texttt{actualTarget\_\allowbreak{}memLp} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 53–57}
+\begin{leancode}
+\leanline{0}{theorem\ actualTarget\_memLp\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ MemLp\ (id\ :\ E\ P.dimension\ →\ E\ P.dimension)\ 2}
+\leanline{6}{(ULA.gibbsMeasure\ V)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{diagonal\allowbreak{}Gibbs\allowbreak{}Coupling} uses the exact diagonal pushforward, whose cost is computed as zero. \texttt{actual\allowbreak{}Probability} is its independent Brownian extension. The probability and moment lemmas instantiate the shared Gibbs theorems from the actual potential assumptions.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.1]{LangevinLean2026ULASC}; \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.22.2]{LangevinLean2026ULASC}; \cite[Section~3.22.3]{LangevinLean2026ULASC}; \cite[Section~3.26.13]{LangevinLean2026ULASC}; \cite[Section~3.26.15]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.8.16]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The genuine stationary diffusion}{The genuine stationary diffusion}}
+
+
+\textbf{Construction.} Normalize each Brownian increment to obtain independent standard Gaussian Euler innovations. Solve the Langevin integral equation with the Gibbs initialization and these Brownian paths. The reference segments have the Gibbs law at every interior time, and adjacent segment endpoints agree. In particular the grid reference \(Y_n=Y_{nh}\) is stationary.
+
+\begin{leanbox}{Lean: \texttt{actualNoise}, \texttt{actualReferenceData}, \texttt{actualSegment} and 3 more}
+\leansource{\texttt{actualNoise} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 60–67}
+\begin{leancode}
+\leanline{0}{def\ actualNoise\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ ℕ\ →\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualTarget\_isProbability\ P\ V\ hV}
+\leanline{2}{exact\ ULA.Hilbert.productNoise}
+\leanline{4}{(ULA.CanonicalBrownian.vectorProbability\ (Fin\ P.dimension))\ (diagonalGibbsCoupling\ P\ V)}
+\leanline{4}{(ULA.Hilbert.canonicalEulerNoise\ P.step)}
+\leanline{4}{(ULA.Hilbert.sourceEulerNoise\_memLp\ \_\ ULA.CanonicalBrownian.coordinate}
+\leanline{6}{ULA.CanonicalBrownian.coordinate\_isPreBrownian\ P.step)}
+\end{leancode}
+\leansource{\texttt{actualReferenceData} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 71–84}
+\begin{leancode}
+\leanline{0}{def\ actualReferenceData\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{4}{ULA.Hilbert.L2Reference\ (actualProbability\ P\ V)\ (Fintype.card\ (Fin\ P.dimension))\ V\ P.step}
+\leanline{6}{⟨P.beta,\ P.beta\_pos.le⟩\ hV.gradientLipschitz\ (actualNoise\ P\ V\ hV)}
+\leanline{6}{(ULA.gibbsMeasure\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualTarget\_isProbability\ P\ V\ hV}
+\leanline{2}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{2}{have\ hc\ :\ ULA.couplingCost\ (diagonalGibbsCoupling\ P\ V).joint\ ≠\ ⊤\ :=\ by}
+\leanline{4}{rw\ [diagonalGibbsCoupling\_cost];\ exact\ ENNReal.zero\_ne\_top}
+\leanline{2}{exact\ (ULA.Hilbert.canonicalProductReference\ V\ P.alpha\ P.step}
+\leanline{4}{⟨P.beta,\ P.beta\_pos.le⟩\ P.alpha\_pos\ (hV.regularity.differentiable\ (by\ norm\_num))}
+\leanline{4}{hV.strongConvexity\ hV.gradientLipschitz\ P.step\_pos}
+\leanline{4}{(μ\ :=\ ULA.gibbsMeasure\ V)).reference\ (diagonalGibbsCoupling\ P\ V)\ hc}
+\end{leancode}
+\leansource{\texttt{actualSegment} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 87–91}
+\begin{leancode}
+\leanline{0}{def\ actualSegment\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ :}
+\leanline{4}{Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{2}{exact\ (actualReferenceData\ P\ V\ hV).segment\ n\ s}
+\end{leancode}
+\leansource{\texttt{actualReference} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 94–96}
+\begin{leancode}
+\leanline{0}{def\ actualReference\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=}
+\leanline{2}{actualSegment\ P\ V\ hV\ n\ 0}
+\end{leancode}
+\leansource{\texttt{actualReference\_\allowbreak{}stationary} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 99–103}
+\begin{leancode}
+\leanline{0}{theorem\ actualReference\_stationary\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(actualProbability\ P\ V).map\ (actualReference\ P\ V\ hV\ n)\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{actualSegment\_\allowbreak{}stationary} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 107–155}
+\begin{leancode}
+\leanline{0}{theorem\ actualSegment\_stationary\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Icc\ 0\ P.step)\ :}
+\leanline{4}{(actualProbability\ P\ V).map\ (actualSegment\ P\ V\ hV\ n\ t)\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Reference\allowbreak{}Data} instantiates the proved Brownian reference construction. \texttt{actual\allowbreak{}Segment} and \texttt{actual\allowbreak{}Reference} select its actual segments and grid knots. Their stationarity follows from the constructed reference, rather than a new stationarity hypothesis.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.19.3]{LangevinLean2026ULASC}; \cite[Section~3.22.20]{LangevinLean2026ULASC}; \cite[Section~3.22.22]{LangevinLean2026ULASC}; \cite[Section~3.23.5]{LangevinLean2026ULASC}; \cite[Section~3.25.6]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.29.4]{LangevinLean2026ULASC}; \cite[Section~3.29.7]{LangevinLean2026ULASC}; \cite[Section~3.32.12]{LangevinLean2026ULASC}; \cite[Section~3.32.13]{LangevinLean2026ULASC}; \cite[Section~3.32.15]{LangevinLean2026ULASC}; \cite[Section~3.32.17]{LangevinLean2026ULASC}; \cite[Section~3.32.5]{LangevinLean2026ULASC}; \cite[Section~3.42.7]{LangevinLean2026ULASC}; \cite[Section~3.44.5]{LangevinLean2026ULASC}; \cite[Section~3.45.3]{LangevinLean2026ULASC}; \cite[Section~3.45.4]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.8.22]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The actual Gaussian Euler chain}{The actual Gaussian Euler chain}}
+
+
+\textbf{Claim.} On the same probability space, define \(X_{n+1}=X_n-h\nabla V(X_n)+\sqrt{2h}\,\xi_n\), with the same initialization and Brownian innovations. Then \(X_0=Y_0\) and
+
+\[\operatorname{Law}(X_n)=K_h^n\pi,\qquad \pi(dx)\propto e^{-V(x)}\,dx.\]
+
+\textbf{Proof.} The common diagonal initialization has zero \(L^2\) difference. The actual independent-Gaussian recursion has the Markov law obtained by applying the Gaussian ULA law step at each iteration; induction identifies its pushforward with the displayed iterate.
+
+\begin{leanbox}{Lean: \texttt{actualInitial}, \texttt{actualChain}, \texttt{actual\_\allowbreak{}initial\_\allowbreak{}equal} and 1 more}
+\leansource{\texttt{actualInitial} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 158–164}
+\begin{leancode}
+\leanline{0}{def\ actualInitial\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualTarget\_isProbability\ P\ V\ hV}
+\leanline{2}{have\ hc\ :\ ULA.couplingCost\ (diagonalGibbsCoupling\ P\ V).joint\ ≠\ ⊤\ :=\ by}
+\leanline{4}{rw\ [diagonalGibbsCoupling\_cost];\ exact\ ENNReal.zero\_ne\_top}
+\leanline{2}{exact\ ULA.initialExtension\_lpInitial\ (diagonalGibbsCoupling\ P\ V)}
+\leanline{4}{(ULA.CanonicalBrownian.vectorProbability\ (Fin\ P.dimension))\ hc\ (actualTarget\_memLp\ P\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{actualChain} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 167–171}
+\begin{leancode}
+\leanline{0}{def\ actualChain\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V)\ :=\ by}
+\leanline{2}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{2}{exact\ ULA.Hilbert.lpChain\ (actualProbability\ P\ V)\ V\ P.step\ hV.gradientLipschitz}
+\leanline{4}{(actualInitial\ P\ V\ hV)\ (actualNoise\ P\ V\ hV)\ n}
+\end{leancode}
+\leansource{\texttt{actual\_\allowbreak{}initial\_\allowbreak{}equal} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 174–189}
+\begin{leancode}
+\leanline{0}{theorem\ actual\_initial\_equal\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ actualReference\ P\ V\ hV\ 0\ =\ actualChain\ P\ V\ hV\ 0}
+\end{leancode}
+\leansource{\texttt{actualChain\_\allowbreak{}law} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 193–212}
+\begin{leancode}
+\leanline{0}{theorem\ actualChain\_law\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(actualProbability\ P\ V).map\ (actualChain\ P\ V\ hV\ n)\ =}
+\leanline{6}{(ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ (ULA.gibbsMeasure\ V)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Chain} is the genuine noise-driven Euler recursion. \texttt{actual\_\allowbreak{}initial\_\allowbreak{}equal} uses the diagonal coupling. \texttt{actual\allowbreak{}Chain\_\allowbreak{}law} invokes the exact law theorem of that recursion with the actual Gaussian innovations.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.2]{LangevinLean2026ULASC}; \cite[Section~3.19.1]{LangevinLean2026ULASC}; \cite[Section~3.22.19]{LangevinLean2026ULASC}; \cite[Section~3.22.23]{LangevinLean2026ULASC}; \cite[Section~3.23.9]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.32.5]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.45.1]{LangevinLean2026ULASC}; \cite[Section~3.45.3]{LangevinLean2026ULASC}; \cite[Section~3.45.4]{LangevinLean2026ULASC}; \cite[Section~3.8.17]{LangevinLean2026ULASC}; \cite[Section~3.8.19]{LangevinLean2026ULASC}; \cite[Section~3.8.20]{LangevinLean2026ULASC}; \cite[Section~3.8.22]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,227 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Actual Gaussian Metropolis detailed balance}{Actual Gaussian Metropolis detailed balance}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The genuine Gaussian Langevin proposal and Metropolis acceptance produce a stationary pair law with Gibbs marginals. Detailed balance is proved directly from the symmetric minimum of the forward and backward densities, and its actual \(L^2\) transition is self-adjoint.
+
+
+
+Earlier results used here: \cite[Section~3.39]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Accepted flow and rejected diagonal mass}{Accepted flow and rejected diagonal mass}}
+
+
+\textbf{Construction.} Given proposal-pair law \(J\) and acceptance \(a(x,y)\), retain the accepted weighted pair \(aJ\), and send the rejected pair to \((x,x)\). Its first marginal is the original first marginal, since the weights \(a\) and \(1-a\) sum to one; its second marginal is the actual Metropolis output.
+
+
+
+\textbf{Proof of reversal.} Rejected diagonal mass is unchanged by swapping. For a swap-invariant base measure and forward density \(w\), Metropolis weighting gives accepted density \(\min\{w(x,y),w(y,x)\}\), which is symmetric. Thus the entire output pair is reversible.
+
+\begin{leanbox}{Lean: \texttt{metropolisJoint}, \texttt{metropolisJoint\_\allowbreak{}fst}, \texttt{metropolisJoint\_\allowbreak{}snd} and 2 more}
+\leansource{\texttt{metropolisJoint} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 28–31}
+\begin{leancode}
+\leanline{0}{def\ metropolisJoint\ (proposal\ :\ Measure\ (E\ ×\ E))\ (acceptance\ :\ E\ ×\ E\ →\ ℝ)\ :}
+\leanline{4}{Measure\ (E\ ×\ E)\ :=}
+\leanline{2}{ULA.acceptedFlow\ proposal\ acceptance\ +}
+\leanline{4}{(ULA.rejectedFlow\ proposal\ acceptance).map\ (fun\ p\ ↦\ (p.1,\ p.1))}
+\end{leancode}
+\leansource{\texttt{metropolisJoint\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 34–44}
+\begin{leancode}
+\leanline{0}{theorem\ metropolisJoint\_fst\ (proposal\ :\ Measure\ (E\ ×\ E))\ (acceptance\ :\ E\ ×\ E\ →\ ℝ)}
+\leanline{4}{(ha\ :\ Measurable\ acceptance)\ (ha0\ :\ ∀\ p,\ 0\ ≤\ acceptance\ p)}
+\leanline{4}{(ha1\ :\ ∀\ p,\ acceptance\ p\ ≤\ 1)\ :}
+\leanline{4}{(metropolisJoint\ proposal\ acceptance).map\ Prod.fst\ =\ proposal.map\ Prod.fst}
+\end{leancode}
+\leansource{\texttt{metropolisJoint\_\allowbreak{}snd} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 47–53}
+\begin{leancode}
+\leanline{0}{theorem\ metropolisJoint\_snd\ (proposal\ :\ Measure\ (E\ ×\ E))\ (acceptance\ :\ E\ ×\ E\ →\ ℝ)\ :}
+\leanline{4}{(metropolisJoint\ proposal\ acceptance).map\ Prod.snd\ =}
+\leanline{6}{ULA.metropolisOutput\ proposal\ acceptance}
+\end{leancode}
+\leansource{\texttt{metropolisJoint\_\allowbreak{}swap} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 56–64}
+\begin{leancode}
+\leanline{0}{theorem\ metropolisJoint\_swap\ (proposal\ :\ Measure\ (E\ ×\ E))\ (acceptance\ :\ E\ ×\ E\ →\ ℝ)}
+\leanline{4}{(haccepted\ :\ (ULA.acceptedFlow\ proposal\ acceptance).map\ Prod.swap\ =}
+\leanline{6}{ULA.acceptedFlow\ proposal\ acceptance)\ :}
+\leanline{4}{(metropolisJoint\ proposal\ acceptance).map\ Prod.swap\ =}
+\leanline{6}{metropolisJoint\ proposal\ acceptance}
+\end{leancode}
+\leansource{\texttt{acceptedFlow\_\allowbreak{}swap\_\allowbreak{}of\_\allowbreak{}density} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 67–87}
+\begin{leancode}
+\leanline{0}{theorem\ acceptedFlow\_swap\_of\_density\ (base\ :\ Measure\ (E\ ×\ E))}
+\leanline{4}{(hbase\ :\ base.map\ Prod.swap\ =\ base)\ (w\ :\ E\ ×\ E\ →\ ℝ)}
+\leanline{4}{(hw\ :\ Measurable\ w)\ (hw0\ :\ ∀\ p,\ 0\ <\ w\ p)\ :}
+\leanline{4}{(ULA.acceptedFlow\ (base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (w\ p)))}
+\leanline{6}{(ULA.metropolisAcceptance\ w)).map\ Prod.swap\ =}
+\leanline{4}{ULA.acceptedFlow\ (base.withDensity\ (fun\ p\ ↦\ ENNReal.ofReal\ (w\ p)))}
+\leanline{6}{(ULA.metropolisAcceptance\ w)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{metropolis\allowbreak{}Joint} uses the actual accepted measure and mapped rejected measure. Its marginal lemmas use exact weighted partition and map composition. \texttt{accepted\allowbreak{}Flow\_\allowbreak{}swap\_\allowbreak{}of\_\allowbreak{}density} proves the symmetric minimum-density identity, and \texttt{metropolis\allowbreak{}Joint\_\allowbreak{}swap} combines accepted reversal with the diagonal rejection map.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.35.1]{LangevinLean2026ULASC}; \cite[Section~3.35.11]{LangevinLean2026ULASC}; \cite[Section~3.35.2]{LangevinLean2026ULASC}; \cite[Section~3.35.3]{LangevinLean2026ULASC}; \cite[Section~3.35.4]{LangevinLean2026ULASC}; \cite[Section~3.35.8]{LangevinLean2026ULASC}; \cite[Section~3.35.9]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The actual Gibbs-start Gaussian pair}{The actual Gibbs-start Gaussian pair}}
+
+
+\textbf{Claim.} For positive step size, the Gaussian MALA pair has both marginals equal to \(\pi\), is swap invariant, and is a probability law.
+
+
+
+\textbf{Proof.} The actual proposal joint law has the Gibbs/\allowbreak{}Gaussian density with respect to the product reference measure. The logarithmic acceptance ratio is the actual ratio of its backward and forward densities, so the preceding minimum-density argument applies. The first marginal is Gibbs by exact acceptance/\allowbreak{}rejection partition. Swap invariance makes the second marginal equal to the first; total mass then equals one. Measurability follows from continuity of the potential and its Lipschitz gradient.
+
+\begin{leanbox}{Lean: \texttt{jointLaw}, \texttt{acceptance\_\allowbreak{}measurable}, \texttt{jointLaw\_\allowbreak{}fst} and 4 more}
+\leansource{\texttt{jointLaw} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 96–98}
+\begin{leancode}
+\leanline{0}{def\ jointLaw\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ :\ Measure\ (E\ ×\ E)\ :=}
+\leanline{2}{metropolisJoint\ (ULA.malaProposalJoint\ V\ h\ (ULA.gibbsMeasure\ V))}
+\leanline{4}{(fun\ p\ ↦\ ULA.malaAcceptance\ V\ h\ p.1\ p.2)}
+\end{leancode}
+\leansource{\texttt{acceptance\_\allowbreak{}measurable} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 100–106}
+\begin{leancode}
+\leanline{0}{private\ theorem\ acceptance\_measurable\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{Measurable\ (fun\ p\ :\ E\ ×\ E\ ↦\ ULA.malaAcceptance\ V\ h\ p.1\ p.2)}
+\end{leancode}
+\leansource{\texttt{jointLaw\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 109–119}
+\begin{leancode}
+\leanline{0}{theorem\ jointLaw\_fst\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{(jointLaw\ V\ h).map\ Prod.fst\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{jointLaw\_\allowbreak{}snd\_\allowbreak{}eq\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 122–126}
+\begin{leancode}
+\leanline{0}{theorem\ jointLaw\_snd\_eq\_step\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{(jointLaw\ V\ h).map\ Prod.snd\ =\ ULA.malaOneStep\ V\ h\ (ULA.gibbsMeasure\ V)}
+\end{leancode}
+\leansource{\texttt{jointLaw\_\allowbreak{}swap} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 129–151}
+\begin{leancode}
+\leanline{0}{theorem\ jointLaw\_swap\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hdiff\ :\ Differentiable\ ℝ\ V)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{(jointLaw\ V\ h).map\ Prod.swap\ =\ jointLaw\ V\ h}
+\end{leancode}
+\leansource{\texttt{jointLaw\_\allowbreak{}snd} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 154–159}
+\begin{leancode}
+\leanline{0}{theorem\ jointLaw\_snd\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hh\ :\ 0\ <\ h)\ (hdiff\ :\ Differentiable\ ℝ\ V)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{(jointLaw\ V\ h).map\ Prod.snd\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{jointLaw\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 163–170}
+\begin{leancode}
+\leanline{0}{theorem\ jointLaw\_isProbability\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{IsProbabilityMeasure\ (jointLaw\ V\ h)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{joint\allowbreak{}Law} specializes the generic Metropolis pair to \texttt{mala\allowbreak{}Proposal\allowbreak{}Joint}. The acceptance helper proves measurability from the true potential and gradient. \texttt{joint\allowbreak{}Law\_\allowbreak{}swap} uses the actual proposal density theorem; its marginal and probability consequences are derived from that measure identity.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.2]{LangevinLean2026ULASC}; \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.34.2]{LangevinLean2026ULASC}; \cite[Section~3.35.5]{LangevinLean2026ULASC}; \cite[Section~3.35.9]{LangevinLean2026ULASC}; \cite[Section~3.36.1]{LangevinLean2026ULASC}; \cite[Section~3.36.3]{LangevinLean2026ULASC}; \cite[Section~3.36.4]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.8]{LangevinLean2026ULASC}; \cite[Section~3.37.12]{LangevinLean2026ULASC}; \cite[Section~3.39.1]{LangevinLean2026ULASC}; \cite[Section~3.39.2]{LangevinLean2026ULASC}; \cite[Section~3.39.3]{LangevinLean2026ULASC}; \cite[Section~3.39.4]{LangevinLean2026ULASC}; \cite[Section~3.39.5]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The actual self-adjoint contraction and its powers}{The actual self-adjoint contraction and its powers}}
+
+
+\textbf{Claim.} The transition compressed from this actual stationary pair is a self-adjoint contraction. Every integer power is self-adjoint and contractive. Actual bounded-continuous two-time correlations are symmetric.
+
+
+
+\textbf{Proof.} Apply the stationary-pair construction to the proved marginals and swap identity. Powers of a self-adjoint operator remain self-adjoint; induction applies the contraction bound at each factor. The correlation symmetry follows by mapping the integrable pair function through the actual swap-invariant law.
+
+\begin{leanbox}{Lean: \texttt{operator}, \texttt{operator\_\allowbreak{}norm\_\allowbreak{}le}, \texttt{operator\_\allowbreak{}isSelfAdjoint} and 3 more}
+\leansource{\texttt{operator} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 176–180}
+\begin{leancode}
+\leanline{0}{def\ operator\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →L[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ :=}
+\leanline{2}{StationaryPair.transition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (ULA.gibbsMeasure\ V)\ (jointLaw\ V\ h)}
+\leanline{4}{(jointLaw\_fst\ V\ h\ L\ hdiff\ hLip)\ (jointLaw\_snd\ V\ h\ L\ hh\ hdiff\ hLip)}
+\end{leancode}
+\leansource{\texttt{operator\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 183–187}
+\begin{leancode}
+\leanline{0}{theorem\ operator\_norm\_le\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{‖operator\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ V\ h\ L\ hh\ hdiff\ hLip‖\ ≤\ 1}
+\end{leancode}
+\leansource{\texttt{operator\_\allowbreak{}isSelfAdjoint} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 191–196}
+\begin{leancode}
+\leanline{0}{theorem\ operator\_isSelfAdjoint\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{IsSelfAdjoint\ (operator\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ V\ h\ L\ hh\ hdiff\ hLip)}
+\end{leancode}
+\leansource{\texttt{operator\_\allowbreak{}pow\_\allowbreak{}isSelfAdjoint} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 199–202}
+\begin{leancode}
+\leanline{0}{theorem\ operator\_pow\_isSelfAdjoint\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsSelfAdjoint\ (operator\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ V\ h\ L\ hh\ hdiff\ hLip\ \textasciicircum{}\ n)}
+\end{leancode}
+\leansource{\texttt{operator\_\allowbreak{}pow\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 205–217}
+\begin{leancode}
+\leanline{0}{theorem\ operator\_pow\_norm\_le\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖operator\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ V\ h\ L\ hh\ hdiff\ hLip\ \textasciicircum{}\ n‖\ ≤\ 1}
+\end{leancode}
+\leansource{\texttt{jointLaw\_\allowbreak{}correlation\_\allowbreak{}symmetric} \quad WassersteinMixing/\allowbreak{}SemigroupMALA.lean, lines 222–232}
+\begin{leancode}
+\leanline{0}{theorem\ jointLaw\_correlation\_symmetric\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(f\ g\ :\ E\ →\ F)\ (hf\ :\ Continuous\ f)\ (hg\ :\ Continuous\ g)\ :}
+\leanline{4}{(∫\ p,\ inner\ {\leanfallback 𝕜}\ (f\ p.2)\ (g\ p.1)\ ∂jointLaw\ V\ h)\ =}
+\leanline{6}{∫\ p,\ inner\ {\leanfallback 𝕜}\ (f\ p.1)\ (g\ p.2)\ ∂jointLaw\ V\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{operator} instantiates the generic stationary-pair adjoint compression over either real or complex targets. Its bounds and self-adjointness use proved law properties. The power bounds are inductive consequences; the final real correlation lemma uses actual pair-law reversal directly.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

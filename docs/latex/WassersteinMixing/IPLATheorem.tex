@@ -1,0 +1,322 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Explicit linear-step IPLA bounds}{Explicit linear-step IPLA bounds}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Fix an observation \(y\). Let the joint potential \(U_y\) be of class \(C^2\), \(m\)-strongly convex with \(m>0\), and have an \(L\)-Lipschitz gradient with \(L\ge0\). For \(N\ge1\) particles, \(\gamma>0\), \(\gamma L\le1\), a square-integrable scaled initial law \(\mu_0\) and independent standard Gaussian innovations, the actual IPLA recursion satisfies
+
+\[\bigl(\mathbb E\|\theta_k-\theta_\star\|^2\bigr)^{1/2}\le\sqrt{\frac{2d_\theta}{Nm}}+(1-m\gamma)^kW_2(\mu_0,\Pi_N)+\frac{6L}{\sqrt m}\sqrt{d_x+\frac{d_\theta}N}\,\gamma\]
+
+for every \(k\in\mathbb N\). The assumptions, notation and first two terms are those of Project 03; only the regularity, the step range and the last term differ. The same bound holds with any square-integrable stationary law of the recursion in place of \(\Pi_N\), and explicit particle, step and iteration choices give normalized accuracy \(\varepsilon\). On a nonzero joint space, the ordering \(m\le L\) follows from the potential assumptions, so the step restriction is equivalently \(\gamma\le1/L\). In zero joint dimension the state space is a point and the parameter error is zero, including when \(L=0\).
+
+
+
+Earlier results used here: \cite[Section~3.18]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Writing the discretization term explicitly}{Writing the discretization term explicitly}}
+
+
+\textbf{Claim.} Let \(m>0\) and \(L,D\ge0\). Then
+
+\[6\gamma\sqrt{\frac Lm\,LD}=\frac{6L}{\sqrt m}\sqrt D\,\gamma.\]
+
+If also \(\gamma\ge0\), then
+
+\[\frac{6L}{\sqrt m}\sqrt D\,\gamma=\frac{40}{11}\sqrt{m\gamma}\cdot\frac{33}{20}\frac Lm\sqrt D\sqrt\gamma,\]
+
+and \(m\gamma\le121/1600\) implies \(\frac{6L}{\sqrt m}\sqrt D\,\gamma\le\frac{33}{20}\frac Lm\sqrt D\sqrt\gamma\).
+
+
+
+\textbf{Proof.} Multiplying the left side of the first identity by \(\sqrt m\) gives \(6L\gamma\sqrt D\) by the earlier curvature scaling identity; divide by \(\sqrt m>0\). For the second identity write \(\sqrt{m\gamma}=\sqrt m\sqrt\gamma\), use \((\sqrt m)^2=m\), \((\sqrt\gamma)^2=\gamma\) and \(\frac{40}{11}\cdot\frac{33}{20}=6\). The inequality is the earlier factorized comparison with Project 03, rewritten by the first identity. Equivalently, \(\frac{40}{11}\sqrt{m\gamma}\le1\) exactly when \(m\gamma\le121/1600\).
+
+\begin{leanbox}{Lean: \texttt{iplaLinearBias\_\allowbreak{}eq\_\allowbreak{}explicit}, \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}term\_\allowbreak{}eq\_\allowbreak{}project03\_\allowbreak{}mul}, \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}term\_\allowbreak{}le\_\allowbreak{}project03}}
+\leansource{\texttt{iplaLinearBias\_\allowbreak{}eq\_\allowbreak{}explicit} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 22–30}
+\begin{leancode}
+\leanline{0}{theorem\ iplaLinearBias\_eq\_explicit\ (m\ L\ γ\ D\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hL\ :\ 0\ ≤\ L)\ (hD\ :\ 0\ ≤\ D)\ :}
+\leanline{4}{iplaLinearBias\ m\ L\ γ\ D\ =\ 6\ *\ (L\ /\ Real.sqrt\ m)\ *\ Real.sqrt\ D\ *\ γ}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}term\_\allowbreak{}eq\_\allowbreak{}project03\_\allowbreak{}mul} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 33–41}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_linear\_step\_term\_eq\_project03\_mul\ (m\ L\ γ\ D\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ ≤\ γ)\ :}
+\leanline{4}{6\ *\ (L\ /\ Real.sqrt\ m)\ *\ Real.sqrt\ D\ *\ γ\ =}
+\leanline{6}{(40\ /\ 11\ :\ ℝ)\ *\ Real.sqrt\ (m\ *\ γ)\ *}
+\leanline{8}{((33\ /\ 20\ :\ ℝ)\ *\ (L\ /\ m)\ *\ Real.sqrt\ D\ *\ Real.sqrt\ γ)}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}term\_\allowbreak{}le\_\allowbreak{}project03} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 44–50}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_linear\_step\_term\_le\_project03\ (m\ L\ γ\ D\ :\ ℝ)\ (hm\ :\ 0\ <\ m)\ (hL\ :\ 0\ ≤\ L)}
+\leanline{4}{(hγ\ :\ 0\ ≤\ γ)\ (hD\ :\ 0\ ≤\ D)\ (hsmall\ :\ m\ *\ γ\ ≤\ 121\ /\ 1600)\ :}
+\leanline{4}{6\ *\ (L\ /\ Real.sqrt\ m)\ *\ Real.sqrt\ D\ *\ γ\ ≤}
+\leanline{6}{(33\ /\ 20\ :\ ℝ)\ *\ (L\ /\ m)\ *\ Real.sqrt\ D\ *\ Real.sqrt\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\allowbreak{}Linear\allowbreak{}Bias\_\allowbreak{}eq\_\allowbreak{}explicit} rewrites \texttt{ipla\allowbreak{}Linear\allowbreak{}Bias} through \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}bias\_\allowbreak{}scale} and field cancellation by the positive square root. \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}term\_\allowbreak{}eq\_\allowbreak{}project03\_\allowbreak{}mul} splits \texttt{Real.\allowbreak{}sqrt (m * \ensuremath{\gamma})}, clears denominators and substitutes the two squared roots. \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}term\_\allowbreak{}le\_\allowbreak{}project03} rewrites \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}bias\_\allowbreak{}le\_\allowbreak{}project03}; its right side is literally Project 03's discretization term.
+\end{leanbox}
+
+\section{\texorpdfstring{Ordering the curvature constants and the one-point space}{Ordering the curvature constants and the one-point space}}
+
+
+\textbf{Claim.} If \(d_\theta+d_x>0\) and a differentiable joint potential \(U\) is \(m\)-strongly convex with an \(L\)-Lipschitz gradient, then \(m\le L\). On a one-point measurable space, any two probability measures are equal.
+
+
+
+\textbf{Proof.} Take a unit coordinate vector \(v\). Strong monotonicity of the gradient, the Cauchy–Schwarz inequality and the Lipschitz bound give
+
+\[m=m\|v\|^2\le\langle\nabla U(v)-\nabla U(0),v\rangle\le\|\nabla U(v)-\nabla U(0)\|\le L.\]
+
+On a one-point space every set is empty or the whole space, where both probability measures take the values \(0\) and \(1\).
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}curvature\_\allowbreak{}le\_\allowbreak{}smoothness}, \texttt{probability\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton}}
+\leansource{\texttt{ipla\_\allowbreak{}curvature\_\allowbreak{}le\_\allowbreak{}smoothness} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 53–65}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_curvature\_le\_smoothness\ \{dθ\ dx\ :\ ℕ\}\ [Nonempty\ (Fin\ dθ\ ⊕\ Fin\ dx)]}
+\leanline{4}{\{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ\}\ \{m\ :\ ℝ\}\ \{L\ :\ ℝ≥0\}}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))\ :\ m\ ≤\ L}
+\end{leancode}
+\leansource{\texttt{probability\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 68–74}
+\begin{leancode}
+\leanline{0}{theorem\ probability\_eq\_of\_subsingleton\ \{α\ :\ Type*\}\ [MeasurableSpace\ α]\ [Subsingleton\ α]}
+\leanline{4}{(μ\ ν\ :\ Measure\ α)\ [IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ :\ μ\ =\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}curvature\_\allowbreak{}le\_\allowbreak{}smoothness} uses \texttt{Euclidean\allowbreak{}Space.\allowbreak{}single i 1} for an index supplied by the nonempty coordinate type, then combines \texttt{ULA.\allowbreak{}strong\_\allowbreak{}gradient\_\allowbreak{}monotone}, \texttt{real\_\allowbreak{}inner\_\allowbreak{}le\_\allowbreak{}norm} and \texttt{Lipschitz\allowbreak{}With.\allowbreak{}dist\_\allowbreak{}le\_\allowbreak{}mul}. \texttt{probability\_\allowbreak{}eq\_\allowbreak{}of\_\allowbreak{}subsingleton} proves measure extensionality by splitting each set into the empty and nonempty cases.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.2.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Stationary laws of the Gaussian IPLA transition}{Stationary laws of the Gaussian IPLA transition}}
+
+
+\textbf{Claim.} Let \(T\) be the Gaussian IPLA transition on scaled-state laws, under the structural assumptions \(U_y\in C^2\), \(m\)-strong convexity with \(m>0\), an \(L\)-Lipschitz gradient, \(\gamma>0\) and \(\gamma L\le1\). Then \(T\) has a stationary probability law with finite second moment. If \(\widehat\Pi\) is the constructed invariant law, \(\Pi'\) is any stationary law with finite second moment, and \(\mu\) has finite second moment, then
+
+\[W_2(\mu,\widehat\Pi)\le W_2(\mu,\Pi').\]
+
+\textbf{Proof.} When \(d_\theta+d_x>0\), the previous step gives \(L\ge m>0\), and the invariant law constructed for the lifted chain is a stationary probability law with finite second moment. When \(d_\theta=d_x=0\), the state space is a point; its Dirac law is stationary because both it and its image are probability measures on a point. In this case every probability law is that same point mass, so all distances in the displayed comparison are zero.
+
+
+
+For the remaining comparison suppose \(d_\theta+d_x>0\). Both stationary laws have finite second moments, so \(W_2(\Pi',\widehat\Pi)<\infty\). One step of synchronous contraction gives
+
+\[W_2(\Pi',\widehat\Pi)=W_2(T\Pi',T\widehat\Pi)\le(1-m\gamma)\,W_2(\Pi',\widehat\Pi).\]
+
+Here \(0\le1-m\gamma<1\) because \(m\gamma\le L\gamma\le1\). This forces \(W_2(\Pi',\widehat\Pi)=0\). The triangle inequality then gives \(W_2(\mu,\widehat\Pi)\le W_2(\mu,\Pi')+0\).
+
+\begin{leanbox}{Lean: \texttt{IPLASetting.\allowbreak{}wasserstein2Real\_\allowbreak{}invariantLaw\_\allowbreak{}le}, \texttt{ipla\_\allowbreak{}stationary\_\allowbreak{}law\_\allowbreak{}exists}}
+\leansource{\texttt{IPLASetting.\allowbreak{}wasserstein2Real\_\allowbreak{}invariantLaw\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 78–109}
+\begin{leancode}
+\leanline{0}{theorem\ IPLASetting.wasserstein2Real\_invariantLaw\_le\ (A\ :\ IPLASetting)}
+\leanline{4}{(μ\ stationary\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ stationary]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(hmoment\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ stationary)}
+\leanline{4}{(hstationary\ :\ ULA.ulaLawStep\ (IPLA.potential\ A.U)\ (A.γ\ /\ A.N)\ stationary\ =\ stationary)\ :}
+\leanline{4}{ULA.wasserstein2Real\ μ\ A.invariantLaw\ ≤\ ULA.wasserstein2Real\ μ\ stationary}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}stationary\_\allowbreak{}law\_\allowbreak{}exists} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 112–148}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_stationary\_law\_exists}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ (U\ y))\ (hsc\ :\ StrongConvexOn\ univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)\ (hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)\ :}
+\leanline{4}{∃\ stationary\ :\ Measure\ (IPLA.State\ N\ dθ\ dx),\ IsProbabilityMeasure\ stationary\ ∧}
+\leanline{6}{MemLp\ (id\ :\ IPLA.State\ N\ dθ\ dx\ →\ IPLA.State\ N\ dθ\ dx)\ 2\ stationary\ ∧}
+\leanline{6}{ULA.ulaLawStep\ (IPLA.potential\ (U\ y))\ (γ\ /\ N)\ stationary\ =\ stationary}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{IPLASetting.\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}invariant\allowbreak{}Law\_\allowbreak{}le} applies \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}le} with one step, rewrites both laws by stationarity and \texttt{coordinate\allowbreak{}Invariant\allowbreak{}Law\_\allowbreak{}invariant}, and concludes with \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}triangle}; finiteness comes from \texttt{ULA.\allowbreak{}wasserstein2\_\allowbreak{}ne\_\allowbreak{}top\_\allowbreak{}of\_\allowbreak{}mem\allowbreak{}Lp}. \texttt{ipla\_\allowbreak{}stationary\_\allowbreak{}law\_\allowbreak{}exists} returns \texttt{IPLASetting.\allowbreak{}invariant\allowbreak{}Law} with its proved probability, moment and invariance properties, and uses \texttt{Measure.\allowbreak{}dirac 0} in zero dimensions.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{The parameter bounds in Project 03's form}{The parameter bounds in Project 03's form}}
+
+
+\textbf{Claim.} Under the assumptions in the summary, for every \(k\in\mathbb N\),
+
+\[\bigl(\mathbb E\|\theta_k-\theta_\star\|^2\bigr)^{1/2}\le\sqrt{\frac{2d_\theta}{Nm}}+(1-m\gamma)^kW_2(\mu_0,\Pi_N)+\frac{6L}{\sqrt m}\sqrt{d_x+\frac{d_\theta}N}\,\gamma\]
+
+The same bound holds with \(W_2(\mu_0,\Pi_N)\) replaced by \(W_2(\mu_0,\Pi')\) for any stationary law \(\Pi'\) of the recursion with finite second moment.
+
+
+
+\textbf{Proof.} Suppose \(d_\theta+d_x>0\). Then \(m\le L\), so the earlier application gives the sharp target-based bound with discretization term \(6\gamma\sqrt{(L/m)L(d_x+d_\theta/N)}\), which equals the displayed term by the first step. For the stationary form, apply the invariant-law bound of the application and replace \(W_2(\mu_0,\widehat\Pi)\) by the larger \(W_2(\mu_0,\Pi')\), using the previous step and \((1-m\gamma)^k\ge0\), which holds because \(m\gamma\le L\gamma\le1\). If \(d_\theta=d_x=0\), the parameter error vanishes and every transport distance on the one-point state space is zero, so both sides vanish.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}bound}, \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}bound\_\allowbreak{}stationary}}
+\leansource{\texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 153–186}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_linear\_step\_bound}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ (U\ y))\ (hsc\ :\ StrongConvexOn\ univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hMaximizer\ :\ IPLA.IsMarginalMaximizer\ (U\ y)\ θStar)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(IPLA.laws\ P\ (U\ y)\ γ\ L\ (hU.differentiable\ (by\ norm\_num))\ hLip\ initial\ noise\ k))\ ≤}
+\leanline{6}{Real.sqrt\ (2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{8}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ (P.map\ initial)\ (IPLA.gibbsTarget\ (U\ y))\ +}
+\leanline{8}{6\ *\ ((L\ :\ ℝ)\ /\ Real.sqrt\ m)\ *}
+\leanline{10}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ γ}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}bound\_\allowbreak{}stationary} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 190–245}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_linear\_step\_bound\_stationary}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ (U\ y))\ (hsc\ :\ StrongConvexOn\ univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hMaximizer\ :\ IPLA.IsMarginalMaximizer\ (U\ y)\ θStar)}
+\leanline{4}{(stationary\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ stationary]}
+\leanline{4}{(hmoment\ :\ MemLp\ (id\ :\ IPLA.State\ N\ dθ\ dx\ →\ IPLA.State\ N\ dθ\ dx)\ 2\ stationary)}
+\leanline{4}{(hstationary\ :\ ULA.ulaLawStep\ (IPLA.potential\ (U\ y))\ (γ\ /\ N)\ stationary\ =\ stationary)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(IPLA.laws\ P\ (U\ y)\ γ\ L\ (hU.differentiable\ (by\ norm\_num))\ hLip\ initial\ noise\ k))\ ≤}
+\leanline{6}{Real.sqrt\ (2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{8}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ (P.map\ initial)\ stationary\ +}
+\leanline{8}{6\ *\ ((L\ :\ ℝ)\ /\ Real.sqrt\ m)\ *}
+\leanline{10}{Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ *\ γ}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+Both theorems have the binders of \texttt{IPLA.\allowbreak{}theorem1}, with \texttt{h\allowbreak{}U : Cont\allowbreak{}Diff \ensuremath{\mathbb R} 2 (U y)} in place of differentiability and \texttt{h\ensuremath{\gamma}\allowbreak{}L : \ensuremath{\gamma} * L \ensuremath{\le} 1} in place of \texttt{\ensuremath{\gamma} \ensuremath{\le} 2 /\allowbreak{} (m + L)}; the stationary form adds the stationary law with its moment and invariance hypotheses. In nonzero dimension, \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}bound} applies \texttt{ipla\_\allowbreak{}gaussian\_\allowbreak{}parameter\_\allowbreak{}error} and rewrites by \texttt{ipla\allowbreak{}Linear\allowbreak{}Bias\_\allowbreak{}eq\_\allowbreak{}explicit}; \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}bound\_\allowbreak{}stationary} applies \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error}, \texttt{IPLASetting.\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}gaussian} and \texttt{IPLASetting.\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}invariant\allowbreak{}Law\_\allowbreak{}le}. The zero-dimensional branch uses \texttt{IPLA.\allowbreak{}parameter\allowbreak{}RMS\_\allowbreak{}zero\_\allowbreak{}dimension} and \texttt{ULA.\allowbreak{}wasserstein2\allowbreak{}Real\_\allowbreak{}eq\_\allowbreak{}zero\_\allowbreak{}of\_\allowbreak{}subsingleton}, as in Project 03.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.51.3]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.18.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.3.3]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Explicit accuracy with either initialization distance}{Explicit accuracy with either initialization distance}}
+
+
+\textbf{Claim.} Let \(\varepsilon>0\), \(N\varepsilon^2\ge18d_\theta\), and \(D_N=d_x+d_\theta/N\). If \(D_N=0\), both dimensions are zero and the normalized parameter error is zero for every iteration and every admissible positive step; no accuracy-driven step or iteration count is needed. Suppose \(D_N>0\). Then \(L\ge m>0\), and choose
+
+\[\gamma=\frac1{L\max\bigl(1,18\sqrt{D_N}/\varepsilon\bigr)}.\]
+
+If \(R\) is \(W_2(\mu_0,\Pi_N)\), or \(W_2(\mu_0,\Pi')\) for a stationary law \(\Pi'\) with finite second moment, then every \(k\in\mathbb N\) with
+
+\[k\ge\frac Lm\max\Bigl(1,\frac{18\sqrt{D_N}}\varepsilon\Bigr)\log\Bigl(1+\frac{3\sqrt m\,R}\varepsilon\Bigr)\]
+
+satisfies \(\sqrt m\,\bigl(\mathbb E\|\theta_k-\theta_\star\|^2\bigr)^{1/2}\le\varepsilon\).
+
+
+
+\textbf{Proof.} The zero-dimensional conclusion follows directly from the zero parameter error. In nonzero dimension, the displayed step is positive and satisfies \(\gamma L\le1\). The earlier accuracy theorems then apply: they bound the normalized concentration, transient and discretization terms by \(\varepsilon/3\) each. For a stationary law \(\Pi'\), the previous comparison \(W_2(\mu_0,\widehat\Pi)\le W_2(\mu_0,\Pi')\), monotonicity of the logarithm and nonnegativity of the prefactor show that the displayed count also satisfies the condition stated with the constructed law \(\widehat\Pi\).
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}accuracy}, \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}accuracy\_\allowbreak{}stationary}}
+\leansource{\texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}accuracy} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 251–294}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_linear\_step\_accuracy}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ (U\ y))\ (hsc\ :\ StrongConvexOn\ univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hMaximizer\ :\ IPLA.IsMarginalMaximizer\ (U\ y)\ θStar)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)\ (hparticles\ :\ 18\ *\ (dθ\ :\ ℝ)\ ≤\ (N\ :\ ℝ)\ *\ ε\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ γ\ =\ 1\ /\ ((L\ :\ ℝ)\ *}
+\leanline{6}{max\ 1\ (18\ *\ Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ /\ ε)))}
+\leanline{4}{(k\ :\ ℕ)}
+\leanline{4}{(hk\ :\ (L\ :\ ℝ)\ /\ m\ *\ max\ 1\ (18\ *\ Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ /\ ε)\ *}
+\leanline{6}{Real.log\ (1\ +\ 3\ *\ Real.sqrt\ m\ *}
+\leanline{8}{ULA.wasserstein2Real\ (P.map\ initial)\ (IPLA.gibbsTarget\ (U\ y))\ /\ ε)\ ≤\ k)\ :}
+\leanline{4}{Real.sqrt\ m\ *\ Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(IPLA.laws\ P\ (U\ y)\ γ\ L\ (hU.differentiable\ (by\ norm\_num))\ hLip\ initial\ noise\ k))\ ≤\ ε}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}accuracy\_\allowbreak{}stationary} \quad WassersteinMixing/\allowbreak{}IPLATheorem.lean, lines 298–359}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_linear\_step\_accuracy\_stationary}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)}
+\leanline{4}{\{Data\ :\ Type*\}\ (U\ :\ Data\ →\ IPLA.Joint\ dθ\ dx\ →\ ℝ)\ (y\ :\ Data)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ (U\ y))\ (hsc\ :\ StrongConvexOn\ univ\ m\ (U\ y))}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ (U\ y)))}
+\leanline{4}{(hm\ :\ 0\ <\ m)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hMaximizer\ :\ IPLA.IsMarginalMaximizer\ (U\ y)\ θStar)}
+\leanline{4}{(stationary\ :\ Measure\ (IPLA.State\ N\ dθ\ dx))\ [IsProbabilityMeasure\ stationary]}
+\leanline{4}{(hmoment\ :\ MemLp\ (id\ :\ IPLA.State\ N\ dθ\ dx\ →\ IPLA.State\ N\ dθ\ dx)\ 2\ stationary)}
+\leanline{4}{(hstationary\ :\ ULA.ulaLawStep\ (IPLA.potential\ (U\ y))\ (γ\ /\ N)\ stationary\ =\ stationary)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)\ (noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ P\ initial\ noise)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)\ (hparticles\ :\ 18\ *\ (dθ\ :\ ℝ)\ ≤\ (N\ :\ ℝ)\ *\ ε\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ γ\ =\ 1\ /\ ((L\ :\ ℝ)\ *}
+\leanline{6}{max\ 1\ (18\ *\ Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ /\ ε)))}
+\leanline{4}{(k\ :\ ℕ)}
+\leanline{4}{(hk\ :\ (L\ :\ ℝ)\ /\ m\ *\ max\ 1\ (18\ *\ Real.sqrt\ ((dx\ :\ ℝ)\ +\ (dθ\ :\ ℝ)\ /\ (N\ :\ ℝ))\ /\ ε)\ *}
+\leanline{6}{Real.log\ (1\ +\ 3\ *\ Real.sqrt\ m\ *\ ULA.wasserstein2Real\ (P.map\ initial)\ stationary\ /\ ε)\ ≤\ k)\ :}
+\leanline{4}{Real.sqrt\ m\ *\ Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂(IPLA.laws\ P\ (U\ y)\ γ\ L\ (hU.differentiable\ (by\ norm\_num))\ hLip\ initial\ noise\ k))\ ≤\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+In the nonzero-dimensional branch, the step hypothesis \texttt{hstep} determines \(\gamma\); \texttt{ipla\allowbreak{}Accuracy\allowbreak{}Step\_\allowbreak{}pos} and \texttt{ipla\allowbreak{}Accuracy\allowbreak{}Step\_\allowbreak{}mul\_\allowbreak{}L\_\allowbreak{}le} supply the structure fields. \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}accuracy} applies \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy\_\allowbreak{}target}, whose step and prefactor are definitionally the displayed formulas. \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}step\_\allowbreak{}accuracy\_\allowbreak{}stationary} proves the logarithmic comparison with \texttt{Real.\allowbreak{}log\_\allowbreak{}le\_\allowbreak{}log} and \texttt{gcongr}, then applies \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy}. Both rewrite the output law by \texttt{IPLASetting.\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}gaussian}; their zero-dimensional branches conclude directly from the zero parameter error.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.18.1]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.3.3]{LangevinLean2026IPLA}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\bibitem[IPLA-SC]{LangevinLean2026IPLA}
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ec0201df2207. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

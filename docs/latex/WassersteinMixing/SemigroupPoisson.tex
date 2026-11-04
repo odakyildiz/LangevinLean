@@ -1,0 +1,298 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{A bounded Poisson corrector without a spectral basis}{A bounded Poisson corrector without a spectral basis}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Let \((P_t)_{t\ge0}\) be a strongly continuous self-adjoint contraction semigroup on a complex Hilbert space. Define \(D_h=\int_0^h(I-P_t)\,dt\) and finite sums \(G_N=\sum_{k<N}P_{kh}D_h\). Positivity and telescoping construct a genuine bounded strong limit \(G_h\), with the exact discrete Poisson equation and energy domination.
+
+
+\section{\texorpdfstring{Semigroup positivity, order and integrability}{Semigroup positivity, order and integrability}}
+
+
+\textbf{Claim.} The transition operators commute, \(0\preceq P_t\preceq I\), and \(P_t\preceq P_s\) when \(0\le s\le t\). Every orbit is integrable on a compact time interval.
+
+
+
+\textbf{Proof.} The semigroup law and commutativity of addition give commutation. Since \(P_t=P_{t/2}^*P_{t/2}\), it is positive. Contractivity and Cauchy–Schwarz bound its quadratic form by \(\|x\|^2\), giving \(P_t\preceq I\). The positive commuting product \(P_s(I-P_{t-s})\) is \(P_s-P_t\). Strong continuity supplies compact-interval Bochner integrability.
+
+\begin{leanbox}{Lean: \texttt{instance\_\allowbreak{}at\_\allowbreak{}26}, \texttt{ReversibleSemigroup}, \texttt{innerLeft} and 7 more}
+\leansource{\texttt{instance\_\allowbreak{}at\_\allowbreak{}26} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 26–26}
+\begin{leancode}
+\leanline{0}{local\ instance\ :\ InnerProductSpace\ ℝ\ H\ :=\ InnerProductSpace.rclikeToReal\ ℂ\ H}
+\end{leancode}
+\leansource{\texttt{ReversibleSemigroup} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 29–38}
+\begin{leancode}
+\leanline{0}{structure\ ReversibleSemigroup\ (H\ :\ Type*)\ [NormedAddCommGroup\ H]}
+\leanline{4}{[InnerProductSpace\ ℂ\ H]\ [CompleteSpace\ H]\ where}
+\leanline{2}{op\ :\ ℝ\ →\ H\ →L[ℂ]\ H}
+\leanline{2}{zero\ :\ op\ 0\ =\ 1}
+\leanline{2}{add\ :\ ∀\ \{s\ t\},\ 0\ ≤\ s\ →\ 0\ ≤\ t\ →\ op\ (s\ +\ t)\ =\ op\ s\ *\ op\ t}
+\leanline{2}{selfAdjoint\ :\ ∀\ \{t\},\ 0\ ≤\ t\ →\ IsSelfAdjoint\ (op\ t)}
+\leanline{2}{norm\_le\ :\ ∀\ \{t\},\ 0\ ≤\ t\ →\ ∀\ x,\ ‖op\ t\ x‖\ ≤\ ‖x‖}
+\leanline{2}{continuous\ :\ ∀\ x,\ ContinuousOn\ (fun\ t\ ↦\ op\ t\ x)\ (Set.Ici\ 0)}
+\leanline{0}{\strut}
+\leanline{0}{namespace\ ReversibleSemigroup}
+\end{leancode}
+\leansource{\texttt{innerLeft} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 42–43}
+\begin{leancode}
+\leanline{0}{private\ def\ innerLeft\ (x\ :\ H)\ :\ H\ →L[ℝ]\ ℂ\ :=}
+\leanline{2}{RCLike.conjCLE.toContinuousLinearMap\ ∘L\ (innerSL\ ℂ\ x).restrictScalars\ ℝ}
+\end{leancode}
+\leansource{\texttt{innerLeft\_\allowbreak{}apply} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 45–46}
+\begin{leancode}
+\leanline{0}{private\ theorem\ innerLeft\_apply\ (x\ y\ :\ H)\ :\ innerLeft\ x\ y\ =\ inner\ ℂ\ y\ x}
+\end{leancode}
+\leansource{\texttt{linear\_\allowbreak{}intervalIntegrable} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 48–52}
+\begin{leancode}
+\leanline{0}{private\ theorem\ linear\_intervalIntegrable\ \{K\ :\ Type*\}\ [NormedAddCommGroup\ K]}
+\leanline{4}{[NormedSpace\ ℝ\ K]\ (L\ :\ H\ →L[ℝ]\ K)\ \{f\ :\ ℝ\ →\ H\}\ \{a\ b\ :\ ℝ\}}
+\leanline{4}{(hf\ :\ IntervalIntegrable\ f\ volume\ a\ b)\ :}
+\leanline{4}{IntervalIntegrable\ (fun\ t\ ↦\ L\ (f\ t))\ volume\ a\ b}
+\end{leancode}
+\leansource{\texttt{commute} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 54–57}
+\begin{leancode}
+\leanline{0}{theorem\ commute\ \{s\ t\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{Commute\ (S.op\ s)\ (S.op\ t)}
+\end{leancode}
+\leansource{\texttt{op\_\allowbreak{}nonneg} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 59–66}
+\begin{leancode}
+\leanline{0}{theorem\ op\_nonneg\ \{t\ :\ ℝ\}\ (ht\ :\ 0\ ≤\ t)\ :\ 0\ ≤\ S.op\ t}
+\end{leancode}
+\leansource{\texttt{op\_\allowbreak{}le\_\allowbreak{}one} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 68–82}
+\begin{leancode}
+\leanline{0}{theorem\ op\_le\_one\ \{t\ :\ ℝ\}\ (ht\ :\ 0\ ≤\ t)\ :\ S.op\ t\ ≤\ 1}
+\end{leancode}
+\leansource{\texttt{antitone} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 84–95}
+\begin{leancode}
+\leanline{0}{theorem\ antitone\ :\ AntitoneOn\ S.op\ (Set.Ici\ 0)}
+\end{leancode}
+\leansource{\texttt{orbit\_\allowbreak{}integrable} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 97–101}
+\begin{leancode}
+\leanline{0}{theorem\ orbit\_integrable\ (x\ :\ H)\ \{h\ :\ ℝ\}\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{IntervalIntegrable\ (fun\ t\ ↦\ S.op\ t\ x)\ volume\ 0\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Reversible\allowbreak{}Semigroup} packages operator properties that must be proved for a concrete process. The order lemmas derive positivity and monotonicity from those fields; \texttt{orbit\_\allowbreak{}integrable} restricts the strong continuity theorem to the compact interval. The private inner functional and integrability helper justify the later pairing integrals.
+\end{leanbox}
+
+\section{\texorpdfstring{The integrated defect and its telescoping order bound}{The integrated defect and its telescoping order bound}}
+
+
+\textbf{Claim.} The actual integral \(D_hx=\int_0^h(x-P_tx)\,dt\) is a bounded linear map, is symmetric, and commutes with every \(P_s\). Moreover
+
+\[0\preceq P_sD_h\preceq h(P_s-P_{s+h}).\]
+
+\textbf{Proof.} The integrand has norm at most \(2\|x\|\), giving boundedness and allowing linearity to pass through the integral. Bounded linear operators and inner-product functionals commute with that integral. Semigroup commutation gives the operator commutation, and self-adjointness gives symmetry. Finally \(P_sD_hx=\int_0^h(P_s-P_{s+t})x\,dt\). Time monotonicity bounds the integrand between zero and \(P_s-P_{s+h}\), proving the order estimate.
+
+\begin{leanbox}{Lean: \texttt{defect}, \texttt{defect\_\allowbreak{}integrable}, \texttt{defect\_\allowbreak{}norm\_\allowbreak{}le} and 6 more}
+\leansource{\texttt{defect} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 104–104}
+\begin{leancode}
+\leanline{0}{def\ defect\ (h\ :\ ℝ)\ (x\ :\ H)\ :\ H\ :=\ ∫\ t\ in\ 0..h,\ x\ -\ S.op\ t\ x}
+\end{leancode}
+\leansource{\texttt{defect\_\allowbreak{}integrable} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 106–108}
+\begin{leancode}
+\leanline{0}{theorem\ defect\_integrable\ (x\ :\ H)\ \{h\ :\ ℝ\}\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{IntervalIntegrable\ (fun\ t\ ↦\ x\ -\ S.op\ t\ x)\ volume\ 0\ h}
+\end{leancode}
+\leansource{\texttt{defect\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 110–119}
+\begin{leancode}
+\leanline{0}{theorem\ defect\_norm\_le\ (x\ :\ H)\ \{h\ :\ ℝ\}\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{‖S.defect\ h\ x‖\ ≤\ (2\ *\ h)\ *\ ‖x‖}
+\end{leancode}
+\leansource{\texttt{defectOp} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 122–136}
+\begin{leancode}
+\leanline{0}{def\ defectOp\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :\ H\ →L[ℂ]\ H\ :=}
+\leanline{2}{LinearMap.mkContinuous}
+\leanline{4}{\{\ toFun\ :=\ S.defect\ h}
+\leanline{6}{map\_add'\ :=\ by}
+\leanline{8}{intro\ x\ y}
+\leanline{8}{simp\ only\ [defect,\ map\_add]}
+\leanline{8}{simp\_rw\ [show\ ∀\ t,\ x\ +\ y\ -\ (S.op\ t\ x\ +\ S.op\ t\ y)\ =}
+\leanline{10}{(x\ -\ S.op\ t\ x)\ +\ (y\ -\ S.op\ t\ y)\ by\ intro\ t;\ abel]}
+\leanline{8}{exact\ intervalIntegral.integral\_add\ (S.defect\_integrable\ x\ hh)}
+\leanline{10}{(S.defect\_integrable\ y\ hh)}
+\leanline{6}{map\_smul'\ :=\ by}
+\leanline{8}{intro\ c\ x}
+\leanline{8}{simp\ only\ [defect,\ map\_smul,\ RingHom.id\_apply,\ ←\ smul\_sub]}
+\leanline{8}{exact\ intervalIntegral.integral\_smul\ c\ \_\ \}}
+\leanline{4}{(2\ *\ h)\ (fun\ x\ ↦\ S.defect\_norm\_le\ x\ hh)}
+\end{leancode}
+\leansource{\texttt{defectOp\_\allowbreak{}apply} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 138–139}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ defectOp\_apply\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (x\ :\ H)\ :}
+\leanline{4}{S.defectOp\ h\ hh\ x\ =\ S.defect\ h\ x}
+\end{leancode}
+\leansource{\texttt{defectOp\_\allowbreak{}commute} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 141–153}
+\begin{leancode}
+\leanline{0}{theorem\ defectOp\_commute\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{Commute\ (S.op\ s)\ (S.defectOp\ h\ hh)}
+\end{leancode}
+\leansource{\texttt{defectOp\_\allowbreak{}symmetric} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 155–175}
+\begin{leancode}
+\leanline{0}{theorem\ defectOp\_symmetric\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{(S.defectOp\ h\ hh).IsSymmetric}
+\end{leancode}
+\leansource{\texttt{shiftedDefect\_\allowbreak{}symmetric} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 178–191}
+\begin{leancode}
+\leanline{0}{theorem\ shiftedDefect\_symmetric\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{(S.op\ s\ *\ S.defectOp\ h\ hh).IsSymmetric}
+\end{leancode}
+\leansource{\texttt{shiftedDefect\_\allowbreak{}bounds} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 195–273}
+\begin{leancode}
+\leanline{0}{theorem\ shiftedDefect\_bounds\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{0\ ≤\ S.op\ s\ *\ S.defectOp\ h\ hh\ ∧}
+\leanline{6}{S.op\ s\ *\ S.defectOp\ h\ hh\ ≤\ h\ •\ (S.op\ s\ -\ S.op\ (s\ +\ h))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{defect} is a genuine vector-valued interval integral; \texttt{defect\allowbreak{}Op} is its constructed bounded linear form. The commutation and symmetry proofs move continuous linear maps through the justified integrals. \texttt{shifted\allowbreak{}Defect\_\allowbreak{}bounds} integrates nonnegative quadratic forms and their uniform upper bound.
+\end{leanbox}
+
+\section{\texorpdfstring{Constructing the corrector by bounded monotone convergence}{Constructing the corrector by bounded monotone convergence}}
+
+
+\textbf{Claim.} The finite sums are increasing and satisfy
+
+\[0\preceq G_N\preceq h(I-P_{Nh})\preceq hI.\]
+
+They converge strongly to a bounded positive operator \(G_h\), with \(\|G_h\|\le h\).
+
+
+
+\textbf{Proof.} Each summand is positive by the previous order bound. Summing that bound telescopes the consecutive semigroup differences. Thus the positive sums are increasing and uniformly bounded by \(hI\). The proved monotone-operator convergence theorem constructs their bounded linear pointwise limit, and positivity and the upper bound pass to it.
+
+\begin{leanbox}{Lean: \texttt{partialCorrector}, \texttt{partialCorrector\_\allowbreak{}succ}, \texttt{partialCorrector\_\allowbreak{}nonneg} and 7 more}
+\leansource{\texttt{partialCorrector} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 276–277}
+\begin{leancode}
+\leanline{0}{def\ partialCorrector\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (N\ :\ ℕ)\ :\ H\ →L[ℂ]\ H\ :=}
+\leanline{2}{∑\ n\ ∈\ Finset.range\ N,\ S.op\ (n\ *\ h)\ *\ S.defectOp\ h\ hh}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}succ} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 279–282}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_succ\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (N\ :\ ℕ)\ :}
+\leanline{4}{S.partialCorrector\ h\ hh\ (N\ +\ 1)\ =\ S.partialCorrector\ h\ hh\ N\ +}
+\leanline{6}{S.op\ (N\ *\ h)\ *\ S.defectOp\ h\ hh}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}nonneg} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 284–288}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_nonneg\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (N\ :\ ℕ)\ :}
+\leanline{4}{0\ ≤\ S.partialCorrector\ h\ hh\ N}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}mono} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 290–296}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_mono\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{Monotone\ (S.partialCorrector\ h\ hh)}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}le\_\allowbreak{}telescoping} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 299–308}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_le\_telescoping\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (N\ :\ ℕ)\ :}
+\leanline{4}{S.partialCorrector\ h\ hh\ N\ ≤\ h\ •\ (1\ -\ S.op\ (N\ *\ h))}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 310–314}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_le\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (N\ :\ ℕ)\ :}
+\leanline{4}{S.partialCorrector\ h\ hh\ N\ ≤\ h\ •\ (1\ :\ H\ →L[ℂ]\ H)}
+\end{leancode}
+\leansource{\texttt{corrector} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 317–320}
+\begin{leancode}
+\leanline{0}{def\ corrector\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :\ H\ →L[ℂ]\ H\ :=}
+\leanline{2}{Classical.choose\ (exists\_monotone\_operator\_limit\ (S.partialCorrector\ h\ hh)\ h\ hh}
+\leanline{4}{(S.partialCorrector\_mono\ h\ hh)\ (S.partialCorrector\_nonneg\ h\ hh)}
+\leanline{4}{(S.partialCorrector\_le\ h\ hh))}
+\end{leancode}
+\leansource{\texttt{corrector\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 322–325}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_norm\_le\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :\ ‖S.corrector\ h\ hh‖\ ≤\ h}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}tendsto} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 327–331}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_tendsto\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (x\ :\ H)\ :}
+\leanline{4}{Tendsto\ (fun\ N\ ↦\ S.partialCorrector\ h\ hh\ N\ x)\ atTop\ ({\leanfallback 𝓝}\ (S.corrector\ h\ hh\ x))}
+\end{leancode}
+\leansource{\texttt{corrector\_\allowbreak{}order} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 333–337}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_order\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ :}
+\leanline{4}{0\ ≤\ S.corrector\ h\ hh\ ∧\ S.corrector\ h\ hh\ ≤\ h\ •\ (1\ :\ H\ →L[ℂ]\ H)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{partial\allowbreak{}Corrector} contains only finite operator sums. The successive-sum, positivity and telescoping lemmas supply all hypotheses of \texttt{exists\_\allowbreak{}monotone\_\allowbreak{}operator\_\allowbreak{}limit}. \texttt{corrector} chooses that proved operator, while \texttt{partial\allowbreak{}Corrector\_\allowbreak{}tendsto} and \texttt{corrector\_\allowbreak{}order} retain its actual convergence and order properties.
+\end{leanbox}
+
+\section{\texorpdfstring{The exact Poisson equation and Dirichlet estimate}{The exact Poisson equation and Dirichlet estimate}}
+
+
+\textbf{Claim.} The constructed corrector commutes with the semigroup and satisfies
+
+\[(I-P_h)G_hx=\int_0^h(x-P_tx)\,dt,\qquad \langle G_hx,(I-P_s)G_hx\rangle_{\mathbb R}\le h^2\langle x,(I-P_s)x\rangle_{\mathbb R}.\]
+
+\textbf{Proof.} The finite sums obey \(G_{N+1}=D_h+P_hG_N\). Pass to their strong limit to obtain the Poisson identity. Each finite sum commutes with every transition, and bounded operator continuity passes this identity to the limit. The limit is self-adjoint and bounded by \(h\); apply the proved commuting energy inequality with the positive operator \(I-P_s\). No spectral gap or discrete spectral representation is used.
+
+\begin{leanbox}{Lean: \texttt{partialCorrector\_\allowbreak{}recursion}, \texttt{corrector\_\allowbreak{}poisson}, \texttt{partialCorrector\_\allowbreak{}commute} and 2 more}
+\leansource{\texttt{partialCorrector\_\allowbreak{}recursion} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 339–352}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_recursion\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (N\ :\ ℕ)\ :}
+\leanline{4}{S.partialCorrector\ h\ hh\ (N\ +\ 1)\ =\ S.defectOp\ h\ hh\ +}
+\leanline{6}{S.op\ h\ *\ S.partialCorrector\ h\ hh\ N}
+\end{leancode}
+\leansource{\texttt{corrector\_\allowbreak{}poisson} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 355–367}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_poisson\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (x\ :\ H)\ :}
+\leanline{4}{S.corrector\ h\ hh\ x\ -\ S.op\ h\ (S.corrector\ h\ hh\ x)\ =\ S.defect\ h\ x}
+\end{leancode}
+\leansource{\texttt{partialCorrector\_\allowbreak{}commute} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 369–375}
+\begin{leancode}
+\leanline{0}{theorem\ partialCorrector\_commute\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)}
+\leanline{4}{(N\ :\ ℕ)\ :\ Commute\ (S.op\ s)\ (S.partialCorrector\ h\ hh\ N)}
+\end{leancode}
+\leansource{\texttt{corrector\_\allowbreak{}commute} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 378–388}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_commute\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ :}
+\leanline{4}{Commute\ (S.op\ s)\ (S.corrector\ h\ hh)}
+\end{leancode}
+\leansource{\texttt{corrector\_\allowbreak{}energy\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 392–402}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_energy\_le\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ (x\ :\ H)\ :}
+\leanline{4}{inner\ ℝ\ (S.corrector\ h\ hh\ x)}
+\leanline{6}{(S.corrector\ h\ hh\ x\ -\ S.op\ s\ (S.corrector\ h\ hh\ x))\ ≤}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ inner\ ℝ\ x\ (x\ -\ S.op\ s\ x)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{partial\allowbreak{}Corrector\_\allowbreak{}recursion} gives the exact finite identity. \texttt{corrector\_\allowbreak{}poisson} passes to the actual strong limit. \texttt{corrector\_\allowbreak{}commute} transfers finite commutation, and \texttt{corrector\_\allowbreak{}energy\_\allowbreak{}le} specializes \texttt{commuting\_\allowbreak{}energy\_\allowbreak{}bound} to the semigroup energy operator.
+\end{leanbox}
+
+\end{document}

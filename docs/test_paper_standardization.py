@@ -2,7 +2,7 @@
 """One regression contract for paper labels, citations, and extra assumptions.
 
 Run normally for metadata and deliberately broken HTML fixtures.  ``--site``
-additionally reads the ten generated main pages without generating anything.
+additionally reads the eleven generated main pages without generating anything.
 """
 from __future__ import annotations
 
@@ -26,10 +26,13 @@ if SITE:
 EXTRA = re.compile(r'Extra A[1-9]\d*\Z')
 PRINTED_RESULT = re.compile(r'(?:Theorem|Proposition|Lemma|Corollary) (?:[A-Z]\.)?\d+(?:\.\d+)*(?:\([a-z]\))?\Z')
 SHARED = {'UnadjustedLangevin', 'UnadjustedLangevin/LSI', 'IPLA', 'IPLA/LSI',
-          'ProximalLangevin', 'KineticLangevin', 'KIPLMC', 'AverageLMC'}
+          'ProximalLangevin', 'KineticLangevin', 'KIPLMC', 'AverageLMC', 'WassersteinMixing'}
 # These expectations are independent of metadata and distinguish TeX identifiers
 # from printed theorem counters.  Both kinetic wrappers have the same paper label.
 EXPECTED_LABELS = {
+    'WassersteinMixing': {'bias_bound': 'Theorem 1',
+                         'convergence_bound': 'Corollary 1.1',
+                         'accuracy_bound': 'Corollary 1.1'},
     'UnadjustedLangevin': {'dalalyan': 'Theorem 1(a)', 'dalalyan_large_step': 'Theorem 1(b)'},
     'UnadjustedLangevin/LSI': {'ula_kl_bound': 'Theorem 2'},
     'IPLA': {'theorem1': 'Theorem 1'},
@@ -169,7 +172,7 @@ def heading_label(card, expected, exact=False):
 
 
 def validate_metadata(data, configs):
-    require(set(data) == set(configs) == SHARED, 'All eight shared pages need source metadata')
+    require(set(data) == set(configs) == SHARED, 'Every shared page needs source metadata')
     for library, config in configs.items():
         record = data[library]
         labels = [extra['label'] for extra in record['extras']]
@@ -185,11 +188,13 @@ def validate_metadata(data, configs):
             name = result['name']
             require(name in record['results'], f'{library}: missing correspondence for {name}')
             item = record['results'][name]
-            require(item['status'] in {'proved', 'corrected', 'auxiliary', 'new'}, f'{library}: unknown proof status')
-            if item['status'] in {'proved', 'corrected'}:
+            require(item['status'] in {'proved', 'corrected', 'conditional', 'auxiliary', 'new'}, f'{library}: unknown proof status')
+            if item['status'] in {'proved', 'corrected', 'conditional'}:
                 require(PRINTED_RESULT.fullmatch(item['label']), f'{library}: original paper label required')
                 require(item.get('location') and source_link(item.get('url', '')),
                         f'{library}: paper result needs a source citation')
+            if item['status'] == 'conditional':
+                require(bool(item.get('extras')), f'{library}: conditional result needs explicit extra assumptions')
             for label in item.get('extras', []):
                 require(EXTRA.fullmatch(label) and label in labels,
                         f'{library}:{name}: unresolved extra assumption {label}')
@@ -251,7 +256,7 @@ def validate_shared_page(source, data, results):
     rows = [node for node in ledger.elements() if 'data-paper-result' in node.attrs]
     allowed = [(i, result, data['results'][result['name']])
                for i, result in enumerate(results, 1)
-               if data['results'][result['name']]['status'] in {'proved', 'corrected'}]
+               if data['results'][result['name']]['status'] in {'proved', 'corrected', 'conditional'}]
     require(Counter(row.attrs['data-paper-result'] for row in rows) ==
             Counter(item['label'] for _, _, item in allowed),
             'Paper ledger must contain exactly the paper results; new/auxiliary results are excluded')
@@ -264,7 +269,7 @@ def validate_shared_page(source, data, results):
     for index, result in enumerate(results, 1):
         item = data['results'][result['name']]
         card = doc.unique(f'result-{index}')
-        if item['status'] in {'proved', 'corrected'}:
+        if item['status'] in {'proved', 'corrected', 'conditional'}:
             require(card.attrs.get('data-source-label') == item['label'], 'Result data-source-label differs from the original paper label')
             heading_label(card, item['label'], exact=True)
             require(has_citation(card), f'{item["label"]}: missing paper-result citation')
@@ -350,6 +355,20 @@ class MetadataTests(unittest.TestCase):
                 source = result_notice('KIPLMC', result, lambda text: text)
                 self.assertTrue(has_citation(Document(source).root))
                 self.assertNotIn('not a numbered result', source)
+
+    def test_wasserstein_results_use_original_assumptions_without_extra_inputs(self):
+        data = source_metadata()['WassersteinMixing']
+        self.assertEqual(data['extras'], [])
+        for result in CONFIG['WassersteinMixing']['results'][:3]:
+            record = data['results'][result['name']]
+            self.assertEqual(record['status'], 'proved')
+            self.assertEqual(record['extras'], [])
+            notice = result_notice('WassersteinMixing', result, lambda text: text)
+            self.assertIn('Paper statement proved', notice)
+            self.assertNotIn('source realization pending', notice)
+            self.assertNotIn('Conditional result proved', notice)
+            self.assertNotIn('Corrected statement proved', notice)
+            self.assertTrue(has_citation(Document(notice).root))
 
 
 class SharedFixtureTests(unittest.TestCase):

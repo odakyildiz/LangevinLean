@@ -1,0 +1,380 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{New linear-step parameter rates for actual Gaussian IPLA}{New linear-step parameter rates for actual Gaussian IPLA}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+For \(N>0\) particles and independent parameter and latent dimensions, assume the joint potential \(U\in C^2\) is \(m\)-strongly convex with an \(L\)-Lipschitz gradient, \(0<m\le L\), and \(0<\gamma\le1/L\). For the actual Gaussian IPLA laws, the parameter root-mean-square error is bounded by the equilibrium radius \(\sqrt{2d_\theta/(Nm)}\), a geometric transient, and the linear-step discretization term \(6\gamma\sqrt{(L/m)L(d_x+d_\theta/N)}\). The same sharp term works with initialization measured from either the constructed discretized invariant law or the exact Gibbs target. The resulting explicit accuracy and Project 03 comparison theorems have all structural assumptions displayed.
+
+
+
+Earlier results used here: \cite[Section~3.13]{LangevinLean2026IPLA}; \cite[Section~3.4]{LangevinLean2026IPLA}; \cite[Section~3.5]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Displaying every structural assumption and deriving the lifted contract}{Displaying every structural assumption and deriving the lifted contract}}
+
+
+\textbf{Setting.} Let \(N,d_\theta,d_x\) be nonnegative integers with \(N>0\). Assume \(U:\mathbb R^{d_\theta+d_x}\to\mathbb R\) belongs to \(C^2\), is \(m\)-strongly convex, and has an \(L\)-Lipschitz joint gradient, where \(0<m\le L\). Let \(0<\gamma\) satisfy \(\gamma L\le1\).
+
+
+
+
+\textbf{Claim and proof.} For the actual scaled potential \(V_N(z)=\sum_iU(\theta,\sqrt N z_i)\), the previous lifting theorems give \(C^2\) regularity, curvature \(Nm\), gradient Lipschitz constant \(NL\), dimension \(d_\theta+Nd_x\), and ULA step \(\gamma/N\). In particular the required small-step condition reduces exactly to \(\gamma L\le1\). These are consequences of the joint assumptions, not extra analytic hypotheses on a lifted reference process.
+
+
+
+
+The regularity and step range are explicit additions relative to the full scope of Project 03: that theorem needs differentiability and a Lipschitz gradient and permits \(\gamma\le2/(m+L)\). The improved rate is asserted within the regularity class and step interval displayed here.
+
+\begin{leanbox}{Lean: \texttt{IPLASetting}, \texttt{IPLASetting.\allowbreak{}parameters}, \texttt{IPLASetting.\allowbreak{}potentialAssumptions}}
+\leansource{\texttt{IPLASetting} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 26–41}
+\begin{leancode}
+\leanline{0}{structure\ IPLASetting\ where}
+\leanline{2}{N\ :\ ℕ}
+\leanline{2}{dθ\ :\ ℕ}
+\leanline{2}{dx\ :\ ℕ}
+\leanline{2}{U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ}
+\leanline{2}{m\ :\ ℝ}
+\leanline{2}{L\ :\ ℝ≥0}
+\leanline{2}{γ\ :\ ℝ}
+\leanline{2}{particles\_pos\ :\ 0\ <\ N}
+\leanline{2}{curvature\_pos\ :\ 0\ <\ m}
+\leanline{2}{curvature\_le\_smoothness\ :\ m\ ≤\ L}
+\leanline{2}{step\_pos\ :\ 0\ <\ γ}
+\leanline{2}{step\_small\ :\ γ\ *\ L\ ≤\ 1}
+\leanline{2}{regularity\ :\ ContDiff\ ℝ\ 2\ U}
+\leanline{2}{strongConvexity\ :\ StrongConvexOn\ univ\ m\ U}
+\leanline{2}{gradientLipschitz\ :\ LipschitzWith\ L\ (gradient\ U)}
+\end{leancode}
+\leansource{\texttt{IPLASetting.\allowbreak{}parameters} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 44–46}
+\begin{leancode}
+\leanline{0}{def\ IPLASetting.parameters\ (A\ :\ IPLASetting)\ :\ Parameters\ :=}
+\leanline{2}{iplaParameters\ A.N\ A.dθ\ A.dx\ A.m\ A.L\ A.γ\ A.particles\_pos\ A.curvature\_pos}
+\leanline{4}{A.curvature\_le\_smoothness\ A.step\_pos\ A.step\_small}
+\end{leancode}
+\leansource{\texttt{IPLASetting.\allowbreak{}potentialAssumptions} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 49–52}
+\begin{leancode}
+\leanline{0}{theorem\ IPLASetting.potentialAssumptions\ (A\ :\ IPLASetting)\ :}
+\leanline{4}{PotentialAssumptions\ A.parameters\ (@IPLA.potential\ A.N\ A.dθ\ A.dx\ A.U)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{IPLASetting} contains the joint potential, dimensions, curvature and step constants, and exactly the structural hypotheses just listed. \texttt{IPLASetting.\allowbreak{}parameters} uses the proved \texttt{ipla\allowbreak{}Parameters} construction. \texttt{IPLASetting.\allowbreak{}potential\allowbreak{}Assumptions} invokes \texttt{ipla\_\allowbreak{}potential\allowbreak{}Assumptions} to derive the complete lifted contract. None of these structures contains a comparison bound, invariant law, semigroup or concentration estimate as a premise.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.1.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{The actual Gaussian algorithm and its constructed statistical objects}{The actual Gaussian algorithm and its constructed statistical objects}}
+
+
+\textbf{Definitions.} Let \(\pi_N\) be the exact Gibbs law of \(V_N\), and let \(\widehat\pi_{N,\gamma}\) be the genuine Gaussian ULA invariant law pulled back to the scaled particle coordinates. Write \(\mu_k=K_{V_N,\gamma/N}^{\,k}\mu_0\). Set
+
+\[C_N=\sqrt{\frac{2d_\theta}{Nm}},\qquad D=d_x+\frac{d_\theta}{N},\qquad B_N=6\gamma\sqrt{(L/m)LD}.\]
+
+
+\textbf{Algorithm identification.} Under \(z_i=x_i/\sqrt N\), the kernel is precisely the IPLA recursion
+
+\[\theta_{k+1}=\theta_k-\frac\gamma N\sum_i\nabla_\theta U(\theta_k,x_k^i)+\sqrt{\frac{2\gamma}{N}}\,\xi_{k+1}^{\,0},\qquad x_{k+1}^i=x_k^i-\gamma\nabla_xU(\theta_k,x_k^i)+\sqrt{2\gamma}\,\xi_{k+1}^{\,i},\]
+
+
+with independent standard Gaussian coordinates at every time and independence from initialization.
+
+
+
+
+\textbf{Proof.} The existing IPLA geometry computes the parameter gradient as the sum of joint parameter gradients and each scaled latent gradient as \(\sqrt N\) times its joint latent gradient. Substitution of the lifted step \(\gamma/N\), followed by rescaling the latent coordinates, gives exactly the displayed updates. The already proved identity of the Gaussian recursion laws equates the laws of every recursion satisfying the independent-innovation specification with these kernel iterates. The invariant law is the one constructed by the actual Gaussian contraction argument, rather than a measure specified only through an assumed invariance property.
+
+\begin{leanbox}{Lean: \texttt{IPLASetting.\allowbreak{}invariantLaw}, \texttt{IPLASetting.\allowbreak{}law}, \texttt{IPLASetting.\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}gaussian} and 2 more}
+\leansource{\texttt{IPLASetting.\allowbreak{}invariantLaw} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 55–57}
+\begin{leancode}
+\leanline{0}{def\ IPLASetting.invariantLaw\ (A\ :\ IPLASetting)\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx)\ :=}
+\leanline{2}{coordinateInvariantLaw\ A.parameters\ (iplaCoordinates\ A.N\ A.dθ\ A.dx)}
+\leanline{4}{(IPLA.potential\ A.U)\ A.potentialAssumptions}
+\end{leancode}
+\leansource{\texttt{IPLASetting.\allowbreak{}law} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 60–62}
+\begin{leancode}
+\leanline{0}{def\ IPLASetting.law\ (A\ :\ IPLASetting)\ (μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))}
+\leanline{4}{(k\ :\ ℕ)\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx)\ :=}
+\leanline{2}{(ULA.ulaLawStep\ (IPLA.potential\ A.U)\ (A.γ\ /\ A.N))\textasciicircum{}[k]\ μ}
+\end{leancode}
+\leansource{\texttt{IPLASetting.\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}gaussian} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 65–74}
+\begin{leancode}
+\leanline{0}{theorem\ IPLASetting.law\_eq\_gaussian\ (A\ :\ IPLASetting)}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ P)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ P\ initial\ noise)\ (k\ :\ ℕ)\ :}
+\leanline{4}{A.law\ (P.map\ initial)\ k\ =\ IPLA.laws\ P\ A.U\ A.γ\ A.L}
+\leanline{6}{(A.regularity.differentiable\ (by\ norm\_num))\ A.gradientLipschitz\ initial\ noise\ k}
+\end{leancode}
+\leansource{\texttt{IPLASetting.\allowbreak{}radius} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 77–78}
+\begin{leancode}
+\leanline{0}{def\ IPLASetting.radius\ (A\ :\ IPLASetting)\ :\ ℝ\ :=}
+\leanline{2}{Real.sqrt\ (2\ *\ (A.dθ\ :\ ℝ)\ /\ ((A.N\ :\ ℝ)\ *\ A.m))}
+\end{leancode}
+\leansource{\texttt{IPLASetting.\allowbreak{}bias} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 81–82}
+\begin{leancode}
+\leanline{0}{def\ IPLASetting.bias\ (A\ :\ IPLASetting)\ :\ ℝ\ :=}
+\leanline{2}{iplaLinearBias\ A.m\ A.L\ A.γ\ (iplaEffectiveDimension\ A.N\ A.dθ\ A.dx)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{IPLASetting.\allowbreak{}invariant\allowbreak{}Law} specializes \texttt{coordinate\allowbreak{}Invariant\allowbreak{}Law} with the actual index isometry. \texttt{IPLASetting.\allowbreak{}law} iterates \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} for the lifted potential and exact scaled step. \texttt{IPLASetting.\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}gaussian} invokes \texttt{IPLA.\allowbreak{}laws\_\allowbreak{}eq\_\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step}, whose \texttt{Gaussian\allowbreak{}Innovations} fields encode all coordinate laws and independence requirements. \texttt{radius} and \texttt{bias} define the literal coefficients used in the final statements.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.36.7]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.16.3]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.3.3]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Projecting the finite transport estimate to the parameter}{Projecting the finite transport estimate to the parameter}}
+
+
+\textbf{Claim.} Let \(\theta^\star\) maximize the latent-integrated density \(\int e^{-U(\theta,x)}\,dx\). For a finite-second-moment probability initialization,
+
+\[\left(\mathbb E_{\mu_k}\|\theta-\theta^\star\|^2\right)^{1/2}\le W_2(\mu_k,\pi_N)+C_N.\]
+
+
+\textbf{Proof.} The established IPLA concentration theorem gives \((\mathbb E_{\pi_N}\|\theta-\theta^\star\|^2)^{1/2}\le C_N\) from the same joint strong convexity. The parameter projection has operator norm at most one. For any coupling of \(\mu_k\) and \(\pi_N\), the \(L^2\) triangle inequality bounds the projected distance to \(\theta^\star\) by its coupling displacement plus that target radius. Taking the coupling infimum gives the displayed inequality. The coordinate convergence-finiteness theorem proves finite output transport first; this and concentration prove a finite projected second moment before converting the extended moment to the ordinary square-root integral.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}projection}}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}projection} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 85–104}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_projection\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤}
+\leanline{6}{ULA.wasserstein2Real\ (A.law\ μ\ k)\ (@IPLA.gibbsTarget\ A.N\ A.dθ\ A.dx\ A.U)\ +}
+\leanline{8}{A.radius}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}projection} obtains finite transport from \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}finite}, obtains the sharp statistical radius from \texttt{IPLA.\allowbreak{}gibbs\allowbreak{}Target\_\allowbreak{}parameter\_\allowbreak{}concentration}, and applies the proved one-Lipschitz parameter-projection theorem. \texttt{projected\allowbreak{}RMS\_\allowbreak{}ne\_\allowbreak{}top} establishes finiteness before \texttt{projected\allowbreak{}RMSReal\_\allowbreak{}eq\_\allowbreak{}sqrt\_\allowbreak{}integral} rewrites the final expression. The maximizer premise identifies the statistical center; the concentration estimate itself is derived.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.13.3]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{The linear-step parameter bounds with either initialization distance}{The linear-step parameter bounds with either initialization distance}}
+
+
+\textbf{Claim.} Define \(q=1-m\gamma\in[0,1)\), \(R_h=W_2(\mu_0,\widehat\pi_{N,\gamma})\), and \(R_0=W_2(\mu_0,\pi_N)\). Then the actual IPLA parameter error satisfies both
+
+\[\left(\mathbb E_{\mu_k}\|\theta-\theta^\star\|^2\right)^{1/2}\le C_N+q^kR_h+B_N,\qquad \left(\mathbb E_{\mu_k}\|\theta-\theta^\star\|^2\right)^{1/2}\le C_N+q^kR_0+B_N.\]
+
+
+\textbf{Proof.} For the invariant-based form, apply the fully constructed lifted Wasserstein comparison and then the parameter-projection inequality. For the target-based form, compare the actual iterates from \(\mu_0\) and \(\pi_N\) by the Gaussian contraction theorem, yielding \(q^kR_0\). The stationary-start Poisson comparison bounds the distance of the second iterate from \(\pi_N\) by \(B_N\). Their transport triangle and the same projection bound give the second formula with only a single bias. The lifted constants simplify exactly to \(q\) and \(B_N\) by the established particle-scaling identities. The supporting uniform corollary with \(2B_N\) follows by weakening this bound using \(B_N\ge0\); it is not required by the sharper target statement.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error}, \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target}, \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target\_\allowbreak{}uniform}}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 107–120}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_error\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤}
+\leanline{6}{A.radius\ +\ (1\ -\ A.m\ *\ A.γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ μ\ A.invariantLaw\ +\ A.bias}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 123–147}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_error\_target\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤}
+\leanline{6}{A.radius\ +\ (1\ -\ A.m\ *\ A.γ)\ \textasciicircum{}\ k\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ (@IPLA.gibbsTarget\ A.N\ A.dθ\ A.dx\ A.U)\ +}
+\leanline{8}{A.bias}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target\_\allowbreak{}uniform} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 150–161}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_error\_target\_uniform\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤}
+\leanline{6}{A.radius\ +\ (1\ -\ A.m\ *\ A.γ)\ \textasciicircum{}\ k\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ (@IPLA.gibbsTarget\ A.N\ A.dθ\ A.dx\ A.U)\ +\ 2\ *\ A.bias}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error} combines \texttt{ipla\_\allowbreak{}wasserstein\_\allowbreak{}bound} with \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}projection}. \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target} uses \texttt{coordinate\_\allowbreak{}convergence\_\allowbreak{}target\_\allowbreak{}bound\_\allowbreak{}sharp}, rewrites the lifted contraction and bias by their exact identities, and adds the derived concentration radius. \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target\_\allowbreak{}uniform} retains a coarser supporting estimate. The final statements use the actual law and require no supplied transport comparison or invariant-law construction.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.5.1]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{A direct comparison with the complete Project 03 bound}{A direct comparison with the complete Project 03 bound}}
+
+
+\textbf{Claim.} Under the preceding structural assumptions and the additional comparison regime \(m\gamma\le121/1600\), the new target-based right side is no greater than
+
+\[C_N+q^kW_2(\mu_0,\pi_N)+\frac{33}{20}\frac Lm\sqrt D\sqrt\gamma,\]
+
+
+the right side used by Project 03 for the same dimensions and initialization.
+
+
+
+
+\textbf{Proof.} The two bounds have the same statistical radius and exactly the same Gibbs-based transient. The only change is the discretization term. The established coefficient inequality \(B_N\le(33/20)(L/m)\sqrt D\sqrt\gamma\) holds throughout the stated regime. Add the unchanged two terms to that inequality and combine it with the new sharp parameter bound. Thus the linear-step estimate gives an explicit improvement for sufficiently small steps; it does not claim to cover the larger step interval or weaker regularity assumptions of every case of Project 03.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}improves\_\allowbreak{}project03}}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}improves\_\allowbreak{}project03} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 165–178}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_error\_improves\_project03\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(k\ :\ ℕ)\ (hsmall\ :\ A.m\ *\ A.γ\ ≤\ (121\ /\ 1600\ :\ ℝ))\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤}
+\leanline{6}{A.radius\ +\ (1\ -\ A.m\ *\ A.γ)\ \textasciicircum{}\ k\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ (@IPLA.gibbsTarget\ A.N\ A.dθ\ A.dx\ A.U)\ +}
+\leanline{8}{iplaProject03Bias\ A.m\ A.L\ A.γ\ (iplaEffectiveDimension\ A.N\ A.dθ\ A.dx)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}improves\_\allowbreak{}project03} applies \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target} and \texttt{ipla\_\allowbreak{}linear\_\allowbreak{}bias\_\allowbreak{}le\_\allowbreak{}project03} with the proved nonnegative effective dimension. The conclusion is an actual parameter error inequality with Project 03's complete numerical right side. The sharper linear-step inequality has already been proved separately, so this theorem records the exact regime in which its right side is at least as good.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{Explicit normalized accuracy and its iteration count}{Explicit normalized accuracy and its iteration count}}
+
+
+\textbf{Claim.} Fix \(\varepsilon>0\). Let \(R\) be either \(R_h\) or \(R_0\), matching the desired initialization form. Choose particles and step so that
+
+\[N\varepsilon^2\ge18d_\theta,\qquad \gamma=\frac1{L\max\{1,18\sqrt D/\varepsilon\}}.\]
+
+
+For every nonnegative integer \(k\) satisfying
+
+\[k\ge\frac Lm\max\!\left\{1,\frac{18\sqrt D}{\varepsilon}\right\}\log\!\left(1+\frac{3\sqrt m\,R}{\varepsilon}\right),\]
+
+
+the actual parameter law has normalized root-mean-square error at most \(\varepsilon\):
+
+\[\sqrt m\left(\mathbb E_{\mu_k}\|\theta-\theta^\star\|^2\right)^{1/2}\le\varepsilon.\]
+
+
+\textbf{Proof.} Multiply the corresponding sharp parameter bound by \(\sqrt m\). The concentration scaling identity gives \(\sqrt{2d_\theta/N}\). The scalar accuracy theorem allocates at most \(\varepsilon/3\) to that radius, the logarithmically controlled transient, and the normalized linear bias \(6L\gamma\sqrt D\). The displayed particle budget, step and iteration count are precisely its hypotheses, so their sum is at most \(\varepsilon\). The maximum keeps the step positive even when the effective dimension is zero.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy}, \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy\_\allowbreak{}target}}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 181–202}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_accuracy\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hparticles\ :\ 18\ *\ (A.dθ\ :\ ℝ)\ ≤\ (A.N\ :\ ℝ)\ *\ ε\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ A.γ\ =\ iplaAccuracyStep\ A.L\ (iplaEffectiveDimension\ A.N\ A.dθ\ A.dx)\ ε)}
+\leanline{4}{(k\ :\ ℕ)}
+\leanline{4}{(hk\ :\ iplaAccuracyPrefactor\ A.m\ A.L\ (iplaEffectiveDimension\ A.N\ A.dθ\ A.dx)\ ε\ *}
+\leanline{6}{Real.log\ (1\ +\ 3\ *\ Real.sqrt\ A.m\ *\ ULA.wasserstein2Real\ μ\ A.invariantLaw\ /\ ε)\ ≤\ k)\ :}
+\leanline{4}{Real.sqrt\ A.m\ *}
+\leanline{6}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤\ ε}
+\end{leancode}
+\leansource{\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy\_\allowbreak{}target} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 205–228}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_parameter\_accuracy\_target\ (A\ :\ IPLASetting)}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ A.dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ A.U\ θStar)}
+\leanline{4}{(μ\ :\ Measure\ (IPLA.State\ A.N\ A.dθ\ A.dx))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ IPLA.State\ A.N\ A.dθ\ A.dx\ →\ IPLA.State\ A.N\ A.dθ\ A.dx)\ 2\ μ)}
+\leanline{4}{(ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hparticles\ :\ 18\ *\ (A.dθ\ :\ ℝ)\ ≤\ (A.N\ :\ ℝ)\ *\ ε\ \textasciicircum{}\ 2)}
+\leanline{4}{(hstep\ :\ A.γ\ =\ iplaAccuracyStep\ A.L\ (iplaEffectiveDimension\ A.N\ A.dθ\ A.dx)\ ε)}
+\leanline{4}{(k\ :\ ℕ)}
+\leanline{4}{(hk\ :\ iplaAccuracyPrefactor\ A.m\ A.L\ (iplaEffectiveDimension\ A.N\ A.dθ\ A.dx)\ ε\ *}
+\leanline{6}{Real.log\ (1\ +\ 3\ *\ Real.sqrt\ A.m\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ (@IPLA.gibbsTarget\ A.N\ A.dθ\ A.dx\ A.U)\ /\ ε)\ ≤\ k)\ :}
+\leanline{4}{Real.sqrt\ A.m\ *}
+\leanline{6}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2\ ∂A.law\ μ\ k)\ ≤\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy} scales \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error} and applies \texttt{ipla\_\allowbreak{}accuracy\_\allowbreak{}arithmetic} with the actual invariant-law distance. \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}accuracy\_\allowbreak{}target} uses the same arithmetic with \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target} and the actual Gibbs-based initial distance. \texttt{ipla\_\allowbreak{}concentration\_\allowbreak{}scale} converts the statistical radius exactly; nonnegativity of real Wasserstein distances supplies the scalar initialization sign. Both conclusions concern the actual Gaussian IPLA law.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}.
+
+\section{\texorpdfstring{The sharp rate for the original independent Gaussian recursion}{The sharp rate for the original independent Gaussian recursion}}
+
+
+\textbf{Claim.} Take a square-integrable scaled initial state on an actual probability space and an innovation sequence satisfying IPLA's original coordinatewise standard-Gaussian laws, independence across time and coordinates, and independence from initialization. Under the displayed \(C^2\), joint curvature and step assumptions, the original noise-driven IPLA laws satisfy
+
+\[\left(\mathbb E\|\theta_k-\theta^\star\|^2\right)^{1/2}\le\sqrt{\frac{2d_\theta}{Nm}}+(1-m\gamma)^kW_2(\operatorname{Law}(Z_0),\pi_N)+6\gamma\sqrt{(L/m)L(d_x+d_\theta/N)}.\]
+
+
+\textbf{Proof.} Assemble the structural setting from the displayed potential, dimensions and numerical constants. The pushforward law of the square-integrable initial state has finite second moment by the mapped-measure characterization of square integrability. Apply the already proved sharp target-based parameter theorem to this initial law. The exact identity of the Gaussian recursion laws replaces its kernel-iterate law by the law of the original recursion. This proves the same improved bound in the original algorithm, with all potential assumptions and all distributional requirements displayed explicitly.
+
+\begin{leanbox}{Lean: \texttt{ipla\_\allowbreak{}gaussian\_\allowbreak{}parameter\_\allowbreak{}error}}
+\leansource{\texttt{ipla\_\allowbreak{}gaussian\_\allowbreak{}parameter\_\allowbreak{}error} \quad WassersteinMixing/\allowbreak{}IPLA.lean, lines 233–261}
+\begin{leancode}
+\leanline{0}{theorem\ ipla\_gaussian\_parameter\_error}
+\leanline{4}{\{Ω\ :\ Type*\}\ [MeasurableSpace\ Ω]\ (P\ :\ Measure\ Ω)\ [IsProbabilityMeasure\ P]}
+\leanline{4}{(N\ dθ\ dx\ :\ ℕ)\ (hN\ :\ 0\ <\ N)\ (U\ :\ IPLA.Joint\ dθ\ dx\ →\ ℝ)}
+\leanline{4}{(m\ γ\ :\ ℝ)\ (L\ :\ ℝ≥0)\ (hm\ :\ 0\ <\ m)\ (hmL\ :\ m\ ≤\ L)}
+\leanline{4}{(hγ\ :\ 0\ <\ γ)\ (hγL\ :\ γ\ *\ L\ ≤\ 1)}
+\leanline{4}{(hU\ :\ ContDiff\ ℝ\ 2\ U)\ (hsc\ :\ StrongConvexOn\ univ\ m\ U)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ U))}
+\leanline{4}{(θStar\ :\ EuclideanSpace\ ℝ\ (Fin\ dθ))\ (hmax\ :\ IPLA.IsMarginalMaximizer\ U\ θStar)}
+\leanline{4}{(initial\ :\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(noise\ :\ ℕ\ →\ Lp\ (IPLA.State\ N\ dθ\ dx)\ 2\ P)}
+\leanline{4}{(hGaussian\ :\ IPLA.GaussianInnovations\ P\ initial\ noise)\ (k\ :\ ℕ)\ :}
+\leanline{4}{Real.sqrt\ (∫\ z,\ ‖IPLA.parameterCLM\ z\ -\ θStar‖\ \textasciicircum{}\ 2}
+\leanline{6}{∂IPLA.laws\ P\ U\ γ\ L\ (hU.differentiable\ (by\ norm\_num))\ hLip\ initial\ noise\ k)\ ≤}
+\leanline{6}{Real.sqrt\ (2\ *\ (dθ\ :\ ℝ)\ /\ ((N\ :\ ℝ)\ *\ m))\ +}
+\leanline{8}{(1\ -\ m\ *\ γ)\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ (P.map\ initial)}
+\leanline{10}{(@IPLA.gibbsTarget\ N\ dθ\ dx\ U)\ +}
+\leanline{8}{iplaLinearBias\ m\ L\ γ\ (iplaEffectiveDimension\ N\ dθ\ dx)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ipla\_\allowbreak{}gaussian\_\allowbreak{}parameter\_\allowbreak{}error} has the full original-style probability-space, initialization and innovation binders. It constructs \texttt{IPLASetting} from those structural inputs, derives \texttt{Mem\allowbreak{}Lp id 2} of the initial pushforward using \texttt{Lp.\allowbreak{}mem\allowbreak{}Lp}, and applies \texttt{ipla\_\allowbreak{}parameter\_\allowbreak{}error\_\allowbreak{}target}. Finally \texttt{IPLASetting.\allowbreak{}law\_\allowbreak{}eq\_\allowbreak{}gaussian} rewrites the actual output law. Neither an auxiliary reference process nor an assumed transport estimate appears among the theorem inputs.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.1.1]{LangevinLean2026IPLA}; \cite[Section~3.1.6]{LangevinLean2026IPLA}; \cite[Section~3.3.1]{LangevinLean2026IPLA}; \cite[Section~3.3.2]{LangevinLean2026IPLA}; \cite[Section~3.3.3]{LangevinLean2026IPLA}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\bibitem[IPLA-SC]{LangevinLean2026IPLA}
+LangevinLean Project. \emph{Interacting Particle Langevin under Strong Convexity}. LL-03, 2026. Draft report, content revision ec0201df2207. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/IPLA/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

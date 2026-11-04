@@ -1,0 +1,64 @@
+import WassersteinMixing
+
+set_option linter.style.header false
+
+/-! # Kernel dependency audit of the direct C² source proof
+
+The actual dynamics, semigroup, Poisson comparison, invariant law and final
+source endpoints may depend only on Lean's standard logical axioms. No
+spectral, Markov, invariant-law or comparison realization is an endpoint input.
+-/
+
+#print axioms WassersteinMixing.HessianAssumptions.toPotentialAssumptions
+#print axioms WassersteinMixing.CanonicalSemigroup.state_integral
+#print axioms WassersteinMixing.CanonicalSemigroup.state_law
+#print axioms WassersteinMixing.actualChain_law
+#print axioms WassersteinMixing.actualBrownian_future_independent_pastAt
+#print axioms WassersteinMixing.actualEvaluation_markov_pastAt
+#print axioms WassersteinMixing.CanonicalSemigroup.state_pair_law
+#print axioms WassersteinMixing.RandomMALA.Canonical.anchored_state_swap
+#print axioms WassersteinMixing.RandomMALA.Canonical.malaOp_variable_tendsto
+#print axioms WassersteinMixing.CanonicalSemigroup.op_isSelfAdjoint
+#print axioms WassersteinMixing.CanonicalSemigroup.semigroup
+#print axioms WassersteinMixing.ReversibleSemigroup.corrector_norm_le
+#print axioms WassersteinMixing.ReversibleSemigroup.corrector_poisson
+#print axioms WassersteinMixing.ReversibleSemigroup.corrector_energy_le
+#print axioms WassersteinMixing.actualPoissonProcess
+#print axioms WassersteinMixing.actualObservableScore_energy
+#print axioms WassersteinMixing.actualScoreIncrement_energy
+#print axioms WassersteinMixing.actualDefect_conditionalMean
+#print axioms WassersteinMixing.actual_curvature_error_step
+#print axioms WassersteinMixing.actualULAComparison
+#print axioms WassersteinMixing.PoissonComparison.martingale_energy
+#print axioms WassersteinMixing.PoissonComparison.shifted_energy_step
+#print axioms WassersteinMixing.PoissonComparison.stationary_transport_bound
+#print axioms WassersteinMixing.shifted_norm_le_bias
+#print axioms WassersteinMixing.ula_iterate_wasserstein2Real_le
+#print axioms WassersteinMixing.invariantLaw_memLp
+#print axioms WassersteinMixing.invariantLaw_invariant
+#print axioms WassersteinMixing.invariantLaw_attraction
+#print axioms WassersteinMixing.wasserstein2_triangle
+#print axioms WassersteinMixing.paper_complexity_bound
+#print axioms WassersteinMixing.bias_bound
+#print axioms WassersteinMixing.convergence_bound
+#print axioms WassersteinMixing.accuracy_bound
+
+#print axioms WassersteinMixing.ipla_potentialAssumptions
+#print axioms WassersteinMixing.ulaLawStep_map_isometry
+#print axioms WassersteinMixing.coordinateInvariantLaw_invariant
+#print axioms WassersteinMixing.coordinate_convergence_target_bound_sharp
+#print axioms WassersteinMixing.IPLASetting.law_eq_gaussian
+#print axioms WassersteinMixing.ipla_parameter_error
+#print axioms WassersteinMixing.ipla_parameter_error_target
+#print axioms WassersteinMixing.ipla_parameter_error_improves_project03
+#print axioms WassersteinMixing.ipla_parameter_accuracy
+#print axioms WassersteinMixing.ipla_parameter_accuracy_target
+#print axioms WassersteinMixing.ipla_gaussian_parameter_error
+#print axioms WassersteinMixing.ipla_stationary_law_exists
+#print axioms WassersteinMixing.ipla_linear_step_bound
+#print axioms WassersteinMixing.ipla_linear_step_bound_stationary
+#print axioms WassersteinMixing.ipla_linear_step_accuracy
+#print axioms WassersteinMixing.ipla_linear_step_accuracy_stationary
+#print axioms WassersteinMixing.ipla_linear_step_term_eq_project03_mul
+#print axioms WassersteinMixing.ipla_linear_step_term_le_project03
+

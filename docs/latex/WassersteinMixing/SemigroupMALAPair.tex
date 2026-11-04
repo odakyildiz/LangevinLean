@@ -1,0 +1,237 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The fresh-noise anchored MALA pair and its actual powers}{The fresh-noise anchored MALA pair and its actual powers}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The fresh-noise pair retains the current state next to the actual accepted or rejected output. Its exact kernel identity links the concrete random update to the already proved reversible Gaussian pair, and hence to reversible anchored finite-step laws.
+
+
+\section{\texorpdfstring{Identifying the actual sampled one-step pair}{Identifying the actual sampled one-step pair}}
+
+
+\textbf{Claim.} The fresh pair kernel is \(x\mapsto\delta_x\otimes K(x,\cdot)\), where \(K\) is the actual explicit MALA kernel. For any initial law, its integrated pair is the accepted Metropolis flow plus rejected diagonal mass. In particular \(\pi\otimes K\) is exactly the proved reversible Gibbs pair.
+
+
+
+\textbf{Proof.} Direct accepted/\allowbreak{}rejected partition gives first marginal \(\delta_x\); mapping the second coordinate gives the actual explicit kernel. A pair whose first marginal is a Dirac measure has deterministic first coordinate almost surely, so it equals the corresponding product with its second marginal. Integrate this identity. Moving the actual proposal map through the weighted measures identifies the result with the Gaussian Metropolis pair construction.
+
+\begin{leanbox}{Lean: \texttt{freshJointKernel}, \texttt{freshJointMeasure}, \texttt{freshJointKernel\_\allowbreak{}comp} and 8 more}
+\leansource{\texttt{freshJointKernel} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 26–32}
+\begin{leancode}
+\leanline{0}{def\ freshJointKernel\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ :\ Kernel\ E\ (E\ ×\ E)\ :=}
+\leanline{2}{((gaussianPairKernel\ (E\ :=\ E)).withDensity}
+\leanline{6}{(fun\ \_\ p\ ↦\ ENNReal.ofReal\ (ULA.malaProposalAcceptance\ V\ h\ p))).map}
+\leanline{8}{(fun\ p\ ↦\ (p.1,\ ULA.malaProposal\ V\ h\ p.1\ p.2))\ +}
+\leanline{2}{((gaussianPairKernel\ (E\ :=\ E)).withDensity}
+\leanline{6}{(fun\ \_\ p\ ↦\ ENNReal.ofReal\ (1\ -\ ULA.malaProposalAcceptance\ V\ h\ p))).map}
+\leanline{8}{(fun\ p\ ↦\ (p.1,\ p.1))}
+\end{leancode}
+\leansource{\texttt{freshJointMeasure} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 35–41}
+\begin{leancode}
+\leanline{0}{def\ freshJointMeasure\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (μ\ :\ Measure\ E)\ :\ Measure\ (E\ ×\ E)\ :=}
+\leanline{2}{((μ.prod\ (stdGaussian\ E)).withDensity}
+\leanline{6}{(fun\ p\ ↦\ ENNReal.ofReal\ (ULA.malaProposalAcceptance\ V\ h\ p))).map}
+\leanline{8}{(fun\ p\ ↦\ (p.1,\ ULA.malaProposal\ V\ h\ p.1\ p.2))\ +}
+\leanline{2}{((μ.prod\ (stdGaussian\ E)).withDensity}
+\leanline{6}{(fun\ p\ ↦\ ENNReal.ofReal\ (1\ -\ ULA.malaProposalAcceptance\ V\ h\ p))).map}
+\leanline{8}{(fun\ p\ ↦\ (p.1,\ p.1))}
+\end{leancode}
+\leansource{\texttt{freshJointKernel\_\allowbreak{}comp} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 43–55}
+\begin{leancode}
+\leanline{0}{theorem\ freshJointKernel\_comp\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(μ\ :\ Measure\ E)\ [SFinite\ μ]\ :}
+\leanline{4}{freshJointKernel\ V\ h\ ∘ₘ\ μ\ =\ freshJointMeasure\ V\ h\ μ}
+\end{leancode}
+\leansource{\texttt{freshJointMeasure\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 58–79}
+\begin{leancode}
+\leanline{0}{theorem\ freshJointMeasure\_fst\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (μ\ :\ Measure\ E)\ :}
+\leanline{4}{(freshJointMeasure\ V\ h\ μ).map\ Prod.fst\ =\ μ}
+\end{leancode}
+\leansource{\texttt{freshJointKernel\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 82–90}
+\begin{leancode}
+\leanline{0}{theorem\ freshJointKernel\_fst\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (x\ :\ E)\ :}
+\leanline{4}{(freshJointKernel\ V\ h\ x).map\ Prod.fst\ =\ Measure.dirac\ x}
+\end{leancode}
+\leansource{\texttt{freshJointKernel\_\allowbreak{}snd} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 93–104}
+\begin{leancode}
+\leanline{0}{theorem\ freshJointKernel\_snd\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (x\ :\ E)\ :}
+\leanline{4}{(freshJointKernel\ V\ h\ x).map\ Prod.snd\ =\ explicitKernel\ V\ h\ x}
+\end{leancode}
+\leansource{\texttt{measure\_\allowbreak{}eq\_\allowbreak{}dirac\_\allowbreak{}prod} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 107–128}
+\begin{leancode}
+\leanline{0}{theorem\ measure\_eq\_dirac\_prod\ (J\ :\ Measure\ (E\ ×\ E))\ (x\ :\ E)}
+\leanline{4}{(hfst\ :\ J.map\ Prod.fst\ =\ Measure.dirac\ x)\ :}
+\leanline{4}{J\ =\ (Measure.dirac\ x).prod\ (J.map\ Prod.snd)}
+\end{leancode}
+\leansource{\texttt{freshJointKernel\_\allowbreak{}eq\_\allowbreak{}id\_\allowbreak{}prod} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 131–138}
+\begin{leancode}
+\leanline{0}{theorem\ freshJointKernel\_eq\_id\_prod\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{freshJointKernel\ V\ h\ =\ Kernel.id\ ×ₖ\ explicitKernel\ V\ h}
+\end{leancode}
+\leansource{\texttt{freshJointMeasure\_\allowbreak{}eq\_\allowbreak{}metropolis} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 141–164}
+\begin{leancode}
+\leanline{0}{theorem\ freshJointMeasure\_eq\_metropolis\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (μ\ :\ Measure\ E)\ :}
+\leanline{4}{freshJointMeasure\ V\ h\ μ\ =}
+\leanline{6}{metropolisJoint\ (ULA.malaProposalJoint\ V\ h\ μ)}
+\leanline{8}{(fun\ p\ ↦\ ULA.malaAcceptance\ V\ h\ p.1\ p.2)}
+\end{leancode}
+\leansource{\texttt{explicitKernel\_\allowbreak{}pair\_\allowbreak{}eq} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 167–177}
+\begin{leancode}
+\leanline{0}{theorem\ explicitKernel\_pair\_eq\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))}
+\leanline{4}{(μ\ :\ Measure\ E)\ [SFinite\ μ]\ :}
+\leanline{4}{μ\ ⊗ₘ\ explicitKernel\ V\ h\ =}
+\leanline{6}{metropolisJoint\ (ULA.malaProposalJoint\ V\ h\ μ)}
+\leanline{8}{(fun\ p\ ↦\ ULA.malaAcceptance\ V\ h\ p.1\ p.2)}
+\end{leancode}
+\leansource{\texttt{explicitKernel\_\allowbreak{}gibbs\_\allowbreak{}pair\_\allowbreak{}eq} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 180–184}
+\begin{leancode}
+\leanline{0}{theorem\ explicitKernel\_gibbs\_pair\_eq\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[SFinite\ (ULA.gibbsMeasure\ V)]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ :}
+\leanline{4}{ULA.gibbsMeasure\ V\ ⊗ₘ\ explicitKernel\ V\ h\ =\ jointLaw\ V\ h}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{fresh\allowbreak{}Joint\allowbreak{}Kernel} and \texttt{fresh\allowbreak{}Joint\allowbreak{}Measure} keep the input coordinate in the actual weighted output. The deterministic-first-coordinate lemma proves their product form. \texttt{explicit\allowbreak{}Kernel\_\allowbreak{}pair\_\allowbreak{}eq} is valid for every sigma-finite initial law; \texttt{explicit\allowbreak{}Kernel\_\allowbreak{}gibbs\_\allowbreak{}pair\_\allowbreak{}eq} gives the exact stationary identification.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.34.2]{LangevinLean2026ULASC}; \cite[Section~3.35.1]{LangevinLean2026ULASC}; \cite[Section~3.35.2]{LangevinLean2026ULASC}; \cite[Section~3.35.4]{LangevinLean2026ULASC}; \cite[Section~3.35.7]{LangevinLean2026ULASC}; \cite[Section~3.36.1]{LangevinLean2026ULASC}; \cite[Section~3.36.2]{LangevinLean2026ULASC}; \cite[Section~3.36.3]{LangevinLean2026ULASC}; \cite[Section~3.36.4]{LangevinLean2026ULASC}; \cite[Section~3.36.5]{LangevinLean2026ULASC}; \cite[Section~3.36.6]{LangevinLean2026ULASC}; \cite[Section~3.39.1]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The actual anchored endpoint-update recurrence}{The actual anchored endpoint-update recurrence}}
+
+
+\textbf{Claim.}
+
+\[\mu\otimes K^{n+1}=(I\otimes K)_*(\mu\otimes K^n),\qquad\mu\otimes K^0=(x\mapsto(x,x))_*\mu.\]
+
+\textbf{Proof.} Associativity proves that the recursive kernel power can advance by its final transition: \(K^{n+1}=K\circ K^n\). Composing the product pair with the kernel that keeps its first coordinate and updates its second gives precisely that power. The zero-step identity is the diagonal law of the identity kernel.
+
+\begin{leanbox}{Lean: \texttt{kernelPower\_\allowbreak{}succ\_\allowbreak{}last}, \texttt{anchored\_\allowbreak{}pair\_\allowbreak{}succ}, \texttt{anchored\_\allowbreak{}pair\_\allowbreak{}zero}}
+\leansource{\texttt{kernelPower\_\allowbreak{}succ\_\allowbreak{}last} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 192–198}
+\begin{leancode}
+\leanline{0}{theorem\ kernelPower\_succ\_last\ (κ\ :\ Kernel\ E\ E)\ (n\ :\ ℕ)\ :}
+\leanline{4}{kernelPower\ κ\ (n\ +\ 1)\ =\ κ\ ∘ₖ\ kernelPower\ κ\ n}
+\end{leancode}
+\leansource{\texttt{anchored\_\allowbreak{}pair\_\allowbreak{}succ} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 201–205}
+\begin{leancode}
+\leanline{0}{theorem\ anchored\_pair\_succ\ (μ\ :\ Measure\ E)\ [SFinite\ μ]}
+\leanline{4}{(κ\ :\ Kernel\ E\ E)\ [IsMarkovKernel\ κ]\ (n\ :\ ℕ)\ :}
+\leanline{4}{μ\ ⊗ₘ\ kernelPower\ κ\ (n\ +\ 1)\ =}
+\leanline{6}{(Kernel.id\ {\leanfallback ∥}ₖ\ κ)\ ∘ₘ\ (μ\ ⊗ₘ\ kernelPower\ κ\ n)}
+\end{leancode}
+\leansource{\texttt{anchored\_\allowbreak{}pair\_\allowbreak{}zero} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 208–211}
+\begin{leancode}
+\leanline{0}{theorem\ anchored\_pair\_zero\ (μ\ :\ Measure\ E)\ [SFinite\ μ]\ (κ\ :\ Kernel\ E\ E)\ :}
+\leanline{4}{μ\ ⊗ₘ\ kernelPower\ κ\ 0\ =\ μ.map\ (fun\ x\ ↦\ (x,\ x))}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{kernel\allowbreak{}Power\_\allowbreak{}succ\_\allowbreak{}last} proves the alternate composition order by induction. \texttt{anchored\_\allowbreak{}pair\_\allowbreak{}succ} uses the exact parallel-kernel composition identity, and \texttt{anchored\_\allowbreak{}pair\_\allowbreak{}zero} uses the identity-kernel product law.
+\end{leanbox}
+
+\section{\texorpdfstring{Actual reversible finite-step endpoint pairs}{Actual reversible finite-step endpoint pairs}}
+
+
+\textbf{Claim.} The actual explicit anchored pair \(J_n=\pi\otimes K^n\) is a probability law, is invariant under swapping, has both marginals \(\pi\), and follows the endpoint-update recurrence above.
+
+
+
+\textbf{Proof.} The explicit kernel is Markov. Its one-step pair is exactly the proved reversible Gaussian pair, so generic kernel-power reversal applies. First-marginal preservation and swap symmetry give both Gibbs marginals. The generic anchored successor theorem supplies the actual update recursion.
+
+\begin{leanbox}{Lean: \texttt{explicitPowerJointLaw}, \texttt{explicitPowerJointLaw\_\allowbreak{}isProbability}, \texttt{explicitPowerJointLaw\_\allowbreak{}swap} and 3 more}
+\leansource{\texttt{explicitPowerJointLaw} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 220–221}
+\begin{leancode}
+\leanline{0}{def\ explicitPowerJointLaw\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (n\ :\ ℕ)\ :\ Measure\ (E\ ×\ E)\ :=}
+\leanline{2}{ULA.gibbsMeasure\ V\ ⊗ₘ\ StationaryKernelPower.kernelPower\ (explicitKernel\ V\ h)\ n}
+\end{leancode}
+\leansource{\texttt{explicitPowerJointLaw\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 223–229}
+\begin{leancode}
+\leanline{0}{theorem\ explicitPowerJointLaw\_isProbability\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (explicitPowerJointLaw\ V\ h\ n)}
+\end{leancode}
+\leansource{\texttt{explicitPowerJointLaw\_\allowbreak{}swap} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 232–239}
+\begin{leancode}
+\leanline{0}{theorem\ explicitPowerJointLaw\_swap\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)]\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{(explicitPowerJointLaw\ V\ h\ n).map\ Prod.swap\ =\ explicitPowerJointLaw\ V\ h\ n}
+\end{leancode}
+\leansource{\texttt{explicitPowerJointLaw\_\allowbreak{}fst} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 241–246}
+\begin{leancode}
+\leanline{0}{theorem\ explicitPowerJointLaw\_fst\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{(explicitPowerJointLaw\ V\ h\ n).map\ Prod.fst\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{explicitPowerJointLaw\_\allowbreak{}snd} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 248–254}
+\begin{leancode}
+\leanline{0}{theorem\ explicitPowerJointLaw\_snd\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)]\ (hh\ :\ 0\ <\ h)}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{(explicitPowerJointLaw\ V\ h\ n).map\ Prod.snd\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{explicitPowerJointLaw\_\allowbreak{}succ} \quad WassersteinMixing/\allowbreak{}SemigroupMALAPair.lean, lines 257–263}
+\begin{leancode}
+\leanline{0}{theorem\ explicitPowerJointLaw\_succ\ (V\ :\ E\ →\ ℝ)\ (h\ :\ ℝ)\ (L\ :\ ℝ≥0)}
+\leanline{4}{[IsProbabilityMeasure\ (ULA.gibbsMeasure\ V)]}
+\leanline{4}{(hdiff\ :\ Differentiable\ ℝ\ V)\ (hLip\ :\ LipschitzWith\ L\ (gradient\ V))\ (n\ :\ ℕ)\ :}
+\leanline{4}{explicitPowerJointLaw\ V\ h\ (n\ +\ 1)\ =}
+\leanline{6}{(Kernel.id\ {\leanfallback ∥}ₖ\ explicitKernel\ V\ h)\ ∘ₘ\ explicitPowerJointLaw\ V\ h\ n}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{explicit\allowbreak{}Power\allowbreak{}Joint\allowbreak{}Law} uses the explicit fresh-Gaussian kernel directly, avoiding a conditional-kernel identification. Its probability, swap, marginal and successor theorems specialize the proved actual kernel identities.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}; \cite[Section~3.35.5]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

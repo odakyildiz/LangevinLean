@@ -21,9 +21,11 @@ REPORT_ORDER = (
     "KineticLangevin",
     "KIPLMC",
     "AverageLMC",
+    "WassersteinMixing",
 )
 
 REPORTS = {
+    "WassersteinMixing": dict(key="LangevinLean2026WassersteinMixing", short="Wasserstein mixing", number="LL-11"),
     "AverageLMC": dict(key="LangevinLean2026AverageLMC", short="Average LMC", number="LL-09"),
     "UnadjustedLangevin": dict(key="LangevinLean2026ULASC", short="ULA-SC", number="LL-01"),
     "UnadjustedLangevin/LSI": dict(key="LangevinLean2026ULALSI", short="ULA-LSI", number="LL-02"),

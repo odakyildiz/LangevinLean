@@ -1,0 +1,594 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Wasserstein Mixing Time of the Unadjusted Langevin Algorithm}{Wasserstein Mixing Time of the Unadjusted Langevin Algorithm}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+The exact source bias, finite-time and accuracy bounds are proved under the original \(C^2\) Hessian assumptions.
+\section{\texorpdfstring{Theorem}{Theorem}}
+
+
+Let \(V\in C^2(\mathbb R^d)\), \(0<\alpha\le\beta\), and
+\(\alpha I_d\preccurlyeq\nabla^2V\preccurlyeq\beta I_d\).
+For \(0<h\le1/\beta\), set \(\kappa=\beta/\alpha\).
+The Gibbs target is \(\pi(dx)=Z^{-1}e^{-V(x)}dx\), and
+\(\widehat\pi\) is the constructed invariant law of the actual independent-Gaussian ULA transition. Then
+
+
+\[W_2(\pi,\widehat\pi)\le6h\sqrt{\kappa\beta d}.\]
+
+
+The invariant law, stationary Langevin process, reversible Markov semigroup,
+Poisson corrector and synchronous comparison are all constructed from these
+source assumptions. No spectral, Markov, invariant-law or comparison estimate
+is an additional hypothesis of this endpoint.
+
+\begin{leanbox}{Lean: \texttt{bias\_\allowbreak{}bound}}
+\leansource{\texttt{bias\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}Theorem.lean, lines 21–27}
+\begin{leancode}
+\leanline{0}{theorem\ bias\_bound\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hA\ :\ HessianAssumptions\ P\ V)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (ULA.gibbsMeasure\ V)}
+\leanline{6}{(invariantLaw\ P\ V\ hA.toPotentialAssumptions)\ ≤}
+\leanline{8}{6\ *\ P.step\ *\ Real.sqrt\ (P.condition\ *\ P.beta\ *\ P.dimension)}
+\end{leancode}
+\end{leanbox}
+
+\section{\texorpdfstring{Deriving the potential contract from the source Hessian bounds}{Deriving the potential contract from the source Hessian bounds}}
+
+
+The source assumes precisely \(V\in C^2\) and
+    \(\alpha I_d\preccurlyeq\nabla^2V\preccurlyeq\beta I_d\).
+    Symmetry and the quadratic-form bounds give
+    \(\|\nabla^2V(x)\|\le\beta\). The mean-value theorem makes
+    \(\nabla V\) globally \(\beta\)-Lipschitz. Integrating the lower Hessian
+    inequality along line segments gives the strong supporting-plane
+    inequality, hence \(\alpha\)-strong convexity.
+
+
+
+
+Thus the first-order contract used by the existing Langevin library is
+    a consequence of the paper's original assumptions. The final proof works
+    directly under \(C^2\); it does not require the source proof's temporary
+    smoothness and polynomial-growth assumption or a smoothing limit.
+
+\begin{leanbox}{Lean: \texttt{HessianAssumptions.\allowbreak{}toPotentialAssumptions}}
+\leansource{\texttt{HessianAssumptions.\allowbreak{}toPotentialAssumptions} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 138–142}
+\begin{leancode}
+\leanline{0}{theorem\ HessianAssumptions.toPotentialAssumptions\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ HessianAssumptions\ P\ V)\ :\ PotentialAssumptions\ P\ V}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Hessian\allowbreak{}Assumptions} records the quadratic forms of the
+    genuine derivative of the gradient. Its
+    \texttt{to\allowbreak{}Potential\allowbreak{}Assumptions} theorem derives every field of the
+    internal potential contract.
+\end{leanbox}
+
+\section{\texorpdfstring{Constructing the actual stationary Brownian comparison}{Constructing the actual stationary Brownian comparison}}
+
+
+Start the diffusion at an actual Gibbs-distributed random vector
+    independent of a canonical Brownian path. Picard iteration in the
+    complete \(L^2\) space constructs the global solution of
+
+
+    \[X_t-X_0=-\int_0^t\nabla V(X_s)\,ds+\sqrt2\,B_t.\]
+
+
+Uniqueness identifies its successive segments with the reference
+    process used by the synchronous Gaussian ULA chain. The Gibbs law is
+    stationary. The independent Gaussian increments have the exact laws
+    required by the original ULA recursion; their pushforward chain laws are
+    the actual iterates of that transition.
+
+\begin{leanbox}{Lean: \texttt{state\_\allowbreak{}integral}, \texttt{state\_\allowbreak{}law}, \texttt{actualChain\_\allowbreak{}law}}
+\leansource{\texttt{state\_\allowbreak{}integral} \quad WassersteinMixing/\allowbreak{}SemigroupGlobal.lean, lines 133–150}
+\begin{leancode}
+\leanline{0}{theorem\ state\_integral\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{letI\ :=\ actualProbability\_isProbability\ P\ V\ hV}
+\leanline{4}{state\ P\ V\ hV\ t\ -\ initial\ P\ V\ hV\ =}
+\leanline{6}{-(∫\ s\ in\ 0..t,\ ULA.lpDrift\ (actualProbability\ P\ V)\ (gradient\ V)}
+\leanline{8}{hV.gradientLipschitz\ (state\ P\ V\ hV\ s))\ +}
+\leanline{6}{ULA.brownianLangevinNoise\ (actualProbability\ P\ V)\ (brownian\ P)}
+\leanline{8}{(brownian\_preBrownian\ P\ V\ hV)\ 0\ t}
+\end{leancode}
+\leansource{\texttt{state\_\allowbreak{}law} \quad WassersteinMixing/\allowbreak{}SemigroupGlobal.lean, lines 206–217}
+\begin{leancode}
+\leanline{0}{theorem\ state\_law\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ :}
+\leanline{4}{(actualProbability\ P\ V).map\ (state\ P\ V\ hV\ t)\ =\ ULA.gibbsMeasure\ V}
+\end{leancode}
+\leansource{\texttt{actualChain\_\allowbreak{}law} \quad WassersteinMixing/\allowbreak{}ActualComparison.lean, lines 193–212}
+\begin{leancode}
+\leanline{0}{theorem\ actualChain\_law\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{(actualProbability\ P\ V).map\ (actualChain\ P\ V\ hV\ n)\ =}
+\leanline{6}{(ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ (ULA.gibbsMeasure\ V)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Canonical\allowbreak{}Semigroup.\allowbreak{}state} is the constructed global
+    solution. \texttt{state\_\allowbreak{}integral}, \texttt{state\_\allowbreak{}law} and
+    \texttt{state\_\allowbreak{}grid} identify its equation, law and grid states.
+    \texttt{actual\allowbreak{}Chain\_\allowbreak{}law} identifies the comparison chain with the
+    original Gaussian ULA laws.
+\end{leanbox}
+
+\section{\texorpdfstring{Proving the actual reversible Markov semigroup}{Proving the actual reversible Markov semigroup}}
+
+
+Evaluating an observable at \(X_t\) is an isometry from
+    \(L^2(\pi)\) into the common probability space. Compress evaluation at
+    \(t\) against evaluation at zero to define \(P_t\).
+    Future Brownian increments are independent of the complete
+    initial/\allowbreak{}Brownian past. Finite shifted Euler maps and their genuine
+    \(L^2\) limits prove
+
+
+    \[\mathbb E[f(X_{a+t})\mid\mathcal F_a]=P_tf(X_a),
+    \qquad P_{s+t}=P_sP_t.\]
+
+
+For reversibility, realize MALA with the same Brownian Gaussian
+    proposals and independent uniform accept/\allowbreak{}reject variables. Its anchored
+    finite-step laws are exactly reversible. The proved rejection-distance
+    estimate and Euler convergence give convergence in probability to the
+    actual diffusion; stationarity and density upgrade every observable to
+    strong \(L^2\) convergence. Self-adjointness passes to \(P_t\).
+    Its contraction and strong continuity follow from actual evaluation
+    isometries and state continuity.
+
+\begin{leanbox}{Lean: \texttt{actualEvaluation\_\allowbreak{}markov\_\allowbreak{}pastAt}, \texttt{op\_\allowbreak{}isSelfAdjoint}, \texttt{semigroup}}
+\leansource{\texttt{actualEvaluation\_\allowbreak{}markov\_\allowbreak{}pastAt} \quad WassersteinMixing/\allowbreak{}ActualMarkov.lean, lines 120–145}
+\begin{leancode}
+\leanline{0}{theorem\ actualEvaluation\_markov\_pastAt\ (a\ :\ ℝ≥0)\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)}
+\leanline{4}{(f\ :\ Lp\ H\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{(condExpL2\ H\ ℝ\ (ULA.lpLangevinPast\_le\ (actualProbability\ P\ V)}
+\leanline{6}{(CanonicalSemigroup.initial\ P\ V\ hV)\ (actualBrownianNoise\ P\ V\ hV)\ (a\ :\ ℝ))}
+\leanline{6}{(CanonicalSemigroup.evaluation\ ({\leanfallback 𝕜}\ :=\ ℝ)\ P\ V\ hV\ (a\ +\ t)\ f)\ :\ Lp\ H\ 2\ (actualProbability\ P\ V))\ =}
+\leanline{6}{CanonicalSemigroup.evaluation\ ({\leanfallback 𝕜}\ :=\ ℝ)\ P\ V\ hV\ a}
+\leanline{8}{(CanonicalSemigroup.op\ ({\leanfallback 𝕜}\ :=\ ℝ)\ P\ V\ hV\ t\ f)}
+\end{leancode}
+\leansource{\texttt{op\_\allowbreak{}isSelfAdjoint} \quad WassersteinMixing/\allowbreak{}SemigroupReversible.lean, lines 70–87}
+\begin{leancode}
+\leanline{0}{theorem\ op\_isSelfAdjoint\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ (ht\ :\ 0\ ≤\ t)\ :}
+\leanline{4}{IsSelfAdjoint\ (op\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ P\ V\ hV\ t)}
+\end{leancode}
+\leansource{\texttt{semigroup} \quad WassersteinMixing/\allowbreak{}SemigroupInstance.lean, lines 55–62}
+\begin{leancode}
+\leanline{0}{def\ semigroup\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{ReversibleSemigroup\ (Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ where}
+\leanline{2}{op\ :=\ op\ P\ V\ hV}
+\leanline{2}{zero\ :=\ op\_zero\ P\ V\ hV}
+\leanline{2}{add\ :=\ fun\ \{s\ t\}\ hs\ ht\ ↦\ op\_add\ P\ V\ hV\ s\ t\ hs\ ht}
+\leanline{2}{selfAdjoint\ :=\ fun\ \{t\}\ ht\ ↦\ op\_isSelfAdjoint\ P\ V\ hV\ t\ ht}
+\leanline{2}{norm\_le\ :=\ fun\ \{t\}\ \_\ f\ ↦\ op\_norm\_le\ P\ V\ hV\ t\ f}
+\leanline{2}{continuous\ :=\ fun\ f\ ↦\ continuousOn\_op\ P\ V\ hV\ f}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Evaluation\_\allowbreak{}markov\_\allowbreak{}past\allowbreak{}At} proves the conditional
+    identity. \texttt{op\_\allowbreak{}is\allowbreak{}Self\allowbreak{}Adjoint} uses actual reversible MALA
+    approximants. \texttt{Canonical\allowbreak{}Semigroup.\allowbreak{}semigroup} assembles all
+    proved fields; no abstract Markov or spectral realization is supplied.
+\end{leanbox}
+
+\section{\texorpdfstring{Constructing the bounded Poisson corrector without an eigenbasis}{Constructing the bounded Poisson corrector without an eigenbasis}}
+
+
+On complex Gibbs observables define
+    \(A_hf=\int_0^h(f-P_sf)\,ds\) and
+    \(G_N=\sum_{n<N}P_{nh}A_h\).
+    Self-adjointness and \(P_t=P_{t/2}^2\) imply
+    \(0\preccurlyeq P_t\preccurlyeq P_s\preccurlyeq I\) for
+    \(0\le s\le t\). Integration and telescoping give
+
+
+    \[0\preccurlyeq G_N\preccurlyeq h(I-P_{Nh})\preccurlyeq hI.\]
+
+
+The increasing bounded operators converge strongly to a genuine
+    bounded operator \(G\). Passing the finite telescoping identity to the
+    limit gives \((I-P_h)G=A_h\), while
+    \(\|G\|\le h\). Commutation and positivity of
+    \((h^2I-G^2)(I-P_h)\) give the energy domination
+
+
+    \[\langle Gf,(I-P_h)Gf\rangle
+      \le h^2\langle f,(I-P_h)f\rangle.\]
+
+
+Pointwise real-to-complex embedding commutes with actual evaluation
+    and adjunction. Thus the constructed corrector preserves real
+    observables. The extracted real semigroup operator is the actual real
+    transition. Set \(g=G\nabla V\).
+
+\begin{leanbox}{Lean: \texttt{corrector\_\allowbreak{}poisson}, \texttt{corrector\_\allowbreak{}energy\_\allowbreak{}le}, \texttt{actualPoissonProcess}}
+\leansource{\texttt{corrector\_\allowbreak{}poisson} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 355–367}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_poisson\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ (x\ :\ H)\ :}
+\leanline{4}{S.corrector\ h\ hh\ x\ -\ S.op\ h\ (S.corrector\ h\ hh\ x)\ =\ S.defect\ h\ x}
+\end{leancode}
+\leansource{\texttt{corrector\_\allowbreak{}energy\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupPoisson.lean, lines 392–402}
+\begin{leancode}
+\leanline{0}{theorem\ corrector\_energy\_le\ (h\ :\ ℝ)\ (hh\ :\ 0\ ≤\ h)\ \{s\ :\ ℝ\}\ (hs\ :\ 0\ ≤\ s)\ (x\ :\ H)\ :}
+\leanline{4}{inner\ ℝ\ (S.corrector\ h\ hh\ x)}
+\leanline{6}{(S.corrector\ h\ hh\ x\ -\ S.op\ s\ (S.corrector\ h\ hh\ x))\ ≤}
+\leanline{6}{h\ \textasciicircum{}\ 2\ *\ inner\ ℝ\ x\ (x\ -\ S.op\ s\ x)}
+\end{leancode}
+\leansource{\texttt{actualPoissonProcess} \quad WassersteinMixing/\allowbreak{}ActualPoisson.lean, lines 81–88}
+\begin{leancode}
+\leanline{0}{def\ actualPoissonProcess\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{PoissonProcess\ (Lp\ (E\ P.dimension)\ 2\ (ULA.gibbsMeasure\ V))\ (E\ P.dimension)}
+\leanline{6}{(actualProbability\ P\ V)\ P.step\ P.step\_pos\ :=}
+\leanline{2}{semigroupPoissonProcess\ (actualProbability\ P\ V)\ (actualObservableSemigroup\ P\ V\ hV)}
+\leanline{4}{(actualRealEmbedding\ P\ V)\ (actualObservableSemigroup\_preservesReal\ P\ V\ hV)}
+\leanline{4}{P.step\ P.step\_pos\ (actualFiltration\ P\ V\ hV)\ (actualGridEvaluation\ P\ V\ hV)}
+\leanline{4}{(actualGridEvaluation\_adapted\ P\ V\ hV)\ (actualGridEvaluation\_markov\ P\ V\ hV)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{corrector\_\allowbreak{}norm\_\allowbreak{}le},
+    \texttt{corrector\_\allowbreak{}poisson} and \texttt{corrector\_\allowbreak{}energy\_\allowbreak{}le}
+    prove the required conclusions from the constructed semigroup.
+    \texttt{actual\allowbreak{}Poisson\allowbreak{}Process} transfers them to the actual adapted
+    grid evaluations.
+\end{leanbox}
+
+\section{\texorpdfstring{Deriving the actual score increment and defect bounds}{Deriving the actual score increment and defect bounds}}
+
+
+Gibbs integration gives
+    \(\|\nabla V\|_{L^2(\pi)}^2\le\beta d\).
+    The actual integral equation and Brownian second moment imply
+
+
+    \[\|X_{kh+s}-X_{kh}\|_{L^2}^2
+      \le d(2s^2\beta+4s).\]
+
+
+Gradient Lipschitzness and \(s\beta\le1\) then give
+
+
+    \[\|\nabla V(X_{kh+s})-\nabla V(X_{kh})\|_{L^2}^2
+      \le6s\beta^2d.\]
+
+
+The true local defect is
+    \(D_k=\int_0^h(\nabla V(X_{kh})-\nabla V(X_{kh+s}))\,ds\).
+    Integral Cauchy–Schwarz gives
+    \(\|D_k\|_{L^2}^2\le3h^3\beta^2d\).
+    The corrector bound yields
+    \(\|g(X_{kh})\|_{L^2}^2\le h^2\beta d\), and its energy bound
+    gives a corrector-increment budget \(6h^3\beta^2d\).
+
+\begin{leanbox}{Lean: \texttt{actualObservableScore\_\allowbreak{}energy}, \texttt{actualScoreIncrement\_\allowbreak{}energy}, \texttt{actualDefect\_\allowbreak{}energy}}
+\leansource{\texttt{actualObservableScore\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualScoreObservable.lean, lines 64–69}
+\begin{leancode}
+\leanline{0}{theorem\ actualObservableScore\_energy\ :}
+\leanline{4}{‖actualObservableScore\ P\ V\ hV‖\ \textasciicircum{}\ 2\ ≤\ P.beta\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{actualScoreIncrement\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 117–126}
+\begin{leancode}
+\leanline{0}{theorem\ actualScoreIncrement\_energy\ (n\ :\ ℕ)\ (s\ :\ ℝ)\ (hs\ :\ s\ ∈\ Icc\ 0\ P.step)\ :}
+\leanline{4}{‖actualScoreIncrement\ P\ V\ hV\ n\ s‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ s\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leansource{\texttt{actualDefect\_\allowbreak{}energy} \quad WassersteinMixing/\allowbreak{}ActualLocalError.lean, lines 154–158}
+\begin{leancode}
+\leanline{0}{theorem\ actualDefect\_energy\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖actualDefect\ P\ V\ hV\ n‖\ \textasciicircum{}\ 2\ ≤\ 3\ *\ P.step\ \textasciicircum{}\ 3\ *\ P.beta\ \textasciicircum{}\ 2\ *\ P.dimension}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Observable\allowbreak{}Score\_\allowbreak{}energy},
+    \texttt{actual\allowbreak{}Score\allowbreak{}Increment\_\allowbreak{}energy} and
+    \texttt{actual\allowbreak{}Defect\_\allowbreak{}energy} derive these constants for the genuine
+    diffusion. They are not inputs to the final theorem.
+\end{leanbox}
+
+\section{\texorpdfstring{Identifying and centering the actual martingale residual}{Identifying and centering the actual martingale residual}}
+
+
+The proved conditional Markov identity and commutation with
+    the Bochner time integral identify the actual defect mean:
+
+
+    \[\mathbb E[D_k\mid\mathcal F_{kh}]
+      =\int_0^h(I-P_s)\nabla V(X_{kh})\,ds
+      =(I-P_h)g(X_{kh}).\]
+
+
+Hence
+    \(M_{k+1}=D_k-[g(X_{kh})-g(X_{(k+1)h})]\) is conditionally
+    centered. The separate budgets \(3h^3\beta^2d\) and
+    \(6h^3\beta^2d\), together with
+    \(\|u-v\|^2\le2\|u\|^2+2\|v\|^2\), give
+
+
+    \[\|M_{k+1}\|_{L^2}^2\le18h^3\beta^2d.\]
+
+
+The predictable shifted drift belongs to the actual Brownian past,
+    so conditional orthogonality removes its cross term with \(M_{k+1}\).
+
+\begin{leanbox}{Lean: \texttt{actualDefect\_\allowbreak{}conditionalMean}, \texttt{martingaleAt\_\allowbreak{}energy\_\allowbreak{}le}, \texttt{shifted\_\allowbreak{}energy\_\allowbreak{}step}}
+\leansource{\texttt{actualDefect\_\allowbreak{}conditionalMean} \quad WassersteinMixing/\allowbreak{}ActualDefectMean.lean, lines 81–92}
+\begin{leancode}
+\leanline{0}{theorem\ actualDefect\_conditionalMean\ (n\ :\ ℕ)\ :}
+\leanline{4}{(condExpL2\ (E\ P.dimension)\ ℝ\ (actualPast\_le\ P\ V\ hV\ n)}
+\leanline{6}{(actualDefect\ P\ V\ hV\ n)\ :\ Lp\ (E\ P.dimension)\ 2\ (actualProbability\ P\ V))\ =}
+\leanline{6}{actualGridEvaluation\ P\ V\ hV\ n}
+\leanline{8}{(∫\ s\ in\ 0..P.step,\ actualObservableScore\ P\ V\ hV\ -}
+\leanline{10}{CanonicalSemigroup.op\ ({\leanfallback 𝕜}\ :=\ ℝ)\ P\ V\ hV\ s\ (actualObservableScore\ P\ V\ hV))}
+\end{leancode}
+\leansource{\texttt{martingaleAt\_\allowbreak{}energy\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}PoissonProcess.lean, lines 148–156}
+\begin{leancode}
+\leanline{0}{theorem\ martingaleAt\_energy\_le\ (f\ :\ H)\ (D\ :\ ℕ\ →\ Lp\ E\ 2\ Q)\ (β\ d\ :\ ℝ)\ (n\ :\ ℕ)}
+\leanline{4}{(hdefect\ :\ ‖D\ n‖\ \textasciicircum{}\ 2\ ≤\ 3\ *\ h\ \textasciicircum{}\ 3\ *\ β\ \textasciicircum{}\ 2\ *\ d)}
+\leanline{4}{(hincrement\ :\ ‖S.eval\ (n\ +\ 1)\ f\ -\ S.eval\ n\ f‖\ \textasciicircum{}\ 2\ ≤\ 6\ *\ h\ *\ β\ \textasciicircum{}\ 2\ *\ d)\ :}
+\leanline{4}{‖S.martingaleAt\ f\ D\ n‖\ \textasciicircum{}\ 2\ ≤\ 18\ *\ h\ \textasciicircum{}\ 3\ *\ β\ \textasciicircum{}\ 2\ *\ d}
+\end{leancode}
+\leansource{\texttt{shifted\_\allowbreak{}energy\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 134–148}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_energy\_step\ (n\ :\ ℕ)\ :}
+\leanline{4}{‖C.error\ (n\ +\ 1)\ +\ S.correctorAt\ score\ (n\ +\ 1)‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{P.contraction\ *\ ‖C.error\ n\ +\ S.correctorAt\ score\ n‖\ \textasciicircum{}\ 2\ +\ P.energyForcing}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\allowbreak{}Defect\_\allowbreak{}conditional\allowbreak{}Mean} identifies the true
+    integral defect. The Poisson process derives martingale centering and
+    its energy bound; the synchronous comparison then derives the shifted
+    energy recurrence.
+\end{leanbox}
+
+\section{\texorpdfstring{Using the genuine averaged Hessian and shifted energy}{Using the genuine averaged Hessian and shifted energy}}
+
+
+The literal segment average of the Hessian between the actual
+    diffusion and ULA states is symmetric, lies between \(\alpha I\) and
+    \(\beta I\), and maps their difference to the true gradient difference.
+    Writing \(Z_k=X_{kh}-\widehat X_k\) and \(U_k=Z_k+g(X_{kh})\),
+    the exact synchronous updates give
+
+
+    \[U_{k+1}=(I-hA_k)U_k+hA_kg(X_{kh})+M_{k+1}.\]
+
+
+The positive contraction inequality yields
+
+
+    \[\|(I-hA_k)u+hA_kv\|^2
+      \le(1-\alpha h)\|u\|^2+h\beta\|v\|^2.\]
+
+
+After conditional orthogonality, the forcing constant is
+    \(1+18=19\):
+
+
+    \[\|U_{k+1}\|_{L^2}^2
+      \le(1-\alpha h)\|U_k\|_{L^2}^2+19h^3\beta^2d.\]
+
+
+Starting the two processes together gives the uniform floor
+    \(19h^2\kappa\beta d\). The triangle inequality, with
+    \(\sqrt{19}\le5\), gives
+    \(\|Z_k\|_{L^2}\le6h\sqrt{\kappa\beta d}\).
+
+\begin{leanbox}{Lean: \texttt{actual\_\allowbreak{}curvature\_\allowbreak{}error\_\allowbreak{}step}, \texttt{curvature\_\allowbreak{}weighted\_\allowbreak{}interpolation}, \texttt{shifted\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}bias}}
+\leansource{\texttt{actual\_\allowbreak{}curvature\_\allowbreak{}error\_\allowbreak{}step} \quad WassersteinMixing/\allowbreak{}ActualCurvature.lean, lines 25–37}
+\begin{leancode}
+\leanline{0}{theorem\ actual\_curvature\_error\_step\ (n\ :\ ℕ)\ :}
+\leanline{4}{actualReference\ P\ V\ hV\ (n\ +\ 1)\ -\ actualChain\ P\ V\ hV\ (n\ +\ 1)\ =}
+\leanline{6}{(actualReference\ P\ V\ hV\ n\ -\ actualChain\ P\ V\ hV\ n)\ -}
+\leanline{8}{P.step\ •\ actualCurvature\ P\ V\ hV\ n\ (actualReference\ P\ V\ hV\ n\ -\ actualChain\ P\ V\ hV\ n)\ +}
+\leanline{10}{actualDefect\ P\ V\ hV\ n}
+\end{leancode}
+\leansource{\texttt{curvature\_\allowbreak{}weighted\_\allowbreak{}interpolation} \quad WassersteinMixing/\allowbreak{}ShiftedEnergy.lean, lines 72–93}
+\begin{leancode}
+\leanline{0}{theorem\ curvature\_weighted\_interpolation\ (P\ :\ Parameters)\ (A\ :\ H\ →L[ℝ]\ H)}
+\leanline{4}{(hsym\ :\ ∀\ x\ y,\ inner\ ℝ\ (A\ x)\ y\ =\ inner\ ℝ\ x\ (A\ y))}
+\leanline{4}{(hlower\ :\ ∀\ x,\ P.alpha\ *\ ‖x‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ x\ (A\ x))}
+\leanline{4}{(hupper\ :\ ∀\ x,\ inner\ ℝ\ x\ (A\ x)\ ≤\ P.beta\ *\ ‖x‖\ \textasciicircum{}\ 2)\ (u\ v\ :\ H)\ :}
+\leanline{4}{‖u\ -\ P.step\ •\ A\ u\ +\ P.step\ •\ A\ v‖\ \textasciicircum{}\ 2\ ≤}
+\leanline{6}{P.contraction\ *\ ‖u‖\ \textasciicircum{}\ 2\ +\ P.step\ *\ P.beta\ *\ ‖v‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{shifted\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}bias} \quad WassersteinMixing/\allowbreak{}Recurrence.lean, lines 88–121}
+\begin{leancode}
+\leanline{0}{theorem\ shifted\_norm\_le\_bias\ \{H\ :\ Type*\}\ [NormedAddCommGroup\ H]}
+\leanline{4}{(P\ :\ Parameters)\ (z\ g\ :\ H)}
+\leanline{4}{(hu\ :\ ‖z\ +\ g‖\ \textasciicircum{}\ 2\ ≤\ P.energyFloor)}
+\leanline{4}{(hg\ :\ ‖g‖\ \textasciicircum{}\ 2\ ≤\ P.correctorBudget)\ :\ ‖z‖\ ≤\ P.bias}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{actual\_\allowbreak{}curvature\_\allowbreak{}error\_\allowbreak{}step} uses the genuine
+    averaged-Hessian secant identity.
+    \texttt{curvature\_\allowbreak{}weighted\_\allowbreak{}interpolation} proves the deterministic
+    inequality. \texttt{shifted\_\allowbreak{}energy\_\allowbreak{}uniform} and
+    \texttt{shifted\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}bias} derive the floor and literal
+    coefficient six.
+\end{leanbox}
+
+\section{\texorpdfstring{Constructing the actual Gaussian ULA invariant law}{Constructing the actual Gaussian ULA invariant law}}
+
+
+Let \(F(x)=x-h\nabla V(x)\), whose Lipschitz factor is
+    \(q=1-\alpha h<1\). On an iid Gaussian past
+    \(\omega=(\omega_0,\omega_1,\ldots)\), let \(\tau\) drop its first entry.
+    The tail preserves the product law and is independent of \(\omega_0\).
+    On the complete \(L^2\) space define
+
+
+    \[\Phi(X)(\omega)=F(X(\tau\omega))+\sqrt{2h}\,\omega_0.\]
+
+
+This is a contraction with factor \(q\), so Banach's theorem
+    constructs a square-integrable fixed point. Its law \(\widehat\pi\)
+    is a probability measure with finite second moment. The actual
+    recursion and head/\allowbreak{}tail independence prove invariance under the
+    original independent-Gaussian ULA transition. The proved two-law
+    contraction gives
+    \(W_2(T^k\mu,\widehat\pi)\le q^kW_2(\mu,\widehat\pi)\to0\).
+
+\begin{leanbox}{Lean: \texttt{invariantLaw\_\allowbreak{}invariant}, \texttt{invariantLaw\_\allowbreak{}attraction}}
+\leansource{\texttt{invariantLaw\_\allowbreak{}invariant} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 236–242}
+\begin{leancode}
+\leanline{0}{theorem\ invariantLaw\_invariant\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{ULA.ulaLawStep\ V\ P.step\ (invariantLaw\ P\ V\ hV)\ =\ invariantLaw\ P\ V\ hV}
+\end{leancode}
+\leansource{\texttt{invariantLaw\_\allowbreak{}attraction} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 256–265}
+\begin{leancode}
+\leanline{0}{theorem\ invariantLaw\_attraction\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ μ)\ :}
+\leanline{4}{Filter.Tendsto\ (fun\ k\ :\ ℕ\ ↦}
+\leanline{6}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)\ (invariantLaw\ P\ V\ hV))}
+\leanline{6}{Filter.atTop\ ({\leanfallback 𝓝}\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{invariant\allowbreak{}Law} specializes the genuine random
+    fixed-point construction. \texttt{invariant\allowbreak{}Law\_\allowbreak{}invariant} and
+    \texttt{invariant\allowbreak{}Law\_\allowbreak{}attraction} prove the exact stationary and
+    limiting properties needed in Theorem 1.
+\end{leanbox}
+
+\section{\texorpdfstring{Passing the actual stationary comparison to transport}{Passing the actual stationary comparison to transport}}
+
+
+The synchronous trajectories give actual couplings of
+    \(\pi\) and each stationary-start Gaussian ULA law. Their uniform
+    \(L^2\) bound therefore bounds the actual quadratic transport
+    infimum. To prove its triangle inequality, disintegrate two couplings
+    with the same middle marginal and construct a genuine triple law.
+    Minkowski bounds its endpoint cost; taking both coupling infima gives
+
+
+    \[W_2(\mu,\xi)\le W_2(\mu,\nu)+W_2(\nu,\xi).\]
+
+
+Apply this with the stationary-start ULA law between \(\pi\) and
+    \(\widehat\pi\), then use the proved attraction to the constructed
+    invariant law. Theorem 1 follows. Combining it with actual ULA
+    contraction gives the finite-time inequality of Corollary 1.1.
+    Second moments prove finiteness before distances are converted to
+    real numbers.
+
+\begin{leanbox}{Lean: \texttt{stationary\_\allowbreak{}transport\_\allowbreak{}bound}, \texttt{wasserstein2Real\_\allowbreak{}triangle}, \texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2Real\_\allowbreak{}le}}
+\leansource{\texttt{stationary\_\allowbreak{}transport\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}PoissonComparison.lean, lines 163–167}
+\begin{leancode}
+\leanline{0}{theorem\ stationary\_transport\_bound\ [BorelSpace\ E]\ [SecondCountableTopology\ E]\ (n\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ (Q.map\ (C.reference\ 0))\ (Q.map\ (C.chain\ n))\ ≤\ P.bias}
+\end{leancode}
+\leansource{\texttt{wasserstein2Real\_\allowbreak{}triangle} \quad WassersteinMixing/\allowbreak{}TransportGeometry.lean, lines 175–181}
+\begin{leancode}
+\leanline{0}{theorem\ wasserstein2Real\_triangle\ (μ\ ν\ ξ\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]\ [IsProbabilityMeasure\ ξ]}
+\leanline{4}{(hμν\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (hνξ\ :\ ULA.wasserstein2\ ν\ ξ\ ≠\ ⊤)\ :}
+\leanline{4}{ULA.wasserstein2Real\ μ\ ξ\ ≤\ ULA.wasserstein2Real\ μ\ ν\ +\ ULA.wasserstein2Real\ ν\ ξ}
+\end{leancode}
+\leansource{\texttt{ula\_\allowbreak{}iterate\_\allowbreak{}wasserstein2Real\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}Transport.lean, lines 109–121}
+\begin{leancode}
+\leanline{0}{theorem\ ula\_iterate\_wasserstein2Real\_le\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ ν\ :\ Measure\ H)}
+\leanline{4}{[IsProbabilityMeasure\ μ]\ [IsProbabilityMeasure\ ν]}
+\leanline{4}{(hfinite\ :\ ULA.wasserstein2\ μ\ ν\ ≠\ ⊤)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)}
+\leanline{6}{((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ ν)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ μ\ ν}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{stationary\_\allowbreak{}transport\_\allowbreak{}bound} uses the actual
+    synchronous coupling. \texttt{glue\allowbreak{}Couplings} constructs the
+    triple law and \texttt{wasserstein2\allowbreak{}Real\_\allowbreak{}triangle} proves the
+    finite-distance triangle inequality. The final theorem instantiates
+    the comparison from the source Hessian assumptions.
+\end{leanbox}
+
+\section{\texorpdfstring{Recovering the exact scale-invariant iteration count}{Recovering the exact scale-invariant iteration count}}
+
+
+For \(d>0\) and \(\varepsilon>0\), write
+
+
+    \[m=\max\left(1,\frac{12\sqrt d}{\varepsilon}\right),\qquad
+    h=\frac1{\beta m},\qquad K=\frac\beta\alpha m.\]
+
+
+This is the source minimum formula and gives \(\alpha hK=1\).
+    Since
+    \(\sqrt\alpha\sqrt{(\beta/\alpha)\beta d}=\beta\sqrt d\),
+    the scaled bias is at most \(\varepsilon/2\).
+    For \(t=\alpha h\in(0,1]\), use \((1-t)^k\le e^{-tk}\).
+    The displayed source iteration restriction makes the scaled transient
+    at most \(\varepsilon/2\). Adding the two budgets proves the
+    literal accuracy conclusion, including zero initial error.
+
+\begin{leanbox}{Lean: \texttt{paperStep\_\allowbreak{}eq\_\allowbreak{}inv}, \texttt{paper\_\allowbreak{}complexity\_\allowbreak{}bound}, \texttt{accuracy\_\allowbreak{}bound}}
+\leansource{\texttt{paperStep\_\allowbreak{}eq\_\allowbreak{}inv} \quad WassersteinMixing/\allowbreak{}Complexity.lean, lines 27–40}
+\begin{leancode}
+\leanline{0}{theorem\ paperStep\_eq\_inv\ (β\ d\ ε\ :\ ℝ)\ (hβ\ :\ 0\ <\ β)\ (hd\ :\ 0\ <\ d)\ (hε\ :\ 0\ <\ ε)\ :}
+\leanline{4}{paperStep\ β\ d\ ε\ =\ 1\ /\ (β\ *\ max\ 1\ (12\ *\ Real.sqrt\ d\ /\ ε))}
+\end{leancode}
+\leansource{\texttt{paper\_\allowbreak{}complexity\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}Complexity.lean, lines 118–142}
+\begin{leancode}
+\leanline{0}{theorem\ paper\_complexity\_bound\ (α\ β\ d\ R\ ε\ :\ ℝ)\ (hα\ :\ 0\ <\ α)\ (hαβ\ :\ α\ ≤\ β)}
+\leanline{4}{(hd\ :\ 0\ <\ d)\ (hR\ :\ 0\ ≤\ R)\ (hε\ :\ 0\ <\ ε)\ (k\ :\ ℕ)}
+\leanline{4}{(hk\ :\ iterationPrefactor\ α\ β\ d\ ε\ *}
+\leanline{6}{Real.log\ (1\ +\ 2\ *\ Real.sqrt\ α\ *\ R\ /\ ε)\ ≤\ (k\ :\ ℝ))\ :}
+\leanline{4}{Real.sqrt\ α\ *\ ((1\ -\ α\ *\ paperStep\ β\ d\ ε)\ \textasciicircum{}\ k\ *\ R\ +}
+\leanline{6}{6\ *\ paperStep\ β\ d\ ε\ *\ Real.sqrt\ ((β\ /\ α)\ *\ β\ *\ d))\ ≤\ ε}
+\end{leancode}
+\leansource{\texttt{accuracy\_\allowbreak{}bound} \quad WassersteinMixing/\allowbreak{}Theorem.lean, lines 44–54}
+\begin{leancode}
+\leanline{0}{theorem\ accuracy\_bound\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hA\ :\ HessianAssumptions\ P\ V)\ (μ\ :\ Measure\ (E\ P.dimension))\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ E\ P.dimension\ →\ E\ P.dimension)\ 2\ μ)\ (ε\ :\ ℝ)\ (hε\ :\ 0\ <\ ε)}
+\leanline{4}{(hstep\ :\ P.step\ =\ paperStep\ P.beta\ P.dimension\ ε)\ (n\ :\ ℕ)}
+\leanline{4}{(hn\ :\ iterationPrefactor\ P.alpha\ P.beta\ P.dimension\ ε\ *}
+\leanline{6}{Real.log\ (1\ +\ 2\ *\ Real.sqrt\ P.alpha\ *}
+\leanline{8}{ULA.wasserstein2Real\ μ\ (invariantLaw\ P\ V\ hA.toPotentialAssumptions)\ /\ ε)\ ≤\ (n\ :\ ℝ))\ :}
+\leanline{4}{Real.sqrt\ P.alpha\ *}
+\leanline{6}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[n]\ μ)\ (ULA.gibbsMeasure\ V)\ ≤\ ε}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{paper\allowbreak{}Step\_\allowbreak{}eq\_\allowbreak{}inv} identifies the two step
+    formulas. \texttt{paper\_\allowbreak{}complexity\_\allowbreak{}bound} proves their exact
+    scalar consequence. \texttt{accuracy\_\allowbreak{}bound} applies it to the
+    actual Gaussian chain and constructed invariant law.
+\end{leanbox}
+
+\end{document}

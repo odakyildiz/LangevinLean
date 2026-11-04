@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 
 # Characters used by the Lean sources that DejaVu Sans Mono does not contain.
-FALLBACK = set('ℓℱ≪⊔⋀⋂⋃⟪⟫⨅⨆⨍⬝𝓝𝕜')
+FALLBACK = set('ℓℱ≪⊔⋀⋂⋃⟪⟫⨅⨆⨍⬝𝓝𝕜∥')
 SPECIAL = {'\\': r'\textbackslash{}', '{': r'\{', '}': r'\}', '$': r'\$', '&': r'\&',
            '#': r'\#', '^': r'\textasciicircum{}', '_': r'\_', '%': r'\%',
            '~': r'\textasciitilde{}'}

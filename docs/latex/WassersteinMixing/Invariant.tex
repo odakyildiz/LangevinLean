@@ -1,0 +1,291 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{Constructing the actual ULA invariant probability law on an independent Gaussian past}{Constructing the actual ULA invariant probability law on an independent Gaussian past}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+A contracting additive-noise update has an invariant probability law constructed from a fixed random vector on an independent infinite noise sequence. The operator acts on the complete space \(L^2\); a Banach fixed point supplies existence and a finite second moment. Independence of the most recent noise from the older past proves invariance for the original transition. Applied to the actual Gaussian ULA update, this gives an invariant law and convergence from every finite-second-moment initialization without an invariant-law premise.
+
+
+
+Earlier results used here: \cite[Section~3.13]{LangevinLean2026ULASC}; \cite[Section~3.36]{LangevinLean2026ULASC}; \cite[Section~3.21]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The independent past, its tail and its newest innovation}{The independent past, its tail and its newest innovation}}
+
+
+\textbf{Construction.} For an innovation probability law \(\eta\), put \(Q=\eta^{\otimes\mathbb N}\) on sequences \(\omega=(\omega_0,\omega_1,\ldots)\). The tail map is \(\tau\omega=(\omega_1,\omega_2,\ldots)\).
+
+
+
+
+\textbf{Claim.} The map \(\tau\) preserves \(Q\), and the tail is independent of \(\omega_0\).
+
+
+
+
+\textbf{Proof.} Every finite set of coordinates has its product law. Reindexing a finite cylinder by the injective successor map therefore leaves its probability unchanged; the product-measure identity gives measure preservation. Independence follows because every finite set of tail coordinates has indices disjoint from \(\{0\}\). Independence of the full tail process follows from these finite-coordinate independence statements.
+
+\begin{leanbox}{Lean: \texttt{probability}, \texttt{probability\_\allowbreak{}isProbability}, \texttt{tail\_\allowbreak{}measurePreserving} and 1 more}
+\leansource{\texttt{probability} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 31–31}
+\begin{leancode}
+\leanline{0}{def\ probability\ (η\ :\ Measure\ E)\ :\ Measure\ (ℕ\ →\ E)\ :=\ Measure.infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ η)}
+\end{leancode}
+\leansource{\texttt{probability\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 33–34}
+\begin{leancode}
+\leanline{0}{instance\ probability\_isProbability\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]\ :}
+\leanline{4}{IsProbabilityMeasure\ (probability\ η)\ :=\ by\ unfold\ probability;\ infer\_instance}
+\end{leancode}
+\leansource{\texttt{tail\_\allowbreak{}measurePreserving} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 37–40}
+\begin{leancode}
+\leanline{0}{theorem\ tail\_measurePreserving\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]\ :}
+\leanline{4}{MeasurePreserving\ (fun\ ω\ :\ ℕ\ →\ E\ ↦\ fun\ n\ ↦\ ω\ (n\ +\ 1))\ (probability\ η)\ (probability\ η)}
+\end{leancode}
+\leansource{\texttt{tail\_\allowbreak{}independent\_\allowbreak{}head} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 43–58}
+\begin{leancode}
+\leanline{0}{theorem\ tail\_independent\_head\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]\ :}
+\leanline{4}{IndepFun\ (fun\ ω\ :\ ℕ\ →\ E\ ↦\ fun\ n\ ↦\ ω\ (n\ +\ 1))\ (fun\ ω\ ↦\ ω\ 0)\ (probability\ η)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{probability} is the actual infinite product measure and has a probability instance. \texttt{tail\_\allowbreak{}measure\allowbreak{}Preserving} applies the injective reindexing identity for \texttt{Measure.\allowbreak{}infinite\allowbreak{}Pi}. \texttt{tail\_\allowbreak{}independent\_\allowbreak{}head} starts from the independent coordinate family, proves the finite index sets disjoint and extends finite-coordinate independence to the whole process.
+\end{leanbox}
+
+\section{\texorpdfstring{A contraction on the complete space of square-integrable past functions}{A contraction on the complete space of square-integrable past functions}}
+
+
+\textbf{Construction and claim.} Suppose \(F:E\to E\) is \(q\)-Lipschitz with \(0\le q<1\), the innovation has finite second moment, and \(a\in\mathbb R\). On \(L^2(Q;E)\) define
+
+\[\Phi(X)=F(X\circ\tau)+a\omega_0.\]
+
+
+The tail pullback is a linear isometry because \(\tau\) preserves \(Q\); the head coordinate is square-integrable because its law is \(\eta\). A Lipschitz map has at most linear growth, so composition with \(F\) preserves square integrability on the probability space. The common additive noise cancels in a difference, giving
+
+\[\|\Phi(X)-\Phi(Y)\|_{L^2}\le q\|X\circ\tau-Y\circ\tau\|_{L^2}
+=q\|X-Y\|_{L^2}.\]
+
+
+Thus \(\Phi\) is a strict contraction on a complete space.
+
+\begin{leanbox}{Lean: \texttt{tailPullback}, \texttt{headLp}, \texttt{pastOperator} and 1 more}
+\leansource{\texttt{tailPullback} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 64–66}
+\begin{leancode}
+\leanline{0}{def\ tailPullback\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]\ :}
+\leanline{4}{Lp\ E\ 2\ (probability\ η)\ →ₗᵢ[ℝ]\ Lp\ E\ 2\ (probability\ η)\ :=}
+\leanline{2}{Lp.compMeasurePreservingₗᵢ\ ℝ\ \_\ (tail\_measurePreserving\ η)}
+\end{leancode}
+\leansource{\texttt{headLp} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 69–72}
+\begin{leancode}
+\leanline{0}{def\ headLp\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ :\ Lp\ E\ 2\ (probability\ η)\ :=}
+\leanline{2}{(hη.comp\_measurePreserving\ (measurePreserving\_eval\_infinitePi\ (fun\ \_\ :\ ℕ\ ↦\ η)\ 0)).toLp}
+\leanline{4}{(fun\ ω\ :\ ℕ\ →\ E\ ↦\ ω\ 0)}
+\end{leancode}
+\leansource{\texttt{pastOperator} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 75–79}
+\begin{leancode}
+\leanline{0}{def\ pastOperator\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (a\ :\ ℝ)\ (X\ :\ Lp\ E\ 2\ (probability\ η))\ :}
+\leanline{4}{Lp\ E\ 2\ (probability\ η)\ :=}
+\leanline{2}{ULA.lpDrift\ (probability\ η)\ F\ hF\ (tailPullback\ η\ X)\ +\ a\ •\ headLp\ η\ hη}
+\end{leancode}
+\leansource{\texttt{pastOperator\_\allowbreak{}lipschitz} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 83–92}
+\begin{leancode}
+\leanline{0}{theorem\ pastOperator\_lipschitz\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (a\ :\ ℝ)\ :}
+\leanline{4}{LipschitzWith\ q\ (pastOperator\ η\ hη\ F\ q\ hF\ a)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{tail\allowbreak{}Pullback} is the actual measure-preserving pullback isometry and \texttt{head\allowbreak{}Lp} is the newest coordinate as an \texttt{Lp} vector. \texttt{past\allowbreak{}Operator} uses the shared square-integrable drift composition. \texttt{past\allowbreak{}Operator\_\allowbreak{}lipschitz} cancels the common noise, applies the drift Lipschitz bound and uses the tail isometry.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.5]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{The fixed random variable and its invariant law}{The fixed random variable and its invariant law}}
+
+
+\textbf{Claim.} There is a square-integrable random vector \(X_*\) with
+
+\[X_*(\omega)=F(X_*(\tau\omega))+a\omega_0\qquad Q\text{-almost everywhere}.\]
+
+
+Its law \(\nu\) is a probability law with finite second moment and is invariant under the independent-noise transition \(x\mapsto F(x)+a\xi\), \(\xi\sim\eta\).
+
+
+
+
+\textbf{Proof.} Banach's fixed-point theorem applied to \(\Phi\) constructs \(X_*\in L^2\). Equality in \(L^2\) yields the displayed almost-everywhere recursion after choosing representatives. The pushforward law is a probability measure, and square integrability transfers to it. Since the tail preserves \(Q\), \(X_*\circ\tau\) has law \(\nu\). Since the tail is independent of \(\omega_0\), the pair \((X_*\circ\tau,\omega_0)\) has product law \(\nu\otimes\eta\). Taking laws in the recursion therefore gives \(T\nu=\nu\) for the original independent-noise transition.
+
+\begin{leanbox}{Lean: \texttt{state}, \texttt{state\_\allowbreak{}recursion}, \texttt{law} and 3 more}
+\leansource{\texttt{state} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 95–99}
+\begin{leancode}
+\leanline{0}{def\ state\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (hq\ :\ q\ <\ 1)\ (a\ :\ ℝ)\ :\ Lp\ E\ 2\ (probability\ η)\ :=}
+\leanline{2}{ContractingWith.fixedPoint\ (pastOperator\ η\ hη\ F\ q\ hF\ a)}
+\leanline{4}{⟨hq,\ pastOperator\_lipschitz\ η\ hη\ F\ q\ hF\ a⟩}
+\end{leancode}
+\leansource{\texttt{state\_\allowbreak{}recursion} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 103–134}
+\begin{leancode}
+\leanline{0}{theorem\ state\_recursion\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (hq\ :\ q\ <\ 1)\ (a\ :\ ℝ)\ :}
+\leanline{4}{state\ η\ hη\ F\ q\ hF\ hq\ a\ =ᵐ[probability\ η]\ fun\ ω\ ↦}
+\leanline{6}{F\ (state\ η\ hη\ F\ q\ hF\ hq\ a\ (fun\ n\ ↦\ ω\ (n\ +\ 1)))\ +\ a\ •\ ω\ 0}
+\end{leancode}
+\leansource{\texttt{law} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 137–140}
+\begin{leancode}
+\leanline{0}{def\ law\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (hq\ :\ q\ <\ 1)\ (a\ :\ ℝ)\ :\ Measure\ E\ :=}
+\leanline{2}{(probability\ η).map\ (state\ η\ hη\ F\ q\ hF\ hq\ a)}
+\end{leancode}
+\leansource{\texttt{law\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 142–149}
+\begin{leancode}
+\leanline{0}{instance\ law\_isProbability\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (hq\ :\ q\ <\ 1)\ (a\ :\ ℝ)\ :}
+\leanline{4}{IsProbabilityMeasure\ (law\ η\ hη\ F\ q\ hF\ hq\ a)\ :=\ by}
+\leanline{2}{unfold\ law}
+\leanline{2}{constructor}
+\leanline{2}{rw\ [Measure.map\_apply\_of\_aemeasurable\ (Lp.aestronglyMeasurable\ \_).aemeasurable}
+\leanline{4}{MeasurableSet.univ,\ Set.preimage\_univ,\ measure\_univ]}
+\end{leancode}
+\leansource{\texttt{law\_\allowbreak{}memLp} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 152–157}
+\begin{leancode}
+\leanline{0}{theorem\ law\_memLp\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (hq\ :\ q\ <\ 1)\ (a\ :\ ℝ)\ :}
+\leanline{4}{MemLp\ (id\ :\ E\ →\ E)\ 2\ (law\ η\ hη\ F\ q\ hF\ hq\ a)}
+\end{leancode}
+\leansource{\texttt{law\_\allowbreak{}invariant} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 161–188}
+\begin{leancode}
+\leanline{0}{theorem\ law\_invariant\ (η\ :\ Measure\ E)\ [IsProbabilityMeasure\ η]}
+\leanline{4}{(hη\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ η)\ (F\ :\ E\ →\ E)\ (q\ :\ ℝ≥0)}
+\leanline{4}{(hF\ :\ LipschitzWith\ q\ F)\ (hq\ :\ q\ <\ 1)\ (a\ :\ ℝ)\ :}
+\leanline{4}{((law\ η\ hη\ F\ q\ hF\ hq\ a).prod\ η).map\ (fun\ p\ ↦\ F\ p.1\ +\ a\ •\ p.2)\ =}
+\leanline{6}{law\ η\ hη\ F\ q\ hF\ hq\ a}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{state} invokes \texttt{Contracting\allowbreak{}With.\allowbreak{}fixed\allowbreak{}Point} with the proved contraction. \texttt{state\_\allowbreak{}recursion} proves the literal almost-everywhere recursion using the pullback and drift representative identities. \texttt{law} is its actual pushforward, with probability and finite-second-moment proofs. \texttt{law\_\allowbreak{}invariant} identifies the head/\allowbreak{}tail pair law as a product, then pushes that product through the actual update.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.13.2]{LangevinLean2026ULASC}; \cite[Section~3.13.3]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Specializing the construction to the actual Gaussian ULA transition}{Specializing the construction to the actual Gaussian ULA transition}}
+
+
+\textbf{Claim.} For the potential contract and numerical parameters, take \(F(x)=x-h\nabla V(x)\), \(q=1-\alpha h\), \(\eta=\mathcal N(0,I)\) and \(a=\sqrt{2h}\). The resulting law \(\widehat\pi\) is a probability measure with finite second moment and satisfies the actual Gaussian ULA invariance equality \(T\widehat\pi=\widehat\pi\). For every probability initialization \(\mu\) with finite second moment,
+
+\[W_2(T^k\mu,\widehat\pi)\le q^kW_2(\mu,\widehat\pi),
+\qquad W_2(T^k\mu,\widehat\pi)\longrightarrow0.\]
+
+
+\textbf{Proof.} Common-noise gradient-step contraction proves the required Lipschitz bound for \(F\), and \(0\le q<1\) is already established. Standard Gaussian innovations have finite second moment, so the general construction applies. Its invariance equality is exactly the existing Gaussian law transition. Both initial laws have finite second moments, so their transport distance is finite. The actual ULA contraction gives the geometric estimate. Finally \(q^k\to0\) and the distance is nonnegative, so squeezing proves attraction.
+
+\begin{leanbox}{Lean: \texttt{ulaGradientStep}, \texttt{ulaGradientStep\_\allowbreak{}lipschitz}, \texttt{invariantLaw} and 5 more}
+\leansource{\texttt{ulaGradientStep} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 198–199}
+\begin{leancode}
+\leanline{0}{def\ ulaGradientStep\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)\ (x\ :\ E)\ :\ E\ :=}
+\leanline{2}{x\ -\ P.step\ •\ gradient\ V\ x}
+\end{leancode}
+\leansource{\texttt{ulaGradientStep\_\allowbreak{}lipschitz} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 203–212}
+\begin{leancode}
+\leanline{0}{theorem\ ulaGradientStep\_lipschitz\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{LipschitzWith\ ⟨P.contraction,\ P.contraction\_nonneg⟩\ (ulaGradientStep\ P\ V)}
+\end{leancode}
+\leansource{\texttt{invariantLaw} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 216–219}
+\begin{leancode}
+\leanline{0}{def\ invariantLaw\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)\ :\ Measure\ E\ :=}
+\leanline{2}{AdditiveInvariant.law\ (stdGaussian\ E)\ (IsGaussian.memLp\_id\ (stdGaussian\ E)\ 2\ (by\ norm\_num))}
+\leanline{4}{(ulaGradientStep\ P\ V)\ ⟨P.contraction,\ P.contraction\_nonneg⟩}
+\leanline{4}{(ulaGradientStep\_lipschitz\ P\ V\ hV)\ P.contraction\_lt\_one\ (Real.sqrt\ (2\ *\ P.step))}
+\end{leancode}
+\leansource{\texttt{invariantLaw\_\allowbreak{}isProbability} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 221–227}
+\begin{leancode}
+\leanline{0}{instance\ invariantLaw\_isProbability\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ IsProbabilityMeasure\ (invariantLaw\ P\ V\ hV)\ :=\ by}
+\leanline{2}{unfold\ invariantLaw}
+\leanline{2}{exact\ AdditiveInvariant.law\_isProbability\ (stdGaussian\ E)}
+\leanline{4}{(IsGaussian.memLp\_id\ (stdGaussian\ E)\ 2\ (by\ norm\_num))}
+\leanline{4}{(ulaGradientStep\ P\ V)\ ⟨P.contraction,\ P.contraction\_nonneg⟩}
+\leanline{4}{(ulaGradientStep\_lipschitz\ P\ V\ hV)\ P.contraction\_lt\_one\ (Real.sqrt\ (2\ *\ P.step))}
+\end{leancode}
+\leansource{\texttt{invariantLaw\_\allowbreak{}memLp} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 230–232}
+\begin{leancode}
+\leanline{0}{theorem\ invariantLaw\_memLp\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ (invariantLaw\ P\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{invariantLaw\_\allowbreak{}invariant} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 236–242}
+\begin{leancode}
+\leanline{0}{theorem\ invariantLaw\_invariant\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{ULA.ulaLawStep\ V\ P.step\ (invariantLaw\ P\ V\ hV)\ =\ invariantLaw\ P\ V\ hV}
+\end{leancode}
+\leansource{\texttt{invariantLaw\_\allowbreak{}mixing} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 246–253}
+\begin{leancode}
+\leanline{0}{theorem\ invariantLaw\_mixing\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ μ)\ (k\ :\ ℕ)\ :}
+\leanline{4}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)\ (invariantLaw\ P\ V\ hV)\ ≤}
+\leanline{6}{P.contraction\ \textasciicircum{}\ k\ *\ ULA.wasserstein2Real\ μ\ (invariantLaw\ P\ V\ hV)}
+\end{leancode}
+\leansource{\texttt{invariantLaw\_\allowbreak{}attraction} \quad WassersteinMixing/\allowbreak{}Invariant.lean, lines 256–265}
+\begin{leancode}
+\leanline{0}{theorem\ invariantLaw\_attraction\ (P\ :\ Parameters)\ (V\ :\ E\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (μ\ :\ Measure\ E)\ [IsProbabilityMeasure\ μ]}
+\leanline{4}{(hμ\ :\ MemLp\ (id\ :\ E\ →\ E)\ 2\ μ)\ :}
+\leanline{4}{Filter.Tendsto\ (fun\ k\ :\ ℕ\ ↦}
+\leanline{6}{ULA.wasserstein2Real\ ((ULA.ulaLawStep\ V\ P.step)\textasciicircum{}[k]\ μ)\ (invariantLaw\ P\ V\ hV))}
+\leanline{6}{Filter.atTop\ ({\leanfallback 𝓝}\ 0)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{ula\allowbreak{}Gradient\allowbreak{}Step\_\allowbreak{}lipschitz} specializes the proved common-noise inequality. \texttt{invariant\allowbreak{}Law} is the constructed Gaussian fixed-point law, not a supplied candidate. Its probability, finite moment and actual \texttt{ULA.\allowbreak{}ula\allowbreak{}Law\allowbreak{}Step} invariance are exported separately. \texttt{invariant\allowbreak{}Law\_\allowbreak{}mixing} invokes the proved two-law contraction with finite transport; \texttt{invariant\allowbreak{}Law\_\allowbreak{}attraction} squeezes between zero and the geometric upper bound.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.17.4]{LangevinLean2026ULASC}; \cite[Section~3.21.2]{LangevinLean2026ULASC}; \cite[Section~3.34.1]{LangevinLean2026ULASC}; \cite[Section~3.36.7]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}

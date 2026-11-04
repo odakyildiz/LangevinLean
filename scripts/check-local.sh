@@ -18,7 +18,8 @@ for audit in \
   KIPLMC/Check.lean \
   PBGSO/Check.lean \
   LatentDiffusion/Check.lean \
-  AverageLMC/Check.lean
+  AverageLMC/Check.lean \
+  WassersteinMixing/Check.lean
 do
   printf '\nAuditing %s\n' "$audit"
   lake env lean "$audit"
@@ -49,6 +50,10 @@ lake env lean LatentDiffusion/exposition/statement_checks.lean
 
 printf '\nChecking average-smoothness main sampling theorems\n'
 python3 -B scripts/verify-average-lmc-coverage.py --require-resolved
+
+printf '\nChecking Wasserstein mixing under the original source assumptions\n'
+python3 -B scripts/verify-wasserstein-mixing.py --require-complete
+python3 -B docs/test_wasserstein_scope.py
 
 printf '\nChecking the complete module proof atlas\n'
 python3 -B docs/build_site.py --check

@@ -1,0 +1,112 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The original Hessian hypothesis implies the potential contract}{The original Hessian hypothesis implies the potential contract}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+Assume \(V\in C^2(H)\) and \(\alpha I\preceq\nabla^2V(x)\preceq\beta I\), with \(0<\alpha\le\beta\). These are the source assumptions. The first-order convexity and smoothness estimates used by the probabilistic construction are consequences, proved here with the same constants.
+
+
+\section{\texorpdfstring{The sharp derivative and gradient bounds}{The sharp derivative and gradient bounds}}
+
+
+\textbf{Claim.} The quadratic-form bounds imply \(\|\nabla^2V(x)\|\le\beta\), hence \(\|\nabla V(x)-\nabla V(y)\|\le\beta\|x-y\|\).
+
+
+
+\textbf{Proof.} Scale the symmetric Hessian by \(\beta^{-1}\). It is a positive contraction in quadratic form, so its squared norm on a vector is bounded by that quadratic form and then by the vector norm squared. Rescaling yields the Hessian norm estimate. The mean-value bound for a differentiable map with uniformly bounded derivative gives the gradient estimate.
+
+\begin{leanbox}{Lean: \texttt{HessianAssumptions}, \texttt{hessian\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}forms}, \texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}hessian}}
+\leansource{\texttt{HessianAssumptions} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 20–23}
+\begin{leancode}
+\leanline{0}{structure\ HessianAssumptions\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)\ :\ Prop\ where}
+\leanline{2}{regularity\ :\ ContDiff\ ℝ\ 2\ V}
+\leanline{2}{lower\ :\ ∀\ x\ v,\ P.alpha\ *\ ‖v‖\ \textasciicircum{}\ 2\ ≤\ inner\ ℝ\ v\ (hessianOperator\ V\ x\ v)}
+\leanline{2}{upper\ :\ ∀\ x\ v,\ inner\ ℝ\ v\ (hessianOperator\ V\ x\ v)\ ≤\ P.beta\ *\ ‖v‖\ \textasciicircum{}\ 2}
+\end{leancode}
+\leansource{\texttt{hessian\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}forms} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 26–50}
+\begin{leancode}
+\leanline{0}{theorem\ hessian\_norm\_le\_of\_forms\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ HessianAssumptions\ P\ V)\ (x\ :\ H)\ :\ ‖hessianOperator\ V\ x‖\ ≤\ P.beta}
+\end{leancode}
+\leansource{\texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}hessian} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 53–59}
+\begin{leancode}
+\leanline{0}{theorem\ gradient\_lipschitz\_of\_hessian\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ HessianAssumptions\ P\ V)\ :}
+\leanline{4}{LipschitzWith\ ⟨P.beta,\ P.beta\_pos.le⟩\ (gradient\ V)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{Hessian\allowbreak{}Assumptions} records the actual second-derivative inequalities. \texttt{hessian\_\allowbreak{}norm\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}forms} applies the proved positive-contraction inequality to the scaled Hessian. \texttt{gradient\_\allowbreak{}lipschitz\_\allowbreak{}of\_\allowbreak{}hessian} applies the derivative mean-value theorem with that sharp bound.
+\end{leanbox}
+
+\section{\texorpdfstring{Integrating the lower Hessian bound}{Integrating the lower Hessian bound}}
+
+
+\textbf{Claim.} For all \(x,y\),
+
+\[V(y)\ge V(x)+\langle\nabla V(x),y-x\rangle+\frac\alpha2\|y-x\|^2.\]
+
+\textbf{Proof.} Along \(x+t(y-x)\), the derivative of \(\langle\nabla V(x+t(y-x)),y-x\rangle\) is at least \(\alpha\|y-x\|^2\). Integrating once bounds that scalar gradient; integrating again gives the displayed supporting inequality. Subtracting \(\alpha\|x\|^2/2\) yields supporting planes for a convex function. To verify convexity directly, combine its two supporting inequalities at a convex combination; the linear terms cancel. Thus the original Hessian hypothesis supplies every part of the potential contract.
+
+\begin{leanbox}{Lean: \texttt{strong\_\allowbreak{}support\_\allowbreak{}of\_\allowbreak{}hessian}, \texttt{convexOn\_\allowbreak{}of\_\allowbreak{}supporting\_\allowbreak{}planes}, \texttt{strongConvexity\_\allowbreak{}of\_\allowbreak{}hessian} and 1 more}
+\leansource{\texttt{strong\_\allowbreak{}support\_\allowbreak{}of\_\allowbreak{}hessian} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 62–103}
+\begin{leancode}
+\leanline{0}{theorem\ strong\_support\_of\_hessian\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ HessianAssumptions\ P\ V)\ (x\ y\ :\ H)\ :}
+\leanline{4}{V\ x\ +\ inner\ ℝ\ (gradient\ V\ x)\ (y\ -\ x)\ +\ P.alpha\ /\ 2\ *\ ‖y\ -\ x‖\ \textasciicircum{}\ 2\ ≤\ V\ y}
+\end{leancode}
+\leansource{\texttt{convexOn\_\allowbreak{}of\_\allowbreak{}supporting\_\allowbreak{}planes} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 108–122}
+\begin{leancode}
+\leanline{0}{theorem\ convexOn\_of\_supporting\_planes\ (F\ :\ H\ →\ ℝ)\ (G\ :\ H\ →\ H)}
+\leanline{4}{(hplane\ :\ ∀\ x\ y,\ F\ x\ +\ inner\ ℝ\ (G\ x)\ (y\ -\ x)\ ≤\ F\ y)\ :\ ConvexOn\ ℝ\ Set.univ\ F}
+\end{leancode}
+\leansource{\texttt{strongConvexity\_\allowbreak{}of\_\allowbreak{}hessian} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 125–135}
+\begin{leancode}
+\leanline{0}{theorem\ strongConvexity\_of\_hessian\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ HessianAssumptions\ P\ V)\ :\ StrongConvexOn\ Set.univ\ P.alpha\ V}
+\end{leancode}
+\leansource{\texttt{HessianAssumptions.\allowbreak{}toPotentialAssumptions} \quad WassersteinMixing/\allowbreak{}CurvatureAssumptions.lean, lines 138–142}
+\begin{leancode}
+\leanline{0}{theorem\ HessianAssumptions.toPotentialAssumptions\ (P\ :\ Parameters)\ (V\ :\ H\ →\ ℝ)}
+\leanline{4}{(hV\ :\ HessianAssumptions\ P\ V)\ :\ PotentialAssumptions\ P\ V}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{strong\_\allowbreak{}support\_\allowbreak{}of\_\allowbreak{}hessian} uses the actual gradient derivative and interval fundamental theorem. \texttt{convex\allowbreak{}On\_\allowbreak{}of\_\allowbreak{}supporting\_\allowbreak{}planes} proves the convex-combination inequality algebraically. \texttt{strong\allowbreak{}Convexity\_\allowbreak{}of\_\allowbreak{}hessian} and \texttt{Hessian\allowbreak{}Assumptions.\allowbreak{}to\allowbreak{}Potential\allowbreak{}Assumptions} assemble the consequences without additional hypotheses.
+\end{leanbox}
+
+\end{document}

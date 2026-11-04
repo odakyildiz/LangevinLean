@@ -47,6 +47,8 @@ const LIBRARIES = [
     modules: ['Exponential', 'Splitting'] },
   { key: 'AverageLMC', label: 'average', search: 'GradientStep.lean',
     modules: ['GradientStep', 'Theorem'] },
+  { key: 'WassersteinMixing', label: 'wasserstein-mixing', search: 'Recurrence.lean',
+    modules: ['Recurrence', 'Theorem'] },
 ];
 const VIEWPORTS = [
   { label: 'desktop', width: 1440, height: 1000 },
@@ -235,8 +237,16 @@ async function mathematicalPage(page, item) {
     check(source.includes('import ') && source.includes('theorem ') && source.includes(':='),
       'Complete module source includes imports, theorem statements, and proof bodies');
   } else {
-    check(await page.locator('#main-results .lean-code[data-role="statement"]').count() > 0,
-      'Expected source-derived main theorem headers');
+    const expectedHeaders = reportPlans[item.library.key].results
+      .filter(result => result.configuration === item.library.key)
+      .map(result => result.file + ':' + result.name).sort();
+    const actualHeaders = await page.locator(
+      '#main-results .lean-code[data-role="statement"], #additional-results .lean-code[data-role="statement"]')
+      .evaluateAll(headers => headers.map(header =>
+        header.dataset.source + ':' + header.dataset.declaration).sort());
+    check(expectedHeaders.length > 0 && JSON.stringify(actualHeaders) === JSON.stringify(expectedHeaders),
+      'Every paper, conditional or additional result has its exact expected source header',
+      { expected: expectedHeaders, actual: actualHeaders });
     check(await page.locator('#verification .commands').count() > 0, 'Expected a verification workflow');
     check(await page.locator('#proof-map a.box').count() > 0, 'Expected navigable proof diagram boxes');
     await diagramTypesetting(page, '#proof-map', '.diagram-node-label');
@@ -465,24 +475,38 @@ async function projectLinks(page, viewport) {
   const destination = path.join(outputDir, 'project-home-' + page.viewportSize().width + '.png');
   await page.screenshot({ path: destination, fullPage: true, animations: 'disabled' });
   screenshots.push(destination);
-  check(await page.locator('.landing-card').count() === 9, 'Project home has nine contribution cards');
+  check(await page.locator('.landing-card').count() === 10, 'Project home has ten contribution cards');
   check(await page.locator('nav.top-nav, .site-nav, .global-nav').count() === 0, 'Project home has no global top menu');
-  const shapes = await page.locator('.landing-card').evaluateAll(cards => cards.map(card =>
-    [...card.querySelectorAll('*')].map(node => node.tagName + '.' + node.className).join('|')));
-  check(new Set(shapes).size === 1, 'Every homepage entry uses exactly the same structure');
-  check(await page.locator('.landing-card a[href$="FullProof.pdf"]').count() === 9, 'Every homepage entry offers a complete proof PDF');
+  const coreFields = await page.locator('.landing-card').evaluateAll(cards => cards.map(card => [
+    ':scope > .entry-index', ':scope > .entry-main', ':scope > .entry-main > .eyebrow',
+    ':scope > .entry-main > h2 > a', ':scope > .entry-main > p', ':scope > .entry-meta',
+    ':scope > .entry-meta > .entry-source > a', ':scope > .entry-meta > .card-scope',
+    ':scope > .entry-meta > p > a[href$="FullProof.pdf"]',
+  ].map(selector => card.querySelectorAll(selector).length)));
+  check(coreFields.every(fields => fields.every(count => count === 1)),
+    'Every homepage entry has exactly one of each shared core field; optional assumption paragraphs may vary', coreFields);
+  check(await page.locator('.landing-card a[href$="FullProof.pdf"]').count() === 10, 'Every homepage entry offers a complete proof PDF');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Unadjusted Langevin under Strong Convexity'),
     'ULA card states the strong convexity assumption');
   check((await page.locator('.landing-card h2').allTextContents()).includes('Interacting Particle Langevin under Strong Convexity'),
     'IPLA card states the strong convexity assumption');
   const latentCard = page.locator('.landing-card').nth(7);
   const averageCard = page.locator('.landing-card').nth(8);
+  const mixingCard = page.locator('.landing-card').nth(9);
   check(await latentCard.locator('h2 a[href="LatentDiffusion/exposition/index.html"]').count() === 1 &&
     (await latentCard.locator('.entry-index').textContent()).trim() === '08',
     'Latent diffusion is contribution 08');
   check(await averageCard.locator('h2 a[href="AverageLMC/exposition/index.html"]').count() === 1 &&
     (await averageCard.locator('.entry-index').textContent()).trim() === '09',
     'Average-smoothness LMC follows latent diffusion as contribution 09');
+  const mixingScope = (await mixingCard.locator('.card-scope').textContent()).trim();
+  check(await mixingCard.locator('h2 a[href="WassersteinMixing/exposition/index.html"]').count() === 1 &&
+    (await mixingCard.locator('.entry-index').textContent()).trim() === '10' &&
+    /proved/i.test(mixingScope) && /original.*Hessian (?:bounds|assumptions)/i.test(mixingScope) &&
+    !/conditional|unfinished|incomplete/i.test(mixingScope) &&
+    await mixingCard.locator('.card-extra-assumptions').count() === 0,
+    'Wasserstein mixing is contribution 10 with proved original-Hessian scope and no extra assumptions',
+    { scope: mixingScope });
   for (const library of LIBRARIES.filter(library => library.key !== 'IPLA/LSI')) {
     const relative = library.key + '/exposition/index.html';
     await page.locator('.landing-card a[href="' + relative + '"]').click();

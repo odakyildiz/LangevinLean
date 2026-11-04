@@ -1,0 +1,172 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec,amsmath,amssymb,amsthm,microtype}
+\setmainfont{lmroman10-regular.otf}[BoldFont=lmroman10-bold.otf,ItalicFont=lmroman10-italic.otf,BoldItalicFont=lmroman10-bolditalic.otf]
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{mathrsfs}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\setmonofont{DejaVuSansMono.ttf}[BoldFont=DejaVuSansMono-Bold.ttf,ItalicFont=DejaVuSansMono-Oblique.ttf,BoldItalicFont=DejaVuSansMono-BoldOblique.ttf,Scale=0.86]
+\newfontfamily\leanfallback{STIXTwoMath-Regular.otf}[Scale=0.86]
+\definecolor{leanrule}{gray}{0.62}
+\definecolor{leanback}{gray}{0.962}
+\definecolor{leantitle}{gray}{0.22}
+\definecolor{leanmuted}{gray}{0.38}
+\newtcolorbox{leanbox}[1]{enhanced,breakable,colback=leanback,colframe=leanrule,
+  boxrule=0.4pt,arc=0.6mm,left=2.4mm,right=2.4mm,top=1.8mm,bottom=1.8mm,
+  before skip=0.8em,after skip=1em,fonttitle=\small\bfseries,coltitle=leantitle,
+  colbacktitle=leanback,titlerule=0.3pt,title={#1}}
+\newlength{\leancharwidth}
+\newenvironment{leancode}{\par\smallskip\begingroup\ttfamily\footnotesize\raggedright
+  \settowidth{\leancharwidth}{M}\setlength{\parskip}{0pt}\setlength{\parindent}{0pt}
+  \frenchspacing}{\par\endgroup\smallskip}
+\newcommand{\leanline}[2]{\hangindent=\dimexpr#1\leancharwidth+4\leancharwidth\relax
+  \hangafter=1\noindent\hspace*{#1\leancharwidth}#2\par}
+\newcommand{\leansource}[1]{\par{\footnotesize\color{leanmuted}#1}\par}
+\newcommand{\leanlabel}[1]{\par\smallskip\noindent{\small\bfseries #1}\par}
+\usepackage[margin=25mm]{geometry}
+\usepackage[unicode,hidelinks]{hyperref}
+\hypersetup{pdfauthor={LangevinLean Project}}
+\setlength{\emergencystretch}{3em}
+\setlength{\parskip}{0.4em}
+\setlength{\parindent}{0pt}
+\allowdisplaybreaks[2]
+\raggedbottom
+\title{\texorpdfstring{The actual Gibbs diffusion evaluations and contractions}{The actual Gibbs diffusion evaluations and contractions}}
+\author{LangevinLean Project}
+\date{}
+\begin{document}\maketitle
+Draft mathematical exposition; these notes may contain mistakes.
+
+
+The canonical Brownian Langevin solution, constructed from the potential, is stationary for the Gibbs law. Evaluating observables on its grid and interior states therefore gives actual isometries and actual contractive transition compressions, with strong continuity along each segment.
+
+
+\section{\texorpdfstring{Actual operators and their true two-time correlations}{Actual operators and their true two-time correlations}}
+
+
+\textbf{Construction.} Let \(U_nf=f(Y_{nh})\) and \(U_{n,s}f=f(Y_{nh+s})\). Their Gibbs marginal laws make them isometries. Compress against time-zero evaluation to obtain the actual transition. Its norm is at most one, its value at zero is the identity, and
+
+\[\langle P_nf,g\rangle=\int\langle f(Y_{nh}),g(Y_0)\rangle\,dQ.\]
+
+\textbf{Proof.} Apply the general compression identities to the actual stationary evaluation maps. The representative theorem identifies the abstract pairing with the displayed actual two-time integral.
+
+\begin{leanbox}{Lean: \texttt{actualEvaluation}, \texttt{actualSegmentEvaluation}, \texttt{actualTransition} and 7 more}
+\leansource{\texttt{actualEvaluation} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 23–27}
+\begin{leancode}
+\leanline{0}{def\ actualEvaluation\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →ₗᵢ[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (actualProbability\ P\ V)\ :=}
+\leanline{2}{Lp.compMeasurePreservingₗᵢ\ {\leanfallback 𝕜}\ (actualReference\ P\ V\ hV\ n)}
+\leanline{4}{⟨(Lp.stronglyMeasurable\ \_).measurable,\ actualReference\_stationary\ P\ V\ hV\ n⟩}
+\end{leancode}
+\leansource{\texttt{actualSegmentEvaluation} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 30–34}
+\begin{leancode}
+\leanline{0}{def\ actualSegmentEvaluation\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Set.Icc\ 0\ P.step)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →ₗᵢ[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (actualProbability\ P\ V)\ :=}
+\leanline{2}{Lp.compMeasurePreservingₗᵢ\ {\leanfallback 𝕜}\ (actualSegment\ P\ V\ hV\ n\ t)}
+\leanline{4}{⟨(Lp.stronglyMeasurable\ \_).measurable,\ actualSegment\_stationary\ P\ V\ hV\ n\ t\ ht⟩}
+\end{leancode}
+\leansource{\texttt{actualTransition} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 37–40}
+\begin{leancode}
+\leanline{0}{def\ actualTransition\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →L[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ :=}
+\leanline{2}{ObservableTransition.compression\ (actualEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ 0)\ (actualEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n)}
+\end{leancode}
+\leansource{\texttt{actualSegmentTransition} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 43–47}
+\begin{leancode}
+\leanline{0}{def\ actualSegmentTransition\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Set.Icc\ 0\ P.step)\ :}
+\leanline{4}{Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ →L[{\leanfallback 𝕜}]\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V)\ :=}
+\leanline{2}{ObservableTransition.compression\ (actualEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ 0)}
+\leanline{4}{(actualSegmentEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ 0\ t\ ht)}
+\end{leancode}
+\leansource{\texttt{actualTransition\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 50–53}
+\begin{leancode}
+\leanline{0}{theorem\ actualTransition\_norm\_le\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{‖actualTransition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n\ f‖\ ≤\ ‖f‖}
+\end{leancode}
+\leansource{\texttt{actualSegmentTransition\_\allowbreak{}norm\_\allowbreak{}le} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 56–60}
+\begin{leancode}
+\leanline{0}{theorem\ actualSegmentTransition\_norm\_le\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (t\ :\ ℝ)\ (ht\ :\ t\ ∈\ Set.Icc\ 0\ P.step)}
+\leanline{4}{(f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{‖actualSegmentTransition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ t\ ht\ f‖\ ≤\ ‖f‖}
+\end{leancode}
+\leansource{\texttt{actualTransition\_\allowbreak{}zero} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 63–66}
+\begin{leancode}
+\leanline{0}{@[simp]\ theorem\ actualTransition\_zero\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ :}
+\leanline{4}{actualTransition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ (F\ :=\ F)\ P\ V\ hV\ 0\ =\ ContinuousLinearMap.id\ {\leanfallback 𝕜}\ \_}
+\end{leancode}
+\leansource{\texttt{actualTransition\_\allowbreak{}inner} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 69–73}
+\begin{leancode}
+\leanline{0}{theorem\ actualTransition\_inner\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (f\ g\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{inner\ {\leanfallback 𝕜}\ (actualTransition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n\ f)\ g\ =}
+\leanline{6}{inner\ {\leanfallback 𝕜}\ (actualEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n\ f)\ (actualEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ 0\ g)}
+\end{leancode}
+\leansource{\texttt{actualEvaluation\_\allowbreak{}coe} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 77–81}
+\begin{leancode}
+\leanline{0}{theorem\ actualEvaluation\_coe\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{actualEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n\ f\ =ᵐ[actualProbability\ P\ V]}
+\leanline{6}{fun\ ω\ ↦\ f\ (actualReference\ P\ V\ hV\ n\ ω)}
+\end{leancode}
+\leansource{\texttt{actualTransition\_\allowbreak{}correlation} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 84–93}
+\begin{leancode}
+\leanline{0}{theorem\ actualTransition\_correlation\ (P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)}
+\leanline{4}{(hV\ :\ PotentialAssumptions\ P\ V)\ (n\ :\ ℕ)\ (f\ g\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{inner\ {\leanfallback 𝕜}\ (actualTransition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n\ f)\ g\ =}
+\leanline{6}{∫\ ω,\ inner\ {\leanfallback 𝕜}\ (f\ (actualReference\ P\ V\ hV\ n\ ω))}
+\leanline{8}{(g\ (actualReference\ P\ V\ hV\ 0\ ω))\ ∂actualProbability\ P\ V}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+The definitions use the actual reference state and its proved stationary law. Norm and zero identities specialize the compression results. \texttt{actual\allowbreak{}Evaluation\_\allowbreak{}coe} and \texttt{actual\allowbreak{}Transition\_\allowbreak{}correlation} compare exact pullback representatives.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
+
+\section{\texorpdfstring{Strong continuity from the actual continuous reference path}{Strong continuity from the actual continuous reference path}}
+
+
+\textbf{Claim.} Every square-integrable target observable has norm-continuous evaluation along an actual reference segment; its compressed transition orbit is also continuous.
+
+
+
+\textbf{Proof.} The reference segment is continuous in \(L^2\) and has the same Gibbs law throughout the interval. The stationary-observable continuity theorem applies to every observable, not just bounded continuous ones. The fixed initial evaluation adjoint is bounded and hence preserves this convergence after compression.
+
+\begin{leanbox}{Lean: \texttt{continuous\_\allowbreak{}actualSegmentEvaluation}, \texttt{continuous\_\allowbreak{}actualSegmentTransition}}
+\leansource{\texttt{continuous\_\allowbreak{}actualSegmentEvaluation} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 98–115}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_actualSegmentEvaluation\ [NormedSpace\ ℝ\ F]}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(n\ :\ ℕ)\ (f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{Continuous\ (fun\ t\ :\ Set.Icc\ (0\ :\ ℝ)\ P.step\ ↦}
+\leanline{6}{actualSegmentEvaluation\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ n\ t\ t.property\ f)}
+\end{leancode}
+\leansource{\texttt{continuous\_\allowbreak{}actualSegmentTransition} \quad WassersteinMixing/\allowbreak{}SemigroupActual.lean, lines 118–124}
+\begin{leancode}
+\leanline{0}{theorem\ continuous\_actualSegmentTransition\ [NormedSpace\ ℝ\ F]}
+\leanline{4}{(P\ :\ Parameters)\ (V\ :\ E\ P.dimension\ →\ ℝ)\ (hV\ :\ PotentialAssumptions\ P\ V)}
+\leanline{4}{(f\ :\ Lp\ F\ 2\ (ULA.gibbsMeasure\ V))\ :}
+\leanline{4}{Continuous\ (fun\ t\ :\ Set.Icc\ (0\ :\ ℝ)\ P.step\ ↦}
+\leanline{6}{actualSegmentTransition\ ({\leanfallback 𝕜}\ :=\ {\leanfallback 𝕜})\ P\ V\ hV\ t\ t.property\ f)}
+\end{leancode}
+\leanlabel{How the Lean proof follows the argument}
+\texttt{continuous\_\allowbreak{}actual\allowbreak{}Segment\allowbreak{}Evaluation} applies \texttt{Stationary\allowbreak{}Observables.\allowbreak{}evaluation\_\allowbreak{}tendsto} to the constructed continuous segment. \texttt{continuous\_\allowbreak{}actual\allowbreak{}Segment\allowbreak{}Transition} composes with the continuous adjoint of time-zero evaluation.
+\end{leanbox}
+
+
+Earlier results used here: \cite[Section~3.26.3]{LangevinLean2026ULASC}.
+
+\begin{thebibliography}{ULA-LSI}
+\bibitem[ULA-SC]{LangevinLean2026ULASC}
+LangevinLean Project. \emph{Unadjusted Langevin under Strong Convexity}. LL-01, 2026. Draft report, content revision d34ead06987c. \url{https://odakyildiz.github.io/LangevinLean/docs/pdf/UnadjustedLangevin/FullProof.pdf}.
+\end{thebibliography}
+
+\end{document}
