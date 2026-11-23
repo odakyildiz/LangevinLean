@@ -116,7 +116,7 @@ def shell(page, title, body):
             body = f'<div class="breadcrumb">{crumb}</div>' + body
     return ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            '<meta name="robots" content="noindex, nofollow, noarchive">'
+            '<meta name="robots" content="index, follow">'
             f'<title>{E(plain_math_text(title))} · LangevinLean</title>'
             f'<link rel="stylesheet" href="{relative("docs/assets/katex.css",page)}">'
             f'<link rel="stylesheet" href="{asset_href(relative("docs/assets/site.css",page), SITE_CSS)}">'
