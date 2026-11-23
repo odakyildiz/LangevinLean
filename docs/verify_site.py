@@ -108,7 +108,7 @@ def verify():
         text=target.read_text()
         doc=parse(target)
         assert text.startswith('<!doctype html>'),f'Incomplete HTML: {path}'
-        assert doc.robots==['noindex, nofollow, noarchive'],f'Missing publication indexing restrictions: {path}'
+        assert doc.robots==['index, follow'],f'Missing search indexing metadata: {path}'
         assert len(doc.ids)==len(set(doc.ids)),f'Duplicate HTML IDs: {path}'
         assert 'katex-error' not in text,f'Invalid rendered formula: {path}'
         assert not re.search(r'\\[\[(]',''.join(doc.text)),f'Unrendered mathematics: {path}'
@@ -189,7 +189,7 @@ def verify():
                  'UnadjustedLangevin/LSI/exposition/proof.html',
                  'IPLA/LSI/exposition/proof.html','IPLA/exposition/proof.html',
                  'ProximalLangevin/exposition/proof.html']:
-        assert parse(ROOT/path).robots==['noindex, nofollow, noarchive'],f'Missing legacy indexing restrictions: {path}'
+        assert parse(ROOT/path).robots==['index, follow'],f'Missing legacy search indexing metadata: {path}'
     from build_pdfs import verify as verify_pdfs
     verify_pdfs()
     print(f'Verified {len(sources)} module pages, LaTeX exports and complete PDF proofs; '

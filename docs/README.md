@@ -337,9 +337,10 @@ fails if any generated file is stale. `bash scripts/check-local.sh` runs these
 checks locally alongside the Lean builds, axiom audits, and legacy exposition
 checks. The repository contains no GitHub Actions workflows.
 
-All generated HTML carries `noindex, nofollow, noarchive` metadata, including
-module pages and archived expositions. Publication uses the existing `gh-pages`
-branch with `.nojekyll`; generation and verification run locally.
+All generated HTML allows search indexing with `index, follow` metadata,
+including module pages and archived expositions. Publication uses the existing
+`gh-pages` branch with `.nojekyll` and a permissive `robots.txt`; generation and
+verification run locally.
 The repository owner approved publication of the reviewed kinetic and KIPLMC
 pages with their documented scope qualifications on 23 October 2026. The `papers/`
 directory stays on `main` and must be excluded from every publication. Use

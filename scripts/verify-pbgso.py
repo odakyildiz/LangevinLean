@@ -381,7 +381,7 @@ def verify(require_complete=False):
         target = ROOT/path
         doc = parse(target)
         assert text.startswith('<!doctype html>'), f'Incomplete HTML: {path}'
-        assert doc.robots == ['noindex, nofollow, noarchive']
+        assert doc.robots == ['index, follow']
         assert len(doc.ids) == len(set(doc.ids)), f'Duplicate HTML IDs: {path}'
         assert 'katex-error' not in text, f'Invalid math: {path}'
         verify_prose_math(text, path)

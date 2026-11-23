@@ -281,8 +281,9 @@ update workflows without an explicit request.
 Develop and review on `main`. The repository owner approved publication of the
 reviewed kinetic Langevin and KIPLMC pages with their documented scope
 qualifications on 23 October 2026. Publish locally verified snapshots to `gh-pages` at
-`/ (root)`, retaining `noindex, nofollow, noarchive` metadata on every HTML page,
-the publication's `robots.txt`, and `.nojekyll`. [index.html](index.html) is the
+`/ (root)`, allowing search indexing with `index, follow` metadata on every HTML
+page and retaining the publication's permissive `robots.txt` and `.nojekyll`.
+[index.html](index.html) is the
 entry point. GitHub Pages handles serving the already generated static files;
 Lean compilation and documentation generation run locally.
 

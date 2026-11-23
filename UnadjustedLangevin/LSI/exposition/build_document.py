@@ -253,7 +253,7 @@ def build():
     embedded = json.dumps(sources, ensure_ascii=False).replace('<', '\\u003c').replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
     page = ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            '<meta name="robots" content="noindex, nofollow, noarchive">'
+            '<meta name="robots" content="index, follow">'
             '<title>' + html.escape(SHARED.MATH.plain_math_text(title)) + '</title>'
             '<meta name="description" content="' + html.escape(SHARED.MATH.plain_math_text(description), quote=True) + '">'
             '<style>' + SHARED.katex_css() + '\n' + style_path.read_text() +
